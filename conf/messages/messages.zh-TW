@@ -297,6 +297,7 @@ mobile.validate.leave.feedback = 請給予意見回饋
 authenticate.email = 電子郵件地址
 authenticate.password = 密碼
 authenticate.submit = 送出
+authenticate.remember.me = 保持登入狀態
 authenticate.new = 您是新使用者嗎？ <a href="#" id="form-open-sign-up">請註冊！</a>
 authenticate.non.member = 還不是會員嗎？ <a href="{0}">請註冊</a>
 authenticate.confirm.password = 確認密碼

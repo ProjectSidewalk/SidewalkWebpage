@@ -1,6 +1,15 @@
 {
     "curb-ramp": "curb style",
     "curb-ramps": "curb styles",
+    "center-ui": {
+        "context-menu": {
+            "tag": {
+                "litter-garbage": "debris/trash (<tag-underline>x</tag-underline>)",
+                "parked-bike": "parked bi<tag-underline>k</tag-underline>e/cycle",
+                "brick-cobblestone": "cobblestone (<tag-underline>i</tag-underline>)"
+            }
+        }
+    },
     "popup": {
         "label-shortcuts-curb-ramp": "You can also press the <kbd>{{key}}</kbd> key for selecting the Curb Style label."
     }

@@ -65,6 +65,8 @@ state.name.missouri = MO
 state.name.california = CA
 state.name.south-carolina = SC
 state.name.michigan = MI
+state.name.wisconsin = WI
+state.name.new-york = NY
 
 navbar.explore = Explore
 navbar.validate = Validate
@@ -244,6 +246,7 @@ mobile.validate.leave.feedback = Leave Feedback
 authenticate.email = Email address
 authenticate.password = Password
 authenticate.submit = Submit
+authenticate.remember.me = Keep me signed in
 authenticate.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
 authenticate.non.member = Not a member? <a href="{0}">Sign up now</a>
 authenticate.confirm.password = Confirm password

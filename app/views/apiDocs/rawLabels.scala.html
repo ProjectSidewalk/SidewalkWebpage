@@ -67,6 +67,14 @@
         <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
         <p>Retrieve a list of raw labels, optionally filtered by various criteria.</p>
         <p><code>GET /v3/api/rawLabels</code></p>
+        <div class="api-subsection" id="endpoint-example-section">
+            <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+            <p><code><a href="/v3/api/rawLabels?filetype=geojson">/v3/api/rawLabels?filetype=geojson</a></code> Get all raw labels in GeoJSON (default)</p>
+            <p><code><a target="_blank" href="/v3/api/rawLabels?filetype=geojson&inline=true">/v3/api/rawLabels?filetype=geojson&inline=true</a></code> Get all raw labels in GeoJSON but opened in the browser</p>
+            <p><code><a href="/v3/api/rawLabels?filetype=csv">/v3/api/rawLabels?filetype=csv</a></code> Get all raw labels in a CSV</p>
+            <p><code><a href="/v3/api/rawLabels?labelType=CurbRamp">/v3/api/rawLabels?labelType=CurbRamp</a></code> Get all raw labels of type <code>CurbRamp</code>. The available label types match those in the <a href="@routes.ApiDocsController.labelTypes">Label Types API</a></p>
+            <p><code><a href="/v3/api/rawLabels?labelType=SurfaceProblem&minSeverity=4">/v3/api/rawLabels?labelType=SurfaceProblem&minSeverity=4</a></code> Get all raw labels of type <code>SurfaceProblem</code> with a minimum severity of 4.</p>
+        </div>
     </div>
 
     <div class="api-section" id="quick-download-section">
@@ -144,9 +152,9 @@
                         <td>Filter by one or more label types. Provide comma-separated values (e.g., <code>labelType=CurbRamp,Obstacle</code>). See <a href="@routes.ApiDocsController.labelTypes">Label Types Reference</a> for available types. </td>
                     </tr>
                     <tr>
-                        <td><code>tag</code></td>
+                        <td><code>tags</code></td>
                         <td><code>string</code></td>
-                        <td>Filter by one or more tags associated with labels. Provide comma-separated values (e.g., <code>tag=missing_tactile_warning,uneven_surface</code>). Matches labels containing *any* of the specified tags. See <a href="#tags-reference">Tags Reference</a> for available tags. </td>
+                        <td>Filter by one or more tags associated with labels. Provide comma-separated values (e.g., <code>tags=missing tactile warning,uneven surface</code>). Matches labels containing *any* of the specified tags. See <a href="#tags-reference">Tags Reference</a> for available tags. </td>
                     </tr>
                     <tr>
                         <td><code>minSeverity</code></td>
@@ -177,6 +185,11 @@
                         <td><code>filetype</code></td>
                         <td><code>string</code></td>
                         <td>Specify the output format. Options: <code>geojson</code> (default), <code>csv</code>, <code>shapefile</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>inline</code></td>
+                        <td><code>boolean</code></td>
+                        <td>Whether to display the file inline or as an attachment. Default: <code>false</code> (attachment). Set to <code>true</code> to view data in the browser instead of downloading.</td>
                     </tr>
                 </tbody>
             </table>

@@ -26,7 +26,7 @@
             <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
             @b3.email(signInForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
             @b3.password(signInForm("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'pattern -> "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$", 'title -> "Password must contain at least one uppercase letter, one lowercase letter, and one number")
-            @b3.checkbox(signInForm("rememberMe"), '_text -> Messages("remember.me"), 'checked -> true)
+            @b3.checkbox(signInForm("rememberMe"), '_text -> Messages("authenticate.remember.me"), 'checked -> true)
             @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("navbar.signin") }
         }
         <div>

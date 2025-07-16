@@ -24,7 +24,7 @@ case class Config(
     tutorialStreetEdgeID: Int,
     offsetHours: Int,
     makeCrops: Boolean,
-    excludedTags: String
+    excludedTags: Seq[ExcludedTag]
 )
 
 class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
@@ -40,7 +40,7 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
   def tutorialStreetEdgeID: Rep[Int]         = column[Int]("tutorial_street_edge_id")
   def offsetHours: Rep[Int]                  = column[Int]("update_offset_hours")
   def makeCrops: Rep[Boolean]                = column[Boolean]("make_crops")
-  def excludedTags: Rep[String]              = column[String]("excluded_tags")
+  def excludedTags: Rep[Seq[ExcludedTag]]    = column[Seq[ExcludedTag]]("excluded_tags", O.Default(List.empty))
 
   override def * = (
     openStatus,
@@ -52,9 +52,9 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
     makeCrops,
     excludedTags
   ).shaped <> (
-    { case (openStatus, mapathonEventLink, cityMapParams, tutorialStreetEdgeID, offsetHours, makeCrops, excludedTag) =>
+    { case (openStatus, mapathonEventLink, cityMapParams, tutorialStreetEdgeID, offsetHours, makeCrops, excludedTags) =>
       Config(openStatus, mapathonEventLink, MapParams.tupled.apply(cityMapParams), tutorialStreetEdgeID, offsetHours,
-        makeCrops, excludedTag)
+        makeCrops, excludedTags)
     },
     { c: Config =>
       def f1(i: MapParams) = MapParams.unapply(i).get
@@ -127,7 +127,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     config.map(_.offsetHours).result.head
   }
 
-  def getExcludedTagsString: DBIO[String] = {
+  def getExcludedTagsString: DBIO[Seq[ExcludedTag]] = {
     config.map(_.excludedTags).result.head
   }
 }

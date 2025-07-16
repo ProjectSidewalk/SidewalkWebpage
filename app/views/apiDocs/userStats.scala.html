@@ -35,7 +35,7 @@
 
         <div id="user-stats-preview">Loading user stats data...</div>
 
-        <script src='@assets.path("javascripts/lib/chart-4.4.9.umd.min.js")'></script>
+        <script src='@assets.path("javascripts/lib/chart-4.5.0.min.js")'></script>
         <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/user-stats.css")">
         <script src="@routes.Assets.versioned("javascripts/api-docs/user-stats-preview.js")"></script>
         <script>
@@ -56,11 +56,11 @@
         <p><code>GET /v3/api/userStats</code></p>
         <div class="api-subsection" id="endpoint-example-section">
             <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
-            <p><code><a href="/v3/api/userStats?filetype=json">/v3/api/userStats?filetype=json</a></code> Get all user stats for @cityName in JSON (default)</p>
+            <p><code><a target="_blank" href="/v3/api/userStats?filetype=json">/v3/api/userStats?filetype=json</a></code> Get all user stats for @cityName in JSON (default)</p>
             <p><code><a href="/v3/api/userStats?filetype=csv">/v3/api/userStats?filetype=csv</a></code> Get all user stats for @cityName in CSV</p>
-            <p><code><a href="/v3/api/userStats?filetype=csv&highQualityOnly=True">/v3/api/userStats?filetype=csv&highQualityOnly=true</a></code> Get all user stats for users marked as high_quality (in CSV)</p>
-            <p><code><a href="/v3/api/userStats?filetype=json&minLabels=10">/v3/api/userStats?filetype=json&minLabels=10</a></code> Get all user stats for users with 10 labels or more (in JSON)</p>
-            <p><code><a href="/v3/api/userStats?filetype=json&minLabels=10&min_accuracy=0.9">/v3/api/userStats?filetype=json&minLabels=10&min_accuracy=0.9</a></code> Get all user stats for users with 10 labels or more and a 90% accuracy or better (in JSON)</p>
+            <p><code><a href="/v3/api/userStats?filetype=csv&highQualityOnly=true">/v3/api/userStats?filetype=csv&highQualityOnly=true</a></code> Get all user stats for users marked as high_quality (in CSV)</p>
+            <p><code><a target="_blank" href="/v3/api/userStats?filetype=json&minLabels=10">/v3/api/userStats?filetype=json&minLabels=10</a></code> Get all user stats for users with 10 labels or more (in JSON)</p>
+            <p><code><a target="_blank" href="/v3/api/userStats?filetype=json&minLabels=10&min_accuracy=0.9">/v3/api/userStats?filetype=json&minLabels=10&min_accuracy=0.9</a></code> Get all user stats for users with 10 labels or more and a 90% accuracy or better (in JSON)</p>
         </div>
     </div>
 
@@ -105,23 +105,17 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td><code>filetype</code></td>
-                        <td><code>string</code></td>
-                        <td>Specify the output format. Options: <code>json</code> (default), <code>csv</code>.</td>
-                    </tr>
-
-                    <tr>
                         <td><code>minLabels</code></td>
                         <td><code>integer</code></td>
                         <td>Filter users with at least this many total labels. Default: 0 (no minimum).</td>
                     </tr>
                     <tr>
-                        <td><code>min_meters</code></td>
+                        <td><code>minMetersExplored</code></td>
                         <td><code>number</code></td>
                         <td>Filter users who have explored at least this many meters. Default: 0 (no minimum).</td>
                     </tr>
                     <tr>
-                        <td><code>min_accuracy</code></td>
+                        <td><code>minAccuracy</code></td>
                         <td><code>number</code></td>
                         <td>Filter users with at least this label accuracy (0.0-1.0). Users without validation data will be excluded.</td>
                     </tr>
@@ -129,6 +123,11 @@
                         <td><code>highQualityOnly</code></td>
                         <td><code>boolean</code></td>
                         <td>When set to <code>true</code>, only include users flagged as high quality contributors. Default: <code>false</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>filetype</code></td>
+                        <td><code>string</code></td>
+                        <td>Specify the output format. Options: <code>json</code> (default), <code>csv</code>.</td>
                     </tr>
 
                         <!--

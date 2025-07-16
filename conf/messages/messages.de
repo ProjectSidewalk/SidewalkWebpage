@@ -249,6 +249,7 @@ mobile.validate.leave.feedback = Rückmeldung verfassen
 authenticate.email = E-Mail-Adresse
 authenticate.password = Passwort
 authenticate.submit = Übermitteln
+authenticate.remember.me = Ich möchte angemeldet bleiben
 authenticate.new = Neu dabei? <a href="#" id="form-open-sign-up">Registrieren!</a>
 authenticate.non.member = Kein Mitglied? <a href="{0}">Registrieren Sie sich jetzt</a>
 authenticate.confirm.password = Passwort wiederholen

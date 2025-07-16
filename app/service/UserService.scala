@@ -31,6 +31,7 @@ case class AdminUserProfileData(
     currentRegion: Option[Region],
     numCompletedAudits: Int,
     hoursWorked: Float,
+    labelsPerMeter: Option[Float],
     completedMissions: Seq[RegionalMission],
     exploreComments: Seq[AuditTaskComment]
 )

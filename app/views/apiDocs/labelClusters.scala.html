@@ -73,9 +73,9 @@
         <p><code>GET /v3/api/labelClusters</code></p>
         <div class="api-subsection" id="endpoint-example-section">
             <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
-            <p><code><a href="/v3/api/labelClusters?filetype=json">/v3/api/labelClusters?filetype=json</a></code> Get all label clusters in JSON (default)</p>
-            <p><code><a href="/v3/api/labelClusters?filetype=json&inline=true">/v3/api/labelClusters?filetype=json&inline=true</a></code> Get all label clusters in JSON but opened in the browser</p>
-            <p><code><a href="/v3/api/labelClusters?filetype=csv">/v3/api/labelClusters?filetype=csv</a></code> Get all label clusters in CSV</p>
+            <p><code><a href="/v3/api/labelClusters?filetype=geojson">/v3/api/labelClusters?filetype=geojson</a></code> Get all label clusters in GeoJSON (default)</p>
+            <p><code><a target="_blank" href="/v3/api/labelClusters?filetype=geojson&inline=true">/v3/api/labelClusters?filetype=geojson&inline=true</a></code> Get all label clusters in GeoJSON but opened in the browser</p>
+            <p><code><a href="/v3/api/labelClusters?filetype=csv">/v3/api/labelClusters?filetype=csv</a></code> Get all label clusters in a CSV</p>
             <p><code><a href="/v3/api/labelClusters?includeRawLabels=true">/v3/api/labelClusters&includeRawLabels=true</a></code> Get all label clusters and the raw labels within each cluster.</p>
             <p><code><a href="/v3/api/labelClusters?labelType=CurbRamp">/v3/api/labelClusters?labelType=CurbRamp</a></code> Get all label clusters of type <code>CurbRamp</code>. The available label types match those in the <a href="@routes.ApiDocsController.labelTypes">Label Types API</a></p>
             <p><code><a href="/v3/api/labelClusters?labelType=SurfaceProblem&minSeverity=4">/v3/api/labelClusters?labelType=SurfaceProblem&minSeverity=4</a></code> Get all label clusters of type <code>SurfaceProblem</code> with a minimum median severity of 4.</p>
@@ -420,6 +420,9 @@
 
         <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
         <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). </p>
+
+        <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
+        <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage file (<code>.gpkg</code>). This is an open standard format based on SQLite that contains both geometry and attributes in a single file, generally without the field name limitations of Shapefiles. CRS is typically WGS84 (EPSG:4326). </p>
 
         <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
         <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>

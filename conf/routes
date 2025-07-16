@@ -62,7 +62,6 @@ GET     /adminapi/label/id/:labelId                     controllers.AdminControl
 GET     /adminapi/labelCounts                           controllers.AdminController.getAllUserLabelCounts
 GET     /adminapi/panos                                 controllers.api.LabelApiController.getAllPanoIdsWithLabels
 GET     /adminapi/labels/cvMetadata                     controllers.api.LabelApiController.getAllLabelMetadataForCV(filetype: Option[String], inline: Option[Boolean])
-GET     /adminapi/attributes/all                        controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                      controllers.AdminController.getAllUserValidationCounts
 PUT     /adminapi/clearPlayCache                        controllers.AdminController.clearPlayCache()
 GET     /adminapi/updateUserStats                       controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
@@ -162,12 +161,12 @@ POST    /saveImage                                      controllers.ImageControl
 POST    /api/gemini/analyze                             controllers.GeminiController.analyzeImage()
 
 # Public API (v3) for Project Sidewalk data and metadata.
-GET     /v3/api/rawLabels                               controllers.api.LabelApiController.getRawLabelsV3(bbox: Option[String], labelType: Option[String], tag: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], validationStatus: Option[String], startDate: Option[String], endDate: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/rawLabels                               controllers.api.LabelApiController.getRawLabelsV3(bbox: Option[String], labelType: Option[String], tags: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], validationStatus: Option[String], startDate: Option[String], endDate: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/labelTypes                              controllers.api.LabelApiController.getLabelTypes
 GET     /v3/api/labelTags                               controllers.api.LabelApiController.getLabelTags
 GET     /v3/api/regionWithMostLabels                    controllers.api.RegionApiController.getRegionWithMostLabels
-GET     /v3/api/cities                                  controllers.api.CitiesApiController.getCities
-GET     /v3/api/userStats                               controllers.api.StatsApiController.getUserApiStats(minLabels: Option[Int], minMetersExplored: Option[Float], highQualityOnly: Option[Boolean], minLabelAccuracy: Option[Float], filetype: Option[String])
+GET     /v3/api/cities                                  controllers.api.CitiesApiController.getCities(filetype: String ?= "json")
+GET     /v3/api/userStats                               controllers.api.StatsApiController.getUserApiStats(minLabels: Option[Int], minMetersExplored: Option[Float], highQualityOnly: Option[Boolean], minAccuracy: Option[Float], filetype: Option[String])
 GET     /v3/api/overallStats                            controllers.api.StatsApiController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
 GET     /v3/api/labelClusters                           controllers.api.LabelClustersApiController.getLabelClustersV3(bbox: Option[String], labelType: Option[String], regionId: Option[Int], regionName: Option[String], includeRawLabels: Option[Boolean], clusterSize: Option[Int], avgImageCaptureDate: Option[String], avgLabelDate: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streets                                 controllers.api.StreetsApiController.getStreets(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], minAuditCount: Option[Int], minUserCount: Option[Int], wayType: Option[String], filetype: Option[String], inline: Option[Boolean])
