@@ -979,3 +979,54 @@ var(--breakpoint-md) → 992px */
         padding: 8px 10px;
     }
 }
+
+/* Enhanced permalink styling for clipboard functionality */
+.permalink {
+  cursor: pointer;
+  transition: opacity var(--transition-fast), color var(--transition-fast);
+}
+
+.permalink:hover {
+  opacity: 1;
+  color: var(--color-accent-link);
+}
+
+.permalink:focus {
+  outline: 2px solid var(--color-accent-link);
+  outline-offset: 2px;
+  opacity: 1;
+}
+
+/* Toast notification styles */
+.copy-toast {
+  background-color: var(--color-text-heading);
+  color: var(--color-text-on-accent);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  box-shadow: var(--box-shadow);
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.copy-toast-success {
+  background-color: var(--color-success);
+}
+
+.copy-toast-error {
+  background-color: var(--color-error);
+}
+
+.copy-toast-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Ensure toasts appear above everything */
+.copy-toast {
+  z-index: 10000;
+}
