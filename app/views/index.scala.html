@@ -306,7 +306,10 @@
                 const language = "@messages.lang.code";
                 const countryId = "@currentCity.countryId";
                 util.initializeI18Next(language, ['common'], 'common', countryId, function () {
-                    var params = {
+                    const mapboxApiKey = "@mapboxApiKey";
+
+                    // Create the choropleth map.
+                    const choroplethParams = {
                         mapName: 'landing-choropleth',
                         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
                         mapboxLogoLocation: 'bottom-right',
@@ -316,14 +319,22 @@
                         neighborhoodFillMode: 'completionRate',
                         neighborhoodTooltip: 'completionRate'
                     };
-                    CreatePSMap($, params).then(m => {
+                    CreatePSMap($, choroplethParams).then(m => {
                         window.choropleth = m[0];
                     });
-                });
 
-                // Initialize the deployment map with the MapBox API key.
-                const mapboxApiKey = "@mapboxApiKey";
-                initializeDeploymentMap(mapboxApiKey);
+                    // Create the deployment cities map.
+                    const deploymentMapParams = {
+                        mapName: 'deployment-map',
+                        mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+                        mapboxLogoLocation: 'bottom-left',
+                        scrollWheelZoom: false,
+                        loadCities: true
+                    };
+                    CreatePSMap($, deploymentMapParams).then(m => {
+                        window.deploymentMap = m[0];
+                    });
+                });
             });
         </script>
     </div>
