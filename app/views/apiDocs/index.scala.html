@@ -4,18 +4,22 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
+    <script src="@routes.Assets.versioned("javascripts/common/aggregate-stats.js")"></script>
+
     <div class="api-section" id="introduction">
         <h1 class="api-heading" id="project-sidewalk-apis">Project Sidewalk APIs <a href="#project-sidewalk-apis" class="permalink">#</a></h1>
         <p>
             Project Sidewalk is a web tool for mapping and assessing sidewalk conditions using a combination of
-            crowdsourcing, artificial intelligence (AI), and online map imagery. Project Sidewalk's mission is to
+            crowdsourcing, artificial intelligence (AI), and online map imagery. Our mission is to
             develop scalable, low-cost techniques that accurately <strong>map and assess every sidewalk in the world
             </strong> to help transform the walkability, rollability, and safety of cities and to enable new urban
             analytics and personalized mapping tools for varying mobility levels.
         </p>
-
+        <p id="project-sidewalk-aggregate-stats">
+            TODO
+        </p>
         <p>
-            All Project Sidewalk data is public and can be accessed in popular formats like CSV, GeoJSON, or shape files
+            All Project Sidewalk <strong>data is open and public</strong>, accessible in popular formats like CSV, GeoJSON, or shape files
             or accessed programmatically via our APIs.
         </p>
         <h2 class="api-heading" id="data">API Overview<a href="#data" class="permalink">#</a></h2>
