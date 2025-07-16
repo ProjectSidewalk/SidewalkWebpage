@@ -54,7 +54,7 @@
     left: 735px;
     top: 31px;
     width: 200px;
-    color: rgb(127, 127, 127);
+    color: rgb(75, 75, 75, 1);
 }
 
 .status-box {
@@ -65,7 +65,7 @@
 }
 
 .status-box a {
-    color: rgba(128, 128, 128, 1);
+    color: rgb(75, 75, 75, 1);
     text-decoration: underline;
 }
 

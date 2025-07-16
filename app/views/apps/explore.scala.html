@@ -330,12 +330,16 @@
                     </div>
                     <br class="clear">
                 </div>
-                <div id="label-counter-status-box" class="status-box">
-                    <div id="label-counter"></div>
-                </div>
-                <div id="mission-guidance-status-box" class="status-box">
-                    <span id="mission-guidance-status" data-toggle="popover"></span>
-                </div>
+                @if(currentCity.cityId == "chandigarh-india") {
+                    <div id="mission-guidance-status-box" class="status-box">
+                        <h1 id="mission-guidance-header">Mission Guidance</h1>
+                        <span id="mission-guidance-status"></span>
+                    </div>
+                } else {
+                    <div id="label-counter-status-box" class="status-box">
+                        <div id="label-counter"></div>
+                    </div>
+                }
             </div>
             <div id="interaction-area-holder" onSelectStart="return true;">
                 <div id="alert-holder" style="display: none">
