@@ -4,6 +4,9 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
+    <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/api-docs/label-tags.css")">
+    <script src="@routes.Assets.versioned("javascripts/api-docs/label-tags-preview.js")"></script>
+
     <div class="api-section" id="introduction">
         <h1 class="api-heading" id="project-sidewalk-apis">Project Sidewalk APIs <a href="#project-sidewalk-apis" class="permalink">#</a></h1>
         <p>
@@ -84,8 +87,6 @@
 
             <div id="label-tags-preview"></div>
 
-            <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/api-docs/label-tags.css")">
-            <script src="@routes.Assets.versioned("javascripts/api-docs/label-tags-preview.js")"></script>
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     LabelTagsPreview.setup({
