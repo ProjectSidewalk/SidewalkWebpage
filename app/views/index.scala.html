@@ -2,8 +2,8 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @(title: String, commonData: CommonPageData, user: SidewalkUserWithRole, openStatus: String,
-        mapathonLink: Option[String], streetDistance: Float, auditedDistance: Float, labelCount: Int, valCount: Int,
-        mapboxApiKey: String
+    mapathonLink: Option[String], streetDistance: Float, auditedDistance: Float, labelCount: Int, valCount: Int,
+    mapboxApiKey: String
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
@@ -12,318 +12,337 @@
 @streetCompletionRate = @{100 * auditedDistance / streetDistance}
 
 @common.main(commonData, title) {
-  @common.navbar(commonData, Some(user))
-  <div id="vidbanner">
-    <video playsinline autoplay muted loop poster='@assets.path("assets/psmockup.jpg")' id="bgvid"
-      class="visible-desktop">
-      <source src='@assets.path("assets/mainvideo.webm")' type="video/webm">
-      <source src='@assets.path("assets/mainvideo.mp4")' type="video/mp4">
-    </video>
-    <div id="overlay-top" style="width: 100%;
-              height: 100%;
-              position: absolute;
-              top: 0px;
-              background-color: rgba(192, 190, 207, 0.4);
-              left: 0px;">
-    </div>
-
-    @if(newsRibbonLink.isDefined && newsRibbonLink.exists(_.trim.nonEmpty)) {
-      <a href="@newsRibbonLink" class="ps-news-ribbon">News on PS</a>
-    }
-
-    <div class="container" id="banner">
-      <div class="row" id="bigtext">
-        <div class="col-sm-3"></div>
-        <div class="col-sm-6" id="bannertext">
-          <p id="text">
-            <span class="tagline">@Messages("landing.create.path")</span>
-          </p>
-          <br>
-          <a class="body-start-btn" href="@routes.ExploreController.explore()">@Messages("landing.start.exploring")
-            @currentCity.cityNameShort</a>
-          <br><br>
-          <span class="header-text">@Html(Messages("landing.new.deployment"))</span>
-          <br>
-          @if(mapathonLink.isDefined) {
-          <span class="header-text">@Html(Messages("landing.mapathon", currentCity.cityNameShort,
-            mapathonLink.get))</span>
-          }
+    @common.navbar(commonData, Some(user))
+    <div id="vidbanner">
+        <video playsinline autoplay muted loop poster='@assets.path("assets/psmockup.jpg")' id="bgvid"
+        class="visible-desktop">
+            <source src='@assets.path("assets/mainvideo.webm")' type="video/webm">
+            <source src='@assets.path("assets/mainvideo.mp4")' type="video/mp4">
+        </video>
+        <div id="overlay-top" style="width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0px;
+            background-color: rgba(192, 190, 207, 0.4);
+            left: 0px;">
         </div>
-        <div class="col-sm-3"></div>
-      </div>
-    </div>
-  </div>
 
-  <div id="content">
-    <div class="container" style="width: 100%; position: relative;">
-      <div class="section-title-and-subtitle">
-        <div class="row section-title" id="instruction-video-title">@Messages("landing.how.you.help")</div>
-        <div class="row section-subtitle" id="instruction-video-subtitle">
-            @Messages("landing.how.you.help.content", currentCity.cityNameShort)
-        </div>
-      </div>
-
-      <div class="instructional-video-container">
-        <div class="row" id="numbersrow">
-          <div class="col-sm-4">
-            <div id="firstnumbox">
-              <span class="stepnumber" id="number1">01</span><br><span id="word1"
-                class="stepword">@Messages("landing.how.you.help.explore")</span>
-            </div>
-          </div>
-
-          <div class="col-sm-4">
-            <div id="secondnumbox">
-              <span class="stepnumber" id="number2">02</span><br><span id="word2"
-                class="stepword">@Messages("landing.how.you.help.find")</span>
-            </div>
-          </div>
-          <div class="col-sm-4">
-            <div id="thirdnumbox">
-              <span class="stepnumber" id="number3">03</span><br><span id="word3"
-                class="stepword">@Messages("landing.how.you.help.assess")</span>
-            </div>
-          </div>
-        </div>
-        <div class="hidden-xs" id="greenbar"></div>
-        <div id="instructionvideo">
-          <video id="vid1" width="800" style="display:none;" playsinline autoplay muted loop
-            poster='@assets.path("assets/segment-1-1.jpg")' class="visible-desktop">
-            <source src='@assets.path("assets/segment-1-1.mp4")' type="video/mp4">
-          </video>
-          <video id="vid2" width="800" style="display:none;" playsinline autoplay muted loop
-            poster='@assets.path("assets/segment-2.jpg")' class="visible-desktop">
-            <source src='@assets.path("assets/segment-2.mp4")' type="video/mp4">
-          </video>
-          <video id="vid3" width="800" style="display:none;" playsinline autoplay muted loop
-            poster='@assets.path("assets/segment-3.jpg")' class="visible-desktop">
-            <source src='@assets.path("assets/segment-3.mp4")' type="video/mp4">
-          </video>
-        </div>
-      </div>
-    </div>
-
-    <div id="landing-choropleth-container" class="container choropleth-container">
-      <div class="section-title-and-subtitle">
-        <div class="row section-title" id="choose-neighborhood-title">@Messages("landing.choropleth.title")</div>
-        <div class="row section-subtitle" id="choose-neighborhood-subtitle">
-          <div id="exploredesc">
-            @Html(Messages("landing.choropleth.content"))
-          </div>
-        </div>
-      </div>
-      <br>
-      <div id="landing-choropleth-holder" class="choropleth-holder">
-        <div id="landing-choropleth" class="choropleth"></div>
-        <div id="landing-legend">
-          <strong style="font-size: 17px">@Messages("landing.choropleth.legend")</strong>
-          <nav class='legend clearfix'>
-            <div style='width:100%;padding:0;'>
-              <span style='background:#03152f;width:9.09%'></span>
-              <span style='background:#08306b;width:9.09%'></span>
-              <span style='background:#08519c;width:9.09%'></span>
-              <span style='background:#08719c;width:9.09%'></span>
-              <span style='background:#2171b5;width:9.09%'></span>
-              <span style='background:#4292c6;width:9.09%'></span>
-              <span style='background:#6baed6;width:9.09%'></span>
-              <span style='background:#82badb;width:9.09%'></span>
-              <span style='background:#9ecae1;width:9.09%'></span>
-              <span style='background:#b3d3e8;width:9.09%'></span>
-              <span style='background:#c6dbef;width:9.09%'></span>
-            </div>
-            <div id='legend-percentages-container'>
-              <label>0%</label>
-              <label>100%</label>
-            </div>
-          </nav>
-        </div>
-      </div>
-    </div>
-
-    <div class="ps-skyline">
-      <div class="ps-skyline-container">
-        @if(currentCity.cityId == "seattle-wa") {
-          <img src="@assets.path(" assets/" + skylineImg)" alt="@Messages(s"landing.$skylineImg.alt")">
-        } else {
-          <img style="padding-top: 75px" src="@assets.path("assets/" + skylineImg)" alt="@Messages(s"landing.$skylineImg.alt")">
+        @if(newsRibbonLink.isDefined && newsRibbonLink.exists(_.trim.nonEmpty)) {
+            <a href="@newsRibbonLink" class="ps-news-ribbon">News on PS</a>
         }
-        <img src="@assets.path("assets/generic_cloud_overlay.png")" class="skyline-cloud-overlay" alt="@Messages("landing.clouds.alt")">
-      </div>
-      <div class="ps-skyline-stats-holder">
-        <span class="ps-skyline-stats-holder-stat-number" id="percentage">NA</span>
-        <span class="ps-skyline-stats-holder-stat-number" id="distance">NA</span>
-        <span class="ps-skyline-stats-holder-stat-number" id="numlabels">NA</span>
-        <span class="ps-skyline-stats-holder-stat-number" id="numvalidation">NA</span>
-        @if(openStatus == "partially") {
-          <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.partial")</span>
-        } else {
-          <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.full", currentCity.cityNameShort)</span>
-        }
-        <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.distance")</span>
-        <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.labels")</span>
-        <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.validations")</span>
-      </div>
-      <div class="ps-skyline-overlay section-title-and-subtitle">
-        <div class="row section-title" style="margin-top:50px; margin-bottom: 10px" id="skyline-title">@Messages("landing.stats.title")</div>
-        <div class="row section-subtitle" style="margin-top:0px;" id="skyline-subtitle">
-          <p id="conditional-text">Keep Mapping!</p>
+
+        <div class="container" id="banner">
+            <div class="row" id="bigtext">
+                <div class="col-sm-3"></div>
+                <div class="col-sm-6" id="bannertext">
+                    <p id="text">
+                        <span class="tagline">@Messages("landing.create.path")</span>
+                    </p>
+                    <br>
+                    <a class="body-start-btn" href="@routes.ExploreController.explore()">@Messages("landing.start.exploring")
+                        @currentCity.cityNameShort</a>
+                    <br><br>
+                    <span class="header-text">@Html(Messages("landing.new.deployment"))</span>
+                    <br>
+                    @if(mapathonLink.isDefined) {
+                        <span class="header-text">@Html(Messages("landing.mapathon", currentCity.cityNameShort,
+                            mapathonLink.get))</span>
+                    }
+                </div>
+                <div class="col-sm-3"></div>
+            </div>
         </div>
-      </div>
-      <script language="javascript">
-        if ("@openStatus" === "partially" && @("%.0f".format(streetCompletionRate)) >= 100) {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted)";
-        } else if ("@openStatus" === "partially") {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, " % .1f".format(streetCompletionRate))";
-        } else if (@("%.0f".format(streetCompletionRate)) < 100) {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, " % .1f".format(streetCompletionRate))";
-        } else {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted)";
-        }
-        var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(streetCompletionRate)), 1, 2.5, { suffix: '%' });
-        var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)), 1, 2.5, { suffix: '' });
-        var labelsAnim = new CountUp("numlabels", 0, @labelCount, 0, 2.5, { suffix: '' });
-        var validationsAnim = new CountUp("numvalidation", 0, @valCount, 0, 2.5, { suffix: '' });
-      </script>
     </div>
 
-    <div class="container" id="machinelearning-container">
-      <div class="section-title-and-subtitle">
-        <div class="row section-title" id="ml-title">@Messages("landing.ml.title")</div>
-        <div class="row section-subtitle" id="ml-subtitle">
-          <div class="exploredesc">@Messages("landing.ml.content")
-          </div>
+    <div id="content">
+        <div class="container" style="width: 100%;
+            position: relative;">
+            <div class="section-title-and-subtitle">
+                <div class="row section-title" id="instruction-video-title">@Messages("landing.how.you.help")</div>
+                <div class="row section-subtitle" id="instruction-video-subtitle">
+                @Messages("landing.how.you.help.content", currentCity.cityNameShort)
+                </div>
+            </div>
+
+            <div class="instructional-video-container">
+                <div class="row" id="numbersrow">
+                    <div class="col-sm-4">
+                        <div id="firstnumbox">
+                            <span class="stepnumber" id="number1">01</span><br><span id="word1"
+                        class="stepword">@Messages("landing.how.you.help.explore")</span>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-4">
+                        <div id="secondnumbox">
+                            <span class="stepnumber" id="number2">02</span><br><span id="word2"
+                        class="stepword">@Messages("landing.how.you.help.find")</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div id="thirdnumbox">
+                            <span class="stepnumber" id="number3">03</span><br><span id="word3"
+                        class="stepword">@Messages("landing.how.you.help.assess")</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hidden-xs" id="greenbar"></div>
+                <div id="instructionvideo">
+                    <video id="vid1" width="800" style="display: none;" playsinline autoplay muted loop
+                    poster='@assets.path("assets/segment-1-1.jpg")' class="visible-desktop">
+                        <source src='@assets.path("assets/segment-1-1.mp4")' type="video/mp4">
+                    </video>
+                    <video id="vid2" width="800" style="display: none;" playsinline autoplay muted loop
+                    poster='@assets.path("assets/segment-2.jpg")' class="visible-desktop">
+                        <source src='@assets.path("assets/segment-2.mp4")' type="video/mp4">
+                    </video>
+                    <video id="vid3" width="800" style="display: none;" playsinline autoplay muted loop
+                    poster='@assets.path("assets/segment-3.jpg")' class="visible-desktop">
+                        <source src='@assets.path("assets/segment-3.mp4")' type="video/mp4">
+                    </video>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="gif-container">
-        <img id="mlgif" src="@assets.path("assets/MLGraphic.gif")" alt="@Messages("landing.ml.gif.explain.alt")">
-        <p id="mlgif-bottom-text-1" class="ml-gif-header-1">@Messages("landing.ml.gif.you")</p>
-        <p id="mlgif-bottom-text-2" class="ml-gif-header-1">@Messages("landing.ml.gif.machine.learning")</p>
-        <p id="mlgif-bottom-text-3" class="ml-gif-header-1">@Messages("landing.ml.gif.outcomes")</p>
-        <p id="mlgif-label-text-1" class="ml-gif-header-2">@Messages("landing.ml.gif.user.labels")</p>
-        <p id="mlgif-label-text-2" class="ml-gif-header-2">@Messages("landing.ml.gif.machine.labels")</p>
-        <p id="mlgif-semicircle-text-1" class="ml-gif-header-3">@Messages("landing.ml.gif.better.city.planning")</p>
-        <p id="mlgif-semicircle-text-2" class="ml-gif-header-3">@Messages("landing.ml.gif.better.temporal.tracking")</p>
-        <p id="mlgif-semicircle-text-3" class="ml-gif-header-3">
-          @Messages("landing.ml.gif.interactive.visualization.tools")</p>
-        <p id="mlgif-semicircle-text-4" class="ml-gif-header-3">@Messages("landing.ml.gif.smarter.routing")</p>
-      </div>
-    </div>
 
-    <div class="container-fluid" id="deployment-map-container">
-      <div class="section-title-and-subtitle">
-        <div class="row section-title" id="deployment-map-title">Explore other cities</div>
-        <div class="row section-subtitle" id="deployment-map-subtitle">
-          <div class="exploredesc">Click on a circle below to explore other Project Sidewalk cities!
-          </div>
+        <div id="landing-choropleth-container" class="container choropleth-container">
+            <div class="section-title-and-subtitle">
+                <div class="row section-title" id="choose-neighborhood-title">@Messages("landing.choropleth.title")</div>
+                <div class="row section-subtitle" id="choose-neighborhood-subtitle">
+                    <div id="exploredesc">
+                    @Html(Messages("landing.choropleth.content"))
+                    </div>
+                </div>
+            </div>
+            <br>
+            <div id="landing-choropleth-holder" class="choropleth-holder">
+                <div id="landing-choropleth" class="choropleth"></div>
+                <div id="landing-legend">
+                    <strong style="font-size: 17px">@Messages("landing.choropleth.legend")</strong>
+                    <nav class='legend clearfix'>
+                        <div style='width: 100%;
+                            padding: 0;'>
+                            <span style='background: #03152f;
+                                width: 9.09%'></span>
+                            <span style='background: #08306b;
+                                width: 9.09%'></span>
+                            <span style='background: #08519c;
+                                width: 9.09%'></span>
+                            <span style='background: #08719c;
+                                width: 9.09%'></span>
+                            <span style='background: #2171b5;
+                                width: 9.09%'></span>
+                            <span style='background: #4292c6;
+                                width: 9.09%'></span>
+                            <span style='background: #6baed6;
+                                width: 9.09%'></span>
+                            <span style='background: #82badb;
+                                width: 9.09%'></span>
+                            <span style='background: #9ecae1;
+                                width: 9.09%'></span>
+                            <span style='background: #b3d3e8;
+                                width: 9.09%'></span>
+                            <span style='background: #c6dbef;
+                                width: 9.09%'></span>
+                        </div>
+                        <div id='legend-percentages-container'>
+                            <label>0%</label>
+                            <label>100%</label>
+                        </div>
+                    </nav>
+                </div>
+            </div>
         </div>
-      </div>
-      <div id="deployment-map"></div>
-    </div>
 
-    <div class="container" id="collaborators-container">
-      <div class="row" id="collaborators-row">
-        <div class="im-centered3" id="collaborators-title">
-          <div class="row"><br>@Messages("landing.collaborators.title")<br></div>
+        <div class="ps-skyline">
+            <div class="ps-skyline-container">
+                @if(currentCity.cityId == "seattle-wa") {
+                    <img src="@assets.path(" assets/" + skylineImg)" alt="@Messages(s"landing.$skylineImg.alt")">
+                } else {
+                    <img style="padding-top: 75px" src="@assets.path("assets/" + skylineImg)" alt="@Messages(s"landing.$skylineImg.alt")">
+                }
+                <img src="@assets.path("assets/generic_cloud_overlay.png")" class="skyline-cloud-overlay" alt="@Messages("landing.clouds.alt")">
+            </div>
+            <div class="ps-skyline-stats-holder">
+                <span class="ps-skyline-stats-holder-stat-number" id="percentage">NA</span>
+                <span class="ps-skyline-stats-holder-stat-number" id="distance">NA</span>
+                <span class="ps-skyline-stats-holder-stat-number" id="numlabels">NA</span>
+                <span class="ps-skyline-stats-holder-stat-number" id="numvalidation">NA</span>
+                @if(openStatus == "partially") {
+                    <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.partial")</span>
+                } else {
+                    <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.full", currentCity.cityNameShort)</span>
+                }
+                <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.distance")</span>
+                <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.labels")</span>
+                <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.validations")</span>
+            </div>
+            <div class="ps-skyline-overlay section-title-and-subtitle">
+                <div class="row section-title" style="margin-top: 50px;
+                    margin-bottom: 10px" id="skyline-title">@Messages("landing.stats.title")</div>
+                <div class="row section-subtitle" style="margin-top: 0px;" id="skyline-subtitle">
+                    <p id="conditional-text">Keep Mapping!</p>
+                </div>
+            </div>
+            <script language="javascript">
+                if ("@openStatus" === "partially" && @("%.0f".format(streetCompletionRate)) >= 100) {
+                    document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted)";
+                } else if ("@openStatus" === "partially") {
+                    document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, " % .1f".format(streetCompletionRate))";
+                } else if (@("%.0f".format(streetCompletionRate)) < 1
+                00
+                )
+                {
+                    document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, " % .1f".format(streetCompletionRate))";
+                }
+                else
+                {
+                    document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted)";
+                }
+                var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(streetCompletionRate)), 1, 2.5, {suffix: '%'});
+                var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)), 1, 2.5, {suffix: ''});
+                var labelsAnim = new CountUp("numlabels", 0, @labelCount, 0, 2.5, {suffix: ''});
+                var validationsAnim = new CountUp("numvalidation", 0, @valCount, 0, 2.5, {suffix: ''});
+            </script>
         </div>
 
-        <section class="collaborator-images-container">
-          <div class="collaborator-image">
-            <a id="makeabilitylab-img-link" href="https://makeabilitylab.cs.washington.edu/">
-              <img src='@assets.path("assets/MakeabilityLogo.png")' alt="@Messages("landing.collaborators.logo.makeability.alt")">
-            </a>
-          </div>
-          <div class="collaborator-image">
-            <a id="uic-img-link" href="https://idhd.ahs.uic.edu/">
-              <img src='@assets.path("assets/uic_logo.png")' alt="@Messages("landing.collaborators.logo.uic.alt")">
-            </a>
-          </div>
+        <div class="container" id="machinelearning-container">
+            <div class="section-title-and-subtitle">
+                <div class="row section-title" id="ml-title">@Messages("landing.ml.title")</div>
+                <div class="row section-subtitle" id="ml-subtitle">
+                    <div class="exploredesc">@Messages("landing.ml.content")
+                    </div>
+                </div>
+            </div>
+            <div class="gif-container">
+                <img id="mlgif" src="@assets.path("assets/MLGraphic.gif")" alt="@Messages("landing.ml.gif.explain.alt")">
+                <p id="mlgif-bottom-text-1" class="ml-gif-header-1">@Messages("landing.ml.gif.you")</p>
+                <p id="mlgif-bottom-text-2" class="ml-gif-header-1">@Messages("landing.ml.gif.machine.learning")</p>
+                <p id="mlgif-bottom-text-3" class="ml-gif-header-1">@Messages("landing.ml.gif.outcomes")</p>
+                <p id="mlgif-label-text-1" class="ml-gif-header-2">@Messages("landing.ml.gif.user.labels")</p>
+                <p id="mlgif-label-text-2" class="ml-gif-header-2">@Messages("landing.ml.gif.machine.labels")</p>
+                <p id="mlgif-semicircle-text-1" class="ml-gif-header-3">@Messages("landing.ml.gif.better.city.planning")</p>
+                <p id="mlgif-semicircle-text-2" class="ml-gif-header-3">@Messages("landing.ml.gif.better.temporal.tracking")</p>
+                <p id="mlgif-semicircle-text-3" class="ml-gif-header-3">
+                @Messages("landing.ml.gif.interactive.visualization.tools")</p>
+                <p id="mlgif-semicircle-text-4" class="ml-gif-header-3">@Messages("landing.ml.gif.smarter.routing")</p>
+            </div>
+        </div>
 
-          @if(currentCity.countryId == "taiwan"){
-          <div class="collaborator-image">
-            <a id="public-nudge-img-link" href="https://peoplenudgeplatform.wixsite.com/people-nudge">
-              <img src='@assets.path("assets/public_nudge_logo.png")'
-                alt='@Messages("landing.collaborators.logo.public.nudge.alt")'>
-            </a>
-          </div>
-          } else {
-          <div class="collaborator-image">
-            <a id="ligapeatonal-img-link" href="https://ligapeatonal.org/">
-              <img src='@assets.path("assets/LigaLogo.png")'
-                alt='@Messages("landing.collaborators.logo.liga.peatonal.alt")'>
-            </a>
-          </div>
-          }
+        <div class="container-fluid" id="deployment-map-container">
+            <div class="section-title-and-subtitle">
+                <div class="row section-title" id="deployment-map-title">Explore other cities</div>
+                <div class="row section-subtitle" id="deployment-map-subtitle">
+                    <div class="exploredesc">Click on a circle below to explore other Project Sidewalk cities!
+                    </div>
+                </div>
+            </div>
+            <div id="deployment-map"></div>
+        </div>
 
-          @if("columbus-oh" == currentCity.cityId){
-          <div class="collaborator-image">
-            <a id="opencolumbus-img-link">
-              <img src='@assets.path("assets/columbus-oh/open_columbus_logo.png")' alt="@Messages("landing.collaborators.logo.open.columbus.alt")">
-            </a>
-          </div>
-          }
-        </section>
+        <div class="container" id="collaborators-container">
+            <div class="row" id="collaborators-row">
+                <div class="im-centered3" id="collaborators-title">
+                    <div class="row"><br>@Messages("landing.collaborators.title")<br></div>
+                </div>
 
-        <section class="collaborator-images-container">
-          @if("amsterdam" == currentCity.cityId){
-          <div class="collaborator-image">
-            <a id="worldenabled-img-link" href="https://worldenabled.org/">
-              <img src='@assets.path("assets/amsterdam/world_enabled.png")' alt="@Messages("landing.collaborators.logo.world.enabled.alt")">
-            </a>
-          </div>
-          <div class="collaborator-image">
-            <a id="cityofamsterdam-img-link" href="https://www.amsterdam.nl/en/">
-              <img src='@assets.path("assets/amsterdam/city_of_amsterdam.png")' alt="@Messages("landing.collaborators.logo.city.of.amsterdam.alt")">
-            </a>
-          </div>
-          <div class="collaborator-image">
-            <a id="amsterdamintelligence-img-link" href="https://www.amsterdamintelligence.com/">
-              <img src='@assets.path("assets/amsterdam/amsterdam_intelligence.png")' alt="@Messages("landing.collaborators.logo.amsterdam.intelligence.alt")">
-            </a>
-          </div>
-          }
-        </section>
-      </div>
+                <section class="collaborator-images-container">
+                    <div class="collaborator-image">
+                        <a id="makeabilitylab-img-link" href="https://makeabilitylab.cs.washington.edu/">
+                            <img src='@assets.path("assets/MakeabilityLogo.png")' alt="@Messages("landing.collaborators.logo.makeability.alt")">
+                        </a>
+                    </div>
+                    <div class="collaborator-image">
+                        <a id="uic-img-link" href="https://idhd.ahs.uic.edu/">
+                            <img src='@assets.path("assets/uic_logo.png")' alt="@Messages("landing.collaborators.logo.uic.alt")">
+                        </a>
+                    </div>
+
+                    @if(currentCity.countryId == "taiwan") {
+                        <div class="collaborator-image">
+                            <a id="public-nudge-img-link" href="https://peoplenudgeplatform.wixsite.com/people-nudge">
+                                <img src='@assets.path("assets/public_nudge_logo.png")'
+                                alt='@Messages("landing.collaborators.logo.public.nudge.alt")'>
+                            </a>
+                        </div>
+                    } else {
+                        <div class="collaborator-image">
+                            <a id="ligapeatonal-img-link" href="https://ligapeatonal.org/">
+                                <img src='@assets.path("assets/LigaLogo.png")'
+                                alt='@Messages("landing.collaborators.logo.liga.peatonal.alt")'>
+                            </a>
+                        </div>
+                    }
+
+                    @if("columbus-oh" == currentCity.cityId) {
+                        <div class="collaborator-image">
+                            <a id="opencolumbus-img-link">
+                                <img src='@assets.path("assets/columbus-oh/open_columbus_logo.png")' alt="@Messages("landing.collaborators.logo.open.columbus.alt")">
+                            </a>
+                        </div>
+                    }
+                </section>
+
+                <section class="collaborator-images-container">
+                @if("amsterdam" == currentCity.cityId) {
+                    <div class="collaborator-image">
+                        <a id="worldenabled-img-link" href="https://worldenabled.org/">
+                            <img src='@assets.path("assets/amsterdam/world_enabled.png")' alt="@Messages("landing.collaborators.logo.world.enabled.alt")">
+                        </a>
+                    </div>
+                    <div class="collaborator-image">
+                        <a id="cityofamsterdam-img-link" href="https://www.amsterdam.nl/en/">
+                            <img src='@assets.path("assets/amsterdam/city_of_amsterdam.png")' alt="@Messages("landing.collaborators.logo.city.of.amsterdam.alt")">
+                        </a>
+                    </div>
+                    <div class="collaborator-image">
+                        <a id="amsterdamintelligence-img-link" href="https://www.amsterdamintelligence.com/">
+                            <img src='@assets.path("assets/amsterdam/amsterdam_intelligence.png")' alt="@Messages("landing.collaborators.logo.amsterdam.intelligence.alt")">
+                        </a>
+                    </div>
+                }
+                </section>
+            </div>
+        </div>
+
+
+        <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
+        <script src='@assets.path("javascripts/homepage.js")'></script>
+        <script src='@assets.path("javascripts/lib/mapbox-gl-3.13.0.js")'></script>
+        <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+        <link href='@assets.path("javascripts/lib/mapbox-gl-3.13.0.css")' rel="stylesheet"/>
+        <script src='@assets.path("javascripts/lib/turf-7.2.0.min.js")'></script>
+        <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+        <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
+        <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
+        <link href='@assets.path("stylesheets/deployment-map.css")' rel="stylesheet" />
+        <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+        <script src='@assets.path("javascripts/deployment_map.js")'></script>
+
+        <script>
+            $(document).ready(function () {
+                // Gets all translations before loading the choropleth.
+                const language = "@messages.lang.code";
+                const countryId = "@currentCity.countryId";
+                util.initializeI18Next(language, ['common'], 'common', countryId, function () {
+                    var params = {
+                        mapName: 'landing-choropleth',
+                        mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+                        mapboxLogoLocation: 'bottom-right',
+                        scrollWheelZoom: false,
+                        neighborhoodsURL: '/neighborhoods',
+                        completionRatesURL: '/adminapi/neighborhoodCompletionRate',
+                        neighborhoodFillMode: 'completionRate',
+                        neighborhoodTooltip: 'completionRate'
+                    };
+                    CreatePSMap($, params).then(m => {
+                        window.choropleth = m[0];
+                    });
+                });
+
+                // Initialize the deployment map with the MapBox API key
+                const mapboxApiKey = "@mapboxApiKey";
+                initializeDeploymentMap(mapboxApiKey);
+            });
+        </script>
     </div>
-
-
-<script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
-<script src='@assets.path("javascripts/homepage.js")'></script>
-<script src='@assets.path("javascripts/lib/mapbox-gl-3.13.0.js")'></script>
-<script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-<link href='@assets.path("javascripts/lib/mapbox-gl-3.13.0.css")' rel="stylesheet"/>
-<script src='@assets.path("javascripts/lib/turf-7.2.0.min.js")'></script>
-<script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
-<script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
-<link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
-<link href='@assets.path("stylesheets/deployment-map.css")' rel="stylesheet" />
-<script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
-<script src='@assets.path("javascripts/deployment_map.js")'></script>
-
-    <script>
-      $(document).ready(function () {
-        // Gets all translations before loading the choropleth.
-        const language = "@messages.lang.code";
-        const countryId = "@currentCity.countryId";
-        util.initializeI18Next(language, ['common'], 'common', countryId, function () {
-          var params = {
-            mapName: 'landing-choropleth',
-            mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-            mapboxLogoLocation: 'bottom-right',
-            scrollWheelZoom: false,
-            neighborhoodsURL: '/neighborhoods',
-            completionRatesURL: '/adminapi/neighborhoodCompletionRate',
-            neighborhoodFillMode: 'completionRate',
-            neighborhoodTooltip: 'completionRate'
-          };
-          CreatePSMap($, params).then(m => {
-            window.choropleth = m[0];
-          });
-        });
-
-        // Initialize the deployment map with the MapBox API key
-        const mapboxApiKey = "@mapboxApiKey";
-        initializeDeploymentMap(mapboxApiKey);
-      });
-    </script>
-  </div>
 }
