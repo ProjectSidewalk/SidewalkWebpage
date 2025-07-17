@@ -4,6 +4,9 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
+    <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/api-docs/label-tags.css")">
+    <script src="@routes.Assets.versioned("javascripts/api-docs/label-tags-preview.js")"></script>
+
     <div class="api-section" id="introduction">
         <h1 class="api-heading" id="project-sidewalk-apis">Project Sidewalk APIs <a href="#project-sidewalk-apis" class="permalink">#</a></h1>
         <p>
@@ -18,7 +21,7 @@
             All Project Sidewalk data is public and can be accessed in popular formats like CSV, GeoJSON, or shape files
             or accessed programmatically via our APIs.
         </p>
-        <h2 class="api-heading" id="data">API Overview<a href="#data" class="permalink">#</a></h2>
+        <h2 class="api-heading" id="data">API Overview<a href="#api-overview" class="permalink">#</a></h2>
         Our API is divided into four sections:
         <ul class="api-list">
             <li><a href="#metadata-apis"><strong>Metadata APIs:</strong></a> for describing our data structures and deployment cities</li>
@@ -84,8 +87,6 @@
 
             <div id="label-tags-preview"></div>
 
-            <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/api-docs/label-tags.css")">
-            <script src="@routes.Assets.versioned("javascripts/api-docs/label-tags-preview.js")"></script>
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     LabelTagsPreview.setup({
