@@ -9,6 +9,7 @@ import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
+import models.utils.MyPostgresProfile.api._
 
 import java.time.OffsetDateTime
 import javax.inject._
@@ -36,6 +37,38 @@ case class CommonPageData(
     allCityInfo: Seq[CityInfo]
 )
 
+/**
+ * Represents label statistics for a specific label type.
+ *
+ * @param labels Total number of labels for this type
+ * @param labelsValidated Total number of labels validated for this type
+ * @param labelsValidatedAgree Number of validated labels that were agreed upon
+ * @param labelsValidatedDisagree Number of validated labels that were disagreed upon
+ */
+case class LabelTypeStats(
+    labels: Int,
+    labelsValidated: Int,
+    labelsValidatedAgree: Int,
+    labelsValidatedDisagree: Int
+)
+
+/**
+ * Represents aggregate statistics across all Project Sidewalk deployments.
+ *
+ * @param kmExplored Total kilometers explored across all cities
+ * @param kmExploredNoOverlap Total kilometers explored without overlap across all cities
+ * @param totalLabels Total number of labels across all cities
+ * @param totalValidations Total number of validations across all cities
+ * @param byLabelType Map of label type to its statistics
+ */
+case class AggregateStats(
+    kmExplored: Double,
+    kmExploredNoOverlap: Double,
+    totalLabels: Int,
+    totalValidations: Int,
+    byLabelType: Map[String, LabelTypeStats]
+)
+
 @ImplementedBy(classOf[ConfigServiceImpl])
 trait ConfigService {
 
@@ -59,6 +92,17 @@ trait ConfigService {
    *         - None if parameters could not be retrieved (e.g., schema not found or query failed)
    */
   def getCityMapParamsBySchema(cityId: String): Future[Option[MapParams]]
+
+  /**
+   * Calculates aggregate statistics across all Project Sidewalk deployments.
+   *
+   * This method fetches statistics from all configured cities by querying their respective
+   * database schemas and aggregating the results. It handles failures gracefully by logging
+   * warnings and excluding failed cities from the aggregation.
+   *
+   * @return A Future containing aggregated statistics across all cities
+   */
+  def getAggregateStats(): Future[AggregateStats]
 
   def getCityMapParams: Future[MapParams]
   def getTutorialStreetId: Future[Int]
@@ -148,6 +192,185 @@ class ConfigServiceImpl @Inject() (
         }
       }
     }
+  }
+
+  /**
+   * Calculates aggregate statistics across all Project Sidewalk deployments.
+   *
+   * This method uses direct database queries with cross-schema access to efficiently
+   * gather only the essential statistics from all configured cities. It filters out
+   * cities whose schemas don't exist in the current environment (so plays nice with
+   * localhost dev setups).
+   *
+   * @return A Future containing aggregated statistics across all cities
+   */
+  def getAggregateStats(): Future[AggregateStats] = {
+    // Use cache to avoid repeated expensive calculations
+    cacheApi.getOrElseUpdate[AggregateStats]("getAggregateStats", Duration(30, "minutes")) {
+
+      // Get all configured city IDs
+      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids")
+
+      // Filter to only include cities whose schemas actually exist in the database
+      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
+        try {
+          val schema = getCitySchema(cityId)
+          // Check if the schema actually exists in the database
+          checkSchemaExists(schema).map(cityId -> _).recover { case _ => cityId -> false }
+        } catch {
+          case _: Exception =>
+            Future.successful(cityId -> false)
+        }
+      }
+
+      // Wait for all schema checks to complete
+      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
+        val availableCities = schemaResults.filter(_._2).map(_._1)
+        val unavailableCities = schemaResults.filterNot(_._2).map(_._1)
+
+        logger.info(s"Found ${availableCities.length} available cities: ${availableCities.mkString(", ")}")
+        if (unavailableCities.nonEmpty) {
+          logger.debug(s"Skipping ${unavailableCities.length} cities with missing schemas: ${unavailableCities.mkString(", ")}")
+        }
+
+        if (availableCities.isEmpty) {
+          logger.warn("No cities with valid schemas found")
+          Future.successful(AggregateStats(
+            kmExplored = 0.0,
+            kmExploredNoOverlap = 0.0,
+            totalLabels = 0,
+            totalValidations = 0,
+            byLabelType = Map.empty
+          ))
+        } else {
+          // Fetch essential statistics from available cities in parallel
+          val cityStatsFutures: Seq[Future[Option[AggregateStats]]] = availableCities.map { cityId =>
+            getCityAggregateData(cityId)
+          }
+
+          // Wait for all futures to complete and aggregate results
+          Future.sequence(cityStatsFutures).map { cityStatsOptions =>
+            // Filter out failed requests and aggregate the successful ones
+            val validCityStats = cityStatsOptions.flatten
+
+            if (validCityStats.isEmpty) {
+              logger.warn("No valid city statistics found for aggregate calculation")
+              // Return empty aggregate stats if no cities provided data
+              AggregateStats(
+                kmExplored = 0.0,
+                kmExploredNoOverlap = 0.0,
+                totalLabels = 0,
+                totalValidations = 0,
+                byLabelType = Map.empty
+              )
+            } else {
+              logger.info(s"Successfully aggregated data from ${validCityStats.length} cities")
+              aggregateCityData(validCityStats)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Checks if a database schema exists.
+   *
+   * @param schemaName The name of the schema to check
+   * @return A Future containing true if the schema exists, false otherwise
+   */
+  private def checkSchemaExists(schemaName: String): Future[Boolean] = {
+    db.run(
+      sql"""
+        SELECT EXISTS(
+          SELECT 1
+          FROM information_schema.schemata
+          WHERE schema_name = $schemaName
+        )
+      """.as[Boolean].head
+    ).recover { case _ => false }
+  }
+
+  /**
+   * Fetches essential aggregate data for a specific city using direct database access.
+   * This method does NOT use caching since it's called from within a cached context.
+   *
+   * @param cityId The ID of the city to retrieve statistics for
+   * @return A Future containing optional aggregate data for the city
+   */
+  private def getCityAggregateData(cityId: String): Future[Option[AggregateStats]] = {
+    // Get the schema name
+    val schemaResult = try {
+      Some(getCitySchema(cityId))
+    } catch {
+      case e: Exception =>
+        logger.error(s"Failed to get schema for city $cityId: ${e.getMessage}", e)
+        None
+    }
+
+    schemaResult match {
+      case Some(schema) =>
+        try {
+          // Direct database query without additional caching
+          db.run(configTable.getCityAggregateDataBySchema(schema))
+            .map(Some(_)) // Wrap successful result in Some
+            .recover { case e: Exception =>
+              // Log failures but don't propagate exceptions
+              logger.warn(s"Failed to retrieve aggregate data for city $cityId from schema $schema: ${e.getMessage}")
+              None // Return None when query fails
+            }
+        } catch {
+          case e: Exception =>
+            // Handle exceptions during query preparation
+            logger.error(s"Exception setting up aggregate data query for city $cityId: ${e.getMessage}", e)
+            Future.successful(None)
+        }
+      case None =>
+        Future.successful(None)
+    }
+  }
+
+  /**
+   * Aggregates data from multiple cities into a single result.
+   *
+   * This method combines the individual city data into aggregate totals.
+   *
+   * @param cityData Sequence of city aggregate data to combine
+   * @return Aggregated statistics across all provided cities
+   */
+  private def aggregateCityData(cityData: Seq[AggregateStats]): AggregateStats = {
+    import scala.collection.mutable
+
+    // Aggregate basic metrics
+    val totalKmExplored = cityData.map(_.kmExplored).sum
+    val totalKmExploredNoOverlap = cityData.map(_.kmExploredNoOverlap).sum
+    val totalLabelsCount = cityData.map(_.totalLabels).sum
+    val totalValidationsCount = cityData.map(_.totalValidations).sum
+
+    // Aggregate label type statistics
+    val labelTypeStatsMap = mutable.Map[String, LabelTypeStats]()
+
+    cityData.foreach { city =>
+      city.byLabelType.foreach { case (labelType, stats) =>
+        val currentStats = labelTypeStatsMap.getOrElse(labelType, LabelTypeStats(0, 0, 0, 0))
+
+        // Update the aggregated stats
+        labelTypeStatsMap(labelType) = LabelTypeStats(
+          labels = currentStats.labels + stats.labels,
+          labelsValidated = currentStats.labelsValidated + stats.labelsValidated,
+          labelsValidatedAgree = currentStats.labelsValidatedAgree + stats.labelsValidatedAgree,
+          labelsValidatedDisagree = currentStats.labelsValidatedDisagree + stats.labelsValidatedDisagree
+        )
+      }
+    }
+
+    AggregateStats(
+      kmExplored = totalKmExplored,
+      kmExploredNoOverlap = totalKmExploredNoOverlap,
+      totalLabels = totalLabelsCount,
+      totalValidations = totalValidationsCount,
+      byLabelType = labelTypeStatsMap.toMap
+    )
   }
 
   def getCityMapParams: Future[MapParams] =
