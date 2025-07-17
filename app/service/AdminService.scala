@@ -2,7 +2,6 @@ package service
 
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
-import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit._
 import models.label.{LabelCount, LabelTable, TagCount}
 import models.mission.{MissionTable, RegionalMission}
@@ -56,7 +55,6 @@ trait AdminService {
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]]
   def findAuditTask(taskId: Int): Future[Option[AuditTask]]
   def getAuditInteractionsWithLabels(auditTaskId: Int): Future[Seq[InteractionWithLabel]]
-  def getAllGlobalAttributes: Future[Seq[GlobalAttribute]]
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData]
   def getCoverageData: Future[CoverageData]
   def getNumUsersContributed: Future[Seq[UserCount]]
@@ -86,7 +84,6 @@ class AdminServiceImpl @Inject() (
     userTeamTable: UserTeamTable,
     webpageActivityTable: WebpageActivityTable,
     teamTable: TeamTable,
-    globalAttributeTable: GlobalAttributeTable,
     implicit val ec: ExecutionContext,
     cpuEc: CpuIntensiveExecutionContext
 ) extends AdminService
@@ -109,7 +106,6 @@ class AdminServiceImpl @Inject() (
   def findAuditTask(taskId: Int): Future[Option[AuditTask]] = db.run(auditTaskTable.find(taskId))
   def getAuditInteractionsWithLabels(auditTaskId: Int): Future[Seq[InteractionWithLabel]] =
     db.run(auditTaskInteractionTable.getAuditInteractionsWithLabels(auditTaskId))
-  def getAllGlobalAttributes: Future[Seq[GlobalAttribute]] = db.run(globalAttributeTable.getAllGlobalAttributes)
 
   /**
    * Gets the additional data to show on the admin view of a user's dashboard.
@@ -120,10 +116,12 @@ class AdminServiceImpl @Inject() (
       currRegion: Option[Region]              <- userCurrentRegionTable.getCurrentRegion(userId)
       completedAudits: Int                    <- auditTaskTable.countCompletedAuditsForUser(userId)
       hoursWorked: Float                      <- auditTaskInteractionTable.getHoursAuditingAndValidating(userId)
+      userStats: Option[UserStat]             <- userStatTable.getStatsFromUserId(userId)
       completedMissions: Seq[RegionalMission] <- missionTable.selectCompletedRegionalMission(userId)
       comments: Seq[AuditTaskComment]         <- auditTaskCommentTable.all(userId)
     } yield {
-      AdminUserProfileData(currRegion, completedAudits, hoursWorked, completedMissions, comments)
+      val labelsPerMeter = userStats.flatMap(_.labelsPerMeter)
+      AdminUserProfileData(currRegion, completedAudits, hoursWorked, labelsPerMeter, completedMissions, comments)
     })
   }
 

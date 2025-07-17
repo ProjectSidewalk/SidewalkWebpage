@@ -128,6 +128,10 @@ class StreetEdgeTable @Inject() (
 
   val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
 
+  def getStreet(streetEdgeId: Int): DBIO[Option[StreetEdge]] = {
+    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).result.headOption
+  }
+
   def streetCount: DBIO[Int] = {
     streetEdgesWithoutDeleted.length.result
   }
@@ -423,5 +427,27 @@ class StreetEdgeTable @Inject() (
       .groupBy(_.wayType)
       .map { case (wayType, group) => (wayType, group.length) }
       .result
+  }
+
+  /**
+   * Calculates the direction from the start of a street edge to the second point wrt true north in radians.
+   * @param streetEdgeId The ID of the street edge to calculate the direction for
+   * @return A DBIO action that returns an Option containing the azimuth in radians
+   */
+  def directionFromStart(streetEdgeId: Int): DBIO[Option[Float]] = {
+    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).map { street =>
+      street.geom.startPoint.azimuth(street.geom.pointN(2))
+    }.result.headOption
+  }
+
+  /**
+   * Calculates the direction from the end of a street edge to the second to last point wrt true north in radians.
+   * @param streetEdgeId The ID of the street edge to calculate the direction for
+   * @return A DBIO action that returns an Option containing the azimuth in radians
+   */
+  def directionFromEnd(streetEdgeId: Int): DBIO[Option[Float]] = {
+    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).map { street =>
+      street.geom.endPoint.azimuth(street.geom.pointN(street.geom.nPoints - 1))
+    }.result.headOption
   }
 }

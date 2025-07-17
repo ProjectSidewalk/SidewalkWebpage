@@ -4,7 +4,9 @@ import com.google.inject.ImplementedBy
 import formats.json.PanoHistoryFormats.PanoHistorySubmission
 import models.gsv.{GsvDataSlim, GsvDataTable, PanoHistory, PanoHistoryTable}
 import models.label.LabelPointTable
+import models.street.StreetEdge
 import models.utils.MyPostgresProfile
+import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
@@ -28,8 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
 object GsvDataService {
 
   /**
-   * Hacky fix to generate the FOV for an image.
-   * Determined experimentally.
+   * Hacky fix to generate the FOV for an image. Determined experimentally.
    * @param zoom Zoom level of the canvas (for fov calculation).
    * @return FOV of image
    */
@@ -46,6 +47,7 @@ object GsvDataService {
 trait GsvDataService {
   def panoExists(gsvPanoId: String): Future[Option[Boolean]]
   def getImageUrl(gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int): String
+  def getImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
   def getAllPanosWithLabels: Future[Seq[GsvDataSlim]]
   def checkForGsvImagery(): Future[Unit]
@@ -58,7 +60,8 @@ class GsvDataServiceImpl @Inject() (
     ws: WSClient,
     implicit val ec: ExecutionContext,
     gsvDataTable: GsvDataTable,
-    panoHistoryTable: PanoHistoryTable
+    panoHistoryTable: PanoHistoryTable,
+    streetEdgeTable: models.street.StreetEdgeTable
 ) extends GsvDataService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -130,8 +133,8 @@ class GsvDataServiceImpl @Inject() (
   }
 
   /**
-   * Retrieves the static image of the label panorama from the Google Street View Static API.
-   * Note that this returns the image of the panorama, but doesn't actually include the label.
+   * Creates a URL that will retrieve a static image of the label's panorama from the Google Street View Static API.
+   * Note that this URL returns the cropped image, but doesn't actually include the label.
    * More information here: https://developers.google.com/maps/documentation/streetview/intro
    *
    * @param gsvPanoramaId Id of gsv pano.
@@ -149,6 +152,52 @@ class GsvDataServiceImpl @Inject() (
       "&fov=" + getFov(zoom) +
       "&key=" + config.get[String]("google-maps-api-key")
     signUrl(url)
+  }
+
+  /**
+   * Creates a URL that will retrieve a static image at the given lat/lng and heading from the GSV Static API.
+   * Note that this URL returns the cropped image, but doesn't actually include the label.
+   * More information here: https://developers.google.com/maps/documentation/streetview/intro
+   *
+   * @param lat Latitude of the location
+   * @param lng Longitude of the location
+   * @param heading Compass heading of the camera
+   * @return GSV Static API URL for the given location and heading
+   */
+  def getImageUrlFromLatLng(lat: Double, lng: Double, heading: Double): String = {
+    val url = "https://maps.googleapis.com/maps/api/streetview?" +
+      "location=" + lat + "," + lng +
+      "&radius=40" + // Search as far as 40 meters from the given lat/lng, same as we use on the frontend
+      "&source=outdoor" +
+      "&size=640x640" + // 640x640 is the max size for the static API
+      "&heading=" + heading +
+      "&pitch=-10" + // Default pitch of -10 degrees, facing slightly downwards towards the ground
+      "&fov=90" +
+      "&return_error_code=true" +
+      "&key=" + config.get[String]("google-maps-api-key")
+    signUrl(url)
+  }
+
+  /**
+   * Gets the image URLs for a street edge, which includes the start and end points of the street.
+   * @param streetEdgeId ID of the street edge to get image URLs for
+   * @return A sequence of image URLs for the start and end points of the street edge
+   */
+  def getImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]] = {
+    db.run(for {
+      streetOption: Option[StreetEdge] <- streetEdgeTable.getStreet(streetEdgeId)
+      startDir: Option[Float]          <- streetEdgeTable.directionFromStart(streetEdgeId)
+      endDir: Option[Float]            <- streetEdgeTable.directionFromEnd(streetEdgeId)
+    } yield {
+      streetOption.fold(Seq.empty[String]) { street =>
+        val startPoint: Point = street.geom.getStartPoint
+        val endPoint: Point   = street.geom.getEndPoint
+        Seq(
+          startDir.map(sd => getImageUrlFromLatLng(startPoint.getY, startPoint.getX, Math.toDegrees(sd.toDouble))),
+          endDir.map(ed => getImageUrlFromLatLng(endPoint.getY, endPoint.getX, Math.toDegrees(ed.toDouble)))
+        ).flatten
+      }
+    })
   }
 
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit] = {

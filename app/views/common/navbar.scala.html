@@ -88,7 +88,7 @@
                                 @Messages("navbar.your.city.here")
                             </a>
                         </li>
-                    @for(cityInfo <- cityInfo.sortBy(c => (c.countryId, c.cityId))) {
+                    @for(cityInfo <- cityInfo.sortBy(c => (c.countryId, c.stateId, c.cityId))) {
                         <li>
                         @if(cityInfo.cityId == commonData.cityId) {
                             <a id="@cityInfo.cityId" role="menuitem" class="current-city" href='javascript:void(0);'>
@@ -324,7 +324,7 @@ $(document).ready(function () {
                         <input type="hidden" name="returnUrl" value="@request.uri">
                         @b3.email(forms.SignInForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
                         @b3.password(forms.SignInForm.form("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'pattern -> "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$", 'title -> "Password must contain at least one uppercase letter, one lowercase letter, and one number")
-                        @b3.checkbox(forms.SignInForm.form("rememberMe"), '_text -> Messages("remember.me"), 'checked -> true)
+                        @b3.checkbox(forms.SignInForm.form("rememberMe"), '_text -> Messages("authenticate.remember.me"), 'checked -> true)
                         @b3.submit('class -> "btn btn-sm btn-primary btn-block") { @Messages("navbar.signin") }
                     }
                 </div>

@@ -7,7 +7,6 @@ import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin}
-import models.label.LabelTypeEnum
 import models.user.{RoleTable, SidewalkUserWithRole}
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.dispatch.Dispatcher
@@ -191,31 +190,6 @@ class AdminController @Inject() (
         val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
         Ok(featureCollection)
       }(cpuEc)
-  }
-
-  /**
-   * Get a list of all global attributes.
-   */
-  def getAllAttributes = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getAllGlobalAttributes.map { clusters =>
-      val features: Seq[JsObject] = clusters.par.map { cluster =>
-        Json.obj(
-          "type"     -> "Feature",
-          "geometry" -> Json.obj(
-            "type"        -> "Point",
-            "coordinates" -> Json.arr(cluster.lng.toDouble, cluster.lat.toDouble)
-          ),
-          "properties" -> Json.obj(
-            "attribute_id" -> cluster.globalAttributeId,
-            "label_type"   -> LabelTypeEnum.labelTypeIdToLabelType(cluster.labelTypeId),
-            "severity"     -> cluster.severity
-          )
-        )
-      }.seq
-      val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-      Ok(featureCollection)
-    }(cpuEc)
   }
 
   /**

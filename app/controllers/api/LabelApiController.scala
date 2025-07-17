@@ -126,7 +126,7 @@ class LabelApiController @Inject() (
    *
    * @param bbox Bounding box in format "minLng,minLat,maxLng,maxLat"
    * @param labelType Comma-separated list of label types to include
-   * @param tag Comma-separated list of tags to filter by
+   * @param tags Comma-separated list of tags to filter by
    * @param minSeverity Minimum severity score (1-5 scale)
    * @param maxSeverity Maximum severity score (1-5 scale)
    * @param validationStatus Filter by validation status: "validated_correct", "validated_incorrect", "unvalidated"
@@ -140,7 +140,7 @@ class LabelApiController @Inject() (
   def getRawLabelsV3(
       bbox: Option[String],
       labelType: Option[String],
-      tag: Option[String],
+      tags: Option[String],
       minSeverity: Option[Int],
       maxSeverity: Option[Int],
       validationStatus: Option[String],
@@ -162,7 +162,7 @@ class LabelApiController @Inject() (
 
     // Parse comma-separated lists into sequences.
     val parsedLabelTypes = labelType.map(_.split(",").map(_.trim).toSeq)
-    val parsedTags       = tag.map(_.split(",").map(_.trim).toSeq)
+    val parsedTags       = tags.map(_.split(",").map(_.trim).toSeq)
 
     // Map validation status to internal representation.
     val validationStatusMapped = validationStatus.map {
