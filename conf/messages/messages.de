@@ -95,14 +95,14 @@ landing.start.exploring = Erkundung starten
 landing.new.deployment = <a id="new-deployment-link" class="header-link" href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank">Klicken Sie hier</a>, um mehr über den Einsatz von Project Sidewalk in Ihrer Stadt zu erfahren.
 landing.mapathon = Leben Sie in {0}? Besuchen Sie <a id="mapathonLink" class="other-city-link header-link" href="{1}" target="_blank">eine Mapathon-Veranstaltung in Ihrer Nähe!</a>
 landing.how.you.help = Wie Sie dazu beitragen
-landing.how.you.help.content = Erkunden Sie die Stadt virtuell, um Zugänglichkeitsmerkmale in drei einfachen Schritten zu finden und zu beschriften—ganz bequem von zuhause aus.
+landing.how.you.help.content = Erkunden Sie virtuell die Straßen der Stadt in {0}, um Zugänglichkeitsmerkmale in drei einfachen Schritten zu finden und zu beschriften—ganz bequem von zuhause aus.
 landing.how.you.help.explore = ERKUNDEN
 landing.how.you.help.find = PROBLEME FINDEN
 landing.how.you.help.assess = SCHWEREGRAD BEWERTEN
 landing.video.title = Was ist Project Sidewalk?
 landing.video.watch = Jetzt anschauen
 landing.choropleth.title = Quartier wählen
-landing.choropleth.content = Ihnen wird automatisch ein Quartier zugewiesen, wenn Sie auf ''Erkundung starten'' drücken. Sie können das Quartier aber auch selbst wählen, indem Sie auf ein Gebiet auf der Karte unten drücken!
+landing.choropleth.content = Wählen Sie unten ein Viertel zum Erkunden aus oder klicken Sie auf die Schaltfläche <a href="/explore">''Erkunden''</a> und Ihnen wird automatisch ein Viertel zugewiesen!
 landing.choropleth.legend = Prozent des Quartiers abgeschlossen
 landing.stats.title = Ihr Beitrag macht einen Unterschied
 landing.stats.content.unfinished.partial = Nutzende wie Sie haben bereits {0} Kilometer von {1} kartiert—das ist {2}% der angestrebten Fläche der Stadt!

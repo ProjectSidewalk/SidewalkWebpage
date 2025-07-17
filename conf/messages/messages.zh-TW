@@ -143,14 +143,14 @@ landing.start.exploring = 開始探索
 landing.new.deployment = <a id="new-deployment-link" class="header-link" href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank">按此</a>了解如何在您的城市部署 Project Sidewalk。
 landing.mapathon = 住在 {0}嗎？ 來參加 <a id="mapathonLink" class="other-city-link header-link" href="{1}" target="_blank">您關心區域的「地圖松」(Mapathon)活動吧！</a>
 landing.how.you.help = 您可以如何協助
-landing.how.you.help.content = 通過三個簡單的步驟就可以探索您的城市並找出街道上的可及性問題——在您舒適的家中就可進行！
+landing.how.you.help.content = 只需三個簡單的步驟，即可在家中舒適地虛擬探索{0}的城市街道，尋找並標記無障礙問題。
 landing.how.you.help.explore = 探索
 landing.how.you.help.find = 尋找可及性問題
 landing.how.you.help.assess = 評估品質
 landing.video.title = Project Sidewalk是什麼？
 landing.video.watch = 請觀賞
 landing.choropleth.title = 選擇一個鄰里
-landing.choropleth.content = 當您點擊「開始探索」時，系統會自動為您分配一個鄰里，但您也可以直接點擊下方的區域來選擇一個鄰里直接探索！
+landing.choropleth.content = 選擇下面要探索的社區，或點擊<a href="/explore">「探索」</a>按鈕，系統將自動為您分配一個社區！
 landing.choropleth.legend = 鄰里完成度
 landing.stats.title = 您的協助可以帶來改變
 landing.stats.content.unfinished.partial = 像您這樣的使用者共同完成了{1} {0}公里的標記—相當於{2}%的目標區域！

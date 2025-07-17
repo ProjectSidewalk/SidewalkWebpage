@@ -103,14 +103,14 @@ landing.start.exploring = Comienza a explorar
 landing.new.deployment = <a id="new-deployment-link" class="header-link" href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank">Haga clic aquí</a> para conocer cómo implementar Project Sidewalk en su ciudad.
 landing.mapathon = ¿Vives en {0}? ¡Pasa por <a id="mapathonLink" class="other-city-link header-link" href="{1}" target="_blank">un evento "mapathon" en tu área!</a>
 landing.how.you.help = Cómo puedes ayudar
-landing.how.you.help.content = Explora virtualmente las calles de la ciudad para encontrar y etiquetar problemas de accesibilidad en tres sencillos pasos, directamente desde la comodidad de tu hogar.
+landing.how.you.help.content = Explora virtualmente las calles de la ciudad en {0} para encontrar y etiquetar problemas de accesibilidad en tres sencillos pasos, directamente desde la comodidad de tu hogar.
 landing.how.you.help.explore = EXPLORA
 landing.how.you.help.find = ENCUENTRA PROBLEMAS
 landing.how.you.help.assess = EVALÚA LA GRAVEDAD
 landing.video.title = ¿Qué es Project Sidewalk?
 landing.video.watch = Ver Ahora
 landing.choropleth.title = Elige un barrio
-landing.choropleth.content = Se te asignará automáticamente un barrio al hacer click en ''Comienza a explorar'', pero también puedes elegir una haciendo clic en cualquier zona del siguiente mapa.
+landing.choropleth.content = Elige un vecindario para explorar a continuación o haz clic en el botón <a href="/explore">''Explorar''</a> y se te asignará un vecindario automáticamente.
 landing.choropleth.legend = Porcentaje del barrio completo
 landing.stats.title = Tu trabajo está haciendo la diferencia
 landing.stats.content.unfinished.partial = Personas usuarias como tú ya han mapeado {0} kilómetros de {1}—¡eso es el {2}% del área objetivo en la ciudad!
