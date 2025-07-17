@@ -15,7 +15,7 @@ function AddCitiesToMap(map, citiesData, params) {
         fillOpacity: 0.7,
         strokeColor: '#548177',
         strokeWidth: 2,
-        radius: 8,
+        radius: 6,
         hoverFillColor: '#FBD78B', // Project Sidewalk yellow
         hoverStrokeColor: '#b8a06b'
     };
