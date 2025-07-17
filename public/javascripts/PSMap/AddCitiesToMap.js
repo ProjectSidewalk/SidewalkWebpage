@@ -135,7 +135,7 @@ function AddCitiesToMap(map, citiesData, params) {
          target="_blank"
          rel="noopener noreferrer"
          cityId="${properties.cityId}">
-        Explore ${properties.cityNameShort}
+        ${i18next.t('common:deployment-map.explore', { cityName: properties.cityNameShort })}
       </a>
     </div>
   `;
