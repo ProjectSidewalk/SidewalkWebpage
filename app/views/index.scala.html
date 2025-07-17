@@ -2,8 +2,7 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @(title: String, commonData: CommonPageData, user: SidewalkUserWithRole, openStatus: String,
-    mapathonLink: Option[String], streetDistance: Float, auditedDistance: Float, labelCount: Int, valCount: Int,
-    mapboxApiKey: String
+    mapathonLink: Option[String], streetDistance: Float, auditedDistance: Float, labelCount: Int, valCount: Int
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
@@ -306,12 +305,11 @@
                 const language = "@messages.lang.code";
                 const countryId = "@currentCity.countryId";
                 util.initializeI18Next(language, ['common'], 'common', countryId, function () {
-                    const mapboxApiKey = "@mapboxApiKey";
-
                     // Create the choropleth map.
                     const choroplethParams = {
                         mapName: 'landing-choropleth',
                         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+                        mapboxApiKey: '@commonData.mapboxApiKey',
                         mapboxLogoLocation: 'bottom-right',
                         scrollWheelZoom: false,
                         neighborhoodsURL: '/neighborhoods',
@@ -327,6 +325,7 @@
                     const deploymentMapParams = {
                         mapName: 'deployment-map',
                         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+                        mapboxApiKey: '@commonData.mapboxApiKey',
                         mapboxLogoLocation: 'bottom-left',
                         scrollWheelZoom: false,
                         loadCities: true

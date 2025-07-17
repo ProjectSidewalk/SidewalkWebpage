@@ -411,7 +411,7 @@
             const language = "@messages.lang.code";
             const countryId = "@currentCity.countryId";
             util.initializeI18Next(language, ['dashboard', 'common', 'labelmap'], 'dashboard', countryId, function() {
-                Progress(_, $, '@profileUser.userId', @admin);
+                Progress(_, $, '@commonData.mapboxApiKey', '@profileUser.userId', @admin);
                 @if(admin) {
                     AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService);
                     $('#label-table').dataTable();

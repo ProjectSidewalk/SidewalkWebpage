@@ -126,7 +126,6 @@ function AddCitiesToMap(map, citiesData, params) {
      * @returns {string} HTML content for the popup
      */
     function createPopupContent(properties) {
-        console.log(properties.cityId);
         const exploreUrl = `${properties.url}/explore`;
         return `
     <div class="popup-content">

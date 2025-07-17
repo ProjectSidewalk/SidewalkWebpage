@@ -5,6 +5,7 @@
  * @param {Object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {string} params.mapStyle - URL of a Mapbox style.
+ * @param {string} [params.mapboxApiKey] - Mapbox API key to use for the map.
  * @param {string} [params.neighborhoodFillMode] - One of 'singleColor' or 'completionRate'.
  * @param {string} [params.neighborhoodsURL] - URL of the endpoint containing neighborhood boundaries.
  * @param {string} params.completionRatesURL - URL of the endpoint containing neighborhood completion rates.
@@ -95,7 +96,7 @@ function CreatePSMap($, params) {
         params.zoomCorrection = params.zoomCorrection ? params.zoomCorrection : 0;
         mapParamData.default_zoom = mapParamData.default_zoom + params.zoomCorrection;
 
-        mapboxgl.accessToken = mapParamData.mapbox_api_key;
+        mapboxgl.accessToken = params.mapboxApiKey;
         const map = new mapboxgl.Map({
             container: params.mapName, // HTML container ID
             style: params.mapStyle,
