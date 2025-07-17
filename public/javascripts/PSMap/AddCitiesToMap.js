@@ -5,6 +5,7 @@
  * @param {Object} map The Mapbox map object.
  * @param {Object} citiesData - GeoJSON object containing cities to draw on the map.
  * @param {Object} params - Properties that can change the process of choropleth creation.
+ * @param {string} params.mapName - Name of the HTML ID of the map.
  * @returns {Promise} Promise that resolves when the streets have been added to the map.
 */
 function AddCitiesToMap(map, citiesData, params) {
@@ -106,6 +107,16 @@ function AddCitiesToMap(map, citiesData, params) {
             const popupContent = createPopupContent(properties);
             cityPopup.setLngLat(coordinates).setHTML(popupContent).addTo(map);
         });
+
+        // Log clicks on the link to visit another city.
+        if (params.logClicks) {
+            // Log to the webpage_activity table when a city is selected from the map and 'Explore <city>' is clicked.
+            // Logs are of the form 'Click_module=<mapName>_city=<cityId>_target=explore'.
+            $(`#${params.mapName}`).on('click', '.city-selection-trigger', function () {
+                const activity = `Click_module=${params.mapName}_cityId=${$(this).attr('cityId')}`;
+                map.logWebpageActivity(activity);
+            });
+        }
     }
 
     /**
@@ -115,14 +126,16 @@ function AddCitiesToMap(map, citiesData, params) {
      * @returns {string} HTML content for the popup
      */
     function createPopupContent(properties) {
+        console.log(properties.cityId);
         const exploreUrl = `${properties.url}/explore`;
         return `
     <div class="popup-content">
       <h3 class="popup-title">${properties.cityNameFormatted}</h3>
       <a href="${exploreUrl}"
-         class="popup-link"
+         class="popup-link city-selection-trigger"
          target="_blank"
-         rel="noopener noreferrer">
+         rel="noopener noreferrer"
+         cityId="${properties.cityId}">
         Explore ${properties.cityNameShort}
       </a>
     </div>
