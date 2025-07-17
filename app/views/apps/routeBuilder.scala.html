@@ -100,7 +100,7 @@
                 var loadStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true');
 
                 var initMap = $.when(loadMapParams).done(function(mapParams) {
-                    routeBuilder = RouteBuilder($, mapParams);
+                    routeBuilder = RouteBuilder($, '@commonData.mapboxApiKey', mapParams);
                 });
                 $.when(initMap, loadPolygons).done(function(d0, neighborhoodData) {
                     routeBuilder.renderNeighborhoods(neighborhoodData[0]);

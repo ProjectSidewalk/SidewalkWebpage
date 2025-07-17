@@ -920,7 +920,7 @@
             const language = "@messages.lang.code";
             const countryId = "@currentCity.countryId";
             util.initializeI18Next(language, ['common', 'labelmap'], 'common', countryId, function() {
-                window.admin = Admin(_, $);
+                window.admin = Admin(_, $, '@commonData.mapboxApiKey');
             });
 
             // Initialize the sliders in the legend. We add the "change" functionality after the map loads.
