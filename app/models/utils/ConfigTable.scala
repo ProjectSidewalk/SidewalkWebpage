@@ -169,7 +169,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /**
-   * Retrieves label type statistics from a specific schema using your existing patterns.
+   * Retrieves label type statistics from a specific schema using existing vote counts.
    *
    * @param schema The database schema to query
    * @return DBIO action that yields a map of label type to LabelTypeStats
@@ -178,10 +178,10 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     sql"""
       SELECT
         lt.label_type,
-        COALESCE(COUNT(DISTINCT l.label_id), 0) AS label_count,
-        COALESCE(COUNT(DISTINCT CASE WHEN l.correct IS NOT NULL THEN lv.label_validation_id END), 0) AS validation_count,
-        COALESCE(COUNT(DISTINCT CASE WHEN l.correct = TRUE THEN lv.label_validation_id END), 0) AS agree_count,
-        COALESCE(COUNT(DISTINCT CASE WHEN l.correct = FALSE THEN lv.label_validation_id END), 0) AS disagree_count
+        COUNT(DISTINCT l.label_id) AS label_count,
+        COUNT(DISTINCT CASE WHEN (l.agree_count + l.disagree_count + l.unsure_count) > 0 THEN l.label_id END) AS labels_validated,
+        COUNT(DISTINCT CASE WHEN l.agree_count > l.disagree_count THEN l.label_id END) AS labels_agreed,
+        COUNT(DISTINCT CASE WHEN l.disagree_count > l.agree_count THEN l.label_id END) AS labels_disagreed
       FROM
         "#$schema".label_type lt
       LEFT JOIN
@@ -193,21 +193,19 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         "#$schema".audit_task at ON l.audit_task_id = at.audit_task_id
         AND at.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
       LEFT JOIN
-        "#$schema".label_validation lv ON l.label_id = lv.label_id
-      LEFT JOIN
         "#$schema".user_stat us ON l.user_id = us.user_id AND NOT us.excluded
-      LEFT JOIN
-        "#$schema".user_stat val_us ON lv.user_id = val_us.user_id AND NOT val_us.excluded
+      WHERE
+        us.user_id IS NOT NULL OR l.label_id IS NULL
       GROUP BY
         lt.label_type_id, lt.label_type
       ORDER BY
         lt.label_type;
     """.as[(String, Int, Int, Int, Int)]
       .map { rows =>
-        rows.map { case (labelType, labelCount, validationCount, agreeCount, disagreeCount) =>
+        rows.map { case (labelType, labelCount, validatedCount, agreeCount, disagreeCount) =>
           labelType -> LabelTypeStats(
             labels = labelCount,
-            labelsValidated = validationCount,
+            labelsValidated = validatedCount,
             labelsValidatedAgree = agreeCount,
             labelsValidatedDisagree = disagreeCount
           )
