@@ -9,8 +9,8 @@
  * - Permalink copying
  * - Smooth scrolling
  *
- * In July 16, 2025, we also added industry standard behavior where clicking on permalink
- * anchors (#) copies the full URL to the clipboard with visual feedback.
+ * In July 16, 2025, we also added industry standard behavior where clicking on permalink anchors (#) copies the full
+ * URL to the clipboard with visual feedback.
  *
  * Features:
  * - Uses modern Clipboard API with fallback
@@ -728,35 +728,35 @@ function setupDownloadButtons() {
  * Initialize permalink clipboard functionality. Call this function when the DOM is ready.
  */
 function initPermalinkClipboard() {
-  // Find all permalink anchors (# links).
-  const permalinks = document.querySelectorAll('.permalink');
+    // Find all permalink anchors (# links).
+    const permalinks = document.querySelectorAll('.permalink');
 
-  permalinks.forEach(function(permalink) {
-    // Make permalinks focusable and accessible.
-    permalink.setAttribute('tabindex', '0');
-    permalink.setAttribute('role', 'button');
-    permalink.setAttribute('aria-label', 'Copy link to this section');
-    permalink.setAttribute('title', 'Click to copy link');
+    permalinks.forEach(function(permalink) {
+        // Make permalinks focusable and accessible.
+        permalink.setAttribute('tabindex', '0');
+        permalink.setAttribute('role', 'button');
+        permalink.setAttribute('aria-label', 'Copy link to this section');
+        permalink.setAttribute('title', 'Click to copy link');
 
-    // Add click event listener.
-    permalink.addEventListener('click', function(e) {
-      e.preventDefault(); // Prevent default anchor behavior
-      copyPermalinkToClipboard(this);
+        // Add click event listener.
+        permalink.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent default anchor behavior
+            copyPermalinkToClipboard(this);
+        });
+
+        // Add keyboard support (Enter and Space)
+        permalink.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                copyPermalinkToClipboard(this);
+            }
+        });
+
+        // Add hover effect.
+        permalink.addEventListener('mouseenter', function() {
+            this.style.cursor = 'pointer';
+        });
     });
-
-    // Add keyboard support (Enter and Space)
-    permalink.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        copyPermalinkToClipboard(this);
-      }
-    });
-
-    // Add hover effect.
-    permalink.addEventListener('mouseenter', function() {
-      this.style.cursor = 'pointer';
-    });
-  });
 }
 
 /**
@@ -764,25 +764,25 @@ function initPermalinkClipboard() {
  * @param {HTMLElement} permalinkElement - The clicked permalink anchor
  */
 function copyPermalinkToClipboard(permalinkElement) {
-  // Get the full URL including the hash.
-  const currentUrl = window.location.href.split('#')[0];
-  const hash = permalinkElement.getAttribute('href');
-  const fullUrl = currentUrl + hash;
+    // Get the full URL including the hash.
+    const currentUrl = window.location.href.split('#')[0];
+    const hash = permalinkElement.getAttribute('href');
+    const fullUrl = currentUrl + hash;
 
-  // Try modern Clipboard API first.
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(fullUrl)
-      .then(function() {
-        showCopyFeedback(permalinkElement, 'success');
-      })
-      .catch(function(err) {
-        console.warn('Clipboard API failed, trying fallback:', err);
+    // Try modern Clipboard API first.
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(fullUrl)
+            .then(function() {
+                showCopyFeedback(permalinkElement, 'success');
+            })
+            .catch(function(err) {
+                console.warn('Clipboard API failed, trying fallback:', err);
+                fallbackCopyToClipboard(fullUrl, permalinkElement);
+            });
+    } else {
+        // Fallback for older browsers or non-HTTPS.
         fallbackCopyToClipboard(fullUrl, permalinkElement);
-      });
-  } else {
-    // Fallback for older browsers or non-HTTPS.
-    fallbackCopyToClipboard(fullUrl, permalinkElement);
-  }
+    }
 }
 
 /**
@@ -791,30 +791,30 @@ function copyPermalinkToClipboard(permalinkElement) {
  * @param {HTMLElement} permalinkElement - The permalink element for feedback
  */
 function fallbackCopyToClipboard(text, permalinkElement) {
-  // Create temporary textarea.
-  const textArea = document.createElement('textarea');
-  textArea.value = text;
-  textArea.style.position = 'fixed';
-  textArea.style.left = '-999999px';
-  textArea.style.top = '-999999px';
-  document.body.appendChild(textArea);
+    // Create temporary textarea.
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
 
-  try {
-    textArea.focus();
-    textArea.select();
-    const successful = document.execCommand('copy');
+    try {
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
 
-    if (successful) {
-      showCopyFeedback(permalinkElement, 'success');
-    } else {
-      showCopyFeedback(permalinkElement, 'error');
+        if (successful) {
+            showCopyFeedback(permalinkElement, 'success');
+        } else {
+            showCopyFeedback(permalinkElement, 'error');
+        }
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        showCopyFeedback(permalinkElement, 'error');
+    } finally {
+        document.body.removeChild(textArea);
     }
-  } catch (err) {
-    console.error('Fallback copy failed:', err);
-    showCopyFeedback(permalinkElement, 'error');
-  } finally {
-    document.body.removeChild(textArea);
-  }
 }
 
 /**
@@ -823,48 +823,48 @@ function fallbackCopyToClipboard(text, permalinkElement) {
  * @param {string} status - 'success' or 'error'
  */
 function showCopyFeedback(permalinkElement, status) {
-  // Create toast notification.
-  const toast = document.createElement('div');
-  toast.className = 'copy-toast copy-toast-' + status;
+    // Create toast notification.
+    const toast = document.createElement('div');
+    toast.className = 'copy-toast copy-toast-' + status;
 
-  if (status === 'success') {
-    toast.textContent = 'Link copied to clipboard!';
-    toast.setAttribute('aria-live', 'polite');
-  } else {
-    toast.textContent = 'Failed to copy link';
-    toast.setAttribute('aria-live', 'assertive');
-  }
+    if (status === 'success') {
+        toast.textContent = 'Link copied to clipboard!';
+        toast.setAttribute('aria-live', 'polite');
+    } else {
+        toast.textContent = 'Failed to copy link';
+        toast.setAttribute('aria-live', 'assertive');
+    }
 
-  // Position toast near the permalink.
-  const rect = permalinkElement.getBoundingClientRect();
-  toast.style.position = 'fixed';
-  toast.style.left = (rect.right + 10) + 'px';
-  toast.style.top = (rect.top - 5) + 'px';
-  toast.style.zIndex = '10000';
+    // Position toast near the permalink.
+    const rect = permalinkElement.getBoundingClientRect();
+    toast.style.position = 'fixed';
+    toast.style.left = (rect.right + 10) + 'px';
+    toast.style.top = (rect.top - 5) + 'px';
+    toast.style.zIndex = '10000';
 
-  document.body.appendChild(toast);
+    document.body.appendChild(toast);
 
-  // Animate in.
-  requestAnimationFrame(function() {
-    toast.classList.add('copy-toast-visible');
-  });
+    // Animate in.
+    requestAnimationFrame(function() {
+        toast.classList.add('copy-toast-visible');
+    });
 
-  // Remove after 2 seconds.
-  setTimeout(function() {
-    toast.classList.remove('copy-toast-visible');
+    // Remove after 2 seconds.
     setTimeout(function() {
-      if (toast.parentNode) {
-        document.body.removeChild(toast);
-      }
-    }, 300); // Wait for fade out animation
-  }, 2000);
+        toast.classList.remove('copy-toast-visible');
+        setTimeout(function() {
+            if (toast.parentNode) {
+                document.body.removeChild(toast);
+            }
+        }, 300); // Wait for fade out animation
+    }, 2000);
 
-  // Add brief visual feedback to the permalink itself.
-  const originalColor = permalinkElement.style.color;
-  permalinkElement.style.color = status === 'success' ? '#4caf50' : '#f44336';
-  permalinkElement.style.transition = 'color 0.2s ease';
+    // Add brief visual feedback to the permalink itself.
+    const originalColor = permalinkElement.style.color;
+    permalinkElement.style.color = status === 'success' ? '#4caf50' : '#f44336';
+    permalinkElement.style.transition = 'color 0.2s ease';
 
-  setTimeout(function() {
-    permalinkElement.style.color = originalColor;
-  }, 500);
+    setTimeout(function() {
+        permalinkElement.style.color = originalColor;
+    }, 500);
 }
