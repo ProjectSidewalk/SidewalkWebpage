@@ -1,4 +1,4 @@
-function RouteBuilder ($, mapParams) {
+function RouteBuilder ($, mapboxApiKey, mapParams) {
     let self = {};
     self.status = {
         mapLoaded: false,
@@ -37,7 +37,7 @@ function RouteBuilder ($, mapParams) {
     document.getElementById('build-new-route-button').addEventListener('click', clearRoute);
 
     // Initialize the map.
-    mapboxgl.accessToken = mapParams.mapbox_api_key;
+    mapboxgl.accessToken = mapboxApiKey;
     var map = new mapboxgl.Map({
         container: 'routebuilder-map',
         style: 'mapbox://styles/projectsidewalk/cloov4big002801rc0qw75w5g',
@@ -86,7 +86,7 @@ function RouteBuilder ($, mapParams) {
     function setUpSearchBox() {
         let wholeAreaBbox = [mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat, mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat];
         searchBox = new MapboxSearchBox();
-        searchBox.accessToken = mapParams.mapbox_api_key;
+        searchBox.accessToken = mapboxApiKey;
         searchBox.options = {
             bbox: [[wholeAreaBbox[0], wholeAreaBbox[1]], [wholeAreaBbox[2], wholeAreaBbox[3]]],
             language: i18next.t('common:mapbox-language-code'),

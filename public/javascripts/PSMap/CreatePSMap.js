@@ -5,9 +5,11 @@
  * @param {Object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {string} params.mapStyle - URL of a Mapbox style.
- * @param {string} params.neighborhoodFillMode - One of 'singleColor' or 'completionRate'.
- * @param {string} params.neighborhoodsURL - URL of the endpoint containing neighborhood boundaries.
+ * @param {string} [params.mapboxApiKey] - Mapbox API key to use for the map.
+ * @param {string} [params.neighborhoodFillMode] - One of 'singleColor' or 'completionRate'.
+ * @param {string} [params.neighborhoodsURL] - URL of the endpoint containing neighborhood boundaries.
  * @param {string} params.completionRatesURL - URL of the endpoint containing neighborhood completion rates.
+ * @param {boolean} [params.loadCities] - Whether to load deployment cities on the map.
  * @param {string} [params.streetsURL] - URL of the endpoint containing streets.
  * @param {string} [params.labelsURL] - URL of the endpoint containing labels.
  * @param {number} [params.zoomCorrection=0] - Amount to increase default zoom to account for different map dimensions.
@@ -32,26 +34,40 @@ function CreatePSMap($, params) {
     params.differentiateUnauditedStreets = params.differentiateUnauditedStreets === undefined ? false : params.differentiateUnauditedStreets;
 
     // Create the map.
-    let choropleth;
+    let map;
     let loadMapParams = $.getJSON('/cityMapParams');
     let mapLoaded = Promise.all([loadMapParams]).then(function(data) {
         return createMap(data[0]);
+    }).then(newMap => {
+        map = newMap; // Assign the returned map to the map variable.
+        return map;
     });
 
-    // Render the neighborhoods on the map.
+    // Render the neighborhoods on the map if applicable.
+    let renderNeighborhoods;
     let loadNeighborhoods = $.getJSON(params.neighborhoodsURL);
     let loadCompletionRates = $.getJSON(params.completionRatesURL);
-    let renderNeighborhoods = Promise.all([mapLoaded, loadNeighborhoods, loadCompletionRates]).then(function(data) {
-        choropleth = data[0];
-        AddNeighborhoodsToMap(choropleth, data[1], data[2], params);
-    });
+    if (params.neighborhoodsURL && params.completionRatesURL) {
+        renderNeighborhoods = Promise.all([mapLoaded, loadNeighborhoods, loadCompletionRates]).then(function(data) {
+            AddNeighborhoodsToMap(map, data[1], data[2], params);
+        });
+    }
+
+    // Render deployment cities on the map if applicable.
+    let renderCities;
+    if (params.loadCities) {
+        let loadCities = $.getJSON('/v3/api/cities?filetype=geojson');
+        renderCities = Promise.all([mapLoaded, loadCities]).then(function (data) {
+            AddCitiesToMap(map, data[1], params);
+        });
+    }
 
     // Render the streets on the map if applicable.
     let renderStreets;
     if (params.streetsURL) {
         let loadStreets = $.getJSON(params.streetsURL);
-        renderStreets = Promise.all([renderNeighborhoods, loadStreets]).then(function(data) {
-            AddStreetsToMap(choropleth, data[1], params);
+        renderStreets = Promise.all([mapLoaded, renderNeighborhoods, loadStreets]).then(function(data) {
+            AddStreetsToMap(map, data[2], params);
         });
     }
 
@@ -59,13 +75,13 @@ function CreatePSMap($, params) {
     let renderLabels;
     if (params.labelsURL) {
         let loadLabels = $.getJSON(params.labelsURL);
-        renderLabels = Promise.all([renderStreets, loadLabels]).then(function(data) {
-            return AddLabelsToMap(choropleth, data[1], params);
+        renderLabels = Promise.all([mapLoaded, renderStreets, loadLabels]).then(function(data) {
+            return AddLabelsToMap(map, data[2], params);
         });
     }
 
     // Return a promise that resolves once everything on the map has loaded.
-    let allLoaded = Promise.all([mapLoaded, renderNeighborhoods, renderStreets, renderLabels]);
+    let allLoaded = Promise.all([mapLoaded, renderNeighborhoods, renderCities, renderStreets, renderLabels]);
     allLoaded.then(function(data) {
         $('#page-loading').hide();
     });
@@ -80,8 +96,8 @@ function CreatePSMap($, params) {
         params.zoomCorrection = params.zoomCorrection ? params.zoomCorrection : 0;
         mapParamData.default_zoom = mapParamData.default_zoom + params.zoomCorrection;
 
-        mapboxgl.accessToken = mapParamData.mapbox_api_key;
-        const choropleth = new mapboxgl.Map({
+        mapboxgl.accessToken = params.mapboxApiKey;
+        const map = new mapboxgl.Map({
             container: params.mapName, // HTML container ID
             style: params.mapStyle,
             center: [mapParamData.city_center.lng, mapParamData.city_center.lat],
@@ -94,8 +110,8 @@ function CreatePSMap($, params) {
             ],
             scrollZoom: params.scrollWheelZoom,
         });
-        choropleth.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
-        choropleth.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
+        map.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
+        map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
 
         // Move the Mapbox logo if necessary.
         if (['top-left', 'top-right', 'bottom-right'].includes(params.mapboxLogoLocation)) {
@@ -111,7 +127,7 @@ function CreatePSMap($, params) {
         }
 
         // Makes POST request that logs `activity` in WebpageActivityTable.
-        choropleth.logWebpageActivity = function(activity) {
+        map.logWebpageActivity = function(activity) {
             $.ajax({
                 async: false,
                 contentType: 'application/json; charset=utf-8',
@@ -128,11 +144,11 @@ function CreatePSMap($, params) {
 
         // Create a promise that resolves when the map has loaded.
         return new Promise((resolve, reject) => {
-            if (choropleth.loaded()) {
-                resolve(choropleth);
+            if (map.loaded()) {
+                resolve(map);
             } else {
-                choropleth.on('load', function (e) {
-                    resolve(choropleth);
+                map.on('load', function (e) {
+                    resolve(map);
                 });
             }
         });

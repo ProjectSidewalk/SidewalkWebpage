@@ -69,10 +69,7 @@
             const language = "@messages.lang.code";
             const countryId = "@currentCity.countryId";
             util.initializeI18Next(language, ['common'], 'common', countryId, function() {
-                $.getJSON('/cityMapParams', function(data) {
-                    var auditTaskId = @task.auditTaskId;
-                    window.admin = AdminTask({auditTaskId: auditTaskId, mapboxApiKey: data.mapbox_api_key});
-                });
+                window.admin = AdminTask({ auditTaskId: @task.auditTaskId, mapboxApiKey: '@commonData.mapboxApiKey' });
             });
         });
     </script>

@@ -1,7 +1,8 @@
-function Progress (_, $, userId, admin) {
+function Progress (_, $, mapboxApiKey, userId, admin) {
     var params = {
         mapName: 'user-dashboard-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+        mapboxApiKey: mapboxApiKey,
         zoomCorrection: -0.5,
         mapboxLogoLocation: 'bottom-right',
         neighborhoodsURL: '/neighborhoods',

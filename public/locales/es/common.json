@@ -30,6 +30,9 @@
         "100-percent-complete": "¡100% Completa!",
         "percent-complete": "{{percent}}% Completa"
     },
+    "deployment-map": {
+        "explore": "Explorar {{cityName}}"
+    },
     "errors": {
         "title": "Vaya, es culpa nuestra, pero ya no hay imágenes disponibles para esta etiqueta.",
         "explanation": "Usamos la API de Google Maps para mostrar las imágenes de la acera y, a veces, Google elimina estas imágenes para que ya no podamos acceder a ellas. Lo lamento.",

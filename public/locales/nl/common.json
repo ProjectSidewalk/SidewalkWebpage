@@ -29,6 +29,9 @@
         "100-percent-complete": "100% Voltooid!",
         "percent-complete": "{{percent}}% Voltooid"
     },
+    "deployment-map": {
+        "explore": "Ontdek {{cityName}}"
+    },
     "errors": {
         "title": "Oeps, onze fout, maar er zijn geen afbeeldingen meer beschikbaar voor dit label.",
         "explanation": "We gebruiken de Google Maps API om de stoepafbeeldingen weer te geven en soms verwijdert Google deze afbeeldingen zodat we er niet meer bij kunnen. Sorry daarvoor.",
