@@ -725,21 +725,20 @@ function setupDownloadButtons() {
 }
 
 /**
- * Initialize permalink clipboard functionality
- * Call this function when the DOM is ready
+ * Initialize permalink clipboard functionality. Call this function when the DOM is ready.
  */
 function initPermalinkClipboard() {
-  // Find all permalink anchors (# links)
+  // Find all permalink anchors (# links).
   const permalinks = document.querySelectorAll('.permalink');
 
   permalinks.forEach(function(permalink) {
-    // Make permalinks focusable and accessible
+    // Make permalinks focusable and accessible.
     permalink.setAttribute('tabindex', '0');
     permalink.setAttribute('role', 'button');
     permalink.setAttribute('aria-label', 'Copy link to this section');
     permalink.setAttribute('title', 'Click to copy link');
 
-    // Add click event listener
+    // Add click event listener.
     permalink.addEventListener('click', function(e) {
       e.preventDefault(); // Prevent default anchor behavior
       copyPermalinkToClipboard(this);
@@ -753,7 +752,7 @@ function initPermalinkClipboard() {
       }
     });
 
-    // Add hover effect
+    // Add hover effect.
     permalink.addEventListener('mouseenter', function() {
       this.style.cursor = 'pointer';
     });
@@ -761,16 +760,16 @@ function initPermalinkClipboard() {
 }
 
 /**
- * Copy permalink URL to clipboard with modern API and fallback
+ * Copy permalink URL to clipboard with modern API and fallback.
  * @param {HTMLElement} permalinkElement - The clicked permalink anchor
  */
 function copyPermalinkToClipboard(permalinkElement) {
-  // Get the full URL including the hash
+  // Get the full URL including the hash.
   const currentUrl = window.location.href.split('#')[0];
   const hash = permalinkElement.getAttribute('href');
   const fullUrl = currentUrl + hash;
 
-  // Try modern Clipboard API first
+  // Try modern Clipboard API first.
   if (navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(fullUrl)
       .then(function() {
@@ -781,18 +780,18 @@ function copyPermalinkToClipboard(permalinkElement) {
         fallbackCopyToClipboard(fullUrl, permalinkElement);
       });
   } else {
-    // Fallback for older browsers or non-HTTPS
+    // Fallback for older browsers or non-HTTPS.
     fallbackCopyToClipboard(fullUrl, permalinkElement);
   }
 }
 
 /**
- * Fallback copy method for older browsers
+ * Fallback copy method for older browsers.
  * @param {string} text - Text to copy
  * @param {HTMLElement} permalinkElement - The permalink element for feedback
  */
 function fallbackCopyToClipboard(text, permalinkElement) {
-  // Create temporary textarea
+  // Create temporary textarea.
   const textArea = document.createElement('textarea');
   textArea.value = text;
   textArea.style.position = 'fixed';
@@ -819,12 +818,12 @@ function fallbackCopyToClipboard(text, permalinkElement) {
 }
 
 /**
- * Show visual feedback when copy succeeds or fails
+ * Show visual feedback when copy succeeds or fails.
  * @param {HTMLElement} permalinkElement - The permalink element
  * @param {string} status - 'success' or 'error'
  */
 function showCopyFeedback(permalinkElement, status) {
-  // Create toast notification
+  // Create toast notification.
   const toast = document.createElement('div');
   toast.className = 'copy-toast copy-toast-' + status;
 
@@ -836,7 +835,7 @@ function showCopyFeedback(permalinkElement, status) {
     toast.setAttribute('aria-live', 'assertive');
   }
 
-  // Position toast near the permalink
+  // Position toast near the permalink.
   const rect = permalinkElement.getBoundingClientRect();
   toast.style.position = 'fixed';
   toast.style.left = (rect.right + 10) + 'px';
@@ -845,12 +844,12 @@ function showCopyFeedback(permalinkElement, status) {
 
   document.body.appendChild(toast);
 
-  // Animate in
+  // Animate in.
   requestAnimationFrame(function() {
     toast.classList.add('copy-toast-visible');
   });
 
-  // Remove after 2 seconds
+  // Remove after 2 seconds.
   setTimeout(function() {
     toast.classList.remove('copy-toast-visible');
     setTimeout(function() {
@@ -860,7 +859,7 @@ function showCopyFeedback(permalinkElement, status) {
     }, 300); // Wait for fade out animation
   }, 2000);
 
-  // Add brief visual feedback to the permalink itself
+  // Add brief visual feedback to the permalink itself.
   const originalColor = permalinkElement.style.color;
   permalinkElement.style.color = status === 'success' ? '#4caf50' : '#f44336';
   permalinkElement.style.transition = 'color 0.2s ease';
