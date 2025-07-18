@@ -91,14 +91,14 @@ landing.start.exploring = Start met Verkennen
 landing.new.deployment = <a id="new-deployment-link" class="header-link" href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank">Klik hier</a> voor meer informatie over de implementatie van Project Sidewalk in uw stad.
 landing.mapathon = Woon je in {0}? Kom dan langs <a id="mapathonLink" class="other-city-link header-link" href="{1}" target="_blank"> bij een van onze mapathon events in jouw buurt!</a>
 landing.how.you.help = Hoe je kunt helpen
-landing.how.you.help.content = Verken virtueel de straten van de stad om toegankelijkheidsproblemen te vinden en te labelen in slechts drie eenvoudige stappen, gewoon vanuit je luie stoel.
+landing.how.you.help.content = Verken virtueel de straten van de stad in {0} om toegankelijkheidsproblemen te vinden en te labelen in slechts drie eenvoudige stappen, gewoon vanuit je luie stoel.
 landing.how.you.help.explore = VERKEN
 landing.how.you.help.find = ONTDEK PROBLEMEN
 landing.how.you.help.assess = BEOORDEEL DE ERNST
 landing.video.title = Wat is Project Sidewalk?
 landing.video.watch = Bekijk Nu
 landing.choropleth.title = Selecteer een wijk
-landing.choropleth.content = Je krijgt automatisch een wijk toegewezen als je op ''Start met Verkennen'' klikt, maar je kunt er ook zelf een kiezen door hieronder op een wijk te klikken!
+landing.choropleth.content = Kies hieronder een buurt die je wilt verkennen, of klik op de knop <a href="/explore">''Verkennen''</a> en er wordt automatisch een buurt aan je toegewezen!
 landing.choropleth.legend = Procent van de wijk compleet
 landing.stats.title = Jouw bijdrage maakt het verschil!
 landing.stats.content.unfinished.partial = Gebruikers zoals jij hebben al {0} kilometer van {1} in kaart gebracht—dat is {2}% van het doelgebied in de stad!
@@ -122,6 +122,8 @@ landing.ml.gif.smarter.routing = slimmere routering
 landing.ml.gif.machine.learning = machine learning
 landing.ml.gif.outcomes = resultaten
 landing.ml.gif.explain.alt = GIF met uitleg over de resultaten van crowdsourcing en machine learning op Project Sidewalk
+landing.deployment.map.title = Ontdek andere steden
+landing.deployment.map.subtitle = Klik op een cirkel hieronder om andere Project Sidewalk-steden te ontdekken!
 landing.collaborators.title = Partners
 landing.collaborators.logo.makeability.alt = Makeability Lab-logo
 landing.collaborators.logo.uic.alt = Logo van het Chicago Institute on Disability and Human Development van de Universiteit van Illinois
@@ -245,6 +247,7 @@ mobile.validate.leave.feedback = Geef feedback
 authenticate.email = Email-adres
 authenticate.password = Wachtwoord
 authenticate.submit = Dien in
+authenticate.remember.me = Houd mij aangemeld
 authenticate.new = Ben je nieuw? <a href="#" id="form-open-sign-up">Nieuw account maken!</a>
 authenticate.non.member = Nog geen account? <a href="{0}">Maak er een</a>
 authenticate.confirm.password = Bevestig wachtwoord

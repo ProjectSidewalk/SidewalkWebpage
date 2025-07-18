@@ -30,6 +30,9 @@
         "100-percent-complete": "100% abgeschlossen!",
         "percent-complete": "{{percent}}% abgeschlossen"
     },
+    "deployment-map": {
+        "explore": "Entdecken {{cityName}}"
+    },
     "errors": {
         "title": "Ups, unser Fehler! Für diese Beschriftung sind keine Bilder mehr verfügbar.",
         "explanation": "Wir verwenden die “Google Maps API”, um die Bilder der Gehwege anzuzeigen. Manchmal entfernt Google diese Bilder und wir können nicht mehr darauf zugreifen. Wir bitten um Entschuldigung!",

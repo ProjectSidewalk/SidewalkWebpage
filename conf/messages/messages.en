@@ -65,6 +65,8 @@ state.name.missouri = MO
 state.name.california = CA
 state.name.south-carolina = SC
 state.name.michigan = MI
+state.name.wisconsin = WI
+state.name.new-york = NY
 
 navbar.explore = Explore
 navbar.validate = Validate
@@ -91,14 +93,14 @@ landing.start.exploring = Start Exploring
 landing.new.deployment = <a id="new-deployment-link" class="header-link" href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank">Click here</a> to learn about deploying Project Sidewalk in your city.
 landing.mapathon = Live in {0}? Stop by <a id="mapathonLink" class="other-city-link header-link" href="{1}" target="_blank">a mapathon event in your area!</a>
 landing.how.you.help = How you can help
-landing.how.you.help.content = Virtually explore city streets to find and label accessibility issues in three easy steps—right from the comfort of your home.
+landing.how.you.help.content = Virtually explore city streets in {0} to find and label accessibility issues in three easy steps—right from the comfort of your home.
 landing.how.you.help.explore = EXPLORE
 landing.how.you.help.find = FIND PROBLEMS
 landing.how.you.help.assess = ASSESS SEVERITY
 landing.video.title = What is Project Sidewalk?
 landing.video.watch = Watch Now
 landing.choropleth.title = Pick a Neighborhood
-landing.choropleth.content = You are automatically assigned a neighborhood when you click ''Start Exploring'', but you can also choose one by clicking on a region below!
+landing.choropleth.content = Choose a neighborhood to explore below or click on the <a href="/explore">''Explore''</a> button and you''ll be assigned a neighborhood automatically!
 landing.choropleth.legend = Percent of Neighborhood Complete
 landing.stats.title = Your work is making a difference
 landing.stats.content.unfinished.partial = Users like you have already mapped {0} kilometers of {1}—that''s {2}% of the target area in the city!
@@ -122,6 +124,8 @@ landing.ml.gif.smarter.routing = smarter routing
 landing.ml.gif.machine.learning = machine learning
 landing.ml.gif.outcomes = outcomes
 landing.ml.gif.explain.alt = GIF explaining the outcomes of crowdsourcing and machine learning on Project Sidewalk
+landing.deployment.map.title = Explore other cities
+landing.deployment.map.subtitle = Click on a circle below to explore other Project Sidewalk cities!
 landing.collaborators.title = Collaborators
 landing.collaborators.logo.makeability.alt = Makeability Lab Logo
 landing.collaborators.logo.uic.alt = University of Illinois Chicago Institute on Disability and Human Development Logo
@@ -244,6 +248,7 @@ mobile.validate.leave.feedback = Leave Feedback
 authenticate.email = Email address
 authenticate.password = Password
 authenticate.submit = Submit
+authenticate.remember.me = Keep me signed in
 authenticate.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
 authenticate.non.member = Not a member? <a href="{0}">Sign up now</a>
 authenticate.confirm.password = Confirm password

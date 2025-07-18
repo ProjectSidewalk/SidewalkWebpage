@@ -30,6 +30,9 @@
         "100-percent-complete": "100% Complete!",
         "percent-complete": "{{percent}}% Complete"
     },
+    "deployment-map": {
+        "explore": "Explore {{cityName}}"
+    },
     "errors": {
         "title": "Oops, our fault but there is no longer imagery available for this label.",
         "explanation": "We use the Google Maps API to show the sidewalk images and sometimes Google removes these images so we can no longer access them. Sorry about that.",

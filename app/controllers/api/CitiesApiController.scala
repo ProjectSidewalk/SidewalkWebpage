@@ -55,10 +55,7 @@ class CitiesApiController @Inject() (
    *
    * @return Response in requested format containing city information.
    */
-  def getCities = silhouette.UserAwareAction.async { implicit request =>
-    // Get filetype parameter from request, defaulting to JSON.
-    val filetype: String = request.getQueryString("filetype").getOrElse("json").toLowerCase
-
+  def getCities(filetype: String) = silhouette.UserAwareAction.async { implicit request =>
     // Get city information from ConfigService.
     val cityInfos: Seq[CityInfo] = configService.getAllCityInfo(request.lang)
 
@@ -89,7 +86,7 @@ class CitiesApiController @Inject() (
             Ok(generateGeoJson(cityDetails))
               .withHeaders(
                 "Content-Type"        -> "application/geo+json",
-                "Content-Disposition" -> "attachment; filename=cities.geojson"
+                "Content-Disposition" -> "inline; filename=cities.geojson"
               )
           case _ => // Default to JSON
             Ok(Json.obj("status" -> "OK", "cities" -> cityDetails))

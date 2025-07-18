@@ -14,6 +14,7 @@
 @common.main(commonData, title, Some("/explore")) {
     @common.navbar(commonData, Some(user))
 
+    <script src='@assets.path("javascripts/lib/backbone-1.6.1-min.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@assets.path("stylesheets/animate.css")'/>
 
@@ -329,12 +330,16 @@
                     </div>
                     <br class="clear">
                 </div>
-                <div id="label-counter-status-box" class="status-box">
-                    <div id="label-counter"></div>
-                </div>
-                <div id="mission-guidance-status-box" class="status-box">
-                    <span id="mission-guidance-status" data-toggle="popover"></span>
-                </div>
+                @if(currentCity.cityId == "chandigarh-india") {
+                    <div id="mission-guidance-status-box" class="status-box">
+                        <h1 id="mission-guidance-header">Mission Guidance</h1>
+                        <span id="mission-guidance-status"></span>
+                    </div>
+                } else {
+                    <div id="label-counter-status-box" class="status-box">
+                        <div id="label-counter"></div>
+                    </div>
+                }
             </div>
             <div id="interaction-area-holder" onSelectStart="return true;">
                 <div id="alert-holder" style="display: none">
@@ -687,14 +692,14 @@
     <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
     <script src='@assets.path("javascripts/lib/d3-3.5.6.js")'></script>
 
-    <script src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
     <script src='@assets.path("javascripts/lib/turf-7.2.0.min.js")'></script>
     <script src='@assets.path("javascripts/lib/async-lock-1.4.1.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/betterknown-1.0.4.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-3.10.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/betterknown-1.0.5.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.13.0.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("javascripts/lib/mapbox-gl-3.10.0.css")' rel="stylesheet"/>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.13.0.css")' rel="stylesheet"/>
 
     <script>
         // Todo. Try to move the following code to Main.js
@@ -859,7 +864,7 @@
             mainParam.missionDescription = missionDescriptionParam;
 
             mainParam.regionId = @data.region.regionId;
-            mainParam.regionName = '@data.region.name';
+            mainParam.regionName = @Html(Json.stringify(Json.toJson(data.region.name)));
             // TODO I think that we can replace this with Json.toJson(data.region.geom).toString after back end uprades.
             mainParam.regionGeoJSON = window.betterknown.wktToGeoJSON("@data.region.geom");
 
@@ -878,6 +883,7 @@
             mainParam.cityName = "@currentCity.cityNameFormatted";
             mainParam.cityNameShort = "@currentCity.cityNameShort";
             mainParam.countryId = "@currentCity.countryId";
+            mainParam.mapboxApiKey = "@commonData.mapboxApiKey";
             mainParam.makeCrops = @data.makeCrops;
 
             svl.main = new Main(mainParam);

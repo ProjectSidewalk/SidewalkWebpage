@@ -1,4 +1,4 @@
-function ModalMissionCompleteMap(uiModalMissionComplete) {
+function ModalMissionCompleteMap(uiModalMissionComplete, mapboxApiKey) {
     var self = this;
 
     // These two are defined globally so that they can be added in show and removed in hide.
@@ -7,7 +7,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     this.neighborhoodBounds = null;
 
     $.getJSON('/cityMapParams', function(data) {
-        mapboxgl.accessToken = data.mapbox_api_key;
+        mapboxgl.accessToken = mapboxApiKey;
         self._map = new mapboxgl.Map({
             container: uiModalMissionComplete.map.get(0),
             style: 'mapbox://styles/mapbox/light-v11?optimize=true',

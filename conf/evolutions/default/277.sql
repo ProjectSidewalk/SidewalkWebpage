@@ -1,7 +1,5 @@
 # --- !Ups
-ALTER TABLE label_point
-    ADD COLUMN geom_using_gsv geometry(Point, 4326);
+INSERT INTO version VALUES ('9.0.5', now(), 'Fixes a few bugs and improves Chandigarh AI pilot.');
 
 # --- !Downs
-ALTER TABLE label_point
-    DROP COLUMN geom_using_gsv;
+DELETE FROM version WHERE version_id = '9.0.5';

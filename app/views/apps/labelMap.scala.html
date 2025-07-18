@@ -118,8 +118,8 @@
 
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
 
-    <script src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
     <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
     <script src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script src='@assets.path("javascripts/lib/dataTables.bootstrap.min.js")'></script>
@@ -129,9 +129,9 @@
     <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
     <script>updateTimestamps("@messages.lang.code");</script>
 
-    <script src='@assets.path("javascripts/lib/mapbox-gl-3.10.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.13.0.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("javascripts/lib/mapbox-gl-3.10.0.css")' rel="stylesheet"/>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.13.0.css")' rel="stylesheet"/>
     <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
     <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
     <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
@@ -146,6 +146,7 @@
             let params = {
                 mapName: 'labelmap-choropleth',
                 mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+                mapboxApiKey: '@commonData.mapboxApiKey',
                 mapboxLogoLocation: 'bottom-right',
                 neighborhoodFillMode: 'singleColor',
                 neighborhoodFillColor: '#808080',

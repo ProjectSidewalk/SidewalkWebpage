@@ -219,10 +219,6 @@ class GlobalAttributeTable @Inject() (protected val dbConfigProvider: DatabaseCo
     )
   }
 
-  def getAllGlobalAttributes: DBIO[Seq[GlobalAttribute]] = {
-    globalAttributes.result
-  }
-
   def toInt(s: Option[String]): Option[Int] = {
     try { Some(s.getOrElse("-1").toInt) }
     catch { case e: Exception => None }
