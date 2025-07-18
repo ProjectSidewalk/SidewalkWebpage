@@ -6,7 +6,7 @@
     left: 735px;
     top: 5px;
     width: 200px;
-    color: rgb(127, 127, 127);
+    color: rgb(75, 75, 75, 1);
 }
 
 .status-box {
@@ -18,7 +18,7 @@
 }
 
 .status-box a {
-    color: rgba(128, 128, 128, 1);
+    color: rgb(75, 75, 75, 1);
     text-decoration: underline;
 }
 
@@ -47,6 +47,32 @@
     margin-bottom: 0;
     padding-bottom: 0;
 }
+
+#mission-guidance-status-box {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+#mission-guidance-status {
+    display: inline-block;
+    font-size: 7.5pt;
+}
+
+#mission-guidance-status:hover::after {
+     content: attr(data-full-text);
+     position: absolute;
+     top: 60%;
+     left: 0;
+     background: #333;
+     color: white;
+     padding: 8px;
+     border-radius: 4px;
+     white-space: pre-wrap;
+     z-index: 1000;
+     max-width: 300px;
+     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+ }
 
 .status-icon {
     width: 20px;

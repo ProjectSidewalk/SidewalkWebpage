@@ -1,4 +1,4 @@
-function Admin(_, $) {
+function Admin(_, $, mapboxApiKey) {
     var self = {};
     var mapLoaded = false;
     var graphsLoaded = false;
@@ -8,6 +8,7 @@ function Admin(_, $) {
     var analyticsTabMapParams = {
         mapName: 'admin-landing-choropleth',
         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+        mapboxApiKey: mapboxApiKey,
         mapboxLogoLocation: 'bottom-right',
         scrollWheelZoom: false,
         neighborhoodsURL: '/neighborhoods',
@@ -19,6 +20,7 @@ function Admin(_, $) {
     var mapTabMapParams = {
         mapName: 'admin-labelmap-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+        mapboxApiKey: mapboxApiKey,
         mapboxLogoLocation: 'bottom-right',
         neighborhoodsURL: '/neighborhoods',
         completionRatesURL: '/adminapi/neighborhoodCompletionRate',

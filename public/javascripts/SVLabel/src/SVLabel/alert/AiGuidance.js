@@ -62,26 +62,9 @@ function AiGuidance(tracker, popUpMessage) {
                         tracker.push('PopUpShow_AiGuidance', {message: response});
                     });
 
-                    // Add the AI guidance in a tooltip on the status bar, just above the minimap.
-                    $('#mission-guidance-status').text('Hover for mission guidance');
-                    $('#mission-guidance-status').popover({
-                        trigger: 'manual',
-                        html: true,
-                        placement: 'top',
-                        template: "<div class='popover status-tooltip' id='mission-guidance-tooltip' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>",
-                        content: response
-                    }).on('mouseenter', function() {
-                        var _this = this;
-                        $(this).popover('show');
-                        $('.popover').on('mouseleave', function() {
-                            $(_this).popover('hide');
-                        });
-                    }).on('mouseleave', function() {
-                        var _this = this;
-                        setTimeout(function() {
-                            if (!$(".popover:hover").length) { $(_this).popover('hide'); }
-                        }, 400);
-                    });
+                    // Add the AI guidance just above the minimap, with full text on hover in case it's too long to fit.
+                    $('#mission-guidance-status').text(response);
+                    $('#mission-guidance-status').attr('data-full-text', response);
                 })
                 .catch(error => {
                     tracker.push('PopUpShow_AiGuidance_Error', {error: error.message});

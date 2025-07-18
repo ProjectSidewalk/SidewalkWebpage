@@ -34,6 +34,7 @@ case class CommonPageData(
     googleAnalyticsId: String,
     prodUrl: String,
     gMapsApiKey: String,
+    mapboxApiKey: String,
     versionId: String,
     versionTimestamp: OffsetDateTime,
     allCityInfo: Seq[CityInfo]
@@ -640,9 +641,10 @@ class ConfigServiceImpl @Inject() (
       googleAnalyticsId: String  = config.get[String](s"city-params.google-analytics-4-id.$envType.$cityId")
       prodUrl: String            = config.get[String](s"city-params.landing-page-url.prod.$cityId")
       gMapsApiKey: String        = config.get[String]("google-maps-api-key")
+      mapboxApiKey: String       = config.get[String]("mapbox-api-key")
       allCityInfo: Seq[CityInfo] = getAllCityInfo(lang)
     } yield {
-      CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, gMapsApiKey, version.versionId,
+      CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, gMapsApiKey, mapboxApiKey, version.versionId,
         version.versionStartTime, allCityInfo)
     }
   }

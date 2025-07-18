@@ -30,6 +30,9 @@
         "100-percent-complete": "已完成100%！",
         "percent-complete": "{{percent}}%完成"
     },
+    "deployment-map": {
+        "explore": "探索{{cityName}}"
+    },
     "errors": {
         "title": "啊糟糕！我們現在沒有與此標記相關的圖片可供參考。",
         "explanation": "我們使用 Google 地圖應用程式介面來顯示人行道的圖像，有時候 Google 會移除這些圖片，因此我們無法再讀取它們。抱歉啦！",

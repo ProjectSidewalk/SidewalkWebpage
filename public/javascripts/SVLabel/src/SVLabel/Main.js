@@ -149,7 +149,7 @@ function Main (params) {
         logPageFocus();
 
         // Modals
-        var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
+        var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete, params.mapboxApiKey);
         var modalMissionCompleteProgressBar = new ModalMissionCompleteProgressBar(svl.ui.modalMissionComplete);
         svl.modalMissionComplete = new ModalMissionComplete(svl, svl.missionContainer, svl.missionModel,
             svl.taskContainer, modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete,
