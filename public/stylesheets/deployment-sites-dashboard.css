@@ -40,24 +40,32 @@
   justify-content: center;
 }
 
-/* Stats grid using CSS Grid */
+/* Stats grid using Flexbox for proper responsive grouping */
 .deployment-sites-stats-holder {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  text-align: center;
-  max-width: 800px; /* Constrain width for better centering */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 40px;
+  max-width: 1000px;
   width: 100%;
-  align-items: end; /* Bottom align all grid items */
 }
 
-.deployment-sites-stats-holder img {
+.stat-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 120px;
+  flex: 1;
+}
+
+.stat-group img {
   height: 70px;
-  margin: 0 auto;
+  margin: 15px 0;
   transition: transform 0.2s ease;
 }
 
-.deployment-sites-stats-holder img:hover {
+.stat-group img:hover {
   transform: scale(1.05);
 }
 
@@ -66,6 +74,7 @@
   font-family: raleway-extrabold, sans-serif;
   color: #2c3e50;
   line-height: 1.2;
+  margin-bottom: auto; /* Push to top, icon and stat to bottom */
 }
 
 .deployment-sites-stats-stat {
@@ -120,21 +129,24 @@
   }
 
   .deployment-sites-stats-holder {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-    max-width: 600px;
+    gap: 25px;
+  }
+
+  .stat-group {
+    min-width: 100px;
   }
 
   .deployment-sites-stats-header {
-    font-size: 18px;
-  }
-
-  .deployment-sites-stats-stat {
     font-size: 20px;
   }
 
-  .deployment-sites-stats-holder img {
+  .deployment-sites-stats-stat {
+    font-size: 22px;
+  }
+
+  .stat-group img {
     height: 50px;
+    margin: 10px 0;
   }
 }
 
@@ -149,9 +161,36 @@
   }
 
   .deployment-sites-stats-holder {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    max-width: 400px;
+    gap: 20px;
+  }
+
+  .stat-group {
+    min-width: 80px;
+  }
+
+  .deployment-sites-stats-header {
+    font-size: 16px;
+  }
+
+  .deployment-sites-stats-stat {
+    font-size: 18px;
+  }
+
+  .stat-group img {
+    height: 40px;
+    margin: 8px 0;
+  }
+}
+
+/* Very small screens - stack in 2-3 columns */
+@media (max-width: 360px) {
+  .deployment-sites-stats-holder {
+    gap: 15px;
+  }
+
+  .stat-group {
+    min-width: 70px;
+    flex-basis: calc(50% - 15px); /* Force 2 columns on very small screens */
   }
 
   .deployment-sites-stats-header {
@@ -162,13 +201,14 @@
     font-size: 16px;
   }
 
-  .deployment-sites-stats-holder img {
-    height: 40px;
+  .stat-group img {
+    height: 35px;
+    margin: 6px 0;
   }
 }
 
 /* Focus states for accessibility */
-.deployment-sites-stats-holder img:focus {
+.stat-group img:focus {
   outline: 2px solid #78B9AB;
   outline-offset: 2px;
 }

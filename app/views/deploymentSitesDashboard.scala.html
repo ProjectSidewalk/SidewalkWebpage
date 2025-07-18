@@ -19,20 +19,29 @@
 
         <div class="stats-section">
             <div class="deployment-sites-stats-holder">
-                <span class="deployment-sites-stats-header">@Messages("cities.dashboard.cities")</span>
-                <span class="deployment-sites-stats-header">@Messages("cities.dashboard.distance")</span>
-                <span class="deployment-sites-stats-header">@Messages("cities.dashboard.labels")</span>
-                <span class="deployment-sites-stats-header">@Messages("cities.dashboard.validations")</span>
+                <div class="stat-group">
+                    <span class="deployment-sites-stats-header">@Messages("cities.dashboard.cities")</span>
+                    <img src='@assets.path("images/icons/project_sidewalk_flag.png")' alt="@Messages("cities.dashboard.cities.icon.alt")"/>
+                    <span class="deployment-sites-stats-stat" id="stat-cities">-</span>
+                </div>
 
-                <img src='@assets.path("images/icons/project_sidewalk_flag.png")' alt="@Messages("cities.dashboard.cities.icon.alt")"/>
-                <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")"/>
-                <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")"/>
-                <img src='@assets.path("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
+                <div class="stat-group">
+                    <span class="deployment-sites-stats-header">@Messages("cities.dashboard.distance")</span>
+                    <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")"/>
+                    <span class="deployment-sites-stats-stat" id="stat-distance">-</span>
+                </div>
 
-                <span class="deployment-sites-stats-stat" id="stat-cities">-</span>
-                <span class="deployment-sites-stats-stat" id="stat-distance">-</span>
-                <span class="deployment-sites-stats-stat" id="stat-labels">-</span>
-                <span class="deployment-sites-stats-stat" id="stat-validations">-</span>
+                <div class="stat-group">
+                    <span class="deployment-sites-stats-header">@Messages("cities.dashboard.labels")</span>
+                    <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")"/>
+                    <span class="deployment-sites-stats-stat" id="stat-labels">-</span>
+                </div>
+
+                <div class="stat-group">
+                    <span class="deployment-sites-stats-header">@Messages("cities.dashboard.validations")</span>
+                    <img src='@assets.path("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
+                    <span class="deployment-sites-stats-stat" id="stat-validations">-</span>
+                </div>
             </div>
         </div>
     </div>
@@ -123,7 +132,6 @@
 
             // Update the stats display
             $('#stat-cities').text(stats.numCities || 0);
-            $('#stat-countries').text(stats.numCountries || 0);
             $('#stat-distance').text(formatDistance(stats.kmExplored || 0));
             $('#stat-labels').text(formatNumber(stats.totalLabels || 0));
             $('#stat-validations').text(formatNumber(stats.totalValidations || 0));
@@ -131,7 +139,7 @@
             });
 
             // Log webpage activity
-            const activity = "Visit_Deployment_Sites_Dashboard";
+            const activity = "Visit_Cities_Dashboard";
             $.ajax({
                 contentType: 'application/json; charset=utf-8',
                 url: '/userapi/logWebpageActivity',
@@ -139,7 +147,7 @@
                 data: JSON.stringify(activity),
                 dataType: 'json',
                 success: function(result) {
-                    console.log('Logged deployment sites dashboard visit');
+                    console.log('Logged cities dashboard visit');
                 },
                 error: function (result) {
                     console.error('Failed to log activity:', result);
