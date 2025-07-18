@@ -110,9 +110,6 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   /**
    * Retrieves essential aggregate data for a specific city schema.
    *
-   * This method performs the same calculation as getCurrentCityAggregateData but
-   * for a different schema using cross-schema queries.
-   *
    * @param schema The database schema name for the target city
    * @return DBIO action that yields AggregateStats
    */
@@ -162,6 +159,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           kmExploredNoOverlap = kmExploredNoOverlap,
           totalLabels = totalLabels,
           totalValidations = totalValidations,
+          numCities = 0, // Individual cities don't have deployment counts
+          numCountries = 0, // These are calculated at the service level
+          numLanguages = 0, // when aggregating across all cities
           byLabelType = labelTypeStats
         )
       }

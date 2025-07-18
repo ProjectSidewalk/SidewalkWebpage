@@ -177,7 +177,8 @@ class StatsApiController @Inject() (
    * Converts aggregate statistics to JSON format.
    *
    * This method creates a JSON representation of the aggregate statistics that matches
-   * the expected format for the frontend aggregator replacement.
+   * the expected format for the frontend aggregator replacement, now including
+   * deployment counts for cities, countries, and languages.
    *
    * @param stats The aggregate statistics to convert
    * @return JSON representation of the statistics
@@ -201,6 +202,9 @@ class StatsApiController @Inject() (
       "kmExploredNoOverlap" -> stats.kmExploredNoOverlap,
       "totalLabels" -> stats.totalLabels,
       "totalValidations" -> stats.totalValidations,
+      "numCities" -> stats.numCities,
+      "numCountries" -> stats.numCountries,
+      "numLanguages" -> stats.numLanguages,
       "byLabelType" -> labelTypeJson
     )
   }
@@ -210,7 +214,7 @@ class StatsApiController @Inject() (
    *
    * This method creates a CSV representation of the aggregate statistics suitable for
    * data analysis and reporting purposes. It follows the same pattern as other CSV
-   * generation methods in the controller.
+   * generation methods in the controller, now including deployment counts.
    *
    * @param stats The aggregate statistics to convert
    * @return CSV formatted string
@@ -221,7 +225,10 @@ class StatsApiController @Inject() (
       s"KM Explored,${stats.kmExplored}",
       s"KM Explored No Overlap,${stats.kmExploredNoOverlap}",
       s"Total Labels,${stats.totalLabels}",
-      s"Total Validations,${stats.totalValidations}"
+      s"Total Validations,${stats.totalValidations}",
+      s"Number of Cities,${stats.numCities}",
+      s"Number of Countries,${stats.numCountries}",
+      s"Number of Languages,${stats.numLanguages}"
     )
 
     // Add label-specific statistics

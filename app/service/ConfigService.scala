@@ -59,6 +59,9 @@ case class LabelTypeStats(
  * @param kmExploredNoOverlap Total kilometers explored without overlap across all cities
  * @param totalLabels Total number of labels across all cities
  * @param totalValidations Total number of validations across all cities
+ * @param numCities Number of cities where Project Sidewalk is deployed
+ * @param numCountries Number of countries where Project Sidewalk is deployed
+ * @param numLanguages Number of distinct languages supported
  * @param byLabelType Map of label type to its statistics
  */
 case class AggregateStats(
@@ -66,6 +69,9 @@ case class AggregateStats(
     kmExploredNoOverlap: Double,
     totalLabels: Int,
     totalValidations: Int,
+    numCities: Int,
+    numCountries: Int,
+    numLanguages: Int,
     byLabelType: Map[String, LabelTypeStats]
 )
 
@@ -200,7 +206,8 @@ class ConfigServiceImpl @Inject() (
    * This method uses direct database queries with cross-schema access to efficiently
    * gather only the essential statistics from all configured cities. It filters out
    * cities whose schemas don't exist in the current environment (so plays nice with
-   * localhost dev setups).
+   * localhost dev setups). Additionally calculates deployment counts for cities,
+   * countries, and supported languages.
    *
    * @return A Future containing aggregated statistics across all cities
    */
@@ -240,9 +247,17 @@ class ConfigServiceImpl @Inject() (
             kmExploredNoOverlap = 0.0,
             totalLabels = 0,
             totalValidations = 0,
+            numCities = 0,
+            numCountries = 0,
+            numLanguages = 0,
             byLabelType = Map.empty
           ))
         } else {
+          // Calculate deployment statistics
+          val numCities = availableCities.length
+          val numCountries = calculateNumCountries(availableCities)
+          val numLanguages = calculateNumLanguages()
+
           // Fetch essential statistics from available cities in parallel
           val cityStatsFutures: Seq[Future[Option[AggregateStats]]] = availableCities.map { cityId =>
             getCityAggregateData(cityId)
@@ -261,34 +276,19 @@ class ConfigServiceImpl @Inject() (
                 kmExploredNoOverlap = 0.0,
                 totalLabels = 0,
                 totalValidations = 0,
+                numCities = numCities,
+                numCountries = numCountries,
+                numLanguages = numLanguages,
                 byLabelType = Map.empty
               )
             } else {
               logger.info(s"Successfully aggregated data from ${validCityStats.length} cities")
-              aggregateCityData(validCityStats)
+              aggregateCityData(validCityStats, numCities, numCountries, numLanguages)
             }
           }
         }
       }
     }
-  }
-
-  /**
-   * Checks if a database schema exists.
-   *
-   * @param schemaName The name of the schema to check
-   * @return A Future containing true if the schema exists, false otherwise
-   */
-  private def checkSchemaExists(schemaName: String): Future[Boolean] = {
-    db.run(
-      sql"""
-        SELECT EXISTS(
-          SELECT 1
-          FROM information_schema.schemata
-          WHERE schema_name = $schemaName
-        )
-      """.as[Boolean].head
-    ).recover { case _ => false }
   }
 
   /**
@@ -331,14 +331,68 @@ class ConfigServiceImpl @Inject() (
   }
 
   /**
+   * Calculates the number of unique countries from available cities.
+   *
+   * @param cityIds List of available city IDs
+   * @return Number of unique countries
+   */
+  private def calculateNumCountries(cityIds: Seq[String]): Int = {
+    val countries = cityIds.flatMap { cityId =>
+      try {
+        Some(config.get[String](s"city-params.country-id.$cityId"))
+      } catch {
+        case e: ConfigException =>
+          logger.warn(s"Could not get country ID for city $cityId: ${e.getMessage}")
+          None
+      }
+    }.toSet
+    countries.size
+  }
+
+  /**
+   * Calculates the number of supported languages from configuration.
+   *
+   * Language variants (e.g., "en-US", "zh-TW", "es-MX") are grouped by their base language code
+   * following ISO 639-1 standard where the part before the hyphen represents the base language.
+   * For example: "en", "en-US", "en-NZ" all count as one language (English).
+   *
+   * @return Number of distinct base languages supported
+   */
+  private def calculateNumLanguages(): Int = {
+    try {
+      val configuredLanguages = config.get[Seq[String]]("play.i18n.langs")
+
+      // Extract base language codes by taking everything before the first hyphen
+      val baseLanguages = configuredLanguages.map { lang =>
+        lang.split("-").head.toLowerCase
+      }.toSet
+
+      baseLanguages.size
+    } catch {
+      case e: ConfigException =>
+        logger.warn(s"Could not get language configuration: ${e.getMessage}")
+        1 // Default to 1 if configuration is missing
+    }
+  }
+
+  /**
    * Aggregates data from multiple cities into a single result.
    *
-   * This method combines the individual city data into aggregate totals.
+   * This method combines the individual city data into aggregate totals and includes
+   * deployment statistics.
    *
    * @param cityData Sequence of city aggregate data to combine
+   * @param numCities Number of cities in deployment
+   * @param numCountries Number of countries in deployment
+   * @param numLanguages Number of languages supported
    * @return Aggregated statistics across all provided cities
    */
-  private def aggregateCityData(cityData: Seq[AggregateStats]): AggregateStats = {
+  private def aggregateCityData(
+      cityData: Seq[AggregateStats],
+      numCities: Int,
+      numCountries: Int,
+      numLanguages: Int
+  ): AggregateStats = {
     import scala.collection.mutable
 
     // Aggregate basic metrics
@@ -369,8 +423,29 @@ class ConfigServiceImpl @Inject() (
       kmExploredNoOverlap = totalKmExploredNoOverlap,
       totalLabels = totalLabelsCount,
       totalValidations = totalValidationsCount,
+      numCities = numCities,
+      numCountries = numCountries,
+      numLanguages = numLanguages,
       byLabelType = labelTypeStatsMap.toMap
     )
+  }
+
+  /**
+   * Checks if a database schema exists.
+   *
+   * @param schemaName The name of the schema to check
+   * @return A Future containing true if the schema exists, false otherwise
+   */
+  private def checkSchemaExists(schemaName: String): Future[Boolean] = {
+    db.run(
+      sql"""
+        SELECT EXISTS(
+          SELECT 1
+          FROM information_schema.schemata
+          WHERE schema_name = $schemaName
+        )
+      """.as[Boolean].head
+    ).recover { case _ => false }
   }
 
   def getCityMapParams: Future[MapParams] =
