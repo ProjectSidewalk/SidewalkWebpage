@@ -162,50 +162,69 @@ function formatDistance(kilometers) {
  * updateStatsDisplay(aggregatedStats);
  */
 function updateStatsDisplay(stats) {
-  const targetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
-
-  if (!targetParagraph) {
-    console.error('Target paragraph with ID "project-sidewalk-aggregate-stats" not found');
-    return;
+  // Update main stats paragraph (API landing page)
+  const mainTargetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
+  if (mainTargetParagraph) {
+    mainTargetParagraph.innerHTML = `
+      Working with local community groups and governmental partners, we have deployed Project Sidewalk in
+      <strong>${stats.numCities} cities</strong> across <strong>${stats.numCountries} countries</strong> and
+      <strong>${stats.numLanguages} natively translated languages</strong>, including Spanish, German, and Chinese.
+      Together, our users have assessed over <strong>${formatDistance(stats.kmExplored)}</strong> of city streets,
+      contributing <strong>${formatNumber(stats.totalLabels)} labels</strong> and
+      <strong>${formatNumber(stats.totalValidations)} validations</strong>.
+    `;
   }
 
-  // Update the paragraph content with real data from the API
-  targetParagraph.innerHTML = `
-    Working with local community groups and governmental partners, we have deployed Project Sidewalk in
-    <strong>${stats.numCities} cities</strong> across <strong>${stats.numCountries} countries</strong> and
-    <strong>${stats.numLanguages} natively translated languages</strong>, including Spanish, German, and Chinese.
-    Together, our users have assessed over <strong>${formatDistance(stats.kmExplored)}</strong> of city streets,
-    contributing <strong>${formatNumber(stats.totalLabels)} labels</strong> and
-    <strong>${formatNumber(stats.totalValidations)} validations</strong>.
-  `;
-}
-
-/**
- * Displays a loading state in the target paragraph
- */
-function showLoadingState() {
-  const targetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
-
-  if (targetParagraph) {
-    targetParagraph.innerHTML = `
-      <em>Loading Project Sidewalk statistics...</em>
+  // Update cities page intro paragraph
+  const citiesTargetParagraph = document.getElementById('cities-deployment-stats');
+  if (citiesTargetParagraph) {
+    citiesTargetParagraph.innerHTML = `
+      Project Sidewalk is deployed in <strong>${stats.numCities} cities</strong> across <strong>${stats.numCountries} countries</strong>.
+      The Cities API lists all Project Sidewalk deployment sites, including the city's name, ID, and URL
+      as well as geographic information such as the city center point <code>lat, lng</code> and bounding box.
     `;
   }
 }
 
 /**
- * Displays an error state in the target paragraph with fallback content
+ * Displays a loading state in target paragraphs
+ */
+function showLoadingState() {
+  const mainTargetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
+  if (mainTargetParagraph) {
+    mainTargetParagraph.innerHTML = `<em>Loading Project Sidewalk statistics...</em>`;
+  }
+
+  const citiesTargetParagraph = document.getElementById('cities-deployment-stats');
+  if (citiesTargetParagraph) {
+    citiesTargetParagraph.innerHTML = `
+      Project Sidewalk is deployed in multiple cities across several countries. The Cities API lists all Project Sidewalk deployment sites, including the city's name, ID, and URL
+      as well as geographic information such as the city center point <code>lat, lng</code> and bounding box.
+    `;
+  }
+}
+
+/**
+ * Displays an error state in target paragraphs with fallback content
  *
  * @param {Error} error - The error object
  */
 function showErrorState(error) {
-  const targetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
-
-  if (targetParagraph) {
-    targetParagraph.innerHTML = `
+  const mainTargetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
+  if (mainTargetParagraph) {
+    mainTargetParagraph.innerHTML = `
       Working with local community groups and governmental partners, we have deployed Project Sidewalk in
       multiple cities across several countries and natively translated languages, including Spanish, German, and Chinese.
       Together, our users have assessed thousands of kilometers of city streets.
+      <br><small><em>Note: Unable to load real-time statistics. ${error.message}</em></small>
+    `;
+  }
+
+  const citiesTargetParagraph = document.getElementById('cities-deployment-stats');
+  if (citiesTargetParagraph) {
+    citiesTargetParagraph.innerHTML = `
+      Project Sidewalk is deployed in multiple cities across several countries. The Cities API lists all Project Sidewalk deployment sites, including the city's name, ID, and URL
+      as well as geographic information such as the city center point <code>lat, lng</code> and bounding box.
       <br><small><em>Note: Unable to load real-time statistics. ${error.message}</em></small>
     `;
   }
