@@ -41,8 +41,8 @@ class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "
   def geomUsingGsv: Rep[Option[Point]]       = column[Option[Point]]("geom_using_gsv")
   def computationMethod: Rep[Option[String]] = column[Option[String]]("computation_method")
 
-  def * = (labelPointId, labelId, panoX, panoY, canvasX, canvasY, heading, pitch, zoom, lat, lng, geom,
-    geomUsingGsv, computationMethod) <> ((LabelPoint.apply _).tupled, LabelPoint.unapply)
+  def * = (labelPointId, labelId, panoX, panoY, canvasX, canvasY, heading, pitch, zoom, lat, lng, geom, geomUsingGsv,
+    computationMethod) <> ((LabelPoint.apply _).tupled, LabelPoint.unapply)
 
 //  def label: ForeignKeyQuery[LabelTable, Label] =
 //    foreignKey("label_point_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
