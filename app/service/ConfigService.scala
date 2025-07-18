@@ -171,7 +171,7 @@ class ConfigServiceImpl @Inject() (
    */
   private val legacyDCData = AggregateStats(
     kmExplored = 5482.0,
-    kmExploredNoOverlap = 3563.3, // JEF TODO: I just did 0.65 * 5482.0 to get this value; Mikey should check
+    kmExploredNoOverlap = 1,747, // Mikey calculated this for us on July 18, 2025
     totalLabels = 263403,
     totalValidations = 0, // Validations were not implemented during DC deployment
     numCities = 0,
