@@ -4,6 +4,8 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
+    <!-- Include aggregate stats script for dynamic city/country counts -->
+    <script src="@routes.Assets.versioned("javascripts/common/aggregate-stats.js")"></script>
     <script>
         // Set data attributes for API information. This is used by our JavaScripts to configure API calls,
         // including the download buttons in api-docs.js
@@ -18,9 +20,10 @@
 
     <div class="api-section" id="cities-intro-section">
         <h1 class="api-heading" id="cities-api">Cities API <a href="#cities-api" class="permalink">#</a></h1>
-        <p>
-            The Cities API lists all cities where Project Sidewalk is deployed and includes the city's name, ID, and URL
-            as well as geographic information such as the city center point <<code>lat, lng</code>> and bounding box.
+        <p id="cities-deployment-stats">
+            Project Sidewalk is deployed in multiple cities across several countries. The Cities API lists all Project Sidewalk
+            deployment sites, including the city's name, ID, and URL as well as geographic information such as the
+            city center point <code>lat, lng</code> and bounding box.
         </p>
     </div>
 
