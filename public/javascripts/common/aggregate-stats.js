@@ -1,51 +1,34 @@
 /**
  * Project Sidewalk Statistics Aggregator
  *
- * This module fetches and aggregates statistics from multiple Project Sidewalk deployments
+ * This module fetches aggregated statistics from the Project Sidewalk API
  * to populate the API documentation landing page with real-time data.
  *
+ * Uses the new /v3/api/aggregateStats endpoint for server-side aggregation.
  */
 
 /**
  * Configuration object for the statistics aggregator
  */
 const CONFIG = {
-  CITIES_ENDPOINT: '/v3/api/cities',
-  STATS_ENDPOINT: '/v3/api/overallStats',
+  AGGREGATE_STATS_ENDPOINT: '/v3/api/aggregateStats',
   REQUEST_TIMEOUT: 10000, // 10 seconds
-  MAX_CONCURRENT_REQUESTS: 5,
   RETRY_ATTEMPTS: 2,
   RETRY_DELAY: 1000 // 1 second
 };
 
 /**
- * Aggregated statistics data structure
+ * Aggregated statistics data structure from the API
  * @typedef {Object} AggregatedStats
- * @property {number} totalCities - Total number of deployed cities
- * @property {number} totalCountries - Total number of countries
- * @property {number} totalLanguages - Total number of supported languages
- * @property {number} totalKmExplored - Total kilometers of streets assessed
+ * @property {string} status - API response status
+ * @property {number} kmExplored - Total kilometers of streets assessed
+ * @property {number} kmExploredNoOverlap - Total kilometers without overlap
  * @property {number} totalLabels - Total number of labels contributed
  * @property {number} totalValidations - Total number of validations
- */
-
-/**
- * City data structure from the cities API
- * @typedef {Object} CityData
- * @property {string} cityId - Unique city identifier
- * @property {string} countryId - Country identifier
- * @property {string} cityNameShort - Short city name
- * @property {string} cityNameFormatted - Formatted city name
- * @property {string} url - City-specific deployment URL
- * @property {string} visibility - City visibility status
- */
-
-/**
- * Statistics data structure from the overallStats API
- * @typedef {Object} StatsData
- * @property {number} kmExplored - Kilometers explored in this city
- * @property {number} totalLabels - Total labels in this city
- * @property {number} nValidations - Number of validations in this city
+ * @property {number} numCities - Total number of deployed cities
+ * @property {number} numCountries - Total number of countries
+ * @property {number} numLanguages - Total number of supported languages
+ * @property {Object} byLabelType - Label statistics by type
  */
 
 /**
@@ -58,7 +41,7 @@ const CONFIG = {
  * @throws {Error} When the request fails after all retries
  *
  * @example
- * const data = await fetchWithRetry('https://example.com/api/data');
+ * const data = await fetchWithRetry('/v3/api/aggregateStats');
  */
 async function fetchWithRetry(url, timeout = CONFIG.REQUEST_TIMEOUT, retries = CONFIG.RETRY_ATTEMPTS) {
   const controller = new AbortController();
@@ -94,125 +77,49 @@ async function fetchWithRetry(url, timeout = CONFIG.REQUEST_TIMEOUT, retries = C
 }
 
 /**
- * Fetches the list of all Project Sidewalk cities
+ * Fetches aggregated statistics from the Project Sidewalk API
  *
- * @param {boolean} [includePrivate=false] - Whether to include private cities (defaults true)
- * @returns {Promise<CityData[]>} Array of city data objects
- * @throws {Error} When the cities API request fails
+ * @returns {Promise<AggregatedStats>} The aggregated statistics object
+ * @throws {Error} When the API request fails or returns invalid data
  *
  * @example
- * const cities = await fetchCities();
- * console.log(`Found ${cities.length} cities`);
+ * const stats = await fetchAggregateStats();
+ * console.log(`Total cities: ${stats.numCities}`);
  */
-async function fetchCities(includePrivate = true) {
+async function fetchAggregateStats() {
   try {
-    const response = await fetchWithRetry(CONFIG.CITIES_ENDPOINT);
+    const response = await fetchWithRetry(CONFIG.AGGREGATE_STATS_ENDPOINT);
 
-    if (response.status !== 'OK' || !Array.isArray(response.cities)) {
-      throw new Error('Invalid response format from cities API');
+    if (response.status !== 'OK') {
+      throw new Error('Invalid response status from aggregate stats API');
     }
 
-    // Consider filtering only public cities for statistics
-    let cities = response.cities;
-    if (!includePrivate) {
-      cities = cities.filter(city => city.visibility === 'public');
+    // Validate that we have the expected fields
+    const requiredFields = ['kmExplored', 'totalLabels', 'totalValidations', 'numCities', 'numCountries', 'numLanguages'];
+    const missingFields = requiredFields.filter(field => typeof response[field] !== 'number');
+
+    if (missingFields.length > 0) {
+      throw new Error(`Missing or invalid fields in API response: ${missingFields.join(', ')}`);
     }
-    return cities;
+
+    return response;
   } catch (error) {
-    console.error('Failed to fetch cities:', error);
-    throw new Error(`Unable to fetch cities data: ${error.message}`);
+    console.error('Failed to fetch aggregate statistics:', error);
+    throw new Error(`Unable to fetch aggregate statistics: ${error.message}`);
   }
 }
 
 /**
- * Fetches statistics for a specific city
+ * Converts kilometers to miles
  *
- * @param {CityData} city - The city data object
- * @returns {Promise<StatsData|null>} The statistics data or null if failed
- *
- * @example
- * const stats = await fetchCityStats(cityData);
- * if (stats) {
- *   console.log(`City has ${stats.totalLabels} labels`);
- * }
- */
-async function fetchCityStats(city) {
-  try {
-    const statsUrl = `${city.url}${CONFIG.STATS_ENDPOINT}`;
-    const stats = await fetchWithRetry(statsUrl);
-
-    return {
-      cityId: city.cityId,
-      countryId: city.countryId,
-      kmExplored: stats.kmExplored || 0,
-      totalLabels: stats.totalLabels || 0,
-      nValidations: stats.nValidations || 0
-    };
-  } catch (error) {
-    console.warn(`Failed to fetch stats for ${city.cityNameFormatted}:`, error.message);
-    return null;
-  }
-}
-
-/**
- * Processes cities in batches to avoid overwhelming the servers
- *
- * @param {CityData[]} cities - Array of city data objects
- * @param {number} [batchSize=CONFIG.MAX_CONCURRENT_REQUESTS] - Number of concurrent requests
- * @returns {Promise<StatsData[]>} Array of statistics data (excluding failed requests)
+ * @param {number} kilometers - Distance in kilometers
+ * @returns {number} Distance in miles
  *
  * @example
- * const allStats = await fetchAllCityStats(cities);
+ * const miles = kmToMiles(10); // 6.21
  */
-async function fetchAllCityStats(cities, batchSize = CONFIG.MAX_CONCURRENT_REQUESTS) {
-  const results = [];
-
-  for (let i = 0; i < cities.length; i += batchSize) {
-    const batch = cities.slice(i, i + batchSize);
-    const batchPromises = batch.map(city => fetchCityStats(city));
-
-    try {
-      const batchResults = await Promise.all(batchPromises);
-      results.push(...batchResults.filter(result => result !== null));
-    } catch (error) {
-      console.error(`Batch ${Math.floor(i / batchSize) + 1} failed:`, error);
-    }
-  }
-
-  return results;
-}
-
-/**
- * Aggregates statistics from all cities
- *
- * @param {CityData[]} cities - Array of city data objects
- * @param {StatsData[]} statsData - Array of statistics data objects
- * @returns {AggregatedStats} Aggregated statistics across all cities
- *
- * @example
- * const aggregated = aggregateStatistics(cities, statsData);
- * console.log(`Total: ${aggregated.totalCities} cities`);
- */
-function aggregateStatistics(cities, statsData) {
-  // Calculate unique countries
-  const uniqueCountries = new Set(cities.map(city => city.countryId));
-
-  // Currently, five languages: English, Spanish, German, Chinese, and Dutch
-  const estimatedLanguages = 5;
-
-  // Aggregate numerical data
-  const totalKmExplored = statsData.reduce((sum, stats) => sum + stats.kmExplored, 0);
-  const totalLabels = statsData.reduce((sum, stats) => sum + stats.totalLabels, 0);
-  const totalValidations = statsData.reduce((sum, stats) => sum + stats.nValidations, 0);
-
-  return {
-    totalCities: cities.length,
-    totalCountries: uniqueCountries.size,
-    totalLanguages: estimatedLanguages,
-    totalKmExplored: Math.round(totalKmExplored),
-    totalLabels: totalLabels,
-    totalValidations: totalValidations
-  };
+function kmToMiles(kilometers) {
+  return kilometers * 0.621371;
 }
 
 /**
@@ -233,6 +140,20 @@ function formatNumber(value, unit = '') {
 }
 
 /**
+ * Formats distance in both kilometers and miles
+ *
+ * @param {number} kilometers - Distance in kilometers
+ * @returns {string} Formatted distance string with both km and miles
+ *
+ * @example
+ * formatDistance(1000) // "1,000 km (621 mi)"
+ */
+function formatDistance(kilometers) {
+  const miles = kmToMiles(kilometers);
+  return `${formatNumber(kilometers, 'km')} (${formatNumber(miles, 'mi')})`;
+}
+
+/**
  * Updates the paragraph with aggregated statistics
  *
  * @param {AggregatedStats} stats - The aggregated statistics object
@@ -248,12 +169,12 @@ function updateStatsDisplay(stats) {
     return;
   }
 
-  // Update the paragraph content with real data
+  // Update the paragraph content with real data from the API
   targetParagraph.innerHTML = `
     Working with local community groups and governmental partners, we have deployed Project Sidewalk in
-    <strong>${stats.totalCities} cities</strong> across <strong>${stats.totalCountries} countries</strong> and
-    <strong>${stats.totalLanguages} natively translated languages</strong>, including Spanish, German, and Chinese.
-    Together, our users have assessed over <strong>${formatNumber(stats.totalKmExplored, 'km')}</strong> of city streets,
+    <strong>${stats.numCities} cities</strong> across <strong>${stats.numCountries} countries</strong> and
+    <strong>${stats.numLanguages} natively translated languages</strong>, including Spanish, German, and Chinese.
+    Together, our users have assessed over <strong>${formatDistance(stats.kmExplored)}</strong> of city streets,
     contributing <strong>${formatNumber(stats.totalLabels)} labels</strong> and
     <strong>${formatNumber(stats.totalValidations)} validations</strong>.
   `;
@@ -273,7 +194,7 @@ function showLoadingState() {
 }
 
 /**
- * Displays an error state in the target paragraph
+ * Displays an error state in the target paragraph with fallback content
  *
  * @param {Error} error - The error object
  */
@@ -293,8 +214,8 @@ function showErrorState(error) {
 /**
  * Main function to load and display Project Sidewalk statistics
  *
- * This function orchestrates the entire process of fetching cities,
- * getting their statistics, aggregating the data, and updating the display.
+ * This function fetches aggregated statistics from the API and updates the display.
+ * Much simpler than the previous version since aggregation is now handled server-side.
  *
  * @returns {Promise<void>}
  *
@@ -306,16 +227,8 @@ async function loadProjectSidewalkStats() {
   try {
     showLoadingState();
 
-    console.log('Fetching Project Sidewalk cities...');
-    const cities = await fetchCities();
-    console.log(`Found ${cities.length} cities`);
-
-    console.log('Fetching statistics for all cities...');
-    const statsData = await fetchAllCityStats(cities);
-    console.log(`Successfully fetched stats for ${statsData.length} cities`);
-
-    console.log('Aggregating statistics...');
-    const aggregatedStats = aggregateStatistics(cities, statsData);
+    console.log('Fetching aggregated Project Sidewalk statistics...');
+    const aggregatedStats = await fetchAggregateStats();
 
     console.log('Updating display...');
     updateStatsDisplay(aggregatedStats);
