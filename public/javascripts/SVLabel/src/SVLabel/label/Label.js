@@ -51,8 +51,8 @@ function Label(params) {
         povOfLabelIfCentered: undefined,
         labelLat: undefined,
         labelLng: undefined,
-        gsvLat: undefined,
-        gsvLng: undefined,
+        latUsingGsv: undefined,
+        lngUsingGsv: undefined,
         latLngComputationMethod: undefined,
         panoId: undefined,
         panoLat: undefined,
@@ -213,8 +213,8 @@ function Label(params) {
                     );
                 } else {
                     let latLng = null;
-                    if(getProperty('gsvLat') && getProperty('gsvLng')) {
-                        latLng = new google.maps.LatLng(getProperty('gsvLat'), getProperty('gsvLng'));
+                    if(getProperty('latUsingGsv') && getProperty('lngUsingGsv')) {
+                        latLng = new google.maps.LatLng(getProperty('latUsingGsv'), getProperty('lngUsingGsv'));
                     } else if(getProperty('labelLat') && getProperty('labelLng')) {
                         // Fallback to regression-calculated lat/lng if GSV lat/lng is not available.
                         latLng = this.toLatLng();
@@ -401,8 +401,8 @@ function Label(params) {
                     lat: gsvEstimatedLatLng.lat,
                     lng: gsvEstimatedLatLng.lng,
                 };
-                setProperty('gsvLat', latlng.lat);
-                setProperty('gsvLng', latlng.lng);
+                setProperty('latUsingGsv', latlng.lat);
+                setProperty('lngUsingGsv', latlng.lng);
             }
 
             // Estimate the latlng point from the camera position and the heading

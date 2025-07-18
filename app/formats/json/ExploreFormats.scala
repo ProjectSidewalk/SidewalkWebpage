@@ -47,8 +47,8 @@ object ExploreFormats {
       zoom: Int,
       lat: Option[Float],
       lng: Option[Float],
-      gsvLat: Option[Float],
-      gsvLng: Option[Float],
+      latUsingGsv: Option[Float],
+      lngUsingGsv: Option[Float],
       computationMethod: Option[String]
   )
   case class LabelSubmission(
@@ -239,8 +239,8 @@ object ExploreFormats {
       (JsPath \ "zoom").read[Int] and
       (JsPath \ "lat").readNullable[Float] and
       (JsPath \ "lng").readNullable[Float] and
-      (JsPath \ "gsv_lat").readNullable[Float] and
-      (JsPath \ "gsv_lng").readNullable[Float] and
+      (JsPath \ "lat_using_gsv").readNullable[Float] and
+      (JsPath \ "lng_using_gsv").readNullable[Float] and
       (JsPath \ "computation_method").readNullable[String]
   )(LabelPointSubmission.apply _)
 

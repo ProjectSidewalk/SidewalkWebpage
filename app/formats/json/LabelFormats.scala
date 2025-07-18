@@ -218,8 +218,8 @@ object LabelFormats {
       "missionId"        -> label.labelData.missionId,
       "labelLat"         -> label.pointData.lat,
       "labelLng"         -> label.pointData.lng,
-      "gsvLat"           -> label.pointData.gsvLat,
-      "gsvLng"           -> label.pointData.gsvLng
+      "latUsingGsv"      -> label.pointData.geomUsingGsv.map(_.getY),
+      "lngUsingGsv"      -> label.pointData.geomUsingGsv.map(_.getX)
     )
   }
 }

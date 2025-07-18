@@ -1,9 +1,7 @@
 # --- !Ups
 ALTER TABLE label_point
-    ADD COLUMN gsv_lat double precision,
-    ADD COLUMN gsv_lng double precision;
+    ADD COLUMN geom_using_gsv geometry(Point, 4326);
 
 # --- !Downs
 ALTER TABLE label_point
-    DROP COLUMN gsv_lat,
-    DROP COLUMN gsv_lng;
+    DROP COLUMN geom_using_gsv;
