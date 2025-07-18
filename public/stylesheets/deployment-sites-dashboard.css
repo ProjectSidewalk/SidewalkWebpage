@@ -1,30 +1,78 @@
 /*
- * Deployment Sites Dashboard CSS
- * Styling for the Project Sidewalk cities dashboard page
+ * Deployment Sites Dashboard Styles
+ * Modern layout using CSS Grid and Flexbox
  */
 
-/* Cities statistics grid layout */
-.cities-stats-holder {
+/* Main container using modern layout */
+.deployment-sites-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 15px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* Map section */
+.map-section {
+  width: 100%;
+  height: 600px;
+}
+
+.map-holder {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.map {
+  height: 100%;
+  width: 100%;
+}
+
+/* Stats section with modern centering */
+.stats-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Stats grid using CSS Grid */
+.deployment-sites-stats-holder {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  grid-gap: 5px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
   text-align: center;
+  max-width: 800px; /* Constrain width for better centering */
+  width: 100%;
+  align-items: end; /* Bottom align all grid items */
 }
 
-.cities-stats-holder img {
+.deployment-sites-stats-holder img {
   height: 70px;
-  margin: auto; /* centers the image horizontally */
+  margin: 0 auto;
+  transition: transform 0.2s ease;
 }
 
-.cities-stats-header {
+.deployment-sites-stats-holder img:hover {
+  transform: scale(1.05);
+}
+
+.deployment-sites-stats-header {
   font-size: 30px;
   font-family: raleway-extrabold, sans-serif;
+  color: #2c3e50;
+  line-height: 1.2;
 }
 
-.cities-stats-stat {
-  font-size: 28px;
-  font-family: raleway-bold, sans-serif;
-  color: #2c3e50;
+.deployment-sites-stats-stat {
+  font-size: 30px;
+  font-family: raleway, 'Open Sans', 'Noto Sans', sans-serif;
+  color: #34495e;
+  font-weight: 600;
 }
 
 /* Loading screen styles */
@@ -34,11 +82,12 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  backdrop-filter: blur(2px);
 }
 
 .loading-spinner {
@@ -59,49 +108,83 @@
   }
 }
 
-/* Map container adjustments */
-#cities-map-container {
-  position: relative;
-}
-
-/* Responsive design for mobile devices */
+/* Responsive design using modern CSS */
 @media (max-width: 768px) {
-  .cities-stats-holder {
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    grid-gap: 10px;
+  .deployment-sites-container {
+    padding: 10px 15px;
+    gap: 20px;
   }
 
-  .cities-stats-header {
-    font-size: 20px;
+  .map-section {
+    height: 400px;
   }
 
-  .cities-stats-stat {
+  .deployment-sites-stats-holder {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    max-width: 600px;
+  }
+
+  .deployment-sites-stats-header {
     font-size: 18px;
   }
 
-  .cities-stats-holder img {
+  .deployment-sites-stats-stat {
+    font-size: 20px;
+  }
+
+  .deployment-sites-stats-holder img {
     height: 50px;
   }
 }
 
-/* Additional responsive breakpoint for very small screens */
 @media (max-width: 480px) {
-  .cities-stats-holder {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr 1fr;
-    grid-gap: 8px;
+  .deployment-sites-container {
+    padding: 10px;
+    gap: 15px;
   }
 
-  .cities-stats-header {
-    font-size: 16px;
+  .map-section {
+    height: 300px;
   }
 
-  .cities-stats-stat {
+  .deployment-sites-stats-holder {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    max-width: 400px;
+  }
+
+  .deployment-sites-stats-header {
     font-size: 14px;
   }
 
-  .cities-stats-holder img {
+  .deployment-sites-stats-stat {
+    font-size: 16px;
+  }
+
+  .deployment-sites-stats-holder img {
     height: 40px;
+  }
+}
+
+/* Focus states for accessibility */
+.deployment-sites-stats-holder img:focus {
+  outline: 2px solid #78B9AB;
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .loading-screen {
+    display: none;
+  }
+
+  .map-section {
+    height: 400px;
+  }
+
+  .deployment-sites-container {
+    max-width: 100%;
+    padding: 0;
   }
 }

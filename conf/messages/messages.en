@@ -384,3 +384,8 @@ footer.logo.google.alt = Google Logo
 footer.logo.sloan.alt = Alfred P. Sloan Foundation Logo
 footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans) Logo
 footer.logo.create.alt = Center for Research and Education on Accessible Technology and Experiences (CREATE) Logo
+
+cities.dashboard.cities = Cities
+cities.dashboard.distance = Streets Explored
+cities.dashboard.labels = Labels
+cities.dashboard.validations = Validations
