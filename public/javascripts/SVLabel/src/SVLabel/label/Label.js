@@ -207,18 +207,22 @@ function Label(params) {
 
             // Update the coordinates of the label on the canvas.
             if (svl.map.getPovChangeStatus()) {
-                if(svl.map.getPanoId() == properties.panoId) {
+                if (svl.map.getPanoId() === properties.panoId) {
                     properties.currCanvasXY = util.panomarker.getCanvasCoordinate(
                         properties.povOfLabelIfCentered, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
                     );
                 } else {
+                    // If the pano has changed, we need to recalculate the label's canvas coordinates. Using the label's
+                    // lat/lng. Ideally use the one calculated from GSV, but use our own fallback lat/lng if not avail.
                     let latLng = null;
-                    if(getProperty('latUsingGsv') && getProperty('lngUsingGsv')) {
+                    if (getProperty('latUsingGsv') && getProperty('lngUsingGsv')) {
                         latLng = new google.maps.LatLng(getProperty('latUsingGsv'), getProperty('lngUsingGsv'));
-                    } else if(getProperty('labelLat') && getProperty('labelLng')) {
+                    } else if (getProperty('labelLat') && getProperty('labelLng')) {
                         // Fallback to regression-calculated lat/lng if GSV lat/lng is not available.
                         latLng = this.toLatLng();
                     }
+
+                    // Calculate new canvas coordinates from the label's lat/lng.
                     const projection = svl.overlay.getProjection();
                     const canvasXY = projection.fromLatLngToContainerPixel(latLng);
                     if(canvasXY != null) {
@@ -382,7 +386,7 @@ function Label(params) {
         if (!properties.labelLat) {
             // Estimating lat/lng from GSV canvas coordinates.
             let gsvEstimatedLatLng = null;
-            if(properties.currCanvasXY.x) {
+            if (properties.currCanvasXY.x) {
                 try {
                     const projection = svl.overlay.getProjection();
 
@@ -396,16 +400,16 @@ function Label(params) {
                     console.error('Error estimating GSV lat/lng for label:', e);
                 }
             }
-            if(gsvEstimatedLatLng) {
-                var latlng = {
+            if (gsvEstimatedLatLng) {
+                const gsvLatLng = {
                     lat: gsvEstimatedLatLng.lat,
                     lng: gsvEstimatedLatLng.lng,
                 };
-                setProperty('latUsingGsv', latlng.lat);
-                setProperty('lngUsingGsv', latlng.lng);
+                setProperty('latUsingGsv', gsvLatLng.lat);
+                setProperty('lngUsingGsv', gsvLatLng.lng);
             }
 
-            // Estimate the latlng point from the camera position and the heading
+            // Estimate the latlng point from the camera position and the heading.
             var panoLat = getProperty("panoLat");
             var panoLng = getProperty("panoLng");
             var panoHeading = getProperty("originalPov").heading;

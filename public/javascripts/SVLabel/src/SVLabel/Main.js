@@ -148,6 +148,7 @@ function Main (params) {
         });
         logPageFocus();
 
+        // Sets up Google Maps OverlayView, which is used to tie labels to a lat/lng, showing them on nearby panos.
         svl.overlay = new google.maps.OverlayView();
         svl.overlay.onAdd = function () {};
         svl.overlay.draw = function () {};
