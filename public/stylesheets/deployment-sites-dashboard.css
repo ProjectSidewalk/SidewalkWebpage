@@ -1,0 +1,107 @@
+/*
+ * Deployment Sites Dashboard CSS
+ * Styling for the Project Sidewalk cities dashboard page
+ */
+
+/* Cities statistics grid layout */
+.cities-stats-holder {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-gap: 5px;
+  text-align: center;
+}
+
+.cities-stats-holder img {
+  height: 70px;
+  margin: auto; /* centers the image horizontally */
+}
+
+.cities-stats-header {
+  font-size: 30px;
+  font-family: raleway-extrabold, sans-serif;
+}
+
+.cities-stats-stat {
+  font-size: 28px;
+  font-family: raleway-bold, sans-serif;
+  color: #2c3e50;
+}
+
+/* Loading screen styles */
+.loading-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #78B9AB;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Map container adjustments */
+#cities-map-container {
+  position: relative;
+}
+
+/* Responsive design for mobile devices */
+@media (max-width: 768px) {
+  .cities-stats-holder {
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    grid-gap: 10px;
+  }
+
+  .cities-stats-header {
+    font-size: 20px;
+  }
+
+  .cities-stats-stat {
+    font-size: 18px;
+  }
+
+  .cities-stats-holder img {
+    height: 50px;
+  }
+}
+
+/* Additional responsive breakpoint for very small screens */
+@media (max-width: 480px) {
+  .cities-stats-holder {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    grid-gap: 8px;
+  }
+
+  .cities-stats-header {
+    font-size: 16px;
+  }
+
+  .cities-stats-stat {
+    font-size: 14px;
+  }
+
+  .cities-stats-holder img {
+    height: 40px;
+  }
+}

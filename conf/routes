@@ -21,6 +21,9 @@ GET     /serviceHoursInstructions                       controllers.ApplicationC
 GET     /timeCheck                                      controllers.ApplicationController.timeCheck
 GET     /routeBuilder                                   controllers.ApplicationController.routeBuilder
 
+GET     /cities                                         controllers.ApplicationController.cities
+GET     /citiesDashboard                                controllers.ApplicationController.cities
+
 # User authentication
 GET     /signIn                                         controllers.UserController.signIn()
 GET     /signInMobile                                   controllers.UserController.signInMobile()

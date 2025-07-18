@@ -1,0 +1,160 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(title: String, commonData: CommonPageData, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user))
+
+    <div id="cities-map-container" class="container-fluid" style="padding: 0; height: calc(100vh - 80px);">
+        <div id="cities-map" style="width: 100%; height: 100%;"></div>
+        <div id="page-loading" class="loading-screen">
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row" style="margin-top: 15px">
+            <div class="cities-stats-holder">
+                <span class="cities-stats-header">@Messages("cities.dashboard.cities")</span>
+                <span class="cities-stats-header">@Messages("cities.dashboard.countries")</span>
+                <span class="cities-stats-header">@Messages("cities.dashboard.distance")</span>
+                <span class="cities-stats-header">@Messages("cities.dashboard.labels")</span>
+                <span class="cities-stats-header">@Messages("cities.dashboard.validations")</span>
+
+                <img src='@assets.path("images/icons/noun_city_3485590.png")' alt="@Messages("cities.dashboard.cities.icon.alt")"/>
+                <img src='@assets.path("images/icons/noun_world_2587675.png")' alt="@Messages("cities.dashboard.countries.icon.alt")"/>
+                <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")"/>
+                <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")"/>
+                <img src='@assets.path("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
+
+                <span class="cities-stats-stat" id="stat-cities">-</span>
+                <span class="cities-stats-stat" id="stat-countries">-</span>
+                <span class="cities-stats-stat" id="stat-distance">-</span>
+                <span class="cities-stats-stat" id="stat-labels">-</span>
+                <span class="cities-stats-stat" id="stat-validations">-</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include necessary JavaScript libraries -->
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.13.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.13.0.css")' rel="stylesheet"/>
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
+    <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+
+    <!-- Deployment Sites Dashboard CSS -->
+    <link href='@assets.path("stylesheets/deployment-sites-dashboard.css")' rel="stylesheet"/>
+
+    <script>
+        /**
+         * Initialize the cities dashboard map
+         */
+        $(document).ready(function () {
+            // Get current language and initialize i18next
+            const language = "@messages.lang.code";
+            const countryId = "@commonData.cityId"; // Use for any country-specific settings
+
+            // Initialize i18next for translations
+            util.initializeI18Next(language, ['common'], 'common', countryId, function () {
+                // Create the cities map parameters
+                const citiesMapParams = {
+                    mapName: 'cities-map',
+                    mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+                    mapboxApiKey: '@commonData.mapboxApiKey',
+                    mapboxLogoLocation: 'bottom-left',
+                    scrollWheelZoom: true,
+                    loadCities: true,
+                    zoomCorrection: -8, // Zoom out more for global view
+                    logClicks: true
+                };
+
+                // Load aggregate stats and create the map in parallel
+                Promise.all([
+                    CreatePSMap($, citiesMapParams),
+                    loadAggregateStats()
+                ]).then(function([mapComponents, aggregateStats]) {
+                    window.citiesMap = mapComponents[0]; // Store map reference globally
+                    displayAggregateStats(aggregateStats);
+                    console.log('Cities dashboard loaded successfully');
+                }).catch(function(error) {
+                    console.error('Error loading cities dashboard:', error);
+                    // Hide loading screen even on error
+                    $('#page-loading').hide();
+                });
+
+        /**
+         * Load aggregate statistics from the API
+         */
+        function loadAggregateStats() {
+            return $.getJSON('/v3/api/aggregateStats')
+                .fail(function(error) {
+                    console.error('Failed to load aggregate stats:', error);
+                    // Return empty stats as fallback
+                    return {
+                        numCities: 0,
+                        numCountries: 0,
+                        kmExplored: 0,
+                        totalLabels: 0,
+                        totalValidations: 0
+                    };
+                });
+        }
+
+        /**
+         * Display aggregate statistics in the stats grid
+         */
+        function displayAggregateStats(stats) {
+            // Format numbers for display
+            function formatNumber(num) {
+                if (num >= 1000000) {
+                    return (num / 1000000).toFixed(1) + 'M';
+                } else if (num >= 1000) {
+                    return (num / 1000).toFixed(1) + 'K';
+                }
+                return num.toLocaleString();
+            }
+
+            function formatDistance(km) {
+                return Math.round(km).toLocaleString() + ' km';
+            }
+
+            // Update the stats display
+            $('#stat-cities').text(stats.numCities || 0);
+            $('#stat-countries').text(stats.numCountries || 0);
+            $('#stat-distance').text(formatDistance(stats.kmExplored || 0));
+            $('#stat-labels').text(formatNumber(stats.totalLabels || 0));
+            $('#stat-validations').text(formatNumber(stats.totalValidations || 0));
+        }
+            });
+
+            // Log webpage activity
+            const activity = "Visit_Cities_Dashboard";
+            $.ajax({
+                contentType: 'application/json; charset=utf-8',
+                url: '/userapi/logWebpageActivity',
+                method: 'POST',
+                data: JSON.stringify(activity),
+                dataType: 'json',
+                success: function(result) {
+                    console.log('Logged cities dashboard visit');
+                },
+                error: function (result) {
+                    console.error('Failed to log activity:', result);
+                }
+            });
+        });
+
+        /**
+         * Handle window resize for map responsiveness
+         */
+        $(window).resize(function() {
+            if (window.citiesMap) {
+                window.citiesMap.resize();
+            }
+        });
+    </script>
+}
