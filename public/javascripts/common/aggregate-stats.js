@@ -166,12 +166,14 @@ function updateStatsDisplay(stats) {
   const mainTargetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
   if (mainTargetParagraph) {
     mainTargetParagraph.innerHTML = `
-      Working with local community groups and governmental partners, we have deployed Project Sidewalk in
-      <strong>${stats.numCities} cities</strong> across <strong>${stats.numCountries} countries</strong> and
-      <strong>${stats.numLanguages} natively translated languages</strong>, including Spanish, German, and Chinese.
-      Together, our users have assessed over <strong>${formatDistance(stats.kmExplored)}</strong> of city streets,
+      Join our movement that spans the globe. Working with local community groups and governmental partners,
+      we have deployed Project Sidewalk in <strong>${stats.numCities} cities</strong> across
+      <strong>${stats.numCountries} countries</strong> and <strong>${stats.numLanguages} natively translated
+      languages</strong>, including Spanish, German, and Chinese. Together, our users have assessed
+      over <strong>${formatDistance(stats.kmExplored)}</strong> of city streets,
       contributing <strong>${formatNumber(stats.totalLabels)} labels</strong> and
-      <strong>${formatNumber(stats.totalValidations)} validations</strong>.
+      <strong>${formatNumber(stats.totalValidations)} validations</strong>. This is more than just data;
+      it's the foundation for more inclusive and accessible cities.
     `;
   }
 
