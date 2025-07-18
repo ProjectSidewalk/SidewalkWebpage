@@ -17,6 +17,8 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 
+import models.label.LabelTypeEnum
+
 case class CityInfo(
     cityId: String,
     stateId: Option[String],
@@ -141,6 +143,92 @@ class ConfigServiceImpl @Inject() (
   private val logger = Logger(this.getClass)
 
   /**
+   * Legacy data from the original DC deployment (2015-2017).
+   *
+   * This data is preserved from the original Project Sidewalk deployment in Washington, DC.
+   * The deployment ran from 2015-2017 but uses an outdated database schema that would be
+   * too costly to migrate to our current system. The data represents:
+   * - 5,482 km explored by 1,395 users
+   * - 263,403 labels collected (broken down by label type below)
+   * - No validations (validation feature was not implemented during this deployment)
+   *
+   * Label type breakdown from original DC deployment:
+   * - Curb Ramp: 150,680
+   * - Missing Curb Ramp: 19,792
+   * - Obstacle: 22,264
+   * - Surface Problem: 8,964
+   * - Missing Sidewalk: 45,395
+   * - Other: 1,471
+   * - Occlusion: 1,339
+   * - Crosswalk: Not available (NA)
+   * - Pedestrian Signal: Not available (NA)
+   *
+   * Data taken from:
+   * https://docs.google.com/spreadsheets/d/1eTwVuEIz2lV-LD-Vz_5knNoyGgzmH5kERsQ0y_jGHDE/
+   *
+   * This data is included in aggregate statistics to maintain historical completeness
+   * and accurately represent the full scope of Project Sidewalk's impact.
+   */
+  private val legacyDCData = AggregateStats(
+    kmExplored = 5482.0,
+    kmExploredNoOverlap = 3563.3, // JEF TODO: I just did 0.65 * 5482.0 to get this value; Mikey should check
+    totalLabels = 263403,
+    totalValidations = 0, // Validations were not implemented during DC deployment
+    numCities = 0,
+    numCountries = 0,
+    numLanguages = 0,
+
+    // JEF: I noticed these per label type counts do not add up to totalLabels of 263403.
+    // Not sure why...
+    byLabelType = Map(
+      LabelTypeEnum.CurbRamp.name -> LabelTypeStats(
+        labels = 150680,
+        labelsValidated = 0,
+        labelsValidatedAgree = 0,
+        labelsValidatedDisagree = 0
+      ),
+      LabelTypeEnum.NoCurbRamp.name -> LabelTypeStats(
+        labels = 19792,
+        labelsValidated = 0,
+        labelsValidatedAgree = 0,
+        labelsValidatedDisagree = 0
+      ),
+      LabelTypeEnum.Obstacle.name -> LabelTypeStats(
+        labels = 22264,
+        labelsValidated = 0,
+        labelsValidatedAgree = 0,
+        labelsValidatedDisagree = 0
+      ),
+      LabelTypeEnum.SurfaceProblem.name -> LabelTypeStats(
+        labels = 8964,
+        labelsValidated = 0,
+        labelsValidatedAgree = 0,
+        labelsValidatedDisagree = 0
+      ),
+      LabelTypeEnum.NoSidewalk.name -> LabelTypeStats(
+        labels = 45395,
+        labelsValidated = 0,
+        labelsValidatedAgree = 0,
+        labelsValidatedDisagree = 0
+      ),
+      LabelTypeEnum.Other.name -> LabelTypeStats(
+        labels = 1471,
+        labelsValidated = 0,
+        labelsValidatedAgree = 0,
+        labelsValidatedDisagree = 0
+      ),
+      LabelTypeEnum.Occlusion.name -> LabelTypeStats(
+        labels = 1339,
+        labelsValidated = 0,
+        labelsValidatedAgree = 0,
+        labelsValidatedDisagree = 0
+      )
+      // Note: Crosswalk (LabelTypeEnum.Crosswalk.name) and Signal (LabelTypeEnum.Signal.name)
+      // data not available (NA) for DC legacy deployment
+    )
+  )
+
+  /**
    * Maps a city ID to its corresponding database user/schema. The mapping is loaded from configuration.
    *
    * @param cityId The ID of the city.
@@ -254,7 +342,7 @@ class ConfigServiceImpl @Inject() (
           ))
         } else {
           // Calculate deployment statistics
-          val numCities = availableCities.length
+          val numCities = availableCities.length + 1 // +1 for legacy DC city
           val numCountries = calculateNumCountries(availableCities)
           val numLanguages = calculateNumLanguages()
 
@@ -283,7 +371,9 @@ class ConfigServiceImpl @Inject() (
               )
             } else {
               logger.info(s"Successfully aggregated data from ${validCityStats.length} cities")
-              aggregateCityData(validCityStats, numCities, numCountries, numLanguages)
+
+              // Add legacy DC data to the valid city stats before aggregating
+              aggregateCityData(validCityStats :+ legacyDCData, numCities, numCountries, numLanguages)
             }
           }
         }
