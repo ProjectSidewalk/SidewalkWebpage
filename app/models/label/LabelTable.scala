@@ -147,6 +147,7 @@ case class ResumeLabelMetadata(
     labelData: Label,
     labelType: String,
     pointData: LabelPoint,
+    panoCaptureDate: String,
     panoLat: Option[Float],
     panoLng: Option[Float],
     cameraHeading: Option[Float],
@@ -1218,8 +1219,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _gsvData    <- gsvData if _label.gsvPanoramaId === _gsvData.gsvPanoramaId
       if _mission.regionId === regionId && _mission.userId === userId
       if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
-    } yield (_label, _labelType.labelType, _labelPoint, _gsvData.lat, _gsvData.lng, _gsvData.cameraHeading,
-      _gsvData.cameraPitch, _gsvData.width, _gsvData.height)).result.map(_.map(ResumeLabelMetadata.tupled))
+    } yield (_label, _labelType.labelType, _labelPoint, _gsvData.captureDate, _gsvData.lat, _gsvData.lng,
+      _gsvData.cameraHeading, _gsvData.cameraPitch, _gsvData.width, _gsvData.height)).result
+      .map(_.map(ResumeLabelMetadata.tupled))
   }
 
   /**

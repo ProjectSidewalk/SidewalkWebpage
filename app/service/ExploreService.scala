@@ -369,6 +369,10 @@ class ExploreServiceImpl @Inject() (
       _lat <- point.lat
       _lng <- point.lng
     } yield gf.createPoint(new Coordinate(_lng.toDouble, _lat.toDouble))
+    val pointGeomUsingGsv: Option[Point] = for {
+      _lat <- point.latUsingGsv
+      _lng <- point.lngUsingGsv
+    } yield gf.createPoint(new Coordinate(_lng.toDouble, _lat.toDouble))
 
     for {
       // Use label's lat/lng to determine street_edge_id. If lat/lng isn't defined, use audit_task's as backup.
@@ -406,7 +410,7 @@ class ExploreServiceImpl @Inject() (
       // Add an entry to the label_point table.
       _ <- labelPointTable.insert(
         LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY, point.heading, point.pitch,
-          point.zoom, point.lat, point.lng, pointGeom, point.computationMethod)
+          point.zoom, point.lat, point.lng, pointGeom, pointGeomUsingGsv, point.computationMethod)
       )
     } yield {
       (newLabelId, label.temporaryLabelId, timeCreated)

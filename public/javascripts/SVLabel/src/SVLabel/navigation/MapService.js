@@ -615,7 +615,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
                             povChange["status"] = true;
                             _canvas.clear();
-                            _canvas.setOnlyLabelsOnPanoAsVisible(panoId);
+                            _canvas.setOnlyLabelsInViewAsVisible(panoId);
                             _canvas.render();
                             povChange["status"] = false;
 
@@ -1115,7 +1115,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function updateCanvas() {
         _canvas.clear();
         if (status.currPanoId !== getPanoId()) {
-            _canvas.setOnlyLabelsOnPanoAsVisible(getPanoId());
+            _canvas.setOnlyLabelsInViewAsVisible(getPanoId());
         }
         status.currPanoId = getPanoId();
         _canvas.render();

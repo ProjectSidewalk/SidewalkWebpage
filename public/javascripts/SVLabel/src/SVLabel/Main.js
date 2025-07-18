@@ -148,6 +148,13 @@ function Main (params) {
         });
         logPageFocus();
 
+        // Sets up Google Maps OverlayView, which is used to tie labels to a lat/lng, showing them on nearby panos.
+        svl.overlay = new google.maps.OverlayView();
+        svl.overlay.onAdd = function () {};
+        svl.overlay.draw = function () {};
+        svl.overlay.onRemove = function () {};
+        svl.overlay.setMap(svl.panorama);
+
         // Modals
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete, params.mapboxApiKey);
         var modalMissionCompleteProgressBar = new ModalMissionCompleteProgressBar(svl.ui.modalMissionComplete);
@@ -320,7 +327,7 @@ function Main (params) {
 
         svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), function (result) {
             svl.statusFieldNeighborhood.setLabelCount(svl.labelContainer.countLabels());
-            svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.map.getPanoId());
+            svl.canvas.setOnlyLabelsInViewAsVisible(svl.map.getPanoId());
 
             // Count the labels of each label type to initialize the current mission label counts.
             var counter = {'CurbRamp': 0, 'NoCurbRamp': 0, 'Obstacle': 0, 'SurfaceProblem': 0, 'NoSidewalk': 0, 'Other': 0};

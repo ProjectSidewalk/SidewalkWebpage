@@ -51,10 +51,13 @@ function Label(params) {
         povOfLabelIfCentered: undefined,
         labelLat: undefined,
         labelLng: undefined,
+        latUsingGsv: undefined,
+        lngUsingGsv: undefined,
         latLngComputationMethod: undefined,
         panoId: undefined,
         panoLat: undefined,
         panoLng: undefined,
+        panoCaptureDate: undefined,
         cameraHeading: undefined,
         panoWidth: undefined,
         panoHeight: undefined,
@@ -94,6 +97,7 @@ function Label(params) {
             properties.panoXY = util.panomarker.calculatePanoXYFromPov(
                 properties.povOfLabelIfCentered, properties.cameraHeading, properties.panoWidth, properties.panoHeight
             );
+            properties.panoCaptureDate = panoData.imageDate;
         }
 
         // Create the marker on the minimap.
@@ -203,9 +207,36 @@ function Label(params) {
 
             // Update the coordinates of the label on the canvas.
             if (svl.map.getPovChangeStatus()) {
-                properties.currCanvasXY = util.panomarker.getCanvasCoordinate(
-                    properties.povOfLabelIfCentered, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
-                );
+                if (svl.map.getPanoId() === properties.panoId) {
+                    properties.currCanvasXY = util.panomarker.getCanvasCoordinate(
+                        properties.povOfLabelIfCentered, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+                    );
+                } else {
+                    // If the pano has changed, we need to recalculate the label's canvas coordinates. Using the label's
+                    // lat/lng. Ideally use the one calculated from GSV, but use our own fallback lat/lng if not avail.
+                    let latLng = null;
+                    if (getProperty('latUsingGsv') && getProperty('lngUsingGsv')) {
+                        latLng = new google.maps.LatLng(getProperty('latUsingGsv'), getProperty('lngUsingGsv'));
+                    } else if (getProperty('labelLat') && getProperty('labelLng')) {
+                        // Fallback to regression-calculated lat/lng if GSV lat/lng is not available.
+                        latLng = this.toLatLng();
+                    }
+
+                    // Calculate new canvas coordinates from the label's lat/lng.
+                    const projection = svl.overlay.getProjection();
+                    const canvasXY = projection.fromLatLngToContainerPixel(latLng);
+                    if(canvasXY != null) {
+                        properties.currCanvasXY = {
+                            x: canvasXY.x,
+                            y: canvasXY.y
+                        };
+                    } else {
+                        properties.currCanvasXY = {
+                            x: null,
+                            y: null
+                        };
+                    }
+                }
             }
 
             // Draw the label icon if it's in the visible part of the pano.
@@ -353,7 +384,32 @@ function Label(params) {
      */
     function toLatLng() {
         if (!properties.labelLat) {
-            // Estimate the latlng point from the camera position and the heading when point cloud data isn't available.
+            // Estimating lat/lng from GSV canvas coordinates.
+            let gsvEstimatedLatLng = null;
+            if (properties.currCanvasXY.x) {
+                try {
+                    const projection = svl.overlay.getProjection();
+
+                    const latLng = projection.fromContainerPixelToLatLng({
+                        x: properties.currCanvasXY.x,
+                        y: properties.currCanvasXY.y
+                    });
+
+                    gsvEstimatedLatLng = {lat: latLng.lat(), lng: latLng.lng()}
+                } catch (e) {
+                    console.error('Error estimating GSV lat/lng for label:', e);
+                }
+            }
+            if (gsvEstimatedLatLng) {
+                const gsvLatLng = {
+                    lat: gsvEstimatedLatLng.lat,
+                    lng: gsvEstimatedLatLng.lng,
+                };
+                setProperty('latUsingGsv', gsvLatLng.lat);
+                setProperty('lngUsingGsv', gsvLatLng.lng);
+            }
+
+            // Estimate the latlng point from the camera position and the heading.
             var panoLat = getProperty("panoLat");
             var panoLng = getProperty("panoLng");
             var panoHeading = getProperty("originalPov").heading;
