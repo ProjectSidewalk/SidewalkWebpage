@@ -137,7 +137,7 @@ navbar.lang.aria = 語言選項
 navbar.lang.icon.alt = 語言圖示
 navbar.servicehours = 志工資訊
 navbar.timecheck = 時間檢查
-navbar.cities: 城市
+navbar.cities = 城市
 
 landing.create.path = 讓我們為大家創造好走的路吧！
 landing.start.exploring = 開始探索
@@ -438,7 +438,7 @@ footer.logo.sloan.alt = 阿爾弗雷德·P·斯隆基金會標誌
 footer.logo.pactrans.alt = 太平洋西北地區運輸聯盟 (PacTrans) 標誌
 footer.logo.create.alt = 無障礙技術和體驗研究與教育中心 (CREATE) 標誌
 
-cities.dashboard.cities: 部署城市
-cities.dashboard.distance: 已探索街道
-cities.dashboard.labels: 標記
-cities.dashboard.validations: 檢核
+cities.dashboard.cities = 部署城市
+cities.dashboard.distance = 已探索街道
+cities.dashboard.labels = 標記
+cities.dashboard.validations = 檢核

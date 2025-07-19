@@ -85,7 +85,7 @@ navbar.lang.aria = Taal opties
 navbar.lang.icon.alt = talen icoon
 navbar.servicehours = Vrijwilligersinformatie
 navbar.timecheck = Tijdcontrole
-navbar.cities: Steden
+navbar.cities = Steden
 
 landing.create.path = Laten we een pad creëren voor iedereen!
 landing.start.exploring = Start met Verkennen
@@ -385,7 +385,7 @@ footer.logo.sloan.alt = Alfred P. Sloan Foundation-logo
 footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans)-logo
 footer.logo.create.alt = Centrum voor Onderzoek en Onderwijs over Toegankelijke Technologie en Ervaringen (CREATE) Logo
 
-cities.dashboard.cities: Implementatiesteden
-cities.dashboard.distance: Verkende straten
-cities.dashboard.labels: Labels
-cities.dashboard.validations: Validaties
+cities.dashboard.cities = Implementatiesteden
+cities.dashboard.distance = Verkende straten
+cities.dashboard.labels = Labels
+cities.dashboard.validations = Validaties
