@@ -97,6 +97,7 @@ navbar.lang.aria = Opciones de idioma
 navbar.lang.icon.alt = icono de idiomas
 navbar.servicehours = Información voluntaria
 navbar.timecheck = Chequeo de tiempo
+navbar.cities: Ciudades
 
 landing.create.path = Creemos un camino para todas las personas
 landing.start.exploring = Comienza a explorar
@@ -394,3 +395,8 @@ footer.logo.google = Logotipo de Google
 footer.logo.sloan = Logotipo de la Fundación Alfred P. Sloan
 footer.logo.pactrans = Logotipo del Consorcio de Transporte del Noroeste del Pacífico (PacTrans)
 footer.logo.create = Logotipo del Centro de Investigación y Educación sobre Tecnologías y Experiencias Accesibles (CREATE)
+
+cities.dashboard.cities: Ciudades de Despliegue
+cities.dashboard.distance: Calles Exploradas
+cities.dashboard.labels: Etiquetas
+cities.dashboard.validations: Validaciones
