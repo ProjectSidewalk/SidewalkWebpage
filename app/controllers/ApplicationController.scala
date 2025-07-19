@@ -279,4 +279,16 @@ class ApplicationController @Inject() (
       Ok(views.html.apps.routeBuilder(commonData, request.identity))
     }
   }
+
+  /**
+   * Returns the cities dashboard page showing all Project Sidewalk deployment cities.
+   */
+  def cities = cc.securityService.SecuredAction { implicit request =>
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+    } yield {
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Deployment_Cities_Dashboard")
+      Ok(views.html.deploymentSitesDashboard("Project Sidewalk - Cities", commonData, request.identity))
+    }
+  }
 }
