@@ -108,19 +108,6 @@ async function fetchAggregateStats() {
 }
 
 /**
- * Converts kilometers to miles
- *
- * @param {number} kilometers - Distance in kilometers
- * @returns {number} Distance in miles
- *
- * @example
- * const miles = kmToMiles(10); // 6.21
- */
-function kmToMiles(kilometers) {
-    return kilometers * 0.621371;
-}
-
-/**
  * Formats numbers with appropriate units and thousands separators.
  *
  * @param {number} value - The number to format
@@ -147,7 +134,7 @@ function formatNumber(value, unit = '') {
  * formatDistance(1000) // "1,000 km (621 mi)"
  */
 function formatDistance(kilometers) {
-    const miles = kmToMiles(kilometers);
+    const miles = util.math.kmsToMiles(kilometers);
     return `${formatNumber(kilometers, 'km')} (${formatNumber(miles, 'mi')})`;
 }
 

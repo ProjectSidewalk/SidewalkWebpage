@@ -1269,7 +1269,7 @@ function Admin(_, $, mapboxApiKey) {
 
         let distanceInCorrectUnits = distance;
         if (i18next.t('common:measurement-system') === "metric") {
-            distanceInCorrectUnits = util.math.milesToKilometers(distance);
+            distanceInCorrectUnits = util.math.milesToKms(distance);
         }
         return `${distanceInCorrectUnits.toFixed(1)} ${distanceMetricAbbrev}`;
     }

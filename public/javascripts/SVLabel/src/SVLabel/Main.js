@@ -389,7 +389,7 @@ function Main (params) {
     }
 
     function _calculateAndSetTasksMissionsOffset() {
-        var completedTasksDistance = util.math.kilometersToMeters(svl.taskContainer.getCompletedTaskDistance({ units: 'kilometers' }));
+        var completedTasksDistance = util.math.kmsToMeters(svl.taskContainer.getCompletedTaskDistance({ units: 'kilometers' }));
         var completedMissionsDistance = svl.missionContainer.getCompletedMissionDistance();
         var curMission = svl.missionContainer.getCurrentMission();
         var missProgress = curMission.getProperty("distanceProgress") ? curMission.getProperty("distanceProgress") : 0;
