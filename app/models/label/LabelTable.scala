@@ -656,7 +656,7 @@ object LabelTable {
            |       label_point.zoom, label_point.canvas_x, label_point.canvas_y, label.severity, label.temporary,
            |       label.description, label.street_edge_id, street_edge_region.region_id, label.agree_count,
            |       label.disagree_count, label.unsure_count, label.correct, user_validation.validation_result,
-           |       array_to_string(label.tags, ','), gsv_data.lat, gsv_data.lng, label_ai.ai_tags
+           |       array_to_string(label.tags, ','), gsv_data.lat, gsv_data.lng, array_to_string(label_ai.ai_tags, ',')
            |FROM label
            |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
            |INNER JOIN label_point ON label.label_id = label_point.label_id

@@ -3,6 +3,7 @@ package controllers
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.Executors
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
@@ -38,8 +39,7 @@ import scala.util.{Success, Failure}
 
 import scala.collection.mutable.ListBuffer
 //import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.Future
-
+import scala.concurrent.{ExecutionContext, Future}
 /**
  * Holds the HTTP requests associated with tasks submitted through the explore page.
  *
@@ -220,6 +220,19 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     )
   }
 
+  private object BlockingExecutionContext {
+    private val executor = Executors.newCachedThreadPool()
+
+    val ec: ExecutionContext = ExecutionContext.fromExecutorService(executor)
+
+    Runtime.getRuntime.addShutdownHook(new Thread {
+      override def run(): Unit = {
+        logger.info("Shutting down blocking I/O execution context...")
+        executor.shutdown()
+      }
+    })
+  }
+
   private def callAIAPI(labelType: String, panoramaId: String, panoX: Double, panoY: Double, labelId: Int): Future[Option[(List[String], Boolean, Double, String)]] = {
     Future { // Run this in the background
       val url: String = "https://sidewalk-ai-api.cs.washington.edu/process"
@@ -255,7 +268,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           Logger.warn(e.getMessage)
           None // Return None in case of exception
       }
-    }
+    }(BlockingExecutionContext.ec)
   }
 
   /**

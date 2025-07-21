@@ -38,5 +38,7 @@ DELETE FROM user_current_region
 WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4';
 DELETE FROM sidewalk_login.user_role 
 WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4';
+DELETE FROM label_validation
+WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4';
 DELETE FROM sidewalk_login.sidewalk_user 
 WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4';
