@@ -44,6 +44,11 @@ class AppManager {
             return this._setupI18next(i18nextParams);
         });
 
+        // Set up logWebpageActivity function.
+        this.addInitTask('logging-setup', () => {
+            return this._setupLogging();
+        });
+
         // Execute all initialization tasks.
         this.initPromise = this._executeInitTasks()
             .then(() => {
@@ -147,6 +152,28 @@ class AppManager {
                 }
             }
         });
+    }
+
+    /**
+     * Set up logWebpageActivity function to be used anywhere on the site.
+     * @private
+     */
+    _setupLogging() {
+        // NOTE We are setting async as false by default since this is primarily used before a redirect.
+        window.logWebpageActivity = function(activity, async = false) {
+            $.ajax({
+                async: async,
+                contentType: 'application/json; charset=utf-8',
+                url: '/userapi/logWebpageActivity',
+                method: 'POST',
+                data: JSON.stringify(activity),
+                dataType: 'json',
+                success: function(result) { },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+        }
     }
 
     /**
