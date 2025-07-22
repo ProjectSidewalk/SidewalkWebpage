@@ -32,13 +32,13 @@
                 </div>
 
                 <div class="stat-group">
-                    <span class="deployment-sites-stats-header">@Messages("cities.dashboard.labels")</span>
+                    <span class="deployment-sites-stats-header">@Messages("labels.caps")</span>
                     <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")"/>
                     <span class="deployment-sites-stats-stat" id="stat-labels">-</span>
                 </div>
 
                 <div class="stat-group">
-                    <span class="deployment-sites-stats-header">@Messages("cities.dashboard.validations")</span>
+                    <span class="deployment-sites-stats-header">@Messages("validations")</span>
                     <img src='@assets.path("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
                     <span class="deployment-sites-stats-stat" id="stat-validations">-</span>
                 </div>
@@ -50,8 +50,6 @@
     <script src='@assets.path("javascripts/lib/mapbox-gl-3.13.0.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
     <link href='@assets.path("javascripts/lib/mapbox-gl-3.13.0.css")' rel="stylesheet"/>
-    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
     <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
 
     <!-- Deployment Sites Dashboard CSS -->
@@ -123,15 +121,6 @@
                 $('#stat-distance').text(formatDistance(stats.kmExplored || 0));
                 $('#stat-labels').text(formatNumber(stats.totalLabels || 0));
                 $('#stat-validations').text(formatNumber(stats.totalValidations || 0));
-            }
-        });
-
-        /**
-         * Handle window resize for map responsiveness
-         */
-        $(window).resize(function() {
-            if (window.citiesMap) {
-                window.citiesMap.resize();
             }
         });
     </script>

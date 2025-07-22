@@ -83,6 +83,14 @@ function CreatePSMap($, params) {
     // Return a promise that resolves once everything on the map has loaded.
     let allLoaded = Promise.all([mapLoaded, renderNeighborhoods, renderCities, renderStreets, renderLabels]);
     allLoaded.then(function(data) {
+        // Resize the map when the window is resized.
+        $(window).resize(function() {
+            if (window.citiesMap) {
+                window.citiesMap.resize();
+            }
+        });
+
+        // Hide the loading spinner.
         $('#page-loading').hide();
     });
     return allLoaded;
