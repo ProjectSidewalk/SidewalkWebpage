@@ -564,12 +564,12 @@ function RouteBuilder ($, mapboxApiKey, mapParams) {
     }
 
     function clickCancelRoute() {
-        logActivity('RouteBuilder_Click=CancelRoute');
+        window.logWebpageActivity('RouteBuilder_Click=CancelRoute');
         deleteRouteModal.style.visibility = 'visible';
     }
 
     function clickResumeRoute() {
-        logActivity('RouteBuilder_Click=ResumeRoute');
+        window.logWebpageActivity('RouteBuilder_Click=ResumeRoute');
         deleteRouteModal.style.visibility = 'hidden';
     }
 
@@ -595,9 +595,9 @@ function RouteBuilder ($, mapboxApiKey, mapParams) {
         // Log if clearing route from a button.
         if (e && e.target && e.target.id) {
             if (e.target.id === 'delete-route-button') {
-                logActivity(`RouteBuilder_Click=ConfirmCancelRoute`);
+                window.logWebpageActivity(`RouteBuilder_Click=ConfirmCancelRoute`);
             } else if (e.target.id === 'build-new-route-button') {
-                logActivity(`RouteBuilder_Click=BuildNewRoute`);
+                window.logWebpageActivity(`RouteBuilder_Click=BuildNewRoute`);
             }
         }
     }
@@ -645,7 +645,7 @@ function RouteBuilder ($, mapboxApiKey, mapParams) {
                 // Update link and tooltip for Explore route button.
                 exploreButton.off('click');
                 exploreButton.click(function () {
-                    logActivity(`RouteBuilder_Click=Explore_RouteId=${data.route_id}`);
+                    window.logWebpageActivity(`RouteBuilder_Click=Explore_RouteId=${data.route_id}`);
                     window.location.replace(exploreRelURL);
                 });
 
@@ -655,45 +655,24 @@ function RouteBuilder ($, mapboxApiKey, mapParams) {
                 copyLinkButton.click(function (e) {
                     navigator.clipboard.writeText(exploreURL);
                     setTemporaryTooltip(e.currentTarget, i18next.t('copied-to-clipboard'));
-                    logActivity(`RouteBuilder_Click=Copy_RouteId=${data.route_id}`);
+                    window.logWebpageActivity(`RouteBuilder_Click=Copy_RouteId=${data.route_id}`);
                 });
 
                 // Update link for the 'View in LabelMap' button.
                 viewInLabelmapButton.off('click');
                 viewInLabelmapButton.click(function () {
-                    logActivity(`RouteBuilder_Click=LabelMap_RouteId=${data.route_id}`);
+                    window.logWebpageActivity(`RouteBuilder_Click=LabelMap_RouteId=${data.route_id}`);
                     window.open(`/labelMap?routes=${data.route_id}`, '_blank');
                 });
 
-                logActivity(`RouteBuilder_Click=SaveSuccess_RouteId=${data.route_id}`);
+                window.logWebpageActivity(`RouteBuilder_Click=SaveSuccess_RouteId=${data.route_id}`);
             })
             .catch((error) => {
                 console.error('Error:', error);
-                logActivity(`RouteBuilder_Click=SaveError`);
+                window.logWebpageActivity(`RouteBuilder_Click=SaveError`);
             });
     };
     saveButton.addEventListener('click', saveRoute);
-
-    /**
-     * Used to log user activity to the `webpage_activity` table.
-     * @param activity
-     */
-    function logActivity(activity) {
-        var url = "/userapi/logWebpageActivity";
-        var async = false;
-        $.ajax({
-            async: async,
-            contentType: 'application/json; charset=utf-8',
-            url: url,
-            method: 'POST',
-            data: JSON.stringify(activity),
-            dataType: 'json',
-            success: function(result) { },
-            error: function (result) {
-                console.error(result);
-            }
-        });
-    }
 
     self.map = map;
     self.renderNeighborhoods = renderNeighborhoods;

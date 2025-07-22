@@ -180,82 +180,47 @@
 }
 
     <script>
-        // Log clicks on links in the footer to WebpageActivityTable
-        // Depending on column, form of log varies by the following:
-        // Column is 'Project Sidewalk' or 'Developer'
-        //    log is of form: "Click_module=Footer_section=<"sidewalk" or "developer">_target=<link>"
-        // Column is 'Connect'
-        //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
-        $("#footer-container").on('click', 'a', function(e){
-            var currentRoute = window.location.pathname;
-            var id = e.currentTarget.id.split("-");
-            var column = id[0];
-            var link = id[1];
+        window.appManager.ready(function () {
+            // Log clicks on links in the footer to WebpageActivityTable.
+            // Depending on column, form of log varies by the following:
+            // Column is 'Project Sidewalk' or 'Developer',
+            //    log is of form: "Click_module=Footer_section=<"sidewalk" or "developer">_target=<link>"
+            // Column is 'Connect',
+            //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
+            $('#footer-container').on('click', 'a', function(e){
+                const currentRoute = window.location.pathname;
+                const id = e.currentTarget.id.split('-');
+                const column = id[0];
+                const link = id[1];
 
-            var activity = "Click_module=Footer_section="+column+"_";
-            if(column === "sidewalk" || column === "developer"){
-                activity = activity+"target="+link;
-            }
-            else{
-                activity = activity+"platform="+link;
-            }
-            activity = activity + "_route="+currentRoute;
+                let activity = 'Click_module=Footer_section=' + column + '_';
+                if (column === 'sidewalk' || column === 'developer') {
+                    activity = activity + 'target=' + link;
+                } else {
+                    activity = activity + 'platform=' + link;
+                }
+                activity = activity + '_route=' + currentRoute;
 
-            var url = "/userapi/logWebpageActivity";
-            var async = false;
-            $.ajax({
-                async: async,
-                contentType: 'application/json; charset=utf-8',
-                url: url,
-                method: 'POST',
-                data: JSON.stringify(activity),
-                dataType: 'json',
-                success: function(result){},
-                error: function (result) {
-                    console.error(result);
+                window.logWebpageActivity(activity);
+
+                // We are using the ML site's about page, so log the "Visit_About" from here. All other pages that are
+                // part of the Sidewalk codebase end up logging "Visit_*" on the back-end.
+                if (link === 'about') {
+                    window.logWebpageActivity('Visit_About', true);
                 }
             });
 
-            // We are using the ML site's about page, so log the "Visit_About" from here. All other pages that are
-            // part of the Sidewalk codebase end up logging "Visit_*" on the back-end.
-            if (link === "about") {
-                $.ajax({
-                    async: async,
-                    contentType: 'application/json; charset=utf-8',
-                    url: url,
-                    method: 'POST',
-                    data: JSON.stringify("Visit_About"),
-                    dataType: 'json',
-                    success: function(result){},
-                    error: function (result) {
-                        console.error(result);
-                    }
-                });
-            }
-        });
-
-        // Log clicks on links in the information footer to WebpageActivityTable
-        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/help|...>"
-        $('#info-footer').on('click','a', function(e){
-            var currentRoute = window.location.pathname;
-            var link = e.currentTarget.id.split("-")[0];
-            var activity = "Click_module=InfoFooter_"+"target="+link + "_route="+currentRoute;
-            var url = "/userapi/logWebpageActivity";
-            var async = false;
-            $.ajax({
-                async: async,
-                contentType: 'application/json; charset=utf-8',
-                url: url,
-                method: 'POST',
-                data: JSON.stringify(activity),
-                dataType: 'json',
-                success: function(result){},
-                error: function (result) {
-                    console.error(result);
-                }
+            // Log clicks on links in the information footer to WebpageActivityTable.
+            // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/help|...>"
+            $('#info-footer').on('click','a', function(e){
+                const currentRoute = window.location.pathname;
+                const link = e.currentTarget.id.split('-')[0];
+                const activity = 'Click_module=InfoFooter_' + 'target=' + link + '_route=' + currentRoute;
+                window.logWebpageActivity(activity);
             });
         });
     </script>
+
     <script src='@assets.path("javascripts/lib/moment/moment-2.30.1.js")'></script>
     <script src='@assets.path("javascripts/lib/moment/es.js")'></script>
     <script src='@assets.path("javascripts/lib/moment/nl.js")'></script>

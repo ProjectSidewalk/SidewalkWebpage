@@ -912,29 +912,12 @@
             // https://stackoverflow.com/questions/12624230/jquery-post-returns-querystring-in-address-bar
             e.preventDefault();
         });
-    </script>
 
-<!-- now we will start the logging behaviour -->
-<script>
-
-    // Log whether the survey was skipped or completed to WebpageActivityTable
-    // Log is of form: "SurveySkip"
-    $('#survey-skip-button').on('click', function() {
-        var activity = "SurveySkip";
-        var url = "/userapi/logWebpageActivity";
-        var async = true;
-        $.ajax({
-            async: async,
-            contentType: 'application/json; charset=utf-8',
-            url: url,
-            method: 'POST',
-            data: JSON.stringify(activity),
-            dataType: 'json',
-            success: function(result){},
-            error: function (result) {
-                console.error(result);
-            }
+        window.appManager.ready(function () {
+            // Log whether the survey was skipped or completed to WebpageActivityTable.
+            $('#survey-skip-button').on('click', function() {
+                window.logWebpageActivity("SurveySkip", true);
+            });
         });
-    });
-</script>
+    </script>
 }

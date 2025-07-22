@@ -109,23 +109,8 @@ function MissionProgress(svl, missionModel, modalModel, neighborhoodModel, statu
                             keyboard: false
                         });
 
-                        //we will log in the webpage activity table if the survey has been shown
-                        var activity = "SurveyShown";
-                        var url = "/userapi/logWebpageActivity";
-                        var async = true;
-                        $.ajax({
-                            async: async,
-                            contentType: 'application/json; charset=utf-8',
-                            url: url,
-                            method: 'POST',
-                            data: JSON.stringify(activity),
-                            dataType: 'json',
-                            success: function (result) {
-                            },
-                            error: function (result) {
-                                console.error(result);
-                            }
-                        });
+                        // Log in the webpage activity table if the survey has been shown.
+                        window.logWebpageActivity("SurveyShown", true);
                     }
                 },
                 error: function (xhr, ajaxOptions, thrownError) {
