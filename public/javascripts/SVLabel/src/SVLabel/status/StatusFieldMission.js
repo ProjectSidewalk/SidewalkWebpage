@@ -54,7 +54,7 @@ StatusFieldMission.prototype._distanceToString = function (distance, unit) {
     // Convert to meters.
     if (unit === "feet") distance = util.math.feetToMeters(distance);
     else if (unit === "miles") distance = util.math.milesToMeters(distance);
-    else if (unit === "kilometers") distance = util.math.kilometersToMeters(distance);
+    else if (unit === "kilometers") distance = util.math.kmsToMeters(distance);
 
     var distanceType = i18next.t('common:measurement-system');
     var unitAbbreviation = i18next.t('common:unit-abbreviation-mission-distance');

@@ -64,13 +64,9 @@
     <link href='@assets.path("stylesheets/adminTask.css")' rel="stylesheet"/>
     <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
     <script>
-        $(document).ready(function () {
-            // Load the translations, then initialize the AdminTask module.
-            const language = "@messages.lang.code";
-            const countryId = "@currentCity.countryId";
-            util.initializeI18Next(language, ['common'], 'common', countryId, function() {
-                window.admin = AdminTask({ auditTaskId: @task.auditTaskId, mapboxApiKey: '@commonData.mapboxApiKey' });
-            });
+        // Load the translations, then initialize the AdminTask module.
+        window.appManager.ready(function () {
+            window.admin = AdminTask({ auditTaskId: @task.auditTaskId, mapboxApiKey: '@commonData.mapboxApiKey' });
         });
     </script>
 }

@@ -126,22 +126,6 @@ function CreatePSMap($, params) {
             }
         }
 
-        // Makes POST request that logs `activity` in WebpageActivityTable.
-        map.logWebpageActivity = function(activity) {
-            $.ajax({
-                async: false,
-                contentType: 'application/json; charset=utf-8',
-                url: '/userapi/logWebpageActivity',
-                method: 'POST',
-                data: JSON.stringify(activity),
-                dataType: 'json',
-                success: function(result) { },
-                error: function (result) {
-                    console.error(result);
-                }
-            });
-        }
-
         // Create a promise that resolves when the map has loaded.
         return new Promise((resolve, reject) => {
             if (map.loaded()) {

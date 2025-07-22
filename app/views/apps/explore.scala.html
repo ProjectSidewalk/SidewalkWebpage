@@ -11,7 +11,7 @@
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, title, Some("/explore")) {
+@common.main(commonData, title, defaultI18nNamespace="audit", i18Namespaces=Seq("audit", "common"), url="/explore") {
     @common.navbar(commonData, Some(user))
 
     <script src='@assets.path("javascripts/lib/backbone-1.6.1-min.js")'></script>
@@ -882,7 +882,6 @@
             mainParam.cityId = "@currentCity.cityId";
             mainParam.cityName = "@currentCity.cityNameFormatted";
             mainParam.cityNameShort = "@currentCity.cityNameShort";
-            mainParam.countryId = "@currentCity.countryId";
             mainParam.mapboxApiKey = "@commonData.mapboxApiKey";
             mainParam.makeCrops = @data.makeCrops;
 
@@ -913,29 +912,12 @@
             // https://stackoverflow.com/questions/12624230/jquery-post-returns-querystring-in-address-bar
             e.preventDefault();
         });
-    </script>
 
-<!-- now we will start the logging behaviour -->
-<script>
-
-    // Log whether the survey was skipped or completed to WebpageActivityTable
-    // Log is of form: "SurveySkip"
-    $('#survey-skip-button').on('click', function() {
-        var activity = "SurveySkip";
-        var url = "/userapi/logWebpageActivity";
-        var async = true;
-        $.ajax({
-            async: async,
-            contentType: 'application/json; charset=utf-8',
-            url: url,
-            method: 'POST',
-            data: JSON.stringify(activity),
-            dataType: 'json',
-            success: function(result){},
-            error: function (result) {
-                console.error(result);
-            }
+        window.appManager.ready(function () {
+            // Log whether the survey was skipped or completed to WebpageActivityTable.
+            $('#survey-skip-button').on('click', function() {
+                window.logWebpageActivity("SurveySkip", true);
+            });
         });
-    });
-</script>
+    </script>
 }

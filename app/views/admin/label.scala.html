@@ -29,13 +29,9 @@
 
     <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
     <script>
-        $(document).ready(function () {
-            const language = "@messages.lang.code";
-            const countryId = "@currentCity.countryId";
-            util.initializeI18Next(language, ['common', 'labelmap'], 'common', countryId, function() {
-                let labelSearch = AdminLabelSearch(@isAdmin, 'LabelSearchPage');
-                labelSearch.adminGSVLabelView.showLabel(parseInt("@labelId"));
-            });
+        window.appManager.ready(function () {
+            let labelSearch = AdminLabelSearch(@isAdmin, 'LabelSearchPage');
+            labelSearch.adminGSVLabelView.showLabel(parseInt("@labelId"));
         });
     </script>
 }

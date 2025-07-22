@@ -81,7 +81,7 @@ function AddStreetsToMap(map, streetData, params) {
                 const streetId = parseInt($(this).attr('streetId'));
                 const street = streetData.features.find(s => streetId === s.properties.street_edge_id);
                 const activity = `Click_module=${params.mapName}_streetId=${streetId}_audited=${street.properties.audited}_target=explore`;
-                map.logWebpageActivity(activity);
+                window.logWebpageActivity(activity);
             });
         }
     }

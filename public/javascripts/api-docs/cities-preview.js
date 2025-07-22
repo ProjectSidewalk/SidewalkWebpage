@@ -151,9 +151,9 @@
             // Create custom icon.
             const cityIcon = L.icon({
                 iconUrl: '/assets/images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_50x50.png',
-                iconSize: [30, 30], // Size of the icon.
-                iconAnchor: [15, 15], // Point of the icon which corresponds to marker's location.
-                popupAnchor: [0, -15] // Point from which the popup should open relative to the iconAnchor.
+                iconSize: [20, 20], // Size of the icon.
+                iconAnchor: [10, 10], // Point of the icon which corresponds to marker's location.
+                popupAnchor: [0, -10] // Point from which the popup should open relative to the iconAnchor.
             });
 
             // Create markers for cities with geographic information.
