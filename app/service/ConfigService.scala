@@ -2,6 +2,8 @@ package service
 
 import com.google.inject.ImplementedBy
 import com.typesafe.config.ConfigException
+import models.label.LabelTypeEnum
+import models.utils.MyPostgresProfile.api._
 import models.utils._
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -9,15 +11,12 @@ import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
-import models.utils.MyPostgresProfile.api._
 
 import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
-
-import models.label.LabelTypeEnum
 
 case class CityInfo(
     cityId: String,
@@ -105,9 +104,7 @@ trait ConfigService {
   /**
    * Calculates aggregate statistics across all Project Sidewalk deployments.
    *
-   * This method fetches statistics from all configured cities by querying their respective
-   * database schemas and aggregating the results. It handles failures gracefully by logging
-   * warnings and excluding failed cities from the aggregation.
+   * Fetches statistics from all configured cities by querying their respective db schemas and aggregating the results.
    *
    * @return A Future containing aggregated statistics across all cities
    */
@@ -146,41 +143,22 @@ class ConfigServiceImpl @Inject() (
   /**
    * Legacy data from the original DC deployment (2015-2017).
    *
-   * This data is preserved from the original Project Sidewalk deployment in Washington, DC.
-   * The deployment ran from 2015-2017 but uses an outdated database schema that would be
-   * too costly to migrate to our current system. The data represents:
-   * - 5,482 km explored by 1,395 users
-   * - 263,403 labels collected (broken down by label type below)
-   * - No validations (validation feature was not implemented during this deployment)
-   *
-   * Label type breakdown from original DC deployment:
-   * - Curb Ramp: 150,680
-   * - Missing Curb Ramp: 19,792
-   * - Obstacle: 22,264
-   * - Surface Problem: 8,964
-   * - Missing Sidewalk: 45,395
-   * - Other: 1,471
-   * - Occlusion: 1,339
-   * - Crosswalk: Not available (NA)
-   * - Pedestrian Signal: Not available (NA)
+   * This data is preserved from the original PS deployment in Washington, DC. The deployment ran from 2015-2017 but
+   * uses an outdated database schema that would be too costly to migrate to our current system. The data is represented
+   * in the AggregateStats object below. This data is included in aggregate statistics to maintain historical
+   * completeness and accurately represent the full scope of Project Sidewalk's impact.
    *
    * Data taken from:
    * https://docs.google.com/spreadsheets/d/1eTwVuEIz2lV-LD-Vz_5knNoyGgzmH5kERsQ0y_jGHDE/
-   *
-   * This data is included in aggregate statistics to maintain historical completeness
-   * and accurately represent the full scope of Project Sidewalk's impact.
    */
   private val legacyDCData = AggregateStats(
     kmExplored = 5482.0,
-    kmExploredNoOverlap = 1747, // Mikey calculated this for us on July 18 2025
+    kmExploredNoOverlap = 1747, // Mikey calculated this for us on July 18, 2025
     totalLabels = 263403,
     totalValidations = 0, // Validations were not implemented during DC deployment
     numCities = 0,
     numCountries = 0,
     numLanguages = 0,
-
-    // JEF: I noticed these per label type counts do not add up to totalLabels of 263403.
-    // Not sure why...
     byLabelType = Map(
       LabelTypeEnum.CurbRamp.name -> LabelTypeStats(
         labels = 150680,
@@ -224,8 +202,7 @@ class ConfigServiceImpl @Inject() (
         labelsValidatedAgree = 0,
         labelsValidatedDisagree = 0
       )
-      // Note: Crosswalk (LabelTypeEnum.Crosswalk.name) and Signal (LabelTypeEnum.Signal.name)
-      // data not available (NA) for DC legacy deployment
+      // Note: Crosswalk and Signal data not available (NA) for DC legacy deployment.
     )
   )
 
@@ -292,26 +269,24 @@ class ConfigServiceImpl @Inject() (
   /**
    * Calculates aggregate statistics across all Project Sidewalk deployments.
    *
-   * This method uses direct database queries with cross-schema access to efficiently
-   * gather only the essential statistics from all configured cities. It filters out
-   * cities whose schemas don't exist in the current environment (so plays nice with
-   * localhost dev setups). Additionally calculates deployment counts for cities,
-   * countries, and supported languages.
+   * This method uses direct database queries with cross-schema access to efficiently gather only the essential
+   * statistics from all configured cities. It filters out cities whose schemas don't exist in the current environment
+   * (so plays nice with localhost dev setups). Additionally, calculates deployment counts for cities, countries, and
+   * supported languages.
    *
    * @return A Future containing aggregated statistics across all cities
    */
   def getAggregateStats(): Future[AggregateStats] = {
-    // Use cache to avoid repeated expensive calculations
-    cacheApi.getOrElseUpdate[AggregateStats]("getAggregateStats", Duration(30, "minutes")) {
-
-      // Get all configured city IDs
+    // Use cache to avoid repeated expensive calculations.
+    cacheApi.getOrElseUpdate[AggregateStats]("getAggregateStats", Duration(1, "seconds")) {
+      // Get all configured city IDs.
       val configuredCityIds = config.get[Seq[String]]("city-params.city-ids")
 
-      // Filter to only include cities whose schemas actually exist in the database
+      // Filter to only include cities whose schemas actually exist in the database.
       val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
         try {
           val schema = getCitySchema(cityId)
-          // Check if the schema actually exists in the database
+          // Check if the schema actually exists in the database.
           checkSchemaExists(schema).map(cityId -> _).recover { case _ => cityId -> false }
         } catch {
           case _: Exception =>
@@ -319,61 +294,43 @@ class ConfigServiceImpl @Inject() (
         }
       }
 
-      // Wait for all schema checks to complete
+      // Wait for all schema checks to complete.
       Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
         val availableCities = schemaResults.filter(_._2).map(_._1)
-        val unavailableCities = schemaResults.filterNot(_._2).map(_._1)
-
-        logger.info(s"Found ${availableCities.length} available cities: ${availableCities.mkString(", ")}")
-        if (unavailableCities.nonEmpty) {
-          logger.debug(s"Skipping ${unavailableCities.length} cities with missing schemas: ${unavailableCities.mkString(", ")}")
-        }
 
         if (availableCities.isEmpty) {
           logger.warn("No cities with valid schemas found")
-          Future.successful(AggregateStats(
-            kmExplored = 0.0,
-            kmExploredNoOverlap = 0.0,
-            totalLabels = 0,
-            totalValidations = 0,
-            numCities = 0,
-            numCountries = 0,
-            numLanguages = 0,
-            byLabelType = Map.empty
-          ))
+          Future.successful(
+            AggregateStats(
+              kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, totalValidations = 0, numCities = 0,
+              numCountries = 0, numLanguages = 0, byLabelType = Map.empty
+            )
+          )
         } else {
-          // Calculate deployment statistics
-          val numCities = availableCities.length + 1 // +1 for legacy DC city
+          // Calculate deployment statistics.
+          val numCities    = availableCities.length + 1 // +1 for legacy DC city
           val numCountries = calculateNumCountries(availableCities)
           val numLanguages = calculateNumLanguages()
 
-          // Fetch essential statistics from available cities in parallel
+          // Fetch essential statistics from available cities in parallel.
           val cityStatsFutures: Seq[Future[Option[AggregateStats]]] = availableCities.map { cityId =>
             getCityAggregateData(cityId)
           }
 
-          // Wait for all futures to complete and aggregate results
+          // Wait for all futures to complete and aggregate results.
           Future.sequence(cityStatsFutures).map { cityStatsOptions =>
-            // Filter out failed requests and aggregate the successful ones
+            // Filter out failed requests and aggregate the successful ones.
             val validCityStats = cityStatsOptions.flatten
 
             if (validCityStats.isEmpty) {
               logger.warn("No valid city statistics found for aggregate calculation")
-              // Return empty aggregate stats if no cities provided data
+              // Return empty aggregate stats if no cities provided data.
               AggregateStats(
-                kmExplored = 0.0,
-                kmExploredNoOverlap = 0.0,
-                totalLabels = 0,
-                totalValidations = 0,
-                numCities = numCities,
-                numCountries = numCountries,
-                numLanguages = numLanguages,
-                byLabelType = Map.empty
+                kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, totalValidations = 0,
+                numCities = numCities, numCountries = numCountries, numLanguages = numLanguages, byLabelType = Map.empty
               )
             } else {
-              logger.info(s"Successfully aggregated data from ${validCityStats.length} cities")
-
-              // Add legacy DC data to the valid city stats before aggregating
+              // Add legacy DC data to the valid city stats before aggregating.
               aggregateCityData(validCityStats :+ legacyDCData, numCities, numCountries, numLanguages)
             }
           }
@@ -390,29 +347,30 @@ class ConfigServiceImpl @Inject() (
    * @return A Future containing optional aggregate data for the city
    */
   private def getCityAggregateData(cityId: String): Future[Option[AggregateStats]] = {
-    // Get the schema name
-    val schemaResult = try {
-      Some(getCitySchema(cityId))
-    } catch {
-      case e: Exception =>
-        logger.error(s"Failed to get schema for city $cityId: ${e.getMessage}", e)
-        None
-    }
+    // Get the schema name.
+    val schemaResult =
+      try {
+        Some(getCitySchema(cityId))
+      } catch {
+        case e: Exception =>
+          logger.error(s"Failed to get schema for city $cityId: ${e.getMessage}", e)
+          None
+      }
 
     schemaResult match {
       case Some(schema) =>
         try {
-          // Direct database query without additional caching
+          // Direct database query without additional caching.
           db.run(configTable.getCityAggregateDataBySchema(schema))
             .map(Some(_)) // Wrap successful result in Some
             .recover { case e: Exception =>
-              // Log failures but don't propagate exceptions
+              // Log failures but don't propagate exceptions.
               logger.warn(s"Failed to retrieve aggregate data for city $cityId from schema $schema: ${e.getMessage}")
               None // Return None when query fails
             }
         } catch {
           case e: Exception =>
-            // Handle exceptions during query preparation
+            // Handle exceptions during query preparation.
             logger.error(s"Exception setting up aggregate data query for city $cityId: ${e.getMessage}", e)
             Future.successful(None)
         }
@@ -454,9 +412,7 @@ class ConfigServiceImpl @Inject() (
       val configuredLanguages = config.get[Seq[String]]("play.i18n.langs")
 
       // Extract base language codes by taking everything before the first hyphen
-      val baseLanguages = configuredLanguages.map { lang =>
-        lang.split("-").head.toLowerCase
-      }.toSet
+      val baseLanguages = configuredLanguages.map { lang => lang.split("-").head.toLowerCase }.toSet
 
       baseLanguages.size
     } catch {
@@ -469,8 +425,7 @@ class ConfigServiceImpl @Inject() (
   /**
    * Aggregates data from multiple cities into a single result.
    *
-   * This method combines the individual city data into aggregate totals and includes
-   * deployment statistics.
+   * This method combines the individual city data into aggregate totals and includes deployment statistics.
    *
    * @param cityData Sequence of city aggregate data to combine
    * @param numCities Number of cities in deployment
@@ -486,20 +441,20 @@ class ConfigServiceImpl @Inject() (
   ): AggregateStats = {
     import scala.collection.mutable
 
-    // Aggregate basic metrics
-    val totalKmExplored = cityData.map(_.kmExplored).sum
+    // Aggregate basic metrics.
+    val totalKmExplored          = cityData.map(_.kmExplored).sum
     val totalKmExploredNoOverlap = cityData.map(_.kmExploredNoOverlap).sum
-    val totalLabelsCount = cityData.map(_.totalLabels).sum
-    val totalValidationsCount = cityData.map(_.totalValidations).sum
+    val totalLabelsCount         = cityData.map(_.totalLabels).sum
+    val totalValidationsCount    = cityData.map(_.totalValidations).sum
 
-    // Aggregate label type statistics
+    // Aggregate label type statistics.
     val labelTypeStatsMap = mutable.Map[String, LabelTypeStats]()
 
     cityData.foreach { city =>
       city.byLabelType.foreach { case (labelType, stats) =>
         val currentStats = labelTypeStatsMap.getOrElse(labelType, LabelTypeStats(0, 0, 0, 0))
 
-        // Update the aggregated stats
+        // Update the aggregated stats.
         labelTypeStatsMap(labelType) = LabelTypeStats(
           labels = currentStats.labels + stats.labels,
           labelsValidated = currentStats.labelsValidated + stats.labelsValidated,
@@ -510,14 +465,9 @@ class ConfigServiceImpl @Inject() (
     }
 
     AggregateStats(
-      kmExplored = totalKmExplored,
-      kmExploredNoOverlap = totalKmExploredNoOverlap,
-      totalLabels = totalLabelsCount,
-      totalValidations = totalValidationsCount,
-      numCities = numCities,
-      numCountries = numCountries,
-      numLanguages = numLanguages,
-      byLabelType = labelTypeStatsMap.toMap
+      kmExplored = totalKmExplored, kmExploredNoOverlap = totalKmExploredNoOverlap, totalLabels = totalLabelsCount,
+      totalValidations = totalValidationsCount, numCities = numCities, numCountries = numCountries,
+      numLanguages = numLanguages, byLabelType = labelTypeStatsMap.toMap
     )
   }
 
