@@ -323,7 +323,8 @@
                     mapboxApiKey: '@commonData.mapboxApiKey',
                     mapboxLogoLocation: 'bottom-left',
                     scrollWheelZoom: false,
-                    loadCities: true
+                    loadCities: true,
+                    logClicks: true
                 };
                 CreatePSMap($, deploymentMapParams).then(m => {
                     window.deploymentMap = m[0];
