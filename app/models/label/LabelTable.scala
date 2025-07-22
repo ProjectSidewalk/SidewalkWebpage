@@ -730,6 +730,8 @@ object LabelTable {
       checkedLabelIds ++= potentialLabels.map(_.labelId)
     } while (selectedLabels.length < n && potentialLabels.length == n * 5) // Stop if we have enough or we run out.
     
+    // We need city info for current city. The getAllCityInfo requires a Lang parameter, so we use "en-US" as a dummy.
+    // Our cityInfo is used to check if AI tag suggestions are enabled. Language doesn't matter here.
     val cityInfo: CityInfo = Configs.getAllCityInfo(Lang("en-US")).filter(c => c.current).headOption.get
 
     if(cityInfo.aiTagSuggestionsEnabled) {
