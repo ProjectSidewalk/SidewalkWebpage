@@ -24,6 +24,7 @@ import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
 import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable, UserStatTable}
 import models.utils.CommonUtils.ordered
+import models.utils.{CityInfo, Configs}
 import play.api.Play.current
 import play.api.{Logger, Play}
 import play.api.libs.json._
@@ -36,6 +37,7 @@ import org.apache.http.client.HttpClient
 import org.apache.http.util.EntityUtils
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import scala.util.{Success, Failure}
+import play.api.i18n.{Lang}
 
 import scala.collection.mutable.ListBuffer
 //import scala.concurrent.{ExecutionContext, Future}
@@ -48,6 +50,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class TaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 //  implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
+
+  private val SIDEWALK_AI_API_HOSTNAME: String = Play.configuration.getString("sidewalk-ai-api-hostname").get
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
@@ -235,7 +239,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   private def callAIAPI(labelType: String, panoramaId: String, panoX: Double, panoY: Double, labelId: Int): Future[Option[(List[String], Boolean, Double, String)]] = {
     Future { // Run this in the background
-      val url: String = "https://sidewalk-ai-api.cs.washington.edu/process"
+      val url: String = s"https://${SIDEWALK_AI_API_HOSTNAME}/process"
       val post: HttpPost = new HttpPost(url)
       val client: HttpClient = HttpClientBuilder.create.build
       val entity = MultipartEntityBuilder.create()
@@ -399,58 +403,62 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             ))
           }
 
-          // Asynchronously call AI API and update Label and LabelAI tables
-          callAIAPI(label.labelType, label.gsvPanoramaId, label.point.panoX.toDouble, label.point.panoY.toDouble, newLabelId).onComplete {
-            case Success(aiResponseOption) =>
-              aiResponseOption match {
-                case Some((aiTags, aiValidationResultBool, aiValidationAccuracyDouble, apiVersion)) =>
-                  val aiDecision: String = if (aiValidationResultBool && aiValidationAccuracyDouble >= 0.92) "correct"
-                                            else if (!aiValidationResultBool && aiValidationAccuracyDouble >= 0.92) "incorrect"
-                                            else "unknown"
-                  val aiCorrect = aiDecision == "correct"
-                  val aiIncorrect = aiDecision == "incorrect"
+          val cityInfo: CityInfo = Configs.getAllCityInfo(Lang(data.environment.language)).filter(c => c.current).headOption.get
 
-                  if(aiCorrect || aiIncorrect) {
-                    LabelValidationTable.insert(LabelValidation(
-                      0, newLabelId,
-                      if (aiCorrect) 1 else 2,
-                      label.severity,
-                      label.severity,
-                      label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList,
-                      label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList,
-                      "51b0b927-3c8a-45b2-93de-bd878d1e5cf4",
-                      missionId,
-                      Some(point.canvasX),
-                      Some(point.canvasY),
-                      point.heading,
-                      point.pitch,
-                      point.zoom.toFloat,
-                      720,
-                      480,
-                      timeCreated,
-                      timeCreated,
-                      "sidewalk-ai"
-                    ))
-                  }
+          if(cityInfo.aiValidationsEnabled || cityInfo.aiTagSuggestionsEnabled) {
+            // Asynchronously call AI API and update Label and LabelAI tables
+            callAIAPI(label.labelType, label.gsvPanoramaId, label.point.panoX.toDouble, label.point.panoY.toDouble, newLabelId).onComplete {
+              case Success(aiResponseOption) =>
+                aiResponseOption match {
+                  case Some((aiTags, aiValidationResultBool, aiValidationAccuracyDouble, apiVersion)) =>
+                    val aiDecision: String = if (aiValidationResultBool && aiValidationAccuracyDouble >= cityInfo.aiValidationsMinAccuracy) "correct"
+                                              else if (!aiValidationResultBool && aiValidationAccuracyDouble >= cityInfo.aiValidationsMinAccuracy) "incorrect"
+                                              else "unknown"
+                    val aiCorrect = aiDecision == "correct"
+                    val aiIncorrect = aiDecision == "incorrect"
 
-                  // Add AI information to the label_ai table.
-                  val labelAI = LabelAI(
-                    0,
-                    newLabelId,
-                    Some(aiTags),
-                    Some(aiValidationAccuracyDouble.toFloat),
-                    Some(if (aiCorrect) 1 else 2),
-                    Some(apiVersion),
-                    timeCreated
-                  )
-                  LabelAITable.save(labelAI)
+                    if((aiCorrect || aiIncorrect) && cityInfo.aiValidationsEnabled) {
+                      LabelValidationTable.insert(LabelValidation(
+                        0, newLabelId,
+                        if (aiCorrect) 1 else 2,
+                        label.severity,
+                        label.severity,
+                        label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList,
+                        label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList,
+                        "51b0b927-3c8a-45b2-93de-bd878d1e5cf4",
+                        missionId,
+                        Some(point.canvasX),
+                        Some(point.canvasY),
+                        point.heading,
+                        point.pitch,
+                        point.zoom.toFloat,
+                        720,
+                        480,
+                        timeCreated,
+                        timeCreated,
+                        "sidewalk-ai"
+                      ))
+                    }
 
-                case None =>
-                  Logger.warn(s"AI API call failed or returned no data for labelId: $newLabelId")
-              }
+                    // Add AI information to the label_ai table.
+                    val labelAI = LabelAI(
+                      0,
+                      newLabelId,
+                      Some(aiTags),
+                      Some(aiValidationAccuracyDouble.toFloat),
+                      Some(if (aiValidationResultBool) 1 else 2),
+                      Some(apiVersion),
+                      timeCreated
+                    )
+                    LabelAITable.save(labelAI)
 
-            case Failure(exception) =>
-              Logger.error(s"Error during asynchronous AI API call for labelId: $newLabelId", exception)
+                  case None =>
+                    Logger.warn(s"AI API call failed or returned no data for labelId: $newLabelId")
+                }
+
+              case Failure(exception) =>
+                Logger.error(s"Error during asynchronous AI API call for labelId: $newLabelId", exception)
+            }
           }
 
           // Add an entry to the label_point table.

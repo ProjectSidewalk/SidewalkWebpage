@@ -6,7 +6,8 @@ import play.api.cache.Cache
 import scala.collection.JavaConverters._
 import play.api.i18n.{Lang, Messages}
 
-case class CityInfo(cityId: String, countryId: String, cityNameShort: String, cityNameFormatted: String, URL: String, visibility: String, current: Boolean)
+case class CityInfo(cityId: String, countryId: String, cityNameShort: String, cityNameFormatted: String, URL: String, visibility: String, current: Boolean,
+                    aiTagSuggestionsEnabled: Boolean = false, aiValidationsEnabled: Boolean = false, aiValidationsMinAccuracy: Float = 0.0F)
 
 object Configs {
   /**
@@ -33,7 +34,14 @@ object Configs {
           Messages("city.state", cityName, Messages(s"state.name.${stateId.get}")(lang))(lang)
         else
           Messages("city.state", cityName, Messages(s"country.name.$countryId")(lang))(lang)
-        CityInfo(cityId, countryId, cityNameShort, cityNameFormatted, cityURL, visibility, cityId == currentCityId)
+
+        // Get AI-related configurations.
+        val aiTagSuggestionsEnabled: Boolean = Play.configuration.getString(s"city-params.ai-tag-suggestions-enabled.$cityId").getOrElse("off") == "on"
+        val aiValidationsEnabled: Boolean = Play.configuration.getString(s"city-params.ai-validations-enabled.$cityId").getOrElse("off") == "on"
+        val aiValidationsMinAccuracy: Float = Play.configuration.getString(s"city-params.ai-validations-min-accuracy.$cityId").getOrElse("0.0").toFloat
+
+        CityInfo(cityId, countryId, cityNameShort, cityNameFormatted, cityURL, visibility, cityId == currentCityId,
+          aiTagSuggestionsEnabled, aiValidationsEnabled, aiValidationsMinAccuracy)
       }
       cityInfo
     }

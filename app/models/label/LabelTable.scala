@@ -19,6 +19,7 @@ import models.user.{RoleTable, UserRoleTable, UserStatTable, VersionTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.utils.CommonUtils.ordered
+import models.utils.{CityInfo, Configs}
 import models.validation.ValidationTaskCommentTable
 import play.api.Play
 import play.api.Play.current
@@ -29,6 +30,7 @@ import java.time.Instant
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
+import play.api.i18n.{Lang}
 
 case class Label(labelId: Int, auditTaskId: Int, missionId: Int, userId: String, gsvPanoramaId: String,
                  labelTypeId: Int, deleted: Boolean, temporaryLabelId: Int, timeCreated: Timestamp, tutorial: Boolean,
@@ -727,7 +729,14 @@ object LabelTable {
 
       checkedLabelIds ++= potentialLabels.map(_.labelId)
     } while (selectedLabels.length < n && potentialLabels.length == n * 5) // Stop if we have enough or we run out.
-    selectedLabels
+    
+    val cityInfo: CityInfo = Configs.getAllCityInfo(Lang("en-US")).filter(c => c.current).headOption.get
+
+    if(cityInfo.aiTagSuggestionsEnabled) {
+      selectedLabels
+    } else {
+      selectedLabels.map(label => label.copy(aiTags = List.empty[String]))
+    }
   }
 
   /**
