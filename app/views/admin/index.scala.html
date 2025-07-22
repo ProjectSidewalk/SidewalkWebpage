@@ -9,9 +9,9 @@
 @common.main(commonData, title) {
     @common.navbar(commonData, Some(user))
     <div id="page-loading">
-        <div id="loading-gif">
+        <div id="loading-animation">
             <p class="loading-text">@Messages("loading")</p>
-            <img src='@assets.path("images/project_sidewalk_page_load.gif")' title='@Messages("loading")'/>
+            <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' title='@Messages("loading")'/>
         </div>
     </div>
     <div id="admin-page-container" class="container" style="visibility: hidden">
@@ -912,16 +912,13 @@
     <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
 
     <script>
-        $(document).ready(function () {
+        // Gets all translations before loading the choropleths.
+        window.appManager.ready(function () {
             // Sets up sorting in DataTables on timestamps.
             $.fn.dataTable.ext.type.order['date-pre'] = function(data) { return new Date(data).getTime(); };
 
-            // Gets all translations before loading the choropleths.
-            const language = "@messages.lang.code";
-            const countryId = "@currentCity.countryId";
-            util.initializeI18Next(language, ['common', 'labelmap'], 'common', countryId, function() {
-                window.admin = Admin(_, $, '@commonData.mapboxApiKey');
-            });
+            // Kick off all the API requests to get data to fill in the Admin page.
+            window.admin = Admin(_, $, '@commonData.mapboxApiKey');
 
             // Initialize the sliders in the legend. We add the "change" functionality after the map loads.
             $( "*[id*='slider']" ).each(function() {

@@ -59,100 +59,72 @@
 
     <script>
         /**
-         * Initialize the cities dashboard map
+         * Initialize the cities dashboard map.
          */
-        $(document).ready(function () {
-            // Get current language and initialize i18next
-            const language = "@messages.lang.code";
-            const countryId = "@commonData.cityId"; // Use for any country-specific settings
+        window.appManager.ready(function () {
+            // Create the cities map parameters.
+            const citiesMapParams = {
+                mapName: 'cities-map',
+                mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+                mapboxApiKey: '@commonData.mapboxApiKey',
+                mapboxLogoLocation: 'bottom-left',
+                scrollWheelZoom: true,
+                loadCities: true,
+                zoomCorrection: -8, // Zoom out more for global view
+                logClicks: true
+            };
 
-            // Initialize i18next for translations
-            util.initializeI18Next(language, ['common'], 'common', countryId, function () {
-                // Create the cities map parameters
-                const citiesMapParams = {
-                    mapName: 'cities-map',
-                    mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-                    mapboxApiKey: '@commonData.mapboxApiKey',
-                    mapboxLogoLocation: 'bottom-left',
-                    scrollWheelZoom: true,
-                    loadCities: true,
-                    zoomCorrection: -8, // Zoom out more for global view
-                    logClicks: true
-                };
-
-                // Load aggregate stats and create the map in parallel
-                Promise.all([
-                    CreatePSMap($, citiesMapParams),
-                    loadAggregateStats()
-                ]).then(function([mapComponents, aggregateStats]) {
-                    window.citiesMap = mapComponents[0]; // Store map reference globally
-                    displayAggregateStats(aggregateStats);
-                    console.log('Cities dashboard loaded successfully');
-                }).catch(function(error) {
-                    console.error('Error loading cities dashboard:', error);
-                    // Hide loading screen even on error
-                    $('#page-loading').hide();
-                });
-
-        /**
-         * Load aggregate statistics from the API
-         */
-        function loadAggregateStats() {
-            return $.getJSON('/v3/api/aggregateStats')
-                .fail(function(error) {
-                    console.error('Failed to load aggregate stats:', error);
-                    // Return empty stats as fallback
-                    return {
-                        numCities: 0,
-                        numCountries: 0,
-                        kmExplored: 0,
-                        totalLabels: 0,
-                        totalValidations: 0
-                    };
-                });
-        }
-
-        /**
-         * Display aggregate statistics in the stats grid
-         */
-        function displayAggregateStats(stats) {
-            // Format numbers for display
-            function formatNumber(num) {
-                if (num >= 1000000) {
-                    return (num / 1000000).toFixed(1) + 'M';
-                } else if (num >= 1000) {
-                    return (num / 1000).toFixed(1) + 'K';
-                }
-                return num.toLocaleString();
-            }
-
-            function formatDistance(km) {
-                return Math.round(km).toLocaleString() + ' km';
-            }
-
-            // Update the stats display
-            $('#stat-cities').text(stats.numCities || 0);
-            $('#stat-distance').text(formatDistance(stats.kmExplored || 0));
-            $('#stat-labels').text(formatNumber(stats.totalLabels || 0));
-            $('#stat-validations').text(formatNumber(stats.totalValidations || 0));
-        }
+            // Load aggregate stats and create the map in parallel.
+            Promise.all([
+                CreatePSMap($, citiesMapParams),
+                loadAggregateStats()
+            ]).then(function([mapComponents, aggregateStats]) {
+                window.citiesMap = mapComponents[0]; // Store map reference globally
+                displayAggregateStats(aggregateStats);
+                console.log('Cities dashboard loaded successfully');
+            }).catch(function(error) {
+                console.error('Error loading cities dashboard:', error);
+                $('#page-loading').hide(); // Hide loading screen even on error
             });
 
-            // Log webpage activity
-            const activity = "Visit_Cities_Dashboard";
-            $.ajax({
-                contentType: 'application/json; charset=utf-8',
-                url: '/userapi/logWebpageActivity',
-                method: 'POST',
-                data: JSON.stringify(activity),
-                dataType: 'json',
-                success: function(result) {
-                    console.log('Logged cities dashboard visit');
-                },
-                error: function (result) {
-                    console.error('Failed to log activity:', result);
+            // Load aggregate statistics from the API.
+            function loadAggregateStats() {
+                return $.getJSON('/v3/api/aggregateStats')
+                    .fail(function(error) {
+                        console.error('Failed to load aggregate stats:', error);
+                        // Return empty stats as fallback
+                        return {
+                            numCities: 0,
+                            numCountries: 0,
+                            kmExplored: 0,
+                            totalLabels: 0,
+                            totalValidations: 0
+                        };
+                    });
+            }
+
+            // Display aggregate statistics in the stats grid.
+            function displayAggregateStats(stats) {
+                // Format numbers for display
+                function formatNumber(num) {
+                    if (num >= 1000000) {
+                        return (num / 1000000).toFixed(1) + 'M';
+                    } else if (num >= 1000) {
+                        return (num / 1000).toFixed(1) + 'K';
+                    }
+                    return num.toLocaleString();
                 }
-            });
+
+                function formatDistance(km) {
+                    return Math.round(km).toLocaleString() + ' km';
+                }
+
+                // Update the stats display.
+                $('#stat-cities').text(stats.numCities || 0);
+                $('#stat-distance').text(formatDistance(stats.kmExplored || 0));
+                $('#stat-labels').text(formatNumber(stats.totalLabels || 0));
+                $('#stat-validations').text(formatNumber(stats.totalValidations || 0));
+            }
         });
 
         /**

@@ -298,39 +298,35 @@
         <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
 
         <script>
-            $(document).ready(function () {
-                // Gets all translations before loading the choropleth.
-                const language = "@messages.lang.code";
-                const countryId = "@currentCity.countryId";
-                util.initializeI18Next(language, ['common'], 'common', countryId, function () {
-                    // Create the choropleth map.
-                    const choroplethParams = {
-                        mapName: 'landing-choropleth',
-                        mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-                        mapboxApiKey: '@commonData.mapboxApiKey',
-                        mapboxLogoLocation: 'bottom-right',
-                        scrollWheelZoom: false,
-                        neighborhoodsURL: '/neighborhoods',
-                        completionRatesURL: '/adminapi/neighborhoodCompletionRate',
-                        neighborhoodFillMode: 'completionRate',
-                        neighborhoodTooltip: 'completionRate'
-                    };
-                    CreatePSMap($, choroplethParams).then(m => {
-                        window.choropleth = m[0];
-                    });
+            // Gets all translations before loading the maps.
+            window.appManager.ready(function () {
+                // Create the choropleth map.
+                const choroplethParams = {
+                    mapName: 'landing-choropleth',
+                    mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+                    mapboxApiKey: '@commonData.mapboxApiKey',
+                    mapboxLogoLocation: 'bottom-right',
+                    scrollWheelZoom: false,
+                    neighborhoodsURL: '/neighborhoods',
+                    completionRatesURL: '/adminapi/neighborhoodCompletionRate',
+                    neighborhoodFillMode: 'completionRate',
+                    neighborhoodTooltip: 'completionRate'
+                };
+                CreatePSMap($, choroplethParams).then(m => {
+                    window.choropleth = m[0];
+                });
 
-                    // Create the deployment cities map.
-                    const deploymentMapParams = {
-                        mapName: 'deployment-map',
-                        mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-                        mapboxApiKey: '@commonData.mapboxApiKey',
-                        mapboxLogoLocation: 'bottom-left',
-                        scrollWheelZoom: false,
-                        loadCities: true
-                    };
-                    CreatePSMap($, deploymentMapParams).then(m => {
-                        window.deploymentMap = m[0];
-                    });
+                // Create the deployment cities map.
+                const deploymentMapParams = {
+                    mapName: 'deployment-map',
+                    mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+                    mapboxApiKey: '@commonData.mapboxApiKey',
+                    mapboxLogoLocation: 'bottom-left',
+                    scrollWheelZoom: false,
+                    loadCities: true
+                };
+                CreatePSMap($, deploymentMapParams).then(m => {
+                    window.deploymentMap = m[0];
                 });
             });
         </script>

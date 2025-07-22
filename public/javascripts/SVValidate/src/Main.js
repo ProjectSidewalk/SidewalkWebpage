@@ -255,23 +255,21 @@ function Main (param) {
         }
     }
 
-    // Gets all the text on the validation page for the correct language.
-    util.initializeI18Next(param.language, ['validate', 'common'], 'validate', param.countryId, function() {
-        defineValidateConstants();
-        _initUI();
+    // Finally, do the actual initialization of the UI and other components.
+    defineValidateConstants();
+    _initUI();
 
-        if (param.hasNextMission) {
-            _init();
+    if (param.hasNextMission) {
+        _init();
+    } else {
+        if (svv.newValidateBeta) {
+            svv.keyboard = new Keyboard(svv.ui.newValidateBeta);
         } else {
-            if (svv.newValidateBeta) {
-                svv.keyboard = new Keyboard(svv.ui.newValidateBeta);
-            } else {
-                svv.keyboard = new Keyboard(svv.ui.validation);
-            }
-            svv.form = new Form(param.dataStoreUrl);
-            svv.tracker = new Tracker();
-            svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
-            svv.modalNoNewMission.show();
+            svv.keyboard = new Keyboard(svv.ui.validation);
         }
-    });
+        svv.form = new Form(param.dataStoreUrl);
+        svv.tracker = new Tracker();
+        svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
+        svv.modalNoNewMission.show();
+    }
 }

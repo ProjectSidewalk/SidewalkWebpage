@@ -114,7 +114,7 @@ function AddCitiesToMap(map, citiesData, params) {
             // Logs are of the form 'Click_module=<mapName>_city=<cityId>_target=explore'.
             $(`#${params.mapName}`).on('click', '.city-selection-trigger', function () {
                 const activity = `Click_module=${params.mapName}_cityId=${$(this).attr('cityId')}`;
-                map.logWebpageActivity(activity);
+                window.logWebpageActivity(activity);
             });
         }
     }

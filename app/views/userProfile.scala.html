@@ -10,7 +10,7 @@
 @teamName = @{data.userTeam.map(_.name).getOrElse("Team name not found")}
 @admin = @{adminData.isDefined}
 
-@common.main(commonData, title) {
+@common.main(commonData, title, defaultI18nNamespace = "dashboard", i18Namespaces = Seq("dashboard", "common", "labelmap")) {
     @if(admin) {
         @common.navbar(commonData, Some(user))
     } else {
@@ -407,23 +407,20 @@
     }
 
     <script>
-        $(document).ready(function () {
-            const language = "@messages.lang.code";
-            const countryId = "@currentCity.countryId";
-            util.initializeI18Next(language, ['dashboard', 'common', 'labelmap'], 'dashboard', countryId, function() {
-                Progress(_, $, '@commonData.mapboxApiKey', '@profileUser.userId', @admin);
-                @if(admin) {
-                    AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService);
-                    $('#label-table').dataTable();
-                }
+        window.appManager.ready(function () {
+            // Set up the main JS that powers the user dashboard.
+            Progress(_, $, '@commonData.mapboxApiKey', '@profileUser.userId', @admin);
+            @if(admin) {
+                AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService);
+                $('#label-table').dataTable();
+            }
 
-                const achievementTracker = new AchievementTracker();
-                achievementTracker.updateBadgeAchievementGrid(
-                    @data.missionCount, @data.auditedDistance, @data.labelCount, @data.validationCount
-                );
+            const achievementTracker = new AchievementTracker();
+            achievementTracker.updateBadgeAchievementGrid(
+                @data.missionCount, @data.auditedDistance, @data.labelCount, @data.validationCount
+            );
 
-                MistakeCarousel('@profileUser.userId');
-            });
+            MistakeCarousel('@profileUser.userId');
 
             // Adds interaction handlers for the team dropdown.
             $('[data-toggle="tooltip"]').tooltip();

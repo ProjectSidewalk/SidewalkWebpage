@@ -25,21 +25,6 @@ function Progress (_, $, mapboxApiKey, userId, admin) {
     });
     window.map = self;
 
-    function logWebpageActivity(activity){
-        $.ajax({
-            async: false,
-            contentType: 'application/json; charset=utf-8',
-            url: '/userapi/logWebpageActivity',
-            method: 'POST',
-            data: JSON.stringify(activity),
-            dataType: 'json',
-            success: function(result){},
-            error: function (result) {
-                console.error(result);
-            }
-        });
-    }
-
     function putUserTeam(e, newTeam) {
         var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startTeam-to-endTeam"
         var startTeam = parsedId[1];
@@ -51,10 +36,10 @@ function Progress (_, $, mapboxApiKey, userId, admin) {
             success: function (result) {
                 if (!admin) {
                     if (startTeam && startTeam !== "0") {
-                        logWebpageActivity("Click_module=leaving_team=" + startTeam);
+                        window.logWebpageActivity("Click_module=leaving_team=" + startTeam);
                     }
                     if (endTeam && endTeam !== "0") {
-                        logWebpageActivity("Click_module=joining_team=" + endTeam);
+                        window.logWebpageActivity("Click_module=joining_team=" + endTeam);
                     }
                 }
                 window.location.reload();
@@ -90,7 +75,7 @@ function Progress (_, $, mapboxApiKey, userId, admin) {
             success: function (result) {
                 var newTeam = result.team_id;
                 var userTeamElement = $('.put-user-team')[0];
-                logWebpageActivity("Click_module=create_team=team_id=" + newTeam);
+                window.logWebpageActivity("Click_module=create_team=team_id=" + newTeam);
                 putUserTeam.call(userTeamElement || { id: "-1" }, null, newTeam);
             },
             error: function (result) {

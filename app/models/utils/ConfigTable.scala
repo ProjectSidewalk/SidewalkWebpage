@@ -4,6 +4,7 @@ import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.{AggregateStats, LabelTypeStats}
+
 import javax.inject._
 import scala.concurrent.ExecutionContext
 
@@ -150,22 +151,23 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
           WHERE NOT user_stat.excluded
       ) AS total_val_count;
-    """.as[(Double, Double, Int, Int)].head.map { case (kmExplored, kmExploredNoOverlap, totalLabels, totalValidations) =>
+    """
+      .as[(Double, Double, Int, Int)]
+      .head
+      .map { case (kmExplored, kmExploredNoOverlap, totalLabels, totalValidations) =>
 
-      // Now get the label type statistics for this schema
-      getLabelTypeStatsBySchema(schema).map { labelTypeStats =>
-        AggregateStats(
-          kmExplored = kmExplored,
-          kmExploredNoOverlap = kmExploredNoOverlap,
-          totalLabels = totalLabels,
-          totalValidations = totalValidations,
-          numCities = 0, // Individual cities don't have deployment counts
-          numCountries = 0, // These are calculated at the service level
-          numLanguages = 0, // when aggregating across all cities
-          byLabelType = labelTypeStats
-        )
+        // Now get the label type statistics for this schema.
+        getLabelTypeStatsBySchema(schema).map { labelTypeStats =>
+          AggregateStats(
+            kmExplored = kmExplored, kmExploredNoOverlap = kmExploredNoOverlap, totalLabels = totalLabels,
+            totalValidations = totalValidations, numCities = 0, // Individual cities don't have deployment counts
+            numCountries = 0,                                   // These are calculated at the service level
+            numLanguages = 0,                                   // when aggregating across all cities
+            byLabelType = labelTypeStats
+          )
+        }
       }
-    }.flatten
+      .flatten
   }
 
   /**
@@ -200,7 +202,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         lt.label_type_id, lt.label_type
       ORDER BY
         lt.label_type;
-    """.as[(String, Int, Int, Int, Int)]
+    """
+      .as[(String, Int, Int, Int, Int)]
       .map { rows =>
         rows.map { case (labelType, labelCount, validatedCount, agreeCount, disagreeCount) =>
           labelType -> LabelTypeStats(

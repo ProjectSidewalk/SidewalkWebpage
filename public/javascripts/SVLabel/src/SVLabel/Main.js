@@ -389,7 +389,7 @@ function Main (params) {
     }
 
     function _calculateAndSetTasksMissionsOffset() {
-        var completedTasksDistance = util.math.kilometersToMeters(svl.taskContainer.getCompletedTaskDistance({ units: 'kilometers' }));
+        var completedTasksDistance = util.math.kmsToMeters(svl.taskContainer.getCompletedTaskDistance({ units: 'kilometers' }));
         var completedMissionsDistance = svl.missionContainer.getCompletedMissionDistance();
         var curMission = svl.missionContainer.getCurrentMission();
         var missProgress = curMission.getProperty("distanceProgress") ? curMission.getProperty("distanceProgress") : 0;
@@ -586,7 +586,8 @@ function Main (params) {
     }
 
     // Gets all the text on the explore page for the correct language.
-    util.initializeI18Next(params.language, ['audit', 'common'], 'audit', params.countryId, function() {
+    // TODO this should really happen in explore.scala.html before we call Main().
+    window.appManager.ready(function() {
         _initUI();
         _init(params);
     });

@@ -187,117 +187,82 @@
 
 <!-- Script loads regardless of whether user is registered or not -->
 <script>
-$(document).ready(function () {
-    // Set up CSRF token for all AJAX requests.
-    var csrfToken = "@CSRF.getToken.map(_.value)";
-    $.ajaxSetup({
-        headers: {
-            'Csrf-Token': csrfToken
+    window.appManager.ready(function () {
+        function logNavbarClick(activity) {
+            var currentRoute = window.location.pathname;
+            var activityToSend = activity + "_location=Navbar_route=" + currentRoute;
+            window.logWebpageActivity(activityToSend);
         }
-    });
 
-    // Now set it up for fetch requests by overwriting the fetch function.
-    var originalFetch = window.fetch;
-    window.fetch = function(url, options = {}) {
-        // Create new options object with default headers.
-        const newOptions = {
-            ...options,
-            headers: {
-                ...options.headers,
-                'Csrf-Token': csrfToken
-            }
-        };
-        return originalFetch(url, newOptions); // Call the original fetch with the new options.
-    };
-
-    function logWebpageActivity(activity) {
-        var currentRoute = window.location.pathname;
-        var url = "/userapi/logWebpageActivity";
-        var async = false;
-        var activityToSend = activity + "_location=Navbar_route=" + currentRoute;
-        $.ajax({
-            async: async,
-            contentType: 'application/json; charset=utf-8',
-            url: url,
-            method: 'post',
-            data: JSON.stringify(activityToSend),
-            dataType: 'json',
-            success: function(result){},
-            error: function (result) {
-                console.error(result);
-            }
+        // The rest of this script logs whichever button is hit in the navbar.
+        // Example: Following logs "Click_module=PSLogo_location=Navbar_route=</|/explore|/help|...>".
+        $("#navbar-brand").on('click', function() {
+            logNavbarClick("Click_module=PSLogo");
         });
-    }
-
-    // The rest of this script logs whichever button is hit in the navbar.
-    // Example: Following logs "Click_module=PSLogo_location=Navbar_route=</|/explore|/help|...>".
-    $("#navbar-brand").on('click', function() {
-        logWebpageActivity("Click_module=PSLogo");
-    });
-    $("#navbar-sign-in-btn").on('click', function() {
-        logWebpageActivity("Click_module=SignIn");
-    });
-    $("#navbar-start-btn").on('click', function() {
-        logWebpageActivity("Click_module=StartExploring");
-    });
-    $("#navbar-validate-btn").on('click', function() {
-        logWebpageActivity("Click_module=StartValidating");
-    });
-    $("#navbar-guide-btn").on('click', function() {
-        logWebpageActivity("Click_module=LabelingGuide");
-    });
-    $("#navbar-retake-tutorial-btn").on('click', function() {
-        logWebpageActivity("Click_module=RetakeTutorial");
-    });
-    $("#navbar-help-btn").on('click', function() {
-        logWebpageActivity("Click_module=Help");
-    });
-    $("#navbar-api-btn").on('click', function() {
-        logWebpageActivity("Click_module=SidewalkAPI");
-    });
-    $("#navbar-cities-btn").on('click', function() {
-        logWebpageActivity("Click_module=DeploymentSitesDashboard");
-    });
-
-    // The following buttons are in the Data drop down menu.
-    $("#navbar-gallery-btn").on('click', function() {
-        logWebpageActivity("Click_module=Gallery");
-    });
-    $("#navbar-leaderboard-btn").on('click', function() {
-        logWebpageActivity("Click_module=Leaderboard");
-    });
-    $("#navbar-labelmap-btn").on('click', function() {
-        logWebpageActivity("Click_module=LabelMap");
-    });
-    $("#navbar-route-builder-btn").on('click', function() {
-        logWebpageActivity("Click_module=RouteBuilder");
-    });
-
-    // The buttons in the City drop down menu. Log clicks to any of them but the current city.
-    for (cityLink of $('#nav-city-menu').children().children()) {
-        $(cityLink).on('click', function(e) {
-            if (!e.currentTarget.className.includes('current-city')) {
-                logWebpageActivity(`Click_module=NavbarCityDropdown_city=${e.currentTarget.id}`);
-            }
+        $("#navbar-sign-in-btn").on('click', function() {
+            logNavbarClick("Click_module=SignIn");
         });
-    }
+        $("#navbar-start-btn").on('click', function() {
+            logNavbarClick("Click_module=StartExploring");
+        });
+        $("#navbar-validate-btn").on('click', function() {
+            logNavbarClick("Click_module=StartValidating");
+        });
+        $("#navbar-guide-btn").on('click', function() {
+            logNavbarClick("Click_module=LabelingGuide");
+        });
+        $("#navbar-retake-tutorial-btn").on('click', function() {
+            logNavbarClick("Click_module=RetakeTutorial");
+        });
+        $("#navbar-help-btn").on('click', function() {
+            logNavbarClick("Click_module=Help");
+        });
+        $("#navbar-api-btn").on('click', function() {
+            logNavbarClick("Click_module=SidewalkAPI");
+        });
+        $("#navbar-cities-btn").on('click', function() {
+            logNavbarClick("Click_module=DeploymentSitesDashboard");
+        });
 
-    // The following buttons are in the User drop down menu.
-    $("#navbar-sign-out-btn").on('click', function() {
-        logWebpageActivity("Click_module=SignOut");
+        // The following buttons are in the Data drop down menu.
+        $("#navbar-gallery-btn").on('click', function() {
+            logNavbarClick("Click_module=Gallery");
+        });
+        $("#navbar-leaderboard-btn").on('click', function() {
+            logNavbarClick("Click_module=Leaderboard");
+        });
+        $("#navbar-labelmap-btn").on('click', function() {
+            logNavbarClick("Click_module=LabelMap");
+        });
+        $("#navbar-route-builder-btn").on('click', function() {
+            logNavbarClick("Click_module=RouteBuilder");
+        });
+
+        // The buttons in the City drop down menu. Log clicks to any of them but the current city.
+        for (cityLink of $('#nav-city-menu').children().children()) {
+            $(cityLink).on('click', function(e) {
+                if (!e.currentTarget.className.includes('current-city')) {
+                    logNavbarClick(`Click_module=NavbarCityDropdown_city=${e.currentTarget.id}`);
+                }
+            });
+        }
+
+        // The following buttons are in the User drop down menu.
+        $("#navbar-sign-out-btn").on('click', function() {
+            logNavbarClick("Click_module=SignOut");
+        });
+        $("#navbar-admin-btn").on('click', function() {
+            logNavbarClick("Click_module=ToAdmin");
+        });
+        $("#navbar-admin-validate-btn").on('click', function() {
+            logNavbarClick("Click_module=ToAdminValidate");
+        });
+        $("#navbar-dashboard-btn").on('click', function() {
+            logNavbarClick("Click_module=ToDashboard")
+        });
+        // Logging clicks to the language button was moved to ApplicationController.scala b/c the redirect was happening
+        // before the log could be sent off.
     });
-    $("#navbar-admin-btn").on('click', function() {
-        logWebpageActivity("Click_module=ToAdmin");
-    });
-    $("#navbar-admin-validate-btn").on('click', function() {
-        logWebpageActivity("Click_module=ToAdminValidate");
-    });
-    $("#navbar-dashboard-btn").on('click', function() {
-        logWebpageActivity("Click_module=ToDashboard")
-    });
-    // Logging clicks to the language button was moved to ApplicationController.scala b/c the redirect was happening
-    // before the log could be sent off.
-});
 </script>
 
 @if(!user || user.get.role == "Anonymous") {
