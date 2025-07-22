@@ -183,28 +183,6 @@
 <!-- Script loads regardless of whether user is registered or not -->
 <script>
 $(document).ready(function () {
-    // Set up CSRF token for all AJAX requests.
-    var csrfToken = "@CSRF.getToken.map(_.value)";
-    $.ajaxSetup({
-        headers: {
-            'Csrf-Token': csrfToken
-        }
-    });
-
-    // Now set it up for fetch requests by overwriting the fetch function.
-    var originalFetch = window.fetch;
-    window.fetch = function(url, options = {}) {
-        // Create new options object with default headers.
-        const newOptions = {
-            ...options,
-            headers: {
-                ...options.headers,
-                'Csrf-Token': csrfToken
-            }
-        };
-        return originalFetch(url, newOptions); // Call the original fetch with the new options.
-    };
-
     function logWebpageActivity(activity) {
         var currentRoute = window.location.pathname;
         var url = "/userapi/logWebpageActivity";

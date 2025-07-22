@@ -586,7 +586,8 @@ function Main (params) {
     }
 
     // Gets all the text on the explore page for the correct language.
-    util.initializeI18Next(params.language, ['audit', 'common'], 'audit', params.countryId, function() {
+    // TODO this should really happen in explore.scala.html before we call Main().
+    window.appManager.ready(function() {
         _initUI();
         _init(params);
     });

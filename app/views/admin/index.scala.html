@@ -912,16 +912,13 @@
     <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
 
     <script>
-        $(document).ready(function () {
+        // Gets all translations before loading the choropleths.
+        window.appManager.ready(function () {
             // Sets up sorting in DataTables on timestamps.
             $.fn.dataTable.ext.type.order['date-pre'] = function(data) { return new Date(data).getTime(); };
 
-            // Gets all translations before loading the choropleths.
-            const language = "@messages.lang.code";
-            const countryId = "@currentCity.countryId";
-            util.initializeI18Next(language, ['common', 'labelmap'], 'common', countryId, function() {
-                window.admin = Admin(_, $, '@commonData.mapboxApiKey');
-            });
+            // Kick off all the API requests to get data to fill in the Admin page.
+            window.admin = Admin(_, $, '@commonData.mapboxApiKey');
 
             // Initialize the sliders in the legend. We add the "change" functionality after the map loads.
             $( "*[id*='slider']" ).each(function() {

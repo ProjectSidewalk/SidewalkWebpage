@@ -4,7 +4,7 @@
 @(commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, labelType: String, labels: Seq[(String, String)], regionIds: Seq[Int], severities: Seq[Int], tags: List[String], valOptions: Seq[String])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, title) {
+@common.main(commonData, title, i18Namespaces = Seq("common", "gallery")) {
     <script src='@assets.path("javascripts/Gallery/build/Gallery.js")'></script>
     <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
@@ -113,6 +113,8 @@
     @common.miniFooter(commonData)
 
     <script>
+        // Get translations and such set up, then begin initializing the Gallery app.
+        window.appManager.ready(function() {
             var sg = sg || {};
             let params = {};
 
@@ -135,9 +137,9 @@
             params.language = "@messages.lang.code";
             params.cityId = "@currentCity.cityId";
             params.cityName = "@currentCity.cityNameFormatted";
-            params.countryId = "@currentCity.countryId";
 
             sg.main = new Main(params);
+        });
     </script>
 
     <link rel="stylesheet" href='@assets.path("javascripts/Gallery/build/Gallery.css")'/>

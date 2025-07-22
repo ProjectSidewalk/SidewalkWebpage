@@ -1,7 +1,10 @@
 @import play.api.Configuration
 @import service.CommonPageData
-@(commonData: CommonPageData, title: String, url: Option[String] = Some("/")
+@import play.filters.csrf.CSRF
+@(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/"
 )(content: Html)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
 
 <!DOCTYPE html>
 <head>
@@ -15,6 +18,8 @@
     </script>
     <meta charset="utf-8" />
     <title>@title</title>
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
     <link href='@assets.path("stylesheets/bootstrap/bootstrap.min.css")' rel='stylesheet' />
     <link href='@assets.path("stylesheets/bootstrap/bootstrap-accessibility.css")' rel='stylesheet' />
@@ -39,8 +44,22 @@
     <script src='@assets.path("javascripts/common/pagetop-padding.js")'></script>
     <script src='@assets.path("javascripts/common/Utilities.js")'></script>
     <script src='@assets.path("javascripts/common/UtilitiesMath.js")'></script>
+    <script src='@assets.path("/javascripts/common/AppManager.js")'></script>
 </head>
 <body onload="checkIfPaddingNeeded()">
+    <script>
+        // Set up AppManager to initialize stuff that we need on every page (CSRF token, i18next, etc.).
+        $(document).ready(function() {
+            const csrfToken = "@CSRF.getToken.map(_.value)";
+            const i18nextParams = {
+                language: "@messages.lang.code",
+                defaultNS: "@defaultI18nNamespace",
+                namespaces: @Html(i18Namespaces.map(namespace => s""""$namespace"""").mkString("[", ",", "]")),
+                countryId: "@currentCity.countryId"
+            };
+            window.appManager.init(csrfToken, i18nextParams);
+        });
+    </script>
     <div id="wrap">
             <!-- Banner is only visible if user is on local/test server-->
         @if(commonData.environmentType != "prod") {
@@ -75,20 +94,20 @@
         }
         @content
     </div>
-    @if(url.getOrElse("") != "/mobile") {
+    @if(url != "/mobile") {
         <head>
             <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0">
         </head>
     }
-    @if(url.get == "/explore") {
+    @if(url == "/explore") {
         <script>
                 // Prevents extra whitespace at the bottom of the page, not sure why that's an issue.
                 document.getElementsByTagName("body")[0].style.overflow = "hidden";
         </script>
     }
         <!-- Trying out no footer on Explore or Validate. Mini footer on mobile sign in/up. Code is weird bc "else if" doesn't work in template scala rn. -->
-    @if(url.get == "/explore" || url.get == "/validate" || url.get == "/newValidateBeta" || url.get == "/signInMobile" || url.get == "/signUpMobile") {
-        @if(url.get == "/explore" || url.get == "/validate" || url.get == "/newValidateBeta") {
+    @if(url == "/explore" || url == "/validate" || url == "/newValidateBeta" || url == "/signInMobile" || url == "/signUpMobile") {
+        @if(url == "/explore" || url == "/validate" || url == "/newValidateBeta") {
         } else {
             <!-- footer code found in app/views/footer.scala.html -->
             @common.miniFooter(commonData)

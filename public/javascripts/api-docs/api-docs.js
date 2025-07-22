@@ -20,8 +20,6 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('API Docs script initialized');
-
     let enableLeftSidebarAccordions = false; // Flag to disable left sidebar accordions.
 
     if(enableLeftSidebarAccordions){
@@ -307,8 +305,6 @@ function generateTableOfContents() {
         tocContainer.appendChild(li);
         headingsAdded++;
     });
-
-    console.log(`TOC generated: ${headingsAdded} items added from ${headings.length} headings found.`);
 }
 
 
@@ -373,8 +369,6 @@ function setupScrollSpy() {
 
     // Initial highlight on load.
     setTimeout(highlightActiveTocItem, 100);
-
-    console.log('Scroll spy initialized (TOC only).');
 }
 
 
@@ -421,7 +415,6 @@ function setupSmoothScrolling() {
             }
         });
     });
-    console.log('Smooth scrolling initialized.');
 }
 
 
@@ -456,7 +449,6 @@ function setupMobileNavigation() {
 
         // Insert button at the beginning of the body or a designated header area.
         document.body.insertBefore(button, document.body.firstChild);
-        console.log('Mobile navigation toggle initialized.');
     } else if (toggleButton) {
         console.log('Mobile navigation toggle already exists.');
     }
@@ -510,15 +502,12 @@ function setupPermalinkCopying() {
             setTimeout(() => tooltip.remove(), 500); // Remove after fade
         }, 1500); // Tooltip visible duration
     }
-
-    console.log('Permalink copying initialized using event delegation.');
 }
 
 /**
  * Sets up download buttons with reliable status messages that clear properly.
  */
 function setupDownloadButtons() {
-    console.log('Starting setupDownloadButtons function');
     const downloadButtonsContainer = document.querySelector('.download-buttons');
     if (!downloadButtonsContainer) return;
 

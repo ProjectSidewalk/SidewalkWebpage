@@ -148,10 +148,8 @@ function Main (params) {
         });
     }
 
-    // Gets all the text on the gallery page for the correct language.
-    util.initializeI18Next(params.language, ['common', 'gallery'], 'common', params.countryId, function() {
-        _initUI();
-        _init();
-    });
+    _initUI();
+    _init();
+
     return self;
 }

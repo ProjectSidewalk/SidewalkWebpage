@@ -100,7 +100,6 @@
                         displayMode: "summary"  // Use summary mode for the index page
                     }).init()
                             .then(() => {
-                                console.log('Label tags summary loaded successfully.');
                                 if (typeof generateTableOfContents === 'function') {
                                     generateTableOfContents(); // Regenerate the TOC if needed
                                 }

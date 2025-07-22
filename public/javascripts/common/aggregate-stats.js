@@ -120,7 +120,7 @@ async function fetchAggregateStats() {
  */
 function formatNumber(value, unit = '') {
     const roundedValue = Math.round(value);
-    const formattedValue = roundedValue.toLocaleString();
+    const formattedValue = i18next.t('common:format-number', { val: roundedValue });
     return unit ? `${formattedValue} ${unit}` : formattedValue;
 }
 
@@ -222,36 +222,20 @@ function showErrorState(error) {
 
 /**
  * Main function to load and display Project Sidewalk statistics aggregated statistics from the API.
- *
  * @returns {Promise<void>}
- *
- * @example
- * // Call this function when the page loads
- * loadProjectSidewalkStats();
  */
 async function loadProjectSidewalkStats() {
     try {
         showLoadingState();
-
-        console.log('Fetching aggregated Project Sidewalk statistics...');
         const aggregatedStats = await fetchAggregateStats();
-
-        console.log('Updating display...');
         updateStatsDisplay(aggregatedStats);
-
-        console.log('Project Sidewalk statistics loaded successfully:', aggregatedStats);
-
     } catch (error) {
         console.error('Failed to load Project Sidewalk statistics:', error);
         showErrorState(error);
     }
 }
 
-// Auto-initialize when DOM is ready.
-if (typeof document !== 'undefined') {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', loadProjectSidewalkStats);
-    } else {
-        loadProjectSidewalkStats();
-    }
-}
+// Auto-initialize when translations are ready.
+window.appManager.ready(function () {
+    loadProjectSidewalkStats();
+});
