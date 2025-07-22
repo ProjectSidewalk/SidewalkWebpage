@@ -102,18 +102,18 @@
 
             // Display aggregate statistics in the stats grid.
             function displayAggregateStats(stats) {
-                // Format numbers for display
+                // Format numbers for display.
                 function formatNumber(num) {
                     if (num >= 1000000) {
-                        return (num / 1000000).toFixed(1) + 'M';
+                        return i18next.t('common:format-number', { val: (num / 1000000).toFixed(1) }) + 'M';
                     } else if (num >= 1000) {
-                        return (num / 1000).toFixed(1) + 'K';
+                        return i18next.t('common:format-number', { val: (num / 1000).toFixed(1) }) + 'K';
                     }
-                    return num.toLocaleString();
+                    return i18next.t('common:format-number', { val: num });
                 }
 
                 function formatDistance(km) {
-                    return Math.round(km).toLocaleString() + ' km';
+                    return i18next.t('common:format-number', { val: Math.round(km) }) + ' km';
                 }
 
                 // Update the stats display.
