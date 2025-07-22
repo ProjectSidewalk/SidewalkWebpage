@@ -390,17 +390,19 @@ kbd {
     overflow:visible;
 }
 
-#loading-gif {
+#loading-animation {
     position: relative;
-    max-width: 100%;
-    max-height: 100%;
+    width: 200px;
+    height: 200px;
     margin-top: -50%;
     margin-left: -50%;
 }
 
-#loading-gif img {
+#loading-animation img {
     display: block;
     margin: 0 auto;
+    width: 200px;
+    height: 200px;
 }
 
 .loading-text {
