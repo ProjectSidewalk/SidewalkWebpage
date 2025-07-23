@@ -54,7 +54,7 @@ class AdminController @Inject() (
    */
   def index = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Admin")
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin")
       Ok(views.html.admin.index(commonData, "Sidewalk - Admin", request.identity))
     }
   }
@@ -71,7 +71,7 @@ class AdminController @Inject() (
           adminData                        <- adminService.getAdminUserProfileData(user.userId)
           commonData                       <- configService.getCommonPageData(request2Messages.lang)
         } yield {
-          cc.loggingService.insert(user.userId, request.remoteAddress, s"Visit_AdminUserDashboard_User=$username")
+          cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_AdminUserDashboard_User=$username")
           Ok(
             views.html.userProfile(commonData, "Sidewalk - Dashboard", request.identity, user, userProfileData,
               Some(adminData))
@@ -88,7 +88,7 @@ class AdminController @Inject() (
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       val user: SidewalkUserWithRole = request.identity
       val admin: Boolean             = isAdmin(request.identity)
-      cc.loggingService.insert(user.userId, request.remoteAddress, s"Visit_LabelView_Label=${labelId}_Admin=$admin")
+      cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_LabelView_Label=${labelId}_Admin=$admin")
       Ok(views.html.admin.label(commonData, "Sidewalk - LabelView", user, admin, labelId))
     }
   }
@@ -104,10 +104,10 @@ class AdminController @Inject() (
       val user: SidewalkUserWithRole = request.identity
       maybeTask match {
         case Some(task) =>
-          cc.loggingService.insert(user.userId, request.remoteAddress, s"Visit_AdminTask_TaskId=$taskId")
+          cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_AdminTask_TaskId=$taskId")
           Ok(views.html.admin.task(commonData, "Sidewalk - TaskView", user, task))
         case None =>
-          cc.loggingService.insert(user.userId, request.remoteAddress, s"Visit_AdminTask_TaskId=${taskId}_NotFound")
+          cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_AdminTask_TaskId=${taskId}_NotFound")
           NotFound(s"Task with ID $taskId not found.")
       }
     }
@@ -374,7 +374,7 @@ class AdminController @Inject() (
                 .updateRole(userId, newRole)
                 .map(_ => {
                   val logText = s"UpdateRole_User=${userId}_Old=${user.role}_New=$newRole"
-                  cc.loggingService.insert(request.identity.userId, request.remoteAddress, logText)
+                  cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
                   Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole))
                 })
             }
@@ -548,7 +548,7 @@ class AdminController @Inject() (
     val open: Boolean = (request.body \ "open").as[Boolean]
     adminService.updateTeamStatus(teamId, open).map { _ =>
       val logText = s"UpdateTeamStatus_Team=${teamId}_Open=$open"
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, logText)
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
       Ok(Json.obj("status" -> "success", "team_id" -> teamId, "open" -> open))
     }
   }
@@ -561,7 +561,7 @@ class AdminController @Inject() (
     val visible: Boolean = (request.body \ "visible").as[Boolean]
     adminService.updateTeamVisibility(teamId, visible).map { _ =>
       val logText = s"UpdateTeamVisibility_Team=${teamId}_Visible=$visible"
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, logText)
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
       Ok(Json.obj("status" -> "success", "team_id" -> teamId, "visible" -> visible))
     }
   }

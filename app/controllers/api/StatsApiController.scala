@@ -51,7 +51,7 @@ class StatsApiController @Inject() (
       )
       .map { filteredStats: Seq[UserStatApi] =>
         val baseFileName: String = s"userStats_${OffsetDateTime.now()}"
-        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
         // Output data in the appropriate file format: CSV or JSON (default).
         filetype match {
@@ -75,7 +75,7 @@ class StatsApiController @Inject() (
     implicit request =>
       apiService.getOverallStats(filterLowQuality).map { stats: ProjectSidewalkStats =>
         val baseFileName: String = s"projectSidewalkStats_${OffsetDateTime.now()}"
-        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
         // Output data in the appropriate file format: CSV or JSON (default).
         filetype match {
@@ -136,7 +136,7 @@ class StatsApiController @Inject() (
     configService
       .getAggregateStats()
       .map { aggregateStats =>
-        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
         // Generate response in the requested format.
         filetype match {

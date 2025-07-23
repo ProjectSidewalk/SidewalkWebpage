@@ -10,7 +10,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[LoggingServiceImpl])
 trait LoggingService {
-  def insert(activity: WebpageActivity): Future[Int]
+  def insert(userId: String, ipAddress: String, activity: String, timestamp: OffsetDateTime): Future[Int]
   def insert(userId: String, ipAddress: String, activity: String): Future[Int]
   def insert(userId: Option[String], ipAddress: String, activity: String): Future[Int]
 }
@@ -24,19 +24,39 @@ class LoggingServiceImpl @Inject() (
 ) extends LoggingService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  def insert(activity: WebpageActivity): Future[Int] = db.run(webpageActivityTable.insert(activity))
+  def insert(userId: String, ipAddress: String, activity: String, timestamp: OffsetDateTime): Future[Int] =
+    _insert(Some(userId), ipAddress, activity, Some(timestamp))
 
   def insert(userId: String, ipAddress: String, activity: String): Future[Int] =
-    insert(WebpageActivity(0, userId, ipAddress, activity, OffsetDateTime.now))
+    _insert(Some(userId), ipAddress, activity, None)
 
-  def insert(userId: Option[String], ipAddress: String, activity: String): Future[Int] = {
-    userId match {
-      case Some(uId) =>
-        insert(WebpageActivity(0, uId, ipAddress, activity, OffsetDateTime.now))
-      case None =>
-        authenticationService.getDefaultAnonUser.flatMap { anonUser =>
-          insert(WebpageActivity(0, anonUser.userId, ipAddress, activity, OffsetDateTime.now))
-        }
+  def insert(userId: Option[String], ipAddress: String, activity: String): Future[Int] =
+    _insert(userId, ipAddress, activity, None)
+
+  /**
+   * Inserts a new webpage activity record into the database, dealing with all optional inputs.
+   * @param userId Optional user ID, if available
+   * @param ipAddress IP address of the user
+   * @param activity Description of the activity performed
+   * @param timestamp Optional timestamp of the activity, defaults to current time if not provided
+   * @return Future[Int] representing the number of rows inserted
+   */
+  private def _insert(
+      userId: Option[String],
+      ipAddress: String,
+      activity: String,
+      timestamp: Option[OffsetDateTime]
+  ): Future[Int] = {
+    // If userId is provided, use it; otherwise, get the default anonymous user ID.
+    val user: Future[String] = userId match {
+      case Some(uId) => Future.successful(uId)
+      case None      => authenticationService.getDefaultAnonUser.map(_.userId)
     }
+
+    // If the IP address is comma-separated, take the first part (the rest should be proxies).
+    val mainIpAddress = ipAddress.split(",").head.trim
+
+    val time: OffsetDateTime = timestamp.getOrElse(OffsetDateTime.now)
+    user.flatMap { uId => db.run(webpageActivityTable.insert(WebpageActivity(0, uId, mainIpAddress, activity, time))) }
   }
 }

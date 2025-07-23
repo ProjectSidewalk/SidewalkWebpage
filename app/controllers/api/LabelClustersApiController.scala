@@ -72,7 +72,7 @@ class LabelClustersApiController @Inject() (
       filetype: Option[String],
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
-    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+    cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
     try {
       // Parse bbox parameter.
       val parsedBbox: Option[LatLngBBox] = parseBBoxString(bbox)
@@ -241,7 +241,7 @@ class LabelClustersApiController @Inject() (
       filetype: Option[String],
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
-    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+    cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
     configService.getCityMapParams.flatMap { cityMapParams =>
       val bbox: LatLngBBox = LatLngBBox(
@@ -328,7 +328,7 @@ class LabelClustersApiController @Inject() (
       filetype: Option[String],
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
-    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+    cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
     configService.getCityMapParams.flatMap { cityMapParams =>
       val bbox: LatLngBBox     = createBBox(lat1, lng1, lat2, lng2, cityMapParams)

@@ -25,7 +25,7 @@ class ApiDocsController @Inject() (
    */
   def index = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_Introduction")
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_Introduction")
       Ok(views.html.apiDocs.index(commonData, request.identity))
     }
   }
@@ -35,7 +35,7 @@ class ApiDocsController @Inject() (
    */
   def labelTypes = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_LabelTypes")
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_LabelTypes")
       Ok(views.html.apiDocs.labelTypes(commonData, request.identity))
     }
   }
@@ -45,7 +45,7 @@ class ApiDocsController @Inject() (
    */
   def labelTags = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_LabelTags")
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_LabelTags")
       Ok(views.html.apiDocs.labelTags(commonData, request.identity))
     }
   }
@@ -55,7 +55,7 @@ class ApiDocsController @Inject() (
    */
   def rawLabels = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_RawLabels")
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_RawLabels")
       Ok(views.html.apiDocs.rawLabels(commonData, request.identity))
     }
   }
@@ -65,7 +65,7 @@ class ApiDocsController @Inject() (
    */
   def labelClusters = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_LabelClusters")
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_LabelClusters")
       Ok(views.html.apiDocs.labelClusters(commonData, request.identity))
     }
   }
@@ -75,7 +75,7 @@ class ApiDocsController @Inject() (
    */
   def streets = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_Streets")
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_Streets")
       Ok(views.html.apiDocs.streets(commonData, request.identity))
     }
   }
@@ -85,7 +85,7 @@ class ApiDocsController @Inject() (
    */
   def streetTypes = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_StreetTypes")
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_StreetTypes")
       Ok(views.html.apiDocs.streetTypes(commonData, request.identity))
     }
   }
@@ -95,7 +95,7 @@ class ApiDocsController @Inject() (
    */
   def cities = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_Cities")
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_Cities")
       Ok(views.html.apiDocs.cities(commonData, request.identity))
     }
   }
@@ -105,7 +105,7 @@ class ApiDocsController @Inject() (
    */
   def userStats = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_UserStats")
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_UserStats")
       Ok(views.html.apiDocs.userStats(commonData, request.identity))
     }
   }
@@ -115,7 +115,7 @@ class ApiDocsController @Inject() (
    */
   def overallStats = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_OverallStats")
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_OverallStats")
       Ok(views.html.apiDocs.overallStats(commonData, request.identity))
     }
   }
@@ -125,7 +125,7 @@ class ApiDocsController @Inject() (
    */
   def validations = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_Validations")
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_Validations")
       Ok(views.html.apiDocs.validations(commonData, request.identity))
     }
   }

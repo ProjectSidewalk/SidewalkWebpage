@@ -53,7 +53,7 @@ class ValidateController @Inject() (
             getDataForValidatePages(user, labelCount = 10, adminParams)
           commonPageData <- configService.getCommonPageData(request2Messages.lang)
         } yield {
-          cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_Validate")
+          cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Validate")
           Ok(
             views.html.apps.validate(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList,
               missionProgress, hasNextMission, completedVals)
@@ -82,7 +82,7 @@ class ValidateController @Inject() (
             commonPageData <- configService.getCommonPageData(request2Messages.lang)
             tags: Seq[Tag] <- labelService.getTagsForCurrentCity
           } yield {
-            cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_NewValidateBeta")
+            cc.loggingService.insert(user.userId, request.ipAddress, "Visit_NewValidateBeta")
             Ok(
               views.html.apps.newValidateBeta(commonPageData, "Sidewalk - NewValidateBeta", user, adminParams, mission,
                 labelList, missionProgress, hasNextMission, completedVals, tags)
@@ -111,16 +111,16 @@ class ValidateController @Inject() (
           commonPageData <- configService.getCommonPageData(request2Messages.lang)
         } yield {
           if (!isMobile(request)) {
-            cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate_RedirectHome")
+            cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate_RedirectHome")
             Redirect("/")
           } else {
-            cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate")
+            cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
             Ok(
               views.html.apps.mobileValidate(commonPageData, "Sidewalk - Validate", user, adminParams, mission,
                 labelList, missionProgress, hasNextMission, completedVals)
             )
           }
-          cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate")
+          cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
           Ok(
             views.html.apps.mobileValidate(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList,
               missionProgress, hasNextMission, completedVals)
@@ -148,7 +148,7 @@ class ValidateController @Inject() (
               getDataForValidatePages(user, labelCount = 10, adminParams)
             commonPageData <- configService.getCommonPageData(request2Messages.lang)
           } yield {
-            cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_AdminValidate")
+            cc.loggingService.insert(user.userId, request.ipAddress, "Visit_AdminValidate")
             Ok(
               views.html.apps.validate(commonPageData, "Sidewalk - AdminValidate", user, adminParams, mission,
                 labelList, missionProgress, hasNextMission, completedVals)
@@ -391,7 +391,7 @@ class ValidateController @Inject() (
     val submission = json.validate[ValidationTaskSubmission]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => { processValidationTaskSubmissions(submission, request.remoteAddress, request.identity) }
+      submission => { processValidationTaskSubmissions(submission, request.ipAddress, request.identity) }
     )
   }
 
@@ -402,7 +402,7 @@ class ValidateController @Inject() (
     val submission = request.body.validate[ValidationTaskSubmission]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => { processValidationTaskSubmissions(submission, request.remoteAddress, request.identity) }
+      submission => { processValidationTaskSubmissions(submission, request.ipAddress, request.identity) }
     )
   }
 
@@ -450,7 +450,7 @@ class ValidateController @Inject() (
           _              <- validationService.deleteCommentIfExists(submission.labelId, submission.missionId)
           commentId: Int <- validationService.insertComment(
             ValidationTaskComment(0, submission.missionId, submission.labelId, request.identity.userId,
-              request.remoteAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
+              request.ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
               Math.round(submission.zoom), submission.lat, submission.lng, OffsetDateTime.now, submission.comment)
           )
         } yield {
@@ -475,7 +475,7 @@ class ValidateController @Inject() (
           mission        <- missionService.resumeOrCreateNewValidationMission(userId, "labelmapValidation", labelTypeId)
           _              <- validationService.deleteCommentIfExists(submission.labelId, mission.get.missionId)
           commentId: Int <- validationService.insertComment(
-            ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.remoteAddress,
+            ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
               submission.gsvPanoramaId, submission.heading, submission.pitch, Math.round(submission.zoom),
               submission.lat, submission.lng, OffsetDateTime.now, submission.comment)
           )

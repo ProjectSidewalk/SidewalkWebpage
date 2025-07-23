@@ -25,7 +25,7 @@ class RegionApiController @Inject() (
   def getRegionWithMostLabels = silhouette.UserAwareAction.async { implicit request =>
     apiService.getRegionWithMostLabels.map {
       case Some(region) =>
-        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
         Ok(Json.toJson(region))
       case None =>
         NotFound(Json.obj("status" -> "NOT_FOUND", "message" -> "No region found with labels"))

@@ -44,7 +44,7 @@ class UserController @Inject() (
   def signIn() = silhouette.UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
-        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_SignIn")
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_SignIn")
         Ok(views.html.authentication.signIn(SignInForm.form, commonData, request.identity))
       }
     } else Future.successful(Redirect("/"))
@@ -56,7 +56,7 @@ class UserController @Inject() (
   def signInMobile() = silhouette.UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
-        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_MobileSignIn")
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_MobileSignIn")
         Ok(views.html.authentication.signInMobile(SignInForm.form, commonData, request.identity))
       }
     } else Future.successful(Redirect("/"))
@@ -68,7 +68,7 @@ class UserController @Inject() (
   def signUp() = silhouette.UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
-        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_SignUp")
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_SignUp")
         Ok(views.html.authentication.signUp(SignUpForm.form, commonData, request.identity))
       }
     } else Future.successful(Redirect("/"))
@@ -80,7 +80,7 @@ class UserController @Inject() (
   def signUpMobile() = silhouette.UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
-        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_MobileSignUp")
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_MobileSignUp")
         Ok(views.html.authentication.signUpMobile(SignUpForm.form, commonData, request.identity))
       }
     } else Future.successful(Redirect("/"))
@@ -90,7 +90,7 @@ class UserController @Inject() (
    * Handles the sign-out action.
    */
   def signOut(url: String) = cc.securityService.SecuredAction { implicit request =>
-    cc.loggingService.insert(request.identity.userId, request.remoteAddress, "SignOut")
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, "SignOut")
     silhouette.env.eventBus.publish(LogoutEvent(request.identity, request))
     silhouette.env.authenticatorService.discard(request.authenticator, Redirect(url))
   }
@@ -101,7 +101,7 @@ class UserController @Inject() (
   def forgotPassword(url: String) = silhouette.UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
-        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_ForgotPassword")
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ForgotPassword")
         Ok(views.html.authentication.forgotPassword(ForgotPasswordForm.form, commonData))
       }
     } else Future.successful(Redirect(url))
@@ -114,7 +114,7 @@ class UserController @Inject() (
     authenticationService.validateToken(token).flatMap {
       case Some(_) =>
         configService.getCommonPageData(request2Messages.lang).map { commonData =>
-          cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_ResetPassword")
+          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ResetPassword")
           Ok(views.html.authentication.resetPassword(ResetPasswordForm.form, commonData, token))
         }
       case None =>
@@ -131,7 +131,7 @@ class UserController @Inject() (
       .fold(
         errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
         submission => {
-          cc.loggingService.insert(request.identity.userId, request.remoteAddress, submission)
+          cc.loggingService.insert(request.identity.userId, request.ipAddress, submission)
           Future.successful(Ok(Json.obj()))
         }
       )
@@ -154,7 +154,7 @@ class UserController @Inject() (
    * Authenticates a user.
    */
   def authenticate() = silhouette.UserAwareAction.async { implicit request =>
-    val ipAddress: String          = request.remoteAddress
+    val ipAddress: String          = request.ipAddress
     val currUserId: Option[String] = request.identity.map(_.userId)
 
     SignInForm.form
@@ -243,7 +243,7 @@ class UserController @Inject() (
    * Registers a new user.
    */
   def signUpPost() = silhouette.UserAwareAction.async { implicit request =>
-    val ipAddress: String         = request.remoteAddress
+    val ipAddress: String         = request.ipAddress
     val oldUserId: Option[String] = request.identity.map(_.userId)
 
     // Grab the URL we want to redirect to that was passed as a hidden field in the form.
@@ -341,7 +341,7 @@ class UserController @Inject() (
           val activityStr =
             if (qString.isEmpty) s"""AnonAutoSignUp_url="$url""""
             else s"""AnonAutoSignUp_url="$url?${qString.map { case (k, v) => k + "=" + v.mkString }.mkString("&")}""""
-          cc.loggingService.insert(user.userId, request.remoteAddress, activityStr)
+          cc.loggingService.insert(user.userId, request.ipAddress, activityStr)
 
           silhouette.env.eventBus.publish(SignUpEvent(user, request))
           silhouette.env.eventBus.publish(LoginEvent(user, request))
@@ -358,7 +358,7 @@ class UserController @Inject() (
    * a notice for not existing email addresses to prevent the leak of existing email addresses.
    */
   def submitForgottenPassword = silhouette.UserAwareAction.async { implicit request =>
-    val ipAddress: String      = request.remoteAddress
+    val ipAddress: String      = request.ipAddress
     val userId: Option[String] = request.identity.map(_.userId)
 
     ForgotPasswordForm.form
@@ -423,7 +423,7 @@ class UserController @Inject() (
           .fold(
             form =>
               configService.getCommonPageData(request2Messages.lang).map { commonData =>
-                cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_ResetPassword")
+                cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ResetPassword")
                 BadRequest(views.html.authentication.resetPassword(form, commonData, token))
               },
             passwordData =>
@@ -432,7 +432,7 @@ class UserController @Inject() (
                   val passwordInfo = passwordHasher.hash(passwordData.password)
                   authenticationService.updatePassword(user.userId, passwordInfo).map { _ =>
                     authenticationService.removeToken(token)
-                    cc.loggingService.insert(user.userId, request.remoteAddress, "PasswordReset")
+                    cc.loggingService.insert(user.userId, request.ipAddress, "PasswordReset")
                     Redirect(routes.UserController.signIn()).flashing("success" -> Messages("reset.pw.successful"))
                   }
                 case _ =>
