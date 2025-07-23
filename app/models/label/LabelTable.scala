@@ -796,6 +796,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       labelTypeId: Int,
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
+      unvalidatedOnly: Boolean = false,
       skippedLabelId: Option[Int] = None
   ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
 
@@ -807,6 +808,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _gd             <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
       _ser            <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
       if _lt.labelTypeId === labelTypeId && !_gd.expired && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
+      if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty                     // Filter out validated labels.
       if skippedLabelId.map(_lb.labelId =!= _).getOrElse(true: Rep[Boolean])             // Filter out skipped label.
       if regionIds.map(ids => _ser.regionId inSetBind ids).getOrElse(true: Rep[Boolean]) // Filter by region IDs.
       if userIds.map(ids => _lb.userId inSetBind ids).getOrElse(true: Rep[Boolean])      // Filter by user IDs.
