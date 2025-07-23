@@ -146,7 +146,7 @@ function AddCitiesToMap(map, citiesData, params) {
      */
     function fitMapToCities() {
         // Set different zoom restrictions and projection than our other maps, since we're zooming out so far.
-        map.setMinZoom(2);
+        map.setMinZoom(null);
         map.setMaxZoom(10);
         map.setProjection('mercator');
         map.setMaxBounds(null);
@@ -168,7 +168,7 @@ function AddCitiesToMap(map, citiesData, params) {
      */
     function handleResize() {
         if (map) {
-            map.resize();
+            fitMapToCities();
         }
     }
 

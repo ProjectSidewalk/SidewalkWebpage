@@ -52,6 +52,11 @@
                         <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank">@Messages("navbar.help")</a>
                     </li>
                 }
+
+                <li class="active navbar-lnk">
+                    <a class="navbar-button" id="navbar-cities-btn" href="@routes.ApplicationController.cities" aria-label="Deployment Sites Dashboard">@Messages("navbar.cities")</a>
+                </li>
+
                 <li class="active navbar-lnk">
                     <a class="navbar-button" id="navbar-api-btn" href="@routes.ApiDocsController.index" aria-label="Developer API">@Messages("navbar.api")</a>
                 </li>
@@ -214,6 +219,9 @@
         });
         $("#navbar-api-btn").on('click', function() {
             logNavbarClick("Click_module=SidewalkAPI");
+        });
+        $("#navbar-cities-btn").on('click', function() {
+            logNavbarClick("Click_module=DeploymentSitesDashboard");
         });
 
         // The following buttons are in the Data drop down menu.

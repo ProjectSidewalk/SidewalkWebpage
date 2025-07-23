@@ -1,0 +1,129 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(title: String, commonData: CommonPageData, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user))
+
+    <div class="deployment-sites-container">
+        <div class="map-section">
+            <div id="deployment-sites-map-holder" class="map-holder">
+                <div id="cities-map" class="map"></div>
+                <div id="page-loading" class="loading-screen">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <div class="deployment-sites-stats-holder">
+                <div class="stat-group">
+                    <span class="deployment-sites-stats-header">@Messages("cities.dashboard.cities")</span>
+                    <img src='@assets.path("images/icons/project_sidewalk_flag.png")' alt="@Messages("cities.dashboard.cities.icon.alt")"/>
+                    <span class="deployment-sites-stats-stat" id="stat-cities">-</span>
+                </div>
+
+                <div class="stat-group">
+                    <span class="deployment-sites-stats-header">@Messages("cities.dashboard.distance")</span>
+                    <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")"/>
+                    <span class="deployment-sites-stats-stat" id="stat-distance">-</span>
+                </div>
+
+                <div class="stat-group">
+                    <span class="deployment-sites-stats-header">@Messages("labels.caps")</span>
+                    <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")"/>
+                    <span class="deployment-sites-stats-stat" id="stat-labels">-</span>
+                </div>
+
+                <div class="stat-group">
+                    <span class="deployment-sites-stats-header">@Messages("validations")</span>
+                    <img src='@assets.path("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
+                    <span class="deployment-sites-stats-stat" id="stat-validations">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include necessary JavaScript libraries -->
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.13.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.13.0.css")' rel="stylesheet"/>
+    <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+
+    <!-- Deployment Sites Dashboard CSS -->
+    <link href='@assets.path("stylesheets/deployment-sites-dashboard.css")' rel="stylesheet"/>
+
+    <script>
+        /**
+         * Initialize the cities dashboard map.
+         */
+        window.appManager.ready(function () {
+            // Create the cities map parameters.
+            const citiesMapParams = {
+                mapName: 'cities-map',
+                mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+                mapboxApiKey: '@commonData.mapboxApiKey',
+                mapboxLogoLocation: 'bottom-left',
+                scrollWheelZoom: true,
+                loadCities: true,
+                logClicks: true
+            };
+
+            // Load aggregate stats and create the map in parallel.
+            Promise.all([
+                CreatePSMap($, citiesMapParams),
+                loadAggregateStats()
+            ]).then(function([mapComponents, aggregateStats]) {
+                window.citiesMap = mapComponents[0]; // Store map reference globally
+                displayAggregateStats(aggregateStats);
+            }).catch(function(error) {
+                console.error('Error loading cities dashboard:', error);
+                $('#page-loading').hide(); // Hide loading screen even on error
+            });
+
+            // Load aggregate statistics from the API.
+            function loadAggregateStats() {
+                return $.getJSON('/v3/api/aggregateStats')
+                    .fail(function(error) {
+                        console.error('Failed to load aggregate stats:', error);
+                        // Return empty stats as fallback.
+                        return {
+                            numCities: 0,
+                            numCountries: 0,
+                            kmExplored: 0,
+                            totalLabels: 0,
+                            totalValidations: 0
+                        };
+                    });
+            }
+
+            // Display aggregate statistics in the stats grid.
+            function displayAggregateStats(stats) {
+                // Format numbers for display.
+                function formatNumber(num) {
+                    if (num >= 1000000) {
+                        return i18next.t('common:format-number', { val: (num / 1000000).toFixed(1) }) + 'M';
+                    } else if (num >= 1000) {
+                        return i18next.t('common:format-number', { val: (num / 1000).toFixed(1) }) + 'K';
+                    }
+                    return i18next.t('common:format-number', { val: num });
+                }
+
+                // Formats distance as either kilometers or miles based on the user's measurement system.
+                function formatDistance(km) {
+                    const distUnit = i18next.t('common:unit-distance-abbreviation');
+                    const dist = i18next.t('common:measurement-system') === 'metric' ? km : util.math.kmsToMiles(km);
+                    return i18next.t('common:format-number', { val: Math.round(dist) }) + ' ' + distUnit;
+                }
+
+                // Update the stats display.
+                $('#stat-cities').text(stats.numCities || 0);
+                $('#stat-distance').text(formatDistance(stats.kmExplored || 0));
+                $('#stat-labels').text(formatNumber(stats.totalLabels || 0));
+                $('#stat-validations').text(formatNumber(stats.totalValidations || 0));
+            }
+        });
+    </script>
+}
