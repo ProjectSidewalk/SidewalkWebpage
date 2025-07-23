@@ -198,7 +198,7 @@ function Admin(_, $, mapboxApiKey) {
         if (e.target.id === "visualization" && mapLoaded === false) {
             CreatePSMap($, mapTabMapParams).then(m => {
                 self.map = m[0];
-                self.mapData = m[3];
+                self.mapData = m[4];
                 addLegendListeners(self.map, self.mapData);
                 mapLoaded = true;
             });

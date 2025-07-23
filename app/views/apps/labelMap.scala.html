@@ -176,7 +176,7 @@
             var self = {};
             CreatePSMap($, params).then(m => {
                 self.map = m[0];
-                self.mapData = m[3];
+                self.mapData = m[4];
                 addLegendListeners(self.map, self.mapData);
             });
 
