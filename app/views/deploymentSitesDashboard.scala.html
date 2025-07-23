@@ -78,7 +78,6 @@
             ]).then(function([mapComponents, aggregateStats]) {
                 window.citiesMap = mapComponents[0]; // Store map reference globally
                 displayAggregateStats(aggregateStats);
-                console.log('Cities dashboard loaded successfully');
             }).catch(function(error) {
                 console.error('Error loading cities dashboard:', error);
                 $('#page-loading').hide(); // Hide loading screen even on error
@@ -89,7 +88,7 @@
                 return $.getJSON('/v3/api/aggregateStats')
                     .fail(function(error) {
                         console.error('Failed to load aggregate stats:', error);
-                        // Return empty stats as fallback
+                        // Return empty stats as fallback.
                         return {
                             numCities: 0,
                             numCountries: 0,
@@ -112,8 +111,11 @@
                     return i18next.t('common:format-number', { val: num });
                 }
 
+                // Formats distance as either kilometers or miles based on the user's measurement system.
                 function formatDistance(km) {
-                    return i18next.t('common:format-number', { val: Math.round(km) }) + ' km';
+                    const distUnit = i18next.t('common:unit-distance-abbreviation');
+                    const dist = i18next.t('common:measurement-system') === 'metric' ? km : util.math.kmsToMiles(km);
+                    return i18next.t('common:format-number', { val: Math.round(dist) }) + ' ' + distUnit;
                 }
 
                 // Update the stats display.
