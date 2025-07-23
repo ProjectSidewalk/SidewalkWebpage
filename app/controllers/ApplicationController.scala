@@ -6,7 +6,7 @@ import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.auth.{DefaultEnv, WithSignedIn}
 import models.label.LabelTypeEnum
 import models.user.SidewalkUserWithRole
-import models.utils.{MyPostgresProfile, WebpageActivity}
+import models.utils.MyPostgresProfile
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, Messages}
@@ -53,18 +53,18 @@ class ApplicationController @Inject() (
       case Some(ref) =>
         val redirectTo: String      = qString.getOrElse("to", "/")
         val activityLogText: String = s"Referrer=${ref}_SendTo=$redirectTo"
-        cc.loggingService.insert(WebpageActivity(0, user.userId, ipAddress, activityLogText, timestamp))
+        cc.loggingService.insert(user.userId, ipAddress, activityLogText, timestamp)
         Future.successful(Redirect(redirectTo))
       case None =>
         // When there are no referrers, load the landing page but store the query parameters that were passed anyway.
         if (qString.nonEmpty) {
           // Log the query string parameters if they exist, but do a redirect to hide them.
-          cc.loggingService.insert(WebpageActivity(0, user.userId, ipAddress, request.uri, timestamp))
+          cc.loggingService.insert(user.userId, ipAddress, request.uri, timestamp)
           Future.successful(Redirect("/"))
         } else if (isMobile) {
           Future.successful(Redirect("/mobile"))
         } else {
-          cc.loggingService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Index", timestamp))
+          cc.loggingService.insert(user.userId, ipAddress, "Visit_Index", timestamp)
           // Get names and URLs for other cities so we can link to them on landing page.
           val metric: Boolean = Messages("measurement.system") == "metric"
           for {
