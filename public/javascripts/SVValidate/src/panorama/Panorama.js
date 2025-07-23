@@ -60,7 +60,7 @@ function Panorama (label) {
             panorama.set('motionTracking', false);
             panorama.set('motionTrackingControl', false);
             panorama.set('navigationControl', false);
-            panorama.set('panControl', false); 
+            panorama.set('panControl', false);
             panorama.set('showRoadLabels', false);
             panorama.set('cameraControl', false);
             panorama.set('zoomControl', false);
@@ -221,7 +221,7 @@ function Panorama (label) {
                                 }
                             }, 100);
 
-                        } 
+                        }
                     }
                 } else {
                     console.error("Error retrieving Panoramas: " + status);
@@ -312,7 +312,7 @@ function Panorama (label) {
         svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
         setPanorama(label.getAuditProperty('gsvPanoramaId'));
         svv.labelDescriptionBox.setDescription(label);
-        if (svv.newValidateBeta) svv.rightMenu.resetMenu(label);
+        if (svv.expertValidate) svv.rightMenu.resetMenu(label);
         if (svv.adminVersion) svv.statusField.updateAdminInfo(currentLabel);
         renderLabel();
     }

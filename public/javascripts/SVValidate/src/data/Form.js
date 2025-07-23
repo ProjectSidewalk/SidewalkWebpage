@@ -7,12 +7,12 @@ function Form(url, beaconUrl) {
     function _getSource() {
         if (isMobile()) {
             return "ValidateMobile";
-        } else if (svv.newValidateBeta) {
-            return "ValidateDesktopNew";
+        } else if (svv.expertValidate) {
+            return "ExpertValidate";
         } else if (svv.adminVersion) {
-            return "ValidateDesktopAdmin";
+            return "AdminValidate";
         } else {
-            return "ValidateDesktop";
+            return "Validate";
         }
     }
 

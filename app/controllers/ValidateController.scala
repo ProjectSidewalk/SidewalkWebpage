@@ -71,7 +71,7 @@ class ValidateController @Inject() (
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    */
-  def newValidateBeta(labelType: Option[String], users: Option[String], neighborhoods: Option[String]) =
+  def expertValidate(labelType: Option[String], users: Option[String], neighborhoods: Option[String]) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
       checkParams(adminVersion = true, labelType, users, neighborhoods).flatMap { case (adminParams, response) =>
         if (response.header.status == 200) {
@@ -82,9 +82,9 @@ class ValidateController @Inject() (
             commonPageData <- configService.getCommonPageData(request2Messages.lang)
             tags: Seq[Tag] <- labelService.getTagsForCurrentCity
           } yield {
-            cc.loggingService.insert(user.userId, request.ipAddress, "Visit_NewValidateBeta")
+            cc.loggingService.insert(user.userId, request.ipAddress, "Visit_ExpertValidate")
             Ok(
-              views.html.apps.newValidateBeta(commonPageData, "Sidewalk - NewValidateBeta", user, adminParams, mission,
+              views.html.apps.expertValidate(commonPageData, "Sidewalk - Expert Validate", user, adminParams, mission,
                 labelList, missionProgress, hasNextMission, completedVals, tags)
             )
           }

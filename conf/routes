@@ -101,7 +101,8 @@ GET     /audit                                          controllers.ExploreContr
 
 # Label validation tasks
 GET     /validate                                       controllers.ValidateController.validate(neighborhoods: Option[String] ?= None)
-GET     /newValidateBeta                                controllers.ValidateController.newValidateBeta(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
+GET     /expertValidate                                 controllers.ValidateController.expertValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
+GET     /newValidateBeta                                controllers.ValidateController.expertValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
 GET     /adminValidate                                  controllers.ValidateController.adminValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
 
 # Task API
