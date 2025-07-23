@@ -32,7 +32,7 @@ class ClusterController @Inject() (
    * Returns the clustering webpage with GUI if the user is an admin, otherwise redirects to the landing page.
    */
   def index = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Clustering")
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Clustering")
     configService
       .getCommonPageData(request2Messages.lang)
       .map(commonData => Ok(views.html.clustering(commonData, "Sidewalk - Clustering", request.identity)))
@@ -51,7 +51,7 @@ class ClusterController @Inject() (
    * @param clusteringType One of "singleUser", "multiUser", or "both".
    */
   def runClustering(clusteringType: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    cc.loggingService.insert(request.identity.userId, request.remoteAddress, request.toString)
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
 
     // Create a shared status object for clustering progress updates.
     val statusRef = new AtomicReference[String]("Starting")

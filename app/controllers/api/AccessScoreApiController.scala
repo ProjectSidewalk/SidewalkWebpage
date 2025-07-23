@@ -61,7 +61,7 @@ class AccessScoreApiController @Inject() (
     } yield {
       val baseFileName: String                  = s"accessScoreStreet_${OffsetDateTime.now()}"
       val streetsStream: Source[StreetScore, _] = Source.fromIterator(() => streetAccessScores.iterator)
-      cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
       // Output data in the appropriate file format.
       filetype match {
@@ -98,7 +98,7 @@ class AccessScoreApiController @Inject() (
     } yield {
       val baseFileName: String                 = s"accessScoreNeighborhood_${OffsetDateTime.now()}"
       val regionStream: Source[RegionScore, _] = Source.fromIterator(() => neighborhoodAccessScores.iterator)
-      cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
       // Output data in the appropriate file format.
       filetype match {

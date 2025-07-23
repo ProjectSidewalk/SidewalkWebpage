@@ -58,7 +58,7 @@ class ValidationApiController @Inject() (
       filetype: Option[String],
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
-    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+    cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
     try {
       // Parse timestamp if provided.
       val parsedTimestamp: Option[OffsetDateTime] = parseDateTimeString(validationTimestamp)
@@ -145,7 +145,7 @@ class ValidationApiController @Inject() (
     try {
       apiService.getValidationResultTypes
         .map { validationTypes =>
-          cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
           Ok(Json.obj("status" -> "OK", "validation_result_types" -> validationTypes))
         }
         .recover { case e: Exception =>

@@ -48,7 +48,7 @@ class UserProfileController @Inject() (
       userProfileData <- userService.getUserProfileData(user.userId, metricSystem)
       commonData      <- configService.getCommonPageData(request2Messages.lang)
     } yield {
-      cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_UserDashboard")
+      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard")
       Ok(views.html.userProfile(commonData, "Sidewalk - Dashboard", user, user, userProfileData, adminData = None))
     }
   }
@@ -165,7 +165,7 @@ class UserProfileController @Inject() (
    */
   def setUserTeam(userId: String, teamId: Int) =
     cc.securityService.SecuredAction(WithAdminOrRegisteredAndIsUser(userId)) { implicit request =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, request.toString)
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
       userService
         .setUserTeam(userId, teamId)
         .map(_ => Ok(Json.obj("user_id" -> userId, "team_id" -> teamId)))
