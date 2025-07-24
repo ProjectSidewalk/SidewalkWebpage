@@ -308,7 +308,8 @@ class UserStatTable @Inject() (
       .flatMap { usersToUpdate: Seq[(String, Int, Option[Float])] =>
         // Update the own_labels_validated and accuracy columns in the user_stat table.
         val updateActions = usersToUpdate.map { case (userId, validatedCount, accuracy) =>
-          val updateQuery = for { _us <- userStats if _us.userId === userId } yield (_us.ownLabelsValidated, _us.accuracy)
+          val updateQuery =
+            for { _us <- userStats if _us.userId === userId } yield (_us.ownLabelsValidated, _us.accuracy)
           updateQuery.update((validatedCount, accuracy))
         }
         DBIO.sequence(updateActions).map(_ => ())
@@ -719,20 +720,20 @@ class UserStatTable @Inject() (
    *
    * @param minLabels Optional minimum number of labels a user must have
    * @param minMetersExplored Optional minimum meters explored a user must have
-   * @param highQualityOnly Optional filter to include only high quality users if Some(true)
+   * @param highQualityOnly Optional filter to include only high quality users if true
    * @param minAccuracy Optional minimum label accuracy a user must have
    * @return DBIO action that retrieves filtered user statistics
    */
   def getStatsForApiWithFilters(
       minLabels: Option[Int] = None,
       minMetersExplored: Option[Float] = None,
-      highQualityOnly: Option[Boolean] = None,
+      highQualityOnly: Boolean = false,
       minAccuracy: Option[Float] = None
   ): DBIO[Seq[UserStatApi]] = {
     // Construct the SQL query with dynamic WHERE clauses based on filter parameters.
     val minLabelsClause   = minLabels.map(min => s"AND COALESCE(label_counts.labels, 0) >= $min").getOrElse("")
     val minMetersClause   = minMetersExplored.map(min => s"AND user_stat.meters_audited >= $min").getOrElse("")
-    val highQualityClause = highQualityOnly.map(hq => s"AND user_stat.high_quality = ${hq.toString}").getOrElse("")
+    val highQualityClause = if (highQualityOnly) "AND user_stat.high_quality = TRUE" else ""
     val minAccuracyClause =
       minAccuracy.map(min => s"AND user_stat.accuracy IS NOT NULL AND user_stat.accuracy >= $min").getOrElse("")
 
