@@ -1295,6 +1295,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       }
     }
 
+    if (filters.highQualityUserOnly) {
+      whereConditions :+= "user_stat.high_quality = TRUE"
+    }
+
     if (filters.startDate.isDefined) {
       whereConditions :+= s"label.time_created >= '${filters.startDate.get.toString}'"
     }

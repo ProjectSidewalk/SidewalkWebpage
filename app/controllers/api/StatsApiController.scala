@@ -46,7 +46,7 @@ class StatsApiController @Inject() (
       .getUserStats(
         minLabels = minLabels,
         minMetersExplored = minMetersExplored,
-        highQualityOnly = highQualityOnly,
+        highQualityOnly = highQualityOnly.getOrElse(false),
         minAccuracy = minAccuracy
       )
       .map { filteredStats: Seq[UserStatApi] =>

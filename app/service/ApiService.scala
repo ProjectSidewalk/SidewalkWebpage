@@ -83,7 +83,7 @@ trait ApiService {
   def getUserStats(
       minLabels: Option[Int] = None,
       minMetersExplored: Option[Float] = None,
-      highQualityOnly: Option[Boolean] = None,
+      highQualityOnly: Boolean = false,
       minAccuracy: Option[Float] = None
   ): Future[Seq[UserStatApi]]
 
@@ -228,14 +228,14 @@ class ApiServiceImpl @Inject() (
    *
    * @param minLabels Optional minimum number of labels a user must have.
    * @param minMetersExplored Optional minimum meters explored a user must have.
-   * @param highQualityOnly Optional filter to include only high quality users if Some(true).
+   * @param highQualityOnly Optional filter to include only high quality users if true.
    * @param minAccuracy Optional minimum label accuracy a user must have.
    * @return A Future containing a sequence of UserStatApi objects that match the filters.
    */
   def getUserStats(
       minLabels: Option[Int] = None,
       minMetersExplored: Option[Float] = None,
-      highQualityOnly: Option[Boolean] = None,
+      highQualityOnly: Boolean = false,
       minAccuracy: Option[Float] = None
   ): Future[Seq[UserStatApi]] = {
     // Uses the database-level filtering method for improved performance.

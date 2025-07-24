@@ -34,6 +34,7 @@ case class RawLabelFiltersForApi(
     minSeverity: Option[Int] = None,
     maxSeverity: Option[Int] = None,
     validationStatus: Option[String] = None,
+    highQualityUserOnly: Boolean = false,
     startDate: Option[OffsetDateTime] = None,
     endDate: Option[OffsetDateTime] = None,
     regionId: Option[Int] = None,
