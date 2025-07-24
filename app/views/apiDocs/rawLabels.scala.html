@@ -172,6 +172,11 @@
                         <td>Filter by validation status. Possible values: <code>validated_correct</code>, <code>validated_incorrect</code>, <code>unvalidated</code>. </td>
                     </tr>
                     <tr>
+                        <td><code>highQualityUserOnly</code></td>
+                        <td><code>boolean</code></td>
+                        <td>When set to <code>true</code>, only include labels from users flagged as high quality contributors. Default: <code>false</code>. </td>
+                    </tr>
+                    <tr>
                         <td><code>startDate</code></td>
                         <td><code>string</code></td>
                         <td>Filter labels created on or after this date/time. Format: ISO 8601 (e.g., <code>2024-01-01T00:00:00Z</code>). Filters based on the <code>time_created</code> field.</td>
@@ -226,6 +231,7 @@
                 "tags": [],
                 "description": null,
                 "time_created": 1692227245041,
+                "high_quality_user": true,
                 "street_edge_id": 951,
                 "osm_way_id": 11584845,
                 "neighborhood": "Teaneck Community Charter School",
@@ -374,6 +380,11 @@
                         <td><code>properties.time_created</code></td>
                         <td><code>long</code></td>
                         <td>Unix timestamp (milliseconds since epoch) when the label was created.</td>
+                    </tr>
+                    <tr>
+                        <td><code>properties.high_quality_user</code></td>
+                        <td><code>boolean</code></td>
+                        <td>Whether the user who created the label is flagged as a high-quality contributor based on algorithmic assessment.</td>
                     </tr>
 
                         <!-- Location Context -->

@@ -130,6 +130,7 @@ class LabelApiController @Inject() (
    * @param minSeverity Minimum severity score (1-5 scale)
    * @param maxSeverity Maximum severity score (1-5 scale)
    * @param validationStatus Filter by validation status: "validated_correct", "validated_incorrect", "unvalidated"
+   * @param highQualityUserOnly Optional filter to include only labels from high quality users if true
    * @param startDate Start date for filtering (ISO 8601 format)
    * @param endDate End date for filtering (ISO 8601 format)
    * @param regionId Optional region ID to filter by geographic region
@@ -144,6 +145,7 @@ class LabelApiController @Inject() (
       minSeverity: Option[Int],
       maxSeverity: Option[Int],
       validationStatus: Option[String],
+      highQualityUserOnly: Option[Boolean],
       startDate: Option[String],
       endDate: Option[String],
       regionId: Option[Int],
@@ -244,6 +246,7 @@ class LabelApiController @Inject() (
           minSeverity = minSeverity,
           maxSeverity = maxSeverity,
           validationStatus = validationStatusMapped.filter(_ != null),
+          highQualityUserOnly = highQualityUserOnly.getOrElse(false),
           startDate = parsedStartDate,
           endDate = parsedEndDate,
           regionId = finalRegionId,
