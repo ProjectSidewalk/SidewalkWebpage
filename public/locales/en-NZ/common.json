@@ -3,7 +3,7 @@
     "no-curb-ramp": "Missing Drop Kerb",
     "occlusion": "Can't See the Footpath",
     "no-sidewalk": "No Footpath",
-    "crosswalk": "Pedestrian Crossing",
+    "crosswalk": "Marked Pedestrian crossing",
     "map": {
         "distance-left": "Only {{n}} kilometres left!",
         "distance-left-one-unit": "Only 1 kilometres left!",
@@ -16,7 +16,7 @@
         "street has a sidewalk": "street has a footpath",
         "street has no sidewalks": "street has no footpaths",
         "level with sidewalk": "level with footpath",
-        "missing crosswalk": "missing pedestrian crossing"
+        "missing crosswalk": "missing marked pedestrian crossing"
     },
     "mission-start-tutorial": {
         "curb-ramp": {
@@ -82,13 +82,13 @@
                 "description": "A pedestrian crossing is a legally defined space to cross a road.<br><br>Pedestrian Crossings are often indicated by <b>parallel dashed lines.</b>"
             },
             "slide-2": {
-                "description": "Crossings with no visual indicator should <b>not</b> be labeled as Pedestrian Crossings."
+                "description": "Crossings with no visual indicator should <b>not</b> be labeled as Marked Pedestrian Crossings."
             },
             "slide-3": {
-                "description": "Stop lines for cars should not be labeled as Pedestrian Crossings."
+                "description": "Stop lines for cars should not be labeled as Marked Pedestrian Crossings."
             },
             "slide-4": {
-                "description": "Speed bumps should not be labeled as Pedestrian Crossings."
+                "description": "Speed bumps should not be labeled as Marked Pedestrian Crossings."
             }
         }
     }

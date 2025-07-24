@@ -395,7 +395,7 @@ function Admin(_, $, mapboxApiKey) {
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
-                                    "axis": {"title": "Crosswalks Tags", "labelAngle": -48, "labelPadding": 20}},
+                                    "axis": {"title": "Marked Crosswalks Tags", "labelAngle": -48, "labelPadding": 20}},
                                 "y": {"field": "count", "type": "quantitative", "sort": "descending", "axis": {"title": ""}}
                             }
                         },
@@ -524,7 +524,7 @@ function Admin(_, $, mapboxApiKey) {
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "severity", "type": "ordinal",
-                                    "axis": {"title": "Crosswalk Severity", "labelAngle": 0}},
+                                    "axis": {"title": "Marked Crosswalk Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         },

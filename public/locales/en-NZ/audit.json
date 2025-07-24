@@ -10,7 +10,7 @@
         "label-attribute-1": "Good! Now <span class=\"bold\">click the drop kerb</span> beneath the flashing yellow arrow to label it.",
         "rate-severity-1": "Now you can rate the quality of the drop kerb where 1 is passable and 5 is not passable for a wheelchair user. Because it is wide enough and has a tactile warning, <span class=\"bold\">let’s rate it as 1, passable.</span>",
         "redo-rate-attribute-1": "Uh-oh, you should rate this drop kerb as 1, passable. It is a high quality drop kerb that is wide enough and has a tactile warning. <span class=\"bold\">Let’s click \"1\" to set its quality.</span>",
-        "select-label-type-2": "Now let's label the painted pedestrian crossing. <span class=\"bold\">Click the \"Pedestrian Crossing\" button</span>.",
+        "select-label-type-2": "Now let's label the painted pedestrian crossing. <span class=\"bold\">Click the \"Marked Pedestrian Crossing\" button</span>.",
         "label-attribute-2": "Great! Now <span class=\"bold\">click beneath the flashing yellow arrow</span> to label the pedestrian crossing.",
         "select-label-type-3": "Great! Now you’ve found another drop kerb. Let’s label it! <span class=\"bold\">Click the “Drop Kerb” button</span> like before.",
         "label-attribute-3": "Now <span class=\"bold\">click the drop kerb</span> beneath the flashing yellow arrow to label it.",
@@ -24,7 +24,7 @@
         "redo-rate-attribute-4": "Hmm, since this missing drop kerb is next to an existing drop kerb, this accessibility problem is less severe. <span class=\"bold\">Let’s click \"3\" to change the severity of the missing drop kerb.</span>",
         "tag-attribute-4": "<span class=\"bold\">Let's add the \"alternate route present\" tag</span> because there is a nearby drop kerb that could be used.",
         "redo-tag-attribute-4": "The \"alternate route present\" tag is the only tag that applies here because there is a nearby drop kerb that could be used. So add <span class=\"bold\">only the \"alternate route present\" tag.</span>",
-        "select-label-type-6": "There seems to be a painted pedestrian crossing here as well. First, <span class=\"bold\">click on the \"Pedestrian Crossing\" button</span>.",
+        "select-label-type-6": "There seems to be a painted pedestrian crossing here as well. First, <span class=\"bold\">click on the \"Marked Pedestrian Crossing\" button</span>.",
         "label-attribute-6": "Let's label it by placing your label near the center of the pedestrian crossing. <span class=\"bold\">Click below the flashing arrow</span> to add your label.",
         "speed-things-up": "To help speed things up, we are labeling these two drop kerbs, this pedestrian crossing, and this pedestrian signal for you. <span class=\"bold\">In the future, you should label all of these yourself!</span>",
         "select-label-type-7": "Notice that the footpath suddenly ends here. Let’s label this. Click the <span class=\"bold\">\"No Footpath\"</span> button to label it.",
@@ -64,7 +64,7 @@
                 "street-has-a-sidewalk": "st<tag-underline>r</tag-underline>eet has a footpath",
                 "street-has-no-sidewalks": "s<tag-underline>t</tag-underline>reet has no footpaths",
                 "level-with-sidewalk": "level with footpath (<tag-underline>d</tag-underline>)",
-                "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing pedestrian crossing"
+                "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing marked pedestrian crossing"
             }
         },
         "compass": {
@@ -76,7 +76,7 @@
         "label-shortcuts-curb-ramp": "You can also press the <kbd>{{key}}</kbd> key for selecting the Drop Kerb label.",
         "label-shortcuts-no-curb-ramp": "You can also press the <kbd>{{key}}</kbd> key for selecting the Missing Drop Kerb label.",
         "label-shortcuts-no-sidewalk": "You can also press the <kbd>{{key}}</kbd> key for selecting the No Footpath label.",
-        "label-shortcuts-crosswalk": "You can also press the <kbd>{{key}}</kbd> key for selecting the Pedestrian Crossing label.",
+        "label-shortcuts-crosswalk": "You can also press the <kbd>{{key}}</kbd> key for selecting the Marked Pedestrian Crossing label.",
         "label-shortcuts-occlusion": "You can also press the <kbd>{{key}}</kbd> key for selecting the Can't See the Footpath label."
     }
 }

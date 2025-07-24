@@ -8,7 +8,7 @@
             "obstacle": "¿Es este un <b>Obstáculo</b>?",
             "surface-problem": "¿Es este un <b>Problema en Superficie</b>?",
             "no-sidewalk": "¿Debería haber una etiqueta de <b>No Hay Banqueta</b> aquí?",
-            "crosswalk": "¿Es este un <b>Cruce Peatonal</b>?",
+            "crosswalk": "¿Es este un <b>Cruce peatonal marcado</b>?",
             "signal": "¿Es este un <b>Semáforo Peatonal</b>?"
         },
         "visibility-control-hide": "Ocultar (<u>H</u>)",
@@ -120,7 +120,7 @@
         "body-3": "Acabas de validar {{n}} etiquetas de Obstáculos.",
         "body-4": "Acabas de validar {{n}} etiquetas de Problemas en Superficie.",
         "body-7": "Acabas de validar {{n}} etiquetas de que No Hay Banqueta.",
-        "body-9": "Acabas de validar {{n}} etiquetas de Cruce Peatonal.",
+        "body-9": "Acabas de validar {{n}} etiquetas de Cruce peatonal marcado.",
         "body-10": "Acabas de validar {{n}} etiquetas de Semáforo Peatonal.",
         "validate-more": "Validar más etiquetas",
         "continue": "Continuar validando",
@@ -135,7 +135,7 @@
         "info-title-obstacle": "¿Qué es un Obstáculo?",
         "info-title-surface-problem": "¿Qué es un Problema en Superficie?",
         "info-title-no-sidewalk": "¿Qué es un \"No Hay Banqueta\"?",
-        "info-title-crosswalk": "¿Qué es un Cruce Peatonal?",
+        "info-title-crosswalk": "¿Qué es un Cruce peatonal marcado?",
         "info-title-signal": "¿Qué es un Semáforo Peatonal?",
         "no-new-mission-body": "Puede agregar más etiquetas usando una computadora portátil / de escritorio, ¡o puede validar etiquetas en otra ciudad!",
         "no-new-mission-button": "Validar en"

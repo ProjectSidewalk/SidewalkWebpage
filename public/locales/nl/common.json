@@ -12,7 +12,7 @@
     "surface-problem": "Oppervlakte probleem",
     "occlusion": "Trottoir niet zichtbaar",
     "no-sidewalk": "Geen trottoir",
-    "crosswalk": "Oversteekplaats",
+    "crosswalk": "Gemarkeerde oversteekplaats",
     "signal": "Verkeerslicht",
     "other": "Anders",
     "agree": "Mee eens zijn",
@@ -236,7 +236,7 @@
             },
             "slide-2": {
                 "title": "Geen visuele indicator",
-                "description": "Oversteekplaatsen zonder visuele aanduiding mogen <b>niet</b> worden aangemerkt als oversteekplaatsen."
+                "description": "Oversteekplaatsen zonder visuele aanduiding mogen <b>niet</b> worden aangemerkt als gemarkeerde oversteekplaatsen."
             },
             "slide-3": {
                 "title": "Lijn stoppen",

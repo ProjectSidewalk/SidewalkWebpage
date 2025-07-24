@@ -4,7 +4,7 @@
             "curb-ramp": "Is this a <b>Drop Kerb</b>?",
             "no-curb-ramp": "Is this a <b>Missing Drop Kerb</b>?",
             "no-sidewalk": "Should there be a <b>No Footpath</b> label here?",
-            "crosswalk": "Is this a <b>Pedestrian Crossing</b>?"
+            "crosswalk": "Is this a <b>Marked Pedestrian Crossing</b>?"
         }
     },
     "right-ui": {
@@ -37,7 +37,7 @@
                 "example-4": "This intersection has no footpath"
             },
             "crosswalk": {
-                "title": "<strong>Correct</strong> Pedestrian Crossing",
+                "title": "<strong>Correct</strong> Marked Pedestrian Crossing",
                 "example-1-2-3": "This label is correctly placed on a painted pedestrian crossing",
                 "example-4": "This label is correctly placed on a pedestrian crossing with fading paint"
             }
@@ -68,10 +68,10 @@
                 "example-4": "Alleyways and side streets should not be labeled as no footpath"
             },
             "crosswalk": {
-                "title": "<strong>Incorrect</strong> Pedestrian Crossing",
-                "example-1": "Crossings with no visual indicator should not be labeled as pedestrian crossings",
-                "example-2": "Stop lines for cars should not be labeled as pedestrian crossings",
-                "example-3-4": "Speed bumps should not be labeled as pedestrian crossings"
+                "title": "<strong>Incorrect</strong> Marked Pedestrian Crossing",
+                "example-1": "Crossings with no visual indicator should not be labeled as marked pedestrian crossings",
+                "example-2": "Stop lines for cars should not be labeled as marked pedestrian crossings",
+                "example-3-4": "Speed bumps should not be labeled as marked pedestrian crossings"
             }
         }
     },
@@ -79,12 +79,12 @@
         "body-1": "You just validated {{n}} Drop Kerb labels.",
         "body-2": "You just validated {{n}} Missing Drop Kerb labels.",
         "body-7": "You just validated {{n}} No Footpath labels.",
-        "body-9": "You just validated {{n}} Pedestrian Crossing labels."
+        "body-9": "You just validated {{n}} Marked Pedestrian Crossing labels."
     },
     "mobile": {
         "info-title-curb-ramp": "What is a Drop Kerb?",
         "info-title-no-curb-ramp": "What is a Missing Drop Kerb?",
         "info-title-no-sidewalk": "What is a \"No Footpath\"",
-        "info-title-crosswalk": "What is a Pedestrian Crossing?"
+        "info-title-crosswalk": "What is a Marked Pedestrian Crossing?"
     }
 }

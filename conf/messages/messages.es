@@ -11,7 +11,7 @@ obstacles = Obstáculos en la banqueta
 surface.problem = Problema en superficie
 surface.problems = Problemas en superficie
 no.sidewalk = No hay banqueta
-crosswalk = Cruce peatonal
+crosswalk = Cruce peatonal marcado
 signal = Semáforo peatonal
 occlusion = No puedo ver la banqueta
 other = Otro
@@ -191,7 +191,7 @@ audit.ribbon.missing.ramp = Rampa peatonal ausente (<u>M</u>)
 audit.ribbon.obstacle = <u>O</u>bstáculo en la banqueta
 audit.ribbon.surface.problem = Problema en <u>s</u>uperficie
 audit.ribbon.no.sidewalk = <u>N</u>o hay banqueta
-audit.ribbon.crosswalk = Cruce peatonal (<u>W</u>)
+audit.ribbon.crosswalk = Cruce peatonal marcado (<u>W</u>)
 audit.ribbon.signal = Semáforo <u>p</u>eatonal
 audit.ribbon.other = Otro
 audit.ribbon.occlusion = <span style="font-size: 13px;">No puedo ver la <u>b</u>anqueta</span>
