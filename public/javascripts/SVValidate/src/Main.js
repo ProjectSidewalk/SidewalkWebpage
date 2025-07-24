@@ -9,10 +9,8 @@ var svv = svv || {};
  */
 function Main (param) {
     svv.expertValidate = param.expertValidate;
-    svv.adminVersion = param.adminVersion;
-    svv.adminLabelTypeId = param.adminLabelTypeId;
-    svv.adminUserIds = param.adminUserIds;
-    svv.adminNeighborhoodIds = param.adminNeighborhoodIds;
+    svv.adminVersion = param.validateParams.adminVersion;
+    svv.validateParams = param.validateParams;
     svv.missionLength = param.mission?.labels_validated ?? 0;
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;

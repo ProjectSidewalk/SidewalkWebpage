@@ -1,11 +1,11 @@
-@import controllers.helper.ValidateHelper.AdminValidateParams
+@import controllers.helper.ValidateHelper.ValidateParams
 @import formats.json.LabelFormats.tagWrites
 @import models.label.Tag
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import play.api.libs.json.{JsArray, JsValue, Json}
 @import service.CommonPageData
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams,
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams,
         mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean,
         completedValidations: Int, tagList: Seq[Tag]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
@@ -239,10 +239,13 @@
             param.canvasWidth = 720;
             param.language = "@messages.lang.code";
             param.cityName = "@currentCity.cityNameFormatted";
-            param.adminVersion = @adminParams.adminVersion;
-            param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
-            param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));
-            param.adminNeighborhoodIds = @Html(adminParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null"));
+            param.validateParams = {
+                adminVersion: @validateParams.adminVersion,
+                labelTypeId: @Html(validateParams.labelTypeId.map(_.toString).getOrElse("null")),
+                userIds: @Html(validateParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null")),
+                regionIds: @Html(validateParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
+                unvalidatedOnly: @validateParams.unvalidatedOnly
+            }
             param.tagList = @Html(JsArray(tagList.map(t => Json.toJson(t))).toString);
             param.modalText = {
                 1: "@Messages("labeling.guide.curb.ramp.summary")",

@@ -1,6 +1,6 @@
 package formats.json
 
-import controllers.helper.ValidateHelper.AdminValidateParams
+import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.ValidationCommentSubmission
 import formats.json.PanoHistoryFormats._
 import play.api.libs.functional.syntax._
@@ -57,7 +57,7 @@ object ValidateFormats {
       undone: Boolean,
       redone: Boolean
   )
-  case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission], adminParams: AdminValidateParams)
+  case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission], validateParams: ValidateParams)
   case class ValidationMissionProgress(
       missionId: Int,
       missionType: String,
@@ -72,7 +72,7 @@ object ValidateFormats {
       environment: EnvironmentSubmission,
       validations: Seq[LabelValidationSubmission],
       missionProgress: Option[ValidationMissionProgress],
-      adminParams: AdminValidateParams,
+      validateParams: ValidateParams,
       panoHistories: Seq[PanoHistorySubmission],
       source: String,
       timestamp: OffsetDateTime
@@ -160,19 +160,20 @@ object ValidateFormats {
       (JsPath \ "skipped").read[Boolean]
   )(ValidationMissionProgress.apply _)
 
-  implicit val adminValidateParamsReads: Reads[AdminValidateParams] = (
+  implicit val adminValidateParamsReads: Reads[ValidateParams] = (
     (JsPath \ "admin_version").read[Boolean] and
       (JsPath \ "label_type_id").readNullable[Int] and
       (JsPath \ "user_ids").readNullable[Seq[String]] and
-      (JsPath \ "neighborhood_ids").readNullable[Seq[Int]]
-  )(AdminValidateParams.apply _)
+      (JsPath \ "neighborhood_ids").readNullable[Seq[Int]] and
+      (JsPath \ "unvalidated_only").read[Boolean]
+  )(ValidateParams.apply _)
 
   implicit val validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = (
     (JsPath \ "interactions").read[Seq[InteractionSubmission]] and
       (JsPath \ "environment").read[EnvironmentSubmission] and
       (JsPath \ "validations").read[Seq[LabelValidationSubmission]] and
       (JsPath \ "mission_progress").readNullable[ValidationMissionProgress] and
-      (JsPath \ "admin_params").read[AdminValidateParams] and
+      (JsPath \ "validate_params").read[ValidateParams] and
       (JsPath \ "pano_histories").read[Seq[PanoHistorySubmission]] and
       (JsPath \ "source").read[String] and
       (JsPath \ "timestamp").read[OffsetDateTime]
@@ -202,6 +203,6 @@ object ValidateFormats {
 
   implicit val skipLabelReads: Reads[SkipLabelSubmission] = (
     (JsPath \ "labels").read[Seq[LabelValidationSubmission]] and
-      (JsPath \ "admin_params").read[AdminValidateParams]
+      (JsPath \ "validate_params").read[ValidateParams]
   )(SkipLabelSubmission.apply _)
 }

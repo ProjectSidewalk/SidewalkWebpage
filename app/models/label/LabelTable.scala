@@ -466,7 +466,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val missions               = TableQuery[MissionTableDef]
   val streets                = TableQuery[StreetEdgeTableDef]
   val regions                = TableQuery[RegionTableDef]
-  val users                  = TableQuery[SidewalkUserTableDef]
+  val usersUnfiltered        = TableQuery[SidewalkUserTableDef]
   val userStats              = TableQuery[UserStatTableDef]
   val userRoles              = TableQuery[UserRoleTableDef]
   val roleTable              = TableQuery[RoleTableDef]
@@ -475,7 +475,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val routeStreets           = TableQuery[RouteStreetTableDef]
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
 
-  val neighborhoods = regions.filter(_.deleted === false)
+  val neighborhoods        = regions.filter(_.deleted === false)
+  val usersWithoutExcluded = usersUnfiltered
+    .join(userStats)
+    .on(_.userId === _.userId)
+    .filterNot(_._2.excluded) // Exclude users with excluded = true
+    .map(_._1)
 
   val tutorialStreetId: Query[Rep[Int], Int, Seq] = configTable.map(_.tutorialStreetEdgeID)
 
@@ -796,6 +801,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       labelTypeId: Int,
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
+      unvalidatedOnly: Boolean = false,
       skippedLabelId: Option[Int] = None
   ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
 
@@ -807,6 +813,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _gd             <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
       _ser            <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
       if _lt.labelTypeId === labelTypeId && !_gd.expired && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
+      if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty                     // Filter out validated labels.
       if skippedLabelId.map(_lb.labelId =!= _).getOrElse(true: Rep[Boolean])             // Filter out skipped label.
       if regionIds.map(ids => _ser.regionId inSetBind ids).getOrElse(true: Rep[Boolean]) // Filter by region IDs.
       if userIds.map(ids => _lb.userId inSetBind ids).getOrElse(true: Rep[Boolean])      // Filter by user IDs.
@@ -884,12 +891,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     labelsUnfiltered
       .filter(_.labelId inSetBind labelIds)
       // Inner join label -> sidewalk_user to get username of person who placed the label.
-      .join(users)
+      .join(usersUnfiltered)
       .on(_.userId === _.userId)
       // Left join label -> label_validation -> sidewalk_user to get username & validation result of ppl who validated.
       .joinLeft(labelValidations)
       .on(_._1.labelId === _.labelId)
-      .joinLeft(users)
+      .joinLeft(usersWithoutExcluded)
       .on(_._2.map(_.userId) === _.userId)
       .map(x => (x._1._1._1.labelId, x._1._1._2.username, x._2.map(_.username), x._1._2.map(_.validationResult)))
       .result
@@ -1142,7 +1149,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   def getLabelCountsByUser: DBIO[Seq[(String, String, Int)]] = {
     val labs = for {
-      _user     <- users if _user.username =!= "anonymous"
+      _user     <- usersUnfiltered if _user.username =!= "anonymous"
       _userRole <- userRoles if _user.userId === _userRole.userId
       _role     <- roleTable if _userRole.roleId === _role.roleId
       _label    <- labelsWithTutorial if _user.userId === _label.userId
