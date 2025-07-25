@@ -20,6 +20,9 @@ function AddCitiesToMap(map, citiesData, params) {
         hoverStrokeColor: '#b8a06b'
     };
 
+    // Don't show cities that are marked as private for now.
+    citiesData.features = citiesData.features.filter(city => city.properties.visibility === 'public');
+
     // Render cities as circles.
     map.addSource(CITIES_LAYER_NAME, {
         type: 'geojson',
