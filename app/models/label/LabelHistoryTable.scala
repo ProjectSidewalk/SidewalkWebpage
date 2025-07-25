@@ -19,9 +19,8 @@ case class LabelHistory(
     labelValidationId: Option[Int]
 ) {
   require(
-    Seq("Explore", "ValidateDesktop", "ValidateDesktopNew", "ValidateMobile", "LabelMap", "GalleryImage",
-      "GalleryExpandedImage", "GalleryThumbs", "AdminUserDashboard", "AdminLabelSearchTab",
-      "ExternalTagValidationASSETS2024")
+    Seq("Explore", "Validate", "ExpertValidate", "ValidateMobile", "LabelMap", "GalleryImage", "GalleryExpandedImage",
+      "GalleryThumbs", "AdminUserDashboard", "AdminLabelSearchTab", "ExternalTagValidationASSETS2024")
       .contains(source),
     "Invalid source for Label History table."
   )

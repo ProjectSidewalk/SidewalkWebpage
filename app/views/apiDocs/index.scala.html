@@ -4,21 +4,32 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
+    <script src="@routes.Assets.versioned("javascripts/common/aggregate-stats.js")"></script>
+    <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/api-docs/label-tags.css")">
+    <script src="@routes.Assets.versioned("javascripts/api-docs/label-tags-preview.js")"></script>
+    <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/api-docs/label-types.css")">
+    <script src="@routes.Assets.versioned("javascripts/api-docs/label-types-preview.js")"></script>
+
+
     <div class="api-section" id="introduction">
         <h1 class="api-heading" id="project-sidewalk-apis">Project Sidewalk APIs <a href="#project-sidewalk-apis" class="permalink">#</a></h1>
+        <p><i>Unlock the world's sidewalk data!</i></p>
         <p>
-            Project Sidewalk is a web tool for mapping and assessing sidewalk conditions using a combination of
-            crowdsourcing, artificial intelligence (AI), and online map imagery. Project Sidewalk's mission is to
-            develop scalable, low-cost techniques that accurately <strong>map and assess every sidewalk in the world
-            </strong> to help transform the walkability, rollability, and safety of cities and to enable new urban
-            analytics and personalized mapping tools for varying mobility levels.
+            Imagine a world where <strong>every sidewalk is accessible, safe, and easily navigable</strong>.
+            Project Sidewalk is building that world, one data point at a time.
+            Through a fusion of crowdsourcing, AI, and online map imagery, we're on a mission to accurately
+            <strong>map and assess every sidewalk globally</strong>. Our ultimate goal? To revolutionize
+            urban walkability, rollability, and safety, while empowering innovative urban analytics and
+            personalized mapping solutions.
         </p>
-
+        <p id="project-sidewalk-aggregate-stats">
+            TODO
+        </p>
         <p>
-            All Project Sidewalk data is public and can be accessed in popular formats like CSV, GeoJSON, or shape files
+            Ready to build the future of urban accessibility? All Project Sidewalk <strong>data is open and public</strong>, accessible in popular formats like CSV, GeoJSON, or shape files
             or accessed programmatically via our APIs.
         </p>
-        <h2 class="api-heading" id="data">API Overview<a href="#data" class="permalink">#</a></h2>
+        <h2 class="api-heading" id="data">API Overview<a href="#api-overview" class="permalink">#</a></h2>
         Our API is divided into four sections:
         <ul class="api-list">
             <li><a href="#metadata-apis"><strong>Metadata APIs:</strong></a> for describing our data structures and deployment cities</li>
@@ -61,8 +72,6 @@
 
             <div id="label-types-preview"></div>
 
-            <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/api-docs/label-types.css")">
-            <script src="@routes.Assets.versioned("javascripts/api-docs/label-types-preview.js")"></script>
             <script>
                 // Initialize the label types preview
                 document.addEventListener('DOMContentLoaded', function() {
@@ -84,8 +93,6 @@
 
             <div id="label-tags-preview"></div>
 
-            <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/api-docs/label-tags.css")">
-            <script src="@routes.Assets.versioned("javascripts/api-docs/label-tags-preview.js")"></script>
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     LabelTagsPreview.setup({
@@ -93,7 +100,6 @@
                         displayMode: "summary"  // Use summary mode for the index page
                     }).init()
                             .then(() => {
-                                console.log('Label tags summary loaded successfully.');
                                 if (typeof generateTableOfContents === 'function') {
                                     generateTableOfContents(); // Regenerate the TOC if needed
                                 }

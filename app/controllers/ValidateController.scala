@@ -2,7 +2,7 @@ package controllers
 
 import controllers.base._
 import controllers.helper.ControllerUtils.{isAdmin, isMobile}
-import controllers.helper.ValidateHelper.AdminValidateParams
+import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.{LabelMapValidationCommentSubmission, ValidationCommentSubmission}
 import formats.json.LabelFormats
 import formats.json.LabelFormats.validationLabelMetadataToJson
@@ -42,27 +42,29 @@ class ValidateController @Inject() (
 
   /**
    * Returns the validation page.
-   * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param neighborhoods Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    */
-  def validate(neighborhoods: Option[String]) = cc.securityService.SecuredAction { implicit request =>
-    checkParams(adminVersion = false, None, None, neighborhoods).flatMap { case (adminParams, response) =>
-      if (response.header.status == 200) {
-        val user: SidewalkUserWithRole = request.identity
-        for {
-          (mission, labelList, missionProgress, hasNextMission, completedVals) <-
-            getDataForValidatePages(user, labelCount = 10, adminParams)
-          commonPageData <- configService.getCommonPageData(request2Messages.lang)
-        } yield {
-          cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_Validate")
-          Ok(
-            views.html.apps.validate(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList,
-              missionProgress, hasNextMission, completedVals)
-          )
-        }
-      } else {
-        Future.successful(response)
+  def validate(neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) = cc.securityService.SecuredAction {
+    implicit request =>
+      checkParams(adminVersion = false, None, None, neighborhoods, unvalidatedOnly).flatMap {
+        case (validateParams, response) =>
+          if (response.header.status == 200) {
+            val user: SidewalkUserWithRole = request.identity
+            for {
+              (mission, labelList, missionProgress, hasNextMission, completedVals) <-
+                getDataForValidatePages(user, labelCount = 10, validateParams)
+              commonPageData <- configService.getCommonPageData(request2Messages.lang)
+            } yield {
+              cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Validate")
+              Ok(
+                views.html.apps.validate(commonPageData, "Sidewalk - Validate", user, validateParams, mission,
+                  labelList, missionProgress, hasNextMission, completedVals)
+              )
+            }
+          } else {
+            Future.successful(response)
+          }
       }
-    }
   }
 
   /**
@@ -71,26 +73,32 @@ class ValidateController @Inject() (
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    */
-  def newValidateBeta(labelType: Option[String], users: Option[String], neighborhoods: Option[String]) =
+  def expertValidate(
+      labelType: Option[String],
+      users: Option[String],
+      neighborhoods: Option[String],
+      unvalidatedOnly: Option[Boolean]
+  ) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-      checkParams(adminVersion = true, labelType, users, neighborhoods).flatMap { case (adminParams, response) =>
-        if (response.header.status == 200) {
-          val user: SidewalkUserWithRole = request.identity
-          for {
-            (mission, labelList, missionProgress, hasNextMission, completedVals) <-
-              getDataForValidatePages(user, labelCount = 10, adminParams)
-            commonPageData <- configService.getCommonPageData(request2Messages.lang)
-            tags: Seq[Tag] <- labelService.getTagsForCurrentCity
-          } yield {
-            cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_NewValidateBeta")
-            Ok(
-              views.html.apps.newValidateBeta(commonPageData, "Sidewalk - NewValidateBeta", user, adminParams, mission,
-                labelList, missionProgress, hasNextMission, completedVals, tags)
-            )
+      checkParams(adminVersion = true, labelType, users, neighborhoods, unvalidatedOnly).flatMap {
+        case (validateParams, response) =>
+          if (response.header.status == 200) {
+            val user: SidewalkUserWithRole = request.identity
+            for {
+              (mission, labelList, missionProgress, hasNextMission, completedVals) <-
+                getDataForValidatePages(user, labelCount = 10, validateParams)
+              commonPageData <- configService.getCommonPageData(request2Messages.lang)
+              tags: Seq[Tag] <- labelService.getTagsForCurrentCity
+            } yield {
+              cc.loggingService.insert(user.userId, request.ipAddress, "Visit_ExpertValidate")
+              Ok(
+                views.html.apps.expertValidate(commonPageData, "Sidewalk - Expert Validate", user, validateParams,
+                  mission, labelList, missionProgress, hasNextMission, completedVals, tags)
+              )
+            }
+          } else {
+            Future.successful(response)
           }
-        } else {
-          Future.successful(response)
-        }
       }
     }
 
@@ -98,39 +106,41 @@ class ValidateController @Inject() (
    * Returns the validation page for mobile.
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    */
-  def mobileValidate(neighborhoods: Option[String]) = cc.securityService.SecuredAction { implicit request =>
-    checkParams(adminVersion = false, None, None, neighborhoods).flatMap { case (adminParams, response) =>
-      if (response.header.status == 200) {
-        val user: SidewalkUserWithRole = request.identity
-        for {
-          (mission, labelList, missionProgress, hasNextMission, completedVals) <- getDataForValidatePages(
-            user,
-            labelCount = 10,
-            adminParams
-          )
-          commonPageData <- configService.getCommonPageData(request2Messages.lang)
-        } yield {
-          if (!isMobile(request)) {
-            cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate_RedirectHome")
-            Redirect("/")
+  def mobileValidate(neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) =
+    cc.securityService.SecuredAction { implicit request =>
+      checkParams(adminVersion = false, None, None, neighborhoods, unvalidatedOnly).flatMap {
+        case (validateParams, response) =>
+          if (response.header.status == 200) {
+            val user: SidewalkUserWithRole = request.identity
+            for {
+              (mission, labelList, missionProgress, hasNextMission, completedVals) <- getDataForValidatePages(
+                user,
+                labelCount = 10,
+                validateParams
+              )
+              commonPageData <- configService.getCommonPageData(request2Messages.lang)
+            } yield {
+              if (!isMobile(request)) {
+                cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate_RedirectHome")
+                Redirect("/")
+              } else {
+                cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
+                Ok(
+                  views.html.apps.mobileValidate(commonPageData, "Sidewalk - Validate", user, validateParams, mission,
+                    labelList, missionProgress, hasNextMission, completedVals)
+                )
+              }
+              cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
+              Ok(
+                views.html.apps.mobileValidate(commonPageData, "Sidewalk - Validate", user, validateParams, mission,
+                  labelList, missionProgress, hasNextMission, completedVals)
+              )
+            }
           } else {
-            cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate")
-            Ok(
-              views.html.apps.mobileValidate(commonPageData, "Sidewalk - Validate", user, adminParams, mission,
-                labelList, missionProgress, hasNextMission, completedVals)
-            )
+            Future.successful(response)
           }
-          cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate")
-          Ok(
-            views.html.apps.mobileValidate(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList,
-              missionProgress, hasNextMission, completedVals)
-          )
-        }
-      } else {
-        Future.successful(response)
       }
     }
-  }
 
   /**
    * Returns an admin version of the validation page.
@@ -138,25 +148,31 @@ class ValidateController @Inject() (
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    */
-  def adminValidate(labelType: Option[String], users: Option[String], neighborhoods: Option[String]) =
+  def adminValidate(
+      labelType: Option[String],
+      users: Option[String],
+      neighborhoods: Option[String],
+      unvalidatedOnly: Option[Boolean]
+  ) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-      checkParams(adminVersion = true, labelType, users, neighborhoods).flatMap { case (adminParams, response) =>
-        if (response.header.status == 200) {
-          val user: SidewalkUserWithRole = request.identity
-          for {
-            (mission, labelList, missionProgress, hasNextMission, completedVals) <-
-              getDataForValidatePages(user, labelCount = 10, adminParams)
-            commonPageData <- configService.getCommonPageData(request2Messages.lang)
-          } yield {
-            cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_AdminValidate")
-            Ok(
-              views.html.apps.validate(commonPageData, "Sidewalk - AdminValidate", user, adminParams, mission,
-                labelList, missionProgress, hasNextMission, completedVals)
-            )
+      checkParams(adminVersion = true, labelType, users, neighborhoods, unvalidatedOnly).flatMap {
+        case (validateParams, response) =>
+          if (response.header.status == 200) {
+            val user: SidewalkUserWithRole = request.identity
+            for {
+              (mission, labelList, missionProgress, hasNextMission, completedVals) <-
+                getDataForValidatePages(user, labelCount = 10, validateParams)
+              commonPageData <- configService.getCommonPageData(request2Messages.lang)
+            } yield {
+              cc.loggingService.insert(user.userId, request.ipAddress, "Visit_AdminValidate")
+              Ok(
+                views.html.apps.validate(commonPageData, "Sidewalk - AdminValidate", user, validateParams, mission,
+                  labelList, missionProgress, hasNextMission, completedVals)
+              )
+            }
+          } else {
+            Future.successful(response)
           }
-        } else {
-          Future.successful(response)
-        }
       }
     }
 
@@ -171,8 +187,9 @@ class ValidateController @Inject() (
       adminVersion: Boolean,
       labelType: Option[String],
       users: Option[String],
-      neighborhoods: Option[String]
-  ): Future[(AdminValidateParams, Result)] = {
+      neighborhoods: Option[String],
+      unvalidatedOnly: Option[Boolean]
+  ): Future[(ValidateParams, Result)] = {
     // If any inputs are invalid, send back error message. For each input, we check if the input is an integer
     // representing a valid ID (label_type_id, user_id, or region_id) or a String representing a valid name for that
     // parameter (label_type, username, or region_name).
@@ -224,29 +241,27 @@ class ValidateController @Inject() (
         case None            => Future.successful(None)
       }
     } yield {
-      // Return a BadRequest if anything is wrong, or the AdminValidateParams if everything looks good.
+      // Return a BadRequest if anything is wrong, or the ValidateParams if everything looks good.
       if (parsedLabelTypeId.isDefined && parsedLabelTypeId.get.isEmpty) {
         (
-          AdminValidateParams(adminVersion),
+          ValidateParams(adminVersion),
           BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeEnum.primaryLabelTypes.mkString(", ")}. Or you can use their IDs: ${LabelTypeEnum.primaryLabelTypeIds.mkString(", ")}.")
         )
       } else if (userIds.isDefined && userIds.get.length != userIds.get.flatten.length) {
         (
-          AdminValidateParams(adminVersion),
+          ValidateParams(adminVersion),
           BadRequest(s"One or more of the users provided were not found; please double check your list of users! You can use either their usernames or user IDs. You provided: ${users.get}")
         )
       } else if (regionIds.isDefined && regionIds.get.length != regionIds.get.flatten.length) {
         (
-          AdminValidateParams(adminVersion),
+          ValidateParams(adminVersion),
           BadRequest(s"One or more of the neighborhoods provided were not found; please double check your list of neighborhoods! You can use either their names or IDs. You provided: ${neighborhoods.get}")
         )
       } else {
         (
-          AdminValidateParams(
-            adminVersion,
-            parsedLabelTypeId.flatten,
-            userIds.map(_.flatten),
-            regionIds.map(_.flatten)
+          ValidateParams(
+            adminVersion, parsedLabelTypeId.flatten, userIds.map(_.flatten), regionIds.map(_.flatten),
+            unvalidatedOnly.getOrElse(false)
           ),
           Ok("")
         )
@@ -262,11 +277,11 @@ class ValidateController @Inject() (
   def getDataForValidatePages(
       user: SidewalkUserWithRole,
       labelCount: Int,
-      adminParams: AdminValidateParams
+      validateParams: ValidateParams
   ): Future[(Option[JsValue], Option[JsValue], Option[JsObject], Boolean, Int)] = {
     for {
       (mission, missionProgress, labels, adminData) <-
-        labelService.getDataForValidationPages(user, labelCount, adminParams)
+        labelService.getDataForValidationPages(user, labelCount, validateParams)
       completedValidations <- validationService.countValidations(user.userId)
     } yield {
       val missionJsObject: Option[JsValue] = mission.map(m => Json.toJson(m))
@@ -278,7 +293,7 @@ class ValidateController @Inject() (
         )
       )
       val hasDataForMission: Boolean          = labels.nonEmpty
-      val labelMetadataJsonSeq: Seq[JsObject] = if (adminParams.adminVersion) {
+      val labelMetadataJsonSeq: Seq[JsObject] = if (validateParams.adminVersion) {
         labels
           .sortBy(_.labelId)
           .zip(adminData.sortBy(_.labelId))
@@ -323,10 +338,10 @@ class ValidateController @Inject() (
       })
 
       // Get data to return in POST response. Not much unless the mission is over and we need the next batch of labels.
-      returnValue <- labelService.getDataForValidatePostRequest(user, data.missionProgress, data.adminParams)
+      returnValue <- labelService.getDataForValidatePostRequest(user, data.missionProgress, data.validateParams)
     } yield {
       // Put label metadata into JSON format.
-      val labelMetadataJsonSeq: Seq[JsObject] = if (data.adminParams.adminVersion) {
+      val labelMetadataJsonSeq: Seq[JsObject] = if (data.validateParams.adminVersion) {
         returnValue.labels
           .sortBy(_.labelId)
           .zip(returnValue.adminData.sortBy(_.labelId))
@@ -391,7 +406,7 @@ class ValidateController @Inject() (
     val submission = json.validate[ValidationTaskSubmission]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => { processValidationTaskSubmissions(submission, request.remoteAddress, request.identity) }
+      submission => { processValidationTaskSubmissions(submission, request.ipAddress, request.identity) }
     )
   }
 
@@ -402,7 +417,7 @@ class ValidateController @Inject() (
     val submission = request.body.validate[ValidationTaskSubmission]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => { processValidationTaskSubmissions(submission, request.remoteAddress, request.identity) }
+      submission => { processValidationTaskSubmissions(submission, request.ipAddress, request.identity) }
     )
   }
 
@@ -450,7 +465,7 @@ class ValidateController @Inject() (
           _              <- validationService.deleteCommentIfExists(submission.labelId, submission.missionId)
           commentId: Int <- validationService.insertComment(
             ValidationTaskComment(0, submission.missionId, submission.labelId, request.identity.userId,
-              request.remoteAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
+              request.ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
               Math.round(submission.zoom), submission.lat, submission.lng, OffsetDateTime.now, submission.comment)
           )
         } yield {
@@ -475,7 +490,7 @@ class ValidateController @Inject() (
           mission        <- missionService.resumeOrCreateNewValidationMission(userId, "labelmapValidation", labelTypeId)
           _              <- validationService.deleteCommentIfExists(submission.labelId, mission.get.missionId)
           commentId: Int <- validationService.insertComment(
-            ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.remoteAddress,
+            ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
               submission.gsvPanoramaId, submission.heading, submission.pitch, Math.round(submission.zoom),
               submission.lat, submission.lng, OffsetDateTime.now, submission.comment)
           )
@@ -500,19 +515,20 @@ class ValidateController @Inject() (
       submission.fold(
         errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
         submission => {
-          val adminParams: AdminValidateParams =
-            if (submission.adminParams.adminVersion && isAdmin(request.identity)) submission.adminParams
-            else AdminValidateParams(adminVersion = false)
+          val validateParams: ValidateParams =
+            if (submission.validateParams.adminVersion && isAdmin(request.identity)) submission.validateParams
+            else ValidateParams(adminVersion = false)
           val userId: String = request.identity.userId
 
           // Get metadata for one new label to replace the skipped one.
           // TODO should really exclude all remaining labels in the mission, not just the skipped one. Not bothering now
           //      because it isn't a heavily used feature, and it's a rare edge case.
           labelService
-            .retrieveLabelListForValidation(userId, n = 1, labelTypeId, adminParams.userIds.map(_.toSet),
-              adminParams.neighborhoodIds.map(_.toSet), skippedLabelId = Some(skippedLabelId))
+            .retrieveLabelListForValidation(userId, n = 1, labelTypeId, validateParams.userIds.map(_.toSet),
+              validateParams.neighborhoodIds.map(_.toSet), validateParams.unvalidatedOnly,
+              skippedLabelId = Some(skippedLabelId))
             .flatMap { labelMetadata =>
-              if (adminParams.adminVersion) {
+              if (validateParams.adminVersion) {
                 labelService
                   .getExtraAdminValidateData(Seq(labelMetadata.head.labelId))
                   .map(adminData =>

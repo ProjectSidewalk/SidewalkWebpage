@@ -72,7 +72,7 @@ class CitiesApiController @Inject() (
     cityDetailsWithMapParams
       .map { cityDetails =>
         // Log the API request.
-        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
         // Return response in the requested format.
         filetype match {

@@ -23,7 +23,7 @@ case class ValidationTaskInteraction(
     source: String
 ) {
   require(
-    Seq("ValidateDesktop", "ValidateDesktopAdmin", "ValidateDesktopNew", "ValidateMobile")
+    Seq("Validate", "AdminValidate", "ExpertValidate", "ValidateMobile")
       .contains(source),
     "Invalid source for validation_task_interaction table."
   )

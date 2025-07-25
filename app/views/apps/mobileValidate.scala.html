@@ -1,16 +1,16 @@
-@import controllers.helper.ValidateHelper.AdminValidateParams
+@import controllers.helper.ValidateHelper.ValidateParams
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import play.api.libs.json.JsValue
 @import service.CommonPageData
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams,
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams,
         mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean,
         completedValidations: Int
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, title, Some("/mobile")) {
+@common.main(commonData, title, defaultI18nNamespace = "validate", i18Namespaces = Seq("validate", "common"), "/mobile") {
 
     <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
     <script src='@assets.path("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
@@ -182,51 +182,54 @@
     </div>
 
     <script>
-        let param = {};
+        window.appManager.ready(function() {
+            let param = {};
 
-        let userParam = {
-            username: '@user.username',
-            role: '@user.role'
-        };
-        svv.user = new User(userParam);
+            let userParam = {
+                username: '@user.username',
+                role: '@user.role'
+            };
+            svv.user = new User(userParam);
 
-        param.dataStoreUrl = '@routes.ValidateController.post';
-        param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
-        param.hasNextMission = @hasNextMission;
-        param.completedValidations = @completedValidations;
-        param.canvasHeight = window.innerHeight;
-        param.canvasWidth = window.innerWidth;
-        param.language = "@messages.lang.code";
-        param.cityId = "@commonData.cityId";
-        param.cityName = "@currentCity.cityNameFormatted";
-        param.countryId = "@currentCity.countryId";
-        param.adminVersion = @adminParams.adminVersion;
-        param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
-        param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));
-        param.adminNeighborhoodIds = @Html(adminParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null"));
-        param.modalText = {
-            1: "@Messages("labeling.guide.curb.ramp.summary")",
-            2: "@Messages("labeling.guide.curb.ramp.summary")",
-            3: "@Messages("labeling.guide.obstacle.summary")",
-            4: "@Messages("labeling.guide.surface.problem.summary")",
-            5: "",
-            6: "@Messages("labeling.guide.occlusion.summary")",
-            7: "@Messages("labeling.guide.no.sidewalk.summary")",
-            8: ""
-        };
+            param.dataStoreUrl = '@routes.ValidateController.post';
+            param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
+            param.hasNextMission = @hasNextMission;
+            param.completedValidations = @completedValidations;
+            param.canvasHeight = window.innerHeight;
+            param.canvasWidth = window.innerWidth;
+            param.language = "@messages.lang.code";
+            param.cityId = "@commonData.cityId";
+            param.cityName = "@currentCity.cityNameFormatted";
+            param.validateParams = {
+                adminVersion: @validateParams.adminVersion,
+                labelTypeId: @Html(validateParams.labelTypeId.map(_.toString).getOrElse("null")),
+                userIds: @Html(validateParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null")),
+                regionIds: @Html(validateParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
+                unvalidatedOnly: @validateParams.unvalidatedOnly
+            }
+            param.modalText = {
+                1: "@Messages("labeling.guide.curb.ramp.summary")",
+                2: "@Messages("labeling.guide.curb.ramp.summary")",
+                3: "@Messages("labeling.guide.obstacle.summary")",
+                4: "@Messages("labeling.guide.surface.problem.summary")",
+                5: "",
+                6: "@Messages("labeling.guide.occlusion.summary")",
+                7: "@Messages("labeling.guide.no.sidewalk.summary")",
+                8: ""
+            };
 
-        if (@hasNextMission) {
-            param.mission = @Html(mission.getOrElse("\"\"").toString);
-            param.labelList = @Html(labelList.getOrElse("\"\"").toString);
-            param.progress = @Html(progress.getOrElse("\"\"").toString);
+            if (@hasNextMission) {
+                param.mission = @Html(mission.getOrElse("\"\"").toString);
+                param.labelList = @Html(labelList.getOrElse("\"\"").toString);
+                param.progress = @Html(progress.getOrElse("\"\"").toString);
 
-            // Initializes an object of labels from label metadata.
-            // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
-            Object.keys(param.labelList).map(function (key, index) {
-                param.labelList[key] = new Label(param.labelList[key]);
-            });
-        }
-        svv.main = new Main(param);
-
+                // Initializes an object of labels from label metadata.
+                // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
+                Object.keys(param.labelList).map(function (key, index) {
+                    param.labelList[key] = new Label(param.labelList[key]);
+                });
+            }
+            svv.main = new Main(param);
+        });
     </script>
 }

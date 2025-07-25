@@ -123,3 +123,7 @@ scripts/__pycache__
 .vscode/settings.json
 .metals/
 project/metals.sbt
+
+# Windows Zone Identifier files
+**/*Zone.Identifier
+

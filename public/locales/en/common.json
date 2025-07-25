@@ -16,7 +16,7 @@
     "surface-problem": "Surface Problem",
     "occlusion": "Can't See the Sidewalk",
     "no-sidewalk": "No Sidewalk",
-    "crosswalk": "Crosswalk",
+    "crosswalk": "Marked Crosswalk",
     "signal": "Pedestrian Signal",
     "other": "Other",
     "surface-problems": "Surface Problems",
@@ -29,6 +29,9 @@
         "thanks": "Thanks for all your help!",
         "100-percent-complete": "100% Complete!",
         "percent-complete": "{{percent}}% Complete"
+    },
+    "deployment-map": {
+        "explore": "Explore {{cityName}}"
     },
     "errors": {
         "title": "Oops, our fault but there is no longer imagery available for this label.",
@@ -107,7 +110,7 @@
         "one button": "one button",
         "two buttons": "two buttons",
         "hard to reach buttons": "hard to reach buttons",
-        "missing crosswalk": "missing crosswalk",
+        "missing crosswalk": "missing marked crosswalk",
         "no bus stop access": "no bus stop access",
         "pedestrian lane marking": "pedestrian lane marking",
         "covered walkway": "covered walkway",
@@ -234,15 +237,15 @@
             },
             "slide-2": {
                 "title": "No visual indicator",
-                "description": "Crossings with no visual indicator should <b>not</b> be labeled as Crosswalks."
+                "description": "Crossings with no visual indicator should <b>not</b> be labeled as Marked Crosswalks."
             },
             "slide-3": {
                 "title": "Stop line",
-                "description": "Stop lines for cars should not be labeled as Crosswalks."
+                "description": "Stop lines for cars should not be labeled as Marked Crosswalks."
             },
             "slide-4": {
                 "title": "Speed bump",
-                "description": "Speed bumps should not be labeled as Crosswalks."
+                "description": "Speed bumps should not be labeled as Marked Crosswalks."
             }
         },
         "signal": {

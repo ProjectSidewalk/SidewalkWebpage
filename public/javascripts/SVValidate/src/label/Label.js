@@ -228,7 +228,7 @@ function Label(params) {
         auditProperties[key] = value;
         return this;
     }
-    
+
     function prepareCommentData() {
         let comment = getProperty("comment");
         if (comment) {
@@ -297,7 +297,7 @@ function Label(params) {
         setProperty("comment", comment);
 
         if (getProperty("comment")) {
-            if (!svv.newValidateBeta) svv.ui.validation.comment.val('');
+            if (!svv.expertValidate) svv.ui.validation.comment.val('');
             svv.tracker.push("ValidationTextField_DataEntered", { validation: validationResult, text: comment });
         }
 

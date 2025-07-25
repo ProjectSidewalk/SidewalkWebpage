@@ -12,7 +12,7 @@
     "surface-problem": "Oppervlakte probleem",
     "occlusion": "Trottoir niet zichtbaar",
     "no-sidewalk": "Geen trottoir",
-    "crosswalk": "Oversteekplaats",
+    "crosswalk": "Gemarkeerde oversteekplaats",
     "signal": "Verkeerslicht",
     "other": "Anders",
     "agree": "Mee eens zijn",
@@ -28,6 +28,9 @@
         "thanks": "Dank voor al je hulp!",
         "100-percent-complete": "100% Voltooid!",
         "percent-complete": "{{percent}}% Voltooid"
+    },
+    "deployment-map": {
+        "explore": "Ontdek {{cityName}}"
     },
     "errors": {
         "title": "Oeps, onze fout, maar er zijn geen afbeeldingen meer beschikbaar voor dit label.",
@@ -233,7 +236,7 @@
             },
             "slide-2": {
                 "title": "Geen visuele indicator",
-                "description": "Oversteekplaatsen zonder visuele aanduiding mogen <b>niet</b> worden aangemerkt als oversteekplaatsen."
+                "description": "Oversteekplaatsen zonder visuele aanduiding mogen <b>niet</b> worden aangemerkt als gemarkeerde oversteekplaatsen."
             },
             "slide-3": {
                 "title": "Lijn stoppen",
@@ -241,7 +244,7 @@
             },
             "slide-4": {
                 "title": "Verkeersdrempel",
-                "description": "Verkeersdrempels mogen niet als oversteekplaatsen worden bestempeld."
+                "description": "Verkeersdrempels mogen niet als zebrapaden worden bestempeld."
             }
         },
         "signal": {

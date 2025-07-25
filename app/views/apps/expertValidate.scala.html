@@ -1,18 +1,18 @@
-@import controllers.helper.ValidateHelper.AdminValidateParams
+@import controllers.helper.ValidateHelper.ValidateParams
 @import formats.json.LabelFormats.tagWrites
 @import models.label.Tag
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import play.api.libs.json.{JsArray, JsValue, Json}
 @import service.CommonPageData
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams,
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams,
         mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean,
         completedValidations: Int, tagList: Seq[Tag]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, title, Some("/newValidateBeta")) {
+@common.main(commonData, title, defaultI18nNamespace = "validate", i18Namespaces = Seq("validate", "common"), "/expertValidate") {
     @common.navbar(commonData, Some(user))
 
     @common.icons()
@@ -24,7 +24,7 @@
     <script src='@assets.path("javascripts/lib/turf-7.2.0.min.js")'></script>
     <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
-    <link rel="stylesheet" href='@assets.path("stylesheets/newValidateBeta.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/expertValidate.css")'/>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.default.min.css" integrity="sha512-pTaEn+6gF1IeWv3W1+7X7eM60TFu/agjgoHmYhAfLEU8Phuf6JKiiE8YmsNC0aCgQv4192s4Vai8YZ6VNM6vyQ==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js" integrity="sha512-IOebNkvA/HZjMM7MxL0NYeLYEalloZ8ckak+NDtOViP7oiYzG5vn6WVXyrJDiJPhl4yRdmNAG49iuLmhkUdVsQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -219,53 +219,57 @@
     </div>
 
     <script>
-        var svv = svv || {};
-        var param = {};
+        window.appManager.ready(function() {
+            var svv = svv || {};
+            var param = {};
 
-        // Store user object.
-        let userParam = {
-            username: '@user.username',
-            role: '@user.role'
-        };
-        svv.user = new User(userParam);
+            // Store user object.
+            let userParam = {
+                username: '@user.username',
+                role: '@user.role'
+            };
+            svv.user = new User(userParam);
 
-        param.newValidateBeta = true;
-        param.dataStoreUrl = '@routes.ValidateController.post';
-        param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
-        param.hasNextMission = @hasNextMission;
-        param.completedValidations = @completedValidations;
-        param.canvasHeight = 440;
-        param.canvasWidth = 720;
-        param.language = "@messages.lang.code";
-        param.cityName = "@{currentCity.cityNameFormatted}";
-        param.countryId = "@{currentCity.countryId}";
-        param.adminVersion = @adminParams.adminVersion;
-        param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
-        param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));
-        param.adminNeighborhoodIds = @Html(adminParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null"));
-        param.tagList = @Html(JsArray(tagList.map(t => Json.toJson(t))).toString);
-        param.modalText = {
-            1: "@Messages("labeling.guide.curb.ramp.summary")",
-            2: "@Messages("labeling.guide.curb.ramp.summary")",
-            3: "@Messages("labeling.guide.obstacle.summary")",
-            4: "@Messages("labeling.guide.surface.problem.summary")",
-            5: "",
-            6: "@Messages("labeling.guide.occlusion.summary")",
-            7: "@Messages("labeling.guide.no.sidewalk.summary")",
-            8: ""
-        };
+            param.expertValidate = true;
+            param.dataStoreUrl = '@routes.ValidateController.post';
+            param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
+            param.hasNextMission = @hasNextMission;
+            param.completedValidations = @completedValidations;
+            param.canvasHeight = 440;
+            param.canvasWidth = 720;
+            param.language = "@messages.lang.code";
+            param.cityName = "@currentCity.cityNameFormatted";
+            param.validateParams = {
+                adminVersion: @validateParams.adminVersion,
+                labelTypeId: @Html(validateParams.labelTypeId.map(_.toString).getOrElse("null")),
+                userIds: @Html(validateParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null")),
+                regionIds: @Html(validateParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
+                unvalidatedOnly: @validateParams.unvalidatedOnly
+            }
+            param.tagList = @Html(JsArray(tagList.map(t => Json.toJson(t))).toString);
+            param.modalText = {
+                1: "@Messages("labeling.guide.curb.ramp.summary")",
+                2: "@Messages("labeling.guide.curb.ramp.summary")",
+                3: "@Messages("labeling.guide.obstacle.summary")",
+                4: "@Messages("labeling.guide.surface.problem.summary")",
+                5: "",
+                6: "@Messages("labeling.guide.occlusion.summary")",
+                7: "@Messages("labeling.guide.no.sidewalk.summary")",
+                8: ""
+            };
 
-        if (@hasNextMission) {
-            param.mission = @Html(mission.getOrElse("\"\"").toString);
-            param.labelList = @Html(labelList.getOrElse("\"\"").toString);
-            param.progress = @Html(progress.getOrElse("\"\"").toString);
+            if (@hasNextMission) {
+                param.mission = @Html(mission.getOrElse("\"\"").toString);
+                param.labelList = @Html(labelList.getOrElse("\"\"").toString);
+                param.progress = @Html(progress.getOrElse("\"\"").toString);
 
-            // Initializes an object of labels from label metadata.
-            // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
-            Object.keys(param.labelList).map(function (key, index) {
-                param.labelList[key] = new Label(param.labelList[key]);
-            });
-        }
-        svv.main = new Main(param);
+                // Initializes an object of labels from label metadata.
+                // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
+                Object.keys(param.labelList).map(function (key, index) {
+                    param.labelList[key] = new Label(param.labelList[key]);
+                });
+            }
+            svv.main = new Main(param);
+        });
     </script>
 }

@@ -3,6 +3,7 @@ package models.utils
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import service.{AggregateStats, LabelTypeStats}
 
 import javax.inject._
 import scala.concurrent.ExecutionContext
@@ -104,6 +105,114 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           // Throw an exception if no results were found.
           throw new NoSuchElementException(s"No map parameters found in schema: $schema")
         }
+      }
+  }
+
+  /**
+   * Retrieves essential aggregate data for a specific city schema.
+   *
+   * @param schema The database schema name for the target city
+   * @return DBIO action that yields AggregateStats
+   */
+  def getCityAggregateDataBySchema(schema: String): DBIO[AggregateStats] = {
+    sql"""
+      SELECT km_audited.km_audited AS km_explored,
+            km_audited_no_overlap.km_audited_no_overlap AS km_explored_no_overlap,
+            label_counts.label_count AS total_labels,
+            total_val_count.validation_count AS total_validations
+      FROM (
+          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited
+          FROM "#$schema".street_edge
+          INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+          INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
+          WHERE completed = TRUE AND NOT user_stat.excluded
+      ) AS km_audited, (
+          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited_no_overlap
+          FROM (
+              SELECT DISTINCT street_edge.street_edge_id, geom
+              FROM "#$schema".street_edge
+              INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+              INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
+              WHERE completed = TRUE AND NOT user_stat.excluded
+          ) distinct_streets
+      ) AS km_audited_no_overlap, (
+          SELECT COUNT(*) AS label_count
+          FROM "#$schema".label
+          INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
+          INNER JOIN "#$schema".audit_task ON label.audit_task_id = audit_task.audit_task_id
+          WHERE NOT user_stat.excluded
+              AND deleted = FALSE
+              AND tutorial = FALSE
+              AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
+              AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
+      ) AS label_counts, (
+          SELECT COUNT(*) AS validation_count
+          FROM "#$schema".label_validation
+          INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
+          WHERE NOT user_stat.excluded
+      ) AS total_val_count;
+    """
+      .as[(Double, Double, Int, Int)]
+      .head
+      .map { case (kmExplored, kmExploredNoOverlap, totalLabels, totalValidations) =>
+
+        // Now get the label type statistics for this schema.
+        getLabelTypeStatsBySchema(schema).map { labelTypeStats =>
+          AggregateStats(
+            kmExplored = kmExplored, kmExploredNoOverlap = kmExploredNoOverlap, totalLabels = totalLabels,
+            totalValidations = totalValidations, numCities = 0, // Individual cities don't have deployment counts
+            numCountries = 0,                                   // These are calculated at the service level
+            numLanguages = 0,                                   // when aggregating across all cities
+            byLabelType = labelTypeStats
+          )
+        }
+      }
+      .flatten
+  }
+
+  /**
+   * Retrieves label type statistics from a specific schema using existing vote counts.
+   *
+   * @param schema The database schema to query
+   * @return DBIO action that yields a map of label type to LabelTypeStats
+   */
+  private def getLabelTypeStatsBySchema(schema: String): DBIO[Map[String, LabelTypeStats]] = {
+    sql"""
+      SELECT
+        lt.label_type,
+        COUNT(DISTINCT l.label_id) AS label_count,
+        COUNT(DISTINCT CASE WHEN (l.agree_count + l.disagree_count + l.unsure_count) > 0 THEN l.label_id END) AS labels_validated,
+        COUNT(DISTINCT CASE WHEN l.agree_count > l.disagree_count THEN l.label_id END) AS labels_agreed,
+        COUNT(DISTINCT CASE WHEN l.disagree_count > l.agree_count THEN l.label_id END) AS labels_disagreed
+      FROM
+        "#$schema".label_type lt
+      LEFT JOIN
+        "#$schema".label l ON lt.label_type_id = l.label_type_id
+        AND l.deleted = FALSE
+        AND l.tutorial = FALSE
+        AND l.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
+      LEFT JOIN
+        "#$schema".audit_task at ON l.audit_task_id = at.audit_task_id
+        AND at.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
+      LEFT JOIN
+        "#$schema".user_stat us ON l.user_id = us.user_id AND NOT us.excluded
+      WHERE
+        us.user_id IS NOT NULL OR l.label_id IS NULL
+      GROUP BY
+        lt.label_type_id, lt.label_type
+      ORDER BY
+        lt.label_type;
+    """
+      .as[(String, Int, Int, Int, Int)]
+      .map { rows =>
+        rows.map { case (labelType, labelCount, validatedCount, agreeCount, disagreeCount) =>
+          labelType -> LabelTypeStats(
+            labels = labelCount,
+            labelsValidated = validatedCount,
+            labelsValidatedAgree = agreeCount,
+            labelsValidatedDisagree = disagreeCount
+          )
+        }.toMap
       }
   }
 

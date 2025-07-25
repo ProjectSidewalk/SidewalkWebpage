@@ -6,7 +6,7 @@
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, title) {
+@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap")) {
     @common.navbar(commonData, Some(user))
     <div id="labelmap-choropleth-container" class="container choropleth-container">
         <div id="labelmap-choropleth-holder" class="choropleth-holder">
@@ -138,14 +138,12 @@
     <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
 
     <script>
-    $(document).ready(function () {
         // Gets all translations before loading the choropleth.
-        const language = "@messages.lang.code";
-        const countryId = "@currentCity.countryId";
-        util.initializeI18Next(language, ['common', 'labelmap'], 'common', countryId, function() {
+        window.appManager.ready(function () {
             let params = {
                 mapName: 'labelmap-choropleth',
                 mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+                mapboxApiKey: '@commonData.mapboxApiKey',
                 mapboxLogoLocation: 'bottom-right',
                 neighborhoodFillMode: 'singleColor',
                 neighborhoodFillColor: '#808080',
@@ -178,7 +176,7 @@
             var self = {};
             CreatePSMap($, params).then(m => {
                 self.map = m[0];
-                self.mapData = m[3];
+                self.mapData = m[4];
                 addLegendListeners(self.map, self.mapData);
             });
 
@@ -190,57 +188,56 @@
             console.log("To add data from users marked as 'low quality'', use the following commands. You can run them again with 'false' to remove.");
             console.log("map.mapData.lowQualityUsers = true;");
             console.log("filterLabelLayers('', map.map, map.mapData);");
-        });
 
-        // Hide the loader once the map has loaded.
-        $(window).load(function () {
-            $('.loader').fadeOut('slow');
-        });
-    });
-
-    // Adds listeners to the checkboxes and sliders so that they update the map.
-    function addLegendListeners(map, mapData) {
-        // Add listeners on the checkboxes.
-        document.querySelectorAll('#legend-table tr input').forEach(checkbox => {
-            checkbox.addEventListener('click', () => {
-                if (checkbox.getAttribute('data-filter-type') === 'label-type') {
-                    let slider;
-                    if (checkbox.parentElement.nextElementSibling) {
-                        slider = checkbox.parentElement.nextElementSibling.firstElementChild;
-                    }
-                    toggleLabelLayer(checkbox.id.split('-')[0], checkbox, slider, map, mapData);
-                } else if (checkbox.getAttribute('data-filter-type') === 'label-validations') {
-                    filterLabelLayers(checkbox, map, mapData, true);
-                } else {
-                    filterStreetLayer(map);
-                }
-            }, false);
-            checkbox.disabled = false; // Enable the checkbox now that the map has loaded.
-        });
-
-        // Add listeners on the sliders.
-        let sliderStepText = ["N/A", 1, 2, 3, 4, 5];
-        $( "*[id*='slider']" ).each(function() {
-            $(this).slider('option', {
-                // Change the text next to the slider as it's moved.
-                slide: function(event, ui) {
-                    let sliderTextEl = this.parentElement.nextElementSibling.firstElementChild;
-                    if(sliderStepText[ui.values[0]] === sliderStepText[ui.values[1]]) {
-                        sliderTextEl.textContent = sliderStepText[ui.values[0]];
-                    } else {
-                        sliderTextEl.textContent = `${ui.values[0]} - ${ui.values[1]}`;
-                    }
-                },
-                // When the slider is released, update the map.
-                change: function(event, ui) {
-                    let labelType = this.id.split('-')[0];
-                    let checkbox = this.parentElement.previousElementSibling.firstElementChild;
-                    toggleLabelLayer(labelType, checkbox, this, map, mapData);
-                },
-                // Enable the sliders now that the map has loaded.
-                disabled: false
+            // Hide the loader once the map has loaded.
+            $(window).load(function () {
+                $('.loader').fadeOut('slow');
             });
+
+            // Adds listeners to the checkboxes and sliders so that they update the map.
+            function addLegendListeners(map, mapData) {
+                // Add listeners on the checkboxes.
+                document.querySelectorAll('#legend-table tr input').forEach(checkbox => {
+                    checkbox.addEventListener('click', () => {
+                        if (checkbox.getAttribute('data-filter-type') === 'label-type') {
+                            let slider;
+                            if (checkbox.parentElement.nextElementSibling) {
+                                slider = checkbox.parentElement.nextElementSibling.firstElementChild;
+                            }
+                            toggleLabelLayer(checkbox.id.split('-')[0], checkbox, slider, map, mapData);
+                        } else if (checkbox.getAttribute('data-filter-type') === 'label-validations') {
+                            filterLabelLayers(checkbox, map, mapData, true);
+                        } else {
+                            filterStreetLayer(map);
+                        }
+                    }, false);
+                    checkbox.disabled = false; // Enable the checkbox now that the map has loaded.
+                });
+
+                // Add listeners on the sliders.
+                let sliderStepText = ["N/A", 1, 2, 3, 4, 5];
+                $( "*[id*='slider']" ).each(function() {
+                    $(this).slider('option', {
+                        // Change the text next to the slider as it's moved.
+                        slide: function(event, ui) {
+                            let sliderTextEl = this.parentElement.nextElementSibling.firstElementChild;
+                            if(sliderStepText[ui.values[0]] === sliderStepText[ui.values[1]]) {
+                                sliderTextEl.textContent = sliderStepText[ui.values[0]];
+                            } else {
+                                sliderTextEl.textContent = `${ui.values[0]} - ${ui.values[1]}`;
+                            }
+                        },
+                        // When the slider is released, update the map.
+                        change: function(event, ui) {
+                            let labelType = this.id.split('-')[0];
+                            let checkbox = this.parentElement.previousElementSibling.firstElementChild;
+                            toggleLabelLayer(labelType, checkbox, this, map, mapData);
+                        },
+                        // Enable the sliders now that the map has loaded.
+                        disabled: false
+                    });
+                });
+            }
         });
-    }
     </script>
 }

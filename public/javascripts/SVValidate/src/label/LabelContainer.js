@@ -56,7 +56,7 @@ function LabelContainer() {
             new_tags: labelMetadata.newTags,
             comment: commentData,
             zoom: labelMetadata.zoom,
-            source: labelMetadata.isMobile ? "ValidateMobile" : (svv.newValidateBeta ? "ValidateDesktopNew" : "ValidateDesktop"),
+            source: labelMetadata.isMobile ? "ValidateMobile" : (svv.expertValidate ? "ExpertValidate" : "Validate"),
             undone: false,
             redone: redone
         };

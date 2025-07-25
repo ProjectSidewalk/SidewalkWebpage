@@ -1,4 +1,4 @@
-function Admin(_, $) {
+function Admin(_, $, mapboxApiKey) {
     var self = {};
     var mapLoaded = false;
     var graphsLoaded = false;
@@ -8,6 +8,7 @@ function Admin(_, $) {
     var analyticsTabMapParams = {
         mapName: 'admin-landing-choropleth',
         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+        mapboxApiKey: mapboxApiKey,
         mapboxLogoLocation: 'bottom-right',
         scrollWheelZoom: false,
         neighborhoodsURL: '/neighborhoods',
@@ -19,6 +20,7 @@ function Admin(_, $) {
     var mapTabMapParams = {
         mapName: 'admin-labelmap-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+        mapboxApiKey: mapboxApiKey,
         mapboxLogoLocation: 'bottom-right',
         neighborhoodsURL: '/neighborhoods',
         completionRatesURL: '/adminapi/neighborhoodCompletionRate',
@@ -196,7 +198,7 @@ function Admin(_, $) {
         if (e.target.id === "visualization" && mapLoaded === false) {
             CreatePSMap($, mapTabMapParams).then(m => {
                 self.map = m[0];
-                self.mapData = m[3];
+                self.mapData = m[4];
                 addLegendListeners(self.map, self.mapData);
                 mapLoaded = true;
             });
@@ -393,7 +395,7 @@ function Admin(_, $) {
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
-                                    "axis": {"title": "Crosswalks Tags", "labelAngle": -48, "labelPadding": 20}},
+                                    "axis": {"title": "Marked Crosswalks Tags", "labelAngle": -48, "labelPadding": 20}},
                                 "y": {"field": "count", "type": "quantitative", "sort": "descending", "axis": {"title": ""}}
                             }
                         },
@@ -522,7 +524,7 @@ function Admin(_, $) {
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "severity", "type": "ordinal",
-                                    "axis": {"title": "Crosswalk Severity", "labelAngle": 0}},
+                                    "axis": {"title": "Marked Crosswalk Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         },
@@ -1267,7 +1269,7 @@ function Admin(_, $) {
 
         let distanceInCorrectUnits = distance;
         if (i18next.t('common:measurement-system') === "metric") {
-            distanceInCorrectUnits = util.math.milesToKilometers(distance);
+            distanceInCorrectUnits = util.math.milesToKms(distance);
         }
         return `${distanceInCorrectUnits.toFixed(1)} ${distanceMetricAbbrev}`;
     }

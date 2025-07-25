@@ -5,7 +5,7 @@
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, Messages("routebuilder.name")) {
+@common.main(commonData, Messages("routebuilder.name"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common")) {
     @common.navbar(commonData, Some(user))
 
     <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
@@ -89,26 +89,22 @@
     </div>
 
     <script>
-        $(document).ready(function () {
-            // Gets all translations before loading the map.
-            const language = "@messages.lang.code";
-            const countryId = "@currentCity.countryId";
-            util.initializeI18Next(language, ['routebuilder', 'common'], 'routebuilder', countryId, function() {
-                var routeBuilder;
-                var loadMapParams = $.getJSON('/cityMapParams');
-                var loadPolygons = $.getJSON('/neighborhoods');
-                var loadStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true');
+        // Gets all translations before loading the map.
+        window.appManager.ready(function () {
+            var routeBuilder;
+            var loadMapParams = $.getJSON('/cityMapParams');
+            var loadPolygons = $.getJSON('/neighborhoods');
+            var loadStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true');
 
-                var initMap = $.when(loadMapParams).done(function(mapParams) {
-                    routeBuilder = RouteBuilder($, mapParams);
-                });
-                $.when(initMap, loadPolygons).done(function(d0, neighborhoodData) {
-                    routeBuilder.renderNeighborhoods(neighborhoodData[0]);
-                });
-                $.when(initMap, loadStreets).done(function(d0, streetData) {
-                    routeBuilder.renderStreets(streetData[0]);
-                    window.routeBuilder = routeBuilder;
-                });
+            var initMap = $.when(loadMapParams).done(function(mapParams) {
+                routeBuilder = RouteBuilder($, '@commonData.mapboxApiKey', mapParams);
+            });
+            $.when(initMap, loadPolygons).done(function(d0, neighborhoodData) {
+                routeBuilder.renderNeighborhoods(neighborhoodData[0]);
+            });
+            $.when(initMap, loadStreets).done(function(d0, streetData) {
+                routeBuilder.renderStreets(streetData[0]);
+                window.routeBuilder = routeBuilder;
             });
         });
     </script>

@@ -133,6 +133,7 @@ body {
     margin: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: visible !important;
 }
 
 /* ---- Layout Containers ---- */
@@ -205,6 +206,7 @@ a:hover {
     padding-bottom: 10px;
     border-bottom: 1px solid var(--color-border-medium);
     font-weight: 600;
+    scroll-margin-top: 85px; /* Offset for the fixed navbar plus a little extra. */
 }
 
 /* Section sub-heading - utility class for component headings */
@@ -654,14 +656,14 @@ h6:hover .permalink {
 }
 
 .api-nav {
-    padding: var(--space-md) 0;
+    padding: var(--space-xxxl) 0;
 }
 
 .api-nav-header {
     font-weight: 600;
     color: var(--color-text-primary);
     text-transform: uppercase;
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xxl);
     margin: var(--space-md) var(--space-md) 10px;
 }
 
@@ -670,7 +672,7 @@ h6:hover .permalink {
     padding: var(--space-sm) var(--space-md);
     color: var(--color-text-secondary);
     text-decoration: none;
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-xxl);
     transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
@@ -770,7 +772,7 @@ h6:hover .permalink {
 .api-toc {
     flex: 0 0 var(--toc-width);
     border-left: 1px solid var(--color-border-light);
-    padding: var(--space-xl) var(--space-md);
+    padding: var(--space-xxxl) var(--space-md);
     background-color: var(--color-bg-sidebar);
     overflow-y: auto;
     height: var(--sidebar-height);
@@ -782,7 +784,7 @@ h6:hover .permalink {
     font-weight: 600;
     color: var(--color-text-primary);
     margin-bottom: var(--space-md);
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-xl);
 }
 
 .api-toc ul {
@@ -799,7 +801,7 @@ h6:hover .permalink {
 .api-toc a {
     color: var(--color-text-secondary);
     text-decoration: none;
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xl);
     display: block;
     padding: 2px 0;
     border-left: 2px solid transparent;
@@ -977,4 +979,55 @@ var(--breakpoint-md) → 992px */
     .api-table td {
         padding: 8px 10px;
     }
+}
+
+/* Enhanced permalink styling for clipboard functionality */
+.permalink {
+    cursor: pointer;
+    transition: opacity var(--transition-fast), color var(--transition-fast);
+}
+
+.permalink:hover {
+    opacity: 1;
+    color: var(--color-accent-link);
+}
+
+.permalink:focus {
+    outline: 2px solid var(--color-accent-link);
+    outline-offset: 2px;
+    opacity: 1;
+}
+
+/* Toast notification styles */
+.copy-toast {
+    background-color: var(--color-text-heading);
+    color: var(--color-text-on-accent);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    box-shadow: var(--box-shadow);
+    opacity: 0;
+    transform: translateY(-5px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.copy-toast-success {
+    background-color: var(--color-success);
+}
+
+.copy-toast-error {
+    background-color: var(--color-error);
+}
+
+.copy-toast-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Ensure toasts appear above everything */
+.copy-toast {
+    z-index: 10000;
 }

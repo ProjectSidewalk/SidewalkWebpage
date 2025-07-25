@@ -1,7 +1,10 @@
 @import play.api.Configuration
 @import service.CommonPageData
-@(commonData: CommonPageData, title: String, url: Option[String] = Some("/")
+@import play.filters.csrf.CSRF
+@(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/"
 )(content: Html)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
 
 <!DOCTYPE html>
 <head>
@@ -15,6 +18,8 @@
     </script>
     <meta charset="utf-8" />
     <title>@title</title>
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
     <link href='@assets.path("stylesheets/bootstrap/bootstrap.min.css")' rel='stylesheet' />
     <link href='@assets.path("stylesheets/bootstrap/bootstrap-accessibility.css")' rel='stylesheet' />
@@ -38,8 +43,23 @@
     <script src='@assets.path("javascripts/lib/bowser-1.9.4.min.js")'></script>
     <script src='@assets.path("javascripts/common/pagetop-padding.js")'></script>
     <script src='@assets.path("javascripts/common/Utilities.js")'></script>
+    <script src='@assets.path("javascripts/common/UtilitiesMath.js")'></script>
+    <script src='@assets.path("/javascripts/common/AppManager.js")'></script>
 </head>
 <body onload="checkIfPaddingNeeded()">
+    <script>
+        // Set up AppManager to initialize stuff that we need on every page (CSRF token, i18next, etc.).
+        $(document).ready(function() {
+            const csrfToken = "@CSRF.getToken.map(_.value)";
+            const i18nextParams = {
+                language: "@messages.lang.code",
+                defaultNS: "@defaultI18nNamespace",
+                namespaces: @Html(i18Namespaces.map(namespace => s""""$namespace"""").mkString("[", ",", "]")),
+                countryId: "@currentCity.countryId"
+            };
+            window.appManager.init(csrfToken, i18nextParams);
+        });
+    </script>
     <div id="wrap">
             <!-- Banner is only visible if user is on local/test server-->
         @if(commonData.environmentType != "prod") {
@@ -74,26 +94,27 @@
         }
         @content
     </div>
-    @if(url.getOrElse("") != "/mobile") {
+    @if(url != "/mobile") {
         <head>
             <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0">
         </head>
     }
-    @if(url.get == "/explore") {
+    @if(url == "/explore") {
         <script>
                 // Prevents extra whitespace at the bottom of the page, not sure why that's an issue.
                 document.getElementsByTagName("body")[0].style.overflow = "hidden";
         </script>
     }
         <!-- Trying out no footer on Explore or Validate. Mini footer on mobile sign in/up. Code is weird bc "else if" doesn't work in template scala rn. -->
-    @if(url.get == "/explore" || url.get == "/validate" || url.get == "/newValidateBeta" || url.get == "/signInMobile" || url.get == "/signUpMobile") {
-        @if(url.get == "/explore" || url.get == "/validate" || url.get == "/newValidateBeta") {
+    @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/signInMobile" || url == "/signUpMobile") {
+        @if(url == "/explore" || url == "/validate" || url == "/expertValidate") {
         } else {
             <!-- footer code found in app/views/footer.scala.html -->
             @common.miniFooter(commonData)
     }
     } else {
-    <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
+
+    <div class="filler" style="position:relative; top: 0px; background-color:#fff; min-height:20px;"></div>
 
     <div class="container" id="footer-container">
         <div class="row" style="width: 900px; position:relative; left:80px;">
@@ -159,82 +180,47 @@
 }
 
     <script>
-        // Log clicks on links in the footer to WebpageActivityTable
-        // Depending on column, form of log varies by the following:
-        // Column is 'Project Sidewalk' or 'Developer'
-        //    log is of form: "Click_module=Footer_section=<"sidewalk" or "developer">_target=<link>"
-        // Column is 'Connect'
-        //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
-        $("#footer-container").on('click', 'a', function(e){
-            var currentRoute = window.location.pathname;
-            var id = e.currentTarget.id.split("-");
-            var column = id[0];
-            var link = id[1];
+        window.appManager.ready(function () {
+            // Log clicks on links in the footer to WebpageActivityTable.
+            // Depending on column, form of log varies by the following:
+            // Column is 'Project Sidewalk' or 'Developer',
+            //    log is of form: "Click_module=Footer_section=<"sidewalk" or "developer">_target=<link>"
+            // Column is 'Connect',
+            //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
+            $('#footer-container').on('click', 'a', function(e){
+                const currentRoute = window.location.pathname;
+                const id = e.currentTarget.id.split('-');
+                const column = id[0];
+                const link = id[1];
 
-            var activity = "Click_module=Footer_section="+column+"_";
-            if(column === "sidewalk" || column === "developer"){
-                activity = activity+"target="+link;
-            }
-            else{
-                activity = activity+"platform="+link;
-            }
-            activity = activity + "_route="+currentRoute;
+                let activity = 'Click_module=Footer_section=' + column + '_';
+                if (column === 'sidewalk' || column === 'developer') {
+                    activity = activity + 'target=' + link;
+                } else {
+                    activity = activity + 'platform=' + link;
+                }
+                activity = activity + '_route=' + currentRoute;
 
-            var url = "/userapi/logWebpageActivity";
-            var async = false;
-            $.ajax({
-                async: async,
-                contentType: 'application/json; charset=utf-8',
-                url: url,
-                method: 'POST',
-                data: JSON.stringify(activity),
-                dataType: 'json',
-                success: function(result){},
-                error: function (result) {
-                    console.error(result);
+                window.logWebpageActivity(activity);
+
+                // We are using the ML site's about page, so log the "Visit_About" from here. All other pages that are
+                // part of the Sidewalk codebase end up logging "Visit_*" on the back-end.
+                if (link === 'about') {
+                    window.logWebpageActivity('Visit_About', true);
                 }
             });
 
-            // We are using the ML site's about page, so log the "Visit_About" from here. All other pages that are
-            // part of the Sidewalk codebase end up logging "Visit_*" on the back-end.
-            if (link === "about") {
-                $.ajax({
-                    async: async,
-                    contentType: 'application/json; charset=utf-8',
-                    url: url,
-                    method: 'POST',
-                    data: JSON.stringify("Visit_About"),
-                    dataType: 'json',
-                    success: function(result){},
-                    error: function (result) {
-                        console.error(result);
-                    }
-                });
-            }
-        });
-
-        // Log clicks on links in the information footer to WebpageActivityTable
-        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/help|...>"
-        $('#info-footer').on('click','a', function(e){
-            var currentRoute = window.location.pathname;
-            var link = e.currentTarget.id.split("-")[0];
-            var activity = "Click_module=InfoFooter_"+"target="+link + "_route="+currentRoute;
-            var url = "/userapi/logWebpageActivity";
-            var async = false;
-            $.ajax({
-                async: async,
-                contentType: 'application/json; charset=utf-8',
-                url: url,
-                method: 'POST',
-                data: JSON.stringify(activity),
-                dataType: 'json',
-                success: function(result){},
-                error: function (result) {
-                    console.error(result);
-                }
+            // Log clicks on links in the information footer to WebpageActivityTable.
+            // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/help|...>"
+            $('#info-footer').on('click','a', function(e){
+                const currentRoute = window.location.pathname;
+                const link = e.currentTarget.id.split('-')[0];
+                const activity = 'Click_module=InfoFooter_' + 'target=' + link + '_route=' + currentRoute;
+                window.logWebpageActivity(activity);
             });
         });
     </script>
+
     <script src='@assets.path("javascripts/lib/moment/moment-2.30.1.js")'></script>
     <script src='@assets.path("javascripts/lib/moment/es.js")'></script>
     <script src='@assets.path("javascripts/lib/moment/nl.js")'></script>

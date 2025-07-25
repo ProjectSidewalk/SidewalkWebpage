@@ -58,7 +58,7 @@ class LabelApiController @Inject() (
     // Set up streaming data from the database.
     val dbDataStream: Source[LabelCVMetadata, _] = apiService.getLabelCVMetadata(DEFAULT_BATCH_SIZE)
     val baseFileName: String                     = s"labelsWithCVMetadata_${OffsetDateTime.now()}"
-    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+    cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
     // Output data in the appropriate file format: CSV or JSON (default).
     filetype match {
@@ -75,7 +75,7 @@ class LabelApiController @Inject() (
    * @return JSON response containing label type information
    */
   def getLabelTypes = silhouette.UserAwareAction.async { request =>
-    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+    cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
     val labelTypeDetailsList: Seq[LabelTypeForApi] = apiService.getLabelTypes(request.lang).toList.sortBy(_.id)
     Future.successful(Ok(Json.obj("status" -> "OK", "labelTypes" -> labelTypeDetailsList)))
   }
@@ -89,7 +89,7 @@ class LabelApiController @Inject() (
    * @return JSON response containing label tag information.
    */
   def getLabelTags = silhouette.UserAwareAction.async { request =>
-    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+    cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
     labelService.getTagsForCurrentCity
       .map { tags =>
         val formattedTags = tags.map { tag =>
@@ -130,6 +130,7 @@ class LabelApiController @Inject() (
    * @param minSeverity Minimum severity score (1-5 scale)
    * @param maxSeverity Maximum severity score (1-5 scale)
    * @param validationStatus Filter by validation status: "validated_correct", "validated_incorrect", "unvalidated"
+   * @param highQualityUserOnly Optional filter to include only labels from high quality users if true
    * @param startDate Start date for filtering (ISO 8601 format)
    * @param endDate End date for filtering (ISO 8601 format)
    * @param regionId Optional region ID to filter by geographic region
@@ -144,6 +145,7 @@ class LabelApiController @Inject() (
       minSeverity: Option[Int],
       maxSeverity: Option[Int],
       validationStatus: Option[String],
+      highQualityUserOnly: Option[Boolean],
       startDate: Option[String],
       endDate: Option[String],
       regionId: Option[Int],
@@ -151,7 +153,7 @@ class LabelApiController @Inject() (
       filetype: Option[String],
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
-    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+    cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
     // Parse bbox parameter.
     val parsedBbox: Option[LatLngBBox] = parseBBoxString(bbox)
@@ -244,6 +246,7 @@ class LabelApiController @Inject() (
           minSeverity = minSeverity,
           maxSeverity = maxSeverity,
           validationStatus = validationStatusMapped.filter(_ != null),
+          highQualityUserOnly = highQualityUserOnly.getOrElse(false),
           startDate = parsedStartDate,
           endDate = parsedEndDate,
           regionId = finalRegionId,

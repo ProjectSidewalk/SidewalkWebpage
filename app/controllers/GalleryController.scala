@@ -67,7 +67,7 @@ class GalleryController @Inject() (
    */
   def processGalleryTaskSubmissions(
       submission: Seq[GalleryTaskSubmission],
-      remoteAddress: String,
+      ipAddress: String,
       userId: String
   ): Future[Result] = {
     for (data <- submission) yield {
@@ -79,8 +79,8 @@ class GalleryController @Inject() (
         })
         _ <- galleryTaskEnvironmentTable.insert(
           GalleryTaskEnvironment(0, env.browser, env.browserVersion, env.browserWidth, env.browserHeight,
-            env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem,
-            Some(remoteAddress), env.language, Some(userId))
+            env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, Some(ipAddress),
+            env.language, Some(userId))
         )
       } yield nInteractionSubmitted)
     }
@@ -95,7 +95,7 @@ class GalleryController @Inject() (
     val submission = json.validate[Seq[GalleryTaskSubmission]]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => { processGalleryTaskSubmissions(submission, request.remoteAddress, request.identity.userId) }
+      submission => { processGalleryTaskSubmissions(submission, request.ipAddress, request.identity.userId) }
     )
   }
 
@@ -106,7 +106,7 @@ class GalleryController @Inject() (
     val submission = request.body.validate[Seq[GalleryTaskSubmission]]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => { processGalleryTaskSubmissions(submission, request.remoteAddress, request.identity.userId) }
+      submission => { processGalleryTaskSubmissions(submission, request.ipAddress, request.identity.userId) }
     )
   }
 }

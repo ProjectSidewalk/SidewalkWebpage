@@ -15,11 +15,14 @@ GET     /labelingGuide/surfaceProblems                  controllers.ApplicationC
 GET     /labelingGuide/obstacles                        controllers.ApplicationController.labelingGuideObstacles
 GET     /labelingGuide/noSidewalk                       controllers.ApplicationController.labelingGuideNoSidewalk
 GET     /labelingGuide/occlusion                        controllers.ApplicationController.labelingGuideOcclusion
-GET     /mobile                                         controllers.ValidateController.mobileValidate(neighborhoods: Option[String] ?= None)
+GET     /mobile                                         controllers.ValidateController.mobileValidate(neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
 GET     /leaderboard                                    controllers.ApplicationController.leaderboard
 GET     /serviceHoursInstructions                       controllers.ApplicationController.serviceHoursInstructions
 GET     /timeCheck                                      controllers.ApplicationController.timeCheck
 GET     /routeBuilder                                   controllers.ApplicationController.routeBuilder
+
+GET     /cities                                         controllers.ApplicationController.cities
+GET     /citiesDashboard                                controllers.ApplicationController.cities
 
 # User authentication
 GET     /signIn                                         controllers.UserController.signIn()
@@ -97,9 +100,10 @@ GET     /neighborhoodMissions                           controllers.ExploreContr
 GET     /audit                                          controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
 
 # Label validation tasks
-GET     /validate                                       controllers.ValidateController.validate(neighborhoods: Option[String] ?= None)
-GET     /newValidateBeta                                controllers.ValidateController.newValidateBeta(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
-GET     /adminValidate                                  controllers.ValidateController.adminValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
+GET     /validate                                       controllers.ValidateController.validate(neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
+GET     /expertValidate                                 controllers.ValidateController.expertValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
+GET     /newValidateBeta                                controllers.ValidateController.expertValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
+GET     /adminValidate                                  controllers.ValidateController.adminValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
 
 # Task API
 GET     /tasks                                          controllers.ExploreController.getTasksInARegion(regionId: Int)
@@ -161,13 +165,14 @@ POST    /saveImage                                      controllers.ImageControl
 POST    /api/gemini/analyze                             controllers.GeminiController.analyzeImage()
 
 # Public API (v3) for Project Sidewalk data and metadata.
-GET     /v3/api/rawLabels                               controllers.api.LabelApiController.getRawLabelsV3(bbox: Option[String], labelType: Option[String], tags: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], validationStatus: Option[String], startDate: Option[String], endDate: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/rawLabels                               controllers.api.LabelApiController.getRawLabelsV3(bbox: Option[String], labelType: Option[String], tags: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], validationStatus: Option[String], highQualityUserOnly: Option[Boolean], startDate: Option[String], endDate: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/labelTypes                              controllers.api.LabelApiController.getLabelTypes
 GET     /v3/api/labelTags                               controllers.api.LabelApiController.getLabelTags
 GET     /v3/api/regionWithMostLabels                    controllers.api.RegionApiController.getRegionWithMostLabels
 GET     /v3/api/cities                                  controllers.api.CitiesApiController.getCities(filetype: String ?= "json")
 GET     /v3/api/userStats                               controllers.api.StatsApiController.getUserApiStats(minLabels: Option[Int], minMetersExplored: Option[Float], highQualityOnly: Option[Boolean], minAccuracy: Option[Float], filetype: Option[String])
 GET     /v3/api/overallStats                            controllers.api.StatsApiController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
+GET     /v3/api/aggregateStats                          controllers.api.StatsApiController.getAggregateStats(filetype: Option[String])
 GET     /v3/api/labelClusters                           controllers.api.LabelClustersApiController.getLabelClustersV3(bbox: Option[String], labelType: Option[String], regionId: Option[Int], regionName: Option[String], includeRawLabels: Option[Boolean], clusterSize: Option[Int], avgImageCaptureDate: Option[String], avgLabelDate: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streets                                 controllers.api.StreetsApiController.getStreets(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], minAuditCount: Option[Int], minUserCount: Option[Int], wayType: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streetTypes                             controllers.api.StreetsApiController.getStreetTypes

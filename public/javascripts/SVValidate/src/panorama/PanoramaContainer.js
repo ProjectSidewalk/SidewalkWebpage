@@ -39,11 +39,12 @@ function PanoramaContainer (labelList) {
 
         let data = {};
         data.labels = svv.labelContainer.getCurrentLabels();
-        data.admin_params = {
+        data.validate_params = {
             admin_version: svv.adminVersion,
-            label_type_id: svv.adminLabelTypeId,
-            user_ids: svv.adminUserIds,
-            neighborhood_ids: svv.adminNeighborhoodIds
+            label_type_id: svv.validateParams.labelTypeId,
+            user_ids: svv.validateParams.userIds,
+            neighborhood_ids: svv.validateParams.regionIds,
+            unvalidated_only: svv.validateParams.unvalidatedOnly
         };
 
         $.ajax({

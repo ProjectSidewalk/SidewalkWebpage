@@ -75,7 +75,7 @@ class ExploreController @Inject() (
         else if (regionId.isDefined) s"Visit_Audit_RegionId=${regionId.get}"
         else if (newRegion) "Visit_Audit_NewRegionSelected"
         else "Visit_Audit"
-      cc.loggingService.insert(user.userId, request.remoteAddress, activityStr)
+      cc.loggingService.insert(user.userId, request.ipAddress, activityStr)
 
       // Load the Explore page. The match statement below just passes along any extra params when using `streetEdgeId`.
       // If user is an admin and a panoId or lat/lng are supplied, send to that location, o/w send to street.
@@ -100,7 +100,7 @@ class ExploreController @Inject() (
         exploreService
           .insertComment(
             AuditTaskComment(0, data.auditTaskId, data.missionId, data.streetEdgeId, request.identity.userId,
-              request.remoteAddress, data.gsvPanoramaId, data.heading, data.pitch, data.zoom, data.lat, data.lng,
+              request.ipAddress, data.gsvPanoramaId, data.heading, data.pitch, data.zoom, data.lat, data.lng,
               OffsetDateTime.now, data.comment)
           )
           .map { commentId: Int => Ok(Json.obj("comment_id" -> commentId)) }
@@ -125,8 +125,8 @@ class ExploreController @Inject() (
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       data => {
-        exploreService.submitSurvey(request.identity.userId, request.remoteAddress, data).map { _ =>
-          cc.loggingService.insert(request.identity.userId, request.remoteAddress, "SurveySubmit")
+        exploreService.submitSurvey(request.identity.userId, request.ipAddress, data).map { _ =>
+          cc.loggingService.insert(request.identity.userId, request.ipAddress, "SurveySubmit")
           Ok(Json.obj("survey_success" -> "True"))
         }
       }
@@ -153,7 +153,7 @@ class ExploreController @Inject() (
         exploreService
           .insertNoGsv(
             StreetEdgeIssue(
-              0, streetEdgeId, "GSVNotAvailable", request.identity.userId, request.remoteAddress, OffsetDateTime.now
+              0, streetEdgeId, "GSVNotAvailable", request.identity.userId, request.ipAddress, OffsetDateTime.now
             )
           )
           .map(_ => Ok)
@@ -185,7 +185,7 @@ class ExploreController @Inject() (
     val submission    = json.validate[AuditTaskSubmission]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => { processAuditTaskSubmissions(submission, request.remoteAddress, request.identity) }
+      submission => { processAuditTaskSubmissions(submission, request.ipAddress, request.identity) }
     )
   }
 
@@ -196,7 +196,7 @@ class ExploreController @Inject() (
     val submission = request.body.validate[AuditTaskSubmission]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => { processAuditTaskSubmissions(submission, request.remoteAddress, request.identity) }
+      submission => { processAuditTaskSubmissions(submission, request.ipAddress, request.identity) }
     )
   }
 

@@ -123,7 +123,7 @@ class StreetsApiController @Inject() (
         // Get the data stream.
         val dbDataStream: Source[StreetDataForApi, _] = apiService.getStreets(filters, DEFAULT_BATCH_SIZE)
         val baseFileName: String                      = s"streets_${OffsetDateTime.now()}"
-        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
         // Output data in the appropriate file format.
         filetype match {
@@ -152,7 +152,7 @@ class StreetsApiController @Inject() (
     apiService
       .getStreetTypes(request.lang)
       .map { types =>
-        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
         Ok(Json.obj("status" -> "OK", "streetTypes" -> types))
       }
       .recover { case e: Exception =>

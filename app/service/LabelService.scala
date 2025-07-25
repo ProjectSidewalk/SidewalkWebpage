@@ -1,7 +1,7 @@
 package service
 
 import com.google.inject.ImplementedBy
-import controllers.helper.ValidateHelper.AdminValidateParams
+import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.ValidateFormats.ValidationMissionProgress
 import models.label.LabelTable._
 import models.label.LabelTypeEnum.labelTypeToId
@@ -59,17 +59,18 @@ trait LabelService {
       labelTypeId: Int,
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
+      unvalidatedOnly: Boolean = false,
       skippedLabelId: Option[Int] = None
   ): Future[Seq[LabelValidationMetadata]]
   def getDataForValidationPages(
       user: SidewalkUserWithRole,
       labelCount: Int,
-      adminParams: AdminValidateParams
+      validateParams: ValidateParams
   ): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])]
   def getDataForValidatePostRequest(
       user: SidewalkUserWithRole,
       missionProgress: Option[ValidationMissionProgress],
-      adminParams: AdminValidateParams
+      validateParams: ValidateParams
   ): Future[ValidationTaskPostReturnValue]
   def getRecentValidatedLabelsForUser(
       userId: String,
@@ -234,11 +235,13 @@ class LabelServiceImpl @Inject() (
       labelTypeId: Int,
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
+      unvalidatedOnly: Boolean = false,
       skippedLabelId: Option[Int] = None
   ): Future[Seq[LabelValidationMetadata]] = {
     // TODO can we make this and the Gallery queries transactions to prevent label dupes?
     findValidLabelsForType(
-      labelTable.retrieveLabelListForValidationQuery(userId, labelTypeId, userIds, regionIds, skippedLabelId),
+      labelTable.retrieveLabelListForValidationQuery(userId, labelTypeId, userIds, regionIds, unvalidatedOnly,
+        skippedLabelId),
       randomize = true,
       n
     )
@@ -367,10 +370,10 @@ class LabelServiceImpl @Inject() (
   def getDataForValidationPages(
       user: SidewalkUserWithRole,
       labelCount: Int,
-      adminParams: AdminValidateParams
+      validateParams: ValidateParams
   ): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
     // TODO can this be merged with `getDataForValidatePostRequest`?
-    getLabelTypeIdToValidate(user.userId, labelCount, adminParams.labelTypeId).flatMap {
+    getLabelTypeIdToValidate(user.userId, labelCount, validateParams.labelTypeId).flatMap {
       case Some(labelTypeId) =>
         for {
           mission: Mission <- missionService
@@ -383,9 +386,10 @@ class LabelServiceImpl @Inject() (
           labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
           labelsToRetrieve: Int = labelsToValidate - labelsProgress
           labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId,
-            adminParams.userIds.map(_.toSet), adminParams.neighborhoodIds.map(_.toSet))
+            validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
+            validateParams.unvalidatedOnly)
           adminData <- {
-            if (adminParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
+            if (validateParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
             else Future.successful(Seq.empty[AdminValidationData])
           }
         } yield {
@@ -405,14 +409,14 @@ class LabelServiceImpl @Inject() (
   def getDataForValidatePostRequest(
       user: SidewalkUserWithRole,
       missionProgress: Option[ValidationMissionProgress],
-      adminParams: AdminValidateParams
+      validateParams: ValidateParams
   ): Future[ValidationTaskPostReturnValue] = {
     // TODO can this be merged with `getDataForValidationPages`?
     val labelsToRetrieve: Int = MissionTable.validationMissionLabelsToRetrieve
     (for {
       nextMissionLabelTypeId <- {
         if (missionProgress.exists(_.completed))
-          getLabelTypeIdToValidate(user.userId, labelsToRetrieve, adminParams.labelTypeId)
+          getLabelTypeIdToValidate(user.userId, labelsToRetrieve, validateParams.labelTypeId)
         else Future.successful(Option.empty[Int])
       }
     } yield {
@@ -425,9 +429,10 @@ class LabelServiceImpl @Inject() (
               Some(nextMissionLabelTypeId)
             )
             labelList: Seq[LabelValidationMetadata] <- retrieveLabelListForValidation(user.userId, labelsToRetrieve,
-              nextMissionLabelTypeId, adminParams.userIds.map(_.toSet), adminParams.neighborhoodIds.map(_.toSet))
+              nextMissionLabelTypeId, validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
+              validateParams.unvalidatedOnly)
             adminData <- {
-              if (adminParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
+              if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
               else Future.successful(Seq.empty[AdminValidationData])
             }
             // This could be written more simply using traverse from cats or scalaz.

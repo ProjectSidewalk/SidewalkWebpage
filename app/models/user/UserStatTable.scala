@@ -77,12 +77,12 @@ object UserStatApi {
     "No Curb Ramps Validated Incorrect,No Curb Ramps Not Validated,Obstacle Labels,Obstacles Validated Correct," +
     "Obstacles Validated Incorrect,Obstacles Not Validated,Surface Problem Labels,Surface Problems Validated Correct," +
     "Surface Problems Validated Incorrect,Surface Problems Not Validated,No Sidewalk Labels," +
-    "No Sidewalks Validated Correct,No Sidewalks Validated Incorrect,No Sidewalks Not Validated,Crosswalk Labels," +
-    "Crosswalks Validated Correct,Crosswalks Validated Incorrect,Crosswalks Not Validated,Pedestrian Signal Labels," +
-    "Pedestrian Signals Validated Correct,Pedestrian Signals Validated Incorrect,Pedestrian Signals Not Validated," +
-    "Cant See Sidewalk Labels,Cant See Sidewalks Validated Correct,Cant See Sidewalks Validated Incorrect," +
-    "Cant See Sidewalks Not Validated,Other Labels,Others Validated Correct,Others Validated Incorrect," +
-    "Others Not Validated\n"
+    "No Sidewalks Validated Correct,No Sidewalks Validated Incorrect,No Sidewalks Not Validated," +
+    "Marked Crosswalk Labels,Marked Crosswalks Validated Correct,Marked Crosswalks Validated Incorrect," +
+    "Marked Crosswalks Not Validated,Pedestrian Signal Labels,Pedestrian Signals Validated Correct," +
+    "Pedestrian Signals Validated Incorrect,Pedestrian Signals Not Validated,Cant See Sidewalk Labels," +
+    "Cant See Sidewalks Validated Correct,Cant See Sidewalks Validated Incorrect,Cant See Sidewalks Not Validated," +
+    "Other Labels,Others Validated Correct,Others Validated Incorrect,Others Not Validated\n"
 }
 case class UserCount(
     count: Int,
@@ -308,7 +308,8 @@ class UserStatTable @Inject() (
       .flatMap { usersToUpdate: Seq[(String, Int, Option[Float])] =>
         // Update the own_labels_validated and accuracy columns in the user_stat table.
         val updateActions = usersToUpdate.map { case (userId, validatedCount, accuracy) =>
-          val updateQuery = for { _us <- userStats if _us.userId === userId } yield (_us.ownLabelsValidated, _us.accuracy)
+          val updateQuery =
+            for { _us <- userStats if _us.userId === userId } yield (_us.ownLabelsValidated, _us.accuracy)
           updateQuery.update((validatedCount, accuracy))
         }
         DBIO.sequence(updateActions).map(_ => ())
@@ -719,20 +720,20 @@ class UserStatTable @Inject() (
    *
    * @param minLabels Optional minimum number of labels a user must have
    * @param minMetersExplored Optional minimum meters explored a user must have
-   * @param highQualityOnly Optional filter to include only high quality users if Some(true)
+   * @param highQualityOnly Optional filter to include only high quality users if true
    * @param minAccuracy Optional minimum label accuracy a user must have
    * @return DBIO action that retrieves filtered user statistics
    */
   def getStatsForApiWithFilters(
       minLabels: Option[Int] = None,
       minMetersExplored: Option[Float] = None,
-      highQualityOnly: Option[Boolean] = None,
+      highQualityOnly: Boolean = false,
       minAccuracy: Option[Float] = None
   ): DBIO[Seq[UserStatApi]] = {
     // Construct the SQL query with dynamic WHERE clauses based on filter parameters.
     val minLabelsClause   = minLabels.map(min => s"AND COALESCE(label_counts.labels, 0) >= $min").getOrElse("")
     val minMetersClause   = minMetersExplored.map(min => s"AND user_stat.meters_audited >= $min").getOrElse("")
-    val highQualityClause = highQualityOnly.map(hq => s"AND user_stat.high_quality = ${hq.toString}").getOrElse("")
+    val highQualityClause = if (highQualityOnly) "AND user_stat.high_quality = TRUE" else ""
     val minAccuracyClause =
       minAccuracy.map(min => s"AND user_stat.accuracy IS NOT NULL AND user_stat.accuracy >= $min").getOrElse("")
 
@@ -774,10 +775,10 @@ class UserStatTable @Inject() (
              COALESCE(label_counts.no_sidewalk_validated_correct, 0) AS no_sidewalk_validated_correct,
              COALESCE(label_counts.no_sidewalk_validated_incorrect, 0) AS no_sidewalk_validated_incorrect,
              COALESCE(label_counts.no_sidewalk_not_validated, 0) AS no_sidewalk_not_validated,
-             COALESCE(label_counts.crosswalk_labels, 0) AS crosswalk_labels,
-             COALESCE(label_counts.crosswalk_validated_correct, 0) AS crosswalk_validated_correct,
-             COALESCE(label_counts.crosswalk_validated_incorrect, 0) AS crosswalk_validated_incorrect,
-             COALESCE(label_counts.crosswalk_not_validated, 0) AS crosswalk_not_validated,
+             COALESCE(label_counts.marked_crosswalk_labels, 0) AS marked_crosswalk_labels,
+             COALESCE(label_counts.marked_crosswalk_validated_correct, 0) AS marked_crosswalk_validated_correct,
+             COALESCE(label_counts.marked_crosswalk_validated_incorrect, 0) AS marked_crosswalk_validated_incorrect,
+             COALESCE(label_counts.marked_crosswalk_not_validated, 0) AS marked_crosswalk_not_validated,
              COALESCE(label_counts.pedestrian_signal_labels, 0) AS pedestrian_signal_labels,
              COALESCE(label_counts.pedestrian_signal_validated_correct, 0) AS pedestrian_signal_validated_correct,
              COALESCE(label_counts.pedestrian_signal_validated_incorrect, 0) AS pedestrian_signal_validated_incorrect,
@@ -835,10 +836,10 @@ class UserStatTable @Inject() (
                  COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct THEN 1 END) AS no_sidewalk_validated_correct,
                  COUNT(CASE WHEN label_type = 'NoSidewalk' AND NOT correct THEN 1 END) AS no_sidewalk_validated_incorrect,
                  COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct IS NULL THEN 1 END) AS no_sidewalk_not_validated,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' THEN 1 END) AS crosswalk_labels,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND correct THEN 1 END) AS crosswalk_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND NOT correct THEN 1 END) AS crosswalk_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND correct IS NULL THEN 1 END) AS crosswalk_not_validated,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' THEN 1 END) AS marked_crosswalk_labels,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' AND correct THEN 1 END) AS marked_crosswalk_validated_correct,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' AND NOT correct THEN 1 END) AS marked_crosswalk_validated_incorrect,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' AND correct IS NULL THEN 1 END) AS marked_crosswalk_not_validated,
                  COUNT(CASE WHEN label_type = 'Signal' THEN 1 END) AS pedestrian_signal_labels,
                  COUNT(CASE WHEN label_type = 'Signal' AND correct THEN 1 END) AS pedestrian_signal_validated_correct,
                  COUNT(CASE WHEN label_type = 'Signal' AND NOT correct THEN 1 END) AS pedestrian_signal_validated_incorrect,

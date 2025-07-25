@@ -10,7 +10,7 @@
 @teamName = @{data.userTeam.map(_.name).getOrElse("Team name not found")}
 @admin = @{adminData.isDefined}
 
-@common.main(commonData, title) {
+@common.main(commonData, title, defaultI18nNamespace = "dashboard", i18Namespaces = Seq("dashboard", "common", "labelmap")) {
     @if(admin) {
         @common.navbar(commonData, Some(user))
     } else {
@@ -152,7 +152,7 @@
             <div class="user-stats-holder">
                 <span class="user-stats-header">@Messages("dashboard.your.missions")</span>
                 <span class="user-stats-header">@Messages("dashboard.distance")</span>
-                <span class="user-stats-header">@Messages("dashboard.labels")</span>
+                <span class="user-stats-header">@Messages("labels.caps")</span>
                 <span class="user-stats-header">@Messages("validations")</span>
                 <span class="user-stats-header">@Messages("accuracy.caps")</span>
 
@@ -207,7 +207,7 @@
                 </div>
 
                 <div class="achievements-outer-col1">
-                    <h3>@Messages("dashboard.labels")</h3>
+                    <h3>@Messages("labels.caps")</h3>
                     <p id="labels-badge-encouragement" class="achievements-encouraging-statement">Just XX more labels until your next labeling achievement.</p>
                     <div id="labels-badge-grid" class="achievements-badge-grid">
                         <img id="labels-badge1" src='@assets.path("images/badges/badge_labels_badge1.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.first"))">
@@ -407,23 +407,20 @@
     }
 
     <script>
-        $(document).ready(function () {
-            const language = "@messages.lang.code";
-            const countryId = "@currentCity.countryId";
-            util.initializeI18Next(language, ['dashboard', 'common', 'labelmap'], 'dashboard', countryId, function() {
-                Progress(_, $, '@profileUser.userId', @admin);
-                @if(admin) {
-                    AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService);
-                    $('#label-table').dataTable();
-                }
+        window.appManager.ready(function () {
+            // Set up the main JS that powers the user dashboard.
+            Progress(_, $, '@commonData.mapboxApiKey', '@profileUser.userId', @admin);
+            @if(admin) {
+                AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService);
+                $('#label-table').dataTable();
+            }
 
-                const achievementTracker = new AchievementTracker();
-                achievementTracker.updateBadgeAchievementGrid(
-                    @data.missionCount, @data.auditedDistance, @data.labelCount, @data.validationCount
-                );
+            const achievementTracker = new AchievementTracker();
+            achievementTracker.updateBadgeAchievementGrid(
+                @data.missionCount, @data.auditedDistance, @data.labelCount, @data.validationCount
+            );
 
-                MistakeCarousel('@profileUser.userId');
-            });
+            MistakeCarousel('@profileUser.userId');
 
             // Adds interaction handlers for the team dropdown.
             $('[data-toggle="tooltip"]').tooltip();

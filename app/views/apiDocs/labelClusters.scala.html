@@ -29,6 +29,10 @@
             For access to individual, unclustered label data, use the <a href="/api-docs/rawLabels">Raw Labels API</a>
             instead.
         </p>
+        <p>
+            To ensure data quality, we apply some data cleaning before grouping labels into clusters. You can read more
+            about this in the <a href="#data-cleaning">Data Cleaning</a> section below.
+        </p>
     </div>
 
     <div class="api-section" id="label-clusters-preview-section">
@@ -328,7 +332,7 @@
                     <tr>
                         <td><code>properties.label_type</code></td>
                         <td><code>string</code></td>
-                        <td>Type of sidewalk feature or barrier represented by this cluster. Possible values: <code>CurbRamp</code>, <code>NoCurbRamp</code>, <code>Crosswalk</code>, <code>SurfaceProblem</code>, <code>Obstacle</code>, <code>NoSidewalk</code>, or <code>Other</code>.</td>
+                        <td>Type of sidewalk feature or barrier represented by this cluster. Possible values: <code>CurbRamp</code>, <code>NoCurbRamp</code>, <code>Crosswalk</code>, <code>SurfaceProblem</code>, <code>Obstacle</code>, <code>Signal</code>, <code>NoSidewalk</code>, or <code>Other</code>.</td>
                     </tr>
                     <tr>
                         <td><code>properties.median_severity</code></td>
@@ -440,6 +444,26 @@
     "message": "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", // Human-readable description
     "parameter": "bbox" // Optional: The specific parameter causing the error
 }</code></pre>
+    </div>
+
+    <div class="api-section" id="data-cleaning-section">
+        <h2 class="api-heading" id="data-cleaning">Data Cleaning<a href="#data-cleaning" class="permalink">#</a></h2>
+        <p>
+            Before grouping labels into the cluster provided by this API, we apply a few filters to clean the data and
+            ensure data quality. We filter out labels that meet any of these criteria:
+        </p>
+        <ul>
+            <li>The label has been validated as incorrect. If a label has more "No" votes than "Yes" votes, it won't be included.</li>
+            <li>Through manual review, an Admin has flagged an entire street or more as being labeled incorrectly. If the label was validated as correct, however, it will still be included.</li>
+            <li>
+                The user who created the label has been flagged as a low-quality contributor, either through an algorithmic assessment or through manual review by an Admin. If the label was validated as correct, however, it will still be included. A user may be automatically flagged as providing low-quality data if they meet any of the following criteria:
+                <ul>
+                    <li>They have an accuracy rating below 60% based on validations from other users (min 50 of their labels validated).</li>
+                    <li>They have a "labeling frequency" below 37.5 labels per kilometer. This cutoff point was determined experimentally and helps to ensure full data coverage.</li>
+                    <li>They have been flagged by Admins as providing low quality data through manual review.</li>
+                </ul>
+            </li>
+        </ul>
     </div>
 
     <div class="api-section" id="best-practices-section">

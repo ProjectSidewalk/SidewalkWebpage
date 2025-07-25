@@ -17,7 +17,7 @@ function UndoValidation (uiUndo) {
     function enableUndo() {
         status.disableUndo = false;
         uiUndo.undoButton.prop("disabled", false);
-        if (!svv.newValidateBeta) uiUndo.undoButton.removeClass("disabled");
+        if (!svv.expertValidate) uiUndo.undoButton.removeClass("disabled");
     }
 
     /**
@@ -26,7 +26,7 @@ function UndoValidation (uiUndo) {
     function disableUndo() {
         status.disableUndo = true;
         uiUndo.undoButton.prop("disabled", true);
-        if (!svv.newValidateBeta) uiUndo.undoButton.addClass("disabled");
+        if (!svv.expertValidate) uiUndo.undoButton.addClass("disabled");
         svv.panorama.setLastLabel({});
     }
 
@@ -36,7 +36,7 @@ function UndoValidation (uiUndo) {
     function undo() {
         svv.tracker.push("ModalUndo_Click");
         svv.missionContainer.updateAMissionUndoValidation();
-        if (svv.newValidateBeta) svv.rightMenu.saveValidationState();
+        if (svv.expertValidate) svv.rightMenu.saveValidationState();
         svv.panorama.undoLabel();
         disableUndo();
     }
