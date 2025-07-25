@@ -237,7 +237,7 @@
             },
             "slide-2": {
                 "title": "Sin indicador visual",
-                "description": "Los cruces sin indicador visual <b>no</b> deben etiquetarse como cruces peatonales."
+                "description": "Los cruces sin indicador visual <b>no</b> deben etiquetarse como cruces peatonales marcados."
             },
             "slide-3": {
                 "title": "Línea de parada",
@@ -245,7 +245,7 @@
             },
             "slide-4": {
                 "title": "Banda de frenado",
-                "description": "Los topes de velocidad no deben etiquetarse como cruces peatonales."
+                "description": "Los topes de velocidad no deben etiquetarse como cruces peatonales marcados."
             }
         },
         "signal": {

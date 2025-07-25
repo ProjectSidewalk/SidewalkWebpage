@@ -49,7 +49,7 @@
                 "example-4": "Esta intersección no tiene banqueta"
             },
             "crosswalk": {
-                "title": "Cruce peatonal <strong>correcto</strong>",
+                "title": "Cruce peatonal marcado <strong>correcto</strong>",
                 "example-1-2-3": "Esta etiqueta está colocada correctamente en un cruce peatonal pintado",
                 "example-4": "Esta etiqueta está colocada correctamente en un cruce peatonal con pintura descolorida"
             },
@@ -93,10 +93,10 @@
                 "example-4": "Los callejones no deben etiquetarse como \"no hay banqueta\""
             },
             "crosswalk": {
-                "title": "Cruce peatonal <strong>incorrecto</strong>",
+                "title": "Cruce peatonal marcado <strong>incorrecto</strong>",
                 "example-1": "Los cruces sin indicador visual no deben etiquetarse como cruces peatonales",
-                "example-2": "Las líneas de parada para automóviles no deben etiquetarse como cruces peatonales",
-                "example-3-4": "Los topes de velocidad no deben etiquetarse como cruces peatonales"
+                "example-2": "Las líneas de parada para automóviles no deben etiquetarse como cruces peatonales marcados",
+                "example-3-4": "Los topes de velocidad no deben etiquetarse como cruces peatonales marcados"
             },
             "signal": {
                 "title": "Semáforo peatonal <strong>Incorrect</strong>",
