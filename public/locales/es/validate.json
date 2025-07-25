@@ -94,7 +94,7 @@
             },
             "crosswalk": {
                 "title": "Cruce peatonal marcado <strong>incorrecto</strong>",
-                "example-1": "Los cruces sin indicador visual no deben etiquetarse como cruces peatonales",
+                "example-1": "Los cruces sin indicador visual no deben etiquetarse como cruces peatonales marcados",
                 "example-2": "Las líneas de parada para automóviles no deben etiquetarse como cruces peatonales marcados",
                 "example-3-4": "Los topes de velocidad no deben etiquetarse como cruces peatonales marcados"
             },
