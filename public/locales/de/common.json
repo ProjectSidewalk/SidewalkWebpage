@@ -16,7 +16,7 @@
     "surface-problem": "Oberflächen&shy;problem",
     "occlusion": "Trottoir nicht sichtbar",
     "no-sidewalk": "kein Trottoir",
-    "crosswalk": "Fussgänger&shy;streifen",
+    "crosswalk": "Markierter Fussgängerstreifen",
     "signal": "Fussgänger&shy;lichtsignal",
     "other": "Andere",
     "surface-problems": "Oberflächen&shy;probleme",
@@ -110,7 +110,7 @@
         "one button": "ein Knopf",
         "two buttons": "zwei Knöpfe",
         "hard to reach buttons": "schwer zu erreichen Knöpfe",
-        "missing crosswalk": "fehlender Fussgängerstreifen",
+        "missing crosswalk": "fehlender Markierter Fussgängerstreifen",
         "no bus stop access": "kein Zugang zur Haltestelle",
         "pedestrian lane marking": "Längsstreifen / Gehwegmarkierung",
         "covered walkway": "überdachter Gehweg",
@@ -241,11 +241,11 @@
             },
             "slide-3": {
                 "title": "Haltelinien",
-                "description": "Haltelinien für Autos sollten nicht als Fussgängerstreifen beschriftet werden."
+                "description": "Haltelinien für Autos sollten nicht als Markierter Fussgängerstreifen beschriftet werden."
             },
             "slide-4": {
                 "title": "Strassenschwellen",
-                "description": "Strassenschwellen sollten nicht als Fussgängerstreifen beschriftet werden."
+                "description": "Strassenschwellen sollten nicht als Markierter Fussgängerstreifen beschriftet werden."
             }
         },
         "signal": {

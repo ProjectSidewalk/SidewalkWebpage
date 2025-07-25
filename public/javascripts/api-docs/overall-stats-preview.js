@@ -38,7 +38,7 @@
         Obstacle: 'Obstacle in a Path',
         SurfaceProblem: 'Surface Problem',
         NoSidewalk: 'No Sidewalk',
-        Crosswalk: 'Crosswalk',
+        Crosswalk: 'Marked Crosswalk',
         Signal: 'Pedestrian Signal',
         Occlusion: 'Can\'t See Sidewalk',
         Other: 'Other'

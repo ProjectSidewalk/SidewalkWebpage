@@ -30,7 +30,7 @@
         obstacle: 'Obstacle',
         surface_problem: 'Surface Problem',
         no_sidewalk: 'No Sidewalk',
-        crosswalk: 'Crosswalk',
+        marked_crosswalk: 'Marked Crosswalk',
         pedestrian_signal: 'Pedestrian Signal',
         cant_see_sidewalk: 'Can\'t See Sidewalk',
         other: 'Other'
@@ -43,7 +43,7 @@
         'Obstacle': 'obstacle',
         'SurfaceProblem': 'surface_problem',
         'NoSidewalk': 'no_sidewalk',
-        'Crosswalk': 'crosswalk',
+        'Crosswalk': 'marked_crosswalk',
         'Signal': 'pedestrian_signal',
         'Occlusion': 'cant_see_sidewalk',
         'Other': 'other'

@@ -13,7 +13,7 @@
     "surface-problem": "Problema en superficie",
     "occlusion": "No puedo ver la banqueta",
     "no-sidewalk": "No hay banqueta",
-    "crosswalk": "Cruce peatonal",
+    "crosswalk": "Cruce peatonal marcado",
     "signal": "Semáforo peatonal",
     "other": "Otro",
     "agree": "Aceptar",
@@ -110,7 +110,7 @@
         "one button": "un botón",
         "two buttons": "dos botones",
         "hard to reach buttons": "botones difíciles de alcanzar",
-        "missing crosswalk": "paso peatonal ausente (i)",
+        "missing crosswalk": "cruce peatonal marcado ausente",
         "no bus stop access": "No hay acceso a la parada de autobús",
         "pedestrian lane marking": "marcado de carril peatonal",
         "covered walkway": "pasarela cubierta",
@@ -237,15 +237,15 @@
             },
             "slide-2": {
                 "title": "Sin indicador visual",
-                "description": "Los cruces sin indicador visual <b>no</b> deben etiquetarse como cruces peatonales."
+                "description": "Los cruces sin indicador visual <b>no</b> deben etiquetarse como cruces peatonales marcados."
             },
             "slide-3": {
                 "title": "Línea de parada",
-                "description": "Las líneas de parada para automóviles no deben etiquetarse como cruces peatonales."
+                "description": "Las líneas de parada para automóviles no deben etiquetarse como cruces peatonales marcados."
             },
             "slide-4": {
                 "title": "Banda de frenado",
-                "description": "Los topes de velocidad no deben etiquetarse como cruces peatonales."
+                "description": "Los topes de velocidad no deben etiquetarse como cruces peatonales marcados."
             }
         },
         "signal": {

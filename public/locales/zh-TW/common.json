@@ -13,7 +13,7 @@
     "surface-problem": "鋪面問題",
     "occlusion": "看不見人行道",
     "no-sidewalk": "無人行道",
-    "crosswalk": "行人穿越道",
+    "crosswalk": "有標記的行人穿越道",
     "signal": "行人號誌",
     "other": "其他",
     "agree": "同意",
@@ -110,7 +110,7 @@
         "one button": "一個按鈕",
         "two buttons": "兩個按鈕",
         "hard to reach buttons": "很難到達按鈕",
-        "missing crosswalk": "缺行人穿越道",
+        "missing crosswalk": "缺有標記的行人穿越道",
         "no bus stop access": "無公車站出入空間",
         "pedestrian lane marking": "人行道標線",
         "covered walkway": "騎樓",
@@ -237,15 +237,15 @@
             },
             "slide-2": {
                 "title": "路面上無任何標示",
-                "description": "「行人穿越道」會在路面上劃設行人穿越道標線。因此當路面上<b>無任何標示</b>時，此處並不是行人穿越道，所以<b>不應該</b>標記為行人穿越道。"
+                "description": "「行人穿越道」會在路面上劃設行人穿越道標線。因此當路面上<b>無任何標示</b>時，此處並不是行人穿越道，所以<b>不應該</b>標記為有標記的行人穿越道。"
             },
             "slide-3": {
                 "title": "車輛停止線",
-                "description": "在路口交叉前的單條白色寬標線是「車輛停止線」，它不應該標記為行人穿越道。"
+                "description": "在路口交叉前的單條白色寬標線是「車輛停止線」，它不應該標記為有標記的行人穿越道。"
             },
             "slide-4": {
                 "title": "減速丘",
-                "description": "在路面上凸起的減速丘，可能有白色標線於其兩側，但它不是行人穿越道，因此不應該以此做標記。"
+                "description": "在路面上凸起的減速丘，可能有白色標線於其兩側，但它不是有標記的行人穿越道，因此不應該以此做標記。"
             }
         },
         "signal": {

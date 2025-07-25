@@ -283,7 +283,7 @@ object ApiFormats {
         "obstacle"          -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Obstacle.name)),
         "surface_problem"   -> Json.toJson(u.statsByLabelType(LabelTypeEnum.SurfaceProblem.name)),
         "no_sidewalk"       -> Json.toJson(u.statsByLabelType(LabelTypeEnum.NoSidewalk.name)),
-        "crosswalk"         -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Crosswalk.name)),
+        "marked_crosswalk"  -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Crosswalk.name)),
         "pedestrian_signal" -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Signal.name)),
         "cant_see_sidewalk" -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Occlusion.name)),
         "other"             -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Other.name))
