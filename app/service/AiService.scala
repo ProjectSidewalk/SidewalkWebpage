@@ -96,6 +96,7 @@ class AiServiceImpl @Inject() (
   private def callAIAPI(labelData: LabelDataForAi): Future[Option[LabelAi]] = {
     val SIDEWALK_AI_API_HOSTNAME: String = config.get[String]("sidewalk-ai-api-hostname")
     val url: String                      = s"https://${SIDEWALK_AI_API_HOSTNAME}/process"
+    val labelId: Int                     = labelData.label.labelId
 
     // Create form data for the multipart request.
     val formData = Map(
@@ -121,17 +122,17 @@ class AiServiceImpl @Inject() (
 
             Some(LabelAi(0, labelData.label.labelId, valResult, valAccuracy, tags, apiVersion, OffsetDateTime.now))
           } else {
-            logger.warn(s"AI API returned error status: ${response.status} - ${response.statusText}")
+            logger.warn(s"AI API for label ${labelId} returned error status: ${response.status} - ${response.statusText}")
             None
           }
         } catch {
           case e: Exception =>
-            logger.warn(s"Failed to parse AI API response: ${e.getMessage}")
+            logger.warn(s"Failed to parse AI API response for label ${labelId}: ${e.getMessage}")
             None
         }
       }
       .recover { case e: Exception =>
-        logger.warn(s"AI API request failed: ${e.getMessage}")
+        logger.warn(s"AI API request failed for label ${labelId}: ${e.getMessage}")
         None
       }
   }

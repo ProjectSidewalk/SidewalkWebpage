@@ -223,7 +223,7 @@ case class LabelValidationMetadata(
     tags: Seq[String],
     cameraLat: Option[Float],
     cameraLng: Option[Float],
-    aiTags: Seq[String]
+    aiTags: Option[Seq[String]]
 ) extends BasicLabelMetadata
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
@@ -319,7 +319,7 @@ object LabelTable {
       List[String],                     // tags
       Option[Float],                    // cameraLat
       Option[Float],                    // cameraLng
-      List[String]                      // aiTags
+      Option[List[String]]              // aiTags
   )
   type LabelValidationMetadataTupleRep = (
       Rep[Int],             // labelId
@@ -339,11 +339,11 @@ object LabelTable {
       Rep[Int],             // streetEdgeId
       Rep[Int],             // regionId
       (Rep[Int], Rep[Int], Rep[Int], Rep[Option[Boolean]]), // validationInfo (agreeCount, disagreeCount, unsureCount, correct)
-      Rep[Option[Int]],   // userValidation
-      Rep[List[String]],  // tags
-      Rep[Option[Float]], // cameraLat
-      Rep[Option[Float]], // cameraLng
-      Rep[List[String]]   // aiTags
+      Rep[Option[Int]],         // userValidation
+      Rep[List[String]],        // tags
+      Rep[Option[Float]],       // cameraLat
+      Rep[Option[Float]],       // cameraLng
+      Rep[Option[List[String]]] // aiTags
   )
 
   // Define an implicit conversion from the tuple representation to the case class.
@@ -891,8 +891,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           l.tags,
           gd.lat,
           gd.lng,
-          la.flatMap(_.tags).getOrElse(List.empty[String].bind)
-//        if (includeAiTags) la.map(_.tags).getOrElse(List.empty[String]) else List.empty[String]
+          // Include AI tags if requested.
+          if (includeAiTags) la.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
+          else None.asColumnOf[Option[List[String]]]
         )
       }
 
@@ -1003,7 +1004,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       l._1.tags,
       l._4.lat,
       l._4.lng,
-      List.empty[String].bind // Placeholder for AI tags, since we don't show those on Gallery right now.
+      None.asColumnOf[Option[List[String]]] // Placeholder for AI tags, since we don't show those on Gallery right now.
     )
 
     // Remove duplicates if needed and randomize.
