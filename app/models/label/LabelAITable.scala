@@ -12,23 +12,23 @@ import scala.concurrent.ExecutionContext
 case class LabelAI(
     labelAiId: Int,
     labelId: Int,
-    aiTags: Option[List[String]],
-    aiValidationAccuracy: Double,
-    aiValidationResult: Int,
+    validationResult: Int,
+    validationAccuracy: Double,
+    tags: Option[List[String]],
     apiVersion: String,
     timeCreated: OffsetDateTime
 )
 
 class LabelAITableDef(tag: Tag) extends Table[LabelAI](tag, "label_ai") {
-  def labelAiId: Rep[Int]               = column[Int]("label_ai_id", O.PrimaryKey, O.AutoInc)
-  def labelId: Rep[Int]                 = column[Int]("label_id")
-  def aiTags: Rep[Option[List[String]]] = column[Option[List[String]]]("ai_tags")
-  def aiValidationAccuracy: Rep[Double] = column[Double]("ai_validation_accuracy")
-  def aiValidationResult: Rep[Int]      = column[Int]("ai_validation_result")
-  def apiVersion: Rep[String]           = column[String]("api_version")
-  def timeCreated: Rep[OffsetDateTime]  = column[OffsetDateTime]("time_created", O.Default(OffsetDateTime.now))
+  def labelAiId: Rep[Int]              = column[Int]("label_ai_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int]                = column[Int]("label_id")
+  def validationResult: Rep[Int]       = column[Int]("validation_result")
+  def validationAccuracy: Rep[Double]  = column[Double]("validation_accuracy")
+  def tags: Rep[Option[List[String]]]  = column[Option[List[String]]]("tags")
+  def apiVersion: Rep[String]          = column[String]("api_version")
+  def timeCreated: Rep[OffsetDateTime] = column[OffsetDateTime]("time_created", O.Default(OffsetDateTime.now))
 
-  def * = (labelAiId, labelId, aiTags, aiValidationAccuracy, aiValidationResult, apiVersion, timeCreated) <> (
+  def * = (labelAiId, labelId, validationResult, validationAccuracy, tags, apiVersion, timeCreated) <> (
     (LabelAI.apply _).tupled,
     LabelAI.unapply
   )

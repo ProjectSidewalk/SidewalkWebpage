@@ -56,7 +56,7 @@ class AiServiceImpl @Inject() (
             .map(_.map { case (aiResults, labelData) =>
               println(aiResults)
               val aiValidation: Option[Int] =
-                if (aiResults.aiValidationAccuracy >= AI_VALIDATION_MIN_ACCURACY) Some(aiResults.aiValidationResult)
+                if (aiResults.validationAccuracy >= AI_VALIDATION_MIN_ACCURACY) Some(aiResults.validationResult)
                 else None
 
               // If AI validations are enabled and confidence is above the threshold, submit a validation.
