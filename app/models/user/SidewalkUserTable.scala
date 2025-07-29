@@ -27,6 +27,13 @@ class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_
   def *                     = (userId, username, email) <> (SidewalkUser.tupled, SidewalkUser.unapply)
 }
 
+/**
+ * Companion object with constants that are shared throughout codebase.
+ */
+object SidewalkUserTable {
+  val aiUserId: String = "51b0b927-3c8a-45b2-93de-bd878d1e5cf4"
+}
+
 @ImplementedBy(classOf[SidewalkUserTable])
 trait SidewalkUserTableRepository {}
 

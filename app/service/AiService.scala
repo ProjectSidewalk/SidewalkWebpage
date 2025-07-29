@@ -2,6 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.label.{LabelAI, LabelDataForAi, LabelPointTable, LabelTypeEnum}
+import models.user.SidewalkUserTable
 import models.utils._
 import models.validation.LabelValidation
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -72,7 +73,7 @@ class AiServiceImpl @Inject() (
                     label.severity,
                     label.tags,
                     label.tags,
-                    "51b0b927-3c8a-45b2-93de-bd878d1e5cf4",
+                    SidewalkUserTable.aiUserId,
                     label.missionId,
                     Some(labelPoint.canvasX),
                     Some(labelPoint.canvasY),
