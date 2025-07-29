@@ -29,8 +29,7 @@ function MissionFactory (missionModel) {
             parameters.distanceProgress = parameters.distance_progress;
 
         var mission = self.create(parameters.missionId, parameters.missionType, parameters.regionId,
-            parameters.isComplete, parameters.pay, parameters.paid, parameters.distance, parameters.distanceProgress,
-            parameters.skipped);
+            parameters.isComplete, parameters.distance, parameters.distanceProgress, parameters.skipped);
         _missionModel.addAMission(mission);
     });
 }
@@ -42,21 +41,17 @@ function MissionFactory (missionModel) {
  * @param missionType
  * @param regionId
  * @param isComplete
- * @param pay
- * @param paid
  * @param distance
  * @param distanceProgress
  * @param skipped
  * @returns {svl.Mission}
  */
-MissionFactory.prototype.create = function (missionId, missionType, regionId, isComplete, pay, paid, distance, distanceProgress, skipped) {
+MissionFactory.prototype.create = function (missionId, missionType, regionId, isComplete, distance, distanceProgress, skipped) {
     return new Mission({
         missionId: missionId,
         missionType: missionType,
         regionId: regionId,
         isComplete: isComplete,
-        pay: pay,
-        paid: paid,
         distance: distance,
         distanceProgress: distanceProgress,
         skipped: skipped

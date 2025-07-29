@@ -1,0 +1,8 @@
+{
+    "curb-ramp": "Curb Style",
+    "tag": {
+        "litter/garbage": "debris/trash",
+        "parked bike": "parked bike/cycle",
+        "brick/cobblestone": "cobblestone"
+    }
+}

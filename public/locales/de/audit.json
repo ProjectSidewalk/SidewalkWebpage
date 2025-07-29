@@ -17,7 +17,7 @@
         "label-attribute-1": "Gut! Nun <span class=\"bold\">klicken Sie auf die Trottoirabsenkung</span> unterhalb des gelb blinkenden Pfeils, um sie zu beschriften.",
         "rate-severity-1": "Jetzt können Sie die Qualität der Trottoirabsenkung bewerten, wobei 1 für passierbar und 5 für nicht passierbar für Rollstuhlfahrende steht. Da sie breit genug ist und eine taktile Orientierungshilfe hat, <span class=\"bold\">wird sie mit 1, passierbar</span> bewertet.",
         "redo-rate-attribute-1": "Ups, Sie sollten diese Trottoirabsenkung mit 1, passierbar bewerten. Es handelt sich um eine gute Trottoirabsenkung, die breit genug ist und eine taktile Orientierungshilfe hat. <span class=\"bold\">Wählen Sie \"1\" aus, um sie zu bewerten.</span>",
-        "select-label-type-2": "Beschriften wir nun den aufgemalten Fussgängerübergang. <span class=\"bold\">Klicken Sie auf das \"Fussgängerstreifen\"-Symbol.</span>.",
+        "select-label-type-2": "Beschriften wir nun den aufgemalten Fussgängerübergang. <span class=\"bold\">Klicken Sie auf das \"Markierter Fussgängerstreifen\"-Symbol.</span>.",
         "label-attribute-2": "Toll! Jetzt <span class=\"bold\">klicken Sie unter den blinkenden gelben Pfeil</span> um den Fussgängerübergang zu kennzeichnen.",
         "adjust-heading-angle-1": "Gut! Nun passen wir die Ansicht an, um eine andere Ecke der Kreuzung zu betrachten. <span class=\"bold\">Greifen und ziehen Sie das “Street View”-Bild, um nach links zu blicken.</span>",
         "zoom-in": "Hmm, es sieht so aus, als ob der Teil der Kreuzung zu weit entfernt ist, um sie klar zu erkennen. <span class=\"bold\">Klicken Sie auf das “Hineinzoomen”-Symbol</span>, um einen genaueren Blick darauf zu werfen.",
@@ -37,7 +37,7 @@
         "label-attribute-5": "Beschriften Sie es nun, indem <span class=\"bold\">Sie unter den blinkenden gelben Pfeil klicken.</span>. Sie können das Lichtsignal weiter oben auf dem Pfosten sehen, aber wir bitten Sie, Ihre Beschriftung unten am Pfosten anzubringen, weil wir so eine genauere Position erhalten.",
         "zoom-out": "Zoomen Sie nun heraus und schauen Sie auf den nächsten Ecken der Kreuzung. <span class=\"bold\">Klicken Sie auf das “Hinauszoomen”-Symbol</span>.",
         "adjust-heading-angle-2": "Schauen Sie nach links, indem Sie <span class=\"bold\">das “Street View”-Bild greifen und ziehen.</span>",
-        "select-label-type-6": "Auch hier scheint es einen aufgemalten Fussgängerübergang zu geben. Zuerst <span class=\"bold\">klicken Sie auf das \"Fussgängerstreifen\"-Symbol</span>.",
+        "select-label-type-6": "Auch hier scheint es einen aufgemalten Fussgängerübergang zu geben. Zuerst <span class=\"bold\">klicken Sie auf das \"Markierter Fussgängerstreifen\"-Symbol</span>.",
         "label-attribute-6": "Beschriften wir ihn, indem wir die Beschriftung in der Mitte des Fussgängerübergangs platzieren. <span class=\"bold\">Klicken Sie unter den blinkenden Pfeil</span> um die Beschriftung hinzuzufügen.",
         "adjust-heading-angle-3": "Schauen Sie <span class=\"bold\">weiter nach links</span>.",
         "speed-things-up": "Um den Prozess zu beschleunigen, beschriften wir für Sie diese beiden Trottoirabsenkungen, diesen Fussgängerübergang und dieses Fussgängerlichtsignal. <span class=\"bold\">Künftig sollten Sie diese selbst beschriften!</span>",
@@ -105,7 +105,7 @@
         },
         "minimap": {
             "follow-red-line": "Folgen Sie der roten Linie, um die Mission fortzusetzen.",
-            "explore-current-location": "Erkunden Sie die Gegend nach Zugänglichkeitsproblemen"
+            "explore-current-location": "Drehen Sie sich um 360 Grad, um sicherzustellen, dass nichts übersehen wird."
         }
     },
     "center-ui": {
@@ -149,7 +149,7 @@
                 "brick-cobblestone": "Z<tag-underline>i</tag-underline>egelsteine/Kopfsteinpflaster",
                 "very-broken": "sta<tag-underline>r</tag-underline>k beschädigt",
                 "rail-tram-track": "Zug-/Tramschienen (<tag-underline>l</tag-underline>)",
-                "sand-gravel": "Schotter/Kies (<tag-underline>v</tag-underline>)",
+                "sand-gravel": "Schlamm/Sand/Kies (<tag-underline>v</tag-underline>)",
                 "uncovered-manhole": "offen<tag-underline>e</tag-underline>r Schacht",
                 "ends-abruptly": "endet <tag-underline>a</tag-underline>brupt",
                 "street-has-a-sidewalk": "St<tag-underline>r</tag-underline>asse hat ein Trottoir",
@@ -167,7 +167,7 @@
                 "one-button": "<tag-underline>e</tag-underline>in Knopf",
                 "two-buttons": "zwei Knöpfe (<tag-underline>t</tag-underline>)",
                 "hard-to-reach-buttons": "schwer zu e<tag-underline>r</tag-underline>reichen Knöpfe",
-                "missing-crosswalk": "fehlender Fussgängerstre<tag-underline>i</tag-underline>fen",
+                "missing-crosswalk": "fehlender Mark<tag-underline>i</tag-underline>erter Markierter Fussgängerstreifen",
                 "no-bus-stop-access": "kein Zugang zur H<tag-underline>a</tag-underline>ltestelle",
                 "height-difference": "Höhenunterschie<tag-underline>d</tag-underline>",
                 "pedestrian-lane-marking": "Längsstre<tag-underline>i</tag-underline>fen / Gehwegmark<tag-underline>i</tag-underline>erung",
@@ -185,7 +185,12 @@
                 "cycle-lane-faded-paint": "Radweg: $t(audit:center-ui.context-menu.tag.paint-fading)",
                 "cycle-lane-debris-pooled-water": "Ra<tag-underline>d</tag-underline>weg: Schmutz/Wasserpfütze",
                 "cycle-lane-parked-car": "Radweg: $t(audit:center-ui.context-menu.tag.parked-car)",
-                "cycle-box": "Fahrradbo<tag-underline>x</tag-underline>"
+                "cycle-box": "Fahrradbo<tag-underline>x</tag-underline>",
+                "not-visible": "nicht sichtbar (<tag-underline>[</tag-underline>)",
+                "cart": "Warenkorb (<tag-underline>;</tag-underline>)",
+                "drainage": "Drainage (<tag-underline>,</tag-underline>)",
+                "electrical-box": "Schaltkasten (<tag-underline>.</tag-underline>)",
+                "too-dirty-cluttered": "zu schmutzig/unordentlich (<tag-underline>y</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Passierbar",
@@ -232,7 +237,7 @@
         "label-shortcuts-obstacle": "Sie können auch die Taste <kbd>{{key}}</kbd> drücken, um die Beschriftung für ein Hindernis zu wählen.",
         "label-shortcuts-surface-problem": "Sie können auch die Taste <kbd>{{key}}</kbd> drücken, um die Beschriftung für ein Oberflächenproblem zu wählen.",
         "label-shortcuts-no-sidewalk": "Sie können auch die Taste <kbd>{{key}}</kbd> drücken, um die Beschriftung für ein fehlendes Trottoir zu wählen.",
-        "label-shortcuts-crosswalk": "Sie können auch die Taste <kbd>{{key}}</kbd> drücken, um die Beschriftung für ein Fussgängerstreifen zu wählen.",
+        "label-shortcuts-crosswalk": "Sie können auch die Taste <kbd>{{key}}</kbd> drücken, um die Beschriftung für ein Markierter Fussgängerstreifen zu wählen.",
         "label-shortcuts-signal": "Sie können auch die Taste <kbd>{{key}}</kbd> drücken, um die Beschriftung für ein Fussgängerlichtsignal zu wählen.",
         "label-shortcuts-occlusion": "Sie können auch die Taste <kbd>{{key}}</kbd> drücken, um die Beschriftung für ein nicht sichtbares Trottoir zu wählen.",
         "still-stuck": "Wenn Sie immer noch feststecken, klicken Sie erneut auf das Verlaufen-Symbol.",

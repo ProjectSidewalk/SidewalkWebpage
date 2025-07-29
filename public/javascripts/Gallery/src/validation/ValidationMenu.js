@@ -206,7 +206,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, expandedView, onExpan
         }
         sg.tracker.push(actionStr, { panoId: currCardProperties.gsv_panorama_id }, { labelId: currCardProperties.label_id });
 
-        let validationTimestamp = new Date().getTime();
+        let validationTimestamp = new Date();
         let data = {
             label_id: currCardProperties.label_id,
             label_type: currCardProperties.label_type,
@@ -215,11 +215,13 @@ function ValidationMenu(refCard, gsvImage, cardProperties, expandedView, onExpan
             new_severity: currCardProperties.severity,
             old_tags: currCardProperties.tags,
             new_tags: currCardProperties.tags,
-            canvas_height: gsvImage.height(),
-            canvas_width: gsvImage.width(),
+            canvas_height: Math.round(gsvImage.height()),
+            canvas_width: Math.round(gsvImage.width()),
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
-            source: sourceStr
+            source: sourceStr,
+            undone: false,
+            redone: currCardProperties.user_validation !== null
         };
 
         // Record current POV and canvas X/Y position of the label at the current view. This does not change for the
@@ -244,15 +246,15 @@ function ValidationMenu(refCard, gsvImage, cardProperties, expandedView, onExpan
             let labelCanvasX = labelIcon.position().left + labelIconRadius;
             let labelCanvasY = labelIcon.position().top + labelIconRadius;
 
-            // If the user has panned away from the label and it's no longer visible on the canvas, set canvasX/Y to
-            // null. We add/subtract the radius of the label so that we still record these values when only a fraction of the
-            // label is still visible.
+            // If the user has panned away from the label, and it's no longer visible on the canvas, set canvasX/Y to
+            // null. We add/subtract the radius of the label so that we still record these values when only a fraction
+            // of the label is still visible.
             if (labelCanvasX + labelIconRadius > 0
                 && labelCanvasX - labelIconRadius < gsvImage.width()
                 && labelCanvasY + labelIconRadius > 0
                 && labelCanvasY - labelIconRadius < gsvImage.height()) {
-                data.canvas_x = labelCanvasX - labelIconRadius;
-                data.canvas_y = labelCanvasY - labelIconRadius;
+                data.canvas_x = Math.round(labelCanvasX - labelIconRadius);
+                data.canvas_y = Math.round(labelCanvasY - labelIconRadius);
             } else {
                 data.canvas_x = null;
                 data.canvas_y = null;
@@ -264,7 +266,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, expandedView, onExpan
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: "/labelmap/validate",
-            type: 'post',
+            method: 'POST',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function(result) {

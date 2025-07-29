@@ -1,6 +1,6 @@
 /**
  * Compiles and submits log data from Gallery.
- * 
+ *
  * @param {*} url URL to send interaction data to.
  * @param {*} beaconUrl URL to send interaction data to on page unload.
  * @returns {Form}
@@ -27,7 +27,7 @@ function Form(url, beaconUrl) {
             screen_width: screen.width,
             screen_height: screen.height,
             avail_width: screen.availWidth,
-            avail_height: screen.availHeight, 
+            avail_height: screen.availHeight,
             operating_system: util.getOperatingSystem(),
             language: i18next.language
         };
@@ -39,7 +39,7 @@ function Form(url, beaconUrl) {
 
     /**
      * Submits all front-end data to the backend.
-     * 
+     *
      * @param data  Data object containing interactions.
      * @param async Whether to submit asynchronously or not.
      * @returns {*}
@@ -57,7 +57,7 @@ function Form(url, beaconUrl) {
             async: async,
             contentType: 'application/json; charset=utf-8',
             url: properties.dataStoreUrl,
-            type: 'post',
+            method: 'POST',
             data: JSON.stringify(data),
             success: function () {
                 console.log("Data logged successfully");

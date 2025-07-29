@@ -46,7 +46,7 @@ function Tracker() {
         }
 
         let note = _notesToString(notes);
-        let timestamp = new Date().getTime();
+        let timestamp = new Date();
 
         let data = {
             action: action,

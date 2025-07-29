@@ -20,8 +20,9 @@ function LabelContainer() {
      * Pushes a label to the list of current labels.
      * @param labelId           Integer label ID
      * @param labelMetadata     Label metadata (validationProperties object)
+     * @param commentData       Comment data (commentProperties object)
      */
-    function push(labelId, labelMetadata) {
+    function push(labelId, labelMetadata, commentData) {
         // If the most recent label is the same as current (meaning it was an undo), remove the undo and use this one.
         const mostRecentLabel = currentLabels[currentLabels.length - 1];
         let redone = false;
@@ -53,8 +54,9 @@ function LabelContainer() {
             new_severity: newSev,
             old_tags: labelMetadata.oldTags,
             new_tags: labelMetadata.newTags,
+            comment: commentData,
             zoom: labelMetadata.zoom,
-            source: labelMetadata.isMobile ? "ValidateMobile" : (svv.newValidateBeta ? "ValidateDesktopNew" : "ValidateDesktop"),
+            source: labelMetadata.isMobile ? "ValidateMobile" : (svv.expertValidate ? "ExpertValidate" : "Validate"),
             undone: false,
             redone: redone
         };

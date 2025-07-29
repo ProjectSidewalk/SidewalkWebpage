@@ -1,60 +1,73 @@
 package models.validation
 
-import models.mission.{Mission, MissionTable}
-import models.utils.MyPostgresDriver.simple._
-import play.api.Play.current
-import scala.slick.lifted.ForeignKeyQuery
+import com.google.inject.ImplementedBy
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-case class ValidationTaskInteraction(validationTaskInteractionId: Int,
-                                     missionId: Option[Int],
-                                     action: String,
-                                     gsvPanoramaId: Option[String],
-                                     lat: Option[Float],
-                                     lng: Option[Float],
-                                     heading: Option[Float],
-                                     pitch: Option[Float],
-                                     zoom: Option[Float],
-                                     note: Option[String],
-                                     timestamp: java.sql.Timestamp,
-                                     source: String) {
-  require(List("ValidateDesktop", "ValidateDesktopAdmin", "ValidateDesktopNew", "ValidateMobile").contains(source), "Invalid source for validation_task_interaction table.")
+import java.time.OffsetDateTime
+import javax.inject.{Inject, Singleton}
+
+case class ValidationTaskInteraction(
+    validationTaskInteractionId: Int,
+    missionId: Option[Int],
+    action: String,
+    gsvPanoramaId: Option[String],
+    lat: Option[Float],
+    lng: Option[Float],
+    heading: Option[Float],
+    pitch: Option[Float],
+    zoom: Option[Float],
+    note: Option[String],
+    timestamp: OffsetDateTime,
+    source: String
+) {
+  require(
+    Seq("Validate", "AdminValidate", "ExpertValidate", "ValidateMobile")
+      .contains(source),
+    "Invalid source for validation_task_interaction table."
+  )
 }
 
-class ValidationTaskInteractionTable(tag: slick.lifted.Tag) extends Table[ValidationTaskInteraction](tag, "validation_task_interaction") {
-  def validationTaskInteractionId = column[Int]("validation_task_interaction_id", O.PrimaryKey, O.AutoInc)
-  def missionId = column[Option[Int]]("mission_id", O.Nullable)
-  def action = column[String]("action", O.NotNull)
-  def gsvPanoramaId = column[Option[String]]("gsv_panorama_id", O.Nullable)
-  def lat = column[Option[Float]]("lat", O.Nullable)
-  def lng = column[Option[Float]]("lng", O.Nullable)
-  def heading = column[Option[Float]]("heading", O.Nullable)
-  def pitch = column[Option[Float]]("pitch", O.Nullable)
-  def zoom = column[Option[Float]]("zoom", O.Nullable)
-  def note = column[Option[String]]("note", O.Nullable)
-  def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
-  def source = column[String]("source", O.NotNull)
+class ValidationTaskInteractionTableDef(tag: slick.lifted.Tag)
+    extends Table[ValidationTaskInteraction](tag, "validation_task_interaction") {
+  def validationTaskInteractionId: Rep[Int] = column[Int]("validation_task_interaction_id", O.PrimaryKey, O.AutoInc)
+  def missionId: Rep[Option[Int]]           = column[Option[Int]]("mission_id")
+  def action: Rep[String]                   = column[String]("action")
+  def gsvPanoramaId: Rep[Option[String]]    = column[Option[String]]("gsv_panorama_id")
+  def lat: Rep[Option[Float]]               = column[Option[Float]]("lat")
+  def lng: Rep[Option[Float]]               = column[Option[Float]]("lng")
+  def heading: Rep[Option[Float]]           = column[Option[Float]]("heading")
+  def pitch: Rep[Option[Float]]             = column[Option[Float]]("pitch")
+  def zoom: Rep[Option[Float]]              = column[Option[Float]]("zoom")
+  def note: Rep[Option[String]]             = column[Option[String]]("note")
+  def timestamp: Rep[OffsetDateTime]        = column[OffsetDateTime]("timestamp")
+  def source: Rep[String]                   = column[String]("source")
 
-  def * = (validationTaskInteractionId, missionId, action, gsvPanoramaId, lat,
-    lng, heading, pitch, zoom, note, timestamp, source) <> ((ValidationTaskInteraction.apply _).tupled, ValidationTaskInteraction.unapply)
+  def * = (validationTaskInteractionId, missionId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
+    timestamp, source) <> ((ValidationTaskInteraction.apply _).tupled, ValidationTaskInteraction.unapply)
 
-  def mission: ForeignKeyQuery[MissionTable, Mission] =
-    foreignKey("validation_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
+//  def mission: ForeignKeyQuery[MissionTable, Mission] =
+//    foreignKey("validation_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
 }
 
-object ValidationTaskInteractionTable {
-  val db = play.api.db.slick.DB
-  val validationTaskInteractions = TableQuery[ValidationTaskInteractionTable]
+@ImplementedBy(classOf[ValidationTaskInteractionTable])
+trait ValidationTaskInteractionTableRepository {}
 
-  def save(interaction: ValidationTaskInteraction): Int = db.withSession { implicit session =>
-    val interactionId: Int =
-      (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId)).insert(interaction)
-    interactionId
+@Singleton
+class ValidationTaskInteractionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends ValidationTaskInteractionTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+
+  val validationTaskInteractions = TableQuery[ValidationTaskInteractionTableDef]
+
+  def insert(interaction: ValidationTaskInteraction): DBIO[Int] = {
+    (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId)) += interaction
   }
 
-  /**
-    * Inserts a sequence of interactions into the validation_task_interaction table.
-    */
-  def saveMultiple(interactions: Seq[ValidationTaskInteraction]): Seq[Int] = db.withSession { implicit session =>
-    (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId)) ++= interactions
+  def insertMultiple(interactions: Seq[ValidationTaskInteraction]): DBIO[Seq[Int]] = {
+    (validationTaskInteractions returning validationTaskInteractions.map(
+      _.validationTaskInteractionId
+    )) ++= interactions
   }
 }

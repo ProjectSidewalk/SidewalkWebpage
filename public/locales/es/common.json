@@ -1,7 +1,7 @@
 {
     "measurement-system": "metric",
     "mapbox-language-code": "es",
-    "explore-street-link": "<a href='/explore/street/{{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Haga clic aquí</a> para explorar la calle!",
+    "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Haga clic aquí</a> para explorar la calle!",
     "admin-clear-play-cache": "Reproducir caché borrada con éxito",
     "unit-distance-abbreviation": "km",
     "unit-abbreviation-mission-distance": "m",
@@ -13,22 +13,14 @@
     "surface-problem": "Problema en superficie",
     "occlusion": "No puedo ver la banqueta",
     "no-sidewalk": "No hay banqueta",
-    "crosswalk": "Cruce peatonal",
+    "crosswalk": "Cruce peatonal marcado",
     "signal": "Semáforo peatonal",
     "other": "Otro",
     "agree": "Aceptar",
     "disagree": "Discrepar",
     "unsure": "Inseguro",
-    "missing-sidewalks": "Banqueta ausente",
-    "missing-ramps": "Rampa peatonal ausente",
     "surface-problems": "Problemas en superficie",
-    "sidewalk-obstacles": "Obstáculos en la banqueta",
     "complete": "completado",
-    "mturk-code": "Código de Mturk: {{code}}",
-    "right-ui-turk-current-reward": "Recompensa actual de la misión: ",
-    "right-ui-turk-total-reward": "Recompensa total ganada: ",
-    "mission-complete-confirmation-code": "Código de confirmación: ",
-    "mission-start-turk-reward": "Recompensa por completar satisfactoriamente: ",
     "map": {
         "distance-left": "Sólo faltan {{n}} kilómetros!",
         "distance-left-one-unit": "Sólo faltan 1 kilómetro!",
@@ -37,6 +29,9 @@
         "thanks": "¡Gracias por tu ayuda!",
         "100-percent-complete": "¡100% Completa!",
         "percent-complete": "{{percent}}% Completa"
+    },
+    "deployment-map": {
+        "explore": "Explorar {{cityName}}"
     },
     "errors": {
         "title": "Vaya, es culpa nuestra, pero ya no hay imágenes disponibles para esta etiqueta.",
@@ -96,7 +91,7 @@
         "brick/cobblestone": "ladrillo/adoquín",
         "very broken": "rota",
         "rail/tram track": "vía férrea/tranvía",
-        "sand/gravel": "arena/grava",
+        "sand/gravel": "barro/arena/grava",
         "uncovered manhole": "registro sin tapa",
         "ends abruptly": "termina abruptamente",
         "street has a sidewalk": "la calle tiene una banqueta",
@@ -115,7 +110,7 @@
         "one button": "un botón",
         "two buttons": "dos botones",
         "hard to reach buttons": "botones difíciles de alcanzar",
-        "missing crosswalk": "paso peatonal ausente (i)",
+        "missing crosswalk": "cruce peatonal marcado ausente",
         "no bus stop access": "No hay acceso a la parada de autobús",
         "pedestrian lane marking": "marcado de carril peatonal",
         "covered walkway": "pasarela cubierta",
@@ -132,7 +127,12 @@
         "cycle lane- faded paint": "carril bici: $t(common:tag.paint fading)",
         "cycle lane- debris / pooled water": "carril bici: $t(common:tag.debris / pooled water)",
         "cycle lane- parked car": "carril bici: $t(common:tag.parked car)",
-        "cycle box": "caja de ciclo"
+        "cycle box": "caja de ciclo",
+        "not visible": "no visible",
+        "cart": "carro",
+        "drainage": "drenaje",
+        "electrical box": "caja eléctrica",
+        "too dirty/cluttered": "demasiado sucio/desordenado"
     },
     "gsv-info": {
         "details-title": "Detalles",
@@ -237,15 +237,15 @@
             },
             "slide-2": {
                 "title": "Sin indicador visual",
-                "description": "Los cruces sin indicador visual <b>no</b> deben etiquetarse como cruces peatonales."
+                "description": "Los cruces sin indicador visual <b>no</b> deben etiquetarse como cruces peatonales marcados."
             },
             "slide-3": {
                 "title": "Línea de parada",
-                "description": "Las líneas de parada para automóviles no deben etiquetarse como cruces peatonales."
+                "description": "Las líneas de parada para automóviles no deben etiquetarse como cruces peatonales marcados."
             },
             "slide-4": {
                 "title": "Banda de frenado",
-                "description": "Los topes de velocidad no deben etiquetarse como cruces peatonales."
+                "description": "Los topes de velocidad no deben etiquetarse como cruces peatonales marcados."
             }
         },
         "signal": {

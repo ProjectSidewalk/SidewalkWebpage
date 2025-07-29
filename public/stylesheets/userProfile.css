@@ -23,7 +23,7 @@ svg {
 
 #profile-container {
     margin: 0px;
-    margin-top: 15px;
+    margin-top: 7px;
 }
 
 #username {
@@ -120,7 +120,7 @@ svg {
 }
 
 #map-row {
-    height: 500px;
+    height: 600px;
     margin-top: 10px;
 }
 #map-column {
@@ -225,5 +225,5 @@ svg {
 }
 
 .modal-header .custom-close {
-    margin-top: -30px; 
+    margin-top: -30px;
 }

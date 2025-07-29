@@ -1,0 +1,923 @@
+@import formats.json.MissionFormats._
+@import formats.json.ExploreFormats._
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import play.api.libs.json.Json
+@import service.{CommonPageData, ExplorePageData}
+@(
+        commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, data: ExplorePageData,
+        lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
+
+@currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
+
+@common.main(commonData, title, defaultI18nNamespace="audit", i18Namespaces=Seq("audit", "common"), url="/explore") {
+    @common.navbar(commonData, Some(user))
+
+    <script src='@assets.path("javascripts/lib/backbone-1.6.1-min.js")'></script>
+    <link rel="stylesheet" href='@assets.path("javascripts/SVLabel/build/SVLabel.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/animate.css")'/>
+
+    <script>
+        // Setup necessary for saving crops of GSV. We don't want to cause issues if this fails.
+        try {
+            HTMLCanvasElement.prototype.getContext = function(origFn) {
+                return function(type, attributes) {
+                    if (type === 'webgl') {
+                        attributes = Object.assign({}, attributes, { preserveDrawingBuffer: true });
+                    }
+                    return origFn.call(this, type, attributes);
+                };
+            }(HTMLCanvasElement.prototype.getContext);
+        } catch (e) {
+            // todo: better logging
+            console.log(e);
+        }
+    </script>
+
+    @common.icons()
+    @common.missionStartTutorial()
+
+    <div id="page-loading">
+        <div id="loading-animation">
+            <p class="loading-text">@Messages("loading")</p>
+            <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' title='@Messages("loading")'/>
+            <p class="loading-sub-text">@Messages("loading.encouragement")</p>
+        </div>
+    </div>
+
+    <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content" id="survey-modal">
+                <div class="modal-header">
+                    <button type="button" class="close" id="survey-skip-button" data-dismiss="modal" aria-hidden="true">×</button>
+                    <h4 class="modal-title" id="sign-in-label">@Html(Messages("audit.survey." + "title"))</h4>
+                </div>
+                <div class="modal-body">
+                    <form id="survey-form" method="post">
+                        <ol>
+                        @for(surveyQuestion <- data.surveyData) {
+                            <li>
+                            @if(surveyQuestion.required) {
+                                <h4 class="survey-question">@Html(Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".question")) *</h4>
+                            } else {
+                                <h4 class="survey-question">@Html(Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".question"))</h4>
+                            }
+                            @if(surveyQuestion.surveyInputType == "radio") {
+                                <ul class="survey-option-holder">
+                                @for(surveyOption <- surveyQuestion.options) {
+                                    <li class="survey-option">
+                                        @if(surveyQuestion.required) {
+                                            <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" required>
+                                        } else {
+                                            <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
+                                        }
+                                        <label>@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
+                                    </li>
+                                }
+                                </ul>
+                            } else {
+                                @if(surveyQuestion.surveyInputType == "checkbox") {
+                                    <ul class="survey-option-holder">
+                                    @for(surveyOption <- surveyQuestion.options) {
+                                        <li class="survey-option">
+                                            <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
+                                            <label>@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
+                                        </li>
+                                    }
+                                    </ul>
+                                } else {
+                                    @if(surveyQuestion.surveyInputType == "free-text-feedback") {
+                                        @if(surveyQuestion.required) {
+                                            <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder="" required></textarea>
+                                        } else {
+                                            <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder=""></textarea>
+                                        }
+                                    }
+                                }
+                            }
+                            </li>
+                        }
+                    </ol>
+                        <button value="Submit" class="btn btn-sm btn-primary btn-block">@Messages("authenticate.submit")</button>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+    @* Should be consistent with the icons in icons.scala.html. *@
+    @* These are the exact same icons with the fill and stroke hardcoded. *@
+    @* As it is required to draw them inside the canvas element. *@
+    <div class="severity-icon severity-1 template">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="30" height="30" fill="transparent">
+            <g>
+                <path stroke="white" d="M74 146C112.66 146 144 114.66 144 76C144 37.3401 112.66 6 74 6C35.3401 6 4 37.3401 4 76C4 114.66 35.3401 146 74 146Z" stroke-width="10"/>
+                <path fill="white" d="M96 98.24H54C53.337 98.24 52.7011 98.5034 52.2322 98.9722C51.7634 99.4411 51.5 100.077 51.5 100.74C51.5 101.403 51.7634 102.039 52.2322 102.508C52.7011 102.977 53.337 103.24 54 103.24H96C96.663 103.24 97.2989 102.977 97.7678 102.508C98.2366 102.039 98.5 101.403 98.5 100.74C98.5 100.077 98.2366 99.4411 97.7678 98.9722C97.2989 98.5034 96.663 98.24 96 98.24V98.24Z"/>
+                <path fill="white" d="M56.63 56.43C56.63 55.0099 56.2089 53.6218 55.4199 52.441C54.631 51.2603 53.5096 50.34 52.1977 49.7965C50.8857 49.2531 49.442 49.1109 48.0492 49.388C46.6565 49.665 45.3771 50.3488 44.373 51.353C43.3688 52.3571 42.685 53.6365 42.408 55.0293C42.1309 56.422 42.2731 57.8657 42.8165 59.1777C43.36 60.4896 44.2803 61.611 45.461 62.4C46.6417 63.1889 48.0299 63.61 49.45 63.61C50.3929 63.61 51.3265 63.4243 52.1977 63.0635C53.0688 62.7026 53.8603 62.1738 54.527 61.507C55.1937 60.8403 55.7226 60.0488 56.0834 59.1777C56.4443 58.3066 56.63 57.3729 56.63 56.43V56.43Z"/>
+                <path fill="white" d="M100.64 49.25C99.22 49.25 97.8318 49.6711 96.651 50.46C95.4703 51.249 94.55 52.3704 94.0066 53.6823C93.4631 54.9943 93.3209 56.438 93.598 57.8307C93.875 59.2235 94.5589 60.5029 95.563 61.507C96.5671 62.5112 97.8465 63.195 99.2393 63.472C100.632 63.7491 102.076 63.6069 103.388 63.0635C104.7 62.52 105.821 61.5997 106.61 60.419C107.399 59.2383 107.82 57.8501 107.82 56.43C107.82 54.5257 107.064 52.6995 105.717 51.353C104.371 50.0065 102.544 49.25 100.64 49.25Z"/>
+            </g>
+        </svg>
+    </div>
+    <div class="severity-icon severity-2 template">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="30" height="30" fill="transparent">
+            <g>
+                <path stroke="white" d="M75 145C113.66 145 145 113.66 145 75C145 36.3401 113.66 5 75 5C36.3401 5 5 36.3401 5 75C5 113.66 36.3401 145 75 145Z" stroke-width="10"/>
+                <path fill="white" d="M97.44 103.43C90.8943 98.7477 83.048 96.2302 75 96.2302C66.952 96.2302 59.1057 98.7477 52.56 103.43C52.0203 103.816 51.656 104.4 51.5472 105.055C51.4384 105.709 51.5941 106.38 51.98 106.92C52.3659 107.46 52.9504 107.824 53.6049 107.933C54.2594 108.042 54.9303 107.886 55.47 107.5C61.1675 103.427 67.9961 101.237 75 101.237C82.0039 101.237 88.8325 103.427 94.53 107.5C95.0697 107.886 95.7406 108.042 96.3951 107.933C97.0496 107.824 97.6341 107.46 98.02 106.92C98.4059 106.38 98.5616 105.709 98.4528 105.055C98.344 104.4 97.9797 103.816 97.44 103.43V103.43Z"/>
+                <path fill="white" d="M56.63 56.43C56.63 55.0099 56.2089 53.6218 55.4199 52.441C54.631 51.2603 53.5096 50.34 52.1977 49.7965C50.8857 49.2531 49.442 49.1109 48.0492 49.388C46.6565 49.665 45.3771 50.3488 44.373 51.353C43.3688 52.3571 42.685 53.6365 42.408 55.0293C42.1309 56.422 42.2731 57.8657 42.8165 59.1777C43.36 60.4896 44.2803 61.611 45.461 62.4C46.6417 63.1889 48.0299 63.61 49.45 63.61C50.3929 63.61 51.3265 63.4243 52.1977 63.0635C53.0688 62.7026 53.8603 62.1738 54.527 61.507C55.1937 60.8403 55.7226 60.0488 56.0834 59.1777C56.4443 58.3066 56.63 57.3729 56.63 56.43V56.43Z"/>
+                <path fill="white" d="M100.64 49.25C99.2199 49.25 97.8318 49.6711 96.651 50.46C95.4703 51.249 94.55 52.3704 94.0065 53.6823C93.4631 54.9943 93.3209 56.438 93.598 57.8307C93.875 59.2235 94.5588 60.5029 95.563 61.507C96.5671 62.5112 97.8465 63.195 99.2393 63.472C100.632 63.7491 102.076 63.6069 103.388 63.0635C104.7 62.52 105.821 61.5997 106.61 60.419C107.399 59.2383 107.82 57.8501 107.82 56.43C107.82 54.5257 107.064 52.6995 105.717 51.353C104.371 50.0065 102.544 49.25 100.64 49.25Z"/>
+            </g>
+        </svg>
+    </div>
+    <div class="severity-icon severity-3 template">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="30" height="30" fill="transparent">
+            <g>
+                <path stroke="white" d="M75 145C113.66 145 145 113.66 145 75C145 36.3401 113.66 5 75 5C36.3401 5 5 36.3401 5 75C5 113.66 36.3401 145 75 145Z" stroke-width="10"/>
+                <path fill="white" d="M50.36 60.87C52.6847 60.5732 54.8933 59.6807 56.7715 58.279C58.6497 56.8773 60.1339 55.0141 61.08 52.87C61.2941 52.2736 61.2737 51.6181 61.0229 51.0362C60.7722 50.4542 60.3098 49.9892 59.7293 49.7351C59.1488 49.4811 58.4934 49.4569 57.8958 49.6676C57.2982 49.8783 56.8029 50.308 56.51 50.87C55.9041 52.2228 54.9611 53.3975 53.7713 54.2816C52.5815 55.1656 51.1846 55.7295 49.7145 55.9191C48.2443 56.1088 46.7501 55.9179 45.3749 55.3648C43.9996 54.8117 42.7894 53.9148 41.86 52.76C41.67 52.4642 41.4198 52.2118 41.1257 52.0193C40.8315 51.8268 40.5001 51.6984 40.153 51.6427C39.8059 51.5869 39.4509 51.605 39.1113 51.6957C38.7717 51.7865 38.455 51.9478 38.1819 52.1692C37.9089 52.3906 37.6856 52.6671 37.5266 52.9807C37.3677 53.2943 37.2767 53.6378 37.2595 53.9889C37.2423 54.3401 37.2994 54.6909 37.427 55.0184C37.5546 55.346 37.7498 55.643 38 55.89C39.2663 57.4793 40.8737 58.7637 42.7033 59.6482C44.5329 60.5327 46.5378 60.9947 48.57 61C49.1687 60.9913 49.7663 60.9479 50.36 60.87V60.87Z"/>
+                <path fill="white" d="M111.65 52.37C111.134 51.9559 110.474 51.7633 109.816 51.8345C109.158 51.9058 108.556 52.235 108.14 52.75C107.211 53.9048 106 54.8017 104.625 55.3548C103.25 55.908 101.756 56.0988 100.286 55.9092C98.8154 55.7195 97.4185 55.1557 96.2287 54.2716C95.0389 53.3875 94.0959 52.2129 93.49 50.86C93.1971 50.2981 92.7018 49.8683 92.1042 49.6576C91.5066 49.4469 90.8512 49.4711 90.2707 49.7251C89.6902 49.9792 89.2278 50.4442 88.9771 51.0262C88.7263 51.6081 88.7059 52.2636 88.92 52.86C89.8661 55.0041 91.3503 56.8674 93.2285 58.269C95.1067 59.6707 97.3153 60.5632 99.64 60.86C100.234 60.9312 100.832 60.9679 101.43 60.97C103.46 60.9683 105.463 60.511 107.293 59.6318C109.122 58.7526 110.731 57.4739 112 55.89C112.208 55.636 112.365 55.3434 112.46 55.0289C112.555 54.7145 112.587 54.3844 112.555 54.0575C112.522 53.7306 112.425 53.4133 112.27 53.1237C112.115 52.8342 111.904 52.5781 111.65 52.37V52.37Z"/>
+                <path fill="white" d="M75 94.24C63.0305 94.2084 51.4503 98.4897 42.38 106.3C42.1215 106.512 41.908 106.773 41.7521 107.068C41.5962 107.364 41.5012 107.687 41.4725 108.02C41.4439 108.353 41.4822 108.688 41.5853 109.006C41.6883 109.324 41.854 109.618 42.0726 109.87C42.2911 110.123 42.5581 110.329 42.8577 110.477C43.1574 110.625 43.4835 110.711 43.817 110.73C44.1505 110.75 44.4845 110.702 44.7994 110.591C45.1142 110.479 45.4034 110.305 45.65 110.08C53.8249 103.076 64.235 99.2262 75 99.2262C85.765 99.2262 96.1751 103.076 104.35 110.08C104.597 110.305 104.886 110.479 105.201 110.591C105.515 110.702 105.849 110.75 106.183 110.73C106.516 110.711 106.843 110.625 107.142 110.477C107.442 110.329 107.709 110.123 107.927 109.87C108.146 109.618 108.312 109.324 108.415 109.006C108.518 108.688 108.556 108.353 108.528 108.02C108.499 107.687 108.404 107.364 108.248 107.068C108.092 106.773 107.879 106.512 107.62 106.3C98.5498 98.4897 86.9695 94.2084 75 94.24V94.24Z"/>
+            </g>
+        </svg>
+    </div>
+    <div class="severity-icon severity-4 template">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="30" height="30" fill="transparent">
+            <g>
+                <path stroke="white" d="M74 146C112.66 146 144 114.66 144 76C144 37.3401 112.66 6 74 6C35.3401 6 4 37.3401 4 76C4 114.66 35.3401 146 74 146Z" stroke-width="10"/>
+                <path fill="white" d="M38.24 52.37C38.7562 51.9559 39.4156 51.7633 40.0735 51.8345C40.7315 51.9058 41.3344 52.235 41.75 52.75C42.6794 53.9048 43.8896 54.8017 45.2649 55.3548C46.6401 55.908 48.1343 56.0988 49.6045 55.9092C51.0746 55.7195 52.4715 55.1557 53.6613 54.2716C54.8511 53.3875 55.7941 52.2129 56.4 50.86C56.6929 50.2981 57.1882 49.8683 57.7858 49.6576C58.3834 49.4469 59.0388 49.4711 59.6193 49.7251C60.1998 49.9792 60.6622 50.4442 60.9129 51.0262C61.1637 51.6081 61.1841 52.2636 60.97 52.86C60.0239 55.0041 58.5397 56.8674 56.6615 58.269C54.7833 59.6707 52.5747 60.5632 50.25 60.86C49.656 60.9312 49.0583 60.9679 48.46 60.97C46.4244 60.9716 44.4146 60.5149 42.5796 59.6338C40.7446 58.7526 39.1315 57.4696 37.86 55.88C37.4458 55.3638 37.2533 54.7044 37.3245 54.0465C37.3957 53.3885 37.725 52.7856 38.24 52.37Z"/>
+                <path fill="white" d="M111.65 52.37C111.134 51.9559 110.474 51.7633 109.816 51.8345C109.158 51.9058 108.556 52.235 108.14 52.75C107.211 53.9048 106 54.8017 104.625 55.3548C103.25 55.908 101.756 56.0988 100.286 55.9092C98.8154 55.7195 97.4185 55.1557 96.2287 54.2716C95.0389 53.3875 94.0959 52.2129 93.49 50.86C93.1971 50.2981 92.7018 49.8683 92.1042 49.6576C91.5066 49.4469 90.8512 49.4711 90.2707 49.7251C89.6902 49.9792 89.2278 50.4442 88.9771 51.0262C88.7263 51.6081 88.7059 52.2636 88.92 52.86C89.8661 55.0041 91.3503 56.8674 93.2285 58.269C95.1067 59.6707 97.3153 60.5632 99.64 60.86C100.234 60.9312 100.832 60.9679 101.43 60.97C103.46 60.9683 105.463 60.511 107.293 59.6318C109.122 58.7526 110.731 57.4739 112 55.89C112.208 55.636 112.365 55.3434 112.46 55.0289C112.555 54.7145 112.587 54.3844 112.555 54.0575C112.522 53.7306 112.425 53.4133 112.27 53.1237C112.115 52.8342 111.904 52.5781 111.65 52.37V52.37Z"/>
+                <path fill="white" d="M75 84.84C60.67 84.84 48.58 94.28 46.88 106.84C46.8313 107.193 46.8591 107.553 46.9616 107.895C47.0641 108.237 47.2388 108.553 47.474 108.821C47.7092 109.089 47.9993 109.304 48.3247 109.451C48.6501 109.597 49.0032 109.672 49.36 109.67C49.5361 109.689 49.7139 109.689 49.89 109.67C58.1448 107.918 66.5612 107.039 75 107.05C83.4356 107.01 91.852 107.858 100.11 109.58C100.503 109.664 100.911 109.652 101.299 109.546C101.687 109.44 102.044 109.242 102.34 108.97C102.635 108.698 102.861 108.359 102.996 107.981C103.132 107.603 103.175 107.198 103.12 106.8C101.42 94.28 89.33 84.84 75 84.84ZM52.7 103.93C55.64 95.69 64.6 89.84 75 89.84C85.4 89.84 94.36 95.69 97.3 103.93C82.5359 101.46 67.4641 101.46 52.7 103.93V103.93Z"/>
+            </g>
+        </svg>
+    </div>
+    <div class="severity-icon severity-5 template">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="30" height="30" fill="transparent">
+            <g>
+                <path stroke="white" d="M74 146C112.66 146 144 114.66 144 76C144 37.3401 112.66 6 74 6C35.3401 6 4 37.3401 4 76C4 114.66 35.3401 146 74 146Z" stroke-width="10"/>
+                <path fill="white" d="M75 84.84C60.18 84.84 46.56 96.14 41.12 112.96C40.9791 113.388 40.9568 113.847 41.0554 114.287C41.154 114.727 41.3698 115.133 41.68 115.46C41.9923 115.786 42.3862 116.021 42.8207 116.143C43.2551 116.264 43.7142 116.267 44.15 116.15C64.3657 110.776 85.6343 110.776 105.85 116.15C106.065 116.206 106.287 116.233 106.51 116.23C106.904 116.231 107.293 116.138 107.645 115.959C107.996 115.78 108.3 115.521 108.531 115.201C108.763 114.882 108.915 114.512 108.976 114.123C109.036 113.733 109.004 113.334 108.88 112.96C103.44 96.14 89.82 84.84 75 84.84ZM75 107.12C65.7632 107.089 56.5521 108.095 47.54 110.12C53.05 97.83 63.65 89.84 75 89.84C86.35 89.84 97 97.84 102.46 110.15C93.449 108.115 84.2379 107.098 75 107.12V107.12Z"/>
+                <path fill="white" d="M38.63 42.66C38.3342 42.498 38.0086 42.3976 37.6729 42.3647C37.3372 42.3318 36.9984 42.3673 36.6767 42.4688C36.3551 42.5703 36.0573 42.7359 35.8014 42.9555C35.5454 43.1752 35.3365 43.4443 35.1873 43.7468C35.0381 44.0493 34.9516 44.3788 34.9331 44.7156C34.9146 45.0524 34.9644 45.3894 35.0796 45.7064C35.1948 46.0235 35.3729 46.3139 35.6032 46.5603C35.8336 46.8066 36.1114 47.0038 36.42 47.14L50.68 54.14L36.19 63.35C35.7146 63.6318 35.346 64.0631 35.1417 64.5766C34.9375 65.0901 34.9091 65.6568 35.0611 66.1881C35.2131 66.7194 35.5368 67.1854 35.9817 67.5132C36.4265 67.841 36.9675 68.0122 37.52 68C37.9934 68.0012 38.4577 67.8695 38.86 67.62L60.86 53.68L38.63 42.66Z"/>
+                <path fill="white" d="M113.81 63.35L99.32 54.18L113.58 47.18C113.889 47.0438 114.166 46.8466 114.397 46.6003C114.627 46.3539 114.805 46.0635 114.92 45.7464C115.036 45.4294 115.085 45.0924 115.067 44.7556C115.048 44.4188 114.962 44.0893 114.813 43.7868C114.663 43.4843 114.455 43.2152 114.199 42.9955C113.943 42.7759 113.645 42.6103 113.323 42.5088C113.002 42.4073 112.663 42.3719 112.327 42.4047C111.991 42.4376 111.666 42.538 111.37 42.7L89.12 53.7L111.12 67.64C111.682 67.9891 112.359 68.1029 113.005 67.957C113.65 67.811 114.213 67.417 114.57 66.86C114.756 66.5813 114.884 66.2681 114.946 65.9389C115.009 65.6098 115.004 65.2715 114.933 64.9441C114.862 64.6166 114.726 64.3068 114.534 64.033C114.341 63.7591 114.094 63.5269 113.81 63.35V63.35Z"/>
+            </g>
+        </svg>
+    </div>
+
+    <div class="container tool-ui" style = "visibility: hidden;">
+        <div id="area-completion-overlay-wrapper">
+            <div class="overlay-text">
+                <div id="area-completion-overlay">
+                    <p id="area-completion-title" class="overlay-header">Neighborhood Complete!</p>
+                    <p id="area-completion-body"><b>Hurray!</b> You just helped complete this neighborhood! You can:</p>
+                    <span class="overlay-option" id="continue-current">Continue in this neighborhood</span>
+                    <span class="overlay-option" id="redirect-new">Go to a new neighborhood</span>
+                </div>
+            </div>
+        </div>
+        <div id="already-completed-neighborhood-overlay">
+            <div class="overlay-text">
+                <div id="already-completed-neighborhood-text">
+                    <p>
+                        <span class="overlay-header">Neighborhood Already Complete!</span>
+                    </p>
+                    <p>
+                        You already audited this entire neighborhood! We are going to send you to a neighborhood that could use some auditing.
+                    </p>
+                    <span class="overlay-option" id="accept-redirect">OK</span>
+                </div>
+            </div>
+        </div>
+        <div class="page-alert-holder" id="unsupported-browser-alert" style="visibility: hidden">
+            <div class="page-alert">
+                <span id="page-alert-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome. Other browsers are not fully supported yet.&nbsp;</span>
+
+                <a id="page-alert-close" onClick="hideBrowserVersionAlert();" href="#"><span class="glyphicon glyphicon-remove"></span></a>
+            </div>
+        </div>
+        <div id="svl-application-holder">
+            <div id="left-column-control-pane">
+                <div id="left-column-button-holder">
+                    <div id="left-column-zoom-in-button" class="button zoom-control-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
+                        <img src='@assets.path("javascripts/SVLabel/img/icons/ZoomIn.svg")' class="zoom-button-icon" alt="Zoom in">
+                        <br>@Html(Messages("audit.left.ui.zoom.in"))
+                    </div>
+                    <div id="left-column-zoom-out-button" class="button zoom-control-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
+                        <img src='@assets.path("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out">
+                        <br>@Html(Messages("audit.left.ui.zoom.out"))
+                    </div>
+                    <div id="left-column-sound-button" class="button">
+                        <img src='@assets.path("javascripts/SVLabel/img/icons/sound.png")' id="left-column-sound-icon" class="visible" alt="Sound icon">
+                        <img src='@assets.path("javascripts/SVLabel/img/icons/sound_mute.png")' id="left-column-mute-icon" class="hidden" alt="Mute icon">
+                        <br>
+                        @Messages("audit.left.ui.sound")
+                    </div>
+                    <div id="left-column-jump-button" class="button" title="@Messages("audit.left.ui.jump.tooltip")" data-toggle="tooltip" data-placement="top">
+                        <img src='@assets.path("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon">
+                        <br>
+                        @Messages("audit.left.ui.jump")
+                    </div>
+                    <div id="left-column-stuck-button" class="button" title="@Messages("audit.left.ui.stuck.tooltip")" data-toggle="tooltip" data-placement="top">
+                        <img src='@assets.path("javascripts/SVLabel/img/icons/noun_lost_1779388.png")'  alt="Stuck icon">
+                        <br>
+                        @Messages("audit.left.ui.stuck")
+                    </div>
+                    <div id="left-column-feedback-button" class="button" data-toggle="popover" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-placement="top" data-content='@Messages("feedback.submitted")' data-trigger="manual">
+                        <div id="feedback-button-tooltip" title="@Messages("feedback.tooltip")" data-toggle="tooltip" data-placement="top">
+                            <img src='@assets.path("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
+                            <br>
+                            @Html(Messages("feedback"))
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="ribbon-menu-holder">
+                <div id="ribbon-menu-label-type-button-holder">
+                    <div id="ribbon-menu-title-holder-ramp" class="ribbon-menu-title-holder">
+                        <span id="ribbon-menu-title">@Messages("audit.ribbon.curb.ramp.labels")</span>
+                    </div>
+                    <div id="ribbon-menu-title-holder-sidewalk" class="ribbon-menu-title-holder">
+                        <span id="ribbon-menu-title">@Messages("audit.ribbon.sidewalk.labels")</span>
+                    </div>
+                    <div id="ribbon-menu-title-holder-other" class="ribbon-menu-title-holder">
+                        <span id="ribbon-menu-title">@Messages("audit.ribbon.other.labels")</span>
+                    </div>
+                    <span id="mode-switch-button-walk" class="label-type-button-holder" val="Walk">
+                        <img src='@assets.path("javascripts/SVLabel/img/icons/explore.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.explore"))</span>
+                    </span>
+                    <span id="label-type-divider-major"></span>
+                    <span id="mode-switch-button-curb-ramp" class="label-type-button-holder" val="CurbRamp">
+                        <img src='@assets.path("images/icons/label_type_icons/CurbRamp.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.curb.ramp"))</span>
+                    </span>
+                    <span id="mode-switch-button-curb-ramp-needed" class="label-type-button-holder" val="NoCurbRamp">
+                        <img src='@assets.path("images/icons/label_type_icons/NoCurbRamp.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.missing.ramp"))</span>
+                    </span>
+                    <span id="label-type-divider-minor"></span>
+                    <span id="mode-switch-button-obstacle" class="label-type-button-holder" val="Obstacle">
+                        <img src='@assets.path("images/icons/label_type_icons/Obstacle.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.obstacle"))</span>
+                    </span>
+                    <span id="mode-switch-button-surface-problem" class="label-type-button-holder" val="SurfaceProblem">
+                        <img src='@assets.path("images/icons/label_type_icons/SurfaceProblem.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.surface.problem"))</span>
+                    </span>
+                    <span id="mode-switch-button-no-sidewalk" class="label-type-button-holder" val="NoSidewalk">
+                        <img src='@assets.path("images/icons/label_type_icons/NoSidewalk.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.no.sidewalk"))</span>
+                    </span>
+                    <span id="label-type-divider-minor"></span>
+                    <span id="mode-switch-button-crosswalk" class="label-type-button-holder" val="Crosswalk">
+                        <img src='@assets.path("images/icons/label_type_icons/Crosswalk.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.crosswalk"))</span>
+                    </span>
+                    <span id="mode-switch-button-signal" class="label-type-button-holder" val="Signal">
+                        <img src='@assets.path("images/icons/label_type_icons/Signal.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.signal"))</span>
+                    </span>
+                    <span id="mode-switch-button-other" class="label-type-button-holder" val="Other">
+                        <img src='@assets.path("images/icons/label_type_icons/Other.png")' class="label-type-icon">
+                        <span class="label-type-name">@Html(Messages("audit.ribbon.other"))</span>
+                        <div id="ribbon-menu-other-subcategory-holder">
+                            <div class="ribbon-menu-other-subcategory" val="Occlusion">
+                                <img src='@assets.path("images/icons/label_type_icons/Occlusion.png")' class="icon-ribbon-menu-medium" alt="Occluded sidewalk icon">
+                                @Html(Messages("audit.ribbon.occlusion"))
+                            </div>
+                            <div class="ribbon-menu-other-subcategory" val="Other">
+                                <img src='@assets.path("images/icons/label_type_icons/Other.png")' class="icon-ribbon-menu-medium" alt="Other icon">
+                                @Messages("audit.ribbon.other")
+                            </div>
+                        </div>
+                    </span>
+                </div>
+            </div>
+            <div id="action-stack-control-holder"></div>
+            <div id="status-holder">
+                <div id="user-stats-status-box" class="status-box">
+                    <h1 class="status-holder-header-1">@Messages("audit.right.ui.overall.stats")</h1>
+                    <div class="status-row">
+                        <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("distance.icon.alt")"/>
+                        <span><strong id="status-overall-audited-distance"></strong> <small>@Messages("audit.right.ui.distance")</small></span>
+                    </div>
+                    <div class="status-row">
+                        <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' class="status-icon" alt="@Messages("label.icon.alt")"/>
+                        <span><strong id="status-overall-label-count"></strong> <small>@Messages("labels")</small></span>
+                    </div>
+                    <div id="accuracy-status-row" class="status-row" data-toggle="popover">
+                        <img src='@assets.path("images/icons/noun_target_3485590_cropped.png")' class="status-icon" alt="@Messages("accuracy.icon.alt")"/>
+                        <span><strong id="status-overall-accuracy"></strong> <small>@Messages("accuracy")</small></span>
+                    </div>
+                </div>
+                <div id="neighborhood-stats-status-box" class="status-box">
+                    <h1 class="status-holder-header-1">@Messages("audit.right.ui.current.neighborhood")</h1>
+                    <span id="status-neighborhood-name"><span id="status-holder-neighborhood-name"></span>@currentCity.cityNameShort</span>
+                    <div class="status-row" id="neighborhood-status-row">
+                        <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("distance.icon.alt")" align="">
+                        <span><strong id="status-audited-distance">0.00</strong> <small>@Messages("audit.right.ui.distance")</small></span>
+                    </div>
+                    <div class="status-row" id="neighborhood-status-row">
+                        <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' class="status-icon" alt="@Messages("label.icon.alt")" align="">
+                        <span><strong id="status-neighborhood-label-count">0</strong> <small>@Messages("labels")</small></span>
+                    </div>
+                </div>
+                <div id="mission-completion-status-box" class="status-box">
+                    <h1 id="current-mission-header"></h1>
+                    <h2 id="current-mission-description"></h2>
+                    <div id='status-current-mission-completion-bar'>
+                        <div id='status-current-mission-completion-bar-filler'>
+                            <div id='status-current-mission-completion-rate'></div>
+                        </div>
+                    </div>
+                    <br class="clear">
+                </div>
+                @if(currentCity.cityId == "chandigarh-india") {
+                    <div id="mission-guidance-status-box" class="status-box">
+                        <h1 id="mission-guidance-header">Mission Guidance</h1>
+                        <span id="mission-guidance-status"></span>
+                    </div>
+                } else {
+                    <div id="label-counter-status-box" class="status-box">
+                        <div id="label-counter"></div>
+                    </div>
+                }
+            </div>
+            <div id="interaction-area-holder" onSelectStart="return true;">
+                <div id="alert-holder" style="display: none">
+                    <div id="alert">
+                        <span id="alert-message"></span>
+                        <a id="alert-dont-show" href="#">@Messages("dont.show.again")</a>
+                        <a id="alert-close" href="#"><span class="glyphicon glyphicon-remove"></span></a>
+                    </div>
+                </div>
+                <div id="street-view-holder">
+                    <div id="speed-limit-sign" class="speed-limit-sign white-background-75" data-design-style="us-canada">
+                        <div class="speed-limit-holder">
+                            <p class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></p>
+                        </div>
+                    </div>
+                    <div id="svl-panorama-date-holder">
+                        <span id="svl-panorama-date"></span>
+                    </div>
+                    <div id="ribbon-street-view-connector"><!-- border --></div>
+                    <!-- You can put an extra div element on top of the Street View div panel to disable any of StreetView control. -->
+                    <div id="pano" class="window-streetview" style="z-index: 0;" ></div>
+                    <div id="onboarding-holder" class="window-streetview">
+                        <canvas id="onboarding-canvas"  class="window-streetview" width="720px" height="480px" style="cursor: default, move;"></canvas>
+                        <div id="hand-gesture-holder"></div>
+                        <div id="onboarding-background"></div>
+                        <div id="onboarding-message-holder" class="white-background">
+                            <p></p>
+                        </div>
+                    </div>
+                    <div id="userControlLayer"  class="window-streetview" style="z-index: 0;">
+                        <div id="view-control-layer"  class="window-streetview" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 1;">
+                            <!-- In IE, it seems like a div element that has nothing inside gets neglected...
+                                So I put an empty canvas as a placeholder.
+                            -->
+                            <!--[if IE]>
+                            <canvas width="720px" height="480px"  class="window-streetview" style=""></canvas>
+                            <![endif]-->
+                        </div>
+                        <div id="labelDrawingLayer"  class="window-streetview" style="z-index: 0;">
+                            <canvas id="label-canvas"  class="window-streetview" width="720px" height="480px" style="cursor: default, move;"></canvas>
+                        </div>
+                    </div>
+
+                    <div id="delete-icon-holder">
+                        <img src='@assets.path("javascripts/SVLabel/img/icons/Icon_Delete.png")' id="label-delete-icon" />
+                    </div>
+                    <div id="context-menu-holder">
+                        <div id="context-menu-close-button-holder">
+                            <button type="button" id="context-menu-close-button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        </div>
+                        <div id="severity-menu">
+                            <div id="severity-radio-holder">
+                                <div class="radio-inline" id="column-passable">
+                                    <img src='@assets.path("javascripts/SVLabel/img/icons/WheelchairAccessible.png")'
+                                        class="context-menu-wheelchair-icons" alt="Wheelchair accessible icon">
+                                    <div class="label-severity-axis-label">@Messages("audit.center.ui.passable")</div>
+                                </div>
+                                <div class="severity-level radio-inline" id="severity-one" data-toggle="tooltip">
+                                    <label class="radio-button-labels">
+                                        <input type="radio" name="label-severity" value="1">
+                                        <div class="severity-icon severity-1">
+                                            <svg viewBox="0 0 150 150"><use xlink:href="#smiley-neutral"></use></svg>
+                                        </div>
+                                        <div class="severity-label">1</div>
+                                    </label>
+                                </div>
+                                <div class="severity-level radio-inline" id="severity-two">
+                                    <label class="radio-button-labels">
+                                        <input type="radio" name="label-severity" value="2">
+                                        <div class="severity-icon severity-2">
+                                            <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-1"></use></svg>
+                                        </div>
+                                        <div class="severity-label">2</div>
+                                    </label>
+                                </div>
+                                <div class="severity-level radio-inline" id="severity-three" data-toggle="tooltip">
+                                  <label class="radio-button-labels">
+                                      <input type="radio" name="label-severity" value="3">
+                                      <div class="severity-icon severity-3">
+                                          <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-2"></use></svg>
+                                      </div>
+                                        <div class="severity-label">3</div>
+                                    </label>
+                                </div>
+                                <div class="severity-level radio-inline" id="severity-four">
+                                    <label class="radio-button-labels">
+                                        <input type="radio" name="label-severity" value="4">
+                                        <div class="severity-icon severity-4">
+                                            <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-3"></use></svg>
+                                        </div>
+                                        <div class="severity-label">4</div>
+                                    </label>
+                                </div>
+                                <div class="severity-level radio-inline" id="severity-five" data-toggle="tooltip">
+                                  <label class="radio-button-labels">
+                                      <input type="radio" name="label-severity" value="5">
+                                      <div class="severity-icon severity-5">
+                                          <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-4"></use></svg>
+                                      </div>
+                                        <div class="severity-label">5</div>
+                                    </label>
+                                </div>
+                                <div class="severity-level radio-inline" id="column-not-passable">
+                                    <img src='@assets.path("javascripts/SVLabel/img/icons/WheelchairInaccessible.png")'
+                                        class="context-menu-wheelchair-icons" alt="Wheelchair inaccessible icon">
+                                    <div class="label-severity-axis-label">@Html(Messages("audit.center.ui.not.passable"))</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="problem-property-menu">
+                            <div>
+                                <input type="text" class="form-control" placeholder="Description" id="context-menu-problem-description-text-box">
+                            </div>
+                            <div class="add-tags-label">@Html(Messages("audit.center.ui.add.tags"))</div>
+                            <div id="context-menu-tag-holder">
+                                <button class="context-menu-tag" name='tag' id="0"></button>
+                                <button class="context-menu-tag" name='tag' id="1"></button>
+                                <button class="context-menu-tag" name='tag' id="2"></button>
+                                <button class="context-menu-tag" name='tag' id="3"></button>
+                                <button class="context-menu-tag" name='tag' id="4"></button>
+                                <button class="context-menu-tag" name='tag' id="5"></button>
+                                <button class="context-menu-tag" name='tag' id="6"></button>
+                                <button class="context-menu-tag" name='tag' id="7"></button>
+                                <button class="context-menu-tag" name='tag' id="8"></button>
+                                <button class="context-menu-tag" name='tag' id="9"></button>
+                                <button class="context-menu-tag" name='tag' id="10"></button>
+                                <button class="context-menu-tag" name='tag' id="11"></button>
+                                <button class="context-menu-tag" name='tag' id="12"></button>
+                                <button class="context-menu-tag" name='tag' id="13"></button>
+                                <button class="context-menu-tag" name='tag' id="14"></button>
+                                <button class="context-menu-tag" name='tag' id="15"></button>
+                                <button class="context-menu-tag" name='tag' id="16"></button>
+                            </div>
+                            <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
+                                <label><input type="checkbox" id="context-menu-temporary-problem-checkbox" value="temporary-problem">@Messages("audit.center.ui.temporary")</label>
+                            </div>
+                            <button id="context-menu-ok-button">OK</button>
+                        </div>
+                    </div>
+                    <div id="context-menu-vertical-connector"></div>
+                </div>
+            </div>
+            <div id="minimap-holder">
+                <div id="minimap" class="minimap-pane"></div>
+                <div id="minimap-overlay" class="minimap-pane"></div>
+                <div id="minimap-message" class="minimap-pane"></div>
+                <canvas id="minimap-fog-of-war-canvas" class="minimap-pane" height="200" width="200"></canvas>
+                <canvas id="minimap-fov-canvas" class="minimap-pane" height="200" width="200"></canvas>
+                <canvas id="minimap-progress-circle-canvas" class="minimap-pane" height="200" width="200"></canvas>
+                <div id="minimap-percent-observed" class="minimap-pane"></div>
+            </div>
+            <div id="compass-message-holder" class="animated white-background-75">
+                <span id="compass-message"></span>
+            </div>
+            <div id="page-overlay-holder">
+            </div>
+            <div id="pop-up-message-holder" class="hidden">
+                <div id="pop-up-message-background"></div>
+                <div id="pop-up-message-foreground">
+                    <h2 id="pop-up-message-title" class="bold">Title</h2>
+                    <p id="pop-up-message-content">Content</p>
+                    <div id="pop-up-message-img-holder"></div>
+                    <div id="pop-up-message-button-holder"></div>
+                </div>
+            </div>
+            <div id="modal-skip-holder" class="hidden">
+                <div id="modal-skip-background"></div>
+                <div id="modal-skip-box">
+                    <div id="modal-skip-title" class="bold">
+                        <p>@Messages("audit.left.ui.jump.title")</p>
+                    </div>
+                    <div id="modal-skip-content">
+                        <input type="button" class="overlay-option" id="modal-skip-continue-neighborhood" value="@Messages("audit.left.ui.jump.same.neighborhood")">
+                        <input type="button" class="overlay-option" id="modal-skip-new-neighborhood" value="@Messages("audit.left.ui.jump.new.neighborhood")">
+                    </div>
+                    <div class="modal-skip-cancel-button-holder">
+                        <button class="button" id="modal-skip-cancel-button">@Messages("cancel")</button>
+                    </div>
+                </div>
+            </div>
+            <div id="modal-comment-holder" class="hidden">
+                <div id="modal-comment-background"></div>
+                <div id="modal-comment-box">
+                    <form id="comment-form">
+                        <div id="modal-comment-title" class="bold">
+                            <p>@Html(Messages("feedback.title"))</p>
+                        </div>
+                        <div id="modal-comment-content">
+                            <textarea id="modal-comment-textarea" placeholder=""></textarea>
+                        </div>
+                        <div>
+                            <button class="button" id="modal-comment-ok-button">@Messages("ok")</button>&nbsp;
+                            <button class="button" id="modal-comment-cancel-button">@Messages("cancel")</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div id="modal-mission-complete-holder">
+                <div id="modal-mission-complete-background" class="modal-background"></div>
+                <div id="modal-mission-complete-foreground" class="modal-foreground">
+                    <h1><span class="normal" id="modal-mission-complete-title"></span></h1>
+                    <div class="row">
+                        <div class="mapbox col-sm-7">
+                            <div id="modal-mission-complete-map"></div>
+                            <div id="map-legend">
+                                <svg class="legend-label" width="10" height="10"><rect width="10" height="10" id="green-square"></rect></svg><span id="modal-mission-complete-map-legend-label-1">@Messages("audit.mission.complete.legend.this.mission")</span><br>
+                                <svg class="legend-label" width="10" height="10"><rect width="10" height="10" id="blue-square"></rect></svg><span id="modal-mission-complete-map-legend-label-2">@Messages("audit.mission.complete.legend.previous.missions")</span><br>
+                                <svg class="legend-label" width="10" height="10"><rect width="10" height="10" id="gray-square"></rect></svg><span id="modal-mission-complete-map-legend-label-3">@Messages("audit.mission.complete.legend.others.missions")</span>
+                            </div>
+
+                        </div>
+                        <div class="col-sm-5">
+                            <p><span id="modal-mission-complete-message"></span></p>
+                            <h3>@Messages("audit.mission.complete.labels.title")</h3>
+                            <table class="table">
+                                <tr>
+                                    <th class="width-50-percent">@Messages("curb.ramp")</th>
+                                    <td id="modal-mission-complete-curb-ramp-count" class="col-right"></td>
+                                </tr>
+                                <tr>
+                                    <th>@Messages("missing.ramp")</th>
+                                    <td id="modal-mission-complete-no-curb-ramp-count" class="col-right"></td>
+                                </tr>
+                                <tr>
+                                    <th>@Messages("obstacle")</th>
+                                    <td id="modal-mission-complete-obstacle-count" class="col-right"></td>
+                                </tr>
+                                <tr>
+                                    <th>@Messages("surface.problem")</th>
+                                    <td id="modal-mission-complete-surface-problem-count" class="col-right"></td>
+                                </tr>
+                                <tr>
+                                    <th>@Messages("no.sidewalk")</th>
+                                    <td id="modal-mission-complete-no-sidewalk-count" class="col-right"></td>
+                                </tr>
+                                <tr>
+                                    <th>@Messages("other")</th>
+                                    <td id="modal-mission-complete-other-count" class="col-right"></td>
+                                </tr>
+                            </table>
+                            <h3 id="modal-mission-complete-progress-title"></h3>
+                            <div id="modal-mission-complete-complete-bar"></div>
+                            <table class="table">
+                                <tr>
+                                    <th>@Messages("audit.mission.complete.progress.mission.you")</th>
+                                    <td id="modal-mission-complete-mission-distance" class="col-right"></td>
+                                </tr>
+                                <tr>
+                                    <th id="modal-mission-complete-progress-you"></th>
+                                    <td id="modal-mission-complete-total-audited-distance" class="col-right"></td>
+                                </tr>
+                                <tr>
+                                    <th id="modal-mission-complete-progress-others">@Messages("audit.mission.complete.progress.neighborhood.others")</th>
+                                    <td id="modal-mission-complete-others-distance" class="col-right"></td>
+                                </tr>
+                                <tr>
+                                    <th id="modal-mission-complete-progress-remaining"></th>
+                                    <td id="modal-mission-complete-remaining-distance" class="col-right"></td>
+                                </tr>
+                            </table>
+                            <button class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
+                            <button class="btn btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <template class="onboarding" val="initial-instruction" id="onboarding-initial-instruction">
+        <div class="row">
+            <div class="col-md-12">
+                <p>@Html(Messages("audit.tutorial.welcome.1"))</p>
+                <table class="tutorial-table">
+                    <tr>
+                        <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("curb.ramps"))</td>
+                        <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("missing.ramps"))</td>
+                        <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("obstacles")) </td>
+                        <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("surface.problems"))</td>
+                    </tr>
+                </table>
+                <p>
+                    <img src='@assets.path("javascripts/SVLabel/img/onboarding/ExamplePictures03.png")' id="onboarding-example-image-1"
+                    alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
+                </p>
+
+            </div>
+            <div class="col-md-6">
+                <p><span class="bold">@Messages("audit.tutorial.welcome.2")</span></p>
+            </div>
+            <div class="col-md-offset-3 col-md-3">
+                <p>
+                    <button class="button onboarding-transition-trigger" id="onboarding-ok-button" value="OK" style="position: relative; top: -4px;">@Messages("audit.tutorial.welcome.3")</button>
+                </p>
+            </div>
+
+                <div class="col-md-12" id="onboarding-skip-option">
+                    <p class="text-right"><span style='font-size: 65%;'>
+                        @Html(Messages("audit.tutorial.welcome.4"))
+                    </span></p>
+                </div>
+        </div>
+    </template>
+    <template class="onboarding" val="outro" id="onboarding-outro">
+        <div class="row">
+            <div class="col-md-12">
+                <p>@Html(Messages("audit.tutorial.end.1"))</p>
+
+                <table class="tutorial-table">
+                    <tr>
+                        <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.accessible"))</th>
+                        <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.inaccessible"))</th>
+                    </tr>
+                    <tr>
+                        <td colspan=2>
+                            <img id="onboarding-example-image-2" src='@assets.path("javascripts/SVLabel/img/onboarding/ExamplePictures02_top.png")' alt="@Messages("audit.tutorial.examples")">
+                        </td>
+                    </tr>
+                    <tr >
+                        <td class="tutorial-table-cell tutorial-spacer">@Html(Messages("audit.tutorial.examples.curb.ramp"))</td>
+                        <td class="tutorial-table-cell tutorial-spacer">@Html(Messages("audit.tutorial.examples.missing.ramp"))</td>
+                    </tr>
+                    <tr>
+                        <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.inaccessible"))</th>
+                        <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.inaccessible"))</th>
+                    </tr>
+                    <tr>
+                        <td colspan=2>
+                            <img id="onboarding-example-image-2" src='@assets.path("javascripts/SVLabel/img/onboarding/ExamplePictures02_bot.png")' alt="@Messages("audit.tutorial.examples")" >
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="tutorial-table-cell tutorial-spacer">@Html(Messages("audit.tutorial.examples.obstacle"))</td>
+                        <td class="tutorial-table-cell tutorial-spacer">@Html(Messages("audit.tutorial.examples.surface.problem"))</td>
+                    </tr>
+                </table>
+
+                <p>@Html(Messages("audit.tutorial.end.2"))</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-10"></div>
+            <div class="col-md-2">
+                <button class="button" id="onboarding-ok-button">OK</button>
+            </div>
+        </div>
+    </template>
+    <script src='@assets.path("javascripts/SVLabel/build/SVLabel.js")'></script>
+    <script src='@assets.path("javascripts/lib/kinetic-v4.4.3.min.js")'></script>
+    <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
+    <script src='@assets.path("javascripts/lib/d3-3.5.6.js")'></script>
+
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/turf-7.2.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/async-lock-1.4.1.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/betterknown-1.0.5.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.13.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.13.0.css")' rel="stylesheet"/>
+
+    <script>
+        // Todo. Try to move the following code to Main.js
+        var svl = svl || {};
+        var mainParam = {};
+        svl.storage = new TemporaryStorage(JSON);
+        if (!("tracker" in svl)) {
+            svl.tracker = new Tracker();
+        }
+
+        svl.userModel = new UserModel();
+        var userParam = {
+            username: '@user.username',
+            role: '@user.role',
+            userId: '@user.userId'
+        };
+        svl.user = new User(userParam);
+
+        // TODO this one line below was only run if user was defined before. It's now always defined, so maybe we should do this somewhere else? Not sure what it does.
+        $('#status-holder-neighborhood-name').parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
+
+        // TODO all of this makes more sense to do in the actual JS. Having it here is a bit hacky and is causing
+        // problems. For example, i18next hasn't been initialized yet.
+        svl.userModel._user = svl.user;
+        if (@data.task.isDefined) {
+            var streetViewService = new google.maps.StreetViewService();
+            svl.streetViewService = streetViewService;
+            var STREETVIEW_MAX_DISTANCE = 40;
+
+            var geojson = @Html(Json.toJson(data.task.get).toString);
+            var lat1 = geojson.properties.current_lat;
+            var lng1 = geojson.properties.current_lng;
+            var latLng = new google.maps.LatLng(lat1, lng1);
+
+            if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
+            if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
+            svl.taskModel = new TaskModel();
+            svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, streetViewService, svl, svl.tracker);
+
+            streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
+                if (status === google.maps.StreetViewStatus.OK) {
+                    svl.cityId = "@currentCity.cityId"; // Needed so setCurrentTask can use svl.cityId.
+                    var isTutorialTask = geojson.properties.street_edge_id === @data.tutorialStreetId;
+                    var newTask = new Task(geojson, isTutorialTask, lat1, lng1);
+                    svl.taskContainer._tasks.push(newTask);
+                    svl.taskContainer.setCurrentTask(newTask);
+                    init();
+
+                    // Handle query strings for panoId or latLng (panoId, lat, lng only Some[] when user is Admin).
+                    // Since it's only for admins, we added a hacky workaround of a 2 seconds sleep delay.
+                    var panoIdJS = `@panoId`;
+                    function sleep (time) {
+                        return new Promise((resolve) => setTimeout(resolve, time));
+                    }
+                    if (isTutorialTask) {
+                        sleep(2000).then(() => {
+                            svl.map.setPano('tutorial');
+                        });
+                    } else if (panoIdJS) {
+                        sleep(2000).then(() => {
+                            try {
+                                svl.streetViewService.getPanorama({pano: panoIdJS}, function(panoData) {
+                                    var lat = panoData.location.latLng.lat();
+                                    var lng = panoData.location.latLng.lng();
+                                    svl.map.setPositionByIdAndLatLng(panoIdJS, lat, lng);
+                                });
+                            } catch (e) {
+                                console.error("Invalid panorama ID");
+                            }
+                        });
+                    } else if (`@lat` && `@lng`) {
+                        sleep(2000).then(() => {
+                            svl.map.setPosition(`@lat`, `@lng`);
+                        });
+                    }
+                } else {
+                    // No street view available in this range.
+                    console.error("Error loading Street View imagery: " + status);
+                    console.log("Street edge we are trying to audit: " + @data.task.map(_.edgeId).getOrElse(-1));
+                }
+            });
+        } else {
+            $(".tool-ui").css({"visibility": "visible"});
+            $('#already-completed-neighborhood-overlay').show();
+        }
+
+        $(document).ready(function() {
+            // Prevents text selection with cursor. Fixes https://github.com/ProjectSidewalk/SidewalkWebpage/issues/121.
+            // We also add the 'audit-selectable' class to a parent of any element that we want to have selectable.
+            document.onselectstart = function (e) {
+                if ($(e.target).closest('.audit-selectable').length > 0) {
+                    return true;
+                } else {
+                    return false;
+                }
+            };
+            enableTouchSupport();
+
+            // Neighborhood Completion Overlay
+            $('#continue-current').on('click', function() {
+                $('#area-completion-overlay-wrapper').hide();
+            });
+
+            $('#redirect-new').on('click', function() {
+                $(location).attr('href', '/explore?newRegion=true');
+            });
+
+            // Already Completed Neighborhood Overlay
+            $('#accept-redirect').on('click', function() {
+                $(location).attr('href', '/explore');
+            });
+        });
+
+        function enableTouchSupport() {
+            $(document).on('touchstart touchmove touchend touchcancel', function(e) {
+                var event = e.originalEvent;
+                var touches = event.changedTouches,
+                        first = touches[0],
+                        type = "";
+
+                switch(event.type) {
+                    case "touchstart": type = "mousedown"; break;
+                    case "touchmove":  type = "mousemove"; break;
+                    case "touchend":   type = "mouseup";   break;
+                    default:           return;
+                }
+
+                var simulatedEvent = new MouseEvent(type, {
+                    screenX: first.screenX,
+                    screenY: first.screenY,
+                    clientX: first.clientX,
+                    clientY: first.clientY
+                });
+
+                first.target.dispatchEvent(simulatedEvent);
+            });
+
+            $("#interaction-area-holder").on("touchmove", function (event) {
+                event.preventDefault();
+            });
+        }
+
+        function init() {
+            var mainParam = mainParam || {};
+            var formParam = {};
+            var initialLocation = svl.taskContainer.getCurrentTask().getFurthestPointReached().geometry.coordinates;
+            formParam.dataStoreUrl = '@routes.ExploreController.post';
+            formParam.beaconDataStoreUrl = formParam.dataStoreUrl + "Beacon";
+            formParam.hitId = '';
+            formParam.onboarding = false;
+            formParam.taskPanoramaId = "";
+            formParam.taskDescription = "";
+            formParam.domIds = {};
+            formParam.domIds.canvas = 'onboardingCanvas';
+            mainParam.form = formParam;
+            mainParam.initLat = initialLocation[1];
+            mainParam.initLng = initialLocation[0];
+            mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
+
+            var missionDescriptionParam = {};
+            missionDescriptionParam.description = "";
+            mainParam.missionDescription = missionDescriptionParam;
+
+            mainParam.regionId = @data.region.regionId;
+            mainParam.regionName = @Html(Json.stringify(Json.toJson(data.region.name)));
+            // TODO I think that we can replace this with Json.toJson(data.region.geom).toString after back end uprades.
+            mainParam.regionGeoJSON = window.betterknown.wktToGeoJSON("@data.region.geom");
+
+            mainParam.nextTemporaryLabelId = @data.nextTempLabelId;
+            mainParam.mission = @Html(Json.toJson(data.mission).toString);
+            mainParam.tutorialStreetId = @data.tutorialStreetId;
+            mainParam.hasCompletedAMission = @data.hasCompletedAMission;
+
+            @if(data.userRoute.isDefined) {
+                mainParam.routeId = @data.userRoute.get.routeId;
+                mainParam.userRouteId = @data.userRoute.get.userRouteId;
+            }
+
+            mainParam.language = "@messages.lang.code";
+            mainParam.cityId = "@currentCity.cityId";
+            mainParam.cityName = "@currentCity.cityNameFormatted";
+            mainParam.cityNameShort = "@currentCity.cityNameShort";
+            mainParam.mapboxApiKey = "@commonData.mapboxApiKey";
+            mainParam.makeCrops = @data.makeCrops;
+
+            svl.main = new Main(mainParam);
+        }
+
+        //Survey submission.
+        $("#survey-form").submit(function submitSurvey(e) {
+            var formData = $('#survey-form').serializeArray();
+            //alert(formData);
+
+            var surveyUrl = '/survey';
+            var async = true;
+            //submit data from survey
+            $.ajax({
+                async: async,
+                contentType: 'application/json; charset=utf-8',
+                url: surveyUrl,
+                method: 'POST',
+                dataType: 'json',
+                data: JSON.stringify(formData),
+                success: function (data) {
+                    //close survey modal here
+                    $('#survey-modal-container').modal('hide');
+                }
+            });
+            // Prevents reloading the explore page with the posted data in the url
+            // https://stackoverflow.com/questions/12624230/jquery-post-returns-querystring-in-address-bar
+            e.preventDefault();
+        });
+
+        window.appManager.ready(function () {
+            // Log whether the survey was skipped or completed to WebpageActivityTable.
+            $('#survey-skip-button').on('click', function() {
+                window.logWebpageActivity("SurveySkip", true);
+            });
+        });
+    </script>
+}

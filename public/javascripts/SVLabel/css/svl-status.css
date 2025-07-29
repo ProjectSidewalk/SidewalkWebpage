@@ -6,7 +6,7 @@
     left: 735px;
     top: 5px;
     width: 200px;
-    color: rgb(127, 127, 127);
+    color: rgb(75, 75, 75, 1);
 }
 
 .status-box {
@@ -14,10 +14,11 @@
     margin: 3px 0 5px 0;
     padding: 0 0 5px 0;
     text-align: left;
+    cursor: default;
 }
 
 .status-box a {
-    color: rgba(128, 128, 128, 1);
+    color: rgb(75, 75, 75, 1);
     text-decoration: underline;
 }
 
@@ -47,12 +48,38 @@
     padding-bottom: 0;
 }
 
+#mission-guidance-status-box {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+#mission-guidance-status {
+    display: inline-block;
+    font-size: 7.5pt;
+}
+
+#mission-guidance-status:hover::after {
+     content: attr(data-full-text);
+     position: absolute;
+     top: 60%;
+     left: 0;
+     background: #333;
+     color: white;
+     padding: 8px;
+     border-radius: 4px;
+     white-space: pre-wrap;
+     z-index: 1000;
+     max-width: 300px;
+     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+ }
+
 .status-icon {
     width: 20px;
 }
 
-#accuracy-rating-tooltip {
-    background-color:rgba(58,58,58, 0.9);
+.status-tooltip {
+    background-color: rgba(58, 58, 58, 0.9);
     color: white;
     width: 276px;
     top: 18px;
@@ -60,21 +87,25 @@
     font-size: 10px;
 }
 
-#accuracy-rating-tooltip a {
+.status-tooltip a {
     color: white;
 }
 
-#accuracy-rating-tooltip > .popover-content {
+.status-tooltip > .popover-content {
     padding: 6px 10px;
     display: block;
 }
 
-#accuracy-rating-tooltip.top > .arrow {
-    left: 75px;
-    border-top-color:rgba(58,58,58, 0.9);
+.status-tooltip.top > .arrow {
+    bottom: -10px; /* Adjusting from default -11px to remove small visual gap. */
+    border-top-color: rgba(58, 58, 58, 0.9);
 }
 
-#accuracy-rating-tooltip.top > .arrow:after {
+#accuracy-rating-tooltip.top > .arrow {
+    left: 75px;
+}
+
+.status-tooltip.top > .arrow:after {
     bottom: 2px;
     border-top-color: rgba(58, 58, 58, 0.9);
 }

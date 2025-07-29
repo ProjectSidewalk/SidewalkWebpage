@@ -1,18 +1,19 @@
-function Progress (_, $, userRole) {
+function Progress (_, $, mapboxApiKey, userId, admin) {
     var params = {
         mapName: 'user-dashboard-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
-        zoomCorrection: -0.75,
+        mapboxApiKey: mapboxApiKey,
+        zoomCorrection: -0.5,
         mapboxLogoLocation: 'bottom-right',
         neighborhoodsURL: '/neighborhoods',
         completionRatesURL: '/adminapi/neighborhoodCompletionRate',
-        streetsURL: '/contribution/streets',
-        labelsURL: '/userapi/labels',
+        streetsURL: `/contribution/streets?userId=${encodeURIComponent(userId)}`,
+        labelsURL: `/userapi/labels?userId=${encodeURIComponent(userId)}`,
         neighborhoodFillMode: 'singleColor',
-        neighborhoodTooltip: 'completionRate',
+        neighborhoodTooltip: admin? 'none' : 'completionRate',
         neighborhoodFillColor: '#5d6d6b',
         neighborhoodFillOpacity: 0.1,
-        popupLabelViewer: AdminGSVLabelView(false, "UserMap"),
+        popupLabelViewer: admin? AdminGSVLabelView(true, "AdminUserDashboard") : AdminGSVLabelView(false, "UserMap"),
         includeLabelCounts: true
     };
     var self = {}
@@ -23,37 +24,6 @@ function Progress (_, $, userRole) {
         addLegendListeners(self.map, self.mapData);
     });
     window.map = self;
-    // Get total reward if a turker.
-    if (userRole === 'Turker') {
-        $.ajax({
-            async: true,
-            url: '/rewardEarned',
-            type: 'get',
-            success: function(rewardData) {
-                document.getElementById('td-total-reward-earned').innerHTML = '$' + rewardData.reward_earned.toFixed(2);
-            },
-            error: function (xhr, ajaxOptions, thrownError) {
-                console.log(thrownError);
-            }
-        })
-    }
-
-    function logWebpageActivity(activity){
-        var url = "/userapi/logWebpageActivity";
-        var async = false;
-        $.ajax({
-            async: async,
-            contentType: 'application/json; charset=utf-8',
-            url: url,
-            type: 'post',
-            data: JSON.stringify(activity),
-            dataType: 'json',
-            success: function(result){},
-            error: function (result) {
-                console.error(result);
-            }
-        });
-    }
 
     function putUserTeam(e, newTeam) {
         var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startTeam-to-endTeam"
@@ -61,14 +31,16 @@ function Progress (_, $, userRole) {
         var endTeam = newTeam ? newTeam : parsedId[3];
         $.ajax({
             async: true,
-            url: '/userapi/setUserTeam/' + endTeam,
-            type: 'put',
+            url: `/userapi/setUserTeam?userId=${userId}&teamId=${endTeam}`,
+            method: 'PUT',
             success: function (result) {
-                if (startTeam && startTeam !== "0") {
-                    logWebpageActivity("Click_module=leaving_team=" + startTeam);
-                }
-                if (endTeam && endTeam !== "0") {
-                    logWebpageActivity("Click_module=joining_team=" + endTeam);
+                if (!admin) {
+                    if (startTeam && startTeam !== "0") {
+                        window.logWebpageActivity("Click_module=leaving_team=" + startTeam);
+                    }
+                    if (endTeam && endTeam !== "0") {
+                        window.logWebpageActivity("Click_module=joining_team=" + endTeam);
+                    }
                 }
                 window.location.reload();
             },
@@ -82,7 +54,7 @@ function Progress (_, $, userRole) {
     function createTeam() {
         var teamName = util.escapeHTML($('#team-name-input').val());
         var teamDescription = util.escapeHTML($('#team-description-input').val());
-        
+
         // Check for special characters in teamName and teamDescription.
         var specialCharRegex = /[&<>"']/;
         if (specialCharRegex.test(teamName) || specialCharRegex.test(teamDescription)) {
@@ -93,8 +65,8 @@ function Progress (_, $, userRole) {
         // If no special characters, proceed with AJAX request
         $.ajax({
             async: true,
-            url: '/userapi/createTeam', 
-            type: 'post',
+            url: '/userapi/createTeam',
+            method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
                 name: teamName,
@@ -103,7 +75,7 @@ function Progress (_, $, userRole) {
             success: function (result) {
                 var newTeam = result.team_id;
                 var userTeamElement = $('.put-user-team')[0];
-                logWebpageActivity("Click_module=create_team=team_id=" + newTeam);
+                window.logWebpageActivity("Click_module=create_team=team_id=" + newTeam);
                 putUserTeam.call(userTeamElement || { id: "-1" }, null, newTeam);
             },
             error: function (result) {

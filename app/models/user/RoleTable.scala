@@ -1,22 +1,40 @@
 package models.user
 
-import models.utils.MyPostgresDriver.simple._
-import play.api.Play.current
+import com.google.inject.ImplementedBy
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+
+import javax.inject.{Inject, Singleton}
 
 case class Role(roleId: Int, role: String)
 
-class RoleTable(tag: Tag) extends Table[Role](tag, Some("sidewalk_login"), "role") {
-  def roleId = column[Int]("role_id", O.PrimaryKey, O.AutoInc)
-  def role = column[String]("role", O.NotNull)
+class RoleTableDef(tag: Tag) extends Table[Role](tag, "role") {
+  def roleId: Rep[Int]  = column[Int]("role_id", O.PrimaryKey, O.AutoInc)
+  def role: Rep[String] = column[String]("role")
 
   def * = (roleId, role) <> ((Role.apply _).tupled, Role.unapply)
 }
 
+/**
+ * Companion object with constants that are shared throughout codebase.
+ */
 object RoleTable {
-  val db = play.api.db.slick.DB
-  val roles = TableQuery[RoleTable]
+  val SCISTARTER_ROLES: Seq[String] = Seq("Registered", "Researcher", "Administrator", "Owner")
+  val RESEARCHER_ROLES: Seq[String] = Seq("Researcher", "Administrator", "Owner")
+  val ADMIN_ROLES: Seq[String]      = Seq("Administrator", "Owner")
+  val VALID_ROLES: Seq[String]      = Seq("Registered", "Turker", "Researcher", "Administrator", "Owner", "Anonymous")
+  val ROLES_RESEARCHER_COLLAPSED: Seq[String] = Seq("Registered", "Turker", "Researcher", "Anonymous")
+}
 
-  def getRoleNames: List[String] = db.withSession { implicit session =>
-    roles.map(_.role).list
-  }
+@ImplementedBy(classOf[RoleTable])
+trait RoleTableRepository {}
+
+@Singleton
+class RoleTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends RoleTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+  val roles = TableQuery[RoleTableDef]
+
+  def getRoles: DBIO[Seq[Role]] = roles.result
 }

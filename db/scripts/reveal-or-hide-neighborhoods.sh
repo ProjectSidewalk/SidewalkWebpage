@@ -65,7 +65,7 @@ if [ "$REVEAL_OR_HIDE" = "reveal" ]; then
     echo "Streets to exclude: $street_ids"
 
     # Reveal the streets/regions.
-    psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,public" -v ON_ERROR_STOP=1 -U "$PSQL_USER" -p $PORT <<EOSQL
+    psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U "$PSQL_USER" -p $PORT <<EOSQL
         BEGIN;
         -- Mark streets as deleted=FALSE unless they are missing imagery.
         UPDATE street_edge
@@ -93,12 +93,12 @@ if [ "$REVEAL_OR_HIDE" = "reveal" ]; then
 EOSQL
 
 # If hiding neighborhoods.
-else    
+else
     # Ask which regions to hide.
     regions_to_hide=$(prompt_with_default "Region IDs to hide (space-separated)")
 
     # Check if tutorial street is in one of the regions being hidden.
-    hiding_tutorial_street=$(psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,public" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT -t -A <<EOSQL
+    hiding_tutorial_street=$(psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT -t -A <<EOSQL
         SELECT COUNT(*) > 0
         FROM street_edge_region
         INNER JOIN config ON street_edge_region.street_edge_id = config.tutorial_street_edge_id
@@ -109,7 +109,7 @@ EOSQL
     # If trying to hide tutorial's region, ask which region to transfer tutorial to.
     if [ "$hiding_tutorial_street" = "t" ]; then
         # Get list of region IDs where you could safely move the tutorial street and show to user.
-        mapfile -t safe_region_ids < <(psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,public" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT -t -A <<-EOSQL
+        mapfile -t safe_region_ids < <(psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT -t -A <<-EOSQL
             SELECT region.region_id
             FROM region
             INNER JOIN region_completion ON region.region_id = region_completion.region_id
@@ -125,7 +125,7 @@ EOSQL
         new_tutorial_region=$(prompt_with_default "Which region should the tutorial street be moved to?" "${safe_region_ids[0]}" "$(IFS="|"; echo "${safe_region_ids[*]}")")
 
         # Update tutorial's region.
-        psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,public" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT <<EOSQL
+        psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT <<EOSQL
             UPDATE street_edge_region
             SET region_id = $new_tutorial_region
             WHERE street_edge_id = (SELECT tutorial_street_edge_id FROM config);
@@ -145,8 +145,8 @@ EOSQL
 EOSQL
     echo "Wrote list of previously deleted streets in hidden neighborhoods to $output_file"
 
-    # Finally, hide the streets/regions and truncate the region_completion table.
-    psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,public" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT <<EOSQL
+    # Finally, hide the streets/regions, remove any user_current_regions and truncate the region_completion table.
+    psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT <<EOSQL
         BEGIN;
         UPDATE region
         SET deleted = TRUE
@@ -157,6 +157,8 @@ EOSQL
         FROM street_edge_region
         WHERE street_edge.street_edge_id = street_edge_region.street_edge_id
             AND street_edge_region.region_id IN (${regions_to_hide// /,});
+
+        DELETE FROM user_current_region WHERE region_id IN (${regions_to_hide// /,});
 
         DELETE FROM street_edge_priority
         USING street_edge

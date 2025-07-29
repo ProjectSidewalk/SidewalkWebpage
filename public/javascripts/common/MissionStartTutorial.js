@@ -642,7 +642,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
                 }
             ]
         },
-        'NoSideWalk': {
+        'NoSidewalk': {
             'missionInstruction1': i18next.t('audit:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('audit:mission-start-tutorial.mst-instruction-2',
                 {'neighborhood': data.neighborhood}),
@@ -866,7 +866,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
             $('.explore-mission-start-tab.label[data-label-type="NoCurbRamp"]').find('.explore-mission-start-tab-text').html(i18next.t('common:no-curb-ramp'));
             $('.explore-mission-start-tab.label[data-label-type="Obstacle"]').find('.explore-mission-start-tab-text').html(i18next.t('common:obstacle'));
             $('.explore-mission-start-tab.label[data-label-type="SurfaceProblem"]').find('.explore-mission-start-tab-text').html(i18next.t('common:surface-problem'));
-            $('.explore-mission-start-tab.label[data-label-type="NoSideWalk"]').find('.explore-mission-start-tab-text').html(i18next.t('common:no-sidewalk'));
+            $('.explore-mission-start-tab.label[data-label-type="NoSidewalk"]').find('.explore-mission-start-tab-text').html(i18next.t('common:no-sidewalk'));
             $('.explore-mission-start-tab.label[data-label-type="Crosswalk"]').find('.explore-mission-start-tab-text').html(i18next.t('common:crosswalk'));
             $('.explore-mission-start-tab.label[data-label-type="Signal"]').find('.explore-mission-start-tab-text').html(i18next.t('common:signal'));
 
@@ -1047,7 +1047,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         $('.explore-mission-start-tab.label').off().click(function() {
             const labelType = $(this).attr('data-label-type');
             const missionStartTutorial = new MissionStartTutorial('audit', labelType,
-                {neighborhood: data.neighborhood},
+                { neighborhood: data.neighborhood },
                 svl);
         });
 

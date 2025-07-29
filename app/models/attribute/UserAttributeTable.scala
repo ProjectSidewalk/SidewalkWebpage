@@ -1,67 +1,64 @@
 package models.attribute
 
-import models.label.{LabelType, LabelTypeTable}
-import models.region.{Region, RegionTable}
-import models.utils.MyPostgresDriver.simple._
-import play.api.Play.current
-import play.api.db.slick
-import scala.slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
-import scala.language.postfixOps
+import com.google.inject.ImplementedBy
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-case class UserAttribute(userAttributeId: Int,
-                         userClusteringSessionId: Int,
-                         clusteringThreshold: Float,
-                         labelTypeId: Int,
-                         regionId: Int,
-                         lat: Float,
-                         lng: Float,
-                         severity: Option[Int],
-                         temporary: Boolean)
+import javax.inject.{Inject, Singleton}
 
-class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, "user_attribute") {
-  def userAttributeId: Column[Int] = column[Int]("user_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
-  def userClusteringSessionId: Column[Int] = column[Int]("user_clustering_session_id", O.NotNull)
-  def clusteringThreshold: Column[Float] = column[Float]("clustering_threshold", O.NotNull)
-  def labelTypeId: Column[Int] = column[Int]("label_type_id", O.NotNull)
-  def regionId: Column[Int] = column[Int]("region_id", O.NotNull)
-  def lat: Column[Float] = column[Float]("lat", O.NotNull)
-  def lng: Column[Float] = column[Float]("lng", O.NotNull)
-  def severity: Column[Option[Int]] = column[Option[Int]]("severity")
-  def temporary: Column[Boolean] = column[Boolean]("temporary", O.NotNull)
+case class UserAttribute(
+    userAttributeId: Int,
+    userClusteringSessionId: Int,
+    clusteringThreshold: Float,
+    labelTypeId: Int,
+    regionId: Int,
+    lat: Float,
+    lng: Float,
+    severity: Option[Int]
+)
 
-  def * : ProvenShape[UserAttribute] = (userAttributeId,
-                                        userClusteringSessionId,
-                                        clusteringThreshold,
-                                        labelTypeId,
-                                        regionId,
-                                        lat, lng,
-                                        severity,
-                                        temporary) <>
+class UserAttributeTableDef(tag: Tag) extends Table[UserAttribute](tag, "user_attribute") {
+  def userAttributeId: Rep[Int]         = column[Int]("user_attribute_id", O.PrimaryKey, O.AutoInc)
+  def userClusteringSessionId: Rep[Int] = column[Int]("user_clustering_session_id")
+  def clusteringThreshold: Rep[Float]   = column[Float]("clustering_threshold")
+  def labelTypeId: Rep[Int]             = column[Int]("label_type_id")
+  def regionId: Rep[Int]                = column[Int]("region_id")
+  def lat: Rep[Float]                   = column[Float]("lat")
+  def lng: Rep[Float]                   = column[Float]("lng")
+  def severity: Rep[Option[Int]]        = column[Option[Int]]("severity")
+
+  def * = (userAttributeId, userClusteringSessionId, clusteringThreshold, labelTypeId, regionId, lat, lng, severity) <>
     ((UserAttribute.apply _).tupled, UserAttribute.unapply)
 
-  def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
-    foreignKey("user_attribute_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
-
-  def region: ForeignKeyQuery[RegionTable, Region] =
-    foreignKey("user_attribute_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)
-
-  def userClusteringSession: ForeignKeyQuery[UserClusteringSessionTable, UserClusteringSession] =
-    foreignKey("user_attribute_user_clustering_session_id_fkey", userClusteringSessionId, TableQuery[UserClusteringSessionTable])(_.userClusteringSessionId)
+//  def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
+//    foreignKey("user_attribute_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
+//
+//  def region: ForeignKeyQuery[RegionTable, Region] =
+//    foreignKey("user_attribute_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId)
+//
+//  def userClusteringSession: ForeignKeyQuery[UserClusteringSessionTable, UserClusteringSession] =
+//    foreignKey("user_attribute_user_clustering_session_id_fkey", userClusteringSessionId, TableQuery[UserClusteringSessionTableDef])(_.userClusteringSessionId)
 }
 
-/**
-  * Data access object for the UserAttributeTable table.
-  */
-object UserAttributeTable {
-  val db: slick.Database = play.api.db.slick.DB
-  val userAttributes: TableQuery[UserAttributeTable] = TableQuery[UserAttributeTable]
+@ImplementedBy(classOf[UserAttributeTable])
+trait UserAttributeTableRepository {}
 
-  def countUserAttributes: Int = db.withSession { implicit session =>
-    userAttributes.size.run
+@Singleton
+class UserAttributeTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends UserAttributeTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+  val userAttributes = TableQuery[UserAttributeTableDef]
+
+  def countUserAttributes: DBIO[Int] = {
+    userAttributes.length.result
   }
 
-  def save(newSess: UserAttribute): Int = db.withSession { implicit session =>
-    val newId: Int = (userAttributes returning userAttributes.map(_.userAttributeId)) += newSess
-    newId
+  def insert(newSess: UserAttribute): DBIO[Int] = {
+    (userAttributes returning userAttributes.map(_.userAttributeId)) += newSess
+  }
+
+  def saveMultiple(attributes: Seq[UserAttribute]): DBIO[Seq[Int]] = {
+    (userAttributes returning userAttributes.map(_.userAttributeId)) ++= attributes
   }
 }

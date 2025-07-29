@@ -1,0 +1,243 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, regionIds: Seq[Int], routeIds: Seq[Int]
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
+
+@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap")) {
+    @common.navbar(commonData, Some(user))
+    <div id="labelmap-choropleth-container" class="container choropleth-container">
+        <div id="labelmap-choropleth-holder" class="choropleth-holder">
+            <div id="labelmap-choropleth" class="choropleth"></div>
+            <div id="map-label-legend">
+                <div id="map-legend-title-holder">
+                    <label id="map-legend-title">@Messages("legend")</label>
+                    <button id="map-legend-minimize-button" class="close" onclick="toggleLegend()">-</button>
+                </div>
+                <table class="table filter" id="legend-table">
+                    <tr>
+                        <td></td>
+                        <td colspan="2" align="left" style="font-weight:bold">@Messages("label.type")</td>
+                        <td colspan="2" align="left" style="font-weight:bold">@Messages("severity")</td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-curb-ramp" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                        <td width="190px">@Messages("curb.ramp")</td>
+                        <td width="12px" align="center"><input type="checkbox" id="CurbRamp-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                        <td width="113px" align="center"><div id = "CurbRamp-slider" style="margin-top:3px"></div></td>
+                        <td width="93px" align= "center" ><span id="CurbRamp-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-no-curb-ramp" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                        <td>@Messages("missing.ramp")</td>
+                        <td><input type="checkbox" id="NoCurbRamp-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                        <td align="left"><div id = "NoCurbRamp-slider" style="margin-top:3px"></div></td>
+                        <td align= "center"><span id="NoCurbRamp-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-obstacle" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                        <td>@Messages("obstacle")</td>
+                        <td><input type="checkbox" id="Obstacle-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                        <td align="left"><div id = "Obstacle-slider" style="margin-top:3px"></div></td>
+                        <td align= "center"><span id="Obstacle-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-surface-problem" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                        <td>@Messages("surface.problem")</td>
+                        <td><input type="checkbox" id="SurfaceProblem-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                        <td align="left"><div id = "SurfaceProblem-slider" style="margin-top:3px"></div></td>
+                        <td align="center"><span id="SurfaceProblem-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-no-sidewalk" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                        <td>@Messages("no.sidewalk")</td>
+                        <td><input type="checkbox" id="NoSidewalk-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                        <td align="left"><div id = "NoSidewalk-slider" style="margin-top:3px"></div></td>
+                        <td align="center"><span id="NoSidewalk-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-crosswalk" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                        <td>@Messages("crosswalk")</td>
+                        <td><input type="checkbox" id="Crosswalk-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                        <td align="left"><div id = "Crosswalk-slider" style="margin-top:3px"></div></td>
+                        <td align="center"><span id="Crosswalk-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-other" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                        <td>@Messages("other")</td>
+                        <td><input type="checkbox" id="Other-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                        <td align="left"><div id = "Other-slider" style="margin-top:3px"></div></td>
+                        <td align= "center"><span id="Other-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-signal" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                        <td>@Messages("signal")</td>
+                        <td><input type="checkbox" id="Signal-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-occlusion" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                        <td>@Messages("occlusion")</td>
+                        <td><input type="checkbox" id="Occlusion-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-correct"><img src='@assets.path("javascripts/SVValidate/img/Checkmark.png")'></td>
+                        <td>@Messages("validated.correct")</td>
+                        <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-incorrect"><img src='@assets.path("javascripts/SVValidate/img/Cross.png")'></td>
+                        <td>@Messages("validated.incorrect")</td>
+                        <td><input type="checkbox" id="incorrect" data-filter-type="label-validations" disabled></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-unsure"><img src='@assets.path("images/icons/QuestionMark.png")'></td>
+                        <td>@Messages("unsure.caps")</td>
+                        <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-unvalidated"><img src='@assets.path("images/icons/ExclamationMark.png")'></td>
+                        <td>@Messages("unvalidated")</td>
+                        <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-audited-street"><svg><path d="M 2 10 L 18 10 z"></path></svg></td>
+                        <td>@Messages("audited.street")</td>
+                        <td><input type="checkbox" id="auditedstreet" checked="true" data-filter-type="streets" disabled></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-unaudited-street"><svg><path d="M 2 10 L 18 10 z"></path></svg></td>
+                        <td>@Messages("unaudited.street")</td>
+                        <td><input type="checkbox" id="unauditedstreet" checked="true" data-filter-type="streets" disabled></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
+
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
+    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+    <script src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/dataTables.bootstrap.min.js")'></script>
+    <script src='@assets.path("javascripts/common/UtilitiesSidewalk.js")'></script>
+    <script src='@assets.path("javascripts/common/Panomarker.js")'></script>
+    <script src='@assets.path("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+    <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
+    <script>updateTimestamps("@messages.lang.code");</script>
+
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.13.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.13.0.css")' rel="stylesheet"/>
+    <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
+    <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+    <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
+
+    <script>
+        // Gets all translations before loading the choropleth.
+        window.appManager.ready(function () {
+            let params = {
+                mapName: 'labelmap-choropleth',
+                mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+                mapboxApiKey: '@commonData.mapboxApiKey',
+                mapboxLogoLocation: 'bottom-right',
+                neighborhoodFillMode: 'singleColor',
+                neighborhoodFillColor: '#808080',
+                neighborhoodFillOpacity: 0.1,
+                neighborhoodTooltip: 'none',
+                differentiateUnauditedStreets: true,
+                interactiveStreets: true,
+                popupLabelViewer: AdminGSVLabelView(false, "LabelMap"),
+                differentiateExpiredLabels: true
+            };
+            params.neighborhoodsURL = new URL('/neighborhoods', window.location.origin);
+            params.completionRatesURL = new URL('/adminapi/neighborhoodCompletionRate', window.location.origin);
+            params.streetsURL = new URL('/contribution/streets/all?filterLowQuality=true', window.location.origin);
+            params.labelsURL = new URL('/labels/all', window.location.origin);
+
+            let regionsParam = '@{regionIds.mkString(",")}';
+            if (regionsParam) {
+                params.neighborhoodsURL.searchParams.append('regions', regionsParam);
+                params.completionRatesURL.searchParams.append('regions', regionsParam);
+                params.streetsURL.searchParams.append('regions', regionsParam);
+                params.labelsURL.searchParams.append('regions', regionsParam);
+            }
+
+            let routesParam = '@{routeIds.mkString(",")}';
+            if (routesParam) {
+                params.streetsURL.searchParams.append('routes', routesParam);
+                params.labelsURL.searchParams.append('routes', routesParam);
+            }
+
+            var self = {};
+            CreatePSMap($, params).then(m => {
+                self.map = m[0];
+                self.mapData = m[4];
+                addLegendListeners(self.map, self.mapData);
+            });
+
+            // Initialize the sliders in the legend. We add the "change" functionality after the map loads.
+            $( "*[id*='slider']" ).each(function() {
+                $(this).slider({ range: true, min : 0, max : 5, step: 1, values: [0,5], disabled: true });
+            });
+            window.map = self;
+            console.log("To add data from users marked as 'low quality'', use the following commands. You can run them again with 'false' to remove.");
+            console.log("map.mapData.lowQualityUsers = true;");
+            console.log("filterLabelLayers('', map.map, map.mapData);");
+
+            // Hide the loader once the map has loaded.
+            $(window).load(function () {
+                $('.loader').fadeOut('slow');
+            });
+
+            // Adds listeners to the checkboxes and sliders so that they update the map.
+            function addLegendListeners(map, mapData) {
+                // Add listeners on the checkboxes.
+                document.querySelectorAll('#legend-table tr input').forEach(checkbox => {
+                    checkbox.addEventListener('click', () => {
+                        if (checkbox.getAttribute('data-filter-type') === 'label-type') {
+                            let slider;
+                            if (checkbox.parentElement.nextElementSibling) {
+                                slider = checkbox.parentElement.nextElementSibling.firstElementChild;
+                            }
+                            toggleLabelLayer(checkbox.id.split('-')[0], checkbox, slider, map, mapData);
+                        } else if (checkbox.getAttribute('data-filter-type') === 'label-validations') {
+                            filterLabelLayers(checkbox, map, mapData, true);
+                        } else {
+                            filterStreetLayer(map);
+                        }
+                    }, false);
+                    checkbox.disabled = false; // Enable the checkbox now that the map has loaded.
+                });
+
+                // Add listeners on the sliders.
+                let sliderStepText = ["N/A", 1, 2, 3, 4, 5];
+                $( "*[id*='slider']" ).each(function() {
+                    $(this).slider('option', {
+                        // Change the text next to the slider as it's moved.
+                        slide: function(event, ui) {
+                            let sliderTextEl = this.parentElement.nextElementSibling.firstElementChild;
+                            if(sliderStepText[ui.values[0]] === sliderStepText[ui.values[1]]) {
+                                sliderTextEl.textContent = sliderStepText[ui.values[0]];
+                            } else {
+                                sliderTextEl.textContent = `${ui.values[0]} - ${ui.values[1]}`;
+                            }
+                        },
+                        // When the slider is released, update the map.
+                        change: function(event, ui) {
+                            let labelType = this.id.split('-')[0];
+                            let checkbox = this.parentElement.previousElementSibling.firstElementChild;
+                            toggleLabelLayer(labelType, checkbox, this, map, mapData);
+                        },
+                        // Enable the sliders now that the map has loaded.
+                        disabled: false
+                    });
+                });
+            }
+        });
+    </script>
+}

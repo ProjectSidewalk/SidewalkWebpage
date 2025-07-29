@@ -39,7 +39,7 @@ function LabelVisibilityControl () {
         panomarker.draw();
         visible = true;
         labelVisibilityButtonOnPano.html(`<span>${buttonUiVisibilityControlHide}</span>`);
-        let buttonClass = svv.newValidateBeta ? "hide-label-button-icon" : "upper-menu-button-icon";
+        let buttonClass = svv.expertValidate ? "hide-label-button-icon" : "upper-menu-button-icon";
         let htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="${buttonClass}" alt="Hide Label">
                           <br /><span>${buttonUiVisibilityControlHide}</span>`;
         labelVisibilityControlButton.html(htmlString);
@@ -58,7 +58,7 @@ function LabelVisibilityControl () {
         panomarker.draw();
         visible = false;
         labelVisibilityButtonOnPano.html(`<span>${buttonUiVisibilityControlShow}</span>`);
-        let buttonClass = svv.newValidateBeta ? "hide-label-button-icon" : "upper-menu-button-icon";
+        let buttonClass = svv.expertValidate ? "hide-label-button-icon" : "upper-menu-button-icon";
         let htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="${buttonClass}" alt="Show Label">
                          <br /><span>${buttonUiVisibilityControlShow}</span>`;
         labelVisibilityControlButton.html(htmlString);
@@ -98,7 +98,7 @@ function LabelVisibilityControl () {
         button.style.left = (parseFloat(marker.style.left) + 10) + 'px';
         button.style.top = (parseFloat(marker.style.top) - 15) + 'px';
         button.style.visibility = 'visible';
-        
+
         // Position the box to the lower left corner of the label, 10px left and
         // 10px down from center of the label.
         let desBox = labelDescriptionBox[0];

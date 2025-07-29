@@ -18,7 +18,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     let properties = {
         dataStoreUrl : undefined,
         beaconDataStoreUrl : undefined,
-        lastPriorityUpdateTime : new Date().getTime() // Assumes that priorities are up-to-date when the page loads.
+        lastPriorityUpdateTime : new Date() // Assumes that priorities are up-to-date when the page loads.
     };
     const compileDataLock = new AsyncLock();
 
@@ -44,8 +44,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
      */
     this._compileSubmissionData = async function (task) {
         return await compileDataLock.acquire('_compileSubmissionData', async () => {
-            var data = { timestamp: new Date().getTime() };
-            data.amt_assignment_id = svl.amtAssignmentId;
+            var data = { timestamp: new Date() };
             data.user_route_id = svl.userRouteId;
 
             var mission = missionContainer.getCurrentMission();
@@ -54,6 +53,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             data.mission = {
                 mission_id: missionId,
                 distance_progress: Math.min(mission.getProperty("distanceProgress"), mission.getProperty("distance")),
+                region_id: svl.regionId,
                 completed: mission.getProperty("isComplete"),
                 audit_task_id: task.getAuditTaskId(),
                 skipped: mission.getProperty("skipped")
@@ -61,7 +61,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
             data.audit_task = {
                 street_edge_id: task.getStreetEdgeId(),
-                task_start: task.getProperty("taskStart").getTime(),
+                task_start: task.getProperty("taskStart"),
                 audit_task_id: task.getAuditTaskId(),
                 completed: task.isComplete(),
                 current_lat: navigationModel.getPosition().lat,
@@ -209,7 +209,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             util.misc.reportNoStreetView(task.getStreetEdgeId());
         } else {
             // Set the tasksMissionsOffset so that the mission progress bar remains the same after the jump.
-            var currTaskDist = util.math.kilometersToMeters(taskContainer.getCurrentTaskDistance());
+            var currTaskDist = util.math.kmsToMeters(taskContainer.getCurrentTaskDistance());
             var oldOffset = missionContainer.getTasksMissionsOffset();
             missionContainer.setTasksMissionsOffset(oldOffset + currTaskDist);
         }
@@ -263,7 +263,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             async: async,
             contentType: 'application/json; charset=utf-8',
             url: properties.dataStoreUrl,
-            type: 'post',
+            method: 'POST',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
@@ -271,10 +271,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     var taskId = result.audit_task_id;
                     task.setProperty("auditTaskId", taskId);
                     svl.tracker.setAuditTaskID(taskId);
-
-                    // If the back-end says it is time to switch to validations, then do it immediately (mostly to
-                    // prevent turkers from modifying JS variables to prevent switching to validation).
-                    if (result.switch_to_validation) window.location.replace('/validate');
 
                     // If the back-end says that something is messed up and that we should refresh page, do that now.
                     if (result.refresh_page) window.location.reload();

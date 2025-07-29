@@ -53,11 +53,21 @@ function Keyboard(expandedView) {
                 case "U":
                     expandedView.validationMenu.validateOnClickOrKeyPress("validate-unsure", false, true)()
                     break;
+                case "Z":
+                    if (expandedView.open) {
+                        if (e.shiftKey) {
+                            expandedView.zoomOut();
+                        } else {
+                            expandedView.zoomIn();
+                        }
+                    }
+                    break;
                 default:
                     break;
             }
         }
     }
+
 
     _init();
 }

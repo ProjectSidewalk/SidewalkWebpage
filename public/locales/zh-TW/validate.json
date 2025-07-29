@@ -8,7 +8,7 @@
             "obstacle": "這是<b>障礙物嗎</b>？",
             "surface-problem": "這是<b>鋪面問題嗎</b>？",
             "no-sidewalk": "此處是否應該標記<b>無人行道</b>呢？",
-            "crosswalk": "這是<b>行人穿越道</b>嗎？",
+            "crosswalk": "這是<b>缺有標記的行人穿越道</b>嗎？",
             "signal": "這是<b>行人號誌</b>嗎？"
         },
         "visibility-control-hide": "隱藏標記<u>H</u>",
@@ -49,7 +49,7 @@
                 "example-4": "這個路口轉角沒有人行道"
             },
             "crosswalk": {
-                "title": "<strong>正確的</strong>行人穿越道標記",
+                "title": "<strong>正確的</strong>缺有標記的行人穿越道標記",
                 "example-1-2-3": "這個標記被正確地標示在行人穿越道上",
                 "example-4": "這個標記被正確地標示在油漆褪色的行人穿越道上"
             },
@@ -93,10 +93,10 @@
                 "example-4": "窄巷及弄不應被標記為無人行道"
             },
             "crosswalk": {
-                "title": "<strong>錯誤的</strong>行人穿越道標記",
-                "example-1": "交叉路口路面上無任何標線處，不應被標記為行人穿越道",
-                "example-2": "車輛停止線不應被標記為行人穿越道",
-                "example-3-4": "減速丘不應被標記為行人穿越道"
+                "title": "<strong>錯誤的</strong>缺有標記的行人穿越道標記",
+                "example-1": "交叉路口路面上無任何標線處，不應被標記為缺有標記的行人穿越道",
+                "example-2": "車輛停止線不應被標記為缺有標記的行人穿越道",
+                "example-3-4": "減速丘不應被標記為缺有標記的行人穿越道"
             },
             "signal": {
                 "title": "<strong>錯誤的</strong>行人號誌標記",
@@ -120,7 +120,7 @@
         "body-3": "您檢核了{{n}}個障礙物的標記。",
         "body-4": "您檢核了{{n}}個鋪面問題的標記。",
         "body-7": "您檢核了{{n}}個無人行道的標記。",
-        "body-9": "您檢核了{{n}}個行人穿越道的標記",
+        "body-9": "您檢核了{{n}}個缺有標記的行人穿越道的標記",
         "body-10": "您檢核了{{n}}個行人號誌的標記。",
         "validate-more": "檢核更多標記",
         "continue": "繼續檢核",
@@ -135,7 +135,7 @@
         "info-title-obstacle": "障礙物是什麼？",
         "info-title-surface-problem": "鋪面問題是什麼？",
         "info-title-no-sidewalk": "「無人行道」是什麼 ",
-        "info-title-crosswalk": "行人穿越道是什麼？",
+        "info-title-crosswalk": "缺有標記的行人穿越道是什麼？",
         "info-title-signal": "行人號誌是什麼？",
         "no-new-mission-body": "您可以使用筆記型電腦/台式計算機添加更多標籤，也可以在其他城市驗證標籤！",
         "no-new-mission-button": "在中驗證"
