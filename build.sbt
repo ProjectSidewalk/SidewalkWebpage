@@ -60,9 +60,6 @@ libraryDependencies ++= Seq(
   "org.geotools" % "gt-shapefile" % "29.6" exclude("javax.media", "jai_core"),
   "org.geotools" % "gt-epsg-hsql" % "29.6" exclude("javax.media", "jai_core"),
   "org.geotools" % "gt-geopkg" % "29.6" exclude("javax.media", "jai_core"),
-
-  // Used for processing data from AI server.
-  "org.apache.httpcomponents" % "httpmime" % "4.5.14",
 )
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
