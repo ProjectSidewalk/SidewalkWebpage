@@ -3,11 +3,11 @@ CREATE TABLE IF NOT EXISTS label_ai (
     label_ai_id SERIAL PRIMARY KEY,
     label_id INT NOT NULL,
     ai_tags TEXT[] DEFAULT '{}',
-    ai_validation_result INT,
-    ai_validation_accuracy DOUBLE PRECISION,
-    api_version TEXT,
+    ai_validation_result INT NOT NULL,
+    ai_validation_accuracy DOUBLE PRECISION NOT NULL,
+    api_version TEXT NOT NULL,
     time_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (label_id) REFERENCES label(label_id)
+    FOREIGN KEY (label_id) REFERENCES label (label_id)
 );
 
 INSERT INTO sidewalk_login.sidewalk_user (user_id, username, email)
