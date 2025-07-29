@@ -73,23 +73,23 @@ object LabelTypeEnum {
 
   // Set of all valid label types that can be used in the application, excluding internal-only types like "Problem".
   lazy val validLabelTypes: Set[String] = values.map(_.name) - Problem.name
-
-  // Set of all valid label type IDs corresponding to validLabelTypes.
-  lazy val validLabelTypeIds: Set[Int] = validLabelTypes.map(labelTypeToId)
+  lazy val validLabelTypeIds: Set[Int]  = validLabelTypes.map(labelTypeToId)
 
   // Set of primary label types used for main categorization.
   lazy val primaryLabelTypes: Set[String] = Set(
     CurbRamp.name, NoCurbRamp.name, Obstacle.name, SurfaceProblem.name, NoSidewalk.name, Crosswalk.name, Signal.name
   )
-
-  // Set of primary label type IDs corresponding to primaryLabelTypes.
   lazy val primaryLabelTypeIds: Set[Int] = primaryLabelTypes.map(labelTypeToId)
 
-  // Set of label types that require primary validation. These are label types that undergo stricter validation rules.
+  // Set of label types that require primary validation. NoSidewalk is only validated once all others have been.
   lazy val primaryValidateLabelTypes: Set[String] = primaryLabelTypes - NoSidewalk.name
+  lazy val primaryValidateLabelTypeIds: Set[Int]  = primaryValidateLabelTypes.map(labelTypeToId)
 
-  // Set of label type IDs that require primary validation.
-  lazy val primaryValidateLabelTypeIds: Set[Int] = primaryValidateLabelTypes.map(labelTypeToId)
+  // Set of label types are accepted for validation using the Sidewalk AI API.
+  lazy val aiLabelTypes: Set[String] = Set(
+    CurbRamp.name, NoCurbRamp.name, Obstacle.name, SurfaceProblem.name, NoSidewalk.name, Crosswalk.name
+  )
+  lazy val aiLabelTypeIds: Set[Int] = aiLabelTypes.map(labelTypeToId)
 }
 
 /**
