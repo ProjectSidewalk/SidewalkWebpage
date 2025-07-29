@@ -5,7 +5,7 @@ import formats.json.ApiFormats
 import models.api.{LabelDataForApi, LabelValidationSummaryForApi, RawLabelFiltersForApi}
 import models.audit.AuditTaskTableDef
 import models.computation.StreamingApiType
-import models.gsv.GsvDataTableDef
+import models.gsv.{GsvData, GsvDataTableDef}
 import models.label.LabelTable._
 import models.label.LabelTypeEnum.validLabelTypes
 import models.mission.MissionTableDef
@@ -185,7 +185,7 @@ object LabelCVMetadata {
     "Camera Heading,Camera Pitch\n"
 }
 
-case class LabelDataForAi(label: Label, labelPoint: LabelPoint)
+case class LabelDataForAi(label: Label, labelPoint: LabelPoint, gsvData: GsvData)
 
 case class LabelMetadataUserDash(
     labelId: Int,
@@ -1630,12 +1630,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     labelsUnfiltered
       .join(labelPoints)
       .on(_.labelId === _.labelId)
-      .filter(_._1.labelId === labelId)
+      .join(gsvData)
+      .on { case ((label, point), gsv) => label.gsvPanoramaId === gsv.gsvPanoramaId }
+      .filter { case ((label, point), gsv) => label.labelId === labelId && gsv.width.isDefined && gsv.height.isDefined }
       .result
       .headOption
-      .map(_.map { case (label, labelPoint) =>
-        LabelDataForAi(label, labelPoint)
-      })
+      .map(_.map { case ((label, labelPoint), gsv) => LabelDataForAi(label, labelPoint, gsv) })
   }
 
   /**

@@ -141,8 +141,8 @@ class AiServiceImpl @Inject() (
     val formData = Map(
       "label_type"  -> LabelTypeEnum.labelTypeIdToLabelType(labelData.label.labelTypeId).toLowerCase,
       "panorama_id" -> labelData.label.gsvPanoramaId,
-      "x"           -> (labelData.labelPoint.panoX / 16384.0).toString,
-      "y"           -> (labelData.labelPoint.panoY / 8192.0).toString
+      "x"           -> (labelData.labelPoint.panoX.toDouble / labelData.gsvData.width.get).toString,
+      "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.gsvData.height.get).toString
     )
 
     ws.url(url)
