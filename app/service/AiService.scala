@@ -48,46 +48,37 @@ class AiServiceImpl @Inject() (
             .flatMap {
               case Some(labelData) =>
                 // Call the AI API to process the panorama data and validate labels.
-                callAIAPI(labelData).map { aiResults => (aiResults, labelData) }
+                callAIAPI(labelData).map(_.map(aiResults => (aiResults, labelData)))
               case None =>
-                logger.warn(s"Label with ID $labelId not found.")
+                logger.warn(s"Info for label with ID $labelId not found.")
                 Future.failed(new Exception(s"Label with ID $labelId not found."))
             }
-            .map {
-              case (Some(aiResults), labelData) =>
-                println(aiResults)
-                val aiValidation: Option[Int] =
-                  if (aiResults.aiValidationAccuracy >= AI_VALIDATION_MIN_ACCURACY) Some(aiResults.aiValidationResult)
-                  else None
+            .map(_.map { case (aiResults, labelData) =>
+              println(aiResults)
+              val aiValidation: Option[Int] =
+                if (aiResults.aiValidationAccuracy >= AI_VALIDATION_MIN_ACCURACY) Some(aiResults.aiValidationResult)
+                else None
 
-                // If AI validations are enabled and confidence is above the threshold, submit a validation.
-                if (AI_VALIDATIONS_ON && aiValidation.isDefined) {
-                  val label      = labelData.label
-                  val labelPoint = labelData.labelPoint
-                  val validation = LabelValidation(
-                    0, labelId, aiValidation.get, label.severity, label.severity, label.tags, label.tags,
-                    SidewalkUserTable.aiUserId, label.missionId, Some(labelPoint.canvasX), Some(labelPoint.canvasY),
-                    labelPoint.heading, labelPoint.pitch, labelPoint.zoom.toFloat, LabelPointTable.canvasWidth,
-                    LabelPointTable.canvasHeight, startTime, aiResults.timeCreated, "SidewalkAI"
-                  )
-                  // TODO Need to check if this is a redone validation.
-                  validationService.submitValidations(
-                    Seq(ValidationSubmission(validation, comment = None, undone = false, redone = false))
-                  )
-                }
+              // If AI validations are enabled and confidence is above the threshold, submit a validation.
+              if (AI_VALIDATIONS_ON && aiValidation.isDefined) {
+                val label      = labelData.label
+                val labelPoint = labelData.labelPoint
+                val validation = LabelValidation(
+                  0, labelId, aiValidation.get, label.severity, label.severity, label.tags, label.tags,
+                  SidewalkUserTable.aiUserId, label.missionId, Some(labelPoint.canvasX), Some(labelPoint.canvasY),
+                  labelPoint.heading, labelPoint.pitch, labelPoint.zoom.toFloat, LabelPointTable.canvasWidth,
+                  LabelPointTable.canvasHeight, startTime, aiResults.timeCreated, "SidewalkAI"
+                )
+                // TODO Need to check if this is a redone validation.
+                validationService.submitValidations(
+                  Seq(ValidationSubmission(validation, comment = None, undone = false, redone = false))
+                )
+              }
 
-                // Add AI information to the label_ai table.
-                db.run(labelAITable.save(aiResults))
-                Some(aiResults)
-
-              case (None, labelData) =>
-                logger.warn(s"AI API call failed for labelId: ${labelData.label.labelId}")
-                None
-            }
-//            case Failure(exception) =>
-//              logger.error(s"Error validating labels with AI: ${exception.getMessage}")
-//              None
-//          }
+              // Add AI information to the label_ai table.
+              db.run(labelAITable.save(aiResults))
+              aiResults
+            })
         }
       }
     } else {
@@ -118,16 +109,21 @@ class AiServiceImpl @Inject() (
       .post(formData)
       .map { response =>
         try {
-          val json: JsValue = response.json
-          println(json)
+          if (response.status >= 200 && response.status < 300) {
+            val json: JsValue = response.json
+            println(json)
 
-          // Parse the output. Filter out "NULL" values from the tags list.
-          val tags        = (json \ "tags").asOpt[List[String]].map(tags => tags.filter(tag => tag != "NULL"))
-          val valAccuracy = (json \ "validation_estimated_accuracy").as[Double]
-          val valResult   = if ((json \ "validation_result").as[String] == "correct") 1 else 2
-          val apiVersion  = (json \ "api_version").as[String]
+            // Parse the output. Filter out "NULL" values from the tags list.
+            val tags        = (json \ "tags").asOpt[List[String]].map(tags => tags.filter(tag => tag != "NULL"))
+            val valAccuracy = (json \ "validation_estimated_accuracy").as[Double]
+            val valResult   = if ((json \ "validation_result").as[String] == "correct") 1 else 2
+            val apiVersion  = (json \ "api_version").as[String]
 
-          Some(LabelAI(0, labelData.label.labelId, tags, valAccuracy, valResult, apiVersion, OffsetDateTime.now))
+            Some(LabelAI(0, labelData.label.labelId, tags, valAccuracy, valResult, apiVersion, OffsetDateTime.now))
+          } else {
+            logger.warn(s"AI API returned error status: ${response.status} - ${response.statusText}")
+            None
+          }
         } catch {
           case e: Exception =>
             logger.warn(s"Failed to parse AI API response: ${e.getMessage}")
