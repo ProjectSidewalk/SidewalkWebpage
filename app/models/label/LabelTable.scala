@@ -468,7 +468,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val labelTypes             = TableQuery[LabelTypeTableDef]
   val labelPoints            = TableQuery[LabelPointTableDef]
   val labelValidations       = TableQuery[LabelValidationTableDef]
-  val labelAIs               = TableQuery[LabelAITableDef]
+  val labelAis               = TableQuery[LabelAiTableDef]
   val missions               = TableQuery[MissionTableDef]
   val streets                = TableQuery[StreetEdgeTableDef]
   val regions                = TableQuery[RegionTableDef]
@@ -829,7 +829,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
     // Get AI validation info.
     val _labelInfo2 = _labelInfo
-      .joinLeft(labelAIs)
+      .joinLeft(labelAis)
       .on(_._1.labelId === _.labelId)
       .map { case ((_lb, _lp, _lt, _gd, _us, _ser, _at), _la) => (_lb, _lp, _lt, _gd, _us, _ser, _at, _la) }
 
@@ -891,8 +891,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           l.tags,
           gd.lat,
           gd.lng,
-          la.flatMap(_.aiTags).getOrElse(List.empty[String].bind)
-//        if (includeAiTags) la.map(_.aiTags).getOrElse(List.empty[String]) else List.empty[String]
+          la.flatMap(_.tags).getOrElse(List.empty[String].bind)
+//        if (includeAiTags) la.map(_.tags).getOrElse(List.empty[String]) else List.empty[String]
         )
       }
 
