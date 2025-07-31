@@ -371,6 +371,12 @@ function RightMenu(menuUI) {
 
         // If there are AI suggestions, show the section and add the tag suggestions.
         if (aiAddTagOptions.length > 0 || aiRemoveTagOptions.length > 0) {
+            // Log the AI suggestions.
+            svv.tracker.push(`ShowingAiSuggestions`, {
+                add:    `"${aiAddTagOptions.map(t => t.tag_name).join()}"`,
+                remove: `"${aiRemoveTagOptions.map(t => t.tag_name).join()}"`
+            });
+
             document.getElementById("sidewalk-ai-suggestions-block").style.display = "block"
             for (const tag of [...aiAddTagOptions.map(tag => ({ ...tag, action: "add" })), ...aiRemoveTagOptions.map(tag => ({ ...tag, action: "remove" }))]) {
                 const template = document.querySelector(".sidewalk-ai-suggested-tag.template").cloneNode(true);
