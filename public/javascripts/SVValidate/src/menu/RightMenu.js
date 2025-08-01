@@ -388,9 +388,9 @@ function RightMenu(menuUI) {
 
                 document.querySelector(".sidewalk-ai-suggested-tag.template").parentElement.appendChild(template);
 
-                // Tooltip causes strange issues with "ghost" tooltips so disabled for now.
-                // const tooltipText = `"${translatedTagName}" example`;
-                // _addTooltip($(template), tooltipText, `/assets/images/examples/tags/${tag.tag_id}.png`);
+                // Show tooltip with example image for the tag.
+                const tooltipText = `"${translatedTagName}" example`;
+                _addTooltip($(template), tooltipText, `/assets/images/examples/tags/${tag.tag_id}.png`);
 
                 template.addEventListener("click", () => {
                     if(tag.action === "add") {

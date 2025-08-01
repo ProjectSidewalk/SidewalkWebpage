@@ -247,7 +247,12 @@
     font-style: normal;
     font-weight: 600;
     line-height: normal;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
+}
+
+.ai-icon {
+    width: 16px;
+    height: 16px;
 }
 
 .sidewalk-ai-suggestions-list-holder {
