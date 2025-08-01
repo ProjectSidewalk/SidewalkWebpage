@@ -4,7 +4,8 @@ import com.google.inject.ImplementedBy
 import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi}
 import models.label.LabelTypeEnum.{labelTypeIdToLabelType, validLabelTypeIds, validLabelTypes}
 import models.label._
-import models.user.{RoleTableDef, SidewalkUserTable, SidewalkUserTableDef, UserRoleTableDef}
+import models.user.SidewalkUserTable.aiUserId
+import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTable.validationOptions
@@ -117,6 +118,7 @@ class LabelValidationTable @Inject() (
   val roleTable            = TableQuery[RoleTableDef]
   val labelsUnfiltered     = TableQuery[LabelTableDef]
   val labelTypeTable       = TableQuery[LabelTypeTableDef]
+  val humanValidations     = validations.filter(_.userId =!= aiUserId)
   val labelsWithoutDeleted = labelsUnfiltered.filter(_.deleted === false)
 
   /**
@@ -214,21 +216,13 @@ class LabelValidationTable @Inject() (
    * @return list of tuples of (labeler_id, (validation_count, validation_agreed_count))
    */
   def getValidatedCountsPerUser: DBIO[Seq[(String, (Int, Int))]] = {
-    val validationsWithUserId = for {
-      _validation     <- validations
-      _validationUser <- users if _validationUser.userId === _validation.userId
-      _userRole       <- userRoles if _validationUser.userId === _userRole.userId
-      if _validationUser.username =!= "anonymous"
-      if _validation.labelValidationId =!= 3 // Exclude "unsure" validations.
-    } yield (_validationUser.userId, _validation.validationResult)
-
-    // Counts the number of labels for each user by grouping by user_id and role.
-    validationsWithUserId
-      .groupBy(l => l._1)
-      .map { case (uId, group) =>
+    humanValidations
+      .filter(_.labelValidationId =!= 3) // Exclude "unsure" validations.
+      .groupBy(_.userId)
+      .map { case (userId, group) =>
         // Sum up the agreed validations and total validations (just agreed + disagreed).
-        val agreed = group.map { r => Case.If(r._2 === 1).Then(1).Else(0) }.sum.getOrElse(0)
-        (uId, (group.length, agreed))
+        val agreed = group.map { r => Case.If(r.validationResult === 1).Then(1).Else(0) }.sum.getOrElse(0)
+        (userId, (group.length, agreed))
       }
       .result
   }
@@ -239,12 +233,17 @@ class LabelValidationTable @Inject() (
   def countValidations: DBIO[Int] = validations.length.result
 
   /**
+   * @return The total number of human validations (i.e., excluding AI validations).
+   */
+  def countHumanValidations: DBIO[Int] = humanValidations.length.result
+
+  /**
    * @return The number of validations performed by this user.
    */
   def countValidations(userId: String): DBIO[Int] = validations.filter(_.userId === userId).length.result
 
   /**
-   * Count validations of each label type and result in the time range. Includes entries for validations across groups.
+   * Count validations of each label type, result, and human/AI in the time range. Includes counts for all subgroups.
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    */
   def countValidationsByResultAndLabelType(
@@ -261,7 +260,7 @@ class LabelValidationTable @Inject() (
     validationsInTimeInterval
       .join(labelsWithoutDeleted)
       .on(_.labelId === _.labelId)
-      .groupBy { case (v, l) => (l.labelTypeId, v.validationResult, v.userId === SidewalkUserTable.aiUserId) }
+      .groupBy { case (v, l) => (l.labelTypeId, v.validationResult, v.userId === aiUserId) }
       .map { case ((labelTypeId, valResult, isAi), group) => (labelTypeId, valResult, isAi, group.length) }
       .result
       .map { valCounts =>
@@ -301,7 +300,7 @@ class LabelValidationTable @Inject() (
    *         - The count of validations that ended on that day
    */
   def getValidationsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {
-    validations.map(_.endTimestamp.trunc("day")).groupBy(x => x).map(x => (x._1, x._2.length)).sortBy(_._1).result
+    humanValidations.map(_.endTimestamp.trunc("day")).groupBy(x => x).map(x => (x._1, x._2.length)).sortBy(_._1).result
   }
 
   /**

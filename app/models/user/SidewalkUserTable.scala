@@ -31,7 +31,8 @@ class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_
  * Companion object with constants that are shared throughout codebase.
  */
 object SidewalkUserTable {
-  val aiUserId: String = "51b0b927-3c8a-45b2-93de-bd878d1e5cf4"
+  val fallbackAnonUserId = "97760883-8ef0-4309-9a5e-0c086ef27573"
+  val aiUserId: String   = "51b0b927-3c8a-45b2-93de-bd878d1e5cf4"
 }
 
 @ImplementedBy(classOf[SidewalkUserTable])

@@ -22,6 +22,7 @@ case class ValidationSubmission(
 @ImplementedBy(classOf[ValidationServiceImpl])
 trait ValidationService {
   def countValidations: Future[Int]
+  def countHumanValidations: Future[Int]
   def countValidations(userId: String): Future[Int]
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]]
@@ -50,6 +51,7 @@ class ValidationServiceImpl @Inject() (
   val labelHistories   = TableQuery[LabelHistoryTableDef]
 
   def countValidations: Future[Int]                 = db.run(labelValidationTable.countValidations)
+  def countHumanValidations: Future[Int]            = db.run(labelValidationTable.countHumanValidations)
   def countValidations(userId: String): Future[Int] = db.run(labelValidationTable.countValidations(userId))
 
   /**
