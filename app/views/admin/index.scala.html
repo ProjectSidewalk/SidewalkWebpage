@@ -37,12 +37,12 @@
                             <table class="table table-striped table-condensed">
                                 <tr>
                                     <th></th>
-                                    <th>Overall<sup>*</sup></th>
+                                    <th>Overall</th>
                                     <th>Today</th>
                                     <th>Past Week</th>
                                 </tr>
                                 <tr>
-                                    <th>Total Users</th>
+                                    <th>Total Users<sup>*</sup></th>
                                     <th>
                                         <span id="user-count-combined-all-all_time-no_task_constraint-any_quality"></span>
                                         (<span id="user-count-combined-all-all_time-task_completed-any_quality"></span>)
@@ -75,7 +75,7 @@
                                     <th id="time-explore_per_100m-week"></th>
                                 </tr>
                                 <tr>
-                                    <th>Total Users (High Quality)</th>
+                                    <th>Total Users (High Quality)<sup>*</sup></th>
                                     <th>
                                         <span id="user-count-combined-all-all_time-no_task_constraint-high_quality"></span>
                                         (<span id="user-count-combined-all-all_time-task_completed-high_quality"></span>)
@@ -90,7 +90,7 @@
                                     </th>
                                 </tr>
                                 <tr>
-                                    <th>Total Explore Users</th>
+                                    <th>Total Explore Users<sup>*</sup></th>
                                     <th>
                                         <span id="user-count-explore-all-all_time-no_task_constraint-any_quality"></span>
                                         (<span id="user-count-explore-all-all_time-task_completed-any_quality"></span>)
@@ -239,7 +239,7 @@
                                     <th><span id="audited-distance-week"></span></th>
                                 </tr>
                                 <tr>
-                                    <th>Total Validation Users</th>
+                                    <th>Total Validation Users<sup>*</sup></th>
                                     <th>
                                         <span id="user-count-validate-all-all_time-no_task_constraint-any_quality"></span>
                                         (<span id="user-count-validate-all-all_time-task_completed-any_quality"></span>)
@@ -315,7 +315,7 @@
                                 </tr>
 
                                 <tr style="font-size: 90%;">
-                                    <th>Total Validations</th>
+                                    <th>Total Validations<sup>**</sup></th>
                                     <th id="val-count-All-all_time"></th>
                                     <th id="val-count-All-today"></th>
                                     <th id="val-count-All-week"></th>
@@ -342,9 +342,17 @@
                                     <td id="val-count-Unsure-week"></td>
                                 </tr>
                             </table>
-                            <sup>*</sup>For cells with the format X (Y). The "Y" is the number of users who have
-                            completed at least 1 audit task or have validated at least one label. The X is the total
-                            number of users who opened the audit or validation tool regardless of finishing a task.
+                            <p>
+                                <sup>*</sup>For cells with the format X (Y). The "Y" is the number of users who have
+                                completed at least 1 audit task or have validated at least one label. The X is the total
+                                number of users who opened the audit or validation tool regardless of finishing a task.
+                                number of users who opened the audit or validation tool regardless of finishing a task.
+                            </p>
+
+                            <p>
+                                <sup>**</sup>These include AI validations. For a breakdown of human vs AI validations,
+                                see the Analytics tab.
+                            </p>
                         </div>
                         <div class="col-lg-6">
                             <h1>Coverage</h1>
@@ -737,71 +745,136 @@
                         <div class="row">
                             <div class="col-lg-23">
                                 <h1>Validations Per Label Type</h1>
+                                <p>
+                                    Breaks down validations by label type, yes/no/unsure, and whether the validation
+                                    came from a human (H) or AI (AI) or either.
+                                </p>
                                 <table class="table table-striped table-condensed">
                                     <tr>
                                         <th></th>
-                                        <th>Total</th>
-                                        <th>Agreed</th>
-                                        <th>Disagreed</th>
-                                        <th>Unsure</th>
+                                        <th>Yes</th>
+                                        <th>Yes (H)</th>
+                                        <th>Yes (AI)</th>
+                                        <th>No</th>
+                                        <th>No (H)</th>
+                                        <th>No (AI)</th>
+                                        <th>Unsure (H)<sup>*</sup></th>
+                                        <th>Count</th>
+                                        <th>Count (H)</th>
+                                        <th>Count (AI)</th>
                                     </tr>
                                     <tr>
                                         <th>Overall</th>
-                                        <th id="val-count-All-All"></th>
-                                        <th id="val-count-All-Agree"></th>
-                                        <th id="val-count-All-Disagree"></th>
-                                        <th id="val-count-All-Unsure"></th>
+                                        <td id="val-count-All-Agree-Both"></td>
+                                        <td id="val-count-All-Agree-Human"></td>
+                                        <td id="val-count-All-Agree-AI"></td>
+                                        <td id="val-count-All-Disagree-Both"></td>
+                                        <td id="val-count-All-Disagree-Human"></td>
+                                        <td id="val-count-All-Disagree-AI"></td>
+                                        <td id="val-count-All-Unsure-Human"></td>
+                                        <td id="val-count-All-All-Both"></td>
+                                        <td id="val-count-All-All-Human"></td>
+                                        <td id="val-count-All-All-AI"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("curb.ramp")</td>
-                                        <td id="val-count-CurbRamp-All"></td>
-                                        <td id="val-count-CurbRamp-Agree"></td>
-                                        <td id="val-count-CurbRamp-Disagree"></td>
-                                        <td id="val-count-CurbRamp-Unsure"></td>
+                                        <td id="val-count-CurbRamp-Agree-Both"></td>
+                                        <td id="val-count-CurbRamp-Agree-Human"></td>
+                                        <td id="val-count-CurbRamp-Agree-AI"></td>
+                                        <td id="val-count-CurbRamp-Disagree-Both"></td>
+                                        <td id="val-count-CurbRamp-Disagree-Human"></td>
+                                        <td id="val-count-CurbRamp-Disagree-AI"></td>
+                                        <td id="val-count-CurbRamp-Unsure-Human"></td>
+                                        <td id="val-count-CurbRamp-All-Both"></td>
+                                        <td id="val-count-CurbRamp-All-Human"></td>
+                                        <td id="val-count-CurbRamp-All-AI"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("missing.ramp")</td>
-                                        <td id="val-count-NoCurbRamp-All"></td>
-                                        <td id="val-count-NoCurbRamp-Agree"></td>
-                                        <td id="val-count-NoCurbRamp-Disagree"></td>
-                                        <td id="val-count-NoCurbRamp-Unsure"></td>
+                                        <td id="val-count-NoCurbRamp-Agree-Both"></td>
+                                        <td id="val-count-NoCurbRamp-Agree-Human"></td>
+                                        <td id="val-count-NoCurbRamp-Agree-AI"></td>
+                                        <td id="val-count-NoCurbRamp-Disagree-Both"></td>
+                                        <td id="val-count-NoCurbRamp-Disagree-Human"></td>
+                                        <td id="val-count-NoCurbRamp-Disagree-AI"></td>
+                                        <td id="val-count-NoCurbRamp-Unsure-Human"></td>
+                                        <td id="val-count-NoCurbRamp-All-Both"></td>
+                                        <td id="val-count-NoCurbRamp-All-Human"></td>
+                                        <td id="val-count-NoCurbRamp-All-AI"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("obstacle")</td>
-                                        <td id="val-count-Obstacle-All"></td>
-                                        <td id="val-count-Obstacle-Agree"></td>
-                                        <td id="val-count-Obstacle-Disagree"></td>
-                                        <td id="val-count-Obstacle-Unsure"></td>
+                                        <td id="val-count-Obstacle-Agree-Both"></td>
+                                        <td id="val-count-Obstacle-Agree-Human"></td>
+                                        <td id="val-count-Obstacle-Agree-AI"></td>
+                                        <td id="val-count-Obstacle-Disagree-Both"></td>
+                                        <td id="val-count-Obstacle-Disagree-Human"></td>
+                                        <td id="val-count-Obstacle-Disagree-AI"></td>
+                                        <td id="val-count-Obstacle-Unsure-Human"></td>
+                                        <td id="val-count-Obstacle-All-Both"></td>
+                                        <td id="val-count-Obstacle-All-Human"></td>
+                                        <td id="val-count-Obstacle-All-AI"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("surface.problem")</td>
-                                        <td id="val-count-SurfaceProblem-All"></td>
-                                        <td id="val-count-SurfaceProblem-Agree"></td>
-                                        <td id="val-count-SurfaceProblem-Disagree"></td>
-                                        <td id="val-count-SurfaceProblem-Unsure"></td>
+                                        <td id="val-count-SurfaceProblem-Agree-Both"></td>
+                                        <td id="val-count-SurfaceProblem-Agree-Human"></td>
+                                        <td id="val-count-SurfaceProblem-Agree-AI"></td>
+                                        <td id="val-count-SurfaceProblem-Disagree-Both"></td>
+                                        <td id="val-count-SurfaceProblem-Disagree-Human"></td>
+                                        <td id="val-count-SurfaceProblem-Disagree-AI"></td>
+                                        <td id="val-count-SurfaceProblem-Unsure-Human"></td>
+                                        <td id="val-count-SurfaceProblem-All-Both"></td>
+                                        <td id="val-count-SurfaceProblem-All-Human"></td>
+                                        <td id="val-count-SurfaceProblem-All-AI"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("no.sidewalk")</td>
-                                        <td id="val-count-NoSidewalk-All"></td>
-                                        <td id="val-count-NoSidewalk-Agree"></td>
-                                        <td id="val-count-NoSidewalk-Disagree"></td>
-                                        <td id="val-count-NoSidewalk-Unsure"></td>
+                                        <td id="val-count-NoSidewalk-Agree-Both"></td>
+                                        <td id="val-count-NoSidewalk-Agree-Human"></td>
+                                        <td id="val-count-NoSidewalk-Agree-AI"></td>
+                                        <td id="val-count-NoSidewalk-Disagree-Both"></td>
+                                        <td id="val-count-NoSidewalk-Disagree-Human"></td>
+                                        <td id="val-count-NoSidewalk-Disagree-AI"></td>
+                                        <td id="val-count-NoSidewalk-Unsure-Human"></td>
+                                        <td id="val-count-NoSidewalk-All-Both"></td>
+                                        <td id="val-count-NoSidewalk-All-Human"></td>
+                                        <td id="val-count-NoSidewalk-All-AI"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("crosswalk")</td>
-                                        <td id="val-count-Crosswalk-All"></td>
-                                        <td id="val-count-Crosswalk-Agree"></td>
-                                        <td id="val-count-Crosswalk-Disagree"></td>
-                                        <td id="val-count-Crosswalk-Unsure"></td>
+                                        <td id="val-count-Crosswalk-Agree-Both"></td>
+                                        <td id="val-count-Crosswalk-Agree-Human"></td>
+                                        <td id="val-count-Crosswalk-Agree-AI"></td>
+                                        <td id="val-count-Crosswalk-Disagree-Both"></td>
+                                        <td id="val-count-Crosswalk-Disagree-Human"></td>
+                                        <td id="val-count-Crosswalk-Disagree-AI"></td>
+                                        <td id="val-count-Crosswalk-Unsure-Human"></td>
+                                        <td id="val-count-Crosswalk-All-Both"></td>
+                                        <td id="val-count-Crosswalk-All-Human"></td>
+                                        <td id="val-count-Crosswalk-All-AI"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("signal")</td>
-                                        <td id="val-count-Signal-All"></td>
-                                        <td id="val-count-Signal-Agree"></td>
-                                        <td id="val-count-Signal-Disagree"></td>
-                                        <td id="val-count-Signal-Unsure"></td>
+                                        <td id="val-count-Signal-Agree-Both"></td>
+                                        <td id="val-count-Signal-Agree-Human"></td>
+                                        <td id="val-count-Signal-Agree-AI"></td>
+                                        <td id="val-count-Signal-Disagree-Both"></td>
+                                        <td id="val-count-Signal-Disagree-Human"></td>
+                                        <td id="val-count-Signal-Disagree-AI"></td>
+                                        <td id="val-count-Signal-Unsure-Human"></td>
+                                        <td id="val-count-Signal-All-Both"></td>
+                                        <td id="val-count-Signal-All-Human"></td>
+                                        <td id="val-count-Signal-All-AI"></td>
                                     </tr>
                                 </table>
+                                <p>
+                                    <sup>*</sup>We didn't include counts of times when the AI was unsure for the sake of speed.
+                                    The technical reason is that we don't store a "validation" if the AI is unsure right
+                                    now. Though we do have that information saved, so we could display that in this
+                                    table in the future. We could also decide to start storing "unsure" validations in
+                                    the same way that we do for human validation.
+                                </p>
                             </div>
                         </div>
                     </div>

@@ -180,6 +180,20 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     missions.filter(m => m.missionId === missionId).result.headOption
   }
 
+  /**
+   * Get the AI validation mission ID for the given label type.
+   * @param labelTypeId the label type ID for which to get the AI validation mission ID
+   * @return DBIO[Int] - the mission ID for the AI validation mission of the given label type
+   */
+  def getAiValidateMissionId(labelTypeId: Int): DBIO[Int] = {
+    println("Getting AI validation mission ID for label type: " + labelTypeId)
+    missions
+      .filter(m => m.labelTypeId === labelTypeId && m.missionTypeId === missionTypeToId("aiValidation"))
+      .map(_.missionId)
+      .result
+      .head
+  }
+
   def getCurrentValidationMission(userId: String, labelTypeId: Int, missionType: String): DBIO[Option[Mission]] = {
     missions
       .filter(m =>

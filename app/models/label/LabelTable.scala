@@ -5,7 +5,7 @@ import formats.json.ApiFormats
 import models.api.{LabelDataForApi, LabelValidationSummaryForApi, RawLabelFiltersForApi}
 import models.audit.AuditTaskTableDef
 import models.computation.StreamingApiType
-import models.gsv.GsvDataTableDef
+import models.gsv.{GsvData, GsvDataTableDef}
 import models.label.LabelTable._
 import models.label.LabelTypeEnum.validLabelTypes
 import models.mission.MissionTableDef
@@ -185,6 +185,8 @@ object LabelCVMetadata {
     "Camera Heading,Camera Pitch\n"
 }
 
+case class LabelDataForAi(label: Label, labelPoint: LabelPoint, gsvData: GsvData)
+
 case class LabelMetadataUserDash(
     labelId: Int,
     gsvPanoramaId: String,
@@ -220,7 +222,8 @@ case class LabelValidationMetadata(
     userValidation: Option[Int],
     tags: Seq[String],
     cameraLat: Option[Float],
-    cameraLng: Option[Float]
+    cameraLng: Option[Float],
+    aiTags: Option[Seq[String]]
 ) extends BasicLabelMetadata
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
@@ -315,7 +318,8 @@ object LabelTable {
       Option[Int],                      // userValidation
       List[String],                     // tags
       Option[Float],                    // cameraLat
-      Option[Float]                     // cameraLng
+      Option[Float],                    // cameraLng
+      Option[List[String]]              // aiTags
   )
   type LabelValidationMetadataTupleRep = (
       Rep[Int],             // labelId
@@ -335,10 +339,11 @@ object LabelTable {
       Rep[Int],             // streetEdgeId
       Rep[Int],             // regionId
       (Rep[Int], Rep[Int], Rep[Int], Rep[Option[Boolean]]), // validationInfo (agreeCount, disagreeCount, unsureCount, correct)
-      Rep[Option[Int]],   // userValidation
-      Rep[List[String]],  // tags
-      Rep[Option[Float]], // cameraLat
-      Rep[Option[Float]]  // cameraLng
+      Rep[Option[Int]],         // userValidation
+      Rep[List[String]],        // tags
+      Rep[Option[Float]],       // cameraLat
+      Rep[Option[Float]],       // cameraLng
+      Rep[Option[List[String]]] // aiTags
   )
 
   // Define an implicit conversion from the tuple representation to the case class.
@@ -346,7 +351,7 @@ object LabelTable {
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
       def fromTuple(t: LabelValidationMetadataTuple): LabelValidationMetadata = LabelValidationMetadata(
         t._1, t._2, t._3, t._4, t._5, t._6.get, t._7.get, t._8, t._9, t._10, LocationXY.tupled(t._11), t._12, t._13,
-        t._14, t._15, t._16, LabelValidationInfo.tupled(t._17), t._18, t._19, t._20, t._21
+        t._14, t._15, t._16, LabelValidationInfo.tupled(t._17), t._18, t._19, t._20, t._21, t._22
       )
     }
 
@@ -463,6 +468,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val labelTypes             = TableQuery[LabelTypeTableDef]
   val labelPoints            = TableQuery[LabelPointTableDef]
   val labelValidations       = TableQuery[LabelValidationTableDef]
+  val labelAis               = TableQuery[LabelAiTableDef]
   val missions               = TableQuery[MissionTableDef]
   val streets                = TableQuery[StreetEdgeTableDef]
   val regions                = TableQuery[RegionTableDef]
@@ -799,11 +805,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   def retrieveLabelListForValidationQuery(
       userId: String,
       labelTypeId: Int,
+      includeAiTags: Boolean = true,
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
       unvalidatedOnly: Boolean = false,
       skippedLabelId: Option[Int] = None
   ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
+    println(includeAiTags)
 
     // Join all necessary tables and filter potential labels according to the given parameters.
     val _labelInfo = for {
@@ -819,8 +827,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if userIds.map(ids => _lb.userId inSetBind ids).getOrElse(true: Rep[Boolean])      // Filter by user IDs.
     } yield (_lb, _lp, _lt, _gd, _us, _ser, _at)
 
+    // Get AI suggested tags.
+    val _labelInfoWithAiTagSuggestions = _labelInfo
+      .joinLeft(labelAis)
+      .on(_._1.labelId === _.labelId)
+      .map { case ((_lb, _lp, _lt, _gd, _us, _ser, _at), _la) => (_lb, _lp, _lt, _gd, _us, _ser, _at, _la) }
+
     // Filter out labels that have already been validated by this user.
-    val _labelInfoFiltered = _labelInfo
+    val _labelInfoFiltered = _labelInfoWithAiTagSuggestions
       .joinLeft(labelValidations.filter(_.userId === userId))
       .on(_._1.labelId === _.labelId)
       .filter(_._2.isEmpty)
@@ -829,7 +843,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // Priority ordering algorithm is described in the method comment, max score is 276.
     val _labelInfoSorted = _labelInfoFiltered
       .sortBy {
-        case (l, lp, lt, gd, us, ser, at) => {
+        case (l, lp, lt, gd, us, ser, at, _la) => {
           // A label gets 100 if the labeler as < 50 of their labels validated (and this label needs a validation).
           val needsValidationScore =
             Case.If(us.ownLabelsValidated < 50 && l.correct.isEmpty && !at.lowQuality && !at.stale).Then(100d).Else(0d)
@@ -854,7 +868,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         }
       }
       // Select only the columns needed for the LabelValidationMetadata class.
-      .map { case (l, lp, lt, gd, us, ser, at) =>
+      .map { case (l, lp, lt, gd, us, ser, at, la) =>
         (
           l.labelId,
           lt.labelType,
@@ -876,7 +890,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           Option.empty[Int].bind,
           l.tags,
           gd.lat,
-          gd.lng
+          gd.lng,
+          // Include AI tags if requested.
+          if (includeAiTags) la.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
+          else None.asColumnOf[Option[List[String]]]
         )
       }
 
@@ -986,7 +1003,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       v.map(_.validationResult),
       l._1.tags,
       l._4.lat,
-      l._4.lng
+      l._4.lng,
+      None.asColumnOf[Option[List[String]]] // Placeholder for AI tags, since we don't show those on Gallery right now.
     )
 
     // Remove duplicates if needed and randomize.
@@ -1602,6 +1620,23 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
               AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
       ) AS val_counts;""".as[ProjectSidewalkStats].head
+  }
+
+  /**
+   * Get label data necessary for AI validation and tag prediction.
+   * @param labelId The ID of the label to get data for
+   * @return A LabelDataForAi object containing label, label_point, and gsv_data information if they exist
+   */
+  def getLabelDataForAi(labelId: Int): DBIO[Option[LabelDataForAi]] = {
+    labelsUnfiltered
+      .join(labelPoints)
+      .on(_.labelId === _.labelId)
+      .join(gsvData)
+      .on { case ((label, point), gsv) => label.gsvPanoramaId === gsv.gsvPanoramaId }
+      .filter { case ((label, point), gsv) => label.labelId === labelId && gsv.width.isDefined && gsv.height.isDefined }
+      .result
+      .headOption
+      .map(_.map { case ((label, labelPoint), gsv) => LabelDataForAi(label, labelPoint, gsv) })
   }
 
   /**

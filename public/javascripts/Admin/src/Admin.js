@@ -1275,7 +1275,7 @@ function Admin(_, $, mapboxApiKey) {
     }
 
     function formatPercent(percent) {
-        return `(${Math.round(percent)}%)`;
+        return isNaN(percent) ? '-' : `${Math.round(percent)}%`;
     }
 
     function calculatePercent(value, total) {
@@ -1284,12 +1284,12 @@ function Admin(_, $, mapboxApiKey) {
 
     function formatCountWithPercent(count, total) {
         const percent = calculatePercent(count, total);
-        return `${count} ${formatPercent(percent)}`;
+        return `${count} (${formatPercent(percent)})`;
     }
 
     function formatDistanceWithPercent(distance, total) {
         const percent = calculatePercent(distance, total);
-        return `${formatDistance(distance)} ${formatPercent(percent)}`;
+        return `${formatDistance(distance)} (${formatPercent(percent)})`;
     }
 
     function loadStreetEdgeData() {
@@ -1392,7 +1392,9 @@ function Admin(_, $, mapboxApiKey) {
             $.getJSON("/adminapi/getValidationCountStats", function (data) {
                 // Fill in the validation section on the Overview tab's Activities table.
                 for (const timeInterval of ['all_time', 'today', 'week']) {
-                    const currData = data.filter(x => x.label_type === 'All' && x.time_interval === timeInterval)
+                    const currData = data.filter(
+                        x => x.label_type === 'All' && x.validator === 'Both' && x.time_interval === timeInterval
+                    )
                     const totalCount = currData.find(x => x.result === 'All').count;
                     $(`#val-count-All-${timeInterval}`).text(totalCount);
                     for (const valResult of ['Agree', 'Disagree', 'Unsure']) {
@@ -1403,12 +1405,17 @@ function Admin(_, $, mapboxApiKey) {
 
                 // Fill in the Validations Per Label Type table in the Analytics tab.
                 for (const labelType of ['All'].concat(util.misc.PRIMARY_LABEL_TYPES)) {
-                    const currData = data.filter(x => x.time_interval === 'all_time' && x.label_type === labelType)
-                    const totalCount = currData.find(x => x.result === 'All').count;
-                    $(`#val-count-${labelType}-All`).text(totalCount);
-                    for (const valResult of ['Agree', 'Disagree', 'Unsure']) {
-                        const resultCount = currData.find(x => x.result === valResult).count;
-                        $(`#val-count-${labelType}-${valResult}`).text(`${Math.round(100 * resultCount / totalCount)}%`);
+                    for (const validator of ['Human', 'AI', 'Both']) {
+                        const currData = data.filter(
+                            x => x.time_interval === 'all_time' && x.validator === validator && x.label_type === labelType
+                        )
+                        const totalCount = currData.find(x => x.result === 'All').count;
+                        $(`#val-count-${labelType}-All-${validator}`).text(totalCount);
+                        for (const valResult of ['Agree', 'Disagree', 'Unsure']) {
+                            const resultCount = currData.find(x => x.result === valResult).count;
+                            const percentage = calculatePercent(resultCount, totalCount);
+                            $(`#val-count-${labelType}-${valResult}-${validator}`).text(formatPercent(percentage));
+                        }
                     }
                 }
 

@@ -36,7 +36,8 @@ case class ExplorePageData(
 case class ExploreTaskPostReturnValue(
     auditTaskId: Int,
     mission: Option[Mission],
-    newLabels: Seq[(Int, Int, OffsetDateTime)],
+    // newLabels is a sequence of tuples containing (label_id, temporary_label_id, label_type, time_created).
+    newLabels: Seq[(Int, Int, String, OffsetDateTime)],
     updatedStreets: Option[UpdatedStreets],
     refreshPage: Boolean
 )
@@ -346,7 +347,7 @@ class ExploreServiceImpl @Inject() (
    * @param auditTaskId The audit_task_id of the task the label was added during.
    * @param taskStreetId The street_edge_id of the street for the associated audit_task.
    * @param missionId The mission_id of the mission the label was added during.
-   * @return (label_id, temporary_label_id, time_created) for the new label. Data used for logging and SciStarter.
+   * @return (label_id, temporary_label_id, label_type, time_created) for the new label. Used for logging/SciStarter.
    */
   private def insertLabel(
       label: LabelSubmission,
@@ -354,7 +355,7 @@ class ExploreServiceImpl @Inject() (
       auditTaskId: Int,
       taskStreetId: Int,
       missionId: Int
-  ): DBIO[(Int, Int, OffsetDateTime)] = {
+  ): DBIO[(Int, Int, String, OffsetDateTime)] = {
     // Get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp.
     val timeCreated: OffsetDateTime = label.timeCreated match {
       case Some(time) => time
@@ -409,7 +410,7 @@ class ExploreServiceImpl @Inject() (
           point.zoom, point.lat, point.lng, pointGeom, point.computationMethod)
       )
     } yield {
-      (newLabelId, label.temporaryLabelId, timeCreated)
+      (newLabelId, label.temporaryLabelId, label.labelType, timeCreated)
     }
   }
 
@@ -509,7 +510,7 @@ class ExploreServiceImpl @Inject() (
       } else DBIO.successful(0)
 
       // Insert any labels.
-      val labelSubmitActions: Seq[DBIO[Option[(Int, Int, OffsetDateTime)]]] = data.labels.map {
+      val labelSubmitActions: Seq[DBIO[Option[(Int, Int, String, OffsetDateTime)]]] = data.labels.map {
         label: LabelSubmission =>
           val labelTypeId: Int = LabelTypeEnum.labelTypeToId(label.labelType)
           labelTable.find(label.temporaryLabelId, userId).flatMap {

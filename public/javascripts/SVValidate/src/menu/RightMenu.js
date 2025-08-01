@@ -8,6 +8,8 @@ function RightMenu(menuUI) {
     const $unsureReasonButtons = menuUI.unsureReasonOptions.children('.validation-reason-button');
     let $tagSelect;
 
+    let tagsAddedByUser = []
+
     function _init() {
         // Add onclick for each validation button.
         menuUI.yesButton.click(function(e) {
@@ -51,23 +53,9 @@ function RightMenu(menuUI) {
             searchField: 'tag_name',
             sortField: 'popularity', // TODO include data abt frequency of use on this server.
             onFocus: function() { svv.tracker.push('Click=TagSearch'); },
-            onItemAdd: function (value, $item) {
-                let currLabel = svv.panorama.getCurrentLabel();
-
-                // If the tag is mutually exclusive with another tag that's been added, remove the other tag.
-                const allTags = svv.tagsByLabelType[currLabel.getAuditProperty('labelType')];
-                const mutuallyExclusiveWith = allTags.find(t => t.tag_name === value).mutually_exclusive_with;
-                const currTags = currLabel.getProperty('newTags');
-                if (currTags.some(t => t === mutuallyExclusiveWith)) {
-                    svv.tracker.push(`TagAutoRemove_Tag="${mutuallyExclusiveWith}"`);
-                    currLabel.setProperty('newTags', currTags.filter(t => t !== mutuallyExclusiveWith));
-                }
-                // New tag added, add to list and rerender.
-                svv.tracker.push(`TagAdd_Tag="${value}"`);
-                currLabel.getProperty('newTags').push(value);
-                $tagSelect[0].selectize.clear();
-                $tagSelect[0].selectize.removeOption(value);
-                _renderTags();
+            onItemAdd: function (tagName, $item) {
+                tagsAddedByUser.push(tagName);
+                _addTag(tagName, false);
             },
             render: {
                 option: function(item, escape) {
@@ -147,6 +135,7 @@ function RightMenu(menuUI) {
     }
 
     function resetMenu(label) {
+        tagsAddedByUser = []
         const prevValResult = label.getProperty('validationResult');
         if (prevValResult === undefined) {
             // This is a new label (not returning from an undo), so reset everything.
@@ -288,17 +277,41 @@ function RightMenu(menuUI) {
 
 
     // TAG SECTION.
-    function _removeTag(e, label) {
+    function _addTag(tagName, fromAiSuggestion = false) {
+        let currLabel = svv.panorama.getCurrentLabel();
+
+        // If the tag is mutually exclusive with another tag that's been added, remove the other tag.
+        const allTags = svv.tagsByLabelType[currLabel.getAuditProperty('labelType')];
+        const mutuallyExclusiveWith = allTags.find(t => t.tag_name === tagName).mutually_exclusive_with;
+        const currTags = currLabel.getProperty('newTags');
+        if (currTags.some(t => t === mutuallyExclusiveWith)) {
+            svv.tracker.push(`TagAutoRemove_Tag="${mutuallyExclusiveWith}"`);
+            currLabel.setProperty('newTags', currTags.filter(t => t !== mutuallyExclusiveWith));
+        }
+        // New tag added, add to list and rerender.
+        svv.tracker.push(`Click=TagAdd_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
+        currLabel.getProperty('newTags').push(tagName);
+        $tagSelect[0].selectize.clear();
+        $tagSelect[0].selectize.removeOption(tagName);
+        _renderTags();
+    }
+
+    function _removeTag(tagName, label, fromAiSuggestion = false) {
+        svv.tracker.push(`Click=TagRemove_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
+        label.setProperty('newTags', label.getProperty('newTags').filter(t => t !== tagName));
+        _renderTags();
+    }
+
+    function _removeTagListener(e, label) {
         let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
         let tagIdToRemove = $(e.target).parents('.current-tag').data('tag-id');
         let tagToRemove = allTagOptions.find(t => t.tag_id === tagIdToRemove).tag_name;
-        svv.tracker.push(`Click=TagRemove_Tag="${tagToRemove}"`);
-        label.setProperty('newTags', label.getProperty('newTags').filter(t => t !== tagToRemove));
-        _renderTags();
+        _removeTag(tagToRemove, label, false);
     }
     function _renderTags() {
         let label = svv.panorama.getCurrentLabel();
         let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
+        const allTagOptionsPermanent = structuredClone(allTagOptions);
 
         menuUI.currentTags.empty();
         const currTags = label.getProperty('newTags');
@@ -317,7 +330,7 @@ function RightMenu(menuUI) {
             $tagDiv.children('.tag-name').text(translatedTagName);
 
             // Add the removal onclick function.
-            $tagDiv.children('.remove-tag-x').click(e => _removeTag(e, label));
+            $tagDiv.children('.remove-tag-x').click(e => _removeTagListener(e, label));
 
             // Add an example image tooltip to the tag.
             const tagId = allTagOptions.find(t => t.tag_name === tag).tag_id;
@@ -339,6 +352,59 @@ function RightMenu(menuUI) {
         // Clear the possible tags to add and add all appropriate options.
         $tagSelect[0].selectize.clearOptions();
         $tagSelect[0].selectize.addOption(allTagOptions);
+
+        // AI SUGGESTION TAGS SECTION.
+        // Remove all AI suggested tags from the previous label.
+        $('.sidewalk-ai-suggested-tag:not(.template)').remove();
+
+        // Decide which tags AI is suggesting to add or remove. If null, AI suggestion disabled on this server.
+        let aiAddTagOptions = [];
+        let aiRemoveTagOptions = [];
+        if (label.getAuditProperty('aiTags') !== null) {
+            const aiTags = label.getAuditProperty('aiTags');
+            aiAddTagOptions = allTagOptions.filter(t => aiTags.includes(t.tag_name));
+            // TODO we need to set up a threshold where we decide to remove tags: issue #3998.
+            // aiRemoveTagOptions = currTags.filter(t => !aiTags.includes(t)).filter(t => !tagsAddedByUser.includes(t))
+            //     .map(t => allTagOptionsPermanent.find(t2 => t2.tag_name === t));
+        }
+
+        // If there are AI suggestions, show the section and add the tag suggestions.
+        if (aiAddTagOptions.length > 0 || aiRemoveTagOptions.length > 0) {
+            menuUI.aiSuggestionSection.show();
+
+            // Log the AI suggestions.
+            svv.tracker.push(`ShowingAiSuggestions`, {
+                add:    `"${aiAddTagOptions.map(t => t.tag_name).join()}"`,
+                remove: `"${aiRemoveTagOptions.map(t => t.tag_name).join()}"`
+            });
+
+            // Loops through the AI-suggested tags and display them.
+            for (const tag of [...aiAddTagOptions.map(tag => ({ ...tag, action: 'add' })), ...aiRemoveTagOptions.map(tag => ({ ...tag, action: 'remove' }))]) {
+                // Clone the template tag element, and set all appropriate classes.
+                const template = menuUI.aiSuggestedTagTemplate.clone(true);
+                template.removeClass('template').addClass(tag.action === 'add' ? 'to-add' : 'to-remove');
+
+                // Add the text to the tag.
+                const translatedTagName = i18next.t(`common:tag.${tag.tag_name.replace(/:/g, '-')}`);
+                template.text(`${tag.action === 'add' ? 'Add' : 'Remove'}: ${translatedTagName}`);
+                menuUI.aiSuggestedTagTemplate.parent().append(template);
+
+                // Show tooltip with example image for the tag.
+                const tooltipText = `"${translatedTagName}" example`;
+                _addTooltip(template, tooltipText, `/assets/images/examples/tags/${tag.tag_id}.png`);
+
+                // Add onclick to the tag to add or remove it if the user clicks to accept the AI suggestion.
+                template.on('click', e => {
+                    if (tag.action === 'add') {
+                        _addTag(tag.tag_name, true);
+                    } else {
+                        _removeTag(tag.tag_name, label, true);
+                    }
+                });
+            }
+        } else {
+            menuUI.aiSuggestionSection.hide();
+        }
     }
 
     // SEVERITY SECTION.

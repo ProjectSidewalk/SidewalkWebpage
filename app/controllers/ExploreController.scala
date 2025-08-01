@@ -7,6 +7,7 @@ import formats.json.ExploreFormats._
 import formats.json.MissionFormats._
 import models.audit._
 import models.auth.DefaultEnv
+import models.label.LabelTypeEnum
 import models.street.StreetEdgeIssue
 import models.user._
 import play.api.libs.json._
@@ -26,7 +27,8 @@ class ExploreController @Inject() (
     val config: Configuration,
     configService: service.ConfigService,
     exploreService: service.ExploreService,
-    missionService: service.MissionService
+    missionService: service.MissionService,
+    aiService: service.AiService
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
 
@@ -237,6 +239,10 @@ class ExploreController @Inject() (
               interaction.note, interaction.temporaryLabelId, interaction.timestamp)
           })
           .map { _ =>
+            // Send label info to Sidewalk AI API for AI validation async. AI API only available for some label types.
+            val labelsToSend = returnData.newLabels.filter(l => LabelTypeEnum.aiLabelTypes.contains(l._3))
+            aiService.validateLabelsWithAi(labelsToSend.map(_._1))
+
             // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
             val eligibleUser: Boolean = RoleTable.SCISTARTER_ROLES.contains(user.role)
             if (returnData.newLabels.nonEmpty && config.get[String]("environment-type") == "prod" && eligibleUser) {
@@ -244,7 +250,7 @@ class ExploreController @Inject() (
                 .secondsSpentAuditing(
                   user.userId,
                   returnData.newLabels.map(_._1).min,
-                  returnData.newLabels.map(_._3).max
+                  returnData.newLabels.map(_._4).max
                 )
                 .flatMap { timeSpent: Float =>
                   configService.sendSciStarterContributions(user.email, returnData.newLabels.length, timeSpent)
