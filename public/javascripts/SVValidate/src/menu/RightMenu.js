@@ -353,55 +353,57 @@ function RightMenu(menuUI) {
         $tagSelect[0].selectize.clearOptions();
         $tagSelect[0].selectize.addOption(allTagOptions);
 
-        const aiTagElementsToRemove = document.querySelectorAll(".sidewalk-ai-suggested-tag:not(.template)")
-        for (const aiTagElement of aiTagElementsToRemove) {
-            aiTagElement.remove()
-        }
+        // AI SUGGESTION TAGS SECTION.
+        // Remove all AI suggested tags from the previous label.
+        $('.sidewalk-ai-suggested-tag:not(.template)').remove();
 
         // Decide which tags AI is suggesting to add or remove. If null, AI suggestion disabled on this server.
         let aiAddTagOptions = [];
         let aiRemoveTagOptions = [];
-        if (label.getAuditProperty("aiTags") !== null) {
-            const aiTags = label.getAuditProperty("aiTags");
+        if (label.getAuditProperty('aiTags') !== null) {
+            const aiTags = label.getAuditProperty('aiTags');
             aiAddTagOptions = allTagOptions.filter(t => aiTags.includes(t.tag_name));
-            // TODO we need to set up a threshold where we decide to remove tags.
+            // TODO we need to set up a threshold where we decide to remove tags: issue #3998.
             // aiRemoveTagOptions = currTags.filter(t => !aiTags.includes(t)).filter(t => !tagsAddedByUser.includes(t))
             //     .map(t => allTagOptionsPermanent.find(t2 => t2.tag_name === t));
         }
 
         // If there are AI suggestions, show the section and add the tag suggestions.
         if (aiAddTagOptions.length > 0 || aiRemoveTagOptions.length > 0) {
+            menuUI.aiSuggestionSection.show();
+
             // Log the AI suggestions.
             svv.tracker.push(`ShowingAiSuggestions`, {
                 add:    `"${aiAddTagOptions.map(t => t.tag_name).join()}"`,
                 remove: `"${aiRemoveTagOptions.map(t => t.tag_name).join()}"`
             });
 
-            document.getElementById("sidewalk-ai-suggestions-block").style.display = "block"
-            for (const tag of [...aiAddTagOptions.map(tag => ({ ...tag, action: "add" })), ...aiRemoveTagOptions.map(tag => ({ ...tag, action: "remove" }))]) {
-                const template = document.querySelector(".sidewalk-ai-suggested-tag.template").cloneNode(true);
-                template.classList.remove("template");
-                template.classList.add(tag.action === "add" ? "to-add" : "to-remove");
+            // Loops through the AI-suggested tags and display them.
+            for (const tag of [...aiAddTagOptions.map(tag => ({ ...tag, action: 'add' })), ...aiRemoveTagOptions.map(tag => ({ ...tag, action: 'remove' }))]) {
+                // Clone the template tag element, and set all appropriate classes.
+                const template = menuUI.aiSuggestedTagTemplate.clone(true);
+                template.removeClass('template').addClass(tag.action === 'add' ? 'to-add' : 'to-remove');
 
+                // Add the text to the tag.
                 const translatedTagName = i18next.t(`common:tag.${tag.tag_name.replace(/:/g, '-')}`);
-                template.innerText = `${tag.action === "add" ? "Add" : "Remove"}: ${translatedTagName}`;
-
-                document.querySelector(".sidewalk-ai-suggested-tag.template").parentElement.appendChild(template);
+                template.text(`${tag.action === 'add' ? 'Add' : 'Remove'}: ${translatedTagName}`);
+                menuUI.aiSuggestedTagTemplate.parent().append(template);
 
                 // Show tooltip with example image for the tag.
                 const tooltipText = `"${translatedTagName}" example`;
-                _addTooltip($(template), tooltipText, `/assets/images/examples/tags/${tag.tag_id}.png`);
+                _addTooltip(template, tooltipText, `/assets/images/examples/tags/${tag.tag_id}.png`);
 
-                template.addEventListener("click", () => {
-                    if(tag.action === "add") {
+                // Add onclick to the tag to add or remove it if the user clicks to accept the AI suggestion.
+                template.on('click', e => {
+                    if (tag.action === 'add') {
                         _addTag(tag.tag_name, true);
                     } else {
                         _removeTag(tag.tag_name, label, true);
                     }
-                })
+                });
             }
         } else {
-            document.getElementById("sidewalk-ai-suggestions-block").style.display = "none"
+            menuUI.aiSuggestionSection.hide();
         }
     }
 

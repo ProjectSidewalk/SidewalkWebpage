@@ -827,14 +827,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if userIds.map(ids => _lb.userId inSetBind ids).getOrElse(true: Rep[Boolean])      // Filter by user IDs.
     } yield (_lb, _lp, _lt, _gd, _us, _ser, _at)
 
-    // Get AI validation info.
-    val _labelInfo2 = _labelInfo
+    // Get AI suggested tags.
+    val _labelInfoWithAiTagSuggestions = _labelInfo
       .joinLeft(labelAis)
       .on(_._1.labelId === _.labelId)
       .map { case ((_lb, _lp, _lt, _gd, _us, _ser, _at), _la) => (_lb, _lp, _lt, _gd, _us, _ser, _at, _la) }
 
     // Filter out labels that have already been validated by this user.
-    val _labelInfoFiltered = _labelInfo2
+    val _labelInfoFiltered = _labelInfoWithAiTagSuggestions
       .joinLeft(labelValidations.filter(_.userId === userId))
       .on(_._1.labelId === _.labelId)
       .filter(_._2.isEmpty)
