@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi}
 import models.label.LabelTypeEnum.{labelTypeIdToLabelType, validLabelTypeIds, validLabelTypes}
 import models.label._
-import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
+import models.user.{RoleTableDef, SidewalkUserTable, SidewalkUserTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTable.validationOptions
@@ -39,9 +39,16 @@ case class LabelValidation(
     source: String
 )
 
-case class ValidationCount(count: Int, timeInterval: TimeInterval, labelType: String, validationResult: String) {
+case class ValidationCount(
+    count: Int,
+    timeInterval: TimeInterval,
+    labelType: String,
+    validationResult: String,
+    validatorType: String
+) {
   require((validLabelTypes ++ Seq("All")).contains(labelType))
   require((validationOptions.values.toSeq ++ Seq("All")).contains(validationResult))
+  require(Seq("AI", "Human", "Both").contains(validatorType))
 }
 
 /**
@@ -254,36 +261,35 @@ class LabelValidationTable @Inject() (
     validationsInTimeInterval
       .join(labelsWithoutDeleted)
       .on(_.labelId === _.labelId)
-      .groupBy { case (v, l) => (v.validationResult, l.labelTypeId) }
-      .map { case ((valResult, labelTypeId), group) => (valResult, labelTypeId, group.length) }
+      .groupBy { case (v, l) => (l.labelTypeId, v.validationResult, v.userId === SidewalkUserTable.aiUserId) }
+      .map { case ((labelTypeId, valResult, isAi), group) => (labelTypeId, valResult, isAi, group.length) }
       .result
       .map { valCounts =>
-        // Put data into ValidationCount objects, and add entry for any nonexistent result / label type with count=0.
-        val countsByTypeAndResult: Seq[ValidationCount] = (for {
-          labelTypeId <- validLabelTypeIds
-          valResult   <- validationOptions.keys
-        } yield {
-          val count: Int = valCounts.find(c => c._1 == valResult && c._2 == labelTypeId).map(_._3).getOrElse(0)
-          ValidationCount(count, timeInterval, labelTypeIdToLabelType(labelTypeId), validationOptions(valResult))
-        }).toSeq
+        // We want to also calculate a sum for every possible subgroup b/w label_type, validation_result and validator.
+        // Let's start by enumerating every subgroup combination. We include None for each of the three fields to
+        // allow for "All" entries.
+        val subgroupCombinations: Set[(Option[Int], Option[Int], Option[Boolean])] = for {
+          labelType <- validLabelTypeIds.map(Some(_)) ++ Seq(None)
+          valResult <- validationOptions.keys.map(Some(_)) ++ Seq(None)
+          validator <- Seq(Some(true), Some(false), None)
+        } yield (labelType, valResult, validator)
 
-        // Create "All" entries that sums all the counts over validationResult for each label type.
-        val countsByType: Seq[ValidationCount] = validLabelTypes.map { labelType =>
-          val count: Int = countsByTypeAndResult.filter(_.labelType == labelType).map(_.count).sum
-          ValidationCount(count, timeInterval, labelType, "All")
+        // For each combination, filter matching records and sum their counts.
+        subgroupCombinations.map { case (labTypeFilter, valResultFilter, validatorFilter) =>
+          val filteredData = valCounts.filter { case (labelTypeId, valResult, isAi, _) =>
+            // .forall returns true of the element matches or if the filter is None (which works perfectly for "All").
+            labTypeFilter.forall(_ == labelTypeId) &&
+            valResultFilter.forall(_ == valResult) &&
+            validatorFilter.forall(_ == isAi)
+          }
+          val subgroupCount = filteredData.map(_._4).sum
+
+          // Create the ValidationCount object for this subgroup.
+          val labelType = labTypeFilter.map(labelTypeIdToLabelType).getOrElse("All")
+          val valOption = valResultFilter.map(validationOptions).getOrElse("All")
+          val validator = validatorFilter.map(isAi => if (isAi) "AI" else "Human").getOrElse("Both")
+          ValidationCount(subgroupCount, timeInterval, labelType, valOption, validator)
         }.toSeq
-
-        // Create "All" entries that sums all the counts over labelType for each validationResult.
-        val countsByResult: Seq[ValidationCount] = validationOptions.values.map { valResult =>
-          val count: Int = countsByTypeAndResult.filter(_.validationResult == valResult).map(_.count).sum
-          ValidationCount(count, timeInterval, "All", valResult)
-        }.toSeq
-
-        // And finally, one entry summed across all label types and validation results.
-        val totalCount: ValidationCount = ValidationCount(countsByResult.map(_.count).sum, timeInterval, "All", "All")
-
-        // Combine all the counts into a single sequence.
-        countsByTypeAndResult ++ countsByType ++ countsByResult :+ totalCount
       }
   }
 
