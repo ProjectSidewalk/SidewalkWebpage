@@ -52,7 +52,7 @@ class GalleryController @Inject() (
             val jsonList: Seq[JsObject] = labels.map(l =>
               Json.obj(
                 "label"    -> LabelFormats.validationLabelMetadataToJson(l),
-                "imageUrl" -> gsvDataService.getImageUrl(l.gsvPanoramaId, l.heading, l.pitch, l.zoom)
+                "imageUrl" -> gsvDataService.getImageUrl(l.gsvPanoramaId, l.pov.heading, l.pov.pitch, l.pov.zoom)
               )
             )
             val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)
