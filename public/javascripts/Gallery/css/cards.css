@@ -197,6 +197,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .validation-info-count-container {
+    position: relative;
     display: flex;
     flex-direction: row;
 }
@@ -212,6 +213,18 @@ with respect to the image holder. This allows the validation menu to be placed o
 .validation-info-image {
     width: 50%;
     margin: 2%;
+}
+
+/* The AI icon is positioned to partially overlap the thumps up/down icons. */
+.ai-icon {
+    position: absolute;
+    top: -25%;
+    left: -15%;
+    height: 75%;
+}
+
+.ai-tooltip {
+    width: 200px;
 }
 
 .validation-info-thumbs-down {

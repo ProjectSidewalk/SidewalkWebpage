@@ -54,6 +54,7 @@ function ExpandedView(uiModal) {
         val_counts: undefined,
         correctness: undefined,
         user_validation: undefined,
+        ai_validation: undefined,
         tags: []
     };
 
@@ -163,7 +164,9 @@ function ExpandedView(uiModal) {
 
         // Add severity, validation info, and tag display to the expanded view.
         new SeverityDisplay(self.severity, properties.severity, properties.label_type, true);
-        self.validationInfoDisplay = new ValidationInfoDisplay(self.validation_info, properties.val_counts['Agree'], properties.val_counts['Disagree'], true);
+        self.validationInfoDisplay = new ValidationInfoDisplay(
+            self.validation_info, properties.val_counts['Agree'], properties.val_counts['Disagree'], properties.ai_validation, true
+        );
         new TagDisplay(self.tags, properties.tags, true);
         self.validationMenu.addExpandedViewValInfoOnClicks(self.validationInfoDisplay);
 

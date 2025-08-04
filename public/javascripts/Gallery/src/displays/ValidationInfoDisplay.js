@@ -1,14 +1,15 @@
 
 /**
  * An object that creates a display for the severity.
- * 
+ *
  * @param {HTMLElement} container The DOM element that contains the display
  * @param {Number} agreeCount The agree count to display
  * @param {Number} disagreeCount The disagree count to display
+ * @param {String} aiValidation Either 'Agree' or 'Disagree', showing AI validation if there is any
  * @param {Boolean} isExpandedView a toggle to determine if this ValidationInfoDisplay is in expanded view, or in a card
  * @returns {ValidationInfoDisplay} the generated object
  */
-function ValidationInfoDisplay(container, agreeCount, disagreeCount, isExpandedView=false) {
+function ValidationInfoDisplay(container, agreeCount, disagreeCount, aiValidation, isExpandedView=false) {
     let self = this;
     self.agreeCount = agreeCount;
     self.disagreeCount = disagreeCount;
@@ -18,48 +19,73 @@ function ValidationInfoDisplay(container, agreeCount, disagreeCount, isExpandedV
         let holder = document.createElement('div');
         holder.className = 'validation-info-content';
 
+        // Create outer container for agree and disagree sections.
         self.agreeContainer = document.createElement('div');
-        self.disagreeContainer = document.createElement('div');
         self.agreeContainer.className = 'validation-section-content';
+        self.disagreeContainer = document.createElement('div');
         self.disagreeContainer.className = 'validation-section-content';
 
-        self.agreeText = document.createElement('div');
-        self.disagreeText = document.createElement('div');
-        self.agreeText.className = 'validation-info-count';
-        self.disagreeText.className = 'validation-info-count';
-
+        // Create the agree and disagree count containers.
         let agreeCountContainer = document.createElement('div');
         let disagreeCountContainer = document.createElement('div');
         agreeCountContainer.className = 'validation-info-count-container';
         disagreeCountContainer.className = 'validation-info-count-container';
 
+        // Create the agree icon and tooltip.
         let agreeIcon = isExpandedView ? new Image() : document.createElement('img');
-        let disagreeIcon = isExpandedView ? new Image() : document.createElement('img');
         agreeIcon.className = 'validation-info-image';
+        agreeIcon.src = 'assets/javascripts/SVLabel/img/misc/thumbs_up.png';
+        agreeIcon.setAttribute('data-toggle', 'tooltip');
+        agreeIcon.setAttribute('data-placement', 'top');
+        agreeIcon.setAttribute('title', `${i18next.t("common:agree")}`);
+        $(agreeIcon).tooltip('hide');
+        agreeCountContainer.appendChild(agreeIcon);
+
+        // Create the disagree icon and tooltip.
+        let disagreeIcon = isExpandedView ? new Image() : document.createElement('img');
         disagreeIcon.className = 'validation-info-image';
         disagreeIcon.classList.add('validation-info-thumbs-down');
-
-        agreeIcon.src = 'assets/javascripts/SVLabel/img/misc/thumbs_up.png';
         disagreeIcon.src = 'assets/javascripts/SVLabel/img/misc/thumbs_down.png';
-
-        agreeCountContainer.appendChild(agreeIcon);
+        disagreeIcon.setAttribute('data-toggle', 'tooltip');
+        disagreeIcon.setAttribute('data-placement', 'top');
+        disagreeIcon.setAttribute('title', `${i18next.t("common:disagree")}`);
+        $(disagreeIcon).tooltip('hide');
         disagreeCountContainer.appendChild(disagreeIcon);
 
-        updateValCounts(self.agreeCount, self.disagreeCount);
+        // Create the AI overlay icon and tooltip if there has been an AI validation.
+        if (['Agree', 'Disagree'].includes(aiValidation)) {
+            let aiIcon = isExpandedView ? new Image() : document.createElement('img')
+            aiIcon.className = 'ai-icon';
+            aiIcon.src = 'assets/images/icons/ai-icon-transparent-small.png';
+            aiIcon.alt = 'AI indicator';
 
+            aiIcon.setAttribute('data-toggle', 'tooltip');
+            aiIcon.setAttribute('data-placement', 'top');
+            aiIcon.setAttribute('title', `AI analyzed this label and voted "${aiValidation.toLowerCase()}"; however, AI can make mistakes. Please make your own assessment.`);
+            $(aiIcon).tooltip({
+                // Custom template uses defaults, just adds ai-tooltip class to enforce a wider tooltip. Starting with
+                // Bootstrap 4, we can use `customClass` instead of `template`.
+                template: '<div class="tooltip ai-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
+            }).tooltip('hide');
+
+            // Add AI icon to the appropriate count container based on AI validation.
+            if (aiValidation === 'Agree') {
+                agreeCountContainer.appendChild(aiIcon);
+            } else if (aiValidation === 'Disagree') {
+                disagreeCountContainer.appendChild(aiIcon);
+            }
+        }
+
+        // Create the agree and disagree count text elements.
+        self.agreeText = document.createElement('div');
+        self.agreeText.className = 'validation-info-count';
         agreeCountContainer.append(self.agreeText);
+
+        self.disagreeText = document.createElement('div');
+        self.disagreeText.className = 'validation-info-count';
         disagreeCountContainer.append(self.disagreeText);
 
-        // Add tooltip labels.
-        self.agreeContainer.setAttribute('data-toggle', 'tooltip');
-        self.agreeContainer.setAttribute('data-placement', 'top');
-        self.agreeContainer.setAttribute('title', `${i18next.t("common:agree")}`);
-        $(self.agreeContainer).tooltip('hide');
-
-        self.disagreeContainer.setAttribute('data-toggle', 'tooltip');
-        self.disagreeContainer.setAttribute('data-placement', 'top');
-        self.disagreeContainer.setAttribute('title', `${i18next.t("common:disagree")}`);
-        $(self.disagreeContainer).tooltip('hide');
+        updateValCounts(self.agreeCount, self.disagreeCount);
 
         // Add all the severity circles to the DOM.
         self.agreeContainer.append(agreeCountContainer);
