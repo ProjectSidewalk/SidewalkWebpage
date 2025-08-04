@@ -872,3 +872,15 @@ kbd {
 .permalink-anchor:hover .permalink-icon {
     opacity: 1;
 }
+
+
+/* LabelMap / LabelView section */
+#validations-header {
+    position: relative;
+}
+
+.label-view-ai-icon {
+    position: absolute;
+    top: 0px;
+    height: 60%;
+}

@@ -59,6 +59,7 @@ object LabelFormats {
       (__ \ "temporary").write[Boolean] and
       (__ \ "description").write[Option[String]] and
       (__ \ "user_validation").write[Option[Int]] and
+      (__ \ "ai_validation").write[Option[Int]] and
       (__ \ "validations").write[Map[String, Int]] and
       (__ \ "tags").write[List[String]] and
       (__ \ "low_quality_incomplete_stale_flags").write[(Boolean, Boolean, Boolean)] and
@@ -131,6 +132,7 @@ object LabelFormats {
       "temporary"          -> labelMetadata.temporary,
       "description"        -> labelMetadata.description,
       "user_validation"    -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
+      "ai_validation"      -> labelMetadata.aiValidation.map(LabelValidationTable.validationOptions.get),
       "num_agree"          -> labelMetadata.validations("agree"),
       "num_disagree"       -> labelMetadata.validations("disagree"),
       "num_unsure"         -> labelMetadata.validations("unsure"),

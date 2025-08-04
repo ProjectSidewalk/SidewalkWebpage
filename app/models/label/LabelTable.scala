@@ -133,6 +133,7 @@ case class LabelMetadata(
     temporary: Boolean,
     description: Option[String],
     userValidation: Option[Int],
+    aiValidation: Option[Int],
     validations: Map[String, Int],
     tags: List[String],
     lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean),
@@ -538,7 +539,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextIntOption(),
       r.nextBoolean(),
       r.nextStringOption(),
-      r.nextIntOption(),
+      r.nextIntOption(), // userValidation
+      r.nextIntOption(), // aiValidation
       r.nextString().split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextString().split(",").filter(_.nonEmpty).toList,
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
@@ -706,7 +708,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              lb_big.severity,
              lb_big.temporary,
              lb_big.description,
-             lb_big.validation_result,
+             lb_big.validation_result, -- userValidation
+             ai_val.validation_result, -- aiValidation
              val.val_counts,
              array_to_string(lb_big.tags, ','),
              at.low_quality,
@@ -739,6 +742,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                         ',unsure:', CAST(unsure_count AS TEXT)) AS val_counts
           FROM label
       ) AS val ON lb1.label_id = val.label_id
+      LEFT JOIN (
+          SELECT label_id, validation_result
+          FROM label_validation
+          WHERE user_id = '#$aiUserId'
+      ) AS ai_val ON lb1.label_id = ai_val.label_id
       LEFT JOIN (
           SELECT label_id, string_agg(comment, ':') AS comments
           FROM validation_task_comment
