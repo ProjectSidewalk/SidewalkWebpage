@@ -46,7 +46,7 @@ object GsvDataService {
 @ImplementedBy(classOf[GsvDataServiceImpl])
 trait GsvDataService {
   def panoExists(gsvPanoId: String): Future[Option[Boolean]]
-  def getImageUrl(gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int): String
+  def getImageUrl(gsvPanoramaId: String, heading: Double, pitch: Double, zoom: Int): String
   def getImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
   def getAllPanosWithLabels: Future[Seq[GsvDataSlim]]
@@ -143,7 +143,7 @@ class GsvDataServiceImpl @Inject() (
    * @param zoom Zoom level of the canvas (for fov calculation).
    * @return Image URL that represents the background of the label.
    */
-  def getImageUrl(gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int): String = {
+  def getImageUrl(gsvPanoramaId: String, heading: Double, pitch: Double, zoom: Int): String = {
     val url = "https://maps.googleapis.com/maps/api/streetview?" +
       "pano=" + gsvPanoramaId +
       "&size=" + LabelPointTable.canvasWidth + "x" + LabelPointTable.canvasHeight +

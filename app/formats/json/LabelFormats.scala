@@ -59,6 +59,7 @@ object LabelFormats {
       (__ \ "temporary").write[Boolean] and
       (__ \ "description").write[Option[String]] and
       (__ \ "user_validation").write[Option[Int]] and
+      (__ \ "ai_validation").write[Option[Int]] and
       (__ \ "validations").write[Map[String, Int]] and
       (__ \ "tags").write[List[String]] and
       (__ \ "low_quality_incomplete_stale_flags").write[(Boolean, Boolean, Boolean)] and
@@ -79,9 +80,9 @@ object LabelFormats {
       "lng"                -> labelMetadata.lng,
       "camera_lat"         -> labelMetadata.cameraLat,
       "camera_lng"         -> labelMetadata.cameraLng,
-      "heading"            -> labelMetadata.heading,
-      "pitch"              -> labelMetadata.pitch,
-      "zoom"               -> labelMetadata.zoom,
+      "heading"            -> labelMetadata.pov.heading,
+      "pitch"              -> labelMetadata.pov.pitch,
+      "zoom"               -> labelMetadata.pov.zoom,
       "canvas_x"           -> labelMetadata.canvasXY.x,
       "canvas_y"           -> labelMetadata.canvasXY.y,
       "severity"           -> labelMetadata.severity,
@@ -94,6 +95,7 @@ object LabelFormats {
       "disagree_count"     -> labelMetadata.validationInfo.disagreeCount,
       "unsure_count"       -> labelMetadata.validationInfo.unsureCount,
       "user_validation"    -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
+      "ai_validation"      -> labelMetadata.aiValidation.map(LabelValidationTable.validationOptions.get),
       "tags"               -> labelMetadata.tags,
       "ai_tags"            -> labelMetadata.aiTags,
       "admin_data"         -> adminData.map(ad =>
@@ -130,6 +132,7 @@ object LabelFormats {
       "temporary"          -> labelMetadata.temporary,
       "description"        -> labelMetadata.description,
       "user_validation"    -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
+      "ai_validation"      -> labelMetadata.aiValidation.map(LabelValidationTable.validationOptions.get),
       "num_agree"          -> labelMetadata.validations("agree"),
       "num_disagree"       -> labelMetadata.validations("disagree"),
       "num_unsure"         -> labelMetadata.validations("unsure"),
@@ -164,9 +167,9 @@ object LabelFormats {
     Json.obj(
       "label_id"          -> label.labelId,
       "gsv_panorama_id"   -> label.gsvPanoramaId,
-      "heading"           -> label.heading,
-      "pitch"             -> label.pitch,
-      "zoom"              -> label.zoom,
+      "heading"           -> label.pov.heading,
+      "pitch"             -> label.pov.pitch,
+      "zoom"              -> label.pov.zoom,
       "canvas_x"          -> label.canvasX,
       "canvas_y"          -> label.canvasY,
       "label_type"        -> label.labelType,
