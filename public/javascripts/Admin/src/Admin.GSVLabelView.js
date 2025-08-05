@@ -69,7 +69,7 @@ function AdminGSVLabelView(admin, source) {
                                         '<td colspan="3" id="label-description"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th><span>' + i18next.t('labelmap:validations') + '</span></th>' +
+                                        '<th>' + i18next.t('labelmap:validations') + '</th>' +
                                         '<td colspan="3" id="label-validations"></td>' +
                                     '</tr>' +
                                     '<tr>' +
@@ -183,7 +183,6 @@ function AdminGSVLabelView(admin, source) {
 
         self.taskID = null;
 
-        self.aiValidation = null;
         self.validationCounts = {
             "Agree": null,
             "Disagree": null,
