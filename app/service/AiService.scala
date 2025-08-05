@@ -35,6 +35,7 @@ class AiServiceImpl @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger                         = Logger(this.getClass)
   private val cityId: String                 = config.get[String]("city-id")
+  private val AI_ENABLED: Boolean            = config.get[Boolean]("ai-enabled")
   private val AI_VALIDATIONS_ON: Boolean     = config.get[Boolean](s"city-params.ai-validation-enabled.$cityId")
   private val AI_TAG_SUGGESTIONS_ON: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$cityId")
   private val AI_VALIDATION_MIN_ACCURACY: Double = config.get[Double](s"city-params.ai-validation-min-accuracy.$cityId")
@@ -45,7 +46,7 @@ class AiServiceImpl @Inject() (
    * @return A Future containing a sequence of LabelAi objects with validation results and tags
    */
   def validateLabelsWithAi(labelIds: Seq[Int]): Future[Seq[LabelAi]] = {
-    if (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON) {
+    if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
       val startTime = OffsetDateTime.now
       Future.sequence {
         labelIds.map { labelId =>
