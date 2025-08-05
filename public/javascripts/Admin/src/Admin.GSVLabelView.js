@@ -69,8 +69,12 @@ function AdminGSVLabelView(admin, source) {
                                         '<td colspan="3" id="label-description"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        '<th id="validations-header"><span>' + i18next.t('labelmap:validations') + '</span></th>' +
+                                        '<th><span>' + i18next.t('labelmap:validations') + '</span></th>' +
                                         '<td colspan="3" id="label-validations"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th id="ai-validation-header">AI Validation</th>` +
+                                        '<td colspan="3" id="ai-validation"></td>' +
                                     '</tr>' +
                                     '<tr>' +
                                     '<th>' + i18next.t('common:comments') + '</th>' +
@@ -238,8 +242,9 @@ function AdminGSVLabelView(admin, source) {
         self.modalTemporary = self.modal.find("#temporary");
         self.modalTags = self.modal.find("#tags");
         self.modalDescription = self.modal.find("#label-description");
-        self.modalValidationsHeader = self.modal.find("#validations-header");
         self.modalValidations = self.modal.find("#label-validations");
+        self.modalAiValidationHeader = self.modal.find("#ai-validation-header");
+        self.modalAiValidation = self.modal.find("#ai-validation");
         self.modalImageDate = self.modal.find("#image-capture-date");
         self.modalUsername = self.modal.find("#admin-username");
         self.modalTask = self.modal.find("#task");
@@ -355,25 +360,9 @@ function AdminGSVLabelView(admin, source) {
     function _setValidationCountText() {
         // Form new string for validations row.
         var validationsTextAfter = '' + self.validationCounts['Agree'] + ' ' + i18next.t('common:agree') + ', ' +
-            self.validationCounts['Disagree'] + ' ' + i18next.t('common:no') + ', ' +
+            self.validationCounts['Disagree'] + ' ' + i18next.t('common:disagree') + ', ' +
             self.validationCounts['Unsure'] + ' ' + i18next.t('common:unsure');
         self.modalValidations.html(validationsTextAfter);
-
-        // Create the AI icon if there is an AI validation.
-        if (self.aiValidation === 'Agree' || self.aiValidation === 'Disagree') {
-            let aiIcon = document.createElement('img')
-            aiIcon.className = 'label-view-ai-icon';
-            aiIcon.src = 'assets/images/icons/ai-icon-transparent-small.png';
-            aiIcon.alt = 'AI indicator';
-
-            // Create the AI validation tooltip that we show on the header for now.
-            aiIcon.setAttribute('data-toggle', 'tooltip');
-            aiIcon.setAttribute('data-placement', 'top');
-            aiIcon.setAttribute('title', `AI analyzed this label and voted "${self.aiValidation.toLowerCase()}"; however, AI can make mistakes. Please make your own assessment.`);
-            $(aiIcon).tooltip('hide');
-
-            self.modalValidationsHeader.append(aiIcon);
-        }
     }
 
     /**
@@ -393,6 +382,32 @@ function AdminGSVLabelView(admin, source) {
 
         // Call on helper to update the text.
         _setValidationCountText();
+    }
+
+    /**
+     * Creates the AI validation row text, adds the AI icon, and sets the tooltip.
+     * @param aiValidation The AI validation result, either "Agree", "Disagree", or null.
+     * @private
+     */
+    function _setAiValidationRow(aiValidation) {
+        if (aiValidation === 'Agree' || aiValidation === 'Disagree') {
+            self.modalAiValidation.html(`${aiValidation} (included in validation count above)`);
+
+            // Create the AI icon.
+            let aiIcon = document.createElement('img')
+            aiIcon.className = 'label-view-ai-icon';
+            aiIcon.src = 'assets/images/icons/ai-icon-transparent-small.png';
+            aiIcon.alt = 'AI indicator';
+            self.modalAiValidationHeader.append(aiIcon);
+
+            // Create the AI validation tooltip that we show in the header.
+            aiIcon.setAttribute('data-toggle', 'tooltip');
+            aiIcon.setAttribute('data-placement', 'top');
+            aiIcon.setAttribute('title', `AI analyzed this label and voted "${aiValidation}"; however, AI can make mistakes. Please make your own assessment.`);
+            $(aiIcon).tooltip('hide');
+        } else {
+            self.modalAiValidation.html(i18next.t('common:none'));
+        }
     }
 
     /**
@@ -562,12 +577,12 @@ function AdminGSVLabelView(admin, source) {
             labelMetadata['severity'], labelMetadata['tags']);
         self.panorama.setLabel(adminPanoramaLabel);
 
-        self.aiValidation = labelMetadata['ai_validation'];
         self.validationCounts['Agree'] = labelMetadata['num_agree'];
         self.validationCounts['Disagree'] = labelMetadata['num_disagree'];
         self.validationCounts['Unsure'] = labelMetadata['num_unsure'];
         self.prevAction = labelMetadata['user_validation'];
         _setValidationCountText();
+        _setAiValidationRow(labelMetadata['ai_validation']);
 
         self.flags["low_quality"] = labelMetadata['low_quality'];
         self.flags["incomplete"] = labelMetadata['incomplete'];
