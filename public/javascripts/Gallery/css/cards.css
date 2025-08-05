@@ -218,8 +218,8 @@ with respect to the image holder. This allows the validation menu to be placed o
 /* The AI icon is positioned to partially overlap the thumps up/down icons. */
 .ai-icon {
     position: absolute;
-    top: -25%;
-    left: -15%;
+    top: -43%;
+    left: -16%;
     height: 75%;
 }
 
