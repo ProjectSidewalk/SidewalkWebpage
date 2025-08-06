@@ -140,6 +140,10 @@
         "no-new-mission-body": "U kunt meer labels toevoegen met behulp van een laptop / desktopcomputer, of u kunt labels valideren in een andere stad!",
         "no-new-mission-button": "Valideren in"
     },
+    "expert-validate": {
+        "add-tag": "Voeg toe: {{tag}}",
+        "remove-tag": "Verwijderen: {{tag}}"
+    },
     "mission-start-tutorial": {
         "mst-instruction-1": "JOUW MISSIE",
         "mst-instruction-2": "Valideer {{nLabels}} {{- labelType}} labels",

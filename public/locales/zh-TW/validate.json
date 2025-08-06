@@ -140,6 +140,10 @@
         "no-new-mission-body": "您可以使用筆記型電腦/台式計算機添加更多標籤，也可以在其他城市驗證標籤！",
         "no-new-mission-button": "在中驗證"
     },
+    "expert-validate": {
+        "add-tag": "添加：{{tag}}",
+        "remove-tag": "刪除：{{tag}}"
+    },
     "mission-start-tutorial": {
         "mst-instruction-1": "您的任務",
         "mst-instruction-2": "檢核{{nLabels}}個{{- labelType}}的標記",

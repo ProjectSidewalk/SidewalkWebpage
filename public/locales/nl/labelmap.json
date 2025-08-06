@@ -2,6 +2,8 @@
     "is-correct": "Klopt dit etiket?",
     "label-type": "Etikettype",
     "validations": "Validations",
+    "ai-validation": "AI-validatie",
+    "ai-val-included": "$t(common:{{aiVal}}) (inbegrepen in bovenstaande telling)",
     "add-comment": "Voeg opmerking hier toe...",
     "submit-comment": "Opmerking",
     "comment-submitted": "Commentaar ingediend"

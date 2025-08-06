@@ -55,6 +55,7 @@
     "labeled": "Etiquetada",
     "yes": "Sí",
     "no": "No",
+    "ai-disclaimer": "La IA analizó esta etiqueta y votó \"$t({{aiVal}})\"; sin embargo, la IA puede cometer errores. Por favor, haga su propia evaluación.",
     "tag": {
         "narrow": "muy angosta",
         "points into traffic": "orientada hacia el tráfico",

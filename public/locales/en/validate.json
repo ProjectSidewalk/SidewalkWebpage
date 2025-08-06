@@ -209,6 +209,10 @@
         "no-new-mission-body": "You can add more labels using a laptop/desktop computer, or you can validate labels in another city!",
         "no-new-mission-button": "Validate in"
     },
+    "expert-validate": {
+        "add-tag": "Add: {{tag}}",
+        "remove-tag": "Remove: {{tag}}"
+    },
     "mission-start-tutorial": {
         "mst-instruction-1": "YOUR MISSION",
         "mst-instruction-2": "Validate {{nLabels}} {{- labelType}} Labels",
