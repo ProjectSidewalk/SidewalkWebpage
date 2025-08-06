@@ -154,44 +154,54 @@
         <p>Returns a JSON array containing validation objects:</p>
         <pre><code class="language-json">[
     {
-        "validation_id": 12345,
+        "label_validation_id": 12345,
         "label_id": 67890,
-        "user_id": "user_abc123",
-        "validation_result": 1,
-        "validation_timestamp": "2023-09-15T14:32:47Z",
         "label_type_id": 2,
         "label_type": "NoCurbRamp",
-        "severity_before": 3,
-        "severity_after": 4,
-        "changed_severity": true,
-        "tags_before": ["narrow"],
-        "tags_after": ["narrow", "steep"],
-        "changed_tags": true,
-        "street_edge_id": 54321,
-        "neighborhood_id": 15,
-        "neighborhood_name": "Downtown",
-        "lat": 47.6062,
-        "lng": -122.3321
+        "validation_result": 1,
+        "validation_result_string": "Agree",
+        "old_severity": 3,
+        "new_severity": 4,
+        "old_tags": ["narrow"],
+        "new_tags": ["narrow", "steep"],
+        "user_id": "user_abc123",
+        "validator_type": "Human",
+        "mission_id": 1234,
+        "canvas_x": 186,
+        "canvas_y": 148,
+        "heading": 239.29465,
+        "pitch": -15.819197,
+        "zoom": 2,
+        "canvas_height": 288,
+        "canvas_width": 384,
+        "start_timestamp": "2025-08-04T21:52:05.158Z",
+        "end_timestamp": "2025-08-04T21:52:05.158Z",
+        "source": "ExpertValidate"
     },
     {
         "validation_id": 12346,
         "label_id": 67891,
-        "user_id": "user_def456",
-        "validation_result": 2,
-        "validation_timestamp": "2023-09-15T15:45:12Z",
         "label_type_id": 1,
         "label_type": "CurbRamp",
-        "severity_before": 2,
-        "severity_after": 2,
-        "changed_severity": false,
-        "tags_before": ["wide"],
-        "tags_after": ["wide"],
-        "changed_tags": false,
-        "street_edge_id": 54322,
-        "neighborhood_id": 15,
-        "neighborhood_name": "Downtown",
-        "lat": 47.6065,
-        "lng": -122.3318
+        "validation_result": 2,
+        "validation_result_string": "Disagree",
+        "old_severity": 2,
+        "new_severity": 2,
+        "old_tags": ["wide"],
+        "new_tags": ["wide"],
+        "user_id": "user_def456",
+        "validator_type": "AI",
+        "mission_id": 1235,
+        "canvas_x": 186,
+        "canvas_y": 148,
+        "heading": 239.29465,
+        "pitch": -15.819197,
+        "zoom": 2,
+        "canvas_height": 288,
+        "canvas_width": 384,
+        "start_timestamp": "2025-08-04T21:52:05.158Z",
+        "end_timestamp": "2025-08-04T21:52:05.158Z",
+        "source": "SidewalkAI"
     }
 ]</code></pre>
 
@@ -206,33 +216,38 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td><code>validation_id</code></td><td><code>integer</code></td><td>Unique identifier for the validation record.</td></tr>
+                    <tr><td><code>label_validation_id</code></td><td><code>integer</code></td><td>Unique identifier for the validation record.</td></tr>
                     <tr><td><code>label_id</code></td><td><code>integer</code></td><td>ID of the label that was validated.</td></tr>
-                    <tr><td><code>user_id</code></td><td><code>string</code></td><td>ID of the user who performed the validation.</td></tr>
-                    <tr><td><code>validation_result</code></td><td><code>integer</code></td><td>Validation judgment: 1 (Agree), 2 (Disagree), 3 (Unsure).</td></tr>
-                    <tr><td><code>validation_timestamp</code></td><td><code>string</code></td><td>ISO 8601 formatted timestamp when the validation was performed.</td></tr>
                     <tr><td><code>label_type_id</code></td><td><code>integer</code></td><td>ID of the label type (e.g., 1 for CurbRamp, 2 for NoCurbRamp).</td></tr>
                     <tr><td><code>label_type</code></td><td><code>string</code></td><td>Name of the label type (e.g., "CurbRamp", "Obstacle").</td></tr>
-                    <tr><td><code>severity_before</code></td><td><code>integer | null</code></td><td>Severity rating before validation (1-5 scale), or null if not applicable.</td></tr>
-                    <tr><td><code>severity_after</code></td><td><code>integer | null</code></td><td>Severity rating after validation, or null if not changed/applicable.</td></tr>
-                    <tr><td><code>changed_severity</code></td><td><code>boolean</code></td><td>Whether the validator changed the severity rating.</td></tr>
-                    <tr><td><code>tags_before</code></td><td><code>array</code></td><td>Array of tag names before validation.</td></tr>
-                    <tr><td><code>tags_after</code></td><td><code>array</code></td><td>Array of tag names after validation.</td></tr>
-                    <tr><td><code>changed_tags</code></td><td><code>boolean</code></td><td>Whether the validator changed any tags.</td></tr>
-                    <tr><td><code>street_edge_id</code></td><td><code>integer</code></td><td>ID of the street segment where the label is located.</td></tr>
-                    <tr><td><code>neighborhood_id</code></td><td><code>integer</code></td><td>ID of the neighborhood containing the label.</td></tr>
-                    <tr><td><code>neighborhood_name</code></td><td><code>string</code></td><td>Name of the neighborhood containing the label.</td></tr>
-                    <tr><td><code>lat</code></td><td><code>number</code></td><td>Latitude coordinate of the validated label.</td></tr>
-                    <tr><td><code>lng</code></td><td><code>number</code></td><td>Longitude coordinate of the validated label.</td></tr>
+                    <tr><td><code>validation_result</code></td><td><code>integer</code></td><td>Validation judgment: 1 (Agree), 2 (Disagree), 3 (Unsure).</td></tr>
+                    <tr><td><code>validation_result_string</code></td><td><code>string</code></td><td>Validation judgment: Agree, Disagree, Unsure.</td></tr>
+                    <tr><td><code>old_severity</code></td><td><code>integer | null</code></td><td>Severity rating before validation (1-5 scale), or null if not applicable.</td></tr>
+                    <tr><td><code>new_severity</code></td><td><code>integer | null</code></td><td>Severity rating after validation, or null if not changed/applicable.</td></tr>
+                    <tr><td><code>old_tags</code></td><td><code>array[string]</code></td><td>Array of tag names before validation.</td></tr>
+                    <tr><td><code>new_tags</code></td><td><code>array[string]</code></td><td>Array of tag names after validation.</td></tr>
+                    <tr><td><code>user_id</code></td><td><code>string</code></td><td>ID of the user who performed the validation.</td></tr>
+                    <tr><td><code>validator_type</code></td><td><code>string</code></td><td>One of: Human, AI.</td></tr>
+                    <tr><td><code>mission_id</code></td><td><code>integer</code></td><td>The mission ID associated with the validation.</td></tr>
+                    <tr><td><code>canvas_x</code></td><td><code>integer | null</code></td><td>The X-coordinate on the GSV canvas of the label when it was validated, or null if label was offscreen.</td></tr>
+                    <tr><td><code>canvas_y</code></td><td><code>integer | null</code></td><td>The Y-coordinate on the GSV canvas of the label when it was validated, or null if label was offscreen.</td></tr>
+                    <tr><td><code>heading</code></td><td><code>number</code></td><td>Camera heading in GSV when the label was validated.</td></tr>
+                    <tr><td><code>pitch</code></td><td><code>number</code></td><td>Camera pitch in GSV when the label was validated.</td></tr>
+                    <tr><td><code>zoom</code></td><td><code>number</code></td><td>Camera zoom in GSV when the label was validated.</td></tr>
+                    <tr><td><code>canvas_width</code></td><td><code>integer</code></td><td>Width of the GSV canvas in pixels.</td></tr>
+                    <tr><td><code>canvas_height</code></td><td><code>integer</code></td><td>Height of the GSV canvas in pixels.</td></tr>
+                    <tr><td><code>start_timestamp</code></td><td><code>string</code></td><td>ISO 8601 formatted timestamp when the user started viewing the label for validation.</td></tr>
+                    <tr><td><code>end_timestamp</code></td><td><code>string</code></td><td>ISO 8601 formatted timestamp when the validation was performed.</td></tr>
+                    <tr><td><code>source</code></td><td><code>string</code></td><td>In which interface the validation occurred: "Validate", "ValidateMobile", "ExpertValidate", "LabelMap", "GalleryImage", "GalleryExpandedImage", "GalleryThumbs", "GalleryExpandedThumbs", "SidewalkAI", "AdminUserDashboard", "AdminLabelSearchTab", "ExternalTagValidationASSETS2024"</td></tr>
                 </tbody>
             </table>
         </div>
 
         <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
         <p>If <code>filetype=csv</code> is specified, the response will be CSV data with the same field structure:</p>
-        <pre><code class="language-csv">validation_id,label_id,user_id,validation_result,validation_timestamp,label_type_id,label_type,severity_before,severity_after,...
-12345,67890,user_abc123,1,2023-09-15T14:32:47Z,2,NoCurbRamp,3,4,...
-12346,67891,user_def456,2,2023-09-15T15:45:12Z,1,CurbRamp,2,2,...</code></pre>
+        <pre><code class="language-csv">label_validation_id,label_id,label_type_id,label_type,...
+12345,67890,2,NoCurbRamp,...
+12346,67891,1,CurbRamp,...</code></pre>
 
         <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
         <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>

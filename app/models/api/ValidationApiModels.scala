@@ -7,6 +7,7 @@ package models.api
 
 import models.api.ApiModelUtils.escapeCsvField
 import models.computation.StreamingApiType
+import models.label.LocationXY
 import play.api.libs.json.{JsObject, Json, OFormat}
 
 import java.time.OffsetDateTime
@@ -49,12 +50,12 @@ case class ValidationFiltersForApi(
  * @param oldTags Previous tags assigned to the label
  * @param newTags New tags assigned during validation
  * @param userId ID of the user who performed the validation
+ * @param validatorType Whether the validation was performed by a human or AI
  * @param missionId ID of the mission during which the validation was performed
- * @param canvasX X-coordinate of the label on the canvas
- * @param canvasY Y-coordinate of the label on the canvas
- * @param heading Map heading when validation occurred
- * @param pitch Map pitch when validation occurred
- * @param zoom Map zoom level when validation occurred
+ * @param canvasXY Canvas X/Y coordinates of the label when it was validated; can be None if label was offscreen
+ * @param heading GSV heading when validation occurred
+ * @param pitch GSV pitch when validation occurred
+ * @param zoom GSV zoom level when validation occurred
  * @param canvasHeight Height of the canvas
  * @param canvasWidth Width of the canvas
  * @param startTimestamp When the validation was started
@@ -73,9 +74,9 @@ case class ValidationDataForApi(
     oldTags: List[String],
     newTags: List[String],
     userId: String,
+    validatorType: String,
     missionId: Int,
-    canvasX: Option[Int],
-    canvasY: Option[Int],
+    canvasXY: Option[LocationXY],
     heading: Float,
     pitch: Float,
     zoom: Float,
@@ -105,9 +106,10 @@ case class ValidationDataForApi(
       "old_tags"                 -> oldTags,
       "new_tags"                 -> newTags,
       "user_id"                  -> userId,
+      "validator_type"           -> validatorType,
       "mission_id"               -> missionId,
-      "canvas_x"                 -> canvasX,
-      "canvas_y"                 -> canvasY,
+      "canvas_x"                 -> canvasXY.map(_.x),
+      "canvas_y"                 -> canvasXY.map(_.y),
       "heading"                  -> heading,
       "pitch"                    -> pitch,
       "zoom"                     -> zoom,
@@ -140,9 +142,10 @@ case class ValidationDataForApi(
       escapeCsvField(oldTags.mkString("[", ",", "]")),
       escapeCsvField(newTags.mkString("[", ",", "]")),
       escapeCsvField(userId),
+      validatorType,
       missionId.toString,
-      canvasX.map(_.toString).getOrElse(""),
-      canvasY.map(_.toString).getOrElse(""),
+      canvasXY.map(_.x.toString).getOrElse(""),
+      canvasXY.map(_.y.toString).getOrElse(""),
       heading.toString,
       pitch.toString,
       zoom.toString,
@@ -166,8 +169,8 @@ object ValidationDataForApi {
    * This should be included as the first line when generating CSV output.
    */
   val csvHeader: String = "label_validation_id,label_id,label_type_id,label_type,validation_result," +
-    "validation_result_string,old_severity,new_severity,old_tags,new_tags,user_id,mission_id,canvas_x,canvas_y," +
-    "heading,pitch,zoom,canvas_height,canvas_width,start_timestamp,end_timestamp,source\n"
+    "validation_result_string,old_severity,new_severity,old_tags,new_tags,user_id,validator_type,mission_id,canvas_x," +
+    "canvas_y,heading,pitch,zoom,canvas_height,canvas_width,start_timestamp,end_timestamp,source\n"
 }
 
 /**
