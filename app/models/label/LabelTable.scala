@@ -463,7 +463,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val labelTypes             = TableQuery[LabelTypeTableDef]
   val labelPoints            = TableQuery[LabelPointTableDef]
   val labelValidations       = TableQuery[LabelValidationTableDef]
-  val labelAis               = TableQuery[LabelAiTableDef]
+  val labelAiAssessments     = TableQuery[LabelAiAssessmentTableDef]
   val missions               = TableQuery[MissionTableDef]
   val streets                = TableQuery[StreetEdgeTableDef]
   val regions                = TableQuery[RegionTableDef]
@@ -838,7 +838,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
     // Get AI suggested tags.
     val _labelInfoWithAiTagSuggestions = _labelInfoWithAIValidation
-      .joinLeft(labelAis)
+      .joinLeft(labelAiAssessments)
       .on(_._1.labelId === _.labelId)
       .map { case ((_lb, _lp, _lt, _gd, _us, _ser, _at, _aiv), _la) => (_lb, _lp, _lt, _gd, _us, _ser, _at, _aiv, _la) }
 

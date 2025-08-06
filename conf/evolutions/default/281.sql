@@ -1,7 +1,7 @@
 # --- !Ups
--- Add new label_ai table.
-CREATE TABLE IF NOT EXISTS label_ai (
-    label_ai_id SERIAL PRIMARY KEY,
+-- Add new label_ai_assessment table.
+CREATE TABLE IF NOT EXISTS label_ai_assessment (
+    label_ai_assessment_id SERIAL PRIMARY KEY,
     label_id INT NOT NULL,
     validation_result INT NOT NULL,
     validation_accuracy DOUBLE PRECISION NOT NULL,
@@ -72,4 +72,4 @@ DELETE FROM sidewalk_login.user_role WHERE user_id = '51b0b927-3c8a-45b2-93de-bd
 DELETE FROM label_validation WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4';
 DELETE FROM sidewalk_login.sidewalk_user WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4';
 
-DROP TABLE IF EXISTS label_ai;
+DROP TABLE IF EXISTS label_ai_assessment;

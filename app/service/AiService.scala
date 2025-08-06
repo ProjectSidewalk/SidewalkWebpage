@@ -17,7 +17,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[AiServiceImpl])
 trait AiService {
-  def validateLabelsWithAi(labelIds: Seq[Int]): Future[Seq[LabelAi]]
+  def validateLabelsWithAi(labelIds: Seq[Int]): Future[Seq[LabelAiAssessment]]
 }
 
 @Singleton
@@ -28,7 +28,7 @@ class AiServiceImpl @Inject() (
     cacheApi: AsyncCacheApi,
     labelTable: models.label.LabelTable,
     validationService: ValidationService,
-    labelAiTable: models.label.LabelAiTable,
+    labelAiAssessmentTable: models.label.LabelAiAssessmentTable,
     missionTable: models.mission.MissionTable
 )(implicit val ec: ExecutionContext)
     extends AiService
@@ -43,9 +43,9 @@ class AiServiceImpl @Inject() (
   /**
    * Validates labels using AI by fetching label metadata, calling the AI API, and saving results.
    * @param labelIds A sequence of label_ids to validate
-   * @return A Future containing a sequence of LabelAi objects with validation results and tags
+   * @return A Future containing a sequence of LabelAiAssessment objects with validation results and tags
    */
-  def validateLabelsWithAi(labelIds: Seq[Int]): Future[Seq[LabelAi]] = {
+  def validateLabelsWithAi(labelIds: Seq[Int]): Future[Seq[LabelAiAssessment]] = {
     if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
       val startTime = OffsetDateTime.now
       Future
@@ -67,9 +67,9 @@ class AiServiceImpl @Inject() (
                 // Save AI results to the database and submit validation if applicable.
                 case Some((aiResults, labelData)) =>
                   println(aiResults)
-                  // Add AI information to the label_ai table.
-                  val saveLabelAiAction = db.run(labelAiTable.save(aiResults))
-                  saveLabelAiAction.onComplete(x => {
+                  // Add AI information to the label_ai_assessment table.
+                  val saveAiAssessmentAction = db.run(labelAiAssessmentTable.save(aiResults))
+                  saveAiAssessmentAction.onComplete(x => {
                     if (x.isFailure) {
                       logger.warn(
                         s"Failed to save AI results for label ${labelData.label.labelId}: ${x.failed.get.getMessage}"
@@ -78,7 +78,6 @@ class AiServiceImpl @Inject() (
                       logger.info(s"Successfully saved AI results for label ${labelData.label.labelId}.")
                     }
                   })
-                  println("saveLabelAiAction: " + saveLabelAiAction)
 
                   // If AI validations are enabled and confidence is above the threshold, submit a validation.
                   val submitValidationAction =
@@ -88,7 +87,6 @@ class AiServiceImpl @Inject() (
 
                       // Get the AI's mission_id, then create and submit the validation.
                       getAiValidateMissionId(label.labelTypeId).flatMap { aiMissionId =>
-                        println("aiMissionId: " + aiMissionId)
                         val validation = LabelValidation(
                           0, labelId, aiResults.validationResult, label.severity, label.severity, label.tags,
                           label.tags, SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX),
@@ -103,7 +101,7 @@ class AiServiceImpl @Inject() (
                     } else Future.successful(Seq.empty[Int])
 
                   // Run both actions in parallel and return the AI results.
-                  saveLabelAiAction.zip(submitValidationAction).map(_ => Some(aiResults))
+                  saveAiAssessmentAction.zip(submitValidationAction).map(_ => Some(aiResults))
               }
           }
         }
@@ -118,9 +116,9 @@ class AiServiceImpl @Inject() (
    * Calls the AI API to process panorama data and validate labels.
    * @param labelData The label data containing panorama and label information
    * @throws Exception if the API call fails or the response cannot be parsed.
-   * @return A Future containing an optional LabelAi object, including tags, validation result, accuracy, API version.
+   * @return A Future containing an optional LabelAiAssessment object.
    */
-  private def callAiApi(labelData: LabelDataForAi): Future[Option[LabelAi]] = {
+  private def callAiApi(labelData: LabelDataForAi): Future[Option[LabelAiAssessment]] = {
     val SIDEWALK_AI_API_HOSTNAME: String = config.get[String]("sidewalk-ai-api-hostname")
     val url: String                      = s"https://${SIDEWALK_AI_API_HOSTNAME}/process"
     val labelId: Int                     = labelData.label.labelId
@@ -145,14 +143,14 @@ class AiServiceImpl @Inject() (
             val valResult     = if ((json \ "validation_result").as[String] == "correct") 1 else 2
             val valAccuracy   = (json \ "validation_estimated_accuracy").as[Double]
             val valConfidence = (json \ "validation_score").as[Double]
-            val tagsConfidence: Option[Seq[LabelAiTag]] = (json \ "tag_scores")
+            val tagsConfidence: Option[Seq[AiTagConfidence]] = (json \ "tag_scores")
               .asOpt[JsObject]
-              .map(_.fields.map { case (tag, jsValue) => LabelAiTag(tag, jsValue.as[Double]) }.toSeq)
+              .map(_.fields.map { case (tag, jsValue) => AiTagConfidence(tag, jsValue.as[Double]) }.toSeq)
             val tags       = (json \ "tags").asOpt[List[String]].map(tags => tags.filter(tag => tag != "NULL"))
             val apiVersion = (json \ "api_version").as[String]
 
             Some(
-              LabelAi(0, labelData.label.labelId, valResult, valAccuracy, valConfidence, tags, tagsConfidence,
+              LabelAiAssessment(0, labelData.label.labelId, valResult, valAccuracy, valConfidence, tags, tagsConfidence,
                 apiVersion, OffsetDateTime.now)
             )
           } else {

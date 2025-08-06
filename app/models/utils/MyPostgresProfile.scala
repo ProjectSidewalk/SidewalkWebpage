@@ -63,11 +63,11 @@ trait MyPostgresProfile
         v => Json.stringify(Json.toJson(v))
       )
 
-    // New mapper for Seq[LabelAiTag] stored as JSONB.
-    implicit val labelAiTagSeqMapper: DriverJdbcType[Seq[LabelAiTag]] =
-      new GenericJdbcType[Seq[LabelAiTag]](
+    // New mapper for Seq[AiTag] stored as JSONB.
+    implicit val aiTagConfidenceSeqMapper: DriverJdbcType[Seq[AiTagConfidence]] =
+      new GenericJdbcType[Seq[AiTagConfidence]](
         pgjson,
-        s => if (s == null) List.empty[LabelAiTag] else Json.parse(s).as[Seq[LabelAiTag]],
+        s => if (s == null) List.empty[AiTagConfidence] else Json.parse(s).as[Seq[AiTagConfidence]],
         v => Json.stringify(Json.toJson(v))
       )
   }
@@ -92,20 +92,20 @@ object ExcludedTag {
   }
 }
 
-// Define LabelAiTag and it's formatter. Stored in the database as JSONB.
+// Define AiTag and it's formatter. Stored in the database as JSONB.
 // Would like to use a composite type in the future once there is more support in Slick for them.
-case class LabelAiTag(tag: String, confidence: Double)
-object LabelAiTag {
-  implicit val excludedTagFormat: Format[LabelAiTag] = {
-    val reads: Reads[LabelAiTag] = (
+case class AiTagConfidence(tag: String, confidence: Double)
+object AiTagConfidence {
+  implicit val aiTagConfidenceFormat: Format[AiTagConfidence] = {
+    val reads: Reads[AiTagConfidence] = (
       (__ \ "tag").read[String] and
         (__ \ "confidence").read[Double]
-    )(LabelAiTag.apply _)
+    )(AiTagConfidence.apply _)
 
-    val writes: Writes[LabelAiTag] = (
+    val writes: Writes[AiTagConfidence] = (
       (__ \ "tag").write[String] and
         (__ \ "confidence").write[Double]
-    )(unlift(LabelAiTag.unapply))
+    )(unlift(AiTagConfidence.unapply))
 
     Format(reads, writes)
   }
