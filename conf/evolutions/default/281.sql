@@ -5,7 +5,9 @@ CREATE TABLE IF NOT EXISTS label_ai (
     label_id INT NOT NULL,
     validation_result INT NOT NULL,
     validation_accuracy DOUBLE PRECISION NOT NULL,
+    validation_confidence DOUBLE PRECISION NOT NULL,
     tags TEXT[] DEFAULT '{}',
+    tags_confidence jsonb,
     api_version TEXT NOT NULL,
     time_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (label_id) REFERENCES label (label_id)

@@ -1,13 +1,13 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.label.{LabelAi, LabelDataForAi, LabelPointTable, LabelTypeEnum}
+import models.label._
 import models.user.SidewalkUserTable
 import models.utils._
 import models.validation.LabelValidation
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsObject, JsValue}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 
@@ -48,53 +48,66 @@ class AiServiceImpl @Inject() (
   def validateLabelsWithAi(labelIds: Seq[Int]): Future[Seq[LabelAi]] = {
     if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
       val startTime = OffsetDateTime.now
-      Future.sequence {
-        labelIds.map { labelId =>
+      Future
+        .sequence {
+          labelIds.map { labelId =>
+            // Fetch label metadata from the database.
+            db.run(labelTable.getLabelDataForAi(labelId))
+              .flatMap {
+                // Call the AI API to process the panorama data and validate labels.
+                case Some(labelData) =>
+                  callAiApi(labelData).map(_.map(aiResults => (aiResults, labelData)))
+                case None =>
+                  logger.warn(s"Info for label with ID $labelId not found.")
+                  Future.failed(new Exception(s"Label with ID $labelId not found."))
+              }
+              .flatMap {
+                case None => Future.successful(None) // No AI results; callAiApi already logs all errors.
 
-          // Fetch label metadata from the database.
-          db.run(labelTable.getLabelDataForAi(labelId))
-            .flatMap {
-              // Call the AI API to process the panorama data and validate labels.
-              case Some(labelData) =>
-                callAiApi(labelData).map(_.map(aiResults => (aiResults, labelData)))
-              case None =>
-                logger.warn(s"Info for label with ID $labelId not found.")
-                Future.failed(new Exception(s"Label with ID $labelId not found."))
-            }
-            .flatMap {
-              case None => Future.successful(None) // No AI results; callAiApi already logs all errors.
+                // Save AI results to the database and submit validation if applicable.
+                case Some((aiResults, labelData)) =>
+                  println(aiResults)
+                  // Add AI information to the label_ai table.
+                  val saveLabelAiAction = db.run(labelAiTable.save(aiResults))
+                  saveLabelAiAction.onComplete(x => {
+                    if (x.isFailure) {
+                      logger.warn(
+                        s"Failed to save AI results for label ${labelData.label.labelId}: ${x.failed.get.getMessage}"
+                      )
+                    } else {
+                      logger.info(s"Successfully saved AI results for label ${labelData.label.labelId}.")
+                    }
+                  })
+                  println("saveLabelAiAction: " + saveLabelAiAction)
 
-              // Save AI results to the database and submit validation if applicable.
-              case Some((aiResults, labelData)) =>
-                println(aiResults)
-                // Add AI information to the label_ai table.
-                val saveLabelAiAction = db.run(labelAiTable.save(aiResults))
+                  // If AI validations are enabled and confidence is above the threshold, submit a validation.
+                  val submitValidationAction =
+                    if (AI_VALIDATIONS_ON && aiResults.validationAccuracy >= AI_VALIDATION_MIN_ACCURACY) {
+                      val label      = labelData.label
+                      val labelPoint = labelData.labelPoint
 
-              // If AI validations are enabled and confidence is above the threshold, submit a validation.
-              val submitValidationAction = if (AI_VALIDATIONS_ON && aiResults.validationAccuracy >= AI_VALIDATION_MIN_ACCURACY) {
-                val label      = labelData.label
-                val labelPoint = labelData.labelPoint
+                      // Get the AI's mission_id, then create and submit the validation.
+                      getAiValidateMissionId(label.labelTypeId).flatMap { aiMissionId =>
+                        println("aiMissionId: " + aiMissionId)
+                        val validation = LabelValidation(
+                          0, labelId, aiResults.validationResult, label.severity, label.severity, label.tags,
+                          label.tags, SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX),
+                          Some(labelPoint.canvasY), labelPoint.heading, labelPoint.pitch, labelPoint.zoom.toFloat,
+                          LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, startTime, aiResults.timeCreated,
+                          "SidewalkAI"
+                        )
+                        validationService.submitValidations(
+                          Seq(ValidationSubmission(validation, comment = None, undone = false, redone = false))
+                        )
+                      }
+                    } else Future.successful(Seq.empty[Int])
 
-                // Get the AI's mission_id, then create and submit the validation.
-                getAiValidateMissionId(label.labelTypeId).flatMap { aiMissionId =>
-                  println("aiMissionId: " + aiMissionId)
-                  val validation = LabelValidation(
-                    0, labelId, aiResults.validationResult, label.severity, label.severity, label.tags, label.tags,
-                    SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX), Some(labelPoint.canvasY),
-                    labelPoint.heading, labelPoint.pitch, labelPoint.zoom.toFloat, LabelPointTable.canvasWidth,
-                    LabelPointTable.canvasHeight, startTime, aiResults.timeCreated, "SidewalkAI"
-                  )
-                  validationService.submitValidations(
-                    Seq(ValidationSubmission(validation, comment = None, undone = false, redone = false))
-                  )
-                }
-              } else Future.successful(Seq.empty[Int])
-
-                // Run both actions in parallel and return the AI results.
-                saveLabelAiAction.zip(submitValidationAction).map(_ => Some(aiResults))
-            }
+                  // Run both actions in parallel and return the AI results.
+                  saveLabelAiAction.zip(submitValidationAction).map(_ => Some(aiResults))
+              }
+          }
         }
-      }.map(_.flatten)
+        .map(_.flatten)
     } else {
       logger.info("AI validations or tag suggestions are disabled for this city.")
       Future.successful(Seq.empty)
@@ -129,12 +142,19 @@ class AiServiceImpl @Inject() (
             println(json)
 
             // Parse the output. Filter out "NULL" values from the tags list.
-            val tags        = (json \ "tags").asOpt[List[String]].map(tags => tags.filter(tag => tag != "NULL"))
-            val valAccuracy = (json \ "validation_estimated_accuracy").as[Double]
-            val valResult   = if ((json \ "validation_result").as[String] == "correct") 1 else 2
-            val apiVersion  = (json \ "api_version").as[String]
+            val valResult     = if ((json \ "validation_result").as[String] == "correct") 1 else 2
+            val valAccuracy   = (json \ "validation_estimated_accuracy").as[Double]
+            val valConfidence = (json \ "validation_score").as[Double]
+            val tagsConfidence: Option[Seq[LabelAiTag]] = (json \ "tag_scores")
+              .asOpt[JsObject]
+              .map(_.fields.map { case (tag, jsValue) => LabelAiTag(tag, jsValue.as[Double]) }.toSeq)
+            val tags       = (json \ "tags").asOpt[List[String]].map(tags => tags.filter(tag => tag != "NULL"))
+            val apiVersion = (json \ "api_version").as[String]
 
-            Some(LabelAi(0, labelData.label.labelId, valResult, valAccuracy, tags, apiVersion, OffsetDateTime.now))
+            Some(
+              LabelAi(0, labelData.label.labelId, valResult, valAccuracy, valConfidence, tags, tagsConfidence,
+                apiVersion, OffsetDateTime.now)
+            )
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")
             None
@@ -157,5 +177,7 @@ class AiServiceImpl @Inject() (
    * @return A Future containing the AI validation mission_id
    */
   def getAiValidateMissionId(labelTypeId: Int): Future[Int] =
-    cacheApi.getOrElseUpdate[Int](s"getAiValidateMissionId($labelTypeId)")(db.run(missionTable.getAiValidateMissionId(labelTypeId)))
+    cacheApi.getOrElseUpdate[Int](s"getAiValidateMissionId($labelTypeId)")(
+      db.run(missionTable.getAiValidateMissionId(labelTypeId))
+    )
 }

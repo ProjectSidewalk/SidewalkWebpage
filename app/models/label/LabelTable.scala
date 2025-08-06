@@ -901,7 +901,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           gd.lng,
           // Include AI tags if requested.
           if (includeAiTags) la.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
-          else None.asColumnOf[Option[List[String]]]
+          else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]]
         )
       }
 
@@ -1017,7 +1017,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       l._1.tags,
       l._4.lat,
       l._4.lng,
-      None.asColumnOf[Option[List[String]]] // Placeholder for AI tags, since we don't show those on Gallery right now.
+      // Placeholder for AI tags, since we don't show those on Gallery right now.
+      None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]]
     )
 
     // Remove duplicates if needed and randomize.
