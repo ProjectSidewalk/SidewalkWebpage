@@ -179,11 +179,15 @@ object ValidationDataForApi {
  * @param id The numeric identifier for the validation result (1-3)
  * @param name The string representation of the result ("Agree", "Disagree", "Unsure")
  * @param count Number of validations with this result in the database
+ * @param countHuman Number of validations with this result performed by human users
+ * @param countAi Number of validations with this result performed by AI
  */
 case class ValidationResultTypeForApi(
     id: Int,
     name: String,
-    count: Int
+    count: Int,
+    countHuman: Int,
+    countAi: Int
 )
 
 /**

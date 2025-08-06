@@ -301,7 +301,10 @@
         </div>
         <p>
             You can also retrieve this information programmatically from the<code>/v3/api/validationResultTypes</code>
-            endpoint, which includes current count statistics for each validation result type.
+            endpoint, which includes current count statistics for each validation result type. We include these counts
+            for both Human and AI validations separately. You'll notice that there is no "Unsure" result type for AI;
+            we only include AI validations if the AI is confident in its classification, but we haven't counted how
+            often the AI is unsure.
         </p>
     </div>
 

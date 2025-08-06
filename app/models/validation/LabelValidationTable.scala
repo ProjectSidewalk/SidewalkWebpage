@@ -377,31 +377,32 @@ class LabelValidationTable @Inject() (
   }
 
   /**
-   * Retrieves all validation result types with their counts.
+   * Retrieves all validation result types with their counts (grouped by Human/AI).
    *
    * @return A database action that, when executed, will return a sequence of ValidationResultTypeForApi objects.
    */
   def getValidationResultTypes: DBIO[Seq[ValidationResultTypeForApi]] = {
     validations
-      .groupBy(_.validationResult)
-      .map { case (result, group) => (result, group.length) }
+      .groupBy { v => (v.validationResult, v.userId === aiUserId) }
+      .map { case ((valResult, isAi), group) => (valResult, isAi, group.length) }
       .result
-      .map { results =>
-        val resultTypesWithCounts = results.map { case (resultId, count) =>
-          ValidationResultTypeForApi(
-            id = resultId,
-            name = LabelValidationTable.validationOptions.getOrElse(resultId, "Unknown"),
-            count = count
-          )
-        }
-
-        // Ensure all validation types are returned even if no validations of that type exist.
-        val existingIds: Set[Int] = resultTypesWithCounts.map(_.id).toSet
-        val missingTypes          = LabelValidationTable.validationOptions
-          .filterNot { case (id, _) => existingIds.contains(id) }
-          .map { case (id, name) => ValidationResultTypeForApi(id, name, 0) }
-
-        (resultTypesWithCounts ++ missingTypes).sortBy(_.id)
+      .map { results: Seq[(Int, Boolean, Int)] =>
+        // Create a ValidationResultTypeForApi object for each validation result type.
+        validationOptions.keys
+          .map { valResult =>
+            val currValCounts   = results.filter(_._1 == valResult)
+            val humanCount: Int = currValCounts.find(_._2 == false).map(_._3).getOrElse(0)
+            val aiCount: Int    = currValCounts.find(_._2 == true).map(_._3).getOrElse(0)
+            ValidationResultTypeForApi(
+              id = valResult,
+              name = validationOptions.getOrElse(valResult, "Unknown"),
+              count = humanCount + aiCount,
+              countHuman = humanCount,
+              countAi = aiCount
+            )
+          }
+          .toSeq
+          .sortBy(_.id)
       }
   }
 }
