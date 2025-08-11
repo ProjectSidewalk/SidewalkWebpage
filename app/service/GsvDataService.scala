@@ -49,7 +49,7 @@ trait GsvDataService {
   def getImageUrl(gsvPanoramaId: String, heading: Double, pitch: Double, zoom: Int): String
   def getImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
-  def getAllPanosWithLabels: Future[Seq[GsvDataSlim]]
+  def getAllPanos: Future[Seq[GsvDataSlim]]
   def checkForGsvImagery: Future[String]
 }
 
@@ -218,7 +218,7 @@ class GsvDataServiceImpl @Inject() (
     }).map { _ => () }
   }
 
-  def getAllPanosWithLabels: Future[Seq[GsvDataSlim]] = db.run(gsvDataTable.getAllPanosWithLabels)
+  def getAllPanos: Future[Seq[GsvDataSlim]] = db.run(gsvDataTable.getAllPanos)
 
   /**
    * Checks if panos are expired on a nightly basis. Called from CheckImageExpiryActor.scala.

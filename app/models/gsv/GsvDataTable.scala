@@ -30,6 +30,7 @@ case class GsvData(
 
 case class GsvDataSlim(
     gsvPanoramaId: String,
+    hasLabels: Boolean,
     width: Option[Int],
     height: Option[Int],
     lat: Option[Float],
@@ -73,19 +74,16 @@ class GsvDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   val labelTable     = TableQuery[LabelTableDef]
 
   /**
-   * Get a subset of the pano metadata for all panos that have associated labels.
+   * Get a pano metadata for all panos with a flag indicating whether they have labels.
    */
-  def getAllPanosWithLabels: DBIO[Seq[GsvDataSlim]] = {
-    labelTable
+  def getAllPanos: DBIO[Seq[GsvDataSlim]] = {
+    gsvDataRecords
       .filter(_.gsvPanoramaId =!= "tutorial")
-      .groupBy(_.gsvPanoramaId)
-      .map(_._1)
-      .join(gsvDataRecords)
-      .on(_ === _.gsvPanoramaId)
-      .map { case (panoId, gsv) =>
-        (
-          gsv.gsvPanoramaId, gsv.width, gsv.height, gsv.lat, gsv.lng, gsv.cameraHeading, gsv.cameraPitch
-        )
+      .joinLeft(labelTable)
+      .on(_.gsvPanoramaId === _.gsvPanoramaId)
+      .distinctOn(_._1.gsvPanoramaId)
+      .map { case (g, l) =>
+        (g.gsvPanoramaId, l.isDefined, g.width, g.height, g.lat, g.lng, g.cameraHeading, g.cameraPitch)
       }
       .result
       .map(_.map(GsvDataSlim.tupled))
