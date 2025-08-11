@@ -90,15 +90,20 @@ class GsvDataServiceImpl @Inject() (
     ws.url(signedUrl)
       .withRequestTimeout(5.seconds)
       .get()
-      .map { response =>
+      .flatMap { response =>
         val imageStatus = (Json.parse(response.body) \ "status").as[String]
-        val imageExists = imageStatus == "OK"
+        val imageExists: Boolean = imageStatus == "OK"
 
-        // Mark the expired status, last_checked, and last_viewed columns in the db.
-        val timestamp = OffsetDateTime.now
-        gsvDataTable.updateExpiredStatus(gsvPanoId, !imageExists, timestamp)
+        if (imageExists || imageStatus != "ZERO_RESULTS") {
+          // Mark the expired status, last_checked, and last_viewed columns in the db.
+          val timestamp = OffsetDateTime.now
+          db.run(gsvDataTable.updateExpiredStatus(gsvPanoId, !imageExists, timestamp)).map(_ => Some(imageExists))
+        } else {
+          // For any other response status, we don't want to assume that the panorama doesn't exist. Log it for now.
+          logger.info(s"$imageStatus - $gsvPanoId")
+          Future.successful(None)
+        }
 
-        Some(imageExists)
       }
       .recover { // If there was an exception, don't assume it means a lack of GSV imagery.
         case _: SocketTimeoutException => None
