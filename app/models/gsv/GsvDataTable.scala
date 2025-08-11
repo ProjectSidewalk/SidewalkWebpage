@@ -119,7 +119,7 @@ class GsvDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   }
 
   /**
-   * Get a list of n least recently checked pano ids that have not been viewed in the last 6 months.
+   * Get a list of n least recently checked pano ids that have not been viewed in the last 3 months.
    * @param n Number of least recently checked panos to return.
    * @param expired Whether to check for expired or unexpired panos.
    */

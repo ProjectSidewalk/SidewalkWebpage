@@ -50,7 +50,7 @@ trait GsvDataService {
   def getImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
   def getAllPanosWithLabels: Future[Seq[GsvDataSlim]]
-  def checkForGsvImagery(): Future[Unit]
+  def checkForGsvImagery: Future[String]
 }
 
 @Singleton
@@ -91,7 +91,7 @@ class GsvDataServiceImpl @Inject() (
       .withRequestTimeout(5.seconds)
       .get()
       .flatMap { response =>
-        val imageStatus = (Json.parse(response.body) \ "status").as[String]
+        val imageStatus          = (Json.parse(response.body) \ "status").as[String]
         val imageExists: Boolean = imageStatus == "OK"
 
         if (imageExists || imageStatus != "ZERO_RESULTS") {
@@ -228,7 +228,7 @@ class GsvDataServiceImpl @Inject() (
    * last 3 months, check up to 2.5% or 2500 (whichever is smaller) of the panos that are already marked as expired to
    * make sure that they weren't marked so incorrectly.
    */
-  def checkForGsvImagery(): Future[Unit] = {
+  def checkForGsvImagery: Future[String] = {
     db.run(
       for {
         // Choose a bunch of panos that haven't been checked in the past 6 months to check.
@@ -249,9 +249,7 @@ class GsvDataServiceImpl @Inject() (
 
         // Run the panoExists function to check for imagery, then log some stats.
         Future.traverse(panoIdsToCheck ++ expiredPanoIdsToCheck) { panoId => panoExists(panoId) }.map { responses =>
-          logger.info(
-            s"Not expired: ${responses.count(_ == Some(true))}. Expired: ${responses.count(_ == Some(false))}. Errors: ${responses.count(_.isEmpty)}."
-          )
+          s"Not expired: ${responses.count(_ == Some(true))}. Expired: ${responses.count(_ == Some(false))}. Errors: ${responses.count(_.isEmpty)}."
         }
       }
     ).flatten
