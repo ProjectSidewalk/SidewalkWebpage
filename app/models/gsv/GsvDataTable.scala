@@ -127,7 +127,7 @@ class GsvDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     gsvDataRecords
       .join(labelTable)
       .on(_.gsvPanoramaId === _.gsvPanoramaId)
-      .filter(gsv => gsv._1.expired === expired && gsv._1.lastChecked < OffsetDateTime.now().minusMonths(6))
+      .filter(gsv => gsv._1.expired === expired && gsv._1.lastChecked < OffsetDateTime.now().minusMonths(3))
       .sortBy(_._1.lastChecked.asc)
       .subquery
       .map(_._1.gsvPanoramaId)

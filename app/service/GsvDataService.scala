@@ -223,9 +223,9 @@ class GsvDataServiceImpl @Inject() (
   /**
    * Checks if panos are expired on a nightly basis. Called from CheckImageExpiryActor.scala.
    *
-   * Get as many as 5% of the panos with labels on them, or 1000, whichever is smaller. Check if the panos are expired
+   * Get as many as 5% of the panos with labels on them, or 5000, whichever is smaller. Check if the panos are expired
    * and update the database accordingly. If there aren't enough of those remaining that haven't been checked in the
-   * last 6 months, check up to 2.5% or 500 (which ever is smaller) of the panos that are already marked as expired to
+   * last 3 months, check up to 2.5% or 2500 (whichever is smaller) of the panos that are already marked as expired to
    * make sure that they weren't marked so incorrectly.
    */
   def checkForGsvImagery(): Future[Unit] = {
@@ -233,12 +233,12 @@ class GsvDataServiceImpl @Inject() (
       for {
         // Choose a bunch of panos that haven't been checked in the past 6 months to check.
         nPanos: Int <- gsvDataTable.countPanosWithLabels
-        nUnexpiredPanosToCheck: Int = Math.max(1000, Math.min(20, 0.05 * nPanos).toInt)
+        nUnexpiredPanosToCheck: Int = Math.max(5000, Math.min(100, 0.05 * nPanos).toInt)
         panoIdsToCheck: Seq[String] <- gsvDataTable.getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
         _ = logger.info(s"Checking ${panoIdsToCheck.length} unexpired panos.")
 
         // Choose a few panos that are already marked as expired to double-check.
-        nExpiredPanosToCheck: Int = Math.max(500, Math.min(10, 0.025 * nPanos).toInt)
+        nExpiredPanosToCheck: Int = Math.max(2500, Math.min(50, 0.025 * nPanos).toInt)
         expiredPanoIdsToCheck: Seq[String] <-
           if (panoIdsToCheck.length < nExpiredPanosToCheck) {
             val nRemainingExpiredPanosToCheck: Int = nExpiredPanosToCheck - panoIdsToCheck.length
