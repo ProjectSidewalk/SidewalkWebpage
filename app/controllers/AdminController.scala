@@ -39,6 +39,7 @@ class AdminController @Inject() (
     regionService: RegionService,
     labelService: LabelService,
     streetService: StreetService,
+    gsvDataService: GsvDataService,
     userService: service.UserService,
     actorSystem: ActorSystem,
     cpuEc: CpuIntensiveExecutionContext
@@ -564,6 +565,14 @@ class AdminController @Inject() (
       cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
       Ok(Json.obj("status" -> "success", "team_id" -> teamId, "visible" -> visible))
     }
+  }
+
+  /**
+   * Checks for Google Street View imagery that might be missing. Same as nightly process.
+   */
+  def checkGsvImagery() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    gsvDataService.checkForGsvImagery.map { results => Ok(results) }
   }
 
   /**

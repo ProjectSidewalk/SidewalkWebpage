@@ -346,6 +346,7 @@ object ApiFormats {
 
   implicit val gsvDataSlimWrites: Writes[GsvDataSlim] = (
     (__ \ "gsv_panorama_id").write[String] and
+      (__ \ "has_labels").write[Boolean] and
       (__ \ "width").writeNullable[Int] and
       (__ \ "height").writeNullable[Int] and
       (__ \ "lat").writeNullable[Float] and
