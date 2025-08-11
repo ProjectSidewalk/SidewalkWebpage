@@ -11,7 +11,8 @@ import play.api.libs.json.{JsObject, JsValue}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 
-import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -91,7 +92,7 @@ class AiServiceImpl @Inject() (
                           0, labelId, aiResults.validationResult, label.severity, label.severity, label.tags,
                           label.tags, SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX),
                           Some(labelPoint.canvasY), labelPoint.heading, labelPoint.pitch, labelPoint.zoom.toFloat,
-                          LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, startTime, aiResults.timeCreated,
+                          LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, startTime, aiResults.timestamp,
                           "SidewalkAI"
                         )
                         validationService.submitValidations(
@@ -146,12 +147,23 @@ class AiServiceImpl @Inject() (
             val tagsConfidence: Option[Seq[AiTagConfidence]] = (json \ "tag_scores")
               .asOpt[JsObject]
               .map(_.fields.map { case (tag, jsValue) => AiTagConfidence(tag, jsValue.as[Double]) }.toSeq)
-            val tags       = (json \ "tags").asOpt[List[String]].map(tags => tags.filter(tag => tag != "NULL"))
-            val apiVersion = (json \ "api_version").as[String]
+            val tags          = (json \ "tags").asOpt[List[String]].map(tags => tags.filter(tag => tag != "NULL"))
+            val apiVersion    = (json \ "api_version").as[String]
+            val valModelId    = (json \ "validator_model_id").as[String]
+            val taggerModelId = (json \ "tagger_model_id").asOpt[String]
+
+            // Read training dates.
+            val dateFormatter   = DateTimeFormatter.ofPattern("MM-dd-yyyy")
+            val valTrainingDate = LocalDate
+              .parse((json \ "validator_training_date").as[String], dateFormatter)
+              .atStartOfDay(ZoneOffset.UTC)
+              .toOffsetDateTime
+            val taggerTrainingDate = (json \ "tagger_training_date").asOpt[String]
+              .map(dateStr => LocalDate.parse(dateStr, dateFormatter).atStartOfDay(ZoneOffset.UTC).toOffsetDateTime)
 
             Some(
               LabelAiAssessment(0, labelData.label.labelId, valResult, valAccuracy, valConfidence, tags, tagsConfidence,
-                apiVersion, OffsetDateTime.now)
+                apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate, OffsetDateTime.now)
             )
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")

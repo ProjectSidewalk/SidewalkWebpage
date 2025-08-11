@@ -18,7 +18,11 @@ case class LabelAiAssessment(
     tags: Option[List[String]],
     tagsConfidence: Option[Seq[AiTagConfidence]],
     apiVersion: String,
-    timeCreated: OffsetDateTime
+    validatorModelId: String,
+    validatorTrainingDate: OffsetDateTime,
+    taggerModelId: Option[String],
+    taggerTrainingDate: Option[OffsetDateTime],
+    timestamp: OffsetDateTime
 )
 
 class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, "label_ai_assessment") {
@@ -30,10 +34,18 @@ class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, 
   def tags: Rep[Option[List[String]]]                   = column[Option[List[String]]]("tags")
   def tagsConfidence: Rep[Option[Seq[AiTagConfidence]]] = column[Option[Seq[AiTagConfidence]]]("tags_confidence")
   def apiVersion: Rep[String]                           = column[String]("api_version")
-  def timeCreated: Rep[OffsetDateTime] = column[OffsetDateTime]("time_created", O.Default(OffsetDateTime.now))
+  def validatorModelId: Rep[String]                     = column[String]("validator_model_id")
+  def validatorTrainingDate: Rep[OffsetDateTime]        = column[OffsetDateTime]("validator_training_date")
+  def taggerModelId: Rep[Option[String]]                = column[Option[String]]("tagger_model_id")
+  def taggerTrainingDate: Rep[Option[OffsetDateTime]]   = column[Option[OffsetDateTime]]("tagger_training_date")
+  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp", O.Default(OffsetDateTime.now))
 
-  def * = (labelAiAssessmentId, labelId, validationResult, validationAccuracy, validationConfidence, tags,
-    tagsConfidence, apiVersion, timeCreated) <> ((LabelAiAssessment.apply _).tupled, LabelAiAssessment.unapply)
+  def * =
+    (labelAiAssessmentId, labelId, validationResult, validationAccuracy, validationConfidence, tags, tagsConfidence,
+      apiVersion, validatorModelId, validatorTrainingDate, taggerModelId, taggerTrainingDate, timestamp) <> (
+      (LabelAiAssessment.apply _).tupled,
+      LabelAiAssessment.unapply
+    )
 
 //  def label: ForeignKeyQuery[LabelTable, Label] =
 //    foreignKey("label_ai_assessment_label_id_fkey", labelId, TableQuery[LabelTable])(_.labelId)

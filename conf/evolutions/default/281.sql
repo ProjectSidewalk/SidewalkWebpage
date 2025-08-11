@@ -9,7 +9,11 @@ CREATE TABLE IF NOT EXISTS label_ai_assessment (
     tags TEXT[] DEFAULT '{}',
     tags_confidence jsonb,
     api_version TEXT NOT NULL,
-    time_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    validator_model_id TEXT NOT NULL,
+    validator_training_date TIMESTAMP NOT NULL,
+    tagger_model_id TEXT,
+    tagger_training_date TIMESTAMP,
+    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (label_id) REFERENCES label (label_id)
 );
 
