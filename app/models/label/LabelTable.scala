@@ -185,7 +185,7 @@ object LabelCVMetadata {
     "Camera Heading,Camera Pitch\n"
 }
 
-case class LabelDataForAi(label: Label, labelPoint: LabelPoint, gsvData: GsvData)
+case class LabelDataForAi(labelId: Int, labelTypeId: Int, labelPoint: LabelPoint, gsvData: GsvData)
 
 case class LabelMetadataUserDash(
     labelId: Int,
@@ -1658,7 +1658,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .filter { case ((label, point), gsv) => label.labelId === labelId && gsv.width.isDefined && gsv.height.isDefined }
       .result
       .headOption
-      .map(_.map { case ((label, labelPoint), gsv) => LabelDataForAi(label, labelPoint, gsv) })
+      .map(_.map { case ((label, point), gsv) => LabelDataForAi(label.labelId, label.labelTypeId, point, gsv) })
   }
 
   /**
