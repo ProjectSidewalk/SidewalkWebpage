@@ -73,7 +73,7 @@ function AdminGSVLabelView(admin, source) {
                                         '<td colspan="3" id="label-validations"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        `<th id="ai-validation-header">AI Validation</th>` +
+                                        `<th id="ai-validation-header">${i18next.t('labelmap:ai-validation')}</th>` +
                                         '<td colspan="3" id="ai-validation"></td>' +
                                     '</tr>' +
                                     '<tr>' +
@@ -390,7 +390,7 @@ function AdminGSVLabelView(admin, source) {
      */
     function _setAiValidationRow(aiValidation) {
         if (aiValidation === 'Agree' || aiValidation === 'Disagree') {
-            self.modalAiValidation.html(`${aiValidation} (included in validation count above)`);
+            self.modalAiValidation.html(i18next.t('labelmap:ai-val-included', { aiVal: aiValidation.toLowerCase() }));
 
             // Create the AI icon.
             let aiIcon = document.createElement('img')
@@ -402,7 +402,7 @@ function AdminGSVLabelView(admin, source) {
             // Create the AI validation tooltip that we show in the header.
             aiIcon.setAttribute('data-toggle', 'tooltip');
             aiIcon.setAttribute('data-placement', 'top');
-            aiIcon.setAttribute('title', `AI analyzed this label and voted "${aiValidation}"; however, AI can make mistakes. Please make your own assessment.`);
+            aiIcon.setAttribute('title', i18next.t('common:ai-disclaimer', { aiVal: aiValidation.toLowerCase() }));
             $(aiIcon).tooltip('hide');
         } else {
             self.modalAiValidation.html(i18next.t('common:none'));

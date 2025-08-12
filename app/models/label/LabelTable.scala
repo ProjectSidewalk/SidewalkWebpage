@@ -185,7 +185,7 @@ object LabelCVMetadata {
     "Camera Heading,Camera Pitch\n"
 }
 
-case class LabelDataForAi(label: Label, labelPoint: LabelPoint, gsvData: GsvData)
+case class LabelDataForAi(labelId: Int, labelTypeId: Int, labelPoint: LabelPoint, gsvData: GsvData)
 
 case class LabelMetadataUserDash(
     labelId: Int,
@@ -463,7 +463,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val labelTypes             = TableQuery[LabelTypeTableDef]
   val labelPoints            = TableQuery[LabelPointTableDef]
   val labelValidations       = TableQuery[LabelValidationTableDef]
-  val labelAis               = TableQuery[LabelAiTableDef]
+  val labelAiAssessments     = TableQuery[LabelAiAssessmentTableDef]
   val missions               = TableQuery[MissionTableDef]
   val streets                = TableQuery[StreetEdgeTableDef]
   val regions                = TableQuery[RegionTableDef]
@@ -838,7 +838,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
     // Get AI suggested tags.
     val _labelInfoWithAiTagSuggestions = _labelInfoWithAIValidation
-      .joinLeft(labelAis)
+      .joinLeft(labelAiAssessments)
       .on(_._1.labelId === _.labelId)
       .map { case ((_lb, _lp, _lt, _gd, _us, _ser, _at, _aiv), _la) => (_lb, _lp, _lt, _gd, _us, _ser, _at, _aiv, _la) }
 
@@ -901,7 +901,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           gd.lng,
           // Include AI tags if requested.
           if (includeAiTags) la.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
-          else None.asColumnOf[Option[List[String]]]
+          else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]]
         )
       }
 
@@ -1017,7 +1017,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       l._1.tags,
       l._4.lat,
       l._4.lng,
-      None.asColumnOf[Option[List[String]]] // Placeholder for AI tags, since we don't show those on Gallery right now.
+      // Placeholder for AI tags, since we don't show those on Gallery right now.
+      None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]]
     )
 
     // Remove duplicates if needed and randomize.
@@ -1657,7 +1658,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .filter { case ((label, point), gsv) => label.labelId === labelId && gsv.width.isDefined && gsv.height.isDefined }
       .result
       .headOption
-      .map(_.map { case ((label, labelPoint), gsv) => LabelDataForAi(label, labelPoint, gsv) })
+      .map(_.map { case ((label, point), gsv) => LabelDataForAi(label.labelId, label.labelTypeId, point, gsv) })
   }
 
   /**

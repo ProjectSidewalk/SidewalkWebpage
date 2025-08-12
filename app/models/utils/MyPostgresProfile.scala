@@ -56,17 +56,25 @@ trait MyPostgresProfile
     implicit val pointWrites: Writes[Point]               = geometryWrites.contramap(identity)
 
     // New mapper for Seq[ExcludedTag] stored as JSONB.
-    import models.utils.ExcludedTag._
     implicit val excludedTagListMapper: DriverJdbcType[Seq[ExcludedTag]] =
       new GenericJdbcType[Seq[ExcludedTag]](
         pgjson,
         s => if (s == null) List.empty[ExcludedTag] else Json.parse(s).as[Seq[ExcludedTag]],
         v => Json.stringify(Json.toJson(v))
       )
+
+    // New mapper for Seq[AiTag] stored as JSONB.
+    implicit val aiTagConfidenceSeqMapper: DriverJdbcType[Seq[AiTagConfidence]] =
+      new GenericJdbcType[Seq[AiTagConfidence]](
+        pgjson,
+        s => if (s == null) List.empty[AiTagConfidence] else Json.parse(s).as[Seq[AiTagConfidence]],
+        v => Json.stringify(Json.toJson(v))
+      )
   }
 }
 
 // Define ExcludedTag and it's formatter. Stored in the database as JSONB.
+// Would like to use a composite type in the future once there is more support in Slick for them.
 case class ExcludedTag(labelType: String, tag: String)
 object ExcludedTag {
   implicit val excludedTagFormat: Format[ExcludedTag] = {
@@ -79,6 +87,25 @@ object ExcludedTag {
       (__ \ "label_type").write[String] and
         (__ \ "tag").write[String]
     )(unlift(ExcludedTag.unapply))
+
+    Format(reads, writes)
+  }
+}
+
+// Define AiTag and it's formatter. Stored in the database as JSONB.
+// Would like to use a composite type in the future once there is more support in Slick for them.
+case class AiTagConfidence(tag: String, confidence: Double)
+object AiTagConfidence {
+  implicit val aiTagConfidenceFormat: Format[AiTagConfidence] = {
+    val reads: Reads[AiTagConfidence] = (
+      (__ \ "tag").read[String] and
+        (__ \ "confidence").read[Double]
+    )(AiTagConfidence.apply _)
+
+    val writes: Writes[AiTagConfidence] = (
+      (__ \ "tag").write[String] and
+        (__ \ "confidence").write[Double]
+    )(unlift(AiTagConfidence.unapply))
 
     Format(reads, writes)
   }

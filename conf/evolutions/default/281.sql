@@ -1,13 +1,19 @@
 # --- !Ups
--- Add new label_ai table.
-CREATE TABLE IF NOT EXISTS label_ai (
-    label_ai_id SERIAL PRIMARY KEY,
+-- Add new label_ai_assessment table.
+CREATE TABLE IF NOT EXISTS label_ai_assessment (
+    label_ai_assessment_id SERIAL PRIMARY KEY,
     label_id INT NOT NULL,
     validation_result INT NOT NULL,
     validation_accuracy DOUBLE PRECISION NOT NULL,
+    validation_confidence DOUBLE PRECISION NOT NULL,
     tags TEXT[] DEFAULT '{}',
+    tags_confidence jsonb,
     api_version TEXT NOT NULL,
-    time_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    validator_model_id TEXT NOT NULL,
+    validator_training_date TIMESTAMP NOT NULL,
+    tagger_model_id TEXT,
+    tagger_training_date TIMESTAMP,
+    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (label_id) REFERENCES label (label_id)
 );
 
@@ -70,4 +76,4 @@ DELETE FROM sidewalk_login.user_role WHERE user_id = '51b0b927-3c8a-45b2-93de-bd
 DELETE FROM label_validation WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4';
 DELETE FROM sidewalk_login.sidewalk_user WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4';
 
-DROP TABLE IF EXISTS label_ai;
+DROP TABLE IF EXISTS label_ai_assessment;

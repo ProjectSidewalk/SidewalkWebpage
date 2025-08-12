@@ -254,6 +254,8 @@ validate.bottom.ui.add.comment = Si no está de acuerdo, ingrese su razonamiento
 validate.right.ui.current.mission = Misión actual
 validate.right.ui.correct.examples = Ejemplo <strong>Correcto</strong>
 validate.right.ui.incorrect.examples = Ejemplo <strong>Incorrecto</strong>
+validate.suggestions = Sugerencias
+validate.ai.disclaimer = Las sugerencias de etiquetas las realiza la IA, no son exhaustivas y pueden ser erróneas.
 validate.mission.complete.category = Categoría
 validate.mission.complete.your.overall.total = Su total en general
 
