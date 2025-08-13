@@ -792,11 +792,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Returns a query to get set of labels matching filters for validation, ordered according to our priority algorithm.
    *
-   * Priority is determined as follows: Generate a priority num for each label between 0 and 276. A label gets 100
+   * Priority is determined as follows: Generate a priority num for each label between 0 and 426. A label gets 150
    * points if the labeler has < 50 of their labels validated (and this label needs a validation). Another 50 points if
-   * the labeler was marked as high quality. Up to 100 more points (100 / (1 + abs(agree_count - disagree_count)))
+   * the labeler was marked as high quality. Up to 200 more points `(200 / (1 + abs(agree_count - disagree_count)^2))`
    * depending on how far we are from consensus. Another 25 points if the label was added in the past week. Then add a
-   * random number so that the max score for each label is 276.
+   * random number so that the max score for each label is 426.
    *
    * @param userId         User ID for the current user.
    * @param labelTypeId    Label Type ID of labels requested.
@@ -853,15 +853,16 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     val _labelInfoSorted = _labelInfoFiltered
       .sortBy {
         case (l, lp, lt, gd, us, ser, at, aiv, la) => {
-          // A label gets 100 if the labeler as < 50 of their labels validated (and this label needs a validation).
+          // A label gets 150 if the labeler as < 50 of their labels validated (and this label needs a validation).
           val needsValidationScore =
-            Case.If(us.ownLabelsValidated < 50 && l.correct.isEmpty && !at.lowQuality && !at.stale).Then(100d).Else(0d)
+            Case.If(us.ownLabelsValidated < 50 && l.correct.isEmpty && !at.lowQuality && !at.stale).Then(150d).Else(0d)
 
           // Another 50 points if the labeler was marked as high quality.
           val highQualityScore = Case.If(us.highQuality).Then(50d).Else(0d)
 
-          // Up to 100 points based on how far we are from consensus: (100 / (1 + abs(agree_count - disagree_count))).
-          val agreementScore = 100.0d.bind / (1d.bind + (l.agreeCount - l.disagreeCount).abs.asColumnOf[Double])
+          // Up to 100 points based on how far we are from consensus: (200 / (1 + abs(agree_count - disagree_count)^2)).
+          val valDifference  = (l.agreeCount - l.disagreeCount).abs
+          val agreementScore = 200.0d.bind / (1d.bind + (valDifference * valDifference).asColumnOf[Double])
 
           // Another 25 points if the label was added in the past week.
           val currentTimestamp = SimpleLiteral[OffsetDateTime]("current_timestamp")
@@ -871,9 +872,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           // Calculate the total deterministic score.
           val deterministicScore: Rep[Double] = needsValidationScore + highQualityScore + agreementScore + recencyScore
 
-          // Finally, add a random number so that the max score for each label is 276. Sort descending.
+          // Finally, add a random number so that the max score for each label is 426. Sort descending.
           val rand = SimpleFunction.nullary[Double]("random")
-          (deterministicScore + rand * (276.0d.bind - deterministicScore)).desc
+          (deterministicScore + rand * (426.0d.bind - deterministicScore)).desc
         }
       }
       // Select only the columns needed for the LabelValidationMetadata class.

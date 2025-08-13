@@ -336,15 +336,14 @@ class LabelServiceImpl @Inject() (
       if (typesFiltered.length < 2) {
         typesFiltered.map(_.labelTypeId).headOption
       } else {
-        // Each label type has at least a 3% chance of being selected. Remaining probability is divvied up proportionally
-        // based on the number of remaining labels requiring a validation for each label type.
+        // Each label type has at least a 2% chance of being selected. Remaining probability is divvied up
+        // proportionally based on the number of remaining labels requiring a validation for each label type.
         val typeProbabilities: Seq[(Int, Double)] = if (typesFiltered.map(_.validationsNeeded).sum > 0) {
           typesFiltered.map { t =>
             (
               t.labelTypeId,
-              0.03 + (1 - typesFiltered.length * 0.03) * (t.validationsNeeded.toDouble / typesFiltered
-                .map(_.validationsNeeded)
-                .sum)
+              0.02 + (1 - typesFiltered.length * 0.02)
+                * (t.validationsNeeded.toDouble / typesFiltered.map(_.validationsNeeded).sum)
             )
           }
         } else {
