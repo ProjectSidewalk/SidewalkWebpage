@@ -52,8 +52,9 @@ class CheckImageExpiryActor @Inject() (gsvDataService: GsvDataService)(implicit
   def receive: Receive = { case CheckImageExpiryActor.Tick =>
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled checking image expiry started at: $currentTimeStart")
-    gsvDataService.checkForGsvImagery().onComplete {
-      case Success(_) =>
+    gsvDataService.checkForGsvImagery.onComplete {
+      case Success(results) =>
+        logger.info(results)
         val currentEndTime: String = dateFormatter.format(Instant.now())
         logger.info(s"Checking image expiry completed at: $currentEndTime")
       case Failure(e) => logger.error(s"Error checking for expired imagery: ${e.getMessage}")

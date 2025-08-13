@@ -82,6 +82,7 @@ PUT     /adminapi/setTaskFlagsBeforeDate                controllers.AdminControl
 PUT     /adminapi/setTaskFlag                           controllers.AdminController.setTaskFlag()
 PUT     /adminapi/updateTeamStatus/:teamId              controllers.AdminController.updateTeamStatus(teamId: Int)
 PUT     /adminapi/updateTeamVisibility/:teamId          controllers.AdminController.updateTeamVisibility(teamId: Int)
+GET     /adminapi/checkGsvImagery                       controllers.AdminController.checkGsvImagery()
 GET     /adminapi/threadPoolStats                       controllers.AdminController.getThreadPoolStats
 
 GET     /labels/all                                     controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)

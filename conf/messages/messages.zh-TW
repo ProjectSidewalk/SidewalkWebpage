@@ -294,6 +294,8 @@ validate.bottom.ui.add.comment = 於此輸入說明...
 validate.right.ui.current.mission = 目前任務
 validate.right.ui.correct.examples = <strong>正確</strong> 的範例
 validate.right.ui.incorrect.examples = <strong>錯誤</strong> 的範例
+validate.suggestions = 建議
+validate.ai.disclaimer = 標籤建議由AI提供，並不全面，並且可能存在錯誤
 validate.mission.complete.category = 類別
 validate.mission.complete.your.overall.total = 總成績
 

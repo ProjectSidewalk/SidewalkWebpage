@@ -36,6 +36,7 @@ function Card (params, imageUrl, expandedView) {
         val_counts: undefined,
         correctness: undefined,
         user_validation: undefined,
+        ai_validation: undefined,
         tags: []
     };
 
@@ -67,7 +68,7 @@ function Card (params, imageUrl, expandedView) {
 
     /**
      * Initialize Card.
-     * 
+     *
      * @param {*} param Label properties.
      */
     function _init (param) {
@@ -131,7 +132,9 @@ function Card (params, imageUrl, expandedView) {
         // Create the div to store the validation info of the label.
         let cardValidationInfo = document.createElement('div');
         cardValidationInfo.className = 'card-validation-info';
-        self.validationInfoDisplay = new ValidationInfoDisplay(cardValidationInfo, properties.val_counts['Agree'], properties.val_counts['Disagree']);
+        self.validationInfoDisplay = new ValidationInfoDisplay(
+            cardValidationInfo, properties.val_counts['Agree'], properties.val_counts['Disagree'], properties.ai_validation
+        );
         cardData.appendChild(cardValidationInfo);
 
 
@@ -151,7 +154,7 @@ function Card (params, imageUrl, expandedView) {
 
     /**
      * This function returns labelId property.
-     * 
+     *
      * @returns {string}
      */
     function getLabelId () {
@@ -160,7 +163,7 @@ function Card (params, imageUrl, expandedView) {
 
     /**
      * This function returns labelType property.
-     * 
+     *
      * @returns {string}
      */
     function getLabelType () {
@@ -176,7 +179,7 @@ function Card (params, imageUrl, expandedView) {
 
     /**
      * Get a property.
-     * 
+     *
      * @param propName Property name.
      * @returns {*} Property value if property name is valid. Otherwise false.
      */
@@ -210,7 +213,7 @@ function Card (params, imageUrl, expandedView) {
     /**
      * Renders the card.
      * TODO: should there be a safety check here to make sure pano is loaded?
-     * 
+     *
      * @param cardContainer UI element to render card in.
      * @returns {self}
      */
@@ -230,8 +233,8 @@ function Card (params, imageUrl, expandedView) {
     }
 
     /**
-     * Sets a property. 
-     * 
+     * Sets a property.
+     *
      * @param key Property name.
      * @param value Property value.
      * @returns {setProperty}
@@ -243,7 +246,7 @@ function Card (params, imageUrl, expandedView) {
 
     /**
      * Set aspect of status.
-     * 
+     *
      * @param {*} key Status name.
      * @param {*} value Status value.
      */
@@ -306,7 +309,7 @@ function Card (params, imageUrl, expandedView) {
     self.getImageId = getImageId;
 
     _init(params);
-    
+
     self.validationMenu = validationMenu;
 
     return this;

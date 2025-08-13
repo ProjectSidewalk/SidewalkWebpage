@@ -5,13 +5,14 @@ import formats.json.ApiFormats
 import models.api.{LabelDataForApi, LabelValidationSummaryForApi, RawLabelFiltersForApi}
 import models.audit.AuditTaskTableDef
 import models.computation.StreamingApiType
-import models.gsv.GsvDataTableDef
+import models.gsv.{GsvData, GsvDataTableDef}
 import models.label.LabelTable._
 import models.label.LabelTypeEnum.validLabelTypes
 import models.mission.MissionTableDef
 import models.region.RegionTableDef
 import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
+import models.user.SidewalkUserTable.aiUserId
 import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef, UserStatTableDef}
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTableDef, MyPostgresProfile}
@@ -111,9 +112,7 @@ trait BasicLabelMetadata {
   val labelId: Int
   val labelType: String
   val gsvPanoramaId: String
-  val heading: Float
-  val pitch: Float
-  val zoom: Int
+  val pov: POV
 }
 
 case class LabelMetadata(
@@ -134,6 +133,7 @@ case class LabelMetadata(
     temporary: Boolean,
     description: Option[String],
     userValidation: Option[Int],
+    aiValidation: Option[Int],
     validations: Map[String, Int],
     tags: List[String],
     lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean),
@@ -185,12 +185,12 @@ object LabelCVMetadata {
     "Camera Heading,Camera Pitch\n"
 }
 
+case class LabelDataForAi(labelId: Int, labelTypeId: Int, labelPoint: LabelPoint, gsvData: GsvData)
+
 case class LabelMetadataUserDash(
     labelId: Int,
     gsvPanoramaId: String,
-    heading: Float,
-    pitch: Float,
-    zoom: Int,
+    pov: POV,
     canvasX: Int,
     canvasY: Int,
     labelType: String,
@@ -207,9 +207,7 @@ case class LabelValidationMetadata(
     timestamp: OffsetDateTime,
     lat: Float,
     lng: Float,
-    heading: Float,
-    pitch: Float,
-    zoom: Int,
+    pov: POV,
     canvasXY: LocationXY,
     severity: Option[Int],
     temporary: Boolean,
@@ -218,9 +216,11 @@ case class LabelValidationMetadata(
     regionId: Int,
     validationInfo: LabelValidationInfo,
     userValidation: Option[Int],
+    aiValidation: Option[Int],
     tags: Seq[String],
     cameraLat: Option[Float],
-    cameraLng: Option[Float]
+    cameraLng: Option[Float],
+    aiTags: Option[Seq[String]]
 ) extends BasicLabelMetadata
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
@@ -272,24 +272,24 @@ object LabelTable {
 
   // Type aliases for the tuple representation of LabelMetadataUserDash and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
-  type LabelMetadataUserDashTuple = (Int, String, Float, Float, Int, Int, Int, String, OffsetDateTime, Option[String])
+  type LabelMetadataUserDashTuple =
+    (Int, String, (Double, Double, Int), Int, Int, String, OffsetDateTime, Option[String])
   type LabelMetadataUserDashTupleRep = (
-      Rep[Int],            // labelId
-      Rep[String],         // gsvPanoramaId
-      Rep[Float],          // heading
-      Rep[Float],          // pitch
-      Rep[Int],            // zoom
-      Rep[Int],            // canvasX
-      Rep[Int],            // canvasY
-      Rep[String],         // labelType
-      Rep[OffsetDateTime], // timeValidated
-      Rep[Option[String]]  // validatorComment
+      Rep[Int],                             // labelId
+      Rep[String],                          // gsvPanoramaId
+      (Rep[Double], Rep[Double], Rep[Int]), // pov (heading, pitch, zoom)
+      Rep[Int],                             // canvasX
+      Rep[Int],                             // canvasY
+      Rep[String],                          // labelType
+      Rep[OffsetDateTime],                  // timeValidated
+      Rep[Option[String]]                   // validatorComment
   )
 
   // Define an implicit conversion from the tuple representation to the case class.
   implicit val labelMetadataUserDashConverter: TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] =
     new TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] {
-      def fromTuple(tuple: LabelMetadataUserDashTuple): LabelMetadataUserDash = LabelMetadataUserDash.tupled(tuple)
+      def fromTuple(t: LabelMetadataUserDashTuple): LabelMetadataUserDash =
+        LabelMetadataUserDash(t._1, t._2, POV.tupled(t._3), t._4, t._5, t._6, t._7, t._8)
     }
 
   // Type aliases for the tuple representation of LabelValidationMetadata and queries for them.
@@ -302,9 +302,7 @@ object LabelTable {
       OffsetDateTime,                   // timestamp
       Option[Float],                    // lat
       Option[Float],                    // lng
-      Float,                            // heading
-      Float,                            // pitch
-      Int,                              // zoom
+      (Double, Double, Int),            // pov (heading, pitch, zoom)
       (Int, Int),                       // canvasXY (x, y)
       Option[Int],                      // severity
       Boolean,                          // temporary
@@ -313,40 +311,42 @@ object LabelTable {
       Int,                              // regionId
       (Int, Int, Int, Option[Boolean]), // validationInfo (agreeCount, disagreeCount, unsureCount, correct)
       Option[Int],                      // userValidation
+      Option[Int],                      // aiValidation
       List[String],                     // tags
       Option[Float],                    // cameraLat
-      Option[Float]                     // cameraLng
+      Option[Float],                    // cameraLng
+      Option[List[String]]              // aiTags
   )
   type LabelValidationMetadataTupleRep = (
-      Rep[Int],             // labelId
-      Rep[String],          // labelType
-      Rep[String],          // gsvPanoramaId
-      Rep[String],          // imageCaptureDate
-      Rep[OffsetDateTime],  // timestamp
-      Rep[Option[Float]],   // lat
-      Rep[Option[Float]],   // lng
-      Rep[Float],           // heading
-      Rep[Float],           // pitch
-      Rep[Int],             // zoom
-      (Rep[Int], Rep[Int]), // canvasXY (x, y)
-      Rep[Option[Int]],     // severity
-      Rep[Boolean],         // temporary
-      Rep[Option[String]],  // description
-      Rep[Int],             // streetEdgeId
-      Rep[Int],             // regionId
-      (Rep[Int], Rep[Int], Rep[Int], Rep[Option[Boolean]]), // validationInfo (agreeCount, disagreeCount, unsureCount, correct)
-      Rep[Option[Int]],   // userValidation
-      Rep[List[String]],  // tags
-      Rep[Option[Float]], // cameraLat
-      Rep[Option[Float]]  // cameraLng
+      Rep[Int],                                             // labelId
+      Rep[String],                                          // labelType
+      Rep[String],                                          // gsvPanoramaId
+      Rep[String],                                          // imageCaptureDate
+      Rep[OffsetDateTime],                                  // timestamp
+      Rep[Option[Float]],                                   // lat
+      Rep[Option[Float]],                                   // lng
+      (Rep[Double], Rep[Double], Rep[Int]),                 // pov (heading, pitch, zoom)
+      (Rep[Int], Rep[Int]),                                 // canvasXY (x, y)
+      Rep[Option[Int]],                                     // severity
+      Rep[Boolean],                                         // temporary
+      Rep[Option[String]],                                  // description
+      Rep[Int],                                             // streetEdgeId
+      Rep[Int],                                             // regionId
+      (Rep[Int], Rep[Int], Rep[Int], Rep[Option[Boolean]]), // validationInfo (nAgree, nDisagree, nUnsure, correct)
+      Rep[Option[Int]],                                     // userValidation
+      Rep[Option[Int]],                                     // aiValidation
+      Rep[List[String]],                                    // tags
+      Rep[Option[Float]],                                   // cameraLat
+      Rep[Option[Float]],                                   // cameraLng
+      Rep[Option[List[String]]]                             // aiTags
   )
 
   // Define an implicit conversion from the tuple representation to the case class.
   implicit val labelValidationMetadataConverter: TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] =
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
       def fromTuple(t: LabelValidationMetadataTuple): LabelValidationMetadata = LabelValidationMetadata(
-        t._1, t._2, t._3, t._4, t._5, t._6.get, t._7.get, t._8, t._9, t._10, LocationXY.tupled(t._11), t._12, t._13,
-        t._14, t._15, t._16, LabelValidationInfo.tupled(t._17), t._18, t._19, t._20, t._21
+        t._1, t._2, t._3, t._4, t._5, t._6.get, t._7.get, POV.tupled(t._8), LocationXY.tupled(t._9), t._10, t._11,
+        t._12, t._13, t._14, LabelValidationInfo.tupled(t._15), t._16, t._17, t._18, t._19, t._20, t._21
       )
     }
 
@@ -463,6 +463,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val labelTypes             = TableQuery[LabelTypeTableDef]
   val labelPoints            = TableQuery[LabelPointTableDef]
   val labelValidations       = TableQuery[LabelValidationTableDef]
+  val labelAiAssessments     = TableQuery[LabelAiAssessmentTableDef]
   val missions               = TableQuery[MissionTableDef]
   val streets                = TableQuery[StreetEdgeTableDef]
   val regions                = TableQuery[RegionTableDef]
@@ -475,6 +476,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val routeStreets           = TableQuery[RouteStreetTableDef]
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
 
+  val aiValidations        = labelValidations.filter(_.userId === aiUserId).distinctOn(_.labelId)
   val neighborhoods        = regions.filter(_.deleted === false)
   val usersWithoutExcluded = usersUnfiltered
     .join(userStats)
@@ -537,7 +539,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextIntOption(),
       r.nextBoolean(),
       r.nextStringOption(),
-      r.nextIntOption(),
+      r.nextIntOption(), // userValidation
+      r.nextIntOption(), // aiValidation
       r.nextString().split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextString().split(",").filter(_.nonEmpty).toList,
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
@@ -705,7 +708,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              lb_big.severity,
              lb_big.temporary,
              lb_big.description,
-             lb_big.validation_result,
+             lb_big.validation_result, -- userValidation
+             ai_val.validation_result, -- aiValidation
              val.val_counts,
              array_to_string(lb_big.tags, ','),
              at.low_quality,
@@ -738,6 +742,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                         ',unsure:', CAST(unsure_count AS TEXT)) AS val_counts
           FROM label
       ) AS val ON lb1.label_id = val.label_id
+      LEFT JOIN (
+          SELECT label_id, validation_result
+          FROM label_validation
+          WHERE user_id = '#$aiUserId'
+      ) AS ai_val ON lb1.label_id = ai_val.label_id
       LEFT JOIN (
           SELECT label_id, string_agg(comment, ':') AS comments
           FROM validation_task_comment
@@ -799,11 +808,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   def retrieveLabelListForValidationQuery(
       userId: String,
       labelTypeId: Int,
+      includeAiTags: Boolean = true,
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
       unvalidatedOnly: Boolean = false,
       skippedLabelId: Option[Int] = None
   ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
+    println(includeAiTags)
 
     // Join all necessary tables and filter potential labels according to the given parameters.
     val _labelInfo = for {
@@ -819,8 +830,20 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if userIds.map(ids => _lb.userId inSetBind ids).getOrElse(true: Rep[Boolean])      // Filter by user IDs.
     } yield (_lb, _lp, _lt, _gd, _us, _ser, _at)
 
+    // Get AI validations.
+    val _labelInfoWithAIValidation = _labelInfo
+      .joinLeft(aiValidations)
+      .on(_._1.labelId === _.labelId)
+      .map { case ((_lb, _lp, _lt, _gd, _us, _ser, _at), _aiv) => (_lb, _lp, _lt, _gd, _us, _ser, _at, _aiv) }
+
+    // Get AI suggested tags.
+    val _labelInfoWithAiTagSuggestions = _labelInfoWithAIValidation
+      .joinLeft(labelAiAssessments)
+      .on(_._1.labelId === _.labelId)
+      .map { case ((_lb, _lp, _lt, _gd, _us, _ser, _at, _aiv), _la) => (_lb, _lp, _lt, _gd, _us, _ser, _at, _aiv, _la) }
+
     // Filter out labels that have already been validated by this user.
-    val _labelInfoFiltered = _labelInfo
+    val _labelInfoFiltered = _labelInfoWithAiTagSuggestions
       .joinLeft(labelValidations.filter(_.userId === userId))
       .on(_._1.labelId === _.labelId)
       .filter(_._2.isEmpty)
@@ -829,7 +852,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // Priority ordering algorithm is described in the method comment, max score is 276.
     val _labelInfoSorted = _labelInfoFiltered
       .sortBy {
-        case (l, lp, lt, gd, us, ser, at) => {
+        case (l, lp, lt, gd, us, ser, at, aiv, la) => {
           // A label gets 100 if the labeler as < 50 of their labels validated (and this label needs a validation).
           val needsValidationScore =
             Case.If(us.ownLabelsValidated < 50 && l.correct.isEmpty && !at.lowQuality && !at.stale).Then(100d).Else(0d)
@@ -854,7 +877,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         }
       }
       // Select only the columns needed for the LabelValidationMetadata class.
-      .map { case (l, lp, lt, gd, us, ser, at) =>
+      .map { case (l, lp, lt, gd, us, ser, at, aiv, la) =>
         (
           l.labelId,
           lt.labelType,
@@ -863,9 +886,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           l.timeCreated,
           lp.lat,
           lp.lng,
-          lp.heading,
-          lp.pitch,
-          lp.zoom,
+          (lp.heading.asColumnOf[Double], lp.pitch.asColumnOf[Double], lp.zoom),
           (lp.canvasX, lp.canvasY),
           l.severity,
           l.temporary,
@@ -873,10 +894,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           l.streetEdgeId,
           ser.regionId,
           (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct),
-          Option.empty[Int].bind,
+          Option.empty[Int].bind, // userValidation, always None bc we only show labels they haven't already validated.
+          aiv.map(_.validationResult), // aiValidation, if it exists.
           l.tags,
           gd.lat,
-          gd.lng
+          gd.lng,
+          // Include AI tags if requested.
+          if (includeAiTags) la.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
+          else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]]
         )
       }
 
@@ -961,10 +986,16 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
     } yield (_lb, _lp, _lt, _gd, _ser)
 
+    // Get AI validations.
+    val _labelInfoWithAIValidation = _labelInfo
+      .joinLeft(aiValidations)
+      .on(_._1.labelId === _.labelId)
+      .map { case ((_lb, _lp, _lt, _gd, _ser), _aiv) => (_lb, _lp, _lt, _gd, _ser, _aiv) }
+
     // Join with user validations.
     val _userValidations       = labelValidations.filter(_.userId === userId)
     val _labelInfoWithUserVals = for {
-      (l, v) <- _labelInfo.joinLeft(_userValidations).on(_._1.labelId === _.labelId)
+      (l, v) <- _labelInfoWithAIValidation.joinLeft(_userValidations).on(_._1.labelId === _.labelId)
     } yield (
       l._1.labelId,
       l._3.labelType,
@@ -973,9 +1004,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       l._1.timeCreated,
       l._2.lat,
       l._2.lng,
-      l._2.heading,
-      l._2.pitch,
-      l._2.zoom,
+      (l._2.heading.asColumnOf[Double], l._2.pitch.asColumnOf[Double], l._2.zoom),
       (l._2.canvasX, l._2.canvasY),
       l._1.severity,
       l._1.temporary,
@@ -983,10 +1012,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       l._1.streetEdgeId,
       l._5.regionId,
       (l._1.agreeCount, l._1.disagreeCount, l._1.unsureCount, l._1.correct),
-      v.map(_.validationResult),
+      v.map(_.validationResult),    // userValidation
+      l._6.map(_.validationResult), // aiValidation
       l._1.tags,
       l._4.lat,
-      l._4.lng
+      l._4.lng,
+      // Placeholder for AI tags, since we don't show those on Gallery right now.
+      None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]]
     )
 
     // Remove duplicates if needed and randomize.
@@ -1034,11 +1066,19 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         _gd.expired === false &&    // Only include those with non-expired GSV imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
         _lt.labelType === labType                         // Only include given label types.
-    } yield (_lb.labelId, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom, _lp.canvasX, _lp.canvasY, _lt.labelType,
-      _vc._5, _vc._6)
+    } yield (
+      _lb.labelId,
+      _lb.gsvPanoramaId,
+      (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom),
+      _lp.canvasX,
+      _lp.canvasY,
+      _lt.labelType,
+      _vc._5,
+      _vc._6
+    )
 
     // Get the most recent matching validation for each label.
-    _validations.sortBy(r => (r._1, r._9.desc)).distinctOn(_._1)
+    _validations.sortBy(r => (r._1, r._7.desc)).distinctOn(_._1)
   }
 
   /**
@@ -1602,6 +1642,23 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
               AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
       ) AS val_counts;""".as[ProjectSidewalkStats].head
+  }
+
+  /**
+   * Get label data necessary for AI validation and tag prediction.
+   * @param labelId The ID of the label to get data for
+   * @return A LabelDataForAi object containing label, label_point, and gsv_data information if they exist
+   */
+  def getLabelDataForAi(labelId: Int): DBIO[Option[LabelDataForAi]] = {
+    labelsUnfiltered
+      .join(labelPoints)
+      .on(_.labelId === _.labelId)
+      .join(gsvData)
+      .on { case ((label, point), gsv) => label.gsvPanoramaId === gsv.gsvPanoramaId }
+      .filter { case ((label, point), gsv) => label.labelId === labelId && gsv.width.isDefined && gsv.height.isDefined }
+      .result
+      .headOption
+      .map(_.map { case ((label, point), gsv) => LabelDataForAi(label.labelId, label.labelTypeId, point, gsv) })
   }
 
   /**

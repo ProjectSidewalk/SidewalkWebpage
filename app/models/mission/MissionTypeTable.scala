@@ -26,7 +26,8 @@ object MissionTypeTable {
     "validationOnboarding" -> 3,
     "validation"           -> 4,
     "cvGroundTruth"        -> 5,
-    "labelmapValidation"   -> 7
+    "labelmapValidation"   -> 6,
+    "aiValidation"         -> 7
   )
   val missionTypeIdToMissionType: Map[Int, String] = missionTypeToId.map(_.swap)
   val onboardingTypes: Seq[String]                 = Seq("auditOnboarding", "validationOnboarding")

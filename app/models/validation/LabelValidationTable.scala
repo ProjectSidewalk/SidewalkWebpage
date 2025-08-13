@@ -4,6 +4,7 @@ import com.google.inject.ImplementedBy
 import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi}
 import models.label.LabelTypeEnum.{labelTypeIdToLabelType, validLabelTypeIds, validLabelTypes}
 import models.label._
+import models.user.SidewalkUserTable.aiUserId
 import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -39,9 +40,16 @@ case class LabelValidation(
     source: String
 )
 
-case class ValidationCount(count: Int, timeInterval: TimeInterval, labelType: String, validationResult: String) {
+case class ValidationCount(
+    count: Int,
+    timeInterval: TimeInterval,
+    labelType: String,
+    validationResult: String,
+    validatorType: String
+) {
   require((validLabelTypes ++ Seq("All")).contains(labelType))
   require((validationOptions.values.toSeq ++ Seq("All")).contains(validationResult))
+  require(Seq("AI", "Human", "Both").contains(validatorType))
 }
 
 /**
@@ -110,6 +118,7 @@ class LabelValidationTable @Inject() (
   val roleTable            = TableQuery[RoleTableDef]
   val labelsUnfiltered     = TableQuery[LabelTableDef]
   val labelTypeTable       = TableQuery[LabelTypeTableDef]
+  val humanValidations     = validations.filter(_.userId =!= aiUserId)
   val labelsWithoutDeleted = labelsUnfiltered.filter(_.deleted === false)
 
   /**
@@ -207,21 +216,13 @@ class LabelValidationTable @Inject() (
    * @return list of tuples of (labeler_id, (validation_count, validation_agreed_count))
    */
   def getValidatedCountsPerUser: DBIO[Seq[(String, (Int, Int))]] = {
-    val validationsWithUserId = for {
-      _validation     <- validations
-      _validationUser <- users if _validationUser.userId === _validation.userId
-      _userRole       <- userRoles if _validationUser.userId === _userRole.userId
-      if _validationUser.username =!= "anonymous"
-      if _validation.labelValidationId =!= 3 // Exclude "unsure" validations.
-    } yield (_validationUser.userId, _validation.validationResult)
-
-    // Counts the number of labels for each user by grouping by user_id and role.
-    validationsWithUserId
-      .groupBy(l => l._1)
-      .map { case (uId, group) =>
+    humanValidations
+      .filter(_.labelValidationId =!= 3) // Exclude "unsure" validations.
+      .groupBy(_.userId)
+      .map { case (userId, group) =>
         // Sum up the agreed validations and total validations (just agreed + disagreed).
-        val agreed = group.map { r => Case.If(r._2 === 1).Then(1).Else(0) }.sum.getOrElse(0)
-        (uId, (group.length, agreed))
+        val agreed = group.map { r => Case.If(r.validationResult === 1).Then(1).Else(0) }.sum.getOrElse(0)
+        (userId, (group.length, agreed))
       }
       .result
   }
@@ -232,12 +233,17 @@ class LabelValidationTable @Inject() (
   def countValidations: DBIO[Int] = validations.length.result
 
   /**
+   * @return The total number of human validations (i.e., excluding AI validations).
+   */
+  def countHumanValidations: DBIO[Int] = humanValidations.length.result
+
+  /**
    * @return The number of validations performed by this user.
    */
   def countValidations(userId: String): DBIO[Int] = validations.filter(_.userId === userId).length.result
 
   /**
-   * Count validations of each label type and result in the time range. Includes entries for validations across groups.
+   * Count validations of each label type, result, and human/AI in the time range. Includes counts for all subgroups.
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    */
   def countValidationsByResultAndLabelType(
@@ -254,36 +260,35 @@ class LabelValidationTable @Inject() (
     validationsInTimeInterval
       .join(labelsWithoutDeleted)
       .on(_.labelId === _.labelId)
-      .groupBy { case (v, l) => (v.validationResult, l.labelTypeId) }
-      .map { case ((valResult, labelTypeId), group) => (valResult, labelTypeId, group.length) }
+      .groupBy { case (v, l) => (l.labelTypeId, v.validationResult, v.userId === aiUserId) }
+      .map { case ((labelTypeId, valResult, isAi), group) => (labelTypeId, valResult, isAi, group.length) }
       .result
       .map { valCounts =>
-        // Put data into ValidationCount objects, and add entry for any nonexistent result / label type with count=0.
-        val countsByTypeAndResult: Seq[ValidationCount] = (for {
-          labelTypeId <- validLabelTypeIds
-          valResult   <- validationOptions.keys
-        } yield {
-          val count: Int = valCounts.find(c => c._1 == valResult && c._2 == labelTypeId).map(_._3).getOrElse(0)
-          ValidationCount(count, timeInterval, labelTypeIdToLabelType(labelTypeId), validationOptions(valResult))
-        }).toSeq
+        // We want to also calculate a sum for every possible subgroup b/w label_type, validation_result and validator.
+        // Let's start by enumerating every subgroup combination. We include None for each of the three fields to
+        // allow for "All" entries.
+        val subgroupCombinations: Set[(Option[Int], Option[Int], Option[Boolean])] = for {
+          labelType <- validLabelTypeIds.map(Some(_)) ++ Seq(None)
+          valResult <- validationOptions.keys.map(Some(_)) ++ Seq(None)
+          validator <- Seq(Some(true), Some(false), None)
+        } yield (labelType, valResult, validator)
 
-        // Create "All" entries that sums all the counts over validationResult for each label type.
-        val countsByType: Seq[ValidationCount] = validLabelTypes.map { labelType =>
-          val count: Int = countsByTypeAndResult.filter(_.labelType == labelType).map(_.count).sum
-          ValidationCount(count, timeInterval, labelType, "All")
+        // For each combination, filter matching records and sum their counts.
+        subgroupCombinations.map { case (labTypeFilter, valResultFilter, validatorFilter) =>
+          val filteredData = valCounts.filter { case (labelTypeId, valResult, isAi, _) =>
+            // .forall returns true of the element matches or if the filter is None (which works perfectly for "All").
+            labTypeFilter.forall(_ == labelTypeId) &&
+            valResultFilter.forall(_ == valResult) &&
+            validatorFilter.forall(_ == isAi)
+          }
+          val subgroupCount = filteredData.map(_._4).sum
+
+          // Create the ValidationCount object for this subgroup.
+          val labelType = labTypeFilter.map(labelTypeIdToLabelType).getOrElse("All")
+          val valOption = valResultFilter.map(validationOptions).getOrElse("All")
+          val validator = validatorFilter.map(isAi => if (isAi) "AI" else "Human").getOrElse("Both")
+          ValidationCount(subgroupCount, timeInterval, labelType, valOption, validator)
         }.toSeq
-
-        // Create "All" entries that sums all the counts over labelType for each validationResult.
-        val countsByResult: Seq[ValidationCount] = validationOptions.values.map { valResult =>
-          val count: Int = countsByTypeAndResult.filter(_.validationResult == valResult).map(_.count).sum
-          ValidationCount(count, timeInterval, "All", valResult)
-        }.toSeq
-
-        // And finally, one entry summed across all label types and validation results.
-        val totalCount: ValidationCount = ValidationCount(countsByResult.map(_.count).sum, timeInterval, "All", "All")
-
-        // Combine all the counts into a single sequence.
-        countsByTypeAndResult ++ countsByType ++ countsByResult :+ totalCount
       }
   }
 
@@ -295,7 +300,7 @@ class LabelValidationTable @Inject() (
    *         - The count of validations that ended on that day
    */
   def getValidationsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {
-    validations.map(_.endTimestamp.trunc("day")).groupBy(x => x).map(x => (x._1, x._2.length)).sortBy(_._1).result
+    humanValidations.map(_.endTimestamp.trunc("day")).groupBy(x => x).map(x => (x._1, x._2.length)).sortBy(_._1).result
   }
 
   /**
@@ -357,9 +362,9 @@ class LabelValidationTable @Inject() (
       oldTags = validation.oldTags,
       newTags = validation.newTags,
       userId = validation.userId,
+      validatorType = if (validation.userId == aiUserId) "AI" else "Human",
       missionId = validation.missionId,
-      canvasX = validation.canvasX,
-      canvasY = validation.canvasY,
+      canvasXY = validation.canvasX.flatMap(x => validation.canvasY.map(y => LocationXY(x, y))),
       heading = validation.heading,
       pitch = validation.pitch,
       zoom = validation.zoom,
@@ -372,31 +377,32 @@ class LabelValidationTable @Inject() (
   }
 
   /**
-   * Retrieves all validation result types with their counts.
+   * Retrieves all validation result types with their counts (grouped by Human/AI).
    *
    * @return A database action that, when executed, will return a sequence of ValidationResultTypeForApi objects.
    */
   def getValidationResultTypes: DBIO[Seq[ValidationResultTypeForApi]] = {
     validations
-      .groupBy(_.validationResult)
-      .map { case (result, group) => (result, group.length) }
+      .groupBy { v => (v.validationResult, v.userId === aiUserId) }
+      .map { case ((valResult, isAi), group) => (valResult, isAi, group.length) }
       .result
-      .map { results =>
-        val resultTypesWithCounts = results.map { case (resultId, count) =>
-          ValidationResultTypeForApi(
-            id = resultId,
-            name = LabelValidationTable.validationOptions.getOrElse(resultId, "Unknown"),
-            count = count
-          )
-        }
-
-        // Ensure all validation types are returned even if no validations of that type exist.
-        val existingIds: Set[Int] = resultTypesWithCounts.map(_.id).toSet
-        val missingTypes          = LabelValidationTable.validationOptions
-          .filterNot { case (id, _) => existingIds.contains(id) }
-          .map { case (id, name) => ValidationResultTypeForApi(id, name, 0) }
-
-        (resultTypesWithCounts ++ missingTypes).sortBy(_.id)
+      .map { results: Seq[(Int, Boolean, Int)] =>
+        // Create a ValidationResultTypeForApi object for each validation result type.
+        validationOptions.keys
+          .map { valResult =>
+            val currValCounts   = results.filter(_._1 == valResult)
+            val humanCount: Int = currValCounts.find(_._2 == false).map(_._3).getOrElse(0)
+            val aiCount: Int    = currValCounts.find(_._2 == true).map(_._3).getOrElse(0)
+            ValidationResultTypeForApi(
+              id = valResult,
+              name = validationOptions.getOrElse(valResult, "Unknown"),
+              count = humanCount + aiCount,
+              countHuman = humanCount,
+              countAi = aiCount
+            )
+          }
+          .toSeq
+          .sortBy(_.id)
       }
   }
 }

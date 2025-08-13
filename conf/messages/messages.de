@@ -246,6 +246,8 @@ validate.bottom.ui.add.comment = Wenn Sie nicht einverstanden sind, bitte geben 
 validate.right.ui.current.mission = Aktuelle Mission
 validate.right.ui.correct.examples = <strong>Richtige</strong> Beispiele
 validate.right.ui.incorrect.examples = <strong>Falsche</strong> Beispiele
+validate.suggestions = Vorschläge
+validate.ai.disclaimer = Tag-Vorschläge werden von der KI erstellt, sind nicht umfassend und können falsch sein
 validate.mission.complete.category = Kategorie
 validate.mission.complete.your.overall.total = Ihr Gesamtwert
 

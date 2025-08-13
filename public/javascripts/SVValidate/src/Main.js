@@ -58,7 +58,9 @@ function Main (param) {
             svv.ui.expertValidate.unsureReasonOptions = $("#unsure-reason-options");
             svv.ui.expertValidate.unsureReasonTextBox = $("#add-unsure-comment");
 
-            svv.ui.expertValidate.currentTags = $('#current-tags-list')
+            svv.ui.expertValidate.currentTags = $('#current-tags-list');
+            svv.ui.expertValidate.aiSuggestionSection = $('#sidewalk-ai-suggestions-block');
+            svv.ui.expertValidate.aiSuggestedTagTemplate = $('.sidewalk-ai-suggested-tag.template');
 
             svv.ui.expertValidate.backButton = $("#new-validate-beta-back-button");
             svv.ui.expertValidate.submitButton = $("#new-validate-beta-submit-button");

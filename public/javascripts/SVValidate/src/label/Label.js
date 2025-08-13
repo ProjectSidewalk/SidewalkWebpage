@@ -28,6 +28,7 @@ function Label(params) {
         streetEdgeId: undefined,
         regionId: undefined,
         tags: undefined,
+        aiTags: undefined,
         isMobile: undefined
     };
 
@@ -136,6 +137,7 @@ function Label(params) {
                 setProperty("oldTags", params.tags);
                 setProperty("newTags", [...params.tags]); // Copy tags to newTags.
             }
+            if ("ai_tags" in params) setAuditProperty("aiTags", params.ai_tags);
             // Properties only used on the Admin version of Validate.
             if ("admin_data" in params && params.admin_data !== null) {
                 if ("username" in params.admin_data) adminProperties.username = params.admin_data.username;

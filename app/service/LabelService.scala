@@ -240,8 +240,8 @@ class LabelServiceImpl @Inject() (
   ): Future[Seq[LabelValidationMetadata]] = {
     // TODO can we make this and the Gallery queries transactions to prevent label dupes?
     findValidLabelsForType(
-      labelTable.retrieveLabelListForValidationQuery(userId, labelTypeId, userIds, regionIds, unvalidatedOnly,
-        skippedLabelId),
+      labelTable.retrieveLabelListForValidationQuery(userId, labelTypeId, configService.getAiTagSuggestionsEnabled,
+        userIds, regionIds, unvalidatedOnly, skippedLabelId),
       randomize = true,
       n
     )

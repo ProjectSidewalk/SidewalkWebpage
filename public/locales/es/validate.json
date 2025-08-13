@@ -140,6 +140,10 @@
         "no-new-mission-body": "Puede agregar más etiquetas usando una computadora portátil / de escritorio, ¡o puede validar etiquetas en otra ciudad!",
         "no-new-mission-button": "Validar en"
     },
+    "expert-validate": {
+        "add-tag": "Agregar: {{tag}}",
+        "remove-tag": "Eliminar: {{tag}}"
+    },
     "mission-start-tutorial": {
         "mst-instruction-1": "TU MISIÓN",
         "mst-instruction-2": "Validar {{nLabels}} etiquetas de {{- labelType}}",

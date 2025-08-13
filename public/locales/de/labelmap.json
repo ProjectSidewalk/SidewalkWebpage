@@ -2,6 +2,8 @@
     "is-correct": "Ist diese Beschriftung richtig?",
     "label-type": "Beschriftungskategorie",
     "validations": "Validierungen",
+    "ai-validation": "KI-Validierung",
+    "ai-val-included": "$t(common:{{aiVal}}) (in der obigen Zählung enthalten)",
     "add-comment": "Hier Kommentar hinzufügen...",
     "submit-comment": "Kommentar senden",
     "comment-submitted": "Kommentar gesendet"

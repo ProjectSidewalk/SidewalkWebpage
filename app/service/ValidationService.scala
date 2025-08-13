@@ -22,12 +22,14 @@ case class ValidationSubmission(
 @ImplementedBy(classOf[ValidationServiceImpl])
 trait ValidationService {
   def countValidations: Future[Int]
+  def countHumanValidations: Future[Int]
   def countValidations(userId: String): Future[Int]
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]]
   def insertComment(comment: ValidationTaskComment): Future[Int]
   def deleteCommentIfExists(labelId: Int, missionId: Int): Future[Int]
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]]
+  def submitValidationsDbio(validationSubmissions: Seq[ValidationSubmission]): DBIO[Seq[Int]]
 }
 
 @Singleton
@@ -50,6 +52,7 @@ class ValidationServiceImpl @Inject() (
   val labelHistories   = TableQuery[LabelHistoryTableDef]
 
   def countValidations: Future[Int]                 = db.run(labelValidationTable.countValidations)
+  def countHumanValidations: Future[Int]            = db.run(labelValidationTable.countHumanValidations)
   def countValidations(userId: String): Future[Int] = db.run(labelValidationTable.countValidations(userId))
 
   /**
@@ -261,6 +264,15 @@ class ValidationServiceImpl @Inject() (
    * @return A sequence of the label_validation_ids of the inserted/updated validations.
    */
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]] = {
+    db.run(submitValidationsDbio(validationSubmissions))
+  }
+
+  /**
+   * Submits a set of validations from a POST request on Validate.
+   * @param validationSubmissions A sequence of ValidationSubmission objects
+   * @return A sequence of the label_validation_ids of the inserted/updated validations.
+   */
+  def submitValidationsDbio(validationSubmissions: Seq[ValidationSubmission]): DBIO[Seq[Int]] = {
     val valSubmitActions: Seq[DBIO[Int]] = for (valSubmission <- validationSubmissions) yield {
       val validation: LabelValidation = valSubmission.validation
 
@@ -298,7 +310,7 @@ class ValidationServiceImpl @Inject() (
     }
 
     // For any users whose labels have been validated, update their accuracy in the user_stat table.
-    db.run((for {
+    (for {
       newValIds      <- DBIO.sequence(valSubmitActions)
       usersValidated <-
         if (validationSubmissions.nonEmpty) {
@@ -308,7 +320,6 @@ class ValidationServiceImpl @Inject() (
         if (usersValidated.nonEmpty) {
           userStatTable.updateAccuracy(usersValidated)
         } else DBIO.successful(())
-    } yield newValIds).transactionally)
-      .map(_.filter(_ > 0)) // Remove 0's representing deletions instead of insertions.
+    } yield newValIds).transactionally.map(_.filter(_ > 0)) // Remove 0's representing deletions instead of insertions.
   }
 }

@@ -55,6 +55,7 @@
     "labeled": "Labeled",
     "yes": "Yes",
     "no": "No",
+    "ai-disclaimer": "AI analyzed this label and voted \"$t({{aiVal}})\"; however, AI can make mistakes. Please make your own assessment.",
     "tag": {
         "narrow": "narrow",
         "points into traffic": "points into traffic",

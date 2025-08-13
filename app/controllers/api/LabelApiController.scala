@@ -281,6 +281,6 @@ class LabelApiController @Inject() (
    * @return Asynchronous result containing an HTTP response with a JSON array of pano IDs and their associated labels.
    */
   def getAllPanoIdsWithLabels = Action.async {
-    gsvDataService.getAllPanosWithLabels.map { panos => Ok(Json.toJson(panos.map(p => Json.toJson(p)))) }
+    gsvDataService.getAllPanos.map { panos => Ok(Json.toJson(panos.map(p => Json.toJson(p)))) }
   }
 }

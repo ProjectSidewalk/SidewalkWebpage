@@ -68,7 +68,8 @@ object AdminFormats {
     (__ \ "count").write[Int] and
       (__ \ "time_interval").write[TimeInterval] and
       (__ \ "label_type").write[String] and
-      (__ \ "result").write[String]
+      (__ \ "result").write[String] and
+      (__ \ "validator").write[String]
   )(unlift(ValidationCount.unapply))
 
   implicit val genericCommentWrites: Writes[GenericComment] = (

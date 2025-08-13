@@ -74,7 +74,7 @@ class ApplicationController @Inject() (
             auditedDist: Float           <- streetService.getAuditedStreetDistance(metric)
             streetDist: Float            <- streetService.getTotalStreetDistance(metric)
             labelCount: Int              <- labelService.countLabels
-            valCount: Int                <- validationService.countValidations
+            valCount: Int                <- validationService.countHumanValidations
           } yield {
             Ok(
               views.html.index("Project Sidewalk", commonData, user, openStatus, mapathonLink, streetDist, auditedDist,

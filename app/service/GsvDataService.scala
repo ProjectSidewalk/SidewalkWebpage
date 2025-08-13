@@ -46,11 +46,11 @@ object GsvDataService {
 @ImplementedBy(classOf[GsvDataServiceImpl])
 trait GsvDataService {
   def panoExists(gsvPanoId: String): Future[Option[Boolean]]
-  def getImageUrl(gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int): String
+  def getImageUrl(gsvPanoramaId: String, heading: Double, pitch: Double, zoom: Int): String
   def getImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
-  def getAllPanosWithLabels: Future[Seq[GsvDataSlim]]
-  def checkForGsvImagery(): Future[Unit]
+  def getAllPanos: Future[Seq[GsvDataSlim]]
+  def checkForGsvImagery: Future[String]
 }
 
 @Singleton
@@ -90,15 +90,20 @@ class GsvDataServiceImpl @Inject() (
     ws.url(signedUrl)
       .withRequestTimeout(5.seconds)
       .get()
-      .map { response =>
-        val imageStatus = (Json.parse(response.body) \ "status").as[String]
-        val imageExists = imageStatus == "OK"
+      .flatMap { response =>
+        val imageStatus          = (Json.parse(response.body) \ "status").as[String]
+        val imageExists: Boolean = imageStatus == "OK"
 
-        // Mark the expired status, last_checked, and last_viewed columns in the db.
-        val timestamp = OffsetDateTime.now
-        gsvDataTable.updateExpiredStatus(gsvPanoId, !imageExists, timestamp)
+        if (imageExists || imageStatus != "ZERO_RESULTS") {
+          // Mark the expired status, last_checked, and last_viewed columns in the db.
+          val timestamp = OffsetDateTime.now
+          db.run(gsvDataTable.updateExpiredStatus(gsvPanoId, !imageExists, timestamp)).map(_ => Some(imageExists))
+        } else {
+          // For any other response status, we don't want to assume that the panorama doesn't exist. Log it for now.
+          logger.info(s"$imageStatus - $gsvPanoId")
+          Future.successful(None)
+        }
 
-        Some(imageExists)
       }
       .recover { // If there was an exception, don't assume it means a lack of GSV imagery.
         case _: SocketTimeoutException => None
@@ -143,7 +148,7 @@ class GsvDataServiceImpl @Inject() (
    * @param zoom Zoom level of the canvas (for fov calculation).
    * @return Image URL that represents the background of the label.
    */
-  def getImageUrl(gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int): String = {
+  def getImageUrl(gsvPanoramaId: String, heading: Double, pitch: Double, zoom: Int): String = {
     val url = "https://maps.googleapis.com/maps/api/streetview?" +
       "pano=" + gsvPanoramaId +
       "&size=" + LabelPointTable.canvasWidth + "x" + LabelPointTable.canvasHeight +
@@ -213,27 +218,27 @@ class GsvDataServiceImpl @Inject() (
     }).map { _ => () }
   }
 
-  def getAllPanosWithLabels: Future[Seq[GsvDataSlim]] = db.run(gsvDataTable.getAllPanosWithLabels)
+  def getAllPanos: Future[Seq[GsvDataSlim]] = db.run(gsvDataTable.getAllPanos)
 
   /**
    * Checks if panos are expired on a nightly basis. Called from CheckImageExpiryActor.scala.
    *
-   * Get as many as 5% of the panos with labels on them, or 1000, whichever is smaller. Check if the panos are expired
+   * Get as many as 5% of the panos with labels on them, or 5000, whichever is smaller. Check if the panos are expired
    * and update the database accordingly. If there aren't enough of those remaining that haven't been checked in the
-   * last 6 months, check up to 2.5% or 500 (which ever is smaller) of the panos that are already marked as expired to
+   * last 3 months, check up to 2.5% or 2500 (whichever is smaller) of the panos that are already marked as expired to
    * make sure that they weren't marked so incorrectly.
    */
-  def checkForGsvImagery(): Future[Unit] = {
+  def checkForGsvImagery: Future[String] = {
     db.run(
       for {
         // Choose a bunch of panos that haven't been checked in the past 6 months to check.
         nPanos: Int <- gsvDataTable.countPanosWithLabels
-        nUnexpiredPanosToCheck: Int = Math.max(1000, Math.min(20, 0.05 * nPanos).toInt)
+        nUnexpiredPanosToCheck: Int = Math.max(5000, Math.min(100, 0.05 * nPanos).toInt)
         panoIdsToCheck: Seq[String] <- gsvDataTable.getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
         _ = logger.info(s"Checking ${panoIdsToCheck.length} unexpired panos.")
 
         // Choose a few panos that are already marked as expired to double-check.
-        nExpiredPanosToCheck: Int = Math.max(500, Math.min(10, 0.025 * nPanos).toInt)
+        nExpiredPanosToCheck: Int = Math.max(2500, Math.min(50, 0.025 * nPanos).toInt)
         expiredPanoIdsToCheck: Seq[String] <-
           if (panoIdsToCheck.length < nExpiredPanosToCheck) {
             val nRemainingExpiredPanosToCheck: Int = nExpiredPanosToCheck - panoIdsToCheck.length
@@ -244,9 +249,7 @@ class GsvDataServiceImpl @Inject() (
 
         // Run the panoExists function to check for imagery, then log some stats.
         Future.traverse(panoIdsToCheck ++ expiredPanoIdsToCheck) { panoId => panoExists(panoId) }.map { responses =>
-          logger.info(
-            s"Not expired: ${responses.count(_ == Some(true))}. Expired: ${responses.count(_ == Some(false))}. Errors: ${responses.count(_.isEmpty)}."
-          )
+          s"Not expired: ${responses.count(_ == Some(true))}. Expired: ${responses.count(_ == Some(false))}. Errors: ${responses.count(_.isEmpty)}."
         }
       }
     ).flatten

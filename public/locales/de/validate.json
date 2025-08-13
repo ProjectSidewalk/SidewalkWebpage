@@ -140,6 +140,10 @@
         "no-new-mission-body": "Sie können weitere Etiketten mit einem Laptop/Desktop-Computer hinzufügen oder Etiketten in einer anderen Stadt validieren!",
         "no-new-mission-button": "Validieren in"
     },
+    "expert-validate": {
+        "add-tag": "Hinzufügen: {{tag}}",
+        "remove-tag": "Entfernen: {{tag}}"
+    },
     "mission-start-tutorial": {
         "mst-instruction-1": "IHRE MISSION",
         "mst-instruction-2": "Validieren Sie {{nLabels}} Beschriftungen von {{- labelType}}",

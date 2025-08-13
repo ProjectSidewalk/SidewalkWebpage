@@ -242,6 +242,8 @@ validate.bottom.ui.add.comment = Als u het er niet mee eens bent, voer dan hier 
 validate.right.ui.current.mission = Huidige Missie
 validate.right.ui.correct.examples = <strong>Correcte</strong> Voorbeelden
 validate.right.ui.incorrect.examples = <strong>Incorrecte</strong> Voorbeelden
+validate.suggestions = Suggesties
+validate.ai.disclaimer = Tag-suggesties worden door AI gedaan, zijn niet volledig en kunnen onjuist zijn
 validate.mission.complete.category = Categorie
 validate.mission.complete.your.overall.total = Je Totaal
 

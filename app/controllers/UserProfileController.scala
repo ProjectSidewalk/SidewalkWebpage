@@ -113,7 +113,7 @@ class UserProfileController @Inject() (
           userService.getLabelLocations(userId, regionId).map { labels =>
             val features: Seq[JsObject] = labels.map { label =>
               Json.obj(
-                "type" -> "Feature",
+                "type"     -> "Feature",
                 "geometry" -> Json.obj(
                   "type"        -> "Point",
                   "coordinates" -> Json.arr(label.lng.toDouble, label.lat.toDouble)
@@ -150,7 +150,8 @@ class UserProfileController @Inject() (
           labelService.getRecentValidatedLabelsForUser(userId, labelTypes, n).map { validations =>
             val validationJson = Json.toJson(labelTypes.map { labelType =>
               labelType -> validations(labelType).map { l =>
-                val imageUrl: String = gsvDataService.getImageUrl(l.gsvPanoramaId, l.heading, l.pitch, l.zoom)
+                val imageUrl: String =
+                  gsvDataService.getImageUrl(l.gsvPanoramaId, l.pov.heading, l.pov.pitch, l.pov.zoom)
                 labelMetadataUserDashToJson(l, imageUrl)
               }
             }.toMap)
