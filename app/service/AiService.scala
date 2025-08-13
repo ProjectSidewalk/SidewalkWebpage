@@ -68,7 +68,7 @@ class AiServiceImpl @Inject() (
 
                 // Save AI results to the database and submit validation if applicable.
                 case Some((aiResults, labelData)) =>
-                  println(aiResults)
+                  logger.debug(aiResults.toString)
                   // Add AI information to the label_ai_assessment table.
                   val saveAiAssessmentAction = db.run(labelAiAssessmentTable.save(aiResults))
                   saveAiAssessmentAction.onComplete(x => {
@@ -138,7 +138,7 @@ class AiServiceImpl @Inject() (
         try {
           if (response.status >= 200 && response.status < 300) {
             val json: JsValue = response.json
-            println(json)
+            logger.debug(json.toString)
 
             // Parse the output. Filter out "NULL" values from the tags list.
             val valResult     = if ((json \ "validation_result").as[String] == "correct") 1 else 2

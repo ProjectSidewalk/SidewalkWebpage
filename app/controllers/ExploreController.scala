@@ -19,6 +19,7 @@ import service.ExploreTaskPostReturnValue
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 @Singleton
 class ExploreController @Inject() (
@@ -241,7 +242,12 @@ class ExploreController @Inject() (
           .map { _ =>
             // Send label info to Sidewalk AI API for AI validation async. AI API only available for some label types.
             val labelsToSend = returnData.newLabels.filter(l => LabelTypeEnum.aiLabelTypes.contains(l._3))
-            aiService.validateLabelsWithAi(labelsToSend.map(_._1))
+            aiService
+              .validateLabelsWithAi(labelsToSend.map(_._1))
+              .onComplete {
+                case Success(_) => logger.info("AI validation completed successfully.")
+                case Failure(e) => logger.error("Error recalculating street priority", e)
+              }
 
             // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
             val eligibleUser: Boolean = RoleTable.SCISTARTER_ROLES.contains(user.role)
