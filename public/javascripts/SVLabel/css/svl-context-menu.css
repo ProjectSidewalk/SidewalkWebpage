@@ -3,14 +3,14 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    padding: 15px;
+    padding: 10px;
     width: 440px;
     background: #FFFFFF;
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
     border-radius: 8.1px;
     border: solid 5px black;
     visibility: hidden;
-    z-index: 2;
+    z-index: 1050; /* so that tooltips will show up on top of the navbar */
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
     box-sizing: border-box;
@@ -28,7 +28,7 @@
     height: auto;
     width: 100%;
     box-sizing: border-box;
-    margin-bottom: 3px;
+    margin-bottom: 9px;
 }
 
 .context-menu-section:last-child {
@@ -42,7 +42,7 @@
     font-size: 12.5px;
     line-height: 17px;
     color: #464646;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
 }
 
 #context-menu-tag-holder {
@@ -52,7 +52,7 @@
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px 5px;
+    gap: 5px 4px;
     padding: 0;
     box-sizing: border-box;
     white-space: pre;
@@ -63,14 +63,11 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 5px 7px;
-    height: 16px;
+    padding: 5px 6px;
+    height: 17px;
     border: 0.8px solid #666666;
     border-radius: 16px;
-    font-family: 'Raleway', sans-serif;
-    font-weight: 600;
-    font-size: 8px;
-    line-height: 9.5px;
+    font-size: 10px;
     color: #000000;
     background: white;
     margin: 0;
@@ -89,7 +86,6 @@
 #context-menu-tag-holder button.selected {
     background: #37A17B !important;
     color: #FFFFFF !important;
-    font-weight: 800;
     border: 1px solid #40bd90 !important;
 }
 
@@ -180,7 +176,7 @@
     font-weight: 700;
     font-size: 10px;
     text-align: center;
-    color: #807F7F;
+    color: #514d4d;
 }
 
 /* We should add transition only when the cursor is on the context menu. */

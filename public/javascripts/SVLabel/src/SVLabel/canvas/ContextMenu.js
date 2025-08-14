@@ -26,8 +26,8 @@ function ContextMenu (uiContextMenu) {
     var lastShownLabelColor;
 
     var CONNECTOR_BUFFER = 6; // Buffer for connector to overlap border of label icon.
-    var MARGIN = 55; // Additional margin to make menu appear above label more often
-    var RIGHT_OFFSET = 20; // Offset to shift menu to the right
+    var PAGE_BOTTOM_SPACE = 30; // Additional space avail below GSV where we can still show the context menu.
+    var RIGHT_OFFSET = 20; // Offset to shift menu to the right.
 
     document.addEventListener('mousedown', _handleMouseDown);
     $menuWindow.on('mousedown', _handleMenuWindowMouseDown);
@@ -314,19 +314,9 @@ function ContextMenu (uiContextMenu) {
 
                 // Sets color to match OK button green when selected
                 if (labelTags.includes(tagId)) {
-                    $(this).css({
-                        'background-color': '#37A17B',
-                        'color': '#FFFFFF',
-                        'font-weight': '800',
-                        'border': '0.8px solid transparent'
-                    });
+                    $(this).addClass('selected');
                 } else {
-                    $(this).css({
-                        'background-color': 'white',
-                        'color': '#000000',
-                        'font-weight': '600',
-                        'border': '0.8px solid #666666'
-                    });
+                    $(this).removeClass('selected');
                 }
             }
         });
@@ -514,7 +504,7 @@ function ContextMenu (uiContextMenu) {
 
             // If there isn't enough room to show the context menu below the label, determine coords to display above.
             // labelCoord.y is top-left of label but is center of rendered label, so we must add the icon radius.
-            if (labelCoord.y + svl.LABEL_ICON_RADIUS + connectorHeight + menuHeight - CONNECTOR_BUFFER - MARGIN > util.EXPLORE_CANVAS_HEIGHT) {
+            if (labelCoord.y + svl.LABEL_ICON_RADIUS + connectorHeight - CONNECTOR_BUFFER + menuHeight - PAGE_BOTTOM_SPACE > util.EXPLORE_CANVAS_HEIGHT) {
                 topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - connectorHeight - menuHeight + CONNECTOR_BUFFER;
                 connectorCoordinate = menuHeight - menuBorder;
             }
@@ -577,15 +567,9 @@ function ContextMenu (uiContextMenu) {
      */
     function _toggleTagColor(labelTags, id, target) {
         if (labelTags.includes(id)) {
-            target.style.backgroundColor = '#37A17B';
-            target.style.color = '#FFFFFF';
-            target.style.fontWeight = '800';
-            target.style.border = '0.8px solid transparent';
+            target.classList.add('selected');
         } else {
-            target.style.backgroundColor = "white";
-            target.style.color = '#000000';
-            target.style.fontWeight = '600';
-            target.style.border = '0.8px solid #666666';
+            target.classList.remove('selected');
         }
     }
 
