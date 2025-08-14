@@ -13,9 +13,9 @@ function MissionModel () {
         }
 
         if (callback) {
-            $.when($.ajax("/neighborhoodMissions")).done(_onFetch).done(callback);
+            $.when($.ajax(`/neighborhoodMissions?regionId=${svl.regionId}`)).done(_onFetch).done(callback);
         } else {
-            $.when($.ajax("/neighborhoodMissions")).done(_onFetch);
+            $.when($.ajax(`/neighborhoodMissions?regionId=${svl.regionId}`)).done(_onFetch);
         }
     };
 

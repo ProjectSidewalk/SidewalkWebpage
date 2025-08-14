@@ -3,9 +3,6 @@ package-lock.json
 .DS_Store
 tmp/**/*
 .idea
-.ivy2/cache/org.jetbrains.scala/
-.ivy2/cache/scala_2.10/sbt_0.13/org.jetbrains.scala/
-#.idea/**/*
 *.iml
 *.sublime-*
 _site
@@ -13,16 +10,12 @@ dist/*.js
 coverage/
 *.js.html
 .mailmap
-#.ivy2
-.ivy2/cache/*/*/srcs
-.ivy2/exclude_classifiers
-.ivy2/exclude_classifiers.lock
-.ivy2/.sbt.cache.lock
+.coursier/
 bower.json
 component.json
 docker-compose.override*.yml
 db/*-dump
-.vscode/settings.json
+
 
 ### IntelliJ (https://github.com/github/gitignore/blob/master/Global/JetBrains.gitignore)
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio
@@ -75,6 +68,8 @@ crashlytics-build.properties
 *.log
 
 # sbt specific
+.sbt/
+.bsp/
 .cache
 .history
 .lib/
@@ -121,4 +116,14 @@ scripts/__pycache__
 
 # Cropped images.
 .crops/
+
+# VSCode
+# Metals is a linter and code formatter for Scala
+# https://scalameta.org/metals/docs/editors/vscode.html
+.vscode/settings.json
+.metals/
+project/metals.sbt
+
+# Windows Zone Identifier files
+**/*Zone.Identifier
 

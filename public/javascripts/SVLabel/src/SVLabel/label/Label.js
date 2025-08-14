@@ -64,8 +64,7 @@ function Label(params) {
         temporaryLabelId: null,
         temporaryLabel: false,
         description: null,
-        crop: undefined,
-        predictionMade: null
+        crop: undefined
     };
 
     var status = {
@@ -426,7 +425,7 @@ function Label(params) {
         }
         $.ajax({
             async: true,
-            type: "POST",
+            method: 'POST',
             url: "saveImage",
             data: JSON.stringify(cropData),
             contentType: "application/json; charset=UTF-8",
@@ -459,18 +458,30 @@ function Label(params) {
     return self;
 }
 
+// Set up a global cache for icon images.
+if (!window.labelIconCache) {
+    window.labelIconCache = {};
+}
+
 // There is a static rendering method for a label, allowing us to draw labels in the tutorial with no interactions.
 Label.renderLabelIcon = function(ctx, labelType, x, y) {
-    var imageObj, imageHeight, imageWidth, imageX, imageY;
-    imageObj = new Image();
+    var imageHeight, imageWidth;
     imageHeight = imageWidth = 2 * svl.LABEL_ICON_RADIUS - 3;
-    imageX = x - svl.LABEL_ICON_RADIUS + 2;
-    imageY = y - svl.LABEL_ICON_RADIUS + 2;
-    imageObj.src = util.misc.getIconImagePaths(labelType).iconImagePath;
-    try {
-        ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-    } catch (e) {
-        console.debug(e);
+    var imageX = x - svl.LABEL_ICON_RADIUS + 2;
+    var imageY = y - svl.LABEL_ICON_RADIUS + 2;
+    var iconPath = util.misc.getIconImagePaths(labelType).iconImagePath;
+
+    // Check if we already have this image in cache, then draw the label icon.
+    if (window.labelIconCache[iconPath]) {
+        ctx.drawImage(window.labelIconCache[iconPath], imageX, imageY, imageHeight, imageWidth);
+    } else {
+        // Load, cache, and draw the image.
+        var imageObj = new Image();
+        imageObj.src = iconPath;
+        imageObj.onload = function() {
+            window.labelIconCache[iconPath] = imageObj;
+            ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+        };
     }
 
     // Draws label outline.

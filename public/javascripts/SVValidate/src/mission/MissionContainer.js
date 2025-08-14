@@ -68,8 +68,7 @@ function MissionContainer () {
             missionId : missionMetadata.mission_id,
             missionType : missionMetadata.mission_type,
             unsureCount: progressMetadata.unsure_count,
-            skipped : missionMetadata.skipped,
-            pay: missionMetadata.pay
+            skipped : missionMetadata.skipped
         };
         let mission = new Mission(metadata);
         addAMission(mission);

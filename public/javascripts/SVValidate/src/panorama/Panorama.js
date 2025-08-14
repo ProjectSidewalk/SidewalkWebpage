@@ -12,8 +12,8 @@ function Panorama (label) {
         canvasId: 'svv-panorama',
         panoId: undefined,
         prevPanoId: undefined,
-        prevSetPanoTimestamp: new Date().getTime(),
-        validationTimestamp: new Date().getTime()
+        prevSetPanoTimestamp: new Date(),
+        validationTimestamp: new Date()
     };
 
     let panoCanvas = document.getElementById(properties.canvasId);
@@ -60,7 +60,7 @@ function Panorama (label) {
             panorama.set('motionTracking', false);
             panorama.set('motionTrackingControl', false);
             panorama.set('navigationControl', false);
-            panorama.set('panControl', false); 
+            panorama.set('panControl', false);
             panorama.set('showRoadLabels', false);
             panorama.set('cameraControl', false);
             panorama.set('zoomControl', false);
@@ -200,7 +200,7 @@ function Panorama (label) {
                     // Save the current panorama's history.
                     var panoHist = {};
                     panoHist.curr_pano_id = panorama.getPano();
-                    panoHist.pano_history_saved = new Date().getTime();
+                    panoHist.pano_history_saved = new Date();
                     panoHist.history = data.time.map((oldPano) => {
                         return { pano_id: oldPano.pano, date: moment(oldPano.Gw).format('YYYY-MM') };
                     });
@@ -221,7 +221,7 @@ function Panorama (label) {
                                 }
                             }, 100);
 
-                        } 
+                        }
                     }
                 } else {
                     console.error("Error retrieving Panoramas: " + status);
@@ -296,7 +296,7 @@ function Panorama (label) {
         setProperty("panoId", panoId);
         setProperty("prevPanoId", panoId);
         panorama.setPano(panoId);
-        setProperty("prevSetPanoTimestamp", new Date().getTime());
+        setProperty("prevSetPanoTimestamp", new Date());
         return this;
     }
 
@@ -307,12 +307,12 @@ function Panorama (label) {
     function setLabel(label) {
         lastLabel = currentLabel;
         currentLabel = label;
-        currentLabel.setProperty('startTimestamp', new Date().getTime());
+        currentLabel.setProperty('startTimestamp', new Date());
         svv.statusField.updateLabelText(currentLabel.getAuditProperty('labelType'));
         svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
         setPanorama(label.getAuditProperty('gsvPanoramaId'));
         svv.labelDescriptionBox.setDescription(label);
-        if (svv.newValidateBeta) svv.rightMenu.resetMenu(label);
+        if (svv.expertValidate) svv.rightMenu.resetMenu(label);
         if (svv.adminVersion) svv.statusField.updateAdminInfo(currentLabel);
         renderLabel();
     }

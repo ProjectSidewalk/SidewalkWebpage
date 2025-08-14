@@ -93,7 +93,7 @@ if [ "$REVEAL_OR_HIDE" = "reveal" ]; then
 EOSQL
 
 # If hiding neighborhoods.
-else    
+else
     # Ask which regions to hide.
     regions_to_hide=$(prompt_with_default "Region IDs to hide (space-separated)")
 
@@ -145,7 +145,7 @@ EOSQL
 EOSQL
     echo "Wrote list of previously deleted streets in hidden neighborhoods to $output_file"
 
-    # Finally, hide the streets/regions and truncate the region_completion table.
+    # Finally, hide the streets/regions, remove any user_current_regions and truncate the region_completion table.
     psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT <<EOSQL
         BEGIN;
         UPDATE region
@@ -157,6 +157,8 @@ EOSQL
         FROM street_edge_region
         WHERE street_edge.street_edge_id = street_edge_region.street_edge_id
             AND street_edge_region.region_id IN (${regions_to_hide// /,});
+
+        DELETE FROM user_current_region WHERE region_id IN (${regions_to_hide// /,});
 
         DELETE FROM street_edge_priority
         USING street_edge

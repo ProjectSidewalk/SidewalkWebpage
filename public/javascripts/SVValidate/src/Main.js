@@ -8,20 +8,18 @@ var svv = svv || {};
  * @constructor
  */
 function Main (param) {
-    svv.newValidateBeta = param.newValidateBeta;
-    svv.adminVersion = param.adminVersion;
-    svv.adminLabelTypeId = param.adminLabelTypeId;
-    svv.adminUserIds = param.adminUserIds;
-    svv.adminNeighborhoodIds = param.adminNeighborhoodIds;
+    svv.expertValidate = param.expertValidate;
+    svv.adminVersion = param.validateParams.adminVersion;
+    svv.validateParams = param.validateParams;
     svv.missionLength = param.mission?.labels_validated ?? 0;
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
-    svv.missionsCompleted = param.missionSetProgress;
     svv.cityId = param.cityId;
     svv.cityName = param.cityName;
+    svv.missionsCompleted = 0;
 
     function _initUI() {
-        if (svv.newValidateBeta) {
+        if (svv.expertValidate) {
             svv.tagsByLabelType = {
                 'CurbRamp': param.tagList.filter(t => t.label_type_id === 1),
                 'NoCurbRamp': param.tagList.filter(t => t.label_type_id === 2),
@@ -41,29 +39,31 @@ function Main (param) {
         svv.ui.validation.buttons = $('button.validation-button');
         svv.ui.validation.comment = $("#validation-label-comment");
 
-        if (svv.newValidateBeta) {
-            svv.ui.newValidateBeta = {};
-            svv.ui.newValidateBeta.header = $("#main-validate-header");
+        if (svv.expertValidate) {
+            svv.ui.expertValidate = {};
+            svv.ui.expertValidate.header = $("#main-validate-header");
 
-            svv.ui.newValidateBeta.yesButton = $("#new-validate-beta-yes-button");
-            svv.ui.newValidateBeta.noButton = $("#new-validate-beta-no-button");
-            svv.ui.newValidateBeta.unsureButton = $("#new-validate-beta-unsure-button");
+            svv.ui.expertValidate.yesButton = $("#new-validate-beta-yes-button");
+            svv.ui.expertValidate.noButton = $("#new-validate-beta-no-button");
+            svv.ui.expertValidate.unsureButton = $("#new-validate-beta-unsure-button");
 
-            svv.ui.newValidateBeta.tagsMenu = $("#validate-tags-section");
-            svv.ui.newValidateBeta.severityMenu = $("#validate-severity-section");
-            svv.ui.newValidateBeta.optionalCommentSection = $("#validate-optional-comment-section");
-            svv.ui.newValidateBeta.optionalCommentTextBox = $("#add-optional-comment");
-            svv.ui.newValidateBeta.noMenu = $("#validate-why-no-section");
-            svv.ui.newValidateBeta.disagreeReasonOptions = $("#no-reason-options");
-            svv.ui.newValidateBeta.disagreeReasonTextBox = $("#add-disagree-comment")
-            svv.ui.newValidateBeta.unsureMenu = $("#validate-why-unsure-section");
-            svv.ui.newValidateBeta.unsureReasonOptions = $("#unsure-reason-options");
-            svv.ui.newValidateBeta.unsureReasonTextBox = $("#add-unsure-comment");
+            svv.ui.expertValidate.tagsMenu = $("#validate-tags-section");
+            svv.ui.expertValidate.severityMenu = $("#validate-severity-section");
+            svv.ui.expertValidate.optionalCommentSection = $("#validate-optional-comment-section");
+            svv.ui.expertValidate.optionalCommentTextBox = $("#add-optional-comment");
+            svv.ui.expertValidate.noMenu = $("#validate-why-no-section");
+            svv.ui.expertValidate.disagreeReasonOptions = $("#no-reason-options");
+            svv.ui.expertValidate.disagreeReasonTextBox = $("#add-disagree-comment")
+            svv.ui.expertValidate.unsureMenu = $("#validate-why-unsure-section");
+            svv.ui.expertValidate.unsureReasonOptions = $("#unsure-reason-options");
+            svv.ui.expertValidate.unsureReasonTextBox = $("#add-unsure-comment");
 
-            svv.ui.newValidateBeta.currentTags = $('#current-tags-list')
+            svv.ui.expertValidate.currentTags = $('#current-tags-list');
+            svv.ui.expertValidate.aiSuggestionSection = $('#sidewalk-ai-suggestions-block');
+            svv.ui.expertValidate.aiSuggestedTagTemplate = $('.sidewalk-ai-suggested-tag.template');
 
-            svv.ui.newValidateBeta.backButton = $("#new-validate-beta-back-button");
-            svv.ui.newValidateBeta.submitButton = $("#new-validate-beta-submit-button");
+            svv.ui.expertValidate.backButton = $("#new-validate-beta-back-button");
+            svv.ui.expertValidate.submitButton = $("#new-validate-beta-submit-button");
         }
 
         svv.ui.modal = {};
@@ -73,7 +73,7 @@ function Main (param) {
         svv.ui.skipValidation.skipButton = $("#left-column-jump-button");
 
         svv.ui.undoValidation = {};
-        svv.ui.undoValidation.undoButton = svv.newValidateBeta ? $("#new-validate-beta-back-button") : $("#left-column-undo-button");
+        svv.ui.undoValidation.undoButton = svv.expertValidate ? $("#new-validate-beta-back-button") : $("#left-column-undo-button");
 
         svv.ui.modalComment = {};
         svv.ui.modalComment.box = $("#modal-comment-box");
@@ -102,7 +102,6 @@ function Main (param) {
         svv.ui.modalMission.foreground = $("#modal-mission-foreground");
         svv.ui.modalMission.background = $("#modal-mission-background");
         svv.ui.modalMission.missionTitle = $("#modal-mission-header");
-        svv.ui.modalMission.rewardText = $("#modal-mission-reward-text");
         svv.ui.modalMission.instruction = $("#modal-mission-instruction");
         svv.ui.modalMission.closeButton = $("#modal-mission-close-button");
 
@@ -122,8 +121,6 @@ function Main (param) {
         svv.ui.status = {};
         svv.ui.status.labelCount = $("#status-neighborhood-label-count");
         svv.ui.status.missionDescription = $("#current-mission-description");
-        svv.ui.status.currentMissionReward = $("#current-mission-reward");
-        svv.ui.status.totalMissionReward = $("#total-mission-reward");
         svv.ui.status.progressBar = $("#status-current-mission-completion-bar");
         svv.ui.status.progressFiller = $("#status-current-mission-completion-bar-filler");
         svv.ui.status.progressText = $("#status-current-mission-completion-rate");
@@ -162,7 +159,7 @@ function Main (param) {
 
         const labelType = param.labelList[0].getAuditProperty('labelType');
 
-        if (svv.newValidateBeta) svv.rightMenu = new RightMenu(svv.ui.newValidateBeta);
+        if (svv.expertValidate) svv.rightMenu = new RightMenu(svv.ui.expertValidate);
         svv.util.properties.panorama = new PanoProperties();
 
         svv.form = new Form(param.dataStoreUrl, param.beaconDataStoreUrl);
@@ -180,8 +177,8 @@ function Main (param) {
         // There are certain features that will only make sense on desktop.
         if (!isMobile()) {
             svv.gsvOverlay = new GSVOverlay();
-            if (svv.newValidateBeta) {
-                svv.keyboard = new Keyboard(svv.ui.newValidateBeta);
+            if (svv.expertValidate) {
+                svv.keyboard = new Keyboard(svv.ui.expertValidate);
             } else {
                 svv.keyboard = new Keyboard(svv.ui.validation);
             }
@@ -258,32 +255,21 @@ function Main (param) {
         }
     }
 
-    // Gets all the text on the validation page for the correct language.
-    i18next.use(i18nextHttpBackend).init({
-        backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-        fallbackLng: 'en',
-        ns: ['validate', 'common'],
-        defaultNS: 'validate',
-        lng: param.language,
-        debug: false
-    }, function(err, t) {
-        if (param.init !== "noInit") {
-            defineValidateConstants();
-            _initUI();
+    // Finally, do the actual initialization of the UI and other components.
+    defineValidateConstants();
+    _initUI();
 
-            if (param.hasNextMission) {
-                _init();
-            } else {
-                if (svv.newValidateBeta) {
-                    svv.keyboard = new Keyboard(svv.ui.newValidateBeta);
-                } else {
-                    svv.keyboard = new Keyboard(svv.ui.validation);
-                }
-                svv.form = new Form(param.dataStoreUrl);
-                svv.tracker = new Tracker();
-                svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
-                svv.modalNoNewMission.show();
-            }
+    if (param.hasNextMission) {
+        _init();
+    } else {
+        if (svv.expertValidate) {
+            svv.keyboard = new Keyboard(svv.ui.expertValidate);
+        } else {
+            svv.keyboard = new Keyboard(svv.ui.validation);
         }
-    });
+        svv.form = new Form(param.dataStoreUrl);
+        svv.tracker = new Tracker();
+        svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
+        svv.modalNoNewMission.show();
+    }
 }

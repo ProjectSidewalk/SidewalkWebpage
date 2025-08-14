@@ -21,14 +21,8 @@ function Main (params) {
     svl.isOnboarding = function() {
         return params.mission.mission_type === 'auditOnboarding';
     };
-    svl.usingPredictionModel = function() {
-        return params.cityId === 'crowdstudy' && Cookies.get('SIDEWALK_STUDY_GROUP') === '2';
-    }
     svl.regionId = params.regionId;
-    svl.missionsCompleted = params.missionSetProgress;
 
-    // Ideally this should be declared in one place and all the callers should refer to that.
-    const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSideWalk', 'Crosswalk', 'Signal'];
     svl.LABEL_ICON_RADIUS = 17;
     svl.TUTORIAL_PANO_HEIGHT = 6656;
     svl.TUTORIAL_PANO_WIDTH = 13312;
@@ -48,6 +42,7 @@ function Main (params) {
     function _init (params) {
         params = params || {};
 
+        svl.missionsCompleted = 0; // Just since loading the page.
         svl.userHasCompletedAMission = params.hasCompletedAMission;
         svl.routeId = params.routeId;
         svl.userRouteId = params.userRouteId;
@@ -55,9 +50,6 @@ function Main (params) {
         svl.cityName = params.cityName;
         svl.cityNameShort = params.cityNameShort;
         svl.makeCrops = params.makeCrops;
-        if (svl.usingPredictionModel()) {
-            svl.predictionModel = new PredictionModel();
-        }
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
@@ -137,7 +129,8 @@ function Main (params) {
         } else {
             svl.tracker.initTaskId();
         }
-        svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
+        svl.popUpMessage = new PopUpMessage(svl.form, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
+        svl.aiGuidance = new AiGuidance(svl.tracker, svl.popUpMessage);
 
         // Logs when the page's focus changes.
         function logPageFocus() {
@@ -156,7 +149,7 @@ function Main (params) {
         logPageFocus();
 
         // Modals
-        var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
+        var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete, params.mapboxApiKey);
         var modalMissionCompleteProgressBar = new ModalMissionCompleteProgressBar(svl.ui.modalMissionComplete);
         svl.modalMissionComplete = new ModalMissionComplete(svl, svl.missionContainer, svl.missionModel,
             svl.taskContainer, modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete,
@@ -310,15 +303,18 @@ function Main (params) {
 
     function startTheMission(mission, neighborhood) {
         svl.ui.minimap.holder.css('backgroundColor', '#e5e3df');
-        if(params.init !== "noInit") {
-            // Popup the message explaining the goal of the current mission.
-            if (svl.missionContainer.isTheFirstMission()) {
-                neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-                svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map, svl.popUpMessage,
-                    svl.taskContainer, svl.labelContainer, svl.tracker);
-                svl.initialMissionInstruction.start(neighborhood);
-            }
+
+        // Popup the message explaining the goal of the current mission.
+        if (svl.missionContainer.isTheFirstMission()) {
+            neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+            svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map, svl.popUpMessage,
+                svl.taskContainer, svl.labelContainer, svl.aiGuidance, svl.tracker);
+            svl.initialMissionInstruction.start(neighborhood);
+        } else {
+            // Show AI guidance message for the first street. Handled by InitialMissionInstruction if 1st mission.
+            svl.aiGuidance.showAiGuidanceMessage();
         }
+
         svl.missionModel.updateMissionProgress(mission, neighborhood);
         svl.statusFieldMission.setMessage(mission);
 
@@ -373,7 +369,8 @@ function Main (params) {
 
                 // Initialize explore mission screens focused on a randomized label type, though users can switch between them.
                 var currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-                const labelType = LABEL_TYPES[Math.floor(Math.random() * LABEL_TYPES.length)];
+                const potentialLabelTypes = util.misc.PRIMARY_LABEL_TYPES;
+                const labelType = potentialLabelTypes[Math.floor(Math.random() * potentialLabelTypes.length)];
                 const missionStartTutorial = new MissionStartTutorial('audit', labelType, {
                     nLength: svl.missionContainer.getCurrentMission().getDistance("miles"),
                     neighborhood: currentNeighborhood.getProperty('name')
@@ -392,7 +389,7 @@ function Main (params) {
     }
 
     function _calculateAndSetTasksMissionsOffset() {
-        var completedTasksDistance = util.math.kilometersToMeters(svl.taskContainer.getCompletedTaskDistance({ units: 'kilometers' }));
+        var completedTasksDistance = util.math.kmsToMeters(svl.taskContainer.getCompletedTaskDistance({ units: 'kilometers' }));
         var completedMissionsDistance = svl.missionContainer.getCompletedMissionDistance();
         var curMission = svl.missionContainer.getCurrentMission();
         var missProgress = curMission.getProperty("distanceProgress") ? curMission.getProperty("distanceProgress") : 0;
@@ -454,8 +451,6 @@ function Main (params) {
         svl.ui.status.neighborhoodLabelCount = $("#status-neighborhood-label-count");
         svl.ui.status.currentMissionHeader = $("#current-mission-header");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
-        svl.ui.status.currentMissionReward = $("#current-mission-reward");
-        svl.ui.status.totalMissionReward = $("#total-mission-reward");
         svl.ui.status.auditedDistance = $("#status-audited-distance");
 
         // MissionDescription DOMs.
@@ -528,7 +523,6 @@ function Main (params) {
         svl.ui.modalMissionComplete.otherCount = $("#modal-mission-complete-other-count");
         svl.ui.modalMissionComplete.progressTitle = $("#modal-mission-complete-progress-title");
         svl.ui.modalMissionComplete.completeBar = $("#modal-mission-complete-complete-bar");
-        svl.ui.modalMissionComplete.missionReward = $("#modal-mission-complete-mission-reward");
         svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
         svl.ui.modalMissionComplete.progressYou = $("#modal-mission-complete-progress-you");
         svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
@@ -536,7 +530,6 @@ function Main (params) {
         svl.ui.modalMissionComplete.othersAuditedDistance = $("#modal-mission-complete-others-distance");
         svl.ui.modalMissionComplete.progressRemaining = $("#modal-mission-complete-progress-remaining");
         svl.ui.modalMissionComplete.remainingDistance = $("#modal-mission-complete-remaining-distance");
-        svl.ui.modalMissionComplete.generateConfirmationButton = $("#modal-mission-complete-generate-confirmation-button").get(0);
         svl.ui.modalMissionComplete.closeButtonPrimary = $("#modal-mission-complete-close-button-primary");
         svl.ui.modalMissionComplete.closeButtonSecondary = $("#modal-mission-complete-close-button-secondary");
 
@@ -593,18 +586,10 @@ function Main (params) {
     }
 
     // Gets all the text on the explore page for the correct language.
-    i18next.use(i18nextHttpBackend).init({
-        backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-        fallbackLng: 'en',
-        ns: ['audit', 'common'],
-        defaultNS: 'audit',
-        lng: params.language,
-        debug: false
-    }, function(err, t) {
-        if(params.init !== "noInit") {
-            _initUI();
-            _init(params);
-        }
+    // TODO this should really happen in explore.scala.html before we call Main().
+    window.appManager.ready(function() {
+        _initUI();
+        _init(params);
     });
 
     self.loadData = loadData;

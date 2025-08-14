@@ -1,32 +1,31 @@
-@import models.user.User
-@import models.daos.slick._
-@import models.audit._
-@import models.label._
-@import models.audit.AuditTaskCommentTable
-@import models.utils.DataFormatter
-@import models.user.TeamTable
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
-@main(title) {
-    @navbar(user, Some("/admin"))
+@currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
+
+@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap")) {
+    @common.navbar(commonData, Some(user))
     <div id="page-loading">
-        <div id="loading-gif">
+        <div id="loading-animation">
             <p class="loading-text">@Messages("loading")</p>
-            <img src='@routes.Assets.at("images/project_sidewalk_page_load.gif")' title='@Messages("loading")'/>
+            <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' title='@Messages("loading")'/>
         </div>
     </div>
     <div id="admin-page-container" class="container" style="visibility: hidden">
         <div id="row">
             <div class="col-lg-2">
-            <ul class="nav nav-pills nav-stacked">
-                <li class="active"><a href="#tabs-1"data-toggle="pill" id="overview">Overview</a></li>
-                <li><a href="#tabs-2" data-toggle="pill" id="visualization">Map</a></li>
-                <li><a href="#tabs-3" data-toggle="pill" id="analytics">Analytics</a></li>
-                <li><a href="#tabs-4" data-toggle="pill" id="contributions">Contributions</a></li>
-                <li><a href="#tabs-5" data-toggle="pill" id="users">Users</a></li>
-                <li><a href="#tabs-6" data-toggle="pill" id="label-search">Label Search</a></li>
-                <li><a href="#tabs-7" data-toggle="pill" id="teams">Teams</a></li>
-            </ul>
+                <ul class="nav nav-pills nav-stacked">
+                    <li class="active"><a href="#tabs-1" data-toggle="pill" id="overview">Overview</a></li>
+                    <li><a href="#tabs-2" data-toggle="pill" id="visualization">Map</a></li>
+                    <li><a href="#tabs-3" data-toggle="pill" id="analytics">Analytics</a></li>
+                    <li><a href="#tabs-4" data-toggle="pill" id="labels">Labels</a></li>
+                    <li><a href="#tabs-5" data-toggle="pill" id="users">Users</a></li>
+                    <li><a href="#tabs-6" data-toggle="pill" id="label-search">Label Search</a></li>
+                    <li><a href="#tabs-7" data-toggle="pill" id="teams">Teams</a></li>
+                </ul>
             </div>
             <div class="col-lg-10">
                 <div class="tab-content">
@@ -38,207 +37,322 @@
                             <table class="table table-striped table-condensed">
                                 <tr>
                                     <th></th>
-                                    <th>Overall<sup>*</sup></th>
+                                    <th>Overall</th>
                                     <th>Today</th>
                                     <th>Past Week</th>
                                 </tr>
                                 <tr>
-                                    <th>Total Users</th>
-                                    <th>@UserDAOSlick.countAllUsersContributed("all time", false, false) (@UserDAOSlick.countAllUsersContributed("all time", true, false))</th>
-                                    <th>@UserDAOSlick.countAllUsersContributed("today", false, false) (@UserDAOSlick.countAllUsersContributed("today", true, false))</th>
-                                    <th>@UserDAOSlick.countAllUsersContributed("week", false, false) (@UserDAOSlick.countAllUsersContributed("week", true, false))</th>
+                                    <th>Total Users<sup>*</sup></th>
+                                    <th>
+                                        <span id="user-count-combined-all-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-combined-all-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-combined-all-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-combined-all-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-combined-all-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-combined-all-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr>
                                     <th>Total Auditing Time</th>
-                                    <th>@{AuditTaskInteractionTable.calculateTimeAuditing("all time").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
-                                    <th>@{AuditTaskInteractionTable.calculateTimeAuditing("today").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
-                                    <th>@{AuditTaskInteractionTable.calculateTimeAuditing("week").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
-                                </tr>
+                                    <th id="time-explore_total-all_time"></th>
+                                    <th id="time-explore_total-today"></th>
+                                    <th id="time-explore_total-week"></th>
                                 </tr>
                                 <tr>
                                     <th>Total Validating Time</th>
-                                    <th>@{AuditTaskInteractionTable.calculateTimeValidating("all time").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
-                                    <th>@{AuditTaskInteractionTable.calculateTimeValidating("today").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
-                                    <th>@{AuditTaskInteractionTable.calculateTimeValidating("week").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
+                                    <th id="time-validate_total-all_time"></th>
+                                    <th id="time-validate_total-today"></th>
+                                    <th id="time-validate_total-week"></th>
                                 </tr>
                                 <tr>
                                     <th>Avg Auditing Time / 100m </th>
-                                    <th>@{AuditTaskInteractionTable.calculateMedianAuditingTime("all time").map(value => f"$value%.2f min").getOrElse("NA")}</th>
-                                    <th>@{AuditTaskInteractionTable.calculateMedianAuditingTime("today").map(value => f"$value%.2f min").getOrElse("NA")}</th>
-                                    <th>@{AuditTaskInteractionTable.calculateMedianAuditingTime("week").map(value => f"$value%.2f min").getOrElse("NA")}</th>
+                                    <th id="time-explore_per_100m-all_time"></th>
+                                    <th id="time-explore_per_100m-today"></th>
+                                    <th id="time-explore_per_100m-week"></th>
                                 </tr>
                                 <tr>
-                                    <th>Total Users (High Quality)</th>
-                                    <th>@UserDAOSlick.countAllUsersContributed("all time", false, true) (@UserDAOSlick.countAllUsersContributed("all time", true, true))</th>
-                                    <th>@UserDAOSlick.countAllUsersContributed("today", false, true) (@UserDAOSlick.countAllUsersContributed("today", true, true))</th>
-                                    <th>@UserDAOSlick.countAllUsersContributed("week", false, true) (@UserDAOSlick.countAllUsersContributed("week", true, true))</th>
+                                    <th>Total Users (High Quality)<sup>*</sup></th>
+                                    <th>
+                                        <span id="user-count-combined-all-all_time-no_task_constraint-high_quality"></span>
+                                        (<span id="user-count-combined-all-all_time-task_completed-high_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-combined-all-today-no_task_constraint-high_quality"></span>
+                                        (<span id="user-count-combined-all-today-task_completed-high_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-combined-all-week-no_task_constraint-high_quality"></span>
+                                        (<span id="user-count-combined-all-week-task_completed-high_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr>
-                                    <th>Total Explore Users</th>
-                                    <th>@UserDAOSlick.countAllAuditUsersContributed(false) (@UserDAOSlick.countAllAuditUsersContributed(true))</th>
-                                    <th>@UserDAOSlick.countAllAuditUsersContributedToday</th>
-                                    <th>@UserDAOSlick.countAllAuditUsersContributedPastWeek</th>
+                                    <th>Total Explore Users<sup>*</sup></th>
+                                    <th>
+                                        <span id="user-count-explore-all-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-all-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-all-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-all-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-all-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-all-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Registered</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributed(List("Registered"), false) (@UserDAOSlick.countAuditUsersContributed(List("Registered"), true))</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributedToday("Registered")</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributedPastWeek("Registered")</td>
+                                    <th>
+                                        <span id="user-count-explore-registered-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-registered-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-registered-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-registered-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-registered-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-registered-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Anonymous</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributed(List("Anonymous"), false) (@UserDAOSlick.countAuditUsersContributed(List("Anonymous"), true))</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributedToday("Anonymous")</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributedPastWeek("Anonymous")</td>
+                                    <th>
+                                        <span id="user-count-explore-anonymous-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-anonymous-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-anonymous-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-anonymous-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-anonymous-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-anonymous-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Turkers</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributed(List("Turker"), false) (@UserDAOSlick.countAuditUsersContributed(List("Turker"), true))</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributedToday("Turker")</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributedPastWeek("Turker")</td>
+                                    <th>
+                                        <span id="user-count-explore-turker-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-turker-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-turker-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-turker-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-turker-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-turker-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Researchers</td>
-                                    <td>@UserDAOSlick.countAuditResearchersContributed(false) (@UserDAOSlick.countAuditResearchersContributed(true))</td>
-                                    <td>@UserDAOSlick.countAuditResearchersContributedToday</td>
-                                    <td>@UserDAOSlick.countAuditResearchersContributedPastWeek</td>
+                                    <th>
+                                        <span id="user-count-explore-researcher-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-researcher-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-researcher-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-researcher-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-researcher-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-researcher-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
 
                                 <tr>
                                     <th>Total Labels</th>
-                                    <th>@LabelTable.countLabels</th>
-                                    <th>@LabelTable.countTodayLabels</th>
-                                    <th>@LabelTable.countPastWeekLabels</th>
+                                    <th id="label-count-All-all_time"></th>
+                                    <th id="label-count-All-today"></th>
+                                    <th id="label-count-All-week"></th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">@Messages("curb.ramp")</td>
-                                    <td>@LabelTable.countLabels("CurbRamp")</td>
-                                    <td>@LabelTable.countTodayLabels("CurbRamp")</td>
-                                    <td>@LabelTable.countPastWeekLabels("CurbRamp")</td>
+                                    <td id="label-count-CurbRamp-all_time"></td>
+                                    <td id="label-count-CurbRamp-today"></td>
+                                    <td id="label-count-CurbRamp-week"></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">@Messages("missing.ramp")</td>
-                                    <td>@LabelTable.countLabels("NoCurbRamp")</td>
-                                    <td>@LabelTable.countTodayLabels("NoCurbRamp")</td>
-                                    <td>@LabelTable.countPastWeekLabels("NoCurbRamp")</td>
+                                    <td id="label-count-NoCurbRamp-all_time"></td>
+                                    <td id="label-count-NoCurbRamp-today"></td>
+                                    <td id="label-count-NoCurbRamp-week"></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">@Messages("obstacle")</td>
-                                    <td>@LabelTable.countLabels("Obstacle")</td>
-                                    <td>@LabelTable.countTodayLabels("Obstacle")</td>
-                                    <td>@LabelTable.countPastWeekLabels("Obstacle")</td>
+                                    <td id="label-count-Obstacle-all_time"></td>
+                                    <td id="label-count-Obstacle-today"></td>
+                                    <td id="label-count-Obstacle-week"></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">@Messages("surface.problem")</td>
-                                    <td>@LabelTable.countLabels("SurfaceProblem")</td>
-                                    <td>@LabelTable.countTodayLabels("SurfaceProblem")</td>
-                                    <td>@LabelTable.countPastWeekLabels("SurfaceProblem")</td>
+                                    <td id="label-count-SurfaceProblem-all_time"></td>
+                                    <td id="label-count-SurfaceProblem-today"></td>
+                                    <td id="label-count-SurfaceProblem-week"></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">@Messages("no.sidewalk")</td>
-                                    <td>@LabelTable.countLabels("NoSidewalk")</td>
-                                    <td>@LabelTable.countTodayLabels("NoSidewalk")</td>
-                                    <td>@LabelTable.countPastWeekLabels("NoSidewalk")</td>
+                                    <td id="label-count-NoSidewalk-all_time"></td>
+                                    <td id="label-count-NoSidewalk-today"></td>
+                                    <td id="label-count-NoSidewalk-week"></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">@Messages("crosswalk")</td>
-                                    <td>@LabelTable.countLabels("Crosswalk")</td>
-                                    <td>@LabelTable.countTodayLabels("Crosswalk")</td>
-                                    <td>@LabelTable.countPastWeekLabels("Crosswalk")</td>
+                                    <td id="label-count-Crosswalk-all_time"></td>
+                                    <td id="label-count-Crosswalk-today"></td>
+                                    <td id="label-count-Crosswalk-week"></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">@Messages("signal")</td>
-                                    <td>@LabelTable.countLabels("Signal")</td>
-                                    <td>@LabelTable.countTodayLabels("Signal")</td>
-                                    <td>@LabelTable.countPastWeekLabels("Signal")</td>
+                                    <td id="label-count-Signal-all_time"></td>
+                                    <td id="label-count-Signal-today"></td>
+                                    <td id="label-count-Signal-week"></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">@Messages("other")</td>
-                                    <td>@LabelTable.countLabels("Other")</td>
-                                    <td>@LabelTable.countTodayLabels("Other")</td>
-                                    <td>@LabelTable.countPastWeekLabels("Other")</td>
+                                    <td id="label-count-Other-all_time"></td>
+                                    <td id="label-count-Other-today"></td>
+                                    <td id="label-count-Other-week"></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">@Messages("occlusion")</td>
-                                    <td>@LabelTable.countLabels("Occlusion")</td>
-                                    <td>@LabelTable.countTodayLabels("Occlusion")</td>
-                                    <td>@LabelTable.countPastWeekLabels("Occlusion")</td>
+                                    <td id="label-count-Occlusion-all_time"></td>
+                                    <td id="label-count-Occlusion-today"></td>
+                                    <td id="label-count-Occlusion-week"></td>
                                 </tr>
 
                                 <tr>
-                                    <th>Audits</th>
-                                    <th>@AuditTaskTable.countCompletedAudits</th>
-                                    <th>@AuditTaskTable.countCompletedAuditsToday</th>
-                                    <th>@AuditTaskTable.countCompletedAuditsPastWeek</th>
+                                    <th>Streets Explored</th>
+                                    <th id="explored-street-count-all-time"></th>
+                                    <th id="explored-street-count-today"></th>
+                                    <th id="explored-street-count-week"></th>
                                 </tr>
                                 <tr>
-                                    <th>Audited Distance</th>
+                                    <th>Distance Explored</th>
                                     <th><span id="audited-distance-all-time"></span></th>
                                     <th><span id="audited-distance-today"></span></th>
                                     <th><span id="audited-distance-week"></span></th>
                                 </tr>
                                 <tr>
-                                    <th>Total Validation Users</th>
-                                    <th>@UserDAOSlick.countAllValidationUsersContributed(false) (@UserDAOSlick.countAllValidationUsersContributed(true))</th>
-                                    <th>@UserDAOSlick.countAllValidationUsersContributedToday</th>
-                                    <th>@UserDAOSlick.countAllValidationUsersContributedPastWeek</th>
+                                    <th>Total Validation Users<sup>*</sup></th>
+                                    <th>
+                                        <span id="user-count-validate-all-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-all-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-all-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-all-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-all-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-all-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Registered</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributed(List("Registered"), false) (@UserDAOSlick.countValidationUsersContributed(List("Registered"), true))</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributedToday("Registered")</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributedPastWeek("Registered")</td>
+                                    <th>
+                                        <span id="user-count-validate-registered-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-registered-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-registered-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-registered-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-registered-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-registered-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Anonymous</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), false) (@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), true))</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributedToday("Anonymous")</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributedPastWeek("Anonymous")</td>
+                                    <th>
+                                        <span id="user-count-validate-anonymous-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-anonymous-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-anonymous-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-anonymous-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-anonymous-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-anonymous-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Turkers</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributed(List("Turker"), false) (@UserDAOSlick.countValidationUsersContributed(List("Turker"), true))</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributedToday("Turker")</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributedPastWeek("Turker")</td>
+                                    <th>
+                                        <span id="user-count-validate-turker-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-turker-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-turker-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-turker-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-turker-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-turker-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Researchers</td>
-                                    <td>@UserDAOSlick.countValidationResearchersContributed(false) (@UserDAOSlick.countValidationResearchersContributed(true))</td>
-                                    <td>@UserDAOSlick.countValidationResearchersContributedToday</td>
-                                    <td>@UserDAOSlick.countValidationResearchersContributedPastWeek</td>
+                                    <th>
+                                        <span id="user-count-validate-researcher-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-researcher-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-researcher-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-researcher-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-researcher-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-researcher-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
 
                                 <tr style="font-size: 90%;">
-                                    <th>Total Validations</th>
-                                    <th>@LabelValidationTable.countValidations</th>
-                                    <th>@LabelValidationTable.countTodayValidations</th>
-                                    <th>@LabelValidationTable.countPastWeekValidations</th>
+                                    <th>Total Validations<sup>**</sup></th>
+                                    <th id="val-count-All-all_time"></th>
+                                    <th id="val-count-All-today"></th>
+                                    <th id="val-count-All-week"></th>
                                 </tr>
 
                                 <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Agreed</td>
-                                    <td>@LabelValidationTable.countValidationsByResult(1) (@("%.0f".format(LabelValidationTable.countValidationsByResult(1) * 100.0 / LabelValidationTable.countValidations))%)</td>
-                                    <td>@LabelValidationTable.countTodayValidationsByResult(1) (@("%.0f".format(LabelValidationTable.countTodayValidationsByResult(1) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
-                                    <td>@LabelValidationTable.countPastWeekValidationsByResult(1) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsByResult(1) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
+                                    <td style="padding-left: 30px">Agree</td>
+                                    <td id="val-count-Agree-all_time"></td>
+                                    <td id="val-count-Agree-today"></td>
+                                    <td id="val-count-Agree-week"></td>
                                 </tr>
 
                                 <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Disagreed</td>
-                                    <td>@LabelValidationTable.countValidationsByResult(2) (@("%.0f".format(LabelValidationTable.countValidationsByResult(2) * 100.0 / LabelValidationTable.countValidations))%)</td>
-                                    <td>@LabelValidationTable.countTodayValidationsByResult(2) (@("%.0f".format(LabelValidationTable.countTodayValidationsByResult(2) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
-                                    <td>@LabelValidationTable.countPastWeekValidationsByResult(2) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsByResult(2) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
+                                    <td style="padding-left: 30px">Disagree</td>
+                                    <td id="val-count-Disagree-all_time"></td>
+                                    <td id="val-count-Disagree-today"></td>
+                                    <td id="val-count-Disagree-week"></td>
                                 </tr>
 
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">@Messages("unsure.caps")</td>
-                                    <td>@LabelValidationTable.countValidationsByResult(3) (@("%.0f".format(LabelValidationTable.countValidationsByResult(3) * 100.0 / LabelValidationTable.countValidations))%)</td>
-                                    <td>@LabelValidationTable.countTodayValidationsByResult(3) (@("%.0f".format(LabelValidationTable.countTodayValidationsByResult(3) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
-                                    <td>@LabelValidationTable.countPastWeekValidationsByResult(3) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsByResult(3) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
+                                    <td id="val-count-Unsure-all_time"></td>
+                                    <td id="val-count-Unsure-today"></td>
+                                    <td id="val-count-Unsure-week"></td>
                                 </tr>
                             </table>
-                            <sup>*</sup>For cells with the format X (Y). The "Y" is the number of users who have completed
-                            at least 1 audit task or have validated at least one label. The X is the total number of users
-                            who opened the audit or validation tool regardless of finishing a task.
+                            <p>
+                                <sup>*</sup>For cells with the format X (Y). The "Y" is the number of users who have
+                                completed at least 1 audit task or have validated at least one label. The X is the total
+                                number of users who opened the audit or validation tool regardless of finishing a task.
+                                number of users who opened the audit or validation tool regardless of finishing a task.
+                            </p>
+
+                            <p>
+                                <sup>**</sup>These include AI validations. For a breakdown of human vs AI validations,
+                                see the Analytics tab.
+                            </p>
                         </div>
                         <div class="col-lg-6">
                             <h1>Coverage</h1>
@@ -322,32 +436,16 @@
                         <h1>Comments</h1>
                         <div class="col-lg-12">
                             <p>Last 100 comments</p>
-                            <table id="comments-table" data-order='[[ 1, "desc" ]]'
-                                class="table table-striped table-condensed">
+                            <table id="comments-table" class="table table-striped table-condensed">
                                 <thead>
-                                <tr>
-                                    <th class="col-md-2">Username</th>
-                                    <th class="col-md-3" data-class-name="priority">Timestamp</th>
-                                    <th class="col-md-2">Panorama Id</th>
-                                    <th class="col-md-1">Interface</th>
-                                    <th class="col-md-4">Comment</th>
-                                </tr>
+                                    <tr>
+                                        <th class="col-md-2">Username</th>
+                                        <th class="col-md-3" data-type="date">Timestamp</th>
+                                        <th class="col-md-2">Panorama Id</th>
+                                        <th class="col-md-1">Interface</th>
+                                        <th class="col-md-4">Comment</th>
+                                    </tr>
                                 </thead>
-                                <tbody>
-                                @AuditTaskCommentTable.takeRightAuditAndValidationComments(100).map { comment =>
-                                <tr>
-                                    <td><a href='@routes.AdminController.userProfile(comment.username)'>@comment.username</a>
-                                    </td>
-                                    <td class = 'timestamp'>@comment.timestamp</td>
-                                    <td>
-                                        <a class="show-comment-location" href="#"
-                                        data-heading="@comment.heading" data-pitch="@comment.pitch" data-zoom="@comment.zoom" data-label-id="@comment.labelId">@comment.gsvPanoramaId</a>
-                                    </td>
-                                    <td>@comment.commentType</td>
-                                    <td>@comment.comment</td>
-                                </tr>
-                                }
-                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -428,22 +526,22 @@
                                             <td><input type="checkbox" id="Occlusion-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")'></td>
+                                            <td id="map-legend-correct"><img src='@assets.path("javascripts/SVValidate/img/Checkmark.png")'></td>
                                             <td>@Messages("validated.correct")</td>
                                             <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")'></td>
+                                            <td id="map-legend-incorrect"><img src='@assets.path("javascripts/SVValidate/img/Cross.png")'></td>
                                             <td>@Messages("validated.incorrect")</td>
                                             <td><input type="checkbox" id="incorrect" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-unsure"><img src='@routes.Assets.at("images/icons/QuestionMark.png")'></td>
+                                            <td id="map-legend-unsure"><img src='@assets.path("images/icons/QuestionMark.png")'></td>
                                             <td>@Messages("unsure.caps")</td>
                                             <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")'></td>
+                                            <td id="map-legend-unvalidated"><img src='@assets.path("images/icons/ExclamationMark.png")'></td>
                                             <td>@Messages("unvalidated")</td>
                                             <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
@@ -541,7 +639,7 @@
                                     <span>Average (obstacle): </span><span id="obstacle-mean"></span><br>
                                     <span>Average (surface problem): </span><span id="surface-mean"></span><br>
                                     <span>Average (no sidewalk): </span><span id="no-sidewalk-mean"></span><br>
-                                    <span>Average (crosswalk): </span><span id="crosswalk-mean"></span><br>
+                                    <span>Average (marked crosswalk): </span><span id="crosswalk-mean"></span><br>
                                     <span>Average (all label types): </span><span id="labels-mean"></span><br>
                                 </p>
                                 <p>
@@ -550,7 +648,7 @@
                                     <span>Standard Deviation (obstacle): </span><span id="obstacle-std"></span><br>
                                     <span>Standard Deviation (surface problem): </span><span id="surface-std"></span><br>
                                     <span>Standard Deviation (no sidewalk): </span><span id="no-sidewalk-std"></span><br>
-                                    <span>Standard Deviation (crosswalk): </span><span id="crosswalk-std"></span><br>
+                                    <span>Standard Deviation (marked crosswalk): </span><span id="crosswalk-std"></span><br>
                                     <span>Standard Deviation (all label types): </span><span id="labels-std"></span><br>
                                 </p>
                             </div>
@@ -610,36 +708,6 @@
                         </div>
                         <label><input type="checkbox" id="login-count-include-researchers-checkbox"> Include researchers</label>
 
-                        <h2>How users access Explore Page from Landing Page:</h2>
-                        <div class="col-lg-12 col-md-4" style="align:left">
-                            <table class="table table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th style="text-align: right;">Activity</th>
-                                        <th style="text-align: right;">Number</th>
-                                        <th style="text-align: right;">Percentage of ExploreVisitors(%)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr id="audit-access-table-start-main">
-                                        <td style="text-align: right;">Click <i>Start Exploring (Main)</i></td>
-                                    </tr>
-                                    <tr id="audit-access-table-start-nav">
-                                        <td style="text-align: right;">Click <i>Start Exploring (Navbar)</i></td>
-                                    </tr>
-                                    <tr id="audit-access-table-choro">
-                                        <td style="text-align: right;">Click Via Choropleth</td>
-                                    </tr>
-                                    <tr id="audit-access-table-turker">
-                                        <td style="text-align: right;">Turker Redirect</td>
-                                    </tr>
-                                    <tr id="audit-access-table-total">
-                                        <td style="text-align: right;">Total <i>(Visit Audit)</i></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
                         <h2 class="d-block">User Performance (validation agreement)</h2>
                         <div class="col-lg-12">
                             <p>
@@ -677,71 +745,136 @@
                         <div class="row">
                             <div class="col-lg-23">
                                 <h1>Validations Per Label Type</h1>
+                                <p>
+                                    Breaks down validations by label type, yes/no/unsure, and whether the validation
+                                    came from a human (H) or AI (AI) or either.
+                                </p>
                                 <table class="table table-striped table-condensed">
                                     <tr>
                                         <th></th>
-                                        <th>Total</th>
-                                        <th>Agreed</th>
-                                        <th>Disagreed</th>
-                                        <th>Unsure</th>
+                                        <th>Yes</th>
+                                        <th>Yes (H)</th>
+                                        <th>Yes (AI)</th>
+                                        <th>No</th>
+                                        <th>No (H)</th>
+                                        <th>No (AI)</th>
+                                        <th>Unsure (H)<sup>*</sup></th>
+                                        <th>Count</th>
+                                        <th>Count (H)</th>
+                                        <th>Count (AI)</th>
                                     </tr>
                                     <tr>
                                         <th>Overall</th>
-                                        <th>@LabelValidationTable.countValidations</th>
-                                        <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1) * 100.0 / LabelValidationTable.countValidations)))%</th>
-                                        <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2) * 100.0 / LabelValidationTable.countValidations)))%</th>
-                                        <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3) * 100.0 / LabelValidationTable.countValidations)))%</th>
+                                        <td id="val-count-All-Agree-Both"></td>
+                                        <td id="val-count-All-Agree-Human"></td>
+                                        <td id="val-count-All-Agree-AI"></td>
+                                        <td id="val-count-All-Disagree-Both"></td>
+                                        <td id="val-count-All-Disagree-Human"></td>
+                                        <td id="val-count-All-Disagree-AI"></td>
+                                        <td id="val-count-All-Unsure-Human"></td>
+                                        <td id="val-count-All-All-Both"></td>
+                                        <td id="val-count-All-All-Human"></td>
+                                        <td id="val-count-All-All-AI"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("curb.ramp")</td>
-                                        <td>@LabelValidationTable.countValidations("CurbRamp")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "CurbRamp") * 100.0 / LabelValidationTable.countValidations("CurbRamp"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "CurbRamp") * 100.0 / LabelValidationTable.countValidations("CurbRamp"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "CurbRamp") * 100.0 / LabelValidationTable.countValidations("CurbRamp"))))%</td>
+                                        <td id="val-count-CurbRamp-Agree-Both"></td>
+                                        <td id="val-count-CurbRamp-Agree-Human"></td>
+                                        <td id="val-count-CurbRamp-Agree-AI"></td>
+                                        <td id="val-count-CurbRamp-Disagree-Both"></td>
+                                        <td id="val-count-CurbRamp-Disagree-Human"></td>
+                                        <td id="val-count-CurbRamp-Disagree-AI"></td>
+                                        <td id="val-count-CurbRamp-Unsure-Human"></td>
+                                        <td id="val-count-CurbRamp-All-Both"></td>
+                                        <td id="val-count-CurbRamp-All-Human"></td>
+                                        <td id="val-count-CurbRamp-All-AI"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("missing.ramp")</td>
-                                        <td>@LabelValidationTable.countValidations("NoCurbRamp")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidations("NoCurbRamp"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidations("NoCurbRamp"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidations("NoCurbRamp"))))%</td>
+                                        <td id="val-count-NoCurbRamp-Agree-Both"></td>
+                                        <td id="val-count-NoCurbRamp-Agree-Human"></td>
+                                        <td id="val-count-NoCurbRamp-Agree-AI"></td>
+                                        <td id="val-count-NoCurbRamp-Disagree-Both"></td>
+                                        <td id="val-count-NoCurbRamp-Disagree-Human"></td>
+                                        <td id="val-count-NoCurbRamp-Disagree-AI"></td>
+                                        <td id="val-count-NoCurbRamp-Unsure-Human"></td>
+                                        <td id="val-count-NoCurbRamp-All-Both"></td>
+                                        <td id="val-count-NoCurbRamp-All-Human"></td>
+                                        <td id="val-count-NoCurbRamp-All-AI"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("obstacle")</td>
-                                        <td>@LabelValidationTable.countValidations("Obstacle")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Obstacle") * 100.0 / LabelValidationTable.countValidations("Obstacle"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Obstacle") * 100.0 / LabelValidationTable.countValidations("Obstacle"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Obstacle") * 100.0 / LabelValidationTable.countValidations("Obstacle"))))%</td>
+                                        <td id="val-count-Obstacle-Agree-Both"></td>
+                                        <td id="val-count-Obstacle-Agree-Human"></td>
+                                        <td id="val-count-Obstacle-Agree-AI"></td>
+                                        <td id="val-count-Obstacle-Disagree-Both"></td>
+                                        <td id="val-count-Obstacle-Disagree-Human"></td>
+                                        <td id="val-count-Obstacle-Disagree-AI"></td>
+                                        <td id="val-count-Obstacle-Unsure-Human"></td>
+                                        <td id="val-count-Obstacle-All-Both"></td>
+                                        <td id="val-count-Obstacle-All-Human"></td>
+                                        <td id="val-count-Obstacle-All-AI"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("surface.problem")</td>
-                                        <td>@LabelValidationTable.countValidations("SurfaceProblem")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidations("SurfaceProblem"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidations("SurfaceProblem"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidations("SurfaceProblem"))))%</td>
+                                        <td id="val-count-SurfaceProblem-Agree-Both"></td>
+                                        <td id="val-count-SurfaceProblem-Agree-Human"></td>
+                                        <td id="val-count-SurfaceProblem-Agree-AI"></td>
+                                        <td id="val-count-SurfaceProblem-Disagree-Both"></td>
+                                        <td id="val-count-SurfaceProblem-Disagree-Human"></td>
+                                        <td id="val-count-SurfaceProblem-Disagree-AI"></td>
+                                        <td id="val-count-SurfaceProblem-Unsure-Human"></td>
+                                        <td id="val-count-SurfaceProblem-All-Both"></td>
+                                        <td id="val-count-SurfaceProblem-All-Human"></td>
+                                        <td id="val-count-SurfaceProblem-All-AI"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("no.sidewalk")</td>
-                                        <td>@LabelValidationTable.countValidations("NoSidewalk")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
+                                        <td id="val-count-NoSidewalk-Agree-Both"></td>
+                                        <td id="val-count-NoSidewalk-Agree-Human"></td>
+                                        <td id="val-count-NoSidewalk-Agree-AI"></td>
+                                        <td id="val-count-NoSidewalk-Disagree-Both"></td>
+                                        <td id="val-count-NoSidewalk-Disagree-Human"></td>
+                                        <td id="val-count-NoSidewalk-Disagree-AI"></td>
+                                        <td id="val-count-NoSidewalk-Unsure-Human"></td>
+                                        <td id="val-count-NoSidewalk-All-Both"></td>
+                                        <td id="val-count-NoSidewalk-All-Human"></td>
+                                        <td id="val-count-NoSidewalk-All-AI"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("crosswalk")</td>
-                                        <td>@LabelValidationTable.countValidations("Crosswalk")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
+                                        <td id="val-count-Crosswalk-Agree-Both"></td>
+                                        <td id="val-count-Crosswalk-Agree-Human"></td>
+                                        <td id="val-count-Crosswalk-Agree-AI"></td>
+                                        <td id="val-count-Crosswalk-Disagree-Both"></td>
+                                        <td id="val-count-Crosswalk-Disagree-Human"></td>
+                                        <td id="val-count-Crosswalk-Disagree-AI"></td>
+                                        <td id="val-count-Crosswalk-Unsure-Human"></td>
+                                        <td id="val-count-Crosswalk-All-Both"></td>
+                                        <td id="val-count-Crosswalk-All-Human"></td>
+                                        <td id="val-count-Crosswalk-All-AI"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("signal")</td>
-                                        <td>@LabelValidationTable.countValidations("Signal")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
+                                        <td id="val-count-Signal-Agree-Both"></td>
+                                        <td id="val-count-Signal-Agree-Human"></td>
+                                        <td id="val-count-Signal-Agree-AI"></td>
+                                        <td id="val-count-Signal-Disagree-Both"></td>
+                                        <td id="val-count-Signal-Disagree-Human"></td>
+                                        <td id="val-count-Signal-Disagree-AI"></td>
+                                        <td id="val-count-Signal-Unsure-Human"></td>
+                                        <td id="val-count-Signal-All-Both"></td>
+                                        <td id="val-count-Signal-All-Human"></td>
+                                        <td id="val-count-Signal-All-AI"></td>
                                     </tr>
                                 </table>
+                                <p>
+                                    <sup>*</sup>We didn't include counts of times when the AI was unsure for the sake of speed.
+                                    The technical reason is that we don't store a "validation" if the AI is unsure right
+                                    now. Though we do have that information saved, so we could display that in this
+                                    table in the future. We could also decide to start storing "unsure" validations in
+                                    the same way that we do for human validation.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -751,43 +884,21 @@
                         <h1>Labels</h1>
                         <div class="col-lg-12">
                             <p>Recent labels</p>
-                            <table id="label-table" data-order='[[ 1, "desc" ]]' class="table table-striped table-condensed">
+                            <table id="label-table" class="table table-striped table-condensed">
                                 <thead>
-                                <tr>
-                                    <th class="col-md-1">Username</th>
-                                    <th class="col-md-1" data-class-name="priority">Timestamp</th>
-                                    <th class="col-md-1" style="min-width: 100px;">Label Type</th>
-                                    <th class="col-md-1">Severity</th>
-                                    <th class="col-md-1">Temp?</th>
-                                    <th class="col-md-3">Tags</th>
-                                    <th class="col-md-2">Description</th>
-                                    <th class="col-md-1">Agree</th>
-                                    <th class="col-md-1">Disagree</th>
-                                    <th class="col-md-1">Unsure</th>
-                                    <th class="col-md-1">GSV</th>
-                                </tr>
+                                    <tr>
+                                        <th class="col-md-1">Username</th>
+                                        <th class="col-md-1" data-type="date">Timestamp</th>
+                                        <th class="col-md-1" style="min-width: 100px;">Label Type</th>
+                                        <th class="col-md-1">Severity</th>
+                                        <th class="col-md-2">Tags</th>
+                                        <th class="col-md-2">Description</th>
+                                        <th class="col-md-1">Agree</th>
+                                        <th class="col-md-1">Disagree</th>
+                                        <th class="col-md-1">Unsure</th>
+                                        <th class="col-md-1">GSV</th>
+                                    </tr>
                                 </thead>
-                                <!-- using this id to locate the labelTags so we can insert the tags-->
-                                <tbody id = 'labelRows'>
-                                    @LabelTable.getRecentLabelsMetadata(5000).map { label =>
-                                        <tr>
-                                            <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
-                                            </td>
-                                            <td class = 'timestamp'>@label.timestamp</td>
-                                            <td>@label.labelTypeKey</td>
-                                            <td>@label.severity</td>
-                                            <td>@label.temporary</td>
-                                            <td>@label.tags.mkString(", ")</td>
-                                            <td>@label.description</td>
-                                            <td>@label.validations("agree")</td>
-                                            <td>@label.validations("disagree")</td>
-                                            <td>@label.validations("unsure")</td>
-                                            <td>
-                                                <a class="labelView" data-label-id="@label.labelId" href="#">View</a>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -815,8 +926,7 @@
                                         <th class="col-md-1">Login Count</th>
                                     </tr>
                                 </thead>
-                                <tbody id="user-stats-table-body">
-                                </tbody>
+                                <tbody id="user-stats-table-body"></tbody>
                             </table>
                         </div>
                     </div>
@@ -838,8 +948,8 @@
                             <tr>
                                 <th>@Messages("dashboard.team.name")</th>
                                 <th>Description</th>
-                                <th>Status</th>
-                                <th>Visibility</th>
+                                <th class="col-md-1">Status</th>
+                                <th class="col-md-1">Visibility</th>
                             </tr>
                         </thead>
                         <tbody id="teams-body">
@@ -849,52 +959,39 @@
             </div>
         </div>
     </div>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3-3.5.6.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/PSMap/build/PSMap.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf-7.2.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/timestampLocalization.js")'></script>
-    <script type="text/javascript">
-        updateTimestamps("@lang.code");
-    </script>
+    <script src='@assets.path("javascripts/lib/d3-3.5.6.js")'></script>
+    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+    <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+    <script src='@assets.path("javascripts/lib/turf-7.2.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/dataTables.bootstrap.min.js")'></script>
+    <script src='@assets.path("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+    <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
+    <script>updateTimestamps("@messages.lang.code");</script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vega/3.0.0-beta.33/vega.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vega-lite/2.0.0-beta.4/vega-lite.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vega-embed/3.0.0-beta.17/vega-embed.js"></script>
 
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-3.10.0.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@routes.Assets.at("javascripts/lib/mapbox-gl-3.10.0.css")' rel="stylesheet"/>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.13.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.13.0.css")' rel="stylesheet"/>
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
 
-    <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
-    <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
 
     <script>
-        $(document).ready(function () {
-            // Gets all translations before loading the choropleths.
-            i18next.use(i18nextHttpBackend).init({
-                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-                fallbackLng: 'en',
-                ns: ['common', 'labelmap'],
-                defaultNS: 'common',
-                lng: '@lang.code',
-                debug: false
-            }, function(err, t) {
-                window.admin = Admin(_, $);
+        // Gets all translations before loading the choropleths.
+        window.appManager.ready(function () {
+            // Sets up sorting in DataTables on timestamps.
+            $.fn.dataTable.ext.type.order['date-pre'] = function(data) { return new Date(data).getTime(); };
 
-                $('#comments-table').dataTable();
-                $('#label-table').dataTable();
-                $('#tabs').tabs().addClass('ui-tabs-vertical ui-helper-clearfix');
-                $('#tabs li').removeClass('ui-corner-top').addClass('ui-corner-left');
-            });
-
+            // Kick off all the API requests to get data to fill in the Admin page.
+            window.admin = Admin(_, $, '@commonData.mapboxApiKey');
 
             // Initialize the sliders in the legend. We add the "change" functionality after the map loads.
             $( "*[id*='slider']" ).each(function() {

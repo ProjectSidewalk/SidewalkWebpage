@@ -28,6 +28,7 @@ function Label(params) {
         streetEdgeId: undefined,
         regionId: undefined,
         tags: undefined,
+        aiTags: undefined,
         isMobile: undefined
     };
 
@@ -136,6 +137,7 @@ function Label(params) {
                 setProperty("oldTags", params.tags);
                 setProperty("newTags", [...params.tags]); // Copy tags to newTags.
             }
+            if ("ai_tags" in params) setAuditProperty("aiTags", params.ai_tags);
             // Properties only used on the Admin version of Validate.
             if ("admin_data" in params && params.admin_data !== null) {
                 if ("username" in params.admin_data) adminProperties.username = params.admin_data.username;
@@ -228,42 +230,24 @@ function Label(params) {
         auditProperties[key] = value;
         return this;
     }
-    
-    function prepareLabelCommentData(comment, position, pov) {
-        let data = {
-            comment: comment,
-            label_id: svv.panorama.getCurrentLabel().getAuditProperty("labelId"),
-            gsv_panorama_id: svv.panorama.getPanoId(),
-            heading: pov.heading,
-            lat: position.lat,
-            lng: position.lng,
-            pitch: pov.pitch,
-            mission_id: svv.missionContainer.getCurrentMission().getProperty('missionId'),
-            zoom: pov.zoom
-        };
-        return data;
-    }
 
-    /**
-     * Submit the comment.
-     */
-    function submitComment (data) {
-        let url = "/validate/comment";
-        let async = true;
-        $.ajax({
-            async: async,
-            contentType: 'application/json; charset=utf-8',
-            url: url,
-            type: 'POST',
-            data: JSON.stringify(data),
-            dataType: 'json',
-            success: function (result) {},
-            error: function(xhr, textStatus, error){
-                console.error(xhr.statusText);
-                console.error(textStatus);
-                console.error(error);
-            }
-        });
+    function prepareCommentData() {
+        let comment = getProperty("comment");
+        if (comment) {
+            return {
+                comment: comment,
+                label_id: getAuditProperty("labelId"),
+                gsv_panorama_id: getAuditProperty("gsvPanoramaId"),
+                heading: getProperty("heading"),
+                lat: getAuditProperty("lat"),
+                lng: getAuditProperty("lng"),
+                pitch: getProperty("pitch"),
+                mission_id: svv.missionContainer.getCurrentMission().getProperty('missionId'),
+                zoom: getProperty("zoom"),
+            };
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -304,20 +288,19 @@ function Label(params) {
             labelCanvasY = pixelCoordinates.top - getRadius();
         }
 
-        setProperty("endTimestamp", new Date().getTime());
+        setProperty("endTimestamp", new Date());
         // TODO do we actually want to use `labelCanvasX` and `labelCanvasY` here? Or are they updated already?
-        setProperty("canvasX", labelCanvasX);
-        setProperty("canvasY", labelCanvasY);
+        setProperty("canvasX", Math.round(labelCanvasX));
+        setProperty("canvasY", Math.round(labelCanvasY));
         setProperty("heading", userPov.heading);
         setProperty("pitch", userPov.pitch);
         setProperty("zoom", userPov.zoom);
         setProperty("isMobile", isMobile());
+        setProperty("comment", comment);
 
-        if (comment) {
-            if (!svv.newValidateBeta) svv.ui.validation.comment.val('');
+        if (getProperty("comment")) {
+            if (!svv.expertValidate) svv.ui.validation.comment.val('');
             svv.tracker.push("ValidationTextField_DataEntered", { validation: validationResult, text: comment });
-            let data = prepareLabelCommentData(comment, svv.panorama.getPosition(), userPov);
-            submitComment(data);
         }
 
         switch (validationResult) {
@@ -325,21 +308,21 @@ function Label(params) {
             case "Agree":
                 setProperty("validationResult", 1);
                 svv.missionContainer.getCurrentMission().updateValidationResult(1, false);
-                svv.labelContainer.push(getAuditProperty('labelId'), getProperties());
+                svv.labelContainer.push(getAuditProperty('labelId'), getProperties(), prepareCommentData());
                 svv.missionContainer.updateAMission();
                 break;
             // Disagree option selected.
             case "Disagree":
                 setProperty("validationResult", 2);
                 svv.missionContainer.getCurrentMission().updateValidationResult(2, false);
-                svv.labelContainer.push(getAuditProperty('labelId'), getProperties());
+                svv.labelContainer.push(getAuditProperty('labelId'), getProperties(), prepareCommentData());
                 svv.missionContainer.updateAMission();
                 break;
             // Unsure option selected.
             case "Unsure":
                 setProperty("validationResult", 3);
                 svv.missionContainer.getCurrentMission().updateValidationResult(3, false);
-                svv.labelContainer.push(getAuditProperty('labelId'), getProperties());
+                svv.labelContainer.push(getAuditProperty('labelId'), getProperties(), prepareCommentData());
                 svv.missionContainer.updateAMission();
                 break;
         }

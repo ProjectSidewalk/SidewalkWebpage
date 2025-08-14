@@ -1,14 +1,14 @@
-FROM eclipse-temurin:8u402-b06-jdk-focal
+FROM eclipse-temurin:17-jdk-focal
 
 RUN apt-get update && apt-get upgrade -y
 
-RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
+RUN curl -sL https://deb.nodesource.com/setup_23.x | bash -
 
-# Workaround because of bug in sbt from Debian. See https://github.com/sbt/sbt/issues/6614.
-RUN wget https://scala.jfrog.io/artifactory/debian/sbt-1.8.0.deb && \
-    apt-get install ./sbt-1.8.0.deb -y
-
-RUN rm sbt-1.8.0.deb
+# Add repository for sbt.
+RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | tee /etc/apt/sources.list.d/sbt.list
+RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian /" | tee /etc/apt/sources.list.d/sbt_old.list
+RUN curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | gpg --no-default-keyring --keyring gnupg-ring:/etc/apt/trusted.gpg.d/scalasbt-release.gpg --import
+RUN chmod 644 /etc/apt/trusted.gpg.d/scalasbt-release.gpg
 
 RUN apt-get update && apt-get upgrade -y
 
@@ -16,7 +16,8 @@ RUN apt-get install -y \
     unzip \
     python3-dev \
     python3-pip \
-    nodejs && \
+    nodejs \
+    sbt && \
   apt-get autoremove && \
   apt-get clean
 

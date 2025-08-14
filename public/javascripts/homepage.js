@@ -109,23 +109,6 @@ function switchToVideo(vidnum){
     numTicks = 0;
 }
 
-function logWebpageActivity(activity){
-    var url = "/userapi/logWebpageActivity";
-    var async = false;
-    $.ajax({
-        async: async,
-        contentType: 'application/json; charset=utf-8',
-        url: url,
-        type: 'post',
-        data: JSON.stringify(activity),
-        dataType: 'json',
-        success: function(result){},
-        error: function (result) {
-            console.error(result);
-        }
-    });
-}
-
 var vidBanner;
 var bannerVid;
 var instructVideoContainer;
@@ -153,24 +136,23 @@ function autoAdvanceLaptopVideos() {
     }
 }
 
-$( document ).ready(function() {
-
+window.appManager.ready(function () {
     // Triggered upon clicking tabs in "How you can help" section.
     // Logs "Click_module=HowYouCanHelp_tab=<tabNumber>" in WebpageActivityTable
     $("#firstnumbox").on('click', function(e){
         switchToVideo(1);
         autoAdvanceLaptop = false;
-        logWebpageActivity("Click_module=HowYouCanHelp_tab=1");
+        window.logWebpageActivity("Click_module=HowYouCanHelp_tab=1");
     });
     $("#secondnumbox").on('click', function(e){
         switchToVideo(2);
         autoAdvanceLaptop = false;
-        logWebpageActivity("Click_module=HowYouCanHelp_tab=2");
+        window.logWebpageActivity("Click_module=HowYouCanHelp_tab=2");
     });
     $("#thirdnumbox").on('click', function(e){
         switchToVideo(3);
         autoAdvanceLaptop = false;
-        logWebpageActivity("Click_module=HowYouCanHelp_tab=3");
+        window.logWebpageActivity("Click_module=HowYouCanHelp_tab=3");
     });
 
     // Triggered when images in Collaborators section are clicked.
@@ -178,25 +160,19 @@ $( document ).ready(function() {
     $("#collaborators-container").on('click', 'a', function(e){
         var type = e.currentTarget.id.split('-')[1];
         var source = e.currentTarget.id.split('-')[0];
-        logWebpageActivity("Click_module=Collaborator_type=" + type + "_source=" + source);
+        window.logWebpageActivity("Click_module=Collaborator_type=" + type + "_source=" + source);
     });
 
     // Triggered when 'Start Exploring' in video container is clicked.
     // Logs "Click_module=StartExploring_location=Index"
     $(".body-start-btn").on("click", function(){
-        logWebpageActivity("Click_module=StartExploring_location=Index");
+        window.logWebpageActivity("Click_module=StartExploring_location=Index");
     });
 
     // Triggered when 'Click here to learn about deploying PS in your city' is clicked.
     // Logs "Click_module=NewCity_location=Index"
     $("#new-deployment-link").on("click", function(){
-        logWebpageActivity("Click_module=NewCity_location=Index");
-    });
-
-    // Triggered when 'Results Map' in index page is clicked.
-    // Logs "Click_module=ResultsMap_location=Index"
-    $(".ps-skyline-overlay-btn").on("click", function() {
-        logWebpageActivity("Click_module=Results_location=Index")
+        window.logWebpageActivity("Click_module=NewCity_location=Index");
     });
 
     // Triggered when the city or mapathon links are clicked.
@@ -205,9 +181,9 @@ $( document ).ready(function() {
     $(".other-city-link").on("click", function(e){
         var cityName = e.currentTarget.id;
         if (cityName === "mapathonLink"){
-            logWebpageActivity("Click_module=mapathonLink");
+            window.logWebpageActivity("Click_module=mapathonLink");
         }else{
-            logWebpageActivity("Click_module=OtherCityLink_City=" + cityName);
+            window.logWebpageActivity("Click_module=OtherCityLink_City=" + cityName);
         }
     });
 

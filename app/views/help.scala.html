@@ -1,10 +1,13 @@
-@import models.user.User
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration))
 
-@main(title) {
-    @navbar(user)
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Help/build/help.js")'></script>
-    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/help.css")'/>
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user))
+    <script src='@assets.path("javascripts/Help/build/help.js")'></script>
+    <link rel="stylesheet" href='@assets.path("stylesheets/help.css")'/>
 
     <div class="spacer20"></div>
 
@@ -33,7 +36,7 @@
                             </p>
                             <ol>
                                 <li>
-                                    Click <a href='@routes.AuditController.explore()'>Start Exploring</a>.
+                                    Click <a href='@routes.ExploreController.explore()'>Start Exploring</a>.
                                 </li>
                                 <li>
                                     Take an interactive tutorial to learn how to use our tool (if you haven't taken it before).
@@ -105,7 +108,7 @@
                                 <li>
                                     <div class="title">
                                         [1] &nbsp;
-                                        <a href="@routes.Assets.at("documents/papers/Hara_TohmeDetectingCurbRampsInGoogleStreetViewUsingCrowdsourcingComputerVisionAndMachineLearning_UIST2014.pdf")">
+                                        <a href="@assets.path("documents/papers/Hara_TohmeDetectingCurbRampsInGoogleStreetViewUsingCrowdsourcingComputerVisionAndMachineLearning_UIST2014.pdf")">
                                             Tohme: Detecting Curb Ramps in Google Street View Using Crowdsourcing,
                                             Computer Vision, and Machine Learning
                                         </a>
@@ -118,7 +121,7 @@
                                 <li>
                                     <div class="title">
                                         [2] &nbsp;
-                                        <a href="@routes.Assets.at("documents/papers/Hara_ImprovingPublicTransitAccessibilityForBlindRidersByCrowdsourcingBusStopLandmarkLocationsWithGoogleStreetViewAnExtendedAnalysis_TACCESS2015.pdf")">
+                                        <a href="@assets.path("documents/papers/Hara_ImprovingPublicTransitAccessibilityForBlindRidersByCrowdsourcingBusStopLandmarkLocationsWithGoogleStreetViewAnExtendedAnalysis_TACCESS2015.pdf")">
                                             Improving Public Transit Accessibility for Blind Riders by Crowdsourcing Bus
                                             Stop Landmark Locations with Google Street View: An Extended Analysis
                                         </a>
@@ -221,13 +224,13 @@
                     <div class="row">
                         <div class="col-sm-6">
                             <figure class="text-center">
-                                <img src='@routes.Assets.at("images/help/Timeshot1_Cropped.png")' alt="An older Street View image without a curb ramp at the end of crosswalk" class="img-responsive" align="">
+                                <img src='@assets.path("images/help/Timeshot1_Cropped.png")' alt="An older Street View image without a curb ramp at the end of crosswalk" class="img-responsive" align="">
                                 <figcaption>An older Street View image without a curb ramp at the end of crosswalk. You should label the problem as a "Missing Curb Ramp."</figcaption>
                             </figure>
                         </div>
                         <div class="col-sm-6">
                             <figure class="text-center">
-                                <img src='@routes.Assets.at("images/help/Timeshot2_Cropped.png")' alt="A newer Street View image of the same location. The problem is fixed." class="img-responsive" align="">
+                                <img src='@assets.path("images/help/Timeshot2_Cropped.png")' alt="A newer Street View image of the same location. The problem is fixed." class="img-responsive" align="">
                                 <figcaption>A newer Street View image of the same location. The problem is fixed and there is a curb ramp, so you should label this as a "Curb Ramp."</figcaption>
                             </figure>
                         </div>
@@ -255,7 +258,7 @@
                             <p>
                                 So, <i>why</i> does it work like this? Well, the answer is kind of complicated but the short answer is:
                                     the Google Street View interface is akin to a 3-dimensional interface, similar to moving about in the real world.
-                                    When you place a label, we convert the 3D position of the label to a 2D lat/long position. However, once you move to 
+                                    When you place a label, we convert the 3D position of the label to a 2D lat/long position. However, once you move to
                                     a new location, we cannot accurately recompute the label's position in 3D for that new view. See, we told
                                     you it was kind of complicated. :)
 
@@ -318,7 +321,7 @@
                                     <tr>
                                         <th></th>
                                         <th><kbd>W</kbd></th>
-                                        <td>Switch to Crosswalk mode</td>
+                                        <td>Switch to Marked Crosswalk mode</td>
                                     </tr>
                                     <tr>
                                         <th></th>
@@ -422,7 +425,7 @@
                                 <div class="row">
                                     <div class="col-md-4">
                                         <figure>
-                                            <img src='@routes.Assets.at("images/examples/CurbRamp_Passable.png")' class="img-responsive" alt="Two good curb ramps" />
+                                            <img src='@assets.path("images/examples/CurbRamp_Passable.png")' class="img-responsive" alt="Two good curb ramps" />
                                             <figcaption>
                                                 <p class="bold">@Messages("help.rating.1")</p>
                                                 <p>Clean curb ramps that are aligned with crosswalks.</p>
@@ -431,7 +434,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         <figure>
-                                            <img src='@routes.Assets.at("images/examples/CurbRamp_HardToPass.png")' class="img-responsive" alt="Water has accumulated in the curb ramp" />
+                                            <img src='@assets.path("images/examples/CurbRamp_HardToPass.png")' class="img-responsive" alt="Water has accumulated in the curb ramp" />
                                             <figcaption>
                                                 <p class="bold">@Messages("help.rating.3")</p>
                                                 <p>A curb ramp with a pole standing in the middle. People who use large electrical wheelchairs
@@ -441,7 +444,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         <figure>
-                                            <img src='@routes.Assets.at("images/examples/CurbRamp_NotPassable.png")' class="img-responsive" alt="Water has accumulated in the curb ramp" />
+                                            <img src='@assets.path("images/examples/CurbRamp_NotPassable.png")' class="img-responsive" alt="Water has accumulated in the curb ramp" />
                                             <figcaption>
                                                 <p class="bold">@Messages("help.rating.5")</p>
                                                 <p>Water has accumulated in this curb ramp due to poor drainage. It is hard for manual wheelchair users to use this curb ramp.</p>
@@ -463,7 +466,7 @@
                                 <div class="row">
                                     <div class="col-md-4">
                                         <figure>
-                                            <img src='@routes.Assets.at("images/examples/NoCurbRamp_Passable.png")' class="img-responsive" alt="Curb ramp is not aligned to the crosswalk" />
+                                            <img src='@assets.path("images/examples/NoCurbRamp_Passable.png")' class="img-responsive" alt="Curb ramp is not aligned to the crosswalk" />
                                             <figcaption>
                                                 <p class="bold">@Messages("help.rating.1")</p>
                                                 <p>Although there is no curb ramp, the level difference is small and
@@ -475,17 +478,17 @@
                                     </div>
                                     <div class="col-md-4">
                                         <figure>
-                                            <img src='@routes.Assets.at("images/examples/NoCurbRamp_HardToPass.png")' class="img-responsive" alt="No curb ramp at the end of the crosswalk" />
+                                            <img src='@assets.path("images/examples/NoCurbRamp_HardToPass.png")' class="img-responsive" alt="No curb ramp at the end of the crosswalk" />
                                             <figcaption>
                                                 <p class="bold">@Messages("help.rating.3")</p>
                                                 <p>There is no curb ramp at the end of the crosswalk.
-                                                Wheelchair users are forced to used the curb ramp that is not aligned with the crosswalk.</p>
+                                                Wheelchair users are forced to use the curb ramp that is not aligned with the crosswalk.</p>
                                             </figcaption>
                                         </figure>
                                     </div>
                                     <div class="col-md-4">
                                         <figure>
-                                            <img src='@routes.Assets.at("images/examples/NoCurbRamp_NotPassable.png")' class="img-responsive" alt="No curb ramp at the end of the crosswalk" />
+                                            <img src='@assets.path("images/examples/NoCurbRamp_NotPassable.png")' class="img-responsive" alt="No curb ramp at the end of the crosswalk" />
                                             <figcaption>
                                             <p class="bold">@Messages("help.rating.5")</p>
                                             <p>No curb ramp at the end of the crosswalk. Wheelchair users cannot get on or off the sidewalk and cross the street here.</p>
@@ -507,7 +510,7 @@
                                 <div class="row">
                                     <div class="col-md-4">
                                         <figure>
-                                            <img src='@routes.Assets.at("images/examples/Obstacle_Passable.png")' class="img-responsive" alt="Overgrown bush is partly blocking the path." />
+                                            <img src='@assets.path("images/examples/Obstacle_Passable.png")' class="img-responsive" alt="Overgrown bush is partly blocking the path." />
                                             <figcaption>
                                                 <p class="bold">@Messages("help.rating.1")</p>
                                                 <p>A traffic light standing in the middle of the sidewalk. There seems to be enough space
@@ -518,7 +521,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         <figure>
-                                            <img src='@routes.Assets.at("images/examples/Obstacle_HardToPass.png")' class="img-responsive" alt="Overgrown bush is partly blocking the path." />
+                                            <img src='@assets.path("images/examples/Obstacle_HardToPass.png")' class="img-responsive" alt="Overgrown bush is partly blocking the path." />
                                             <figcaption>
                                                 <p class="bold">@Messages("help.rating.3")</p>
                                                 <p>The plant is obstructing the path, making it hard for wheelchair users to use this sidewalk.</p>
@@ -527,7 +530,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         <figure>
-                                            <img src='@routes.Assets.at("images/examples/Obstacle_NotPassable.png")' class="img-responsive" alt="A tree is completely blocking the path." />
+                                            <img src='@assets.path("images/examples/Obstacle_NotPassable.png")' class="img-responsive" alt="A tree is completely blocking the path." />
                                             <figcaption>
                                                 <p class="bold">@Messages("help.rating.5")</p>
                                                 <p>The tree is completely blocking the path, making it not passable for wheelchair users.</p>
@@ -549,7 +552,7 @@
                                 <div class="row">
                                     <div class="col-md-4">
                                         <figure>
-                                            <img src='@routes.Assets.at("images/examples/SurfaceProblem_Passable.png")' class="img-responsive" alt="A partially damaged sidewalk." />
+                                            <img src='@assets.path("images/examples/SurfaceProblem_Passable.png")' class="img-responsive" alt="A partially damaged sidewalk." />
                                             <figcaption>
                                                 <p class="bold">@Messages("help.rating.1")</p>
                                                 <p>Partially damaged sidewalk. Because there is enough space next to the damaged part of
@@ -559,7 +562,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         <figure>
-                                            <img src='@routes.Assets.at("images/examples/SurfaceProblem_HardToPass.png")' class="img-responsive" alt="Cobblestone sidewalks and crosswalks." />
+                                            <img src='@assets.path("images/examples/SurfaceProblem_HardToPass.png")' class="img-responsive" alt="Cobblestone sidewalks and crosswalks." />
                                             <figcaption>
                                                 <p class="bold">@Messages("help.rating.3")</p>
                                                 <p>Wheelchair users would have difficulty navigating on the cobblestone
@@ -569,7 +572,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         <figure>
-                                            <img src='@routes.Assets.at("images/examples/SurfaceProblem_NotPassable.png")' class="img-responsive" alt="A tree is completely blocking the path." />
+                                            <img src='@assets.path("images/examples/SurfaceProblem_NotPassable.png")' class="img-responsive" alt="A tree is completely blocking the path." />
                                             <figcaption>
                                                 <p class="bold">@Messages("help.rating.5")</p>
                                                 <p>Wheelchair users cannot pass severely degraded sidewalk surfaces

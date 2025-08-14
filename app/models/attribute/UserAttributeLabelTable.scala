@@ -1,46 +1,47 @@
 package models.attribute
 
-import models.label.{Label, LabelTable}
-import models.utils.MyPostgresDriver.simple._
-import play.api.Play.current
-import play.api.db.slick
-import scala.slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
-import scala.language.postfixOps
+import com.google.inject.ImplementedBy
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+
+import javax.inject.{Inject, Singleton}
 
 case class UserAttributeLabel(userAttributeLabelId: Int, userAttributeId: Int, labelId: Int)
 
-class UserAttributeLabelTable(tag: Tag) extends Table[UserAttributeLabel](tag, "user_attribute_label") {
-  def userAttributeLabelId: Column[Int] = column[Int]("user_attribute_label_id", O.NotNull, O.PrimaryKey, O.AutoInc)
-  def userAttributeId: Column[Int] = column[Int]("user_attribute_id", O.NotNull)
-  def labelId: Column[Int] = column[Int]("label_id", O.NotNull)
+class UserAttributeLabelTableDef(tag: Tag) extends Table[UserAttributeLabel](tag, "user_attribute_label") {
+  def userAttributeLabelId: Rep[Int] = column[Int]("user_attribute_label_id", O.PrimaryKey, O.AutoInc)
+  def userAttributeId: Rep[Int]      = column[Int]("user_attribute_id")
+  def labelId: Rep[Int]              = column[Int]("label_id")
 
-  def * : ProvenShape[UserAttributeLabel] = (userAttributeLabelId, userAttributeId, labelId) <>
+  def * = (userAttributeLabelId, userAttributeId, labelId) <>
     ((UserAttributeLabel.apply _).tupled, UserAttributeLabel.unapply)
 
-  def userAttribute: ForeignKeyQuery[UserAttributeTable, UserAttribute] =
-    foreignKey("user_attribute_label_user_attribute_id_fkey", userAttributeId, TableQuery[UserAttributeTable])(_.userAttributeId)
-
-  def label: ForeignKeyQuery[LabelTable, Label] =
-    foreignKey("user_attribute_label_label_id_fkey", labelId, TableQuery[LabelTable])(_.labelId)
+//  def userAttribute: ForeignKeyQuery[UserAttributeTable, UserAttribute] =
+//    foreignKey("user_attribute_label_user_attribute_id_fkey", userAttributeId, TableQuery[UserAttributeTableDef])(_.userAttributeId)
+//
+//  def label: ForeignKeyQuery[LabelTable, Label] =
+//    foreignKey("user_attribute_label_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
 }
 
-/**
-  * Data access object for the UserAttributeLabelTable table.
-  */
-object UserAttributeLabelTable {
-  val db: slick.Database = play.api.db.slick.DB
-  val userAttributeLabels: TableQuery[UserAttributeLabelTable] = TableQuery[UserAttributeLabelTable]
+@ImplementedBy(classOf[UserAttributeLabelTable])
+trait UserAttributeLabelTableRepository {}
 
-  def countUserAttributeLabels: Int = db.withSession { implicit session =>
-    userAttributeLabels.size.run
+@Singleton
+class UserAttributeLabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends UserAttributeLabelTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+  val userAttributeLabels: TableQuery[UserAttributeLabelTableDef] = TableQuery[UserAttributeLabelTableDef]
+
+  def countUserAttributeLabels: DBIO[Int] = {
+    userAttributeLabels.length.result
   }
 
-  def save(newSess: UserAttributeLabel): Int = db.withSession { implicit session =>
-    val newId: Int = (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) += newSess
-    newId
+  def insert(newSess: UserAttributeLabel): DBIO[Int] = {
+    (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) += newSess
   }
 
-  def saveMultiple(labels: Seq[UserAttributeLabel]): Seq[Int] = db.withSession { implicit session =>
+  def insertMultiple(labels: Seq[UserAttributeLabel]): DBIO[Seq[Int]] = {
     (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) ++= labels
   }
 }

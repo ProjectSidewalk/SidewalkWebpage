@@ -8,7 +8,7 @@
             "obstacle": "Ist das ein <b>Hindernis</b>?",
             "surface-problem": "Ist das ein <b>Oberflächenproblem</b>?",
             "no-sidewalk": "Sollte hier eine<b>kein Trottoir</b>-Beschriftung vorhanden sein?",
-            "crosswalk": "Ist das ein <b>Fussgängerstreifen</b>?",
+            "crosswalk": "Ist das ein <b>Markierter Fussgängerstreifen</b>?",
             "signal": "Ist das ein <b>Fussgängerlichtsignal</b>?"
         },
         "visibility-control-hide": "Beschriftung ausblenden (<u>H</u>)",
@@ -49,7 +49,7 @@
                 "example-4": "Diese Kreuzung hat kein Trottoir."
             },
             "crosswalk": {
-                "title": "<strong>Richtig</strong> Fussgängerstreifen",
+                "title": "<strong>Richtig</strong> Markierter Fussgängerstreifen",
                 "example-1-2-3": "Diese Beschriftung ist korrekterweise auf dem aufgemalten Fussgängerstreifen platziert.",
                 "example-4": "Diese Beschriftung ist korrekterweise auf dem Fussgängerstreifen mit verblassender Farbe platziert."
             },
@@ -93,10 +93,10 @@
                 "example-4": "Gassen und Nebenstrassen sollten nicht als kein Trottoir beschriftet werden."
             },
             "crosswalk": {
-                "title": "<strong>Falsch</strong> Fussgängerstreifen",
-                "example-1": "Übergänge ohne visuelle Markierung sollten nicht als Fussgängerstreifen beschriftet werden.",
-                "example-2": "Haltelinien für Autos sollten nicht als Fussgängerstreifen beschriftet werden.",
-                "example-3-4": "Strassenschwellen sollten nicht als Fussgängerstreifen beschriftet werden."
+                "title": "<strong>Falsch</strong> Markierter Fussgängerstreifen",
+                "example-1": "Übergänge ohne visuelle Markierung sollten nicht als Markierter fussgängerstreifen beschriftet werden.",
+                "example-2": "Haltelinien für Autos sollten nicht als Markierter fussgängerstreifen beschriftet werden.",
+                "example-3-4": "Strassenschwellen sollten nicht als Markierter fussgängerstreifen beschriftet werden."
             },
             "signal": {
                 "title": "<strong>Falsch</strong> Fussgängerlichtsignal",
@@ -120,7 +120,7 @@
         "body-3": "Sie haben gerade {{n}} Beschriftungen von Hindernissen validiert.",
         "body-4": "Sie haben gerade {{n}} Beschriftungen von Oberflächenproblemen validiert.",
         "body-7": "Sie haben gerade {{n}} Beschriftungen von kein Trottoir validiert.",
-        "body-9": "Sie haben gerade {{n}} Beschriftungen von Fussgängerstreifen validiert.",
+        "body-9": "Sie haben gerade {{n}} Beschriftungen von Markierter Fussgängerstreifen validiert.",
         "body-10": "Sie haben gerade {{n}} Beschriftungen von Fussgängerlichtsignal validiert.",
         "validate-more": "Mehr Beschriftungen validieren",
         "continue": "Validierung fortsetzen",
@@ -135,10 +135,14 @@
         "info-title-obstacle": "Was ist ein Hindernis?",
         "info-title-surface-problem": "Was ist ein Oberflächenproblem?",
         "info-title-no-sidewalk": "Was ist ein \"kein Trottoir\"?",
-        "info-title-crosswalk": "Was ist ein Fussgängerstreifen?",
+        "info-title-crosswalk": "Was ist ein Markierter Fussgängerstreifen?",
         "info-title-signal": "Was ist ein Fussgängerlichtsignal?",
         "no-new-mission-body": "Sie können weitere Etiketten mit einem Laptop/Desktop-Computer hinzufügen oder Etiketten in einer anderen Stadt validieren!",
         "no-new-mission-button": "Validieren in"
+    },
+    "expert-validate": {
+        "add-tag": "Hinzufügen: {{tag}}",
+        "remove-tag": "Entfernen: {{tag}}"
     },
     "mission-start-tutorial": {
         "mst-instruction-1": "IHRE MISSION",

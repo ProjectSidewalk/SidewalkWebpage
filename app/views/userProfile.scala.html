@@ -1,38 +1,29 @@
-@import models.user.User
-@import models.daos.slick.DBTableDefinitions.DBUser
-@import models.audit.AuditTaskCommentTable
-@import models.audit.AuditTaskTable
-@import models.user.UserRoleTable
-@import models.user.TeamTable
-@import models.user.UserTeamTable
-@import models.mission.MissionTable
-@import models.label.LabelTable
-@import models.label.LabelValidationTable
-@import java.util.UUID
-@import models.user.UserCurrentRegionTable
-@import models.region.RegionTable
-@import models.audit.AuditTaskInteractionTable
-@(title: String, user: User, userDB: Option[DBUser] = None, admin: Boolean, auditedDistance: Float)(implicit lang: Lang)
-@userId = @{ if (admin) { UUID.fromString(userDB.get.userId) } else { user.userId } }
-@username = @{ if (admin) { userDB.get.username } else { user.username } }
-@userTeam = @{UserTeamTable.getTeam(userId)}
-@teamName = @{userTeam.flatMap(teamId => TeamTable.getTeamName(teamId)).getOrElse("Team name not found")}
-@teamFound = @{userTeam.flatMap(teamId => TeamTable.getTeam(teamId))}
+@import controllers.helper.ControllerUtils.isAdmin
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.{AdminUserProfileData, CommonPageData, UserProfileData}
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, profileUser: SidewalkUserWithRole,
+        data: UserProfileData, adminData: Option[AdminUserProfileData]
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@main(title) {
+@currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
+@teamName = @{data.userTeam.map(_.name).getOrElse("Team name not found")}
+@admin = @{adminData.isDefined}
+
+@common.main(commonData, title, defaultI18nNamespace = "dashboard", i18Namespaces = Seq("dashboard", "common", "labelmap")) {
     @if(admin) {
-        @navbar(Some(user))
+        @common.navbar(commonData, Some(user))
     } else {
-        @navbar(Some(user), Some("/dashboard"))
+        @common.navbar(commonData, Some(user))
     }
     <div class="container">
         <div class="row" id="profile-container">
-            <div id="username">@username</div>
+            <div id="username">@profileUser.username</div>
             <div id="team-container">
                 <div id="edit-team-dropdown" class="dropdown">
                     <a id="edit-team-button" role="button" data-toggle="dropdown" href="#">
-                        @if(userTeam.isDefined) {
-                            @if(user.role.getOrElse("") == "Administrator" && !teamFound.exists(_.open)) {
+                        @if(data.userTeam.isDefined) {
+                            @if(isAdmin(user) && !data.userTeam.exists(_.open)) {
                                 @Messages("dashboard.current.team.greeting", teamName) <span class="closed-label">(Closed)</span> <b class="caret"></b>
                             } else {
                                 @Messages("dashboard.current.team.greeting", teamName) <b class="caret"></b>
@@ -42,9 +33,9 @@
                         }
                     </a>
                     <ul id="edit-team-menu" class="dropdown-menu" role="menu">
-                        @if(userTeam.isDefined) {
+                        @if(data.userTeam.isDefined) {
                             <li>
-                                <a id="from-@userTeam.getOrElse(0)-to-0" role="menuitem" class="put-user-team">
+                                <a id="from-@data.userTeam.get.teamId-to-0" role="menuitem" class="put-user-team">
                                     <strong>@Messages("dashboard.leave.team", teamName)</strong>
                                 </a>
                             </li>
@@ -52,10 +43,10 @@
                         <li>
                             <a id="create-team-button" role="menuitem" class="create-team" data-toggle="modal" data-target="#create-team-modal" href="#"><strong>@Messages("dashboard.create.team")</strong></a>
                         </li>
-                        @for(team <- TeamTable.getAllTeams.sortBy(_.name)) {
-                            @if(team.teamId!= userTeam.getOrElse(-1)){
+                        @for(team <- data.allTeams.sortBy(_.name)) {
+                            @if(!data.userTeam.contains(team)) {
                                 <li class="put-team-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@team.description">
-                                    <a id="from-@userTeam.getOrElse(0)-to-@team.teamId" role="menuitem" class="put-user-team">@team.name</a>
+                                    <a id="from-@data.userTeam.map(_.teamId).getOrElse(0)-to-@team.teamId" role="menuitem" class="put-user-team">@team.name</a>
                                 </li>
                             }
                         }
@@ -132,22 +123,22 @@
                                 <td>@Messages("audited.street")</td>
                             </tr>
                             <tr>
-                                <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")'></td>
+                                <td id="map-legend-correct"><img src='@assets.path("javascripts/SVValidate/img/Checkmark.png")'></td>
                                 <td>@Messages("validated.correct")</td>
                                 <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
                             <tr>
-                                <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")'></td>
+                                <td id="map-legend-incorrect"><img src='@assets.path("javascripts/SVValidate/img/Cross.png")'></td>
                                 <td>@Messages("validated.incorrect")</td>
                                 <td><input type="checkbox" id="incorrect" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
                             <tr>
-                                <td id="map-legend-unsure"><img src='@routes.Assets.at("images/icons/QuestionMark.png")'></td>
+                                <td id="map-legend-unsure"><img src='@assets.path("images/icons/QuestionMark.png")'></td>
                                 <td>@Messages("unsure.caps")</td>
                                 <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
                             <tr>
-                                <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")'></td>
+                                <td id="map-legend-unvalidated"><img src='@assets.path("images/icons/ExclamationMark.png")'></td>
                                 <td>@Messages("unvalidated")</td>
                                 <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
@@ -161,37 +152,23 @@
             <div class="user-stats-holder">
                 <span class="user-stats-header">@Messages("dashboard.your.missions")</span>
                 <span class="user-stats-header">@Messages("dashboard.distance")</span>
-                <span class="user-stats-header">@Messages("dashboard.labels")</span>
+                <span class="user-stats-header">@Messages("labels.caps")</span>
                 <span class="user-stats-header">@Messages("validations")</span>
                 <span class="user-stats-header">@Messages("accuracy.caps")</span>
 
-                <img src='@routes.Assets.at("images/icons/project_sidewalk_flag.png")' alt="@Messages("dashboard.mission.icon.alt")"/>
-                <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")"/>
-                <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")"/>
-                <img src='@routes.Assets.at("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
-                <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
+                <img src='@assets.path("images/icons/project_sidewalk_flag.png")' alt="@Messages("dashboard.mission.icon.alt")"/>
+                <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")"/>
+                <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")"/>
+                <img src='@assets.path("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
+                <img src='@assets.path("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
 
-                <span class="user-stats-stat">@MissionTable.countCompletedMissions(userId, true, false)</span>
-                <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
-                <span class="user-stats-stat">@LabelTable.countLabels(userId)</span>
-                <span class="user-stats-stat">@LabelValidationTable.countValidations(userId)</span>
-                <span class="user-stats-stat">@LabelValidationTable.getUserAccuracy(userId).map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
+                <span class="user-stats-stat">@data.missionCount</span>
+                <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(data.auditedDistance)}</span>
+                <span class="user-stats-stat">@data.labelCount</span>
+                <span class="user-stats-stat">@data.validationCount</span>
+                <span class="user-stats-stat">@data.accuracy.map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
             </div>
         </div>
-
-        @* Only show this table if the current user is a turker *@
-        @if(user.role.getOrElse("") == "Turker") {
-            <div class="row" style="margin-top: 20px">
-                <table class="table table-striped table-condensed">
-                    <tr>
-                        <th>@Messages("turk.reward.earned")</th>
-                    </tr>
-                    <tr>
-                        <td id="td-total-reward-earned"></td>
-                    </tr>
-                </table>
-            </div>
-        }
 
         <div class="row" id="achievements">
             <h2 id="achievements">@Messages("dashboard.achievements")</h2>
@@ -201,11 +178,11 @@
                     <h3>@Messages("dashboard.missions")</h3>
                     <p id="missions-badge-encouragement" class="achievements-encouraging-statement">Just XX more missions until your next mission achievement.</p>
                     <div id="missions-badge-grid" class="achievements-badge-grid">
-                        <img id="missions-badge1" src='@routes.Assets.at("images/badges/badge_missions_badge1.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.first"))">
-                        <img id="missions-badge2" src='@routes.Assets.at("images/badges/badge_missions_badge2.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.second"))">
-                        <img id="missions-badge3" src='@routes.Assets.at("images/badges/badge_missions_badge3.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.third"))">
-                        <img id="missions-badge4" src='@routes.Assets.at("images/badges/badge_missions_badge4.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.fourth"))">
-                        <img id="missions-badge5" src='@routes.Assets.at("images/badges/badge_missions_badge5.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.fifth"))">
+                        <img id="missions-badge1" src='@assets.path("images/badges/badge_missions_badge1.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.first"))">
+                        <img id="missions-badge2" src='@assets.path("images/badges/badge_missions_badge2.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.second"))">
+                        <img id="missions-badge3" src='@assets.path("images/badges/badge_missions_badge3.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.third"))">
+                        <img id="missions-badge4" src='@assets.path("images/badges/badge_missions_badge4.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.fourth"))">
+                        <img id="missions-badge5" src='@assets.path("images/badges/badge_missions_badge5.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.fifth"))">
                     </div>
                 </div>
                 <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
@@ -214,30 +191,30 @@
                     <p id="distance-badge-encouragement" class="achievements-encouraging-statement">Just XX more miles until your next distance achievement.</p>
                     <div id="distance-badge-grid" class="achievements-badge-grid">
                         @if(Messages("measurement.system") == "metric") {
-                            <img id="distance-badge1" src='@routes.Assets.at("images/badges/badge_distance_km_badge1.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.first"))">
-                            <img id="distance-badge2" src='@routes.Assets.at("images/badges/badge_distance_km_badge2.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.second"))">
-                            <img id="distance-badge3" src='@routes.Assets.at("images/badges/badge_distance_km_badge3.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.third"))">
-                            <img id="distance-badge4" src='@routes.Assets.at("images/badges/badge_distance_km_badge4.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fourth"))">
-                            <img id="distance-badge5" src='@routes.Assets.at("images/badges/badge_distance_km_badge5.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fifth"))">
+                            <img id="distance-badge1" src='@assets.path("images/badges/badge_distance_km_badge1.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.first"))">
+                            <img id="distance-badge2" src='@assets.path("images/badges/badge_distance_km_badge2.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.second"))">
+                            <img id="distance-badge3" src='@assets.path("images/badges/badge_distance_km_badge3.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.third"))">
+                            <img id="distance-badge4" src='@assets.path("images/badges/badge_distance_km_badge4.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fourth"))">
+                            <img id="distance-badge5" src='@assets.path("images/badges/badge_distance_km_badge5.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fifth"))">
                         } else {
-                            <img id="distance-badge1" src='@routes.Assets.at("images/badges/badge_distance_badge1.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.first"))">
-                            <img id="distance-badge2" src='@routes.Assets.at("images/badges/badge_distance_badge2.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.second"))">
-                            <img id="distance-badge3" src='@routes.Assets.at("images/badges/badge_distance_badge3.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.third"))">
-                            <img id="distance-badge4" src='@routes.Assets.at("images/badges/badge_distance_badge4.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fourth"))">
-                            <img id="distance-badge5" src='@routes.Assets.at("images/badges/badge_distance_badge5.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fifth"))">
+                            <img id="distance-badge1" src='@assets.path("images/badges/badge_distance_badge1.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.first"))">
+                            <img id="distance-badge2" src='@assets.path("images/badges/badge_distance_badge2.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.second"))">
+                            <img id="distance-badge3" src='@assets.path("images/badges/badge_distance_badge3.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.third"))">
+                            <img id="distance-badge4" src='@assets.path("images/badges/badge_distance_badge4.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fourth"))">
+                            <img id="distance-badge5" src='@assets.path("images/badges/badge_distance_badge5.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fifth"))">
                         }
                     </div>
                 </div>
 
                 <div class="achievements-outer-col1">
-                    <h3>@Messages("dashboard.labels")</h3>
+                    <h3>@Messages("labels.caps")</h3>
                     <p id="labels-badge-encouragement" class="achievements-encouraging-statement">Just XX more labels until your next labeling achievement.</p>
                     <div id="labels-badge-grid" class="achievements-badge-grid">
-                        <img id="labels-badge1" src='@routes.Assets.at("images/badges/badge_labels_badge1.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.first"))">
-                        <img id="labels-badge2" src='@routes.Assets.at("images/badges/badge_labels_badge2.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.second"))">
-                        <img id="labels-badge3" src='@routes.Assets.at("images/badges/badge_labels_badge3.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.third"))">
-                        <img id="labels-badge4" src='@routes.Assets.at("images/badges/badge_labels_badge4.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.fourth"))">
-                        <img id="labels-badge5" src='@routes.Assets.at("images/badges/badge_labels_badge5.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.fifth"))">
+                        <img id="labels-badge1" src='@assets.path("images/badges/badge_labels_badge1.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.first"))">
+                        <img id="labels-badge2" src='@assets.path("images/badges/badge_labels_badge2.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.second"))">
+                        <img id="labels-badge3" src='@assets.path("images/badges/badge_labels_badge3.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.third"))">
+                        <img id="labels-badge4" src='@assets.path("images/badges/badge_labels_badge4.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.fourth"))">
+                        <img id="labels-badge5" src='@assets.path("images/badges/badge_labels_badge5.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.fifth"))">
                     </div>
                 </div>
                 <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
@@ -245,11 +222,11 @@
                     <h3>@Messages("validations")</h3>
                     <p id="validations-badge-encouragement" class="achievements-encouraging-statement">Just XX more validations until your next validation achievement.</p>
                     <div id="validations-badge-grid" class="achievements-badge-grid">
-                        <img id="validations-badge1" src='@routes.Assets.at("images/badges/badge_validation_badge1.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.first"))">
-                        <img id="validations-badge2" src='@routes.Assets.at("images/badges/badge_validation_badge2.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.second"))">
-                        <img id="validations-badge3" src='@routes.Assets.at("images/badges/badge_validation_badge3.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.third"))">
-                        <img id="validations-badge4" src='@routes.Assets.at("images/badges/badge_validation_badge4.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.fourth"))">
-                        <img id="validations-badge5" src='@routes.Assets.at("images/badges/badge_validation_badge5.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.fifth"))">
+                        <img id="validations-badge1" src='@assets.path("images/badges/badge_validation_badge1.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.first"))">
+                        <img id="validations-badge2" src='@assets.path("images/badges/badge_validation_badge2.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.second"))">
+                        <img id="validations-badge3" src='@assets.path("images/badges/badge_validation_badge3.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.third"))">
+                        <img id="validations-badge4" src='@assets.path("images/badges/badge_validation_badge4.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.fourth"))">
+                        <img id="validations-badge5" src='@assets.path("images/badges/badge_validation_badge5.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.fifth"))">
                     </div>
                 </div>
             </div>
@@ -258,12 +235,12 @@
         <div id="mistakes-row" class="row">
             <h2 id="recent-mistakes">@Messages("dashboard.mistakes.header")</h2>
             <span id="mistakes-subheader-display"></span>
-            <img src="@routes.Assets.at("images/icons/QuestionMark.png")" class="mistakes-help-tooltip" data-toggle="tooltip" data-placement="top" title="@Messages("dashboard.mistakes.tooltip")" alt="">
+            <img src="@assets.path("images/icons/QuestionMark.png")" class="mistakes-help-tooltip" data-toggle="tooltip" data-placement="top" title="@Messages("dashboard.mistakes.tooltip")" alt="">
             <div id="mistake-carousels-holder"></div>
         </div>
 
-        @* Admin only section. *@
-        @if(admin && userDB.isDefined) {
+        <!-- Admin only section. -->
+        @if(admin) {
             <h1>General Info and Stats</h1>
             <div class="row">
                 <div class="col-lg-12">
@@ -272,17 +249,12 @@
                             <th class="col-md">Username</th>
                             <th class="col-md">User Id</th>
                             <th class="col-md">Email</th>
-                            <th class="col-md">Current Neighborhood</th>
                             <th class="col-md">Volunteer</th>
                         </tr>
                         <tr>
-                            <td>@userDB.get.username</td>
-                            <td>@userDB.get.userId</td>
-                            <td>@userDB.get.email</td>
-                            <td>
-                                @(UserCurrentRegionTable.currentRegion(UUID.fromString(userDB.get.userId)).map(RegionTable.neighborhoodName).getOrElse("Unassigned"))
-                                (Region ID: @(UserCurrentRegionTable.currentRegion(UUID.fromString(userDB.get.userId)).getOrElse("NA")))
-                            </td>
+                            <td>@profileUser.username</td>
+                            <td>@profileUser.userId</td>
+                            <td>@profileUser.email</td>
                             <td><input type="checkbox" id="check-volunteer"></td>
                         </tr>
                     </table>
@@ -290,18 +262,22 @@
                 <div class="col-lg-12">
                     <table class="table table-striped table-condensed">
                         <tr>
-                            <th class="col-md">Mission Count</th>
+                            <th class="col-md">Current Neighborhood</th>
                             <th class="col-md">Audited Street Count</th>
-                            <th class="col-md">Label Count</th>
-                            <th class="col-md">Total Distance Audited</th>
                             <th class="col-md">Time spent auditing/validating</th>
+                            <th class="col-md">
+                                Labeling frequency
+                                <span title="If a user has a labeling frequency below 37.5 labels per km, then they are marked as low quality. You recalculate this by going to /adminapi/updateUserStats." style="cursor: pointer">&#9432;</span>
+                            </th>
                         </tr>
                         <tr>
-                            <td>@MissionTable.countCompletedMissions(UUID.fromString(userDB.get.userId), includeOnboarding = false, includeSkipped = false)</td>
-                            <td>@AuditTaskTable.countCompletedAudits(UUID.fromString(userDB.get.userId))</td>
-                            <td>@LabelTable.countLabels(UUID.fromString(userDB.get.userId))</td>
-                            <td>@{s"%.2f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</td>
-                            <td>@{"%.2f".format(AuditTaskInteractionTable.getHoursAuditingAndValidating(userDB.get.userId))} hours</td>
+                            <td>
+                                @adminData.get.currentRegion.map(_.name).getOrElse("Unassigned")
+                                (ID: @adminData.get.currentRegion.map(_.regionId).getOrElse("NA"))
+                            </td>
+                            <td>@adminData.get.numCompletedAudits</td>
+                            <td>@{"%.2f".format(adminData.get.hoursWorked)} hours</td>
+                            <td>@{adminData.get.labelsPerMeter.map(f => "%.2f labels per km".format(f * 1000)).getOrElse("NA")}</td>
                         </tr>
                     </table>
                 </div>
@@ -311,9 +287,9 @@
 
             <h1>Mark Work Quality by Date</h1>
             <p>
-                Select a date to mark all labels for this user before that date with the desired flag. This is useful when
-                training new users on Project Sidewalk. If their work was low quality, set it as such below. Their labels
-                will then be partially hidden in our APIs, and we won't assign other to validate those labels as frequently.
+                Mark all labels for this user before a selected date with the desired flag. This is useful when training
+                new users on Project Sidewalk. If their work was low quality, set it as such below. Their labels will
+                then be partially hidden in our APIs, and we won't assign other to validate those labels as frequently.
             </p>
             <p>
                 If their work was high quality, but they did not use all the available label types or didn't label the
@@ -364,25 +340,27 @@
                 <table class="table table-striped table-fixed">
                     <thead>
                         <tr>
-                            <th class="col-md-2">Mission Id</th>
+                            <th class="col-md-1">Mission Id</th>
                             <th class="col-md-2">Mission Type</th>
                             <th class="col-md-1">Region Id</th>
                             <th class="col-md-2">Region Name</th>
-                            <th class="col-md-3">Distance (m / ft / mi)</th>
-                            <th class="col-md-2">Labels Verified</th>
+                            <th class="col-md-2">Distance (m / ft / mi)</th>
+                            <th class="col-md-1">Labels Validated</th>
+                            <th class="col-md-3">End Time</th>
                         </tr>
                     </thead>
                     <tbody>
-                    @for(mission <- MissionTable.selectCompletedRegionalMission(UUID.fromString(userDB.get.userId))) {
-                        <tr>
-                            <td class="col-md-2">@mission.missionId</td>
-                            <td class="col-md-2">@mission.missionType</td>
-                            <td class="col-md-1">@mission.regionId.map(_.toString).getOrElse("N/A")</td>
-                            <td class="col-md-2">@mission.regionName.getOrElse("N/A")</td>
-                            <td class="col-md-3">@("%1.1f".format(mission.distanceMeters.getOrElse(0F))) / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) * 3.28084F)} / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) / 1609.344051499F)}</td>
-                            <td class="col-md-2">@mission.labelsValidated.getOrElse(0)</td>
-                        </tr>
-                    }
+                        @for(mission <- adminData.get.completedMissions) {
+                            <tr>
+                                <td class="col-md-1">@mission.missionId</td>
+                                <td class="col-md-2">@mission.missionType</td>
+                                <td class="col-md-1">@mission.regionId.map(_.toString).getOrElse("N/A")</td>
+                                <td class="col-md-2">@mission.regionName.getOrElse("N/A")</td>
+                                <td class="col-md-2">@("%1.1f".format(mission.distanceMeters.getOrElse(0F))) / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) * 3.28084F)} / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) / 1609.344051499F)}</td>
+                                <td class="col-md-1">@mission.labelsValidated.getOrElse(0)</td>
+                                <td class="col-md-3 timestamp">@mission.missionEnd</td>
+                            </tr>
+                        }
                     </tbody>
                 </table>
             </div>
@@ -391,7 +369,7 @@
                 <div class="col-lg-12">
                     <table class="table table-striped table-condensed">
                         <tr><th class="col-md-3">Timestamp</th><th class="col-md-3">Panorama Id</th><th class="col-md-6">Comment</th></tr>
-                        @AuditTaskCommentTable.all(userDB.get.username).getOrElse(List()).map { comment =>
+                        @adminData.get.exploreComments.map { comment =>
                             <tr>
                                 <td class= 'timestamp'>@comment.timestamp</td>
                                 <td>@comment.gsvPanoramaId</td>
@@ -404,61 +382,45 @@
         }
     </div>
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/PSMap/build/PSMap.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Progress/build/Progress.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-3.10.0.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@routes.Assets.at("javascripts/lib/mapbox-gl-3.10.0.css")' rel="stylesheet"/>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf-7.2.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
-    <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
+    <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+    <script src='@assets.path("javascripts/Progress/build/Progress.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.13.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.13.0.css")' rel="stylesheet"/>
+    <script src='@assets.path("javascripts/lib/turf-7.2.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
+    <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
+    <link href='@assets.path("stylesheets/userProfile.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
 
-    @* Add extra imports for admin version. *@
+    <!-- Add extra imports for admin version. -->
     @if(admin) {
-        <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
-        <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
-        <script type="text/javascript" src='@routes.Assets.at("javascripts/common/timestampLocalization.js")'></script>
-        <script src='//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.1/js/bootstrap-datepicker.min.js'></script>
-        <link href='https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.1/css/bootstrap-datepicker.min.css' rel='stylesheet' />
-        <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
+        <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+        <script src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
+        <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
+        <script src='@assets.path("javascripts/lib/bootstrap-datepicker-1.9.0.min.js")'></script>
+        <link href='@assets.path("javascripts/lib/bootstrap-datepicker-1.9.0.min.css")' rel="stylesheet"/>
+        <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
 
-        <script type="text/javascript">
-                updateTimestamps("@lang.code");
-        </script>
+        <script>updateTimestamps("@messages.lang.code");</script>
     }
 
     <script>
-        $(document).ready(function () {
-            i18next.use(i18nextHttpBackend).init({
-                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-                fallbackLng: 'en',
-                ns: ['dashboard', 'common', 'labelmap'],
-                defaultNS: 'dashboard',
-                lng: "@lang.code",
-                debug: false
-            }, function(err, t) {
+        window.appManager.ready(function () {
+            // Set up the main JS that powers the user dashboard.
+            Progress(_, $, '@commonData.mapboxApiKey', '@profileUser.userId', @admin);
+            @if(admin) {
+                AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService);
+                $('#label-table').dataTable();
+            }
 
-                @if(admin) {
-                    Progress(_, $, '@user.userId', '@user.role', true, '@userDB.get.userId', '@userDB.get.username');
-                    AdminUser('@userDB.get.username', '@userDB.get.userId', @UserRoleTable.getCommunityService(UUID.fromString(userDB.get.userId)));
-                    $('#label-table').dataTable();
-                } else {
-                    Progress(_, $, '@user.userId', '@user.role', false, '');
-                }
+            const achievementTracker = new AchievementTracker();
+            achievementTracker.updateBadgeAchievementGrid(
+                @data.missionCount, @data.auditedDistance, @data.labelCount, @data.validationCount
+            );
 
-                const achievementTracker = new AchievementTracker();
-                achievementTracker.updateBadgeAchievementGrid(
-                    @MissionTable.countCompletedMissions(userId, includeOnboarding = true, includeSkipped = false),
-                    @auditedDistance,
-                    @LabelTable.countLabels(userId),
-                    @LabelValidationTable.countValidations(userId)
-                );
-
-                MistakeCarousel('@userId');
-            });
+            MistakeCarousel('@profileUser.userId');
 
             // Adds interaction handlers for the team dropdown.
             $('[data-toggle="tooltip"]').tooltip();

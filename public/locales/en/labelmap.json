@@ -2,6 +2,8 @@
     "is-correct": "Is this label correct?",
     "label-type": "Label Type",
     "validations": "Validations",
+    "ai-validation": "AI Validation",
+    "ai-val-included": "$t(common:{{aiVal}}) (included in count above)",
     "add-comment": "Add comment here...",
     "submit-comment": "Submit comment",
     "comment-submitted": "Comment Submitted"

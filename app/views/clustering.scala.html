@@ -1,8 +1,11 @@
-@import models.user.User
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
-@main(title) {
-    @navbar(user, Some("/clustering"))
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user))
     <div id="content">
         <div class="container">
             <h1>Clustering labels into attributes</h1>
@@ -14,71 +17,47 @@
         </div>
     </div>
 
-    @*Adds onclicks to each button that calls clustering code and extracts results from the response.*@
     <script>
+        // Add onclicks to each button that calls clustering code and extracts results from the response.
         $(document).ready(function () {
-            let singleUserButton = document.getElementById('btn-single-user-clustering');
-            singleUserButton.onclick = function() {
-                $( "#clustering-status" ).html( 'Running...' );
-                $.ajax({
-                    type: "get",
-                    url: "/runClustering?clusteringType=singleUser",
-                    contentType: 'application/json; charset=utf-8',
-                    success: function (data) {
-                        $( "#clustering-status" ).html(
-                            "Clustered "
-                                + String(data.user_labels)
-                                + " user labels into "
-                                + String(data.user_attributes)
-                                + " user attributes."
-                        );
-                    },
-                    dataType: "json"
-                });
+            let clusterStatusElement = document.getElementById('clustering-status');
+
+            // Handles the event stream. Updates the clustering-status element as clustering progresses.
+            function clusteringEventOnMessage(event) {
+                const data = JSON.parse(event.data);
+                clusterStatusElement.textContent = data.status;
+
+                // If processing is complete, show final results and close the connection.
+                if (data.status === 'Complete') {
+                    clusterStatusElement.textContent = `Labels: ${data.results.user_labels}, ` +
+                        `User Attributes: ${data.results.user_attributes}, ` +
+                        `Global Attributes: ${data.results.global_attributes}`;
+                    this.close();
+                }
+            }
+
+            // Handles errors in the clustering event stream.
+            function clusteringEventOnError(event) {
+                console.error('EventSource error:', event);
+                clusterStatusElement.textContent = 'Error occurred.';
+                this.close();
+            }
+
+            // Creates a new EventSource for each button click and sets up the event handlers.
+            document.getElementById('btn-single-user-clustering').onclick = function() {
+                const eventSource = new EventSource('/runClustering?clusteringType=singleUser');
+                eventSource.onmessage = clusteringEventOnMessage;
+                eventSource.onerror = clusteringEventOnError;
             };
-        });
-        $(document).ready(function () {
-            let multiUserButton = document.getElementById('btn-multi-user-clustering');
-            multiUserButton.onclick = function() {
-                $( "#clustering-status" ).html( 'Running...' );
-                $.ajax({
-                    type: "get",
-                    url: "/runClustering?clusteringType=multiUser",
-                    contentType: 'application/json; charset=utf-8',
-                    success: function (data) {
-                        $( "#clustering-status" ).html(
-                                "Clustered "
-                                + String(data.user_attributes)
-                                + " user attributes into "
-                                + String(data.global_attributes)
-                                + " global attributes."
-                        );
-                    },
-                    dataType: "json"
-                });
+            document.getElementById('btn-multi-user-clustering').onclick = function() {
+                const eventSource = new EventSource('/runClustering?clusteringType=multiUser');
+                eventSource.onmessage = clusteringEventOnMessage;
+                eventSource.onerror = clusteringEventOnError;
             };
-        });
-        $(document).ready(function () {
-            let bothButton = document.getElementById('btn-both-clustering');
-            bothButton.onclick = function() {
-                $( "#clustering-status" ).html( 'Running...' );
-                $.ajax({
-                    type: "get",
-                    url: "/runClustering?clusteringType=both",
-                    contentType: 'application/json; charset=utf-8',
-                    success: function (data) {
-                        $( "#clustering-status" ).html(
-                                "Clustered "
-                                + String(data.user_labels)
-                                + " user labels into "
-                                + String(data.user_attributes)
-                                + " user attributes, and clustered those into "
-                                + String(data.global_attributes)
-                                + " global attributes."
-                        );
-                    },
-                    dataType: "json"
-                });
+            document.getElementById('btn-both-clustering').onclick = function() {
+                const eventSource = new EventSource('/runClustering?clusteringType=both');
+                eventSource.onmessage = clusteringEventOnMessage;
+                eventSource.onerror = clusteringEventOnError;
             };
         });
     </script>

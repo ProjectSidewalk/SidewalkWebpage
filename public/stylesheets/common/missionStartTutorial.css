@@ -402,7 +402,7 @@
     background: rgba(246, 141, 62, 0.15);
 }
 
-.explore-mission-start-tab.label[data-label-type="NoSideWalk"]:hover {
+.explore-mission-start-tab.label[data-label-type="NoSidewalk"]:hover {
     background: rgba(190, 135, 216, 0.15);
 }
 
@@ -436,7 +436,7 @@
     border-bottom-color: #F68D3E;
 }
 
-.explore-mission-start-tab.label[data-label-type="NoSideWalk"].active {
+.explore-mission-start-tab.label[data-label-type="NoSidewalk"].active {
     background: rgba(190, 135, 216, 0.15);
     border-bottom-color: #BE87D8;
 }

@@ -1,0 +1,345 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@content = {
+    <script>
+        // Set data attributes for API information. This is used by our JavaScripts to configure API calls, including
+        // the download buttons in api-docs.js.
+        console.log('Setting data attributes for API information');
+        document.documentElement.setAttribute('data-api-base-url', '/v3/api');
+        document.documentElement.setAttribute('data-api-endpoint', 'validations');
+        console.log('Data attributes set:', {
+            'data-api-base-url': document.documentElement.getAttribute('data-api-base-url'),
+            'data-api-endpoint': document.documentElement.getAttribute('data-api-endpoint')
+        });
+    </script>
+
+    <div class="api-section" id="validations-intro-section">
+        <h1 class="api-heading" id="validations-api">Validations API <a href="#validations-api" class="permalink">#</a></h1>
+        <p>
+            The Validations API provides access to validation data from Project Sidewalk, where community members
+            review and validate labels placed by other users. Each validation record includes the validator's
+            judgment (Agree, Disagree, or Unsure), any changes made to tags or severity levels, and associated metadata.
+        </p>
+        <p>
+            This API is useful for researchers studying data quality, community validation patterns, and the
+            reliability of crowdsourced accessibility data. The validation process helps ensure the accuracy
+            and consistency of Project Sidewalk's accessibility information.
+        </p>
+    </div>
+
+    <div class="api-section" id="validation-preview-section">
+        <h2 class="api-heading" id="visual-example">Validations API Preview <a href="#visual-example" class="permalink">#</a></h2>
+        <p>Below is a live preview showing validation result distributions by label type, retrieved directly from the API:</p>
+
+        <div id="validations-preview">Loading validation data...</div>
+
+        <script src='@assets.path("javascripts/lib/chart-4.5.0.min.js")'></script>
+        <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/validations.css")">
+        <script src="@routes.Assets.versioned("javascripts/api-docs/validations-preview.js")"></script>
+        <script>
+            // Initialize the validations preview.
+            document.addEventListener('DOMContentLoaded', function() {
+                ValidationsPreview.setup({
+                    maxChartsToShow: 6,
+                    minValidationsToShow: 10
+                }).init();
+            });
+        </script>
+    </div>
+
+    <div class="api-section" id="endpoint-section">
+        <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
+        <p>Retrieve validation data with optional filtering by various criteria.</p>
+        <p><code>GET /v3/api/validations</code></p>
+
+        <div class="api-subsection" id="endpoint-example-section">
+            <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+            <p><code><a href="/v3/api/validations">/v3/api/validations</a></code> Get all validations in JSON (default)</p>
+            <p><code><a href="/v3/api/validations?filetype=csv">/v3/api/validations?filetype=csv</a></code> Get all validations in CSV format</p>
+            <p><code><a href="/v3/api/validations?validationResult=1">/v3/api/validations?validationResult=1</a></code> Get only "Agree" validations</p>
+            <p><code><a href="/v3/api/validations?labelTypeId=2&changedTags=true">/v3/api/validations?labelTypeId=2&changedTags=true</a></code> Get validations for label type 2 where tags were changed</p>
+        </div>
+    </div>
+
+    <div class="api-section" id="quick-download-section">
+        <h2 class="api-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
+        <p>Download validation data directly in your preferred format:</p>
+
+        <div class="download-buttons">
+            <button class="download-btn" data-format="json">
+                <span class="format-icon">📄</span> JSON
+                <span class="format-hint">Standard format</span>
+            </button>
+            <button class="download-btn" data-format="csv">
+                <span class="format-icon">📊</span> CSV
+                <span class="format-hint">For Excel, Google Sheets</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="api-section" id="query-parameters-section">
+        <h2 class="api-heading" id="query-parameters">Query Parameters<a href="#query-parameters" class="permalink">#</a></h2>
+        <p>This endpoint accepts the following optional query parameters to filter validation data.</p>
+
+        <div class="api-table-wrapper">
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>labelId</code></td>
+                        <td><code>integer</code></td>
+                        <td>Filter validations for a specific label by its unique ID.</td>
+                    </tr>
+                    <tr>
+                        <td><code>userId</code></td>
+                        <td><code>string</code></td>
+                        <td>Filter validations performed by a specific user (validator).</td>
+                    </tr>
+                    <tr>
+                        <td><code>validationResult</code></td>
+                        <td><code>integer</code></td>
+                        <td>Filter by validation result: <code>1</code> (Agree), <code>2</code> (Disagree), <code>3</code> (Unsure).</td>
+                    </tr>
+                    <tr>
+                        <td><code>labelTypeId</code></td>
+                        <td><code>integer</code></td>
+                        <td>Filter validations for a specific label type (e.g., CurbRamp, Obstacle). See <a href="@routes.ApiDocsController.labelTypes">Label Types API</a></td>
+                    </tr>
+                    <tr>
+                        <td><code>validationTimestamp</code></td>
+                        <td><code>string</code></td>
+                        <td>Filter validations performed after this ISO 8601 timestamp (e.g., "2023-01-01T00:00:00Z").</td>
+                    </tr>
+                    <tr>
+                        <td><code>changedTags</code></td>
+                        <td><code>boolean</code></td>
+                        <td>Filter validations where tags were changed (<code>true</code>) or not changed (<code>false</code>).</td>
+                    </tr>
+                    <tr>
+                        <td><code>changedSeverityLevels</code></td>
+                        <td><code>boolean</code></td>
+                        <td>Filter validations where severity levels were changed (<code>true</code>) or not changed (<code>false</code>).</td>
+                    </tr>
+                    <tr>
+                        <td><code>filetype</code></td>
+                        <td><code>string</code></td>
+                        <td>Output format: <code>json</code> (default), <code>csv</code>. Note: <code>shapefile</code> is not supported for validation data.</td>
+                    </tr>
+                    <tr>
+                        <td><code>inline</code></td>
+                        <td><code>boolean</code></td>
+                        <td>Whether to display the file inline (<code>true</code>) or as a download attachment (<code>false</code>, default).</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="api-section" id="responses-section">
+        <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
+
+        <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
+        <p>On success, the API returns an HTTP <code>200 OK</code> status code and the requested data in the specified format.</p>
+
+        <h4 id="response-json">JSON Format (Default) <a href="#response-json" class="permalink">#</a></h4>
+        <p>Returns a JSON array containing validation objects:</p>
+        <pre><code class="language-json">[
+    {
+        "label_validation_id": 12345,
+        "label_id": 67890,
+        "label_type_id": 2,
+        "label_type": "NoCurbRamp",
+        "validation_result": 1,
+        "validation_result_string": "Agree",
+        "old_severity": 3,
+        "new_severity": 4,
+        "old_tags": ["narrow"],
+        "new_tags": ["narrow", "steep"],
+        "user_id": "user_abc123",
+        "validator_type": "Human",
+        "mission_id": 1234,
+        "canvas_x": 186,
+        "canvas_y": 148,
+        "heading": 239.29465,
+        "pitch": -15.819197,
+        "zoom": 2,
+        "canvas_height": 288,
+        "canvas_width": 384,
+        "start_timestamp": "2025-08-04T21:52:05.158Z",
+        "end_timestamp": "2025-08-04T21:52:05.158Z",
+        "source": "ExpertValidate"
+    },
+    {
+        "validation_id": 12346,
+        "label_id": 67891,
+        "label_type_id": 1,
+        "label_type": "CurbRamp",
+        "validation_result": 2,
+        "validation_result_string": "Disagree",
+        "old_severity": 2,
+        "new_severity": 2,
+        "old_tags": ["wide"],
+        "new_tags": ["wide"],
+        "user_id": "user_def456",
+        "validator_type": "AI",
+        "mission_id": 1235,
+        "canvas_x": 186,
+        "canvas_y": 148,
+        "heading": 239.29465,
+        "pitch": -15.819197,
+        "zoom": 2,
+        "canvas_height": 288,
+        "canvas_width": 384,
+        "start_timestamp": "2025-08-04T21:52:05.158Z",
+        "end_timestamp": "2025-08-04T21:52:05.158Z",
+        "source": "SidewalkAI"
+    }
+]</code></pre>
+
+        <h5 id="json-fields">JSON Field Descriptions <a href="#json-fields" class="permalink">#</a></h5>
+        <div class="api-table-wrapper">
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>label_validation_id</code></td><td><code>integer</code></td><td>Unique identifier for the validation record.</td></tr>
+                    <tr><td><code>label_id</code></td><td><code>integer</code></td><td>ID of the label that was validated.</td></tr>
+                    <tr><td><code>label_type_id</code></td><td><code>integer</code></td><td>ID of the label type (e.g., 1 for CurbRamp, 2 for NoCurbRamp).</td></tr>
+                    <tr><td><code>label_type</code></td><td><code>string</code></td><td>Name of the label type (e.g., "CurbRamp", "Obstacle").</td></tr>
+                    <tr><td><code>validation_result</code></td><td><code>integer</code></td><td>Validation judgment: 1 (Agree), 2 (Disagree), 3 (Unsure).</td></tr>
+                    <tr><td><code>validation_result_string</code></td><td><code>string</code></td><td>Validation judgment: Agree, Disagree, Unsure.</td></tr>
+                    <tr><td><code>old_severity</code></td><td><code>integer | null</code></td><td>Severity rating before validation (1-5 scale), or null if not applicable.</td></tr>
+                    <tr><td><code>new_severity</code></td><td><code>integer | null</code></td><td>Severity rating after validation, or null if not changed/applicable.</td></tr>
+                    <tr><td><code>old_tags</code></td><td><code>array[string]</code></td><td>Array of tag names before validation.</td></tr>
+                    <tr><td><code>new_tags</code></td><td><code>array[string]</code></td><td>Array of tag names after validation.</td></tr>
+                    <tr><td><code>user_id</code></td><td><code>string</code></td><td>ID of the user who performed the validation.</td></tr>
+                    <tr><td><code>validator_type</code></td><td><code>string</code></td><td>One of: Human, AI.</td></tr>
+                    <tr><td><code>mission_id</code></td><td><code>integer</code></td><td>The mission ID associated with the validation.</td></tr>
+                    <tr><td><code>canvas_x</code></td><td><code>integer | null</code></td><td>The X-coordinate on the GSV canvas of the label when it was validated, or null if label was offscreen.</td></tr>
+                    <tr><td><code>canvas_y</code></td><td><code>integer | null</code></td><td>The Y-coordinate on the GSV canvas of the label when it was validated, or null if label was offscreen.</td></tr>
+                    <tr><td><code>heading</code></td><td><code>number</code></td><td>Camera heading in GSV when the label was validated.</td></tr>
+                    <tr><td><code>pitch</code></td><td><code>number</code></td><td>Camera pitch in GSV when the label was validated.</td></tr>
+                    <tr><td><code>zoom</code></td><td><code>number</code></td><td>Camera zoom in GSV when the label was validated.</td></tr>
+                    <tr><td><code>canvas_width</code></td><td><code>integer</code></td><td>Width of the GSV canvas in pixels.</td></tr>
+                    <tr><td><code>canvas_height</code></td><td><code>integer</code></td><td>Height of the GSV canvas in pixels.</td></tr>
+                    <tr><td><code>start_timestamp</code></td><td><code>string</code></td><td>ISO 8601 formatted timestamp when the user started viewing the label for validation.</td></tr>
+                    <tr><td><code>end_timestamp</code></td><td><code>string</code></td><td>ISO 8601 formatted timestamp when the validation was performed.</td></tr>
+                    <tr><td><code>source</code></td><td><code>string</code></td><td>In which interface the validation occurred: "Validate", "ValidateMobile", "ExpertValidate", "LabelMap", "GalleryImage", "GalleryExpandedImage", "GalleryThumbs", "GalleryExpandedThumbs", "SidewalkAI", "AdminUserDashboard", "AdminLabelSearchTab", "ExternalTagValidationASSETS2024"</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
+        <p>If <code>filetype=csv</code> is specified, the response will be CSV data with the same field structure:</p>
+        <pre><code class="language-csv">label_validation_id,label_id,label_type_id,label_type,...
+12345,67890,2,NoCurbRamp,...
+12346,67891,1,CurbRamp,...</code></pre>
+
+        <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
+        <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
+        <ul>
+            <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., invalid validationResult, unsupported filetype).</li>
+            <li><strong><code>404 Not Found</code>:</strong> The requested resource does not exist.</li>
+            <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
+            <li><strong><code>503 Service Unavailable</code>:</strong> The server is temporarily unable to handle the request.</li>
+        </ul>
+
+        <h4 id="error-body">Error Response Body <a href="#error-body" class="permalink">#</a></h4>
+        <p>Error responses include a JSON body with the following structure:</p>
+        <pre><code class="language-json">{
+    "status": 400,
+    "code": "INVALID_PARAMETER",
+    "message": "Invalid validationResult value. Must be 1 (Agree), 2 (Disagree), or 3 (Unsure).",
+    "parameter": "validationResult"
+}</code></pre>
+    </div>
+
+    <div class="api-section" id="validation-result-types-section">
+        <h2 class="api-heading" id="validation-result-types">Validation Result Types <a href="#validation-result-types" class="permalink">#</a></h2>
+        <p>Project Sidewalk uses three validation result types to categorize validator responses:</p>
+        <div class="api-table-wrapper">
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>1</code></td>
+                        <td>Agree</td>
+                        <td>The validator agrees with the original label placement and classification.</td>
+                    </tr>
+                    <tr>
+                        <td><code>2</code></td>
+                        <td>Disagree</td>
+                        <td>The validator disagrees with the original label placement or classification.</td>
+                    </tr>
+                    <tr>
+                        <td><code>3</code></td>
+                        <td>Unsure</td>
+                        <td>The validator is uncertain about the label's accuracy (e.g., due to image quality).</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p>
+            You can also retrieve this information programmatically from the<code>/v3/api/validationResultTypes</code>
+            endpoint, which includes current count statistics for each validation result type. We include these counts
+            for both Human and AI validations separately. You'll notice that there is no "Unsure" result type for AI;
+            we only include AI validations if the AI is confident in its classification, but we haven't counted how
+            often the AI is unsure.
+        </p>
+    </div>
+
+    <div class="api-section" id="data-analysis-tips-section">
+        <h2 class="api-heading" id="data-analysis-tips">Data Analysis Tips <a href="#data-analysis-tips" class="permalink">#</a></h2>
+        <p>
+            The Validations API provides rich data for understanding community consensus and data quality. Here are some
+            suggestions for effectively using this data:
+        </p>
+        <ul>
+            <li><strong>Analyze agreement patterns by label type</strong> to identify which accessibility features are easier or harder for the community to classify consistently</li>
+            <li><strong>Track tag and severity changes</strong> to understand how validation improves label accuracy and completeness</li>
+            <li><strong>Use temporal filtering</strong> to study validation patterns over time</li>
+            <li><strong>Cross-reference with user data</strong> to analyze validation behavior across different user types and experience levels</li>
+            <li><strong>Map validation results geographically</strong> to identify neighborhoods or street types where labels are more controversial</li>
+            <li><strong>Calculate inter-rater reliability</strong> by analyzing multiple validations of the same labels</li>
+        </ul>
+
+        <div class="api-callout">
+            <h3><i class="icon icon-code"></i> Related APIs</h3>
+            <p>
+                For comprehensive validation analysis, consider using the Validations API alongside:
+            </p>
+            <ul>
+                <li><a href="@routes.ApiDocsController.rawLabels">Raw Labels API</a> - Get the original labels that were validated</li>
+                <li><a href="@routes.ApiDocsController.labelTypes">Label Types API</a> - Understand the classification system used for validations</li>
+                <li><a href="@routes.ApiDocsController.labelTags">Label Tags API</a> - Learn about the tag system that validators can modify</li>
+                <li><a href="@routes.ApiDocsController.userStats">User Stats API</a> - Analyze validator behavior and experience levels</li>
+                <li><a href="@routes.ApiDocsController.overallStats">Overall Stats API</a> - Get aggregate validation statistics</li>
+            </ul>
+        </div>
+    </div>
+}
+
+@common.main(commonData, "API Docs") {
+    @common.navbar(commonData, Some(user))
+    @apiDocs.layout("validations")(content)
+}

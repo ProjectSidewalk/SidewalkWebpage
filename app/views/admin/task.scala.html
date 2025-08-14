@@ -1,9 +1,14 @@
-@import models.user.User
 @import models.audit.AuditTask
-@(title: String, admin: Option[User] = None, task: AuditTask)(implicit lang: Lang)
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, task: AuditTask
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@main(title) {
-    @navbar(admin)
+@currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
+
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user))
     <div class="container">
         <div class="row">
             <div class="col-md-4">
@@ -45,37 +50,23 @@
             </div>
         </div>
     </div>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Panomarker.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/bootstrap-3.3.5/js/bootstrap-slider.min.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-3.10.0.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@routes.Assets.at("javascripts/lib/mapbox-gl-3.10.0.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.at("javascripts/lib/bootstrap-3.3.5/css/bootstrap-slider.min.css")' rel="stylesheet"/>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.at("stylesheets/adminTask.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
+    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+    <script src='@assets.path("javascripts/common/UtilitiesSidewalk.js")'></script>
+    <script src='@assets.path("javascripts/common/Panomarker.js")'></script>
+    <script src='@assets.path("javascripts/lib/bootstrap-3.3.5/js/bootstrap-slider.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.13.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.13.0.css")' rel="stylesheet"/>
+    <link href='@assets.path("javascripts/lib/bootstrap-3.3.5/css/bootstrap-slider.min.css")' rel="stylesheet"/>
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
+    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/adminTask.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
     <script>
-        $(document).ready(function () {
-            i18next.use(i18nextHttpBackend).init({
-                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-                fallbackLng: 'en',
-                ns: ['common'],
-                defaultNS: 'common',
-                lng: '@lang.code',
-                debug: false
-            }, function(err, t) {
-                $.getJSON('/cityMapParams', function(data) {
-                    var auditTaskId = @task.auditTaskId;
-                    window.admin = AdminTask({auditTaskId: auditTaskId, mapboxApiKey: data.mapbox_api_key});
-                });
-            });
+        // Load the translations, then initialize the AdminTask module.
+        window.appManager.ready(function () {
+            window.admin = AdminTask({ auditTaskId: @task.auditTaskId, mapboxApiKey: '@commonData.mapboxApiKey' });
         });
     </script>
-
-
-
 }

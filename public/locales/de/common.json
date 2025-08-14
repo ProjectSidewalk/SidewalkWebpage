@@ -1,7 +1,7 @@
 {
     "measurement-system": "metric",
     "mapbox-language-code": "de",
-    "explore-street-link": "<a href='/explore/street/{{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Hier klicken</a>, um diese Strasse zu erkunden!",
+    "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Hier klicken</a>, um diese Strasse zu erkunden!",
     "admin-clear-play-cache": "Play-Cache erfolgreich gelöscht",
     "unit-distance-abbreviation": "km",
     "unit-abbreviation-mission-distance": "m",
@@ -16,19 +16,11 @@
     "surface-problem": "Oberflächen&shy;problem",
     "occlusion": "Trottoir nicht sichtbar",
     "no-sidewalk": "kein Trottoir",
-    "crosswalk": "Fussgänger&shy;streifen",
+    "crosswalk": "Markierter Fussgängerstreifen",
     "signal": "Fussgänger&shy;lichtsignal",
     "other": "Andere",
-    "missing-sidewalks": "keine Trottoirs",
-    "missing-ramps": "fehlende Trottoir&shy;absenkungen",
     "surface-problems": "Oberflächen&shy;probleme",
-    "sidewalk-obstacles": "Hindernisse",
     "complete": "vollständig",
-    "mturk-code": "Mturk Code: {{code}}",
-    "right-ui-turk-current-reward": "Auszeichnung für aktuelle Mission: ",
-    "right-ui-turk-total-reward": "Auszeichnung gesamt: ",
-    "mission-complete-confirmation-code": "Bestätigungscode: ",
-    "mission-start-turk-reward": "Auszeichnung bei erfolgreichem Abschluss: ",
     "map": {
         "distance-left": "Nur {{n}} Kilometer übrig!",
         "distance-left-one-unit": "Nur 1 Kilometer übrig!",
@@ -37,6 +29,9 @@
         "thanks": "Danke für Ihre grosse Hilfe!",
         "100-percent-complete": "100% abgeschlossen!",
         "percent-complete": "{{percent}}% abgeschlossen"
+    },
+    "deployment-map": {
+        "explore": "Entdecken {{cityName}}"
     },
     "errors": {
         "title": "Ups, unser Fehler! Für diese Beschriftung sind keine Bilder mehr verfügbar.",
@@ -60,6 +55,7 @@
     "labeled": "Beschriftet",
     "yes": "Ja",
     "no": "Nein",
+    "ai-disclaimer": "Die KI hat dieses Label analysiert und mit „$t({{aiVal}})“ bewertet. KI kann jedoch Fehler machen. Bitte bilden Sie sich Ihre eigene Meinung.",
     "tag": {
         "narrow": "schmal",
         "points into traffic": "auf den Verkehr ausgerichtet",
@@ -96,7 +92,7 @@
         "brick/cobblestone": "Ziegelsteine/Kopfsteinpflaster",
         "very broken": "stark beschädigt",
         "rail/tram track": "Zug-/Tramschienen",
-        "sand/gravel": "Schotter/Kies",
+        "sand/gravel": "Schlamm/Sand/Kies",
         "uncovered manhole": "offener Schacht",
         "ends abruptly": "endet abrupt",
         "street has a sidewalk": "Strasse hat ein Trottoir",
@@ -115,7 +111,7 @@
         "one button": "ein Knopf",
         "two buttons": "zwei Knöpfe",
         "hard to reach buttons": "schwer zu erreichen Knöpfe",
-        "missing crosswalk": "fehlender Fussgängerstreifen",
+        "missing crosswalk": "fehlender Markierter Fussgängerstreifen",
         "no bus stop access": "kein Zugang zur Haltestelle",
         "pedestrian lane marking": "Längsstreifen / Gehwegmarkierung",
         "covered walkway": "überdachter Gehweg",
@@ -132,7 +128,12 @@
         "cycle lane- faded paint": "Radweg: $t(common:tag.paint fading)",
         "cycle lane- debris / pooled water": "Radweg: $t(common:tag.debris / pooled water)",
         "cycle lane- parked car": "Radweg: $t(common:tag.parked car)",
-        "cycle box": "Fahrradbox"
+        "cycle box": "Fahrradbox",
+        "not visible": "nicht sichtbar",
+        "cart": "Warenkorb",
+        "drainage": "Drainage",
+        "electrical box": "Schaltkasten",
+        "too dirty/cluttered": "zu schmutzig/unordentlich"
     },
     "gsv-info": {
         "details-title": "Details",
@@ -241,11 +242,11 @@
             },
             "slide-3": {
                 "title": "Haltelinien",
-                "description": "Haltelinien für Autos sollten nicht als Fussgängerstreifen beschriftet werden."
+                "description": "Haltelinien für Autos sollten nicht als Markierter Fussgängerstreifen beschriftet werden."
             },
             "slide-4": {
                 "title": "Strassenschwellen",
-                "description": "Strassenschwellen sollten nicht als Fussgängerstreifen beschriftet werden."
+                "description": "Strassenschwellen sollten nicht als Markierter Fussgängerstreifen beschriftet werden."
             }
         },
         "signal": {

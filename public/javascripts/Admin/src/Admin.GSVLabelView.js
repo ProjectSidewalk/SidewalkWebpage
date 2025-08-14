@@ -50,10 +50,8 @@ function AdminGSVLabelView(admin, source) {
                             '</div>' +
                             '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
                                 '<table class="table table-striped" style="font-size:small;>' +
-                                    '<tr>' +
-                                        `<th>${i18next.t('labelmap:label-type')}</th>` +
-                                        '<td id="label-type-value"></td>' +
-                                    '</tr>' +
+                                    // Idk why, but the first row is just getting removed automatically??
+                                    '<tr><th>test</th><td id="to-be-removed"></td></tr>' +
                                     '<tr>' +
                                         `<th>${i18next.t('common:severity')}</th>` +
                                         '<td id="severity"></td>' +
@@ -73,6 +71,10 @@ function AdminGSVLabelView(admin, source) {
                                     '<tr>' +
                                         '<th>' + i18next.t('labelmap:validations') + '</th>' +
                                         '<td colspan="3" id="label-validations"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th id="ai-validation-header">${i18next.t('labelmap:ai-validation')}</th>` +
+                                        '<td colspan="3" id="ai-validation"></td>' +
                                     '</tr>' +
                                     '<tr>' +
                                     '<th>' + i18next.t('common:comments') + '</th>' +
@@ -235,12 +237,13 @@ function AdminGSVLabelView(admin, source) {
 
         self.modalTitle = self.modal.find("#myModalLabel");
         self.modalTimestamp = self.modal.find("#timestamp");
-        self.modalLabelTypeValue = self.modal.find("#label-type-value");
         self.modalSeverity = self.modal.find("#severity");
         self.modalTemporary = self.modal.find("#temporary");
         self.modalTags = self.modal.find("#tags");
         self.modalDescription = self.modal.find("#label-description");
         self.modalValidations = self.modal.find("#label-validations");
+        self.modalAiValidationHeader = self.modal.find("#ai-validation-header");
+        self.modalAiValidation = self.modal.find("#ai-validation");
         self.modalImageDate = self.modal.find("#image-capture-date");
         self.modalUsername = self.modal.find("#admin-username");
         self.modalTask = self.modal.find("#task");
@@ -260,7 +263,7 @@ function AdminGSVLabelView(admin, source) {
      * @private
      */
     function _validateLabel(action) {
-        var validationTimestamp = new Date().getTime();
+        var validationTimestamp = new Date();
         var canvasWidth = self.panorama.svHolder.width();
         var canvasHeight = self.panorama.svHolder.height();
 
@@ -288,8 +291,8 @@ function AdminGSVLabelView(admin, source) {
             && pixelCoordinates.top + labelRadius > 0
             && pixelCoordinates.top - labelRadius < canvasHeight) {
 
-            labelCanvasX = pixelCoordinates.left - labelRadius;
-            labelCanvasY = pixelCoordinates.top - labelRadius;
+            labelCanvasX = Math.round(pixelCoordinates.left - labelRadius);
+            labelCanvasY = Math.round(pixelCoordinates.top - labelRadius);
         }
 
         var data = {
@@ -309,7 +312,9 @@ function AdminGSVLabelView(admin, source) {
             canvas_width: canvasWidth,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
-            source: self.source
+            source: self.source,
+            undone: false,
+            redone: action !== self.prevAction
         };
 
         // Submit the validation via POST request.
@@ -317,7 +322,7 @@ function AdminGSVLabelView(admin, source) {
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: "/labelmap/validate",
-            type: 'post',
+            method: 'POST',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
@@ -354,15 +359,14 @@ function AdminGSVLabelView(admin, source) {
     function _setValidationCountText() {
         // Form new string for validations row.
         var validationsTextAfter = '' + self.validationCounts['Agree'] + ' ' + i18next.t('common:agree') + ', ' +
-            self.validationCounts['Disagree'] + ' ' + i18next.t('common:no') + ', ' +
+            self.validationCounts['Disagree'] + ' ' + i18next.t('common:disagree') + ', ' +
             self.validationCounts['Unsure'] + ' ' + i18next.t('common:unsure');
-
-        self.modalValidations.html(validationsTextAfter)
+        self.modalValidations.html(validationsTextAfter);
     }
 
     /**
      * Update just the validation row on the table.
-     * @param action, can only be "Agree", "Disagree", and "Unsure"
+     * @param action One of "Agree", "Disagree", or "Unsure".
      */
     function _updateValidationChoice(action) {
         // If they had validated before this, decrement the count for their previous validation choice, min 0.
@@ -376,7 +380,33 @@ function AdminGSVLabelView(admin, source) {
         self.validationCounts[action] += 1;
 
         // Call on helper to update the text.
-        _setValidationCountText()
+        _setValidationCountText();
+    }
+
+    /**
+     * Creates the AI validation row text, adds the AI icon, and sets the tooltip.
+     * @param aiValidation The AI validation result, either "Agree", "Disagree", or null.
+     * @private
+     */
+    function _setAiValidationRow(aiValidation) {
+        if (aiValidation === 'Agree' || aiValidation === 'Disagree') {
+            self.modalAiValidation.html(i18next.t('labelmap:ai-val-included', { aiVal: aiValidation.toLowerCase() }));
+
+            // Create the AI icon.
+            let aiIcon = document.createElement('img')
+            aiIcon.className = 'label-view-ai-icon';
+            aiIcon.src = 'assets/images/icons/ai-icon-transparent-small.png';
+            aiIcon.alt = 'AI indicator';
+            self.modalAiValidationHeader.append(aiIcon);
+
+            // Create the AI validation tooltip that we show in the header.
+            aiIcon.setAttribute('data-toggle', 'tooltip');
+            aiIcon.setAttribute('data-placement', 'top');
+            aiIcon.setAttribute('title', i18next.t('common:ai-disclaimer', { aiVal: aiValidation.toLowerCase() }));
+            $(aiIcon).tooltip('hide');
+        } else {
+            self.modalAiValidation.html(i18next.t('common:none'));
+        }
     }
 
     /**
@@ -407,7 +437,7 @@ function AdminGSVLabelView(admin, source) {
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: "/labelmap/comment",
-            type: 'POST',
+            method: 'POST',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
@@ -415,7 +445,7 @@ function AdminGSVLabelView(admin, source) {
                 self.commentTextArea.val('');
                 self.commentButton.popover('toggle');
                 setTimeout(function(){ self.commentButton.popover('toggle'); }, 1500);
-            },  
+            },
             error: function(xhr, textStatus, error){
                 button.style.cursor = "pointer";
                 console.error(xhr.statusText);
@@ -472,7 +502,7 @@ function AdminGSVLabelView(admin, source) {
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: "/adminapi/setTaskFlag",
-            type: 'PUT',
+            method: 'PUT',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
@@ -488,7 +518,7 @@ function AdminGSVLabelView(admin, source) {
     }
 
     /**
-     * Updates the background of each flag button depending on the flag's state
+     * Updates the background of each flag button depending on the flag's state.
      * @private
      */
     function _updateFlagButton() {
@@ -531,7 +561,7 @@ function AdminGSVLabelView(admin, source) {
             var lat = self.panorama.panorama.getPosition().lat();
             var lng = self.panorama.panorama.getPosition().lng();
             var href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelMetadata['gsv_panorama_id']}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}`;
-            
+
             self.modalGsvLink.html(`<a target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
             self.modalGsvLink.children(":first").attr('href', href)
             self.modalLat.html(lat.toFixed(8) + '°');
@@ -540,17 +570,18 @@ function AdminGSVLabelView(admin, source) {
         self.panorama.setPano(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
             labelMetadata['pitch'], labelMetadata['zoom'], panoCallback);
 
-        var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type_key'],
+        var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type'],
             labelMetadata['canvas_x'], labelMetadata['canvas_y'], util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
             labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id'],
             labelMetadata['severity'], labelMetadata['tags']);
         self.panorama.setLabel(adminPanoramaLabel);
 
-        self.validationCounts['Agree'] = labelMetadata['num_agree']
-        self.validationCounts['Disagree'] = labelMetadata['num_disagree']
-        self.validationCounts['Unsure'] = labelMetadata['num_unsure']
-        self.prevAction = labelMetadata['user_validation']
-        _setValidationCountText()
+        self.validationCounts['Agree'] = labelMetadata['num_agree'];
+        self.validationCounts['Disagree'] = labelMetadata['num_disagree'];
+        self.validationCounts['Unsure'] = labelMetadata['num_unsure'];
+        self.prevAction = labelMetadata['user_validation'];
+        _setValidationCountText();
+        _setAiValidationRow(labelMetadata['ai_validation']);
 
         self.flags["low_quality"] = labelMetadata['low_quality'];
         self.flags["incomplete"] = labelMetadata['incomplete'];
@@ -560,8 +591,7 @@ function AdminGSVLabelView(admin, source) {
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
         // Change modal title
-        self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + camelToKebab(labelMetadata['label_type_key']))}`);
-        self.modalLabelTypeValue.html(i18next.t('common:'+camelToKebab(labelMetadata['label_type_value'])));
+        self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + camelToKebab(labelMetadata['label_type']))}`);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
         // Create a list of translated tags that's parsable by i18next.

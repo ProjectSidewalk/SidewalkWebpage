@@ -1,52 +1,64 @@
 package models.gallery
 
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.utils.MyPostgresDriver.simple._
-import play.api.Play.current
-import scala.slick.lifted.ForeignKeyQuery
+import com.google.inject.ImplementedBy
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-case class GalleryTaskEnvironment(galleryTaskEnvironmentId: Int, browser: Option[String],
-                                browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int],
-                                availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int],
-                                screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String],
-                                language: String, userId: Option[String])
+import javax.inject.{Inject, Singleton}
 
-class GalleryTaskEnvironmentTable(tag: Tag) extends Table[GalleryTaskEnvironment](tag, "gallery_task_environment") {
-  def galleryTaskEnvironmentId = column[Int]("gallery_task_environment_id", O.PrimaryKey, O.AutoInc)
-  def browser = column[Option[String]]("browser", O.Nullable)
-  def browserVersion = column[Option[String]]("browser_version", O.Nullable)
-  def browserWidth = column[Option[Int]]("browser_width", O.Nullable)
-  def browserHeight = column[Option[Int]]("browser_height", O.Nullable)
-  def availWidth = column[Option[Int]]("avail_width", O.Nullable)
-  def availHeight = column[Option[Int]]("avail_height", O.Nullable)
-  def screenWidth = column[Option[Int]]("screen_width", O.Nullable)
-  def screenHeight = column[Option[Int]]("screen_height", O.Nullable)
-  def operatingSystem = column[Option[String]]("operating_system", O.Nullable)
-  def ipAddress = column[Option[String]]("ip_address", O.Nullable)
-  def language = column[String]("language", O.NotNull)
-  def userId = column[Option[String]]("user_id", O.Nullable)
+case class GalleryTaskEnvironment(
+    galleryTaskEnvironmentId: Int,
+    browser: Option[String],
+    browserVersion: Option[String],
+    browserWidth: Option[Int],
+    browserHeight: Option[Int],
+    availWidth: Option[Int],
+    availHeight: Option[Int],
+    screenWidth: Option[Int],
+    screenHeight: Option[Int],
+    operatingSystem: Option[String],
+    ipAddress: Option[String],
+    language: String,
+    userId: Option[String]
+)
 
-  def * = (galleryTaskEnvironmentId, browser, browserVersion, browserWidth, browserHeight, availWidth,
-    availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language, userId) <> ((GalleryTaskEnvironment.apply _).tupled, GalleryTaskEnvironment.unapply)
+class GalleryTaskEnvironmentTableDef(tag: Tag) extends Table[GalleryTaskEnvironment](tag, "gallery_task_environment") {
+  def galleryTaskEnvironmentId: Rep[Int]   = column[Int]("gallery_task_environment_id", O.PrimaryKey, O.AutoInc)
+  def browser: Rep[Option[String]]         = column[Option[String]]("browser")
+  def browserVersion: Rep[Option[String]]  = column[Option[String]]("browser_version")
+  def browserWidth: Rep[Option[Int]]       = column[Option[Int]]("browser_width")
+  def browserHeight: Rep[Option[Int]]      = column[Option[Int]]("browser_height")
+  def availWidth: Rep[Option[Int]]         = column[Option[Int]]("avail_width")
+  def availHeight: Rep[Option[Int]]        = column[Option[Int]]("avail_height")
+  def screenWidth: Rep[Option[Int]]        = column[Option[Int]]("screen_width")
+  def screenHeight: Rep[Option[Int]]       = column[Option[Int]]("screen_height")
+  def operatingSystem: Rep[Option[String]] = column[Option[String]]("operating_system")
+  def ipAddress: Rep[Option[String]]       = column[Option[String]]("ip_address")
+  def language: Rep[String]                = column[String]("language")
+  def userId: Rep[Option[String]]          = column[Option[String]]("user_id")
 
-  def user: ForeignKeyQuery[UserTable, DBUser] =
-    foreignKey("gallery_task_environment_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
+  def * = (galleryTaskEnvironmentId, browser, browserVersion, browserWidth, browserHeight, availWidth, availHeight,
+    screenWidth, screenHeight, operatingSystem, ipAddress, language, userId) <> (
+    (GalleryTaskEnvironment.apply _).tupled,
+    GalleryTaskEnvironment.unapply
+  )
+
+//  def user: ForeignKeyQuery[UserTable, DBUser] =
+//    foreignKey("gallery_task_environment_user_id_fkey", userId, TableQuery[UserTableDef])(_.userId)
 }
 
-/**
- * Data access object for the gallery_task_environment table.
- */
-object GalleryTaskEnvironmentTable {
-  val db = play.api.db.slick.DB
-  val galleryTaskEnvironments = TableQuery[GalleryTaskEnvironmentTable]
+@ImplementedBy(classOf[GalleryTaskEnvironmentTable])
+trait GalleryTaskEnvironmentTableRepository {}
 
-  /**
-   * Saves a new gallery task environment.
-   *
-   * @param env Data concerning the environment a gallery interaction was done in.
-   * @return
-   */
-  def save(env: GalleryTaskEnvironment): Int = db.withSession { implicit session =>
+@Singleton
+class GalleryTaskEnvironmentTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends GalleryTaskEnvironmentTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+
+  val galleryTaskEnvironments = TableQuery[GalleryTaskEnvironmentTableDef]
+
+  def insert(env: GalleryTaskEnvironment): DBIO[Int] = {
     (galleryTaskEnvironments returning galleryTaskEnvironments.map(_.galleryTaskEnvironmentId)) += env
   }
 }

@@ -13,7 +13,7 @@
     height: 100%;
 }
 
-#user-dashboard-choropleth-holder, #access-score-choropleth-holder {
+#user-dashboard-choropleth-holder {
     position: relative;
 }
 
@@ -30,11 +30,6 @@
 
 #labelmap-choropleth, #admin-labelmap-choropleth {
     margin-top: 25px;
-}
-
-#access-score-choropleth {
-    min-height: 640px;
-    height: calc(100% - 116px);
 }
 
 #admin-task-choropleth {
@@ -145,10 +140,6 @@
 #map-legend-unaudited-street path {
     stroke: grey;
     stroke-width: 3;
-}
-#map-legend-polling-location {
-    width: 20px;
-    height: 20px;
 }
 
 .clearfix {

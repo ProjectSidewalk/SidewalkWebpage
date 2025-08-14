@@ -20,7 +20,7 @@ function Keyboard(menuUI) {
     }
 
     // Attach the same function to all three text boxes.
-    if (svv.newValidateBeta) {
+    if (svv.expertValidate) {
         menuUI.optionalCommentTextBox.on('keydown', handleEscapeKey);
         menuUI.disagreeReasonTextBox.on('keydown', handleEscapeKey);
         menuUI.unsureReasonTextBox.on('keydown', handleEscapeKey);
@@ -41,11 +41,11 @@ function Keyboard(menuUI) {
         // Check if menuUI.comment exists and has a valid element.
         if (menuUI.comment && menuUI.comment[0] && document.activeElement === menuUI.comment[0]) {
             status.addingComment = true;
-        } else if (svv.newValidateBeta) {
-            // Check if newValidateBeta text boxes are focused.
-            if (document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0] ||
-                document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0] ||
-                document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0] ||
+        } else if (svv.expertValidate) {
+            // Check if expertValidate text boxes are focused.
+            if (document.activeElement === svv.ui.expertValidate.optionalCommentTextBox[0] ||
+                document.activeElement === svv.ui.expertValidate.disagreeReasonTextBox[0] ||
+                document.activeElement === svv.ui.expertValidate.unsureReasonTextBox[0] ||
                 document.activeElement === document.getElementById('select-tag-selectized')) {
                 status.addingComment = true;
             } else {
@@ -67,7 +67,7 @@ function Keyboard(menuUI) {
 
         // It does not look like GSV StreetView supports any listeners that will check when the
         // panorama is fully loaded yet.
-        let timestamp = new Date().getTime();
+        let timestamp = new Date();
         if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
             button.toggleClass("validate");
             svv.tracker.push("ValidationKeyboardShortcut_" + action);
@@ -88,8 +88,8 @@ function Keyboard(menuUI) {
     }
 
     function _agreeShortcutPressed() {
-        if (svv.newValidateBeta) {
-            svv.ui.newValidateBeta.yesButton.click();
+        if (svv.expertValidate) {
+            svv.ui.expertValidate.yesButton.click();
         } else {
             let comment = menuUI.comment.val();
             validateLabel(menuUI.yesButton, "Agree", comment);
@@ -99,8 +99,8 @@ function Keyboard(menuUI) {
     }
 
     function _disagreeShortcutPressed() {
-        if (svv.newValidateBeta) {
-            svv.ui.newValidateBeta.noButton.click();
+        if (svv.expertValidate) {
+            svv.ui.expertValidate.noButton.click();
         } else {
             let comment = menuUI.comment.val();
             validateLabel(menuUI.noButton, "Disagree", comment);
@@ -136,7 +136,7 @@ function Keyboard(menuUI) {
 
     function handleCommentBoxShortcut(e) {
         e.preventDefault();
-        if (!svv.newValidateBeta) {
+        if (!svv.expertValidate) {
             menuUI.comment.focus();
         } else if (menuUI.yesButton.hasClass('chosen')) {
             menuUI.optionalCommentTextBox.click();
@@ -193,8 +193,8 @@ function Keyboard(menuUI) {
                     break;
                 // "u" key
                 case 85:
-                    if (svv.newValidateBeta) {
-                        svv.ui.newValidateBeta.unsureButton.click();
+                    if (svv.expertValidate) {
+                        svv.ui.expertValidate.unsureButton.click();
                     } else {
                         let comment = menuUI.comment.val();
                         validateLabel(menuUI.unsureButton, "Unsure", comment);
@@ -204,8 +204,8 @@ function Keyboard(menuUI) {
                     break;
                 // "s" key
                 case 83:
-                    if (svv.newValidateBeta) {
-                        svv.ui.newValidateBeta.submitButton.click();
+                    if (svv.expertValidate) {
+                        svv.ui.expertValidate.submitButton.click();
                     }
                     break;
                 // "z" key

@@ -1,7 +1,7 @@
 /**
  * Updates items that appear on the right side of the validation interface (i.e., label counts)
  * @param param must have:
- *                  - completedValidations: the number of validations the user has completed in all time. 
+ *                  - completedValidations: the number of validations the user has completed in all time.
  * @returns {StatusField}
  * @constructor
  */
@@ -10,8 +10,8 @@ function StatusField(param) {
     let self = this;
     let completedValidations = param.completedValidations;
     let statusUI = svv.ui.status;
-    let newValidateBetaProgressBarProgress = $('#mission-progress-bar-complete');
-    let newValidateBetaProgressBarText = $('#mission-progress-bar-text');
+    let expertValidateProgressBarProgress = $('#mission-progress-bar-complete');
+    let expertValidateProgressBarText = $('#mission-progress-bar-text');
 
     /**
      * Resets the status field whenever a new mission is introduced.
@@ -55,13 +55,13 @@ function StatusField(param) {
      */
     function updateLabelText(labelType) {
         // Centers and updates title top of the validation interface.
-        if (svv.newValidateBeta) {
+        if (svv.expertValidate) {
             let missionLength = svv.missionContainer ? svv.missionContainer.getCurrentMission().getProperty('labelsValidated') : svv.missionLength;
             let newMissionTitle = i18next.t('mission-start-tutorial.mst-instruction-2',
                 {'nLabels': missionLength, 'labelType': i18next.t(`common:${util.camelToKebab(labelType)}`)}
             ).toUpperCase().replace(/&SHY;/g, '&shy;');
             statusUI.upperMenuTitle.html(newMissionTitle);
-            svv.ui.newValidateBeta.header.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
+            svv.ui.expertValidate.header.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
         } else {
             statusUI.upperMenuTitle.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
             let offset = statusUI.zoomInButton.outerWidth()
@@ -99,8 +99,8 @@ function StatusField(param) {
             width: completionRate
         });
 
-        if (svv.newValidateBeta) {
-            newValidateBetaProgressBarProgress.css({ width: completionRate });
+        if (svv.expertValidate) {
+            expertValidateProgressBarProgress.css({ width: completionRate });
         }
     }
 
@@ -114,7 +114,7 @@ function StatusField(param) {
         completionRate = completionRate.toFixed(0, 10);
         completionRate = completionRate + "% " + i18next.t('common:complete');
         statusUI.progressText.html(completionRate);
-        if (svv.newValidateBeta) newValidateBetaProgressBarText.text(`${progress}/${total}`);
+        if (svv.expertValidate) expertValidateProgressBarText.text(`${progress}/${total}`);
     }
 
     /**

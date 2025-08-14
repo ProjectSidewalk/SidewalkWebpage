@@ -98,14 +98,6 @@ footer {
     margin-left: 8px;
 }
 
-.navbar-turker-timer-container {
-    padding-left: 10px;
-}
-
-.navbar-turker-timer-list-container {
-    display: flex;
-}
-
 #nav-language-menu {
     margin-top: -12px;
     min-width: 69px;
@@ -127,34 +119,6 @@ footer {
     -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
-}
-
-#mturk-confirmation-code {
-    padding-top: 18px;
-    font: normal normal normal 13px/1.4em raleway, sans-serif;
-}
-
-#mturk-checkmark {
-    width: 20px;
-}
-
-#mturk-confirmation-code-text {
-    display: inline-block;
-    margin: 0;
-}
-
-#navbar-timer {
-    padding-left: 8px;
-    padding-top: 18px;
-    font: normal normal normal 13px/1.4em raleway, sans-serif;
-}
-
-#clock-icon {
-    width: 20px;
-}
-
-#navbar-timer-text {
-    display: inline-block;
 }
 
 #language-dropdown {
@@ -426,17 +390,19 @@ kbd {
     overflow:visible;
 }
 
-#loading-gif {
+#loading-animation {
     position: relative;
-    max-width: 100%;
-    max-height: 100%;
+    width: 200px;
+    height: 200px;
     margin-top: -50%;
     margin-left: -50%;
 }
 
-#loading-gif img {
+#loading-animation img {
     display: block;
     margin: 0 auto;
+    width: 200px;
+    height: 200px;
 }
 
 .loading-text {
@@ -569,9 +535,7 @@ kbd {
 }
 
 /*Overlay box - start*/
-#area-completion-overlay-wrapper,
-#already-completed-neighborhood-overlay,
-#HIT-expiration-overlay {
+#area-completion-overlay-wrapper, #already-completed-neighborhood-overlay {
     display:none;
 }
 .overlay-text {
@@ -583,9 +547,7 @@ kbd {
     background: rgba(0,0,0,0.89);
     z-index: 5;
 }
-#area-completion-overlay,
-#already-completed-neighborhood-text,
-#HIT-expiration-text {
+#area-completion-overlay, #already-completed-neighborhood-text {
     color: white;
     text-align: center;
     width: 70%;
@@ -594,10 +556,10 @@ kbd {
     border-radius: 5px;
     font-size: 21px;
 }
-#area-completion-overlay, #already-completed-neighborhood-text, #HIT-expiration-text {
+#area-completion-overlay, #already-completed-neighborhood-text {
     top: 28%;
 }
-#area-completion-overlay p, #already-completed-neighborhood-text p, #HIT-expiration-text p {
+#area-completion-overlay p, #already-completed-neighborhood-text p {
     border-radius: 5px;
     padding: 7px;
 }
@@ -909,4 +871,16 @@ kbd {
 
 .permalink-anchor:hover .permalink-icon {
     opacity: 1;
+}
+
+
+/* LabelMap / LabelView section */
+#ai-validation-header {
+    position: relative;
+}
+
+.label-view-ai-icon {
+    position: absolute;
+    top: 0px;
+    height: 60%;
 }

@@ -148,19 +148,8 @@ function Main (params) {
         });
     }
 
-    // Gets all the text on the gallery page for the correct language.
-    i18next.use(i18nextHttpBackend).init({
-        backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-        fallbackLng: 'en',
-        ns: ['common', 'gallery'],
-        defaultNS: 'common',
-        lng: params.language,
-        debug: false
-    }, function(err, t) {
-        if (err) return console.log('something went wrong loading', err);
+    _initUI();
+    _init();
 
-        _initUI();
-        _init();
-    });
     return self;
 }

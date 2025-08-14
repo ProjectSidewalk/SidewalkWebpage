@@ -13,22 +13,18 @@ function Mission(parameters) {
             missionType: null,
             regionId: null,
             isComplete: false,
-            pay: null,
-            paid: null,
             distance: null,
             distanceProgress: null,
             skipped: false
         },
         _tasksForTheMission = [],
         labelCountsAtCompletion;
-    
+
     function _init(parameters) {
         if ("missionId" in parameters) setProperty("missionId", parameters.missionId);
         if ("missionType" in parameters) setProperty("missionType", parameters.missionType);
         if ("regionId" in parameters) setProperty("regionId", parameters.regionId);
         if ("isComplete" in parameters) setProperty("isComplete", parameters.isComplete);
-        if ("pay" in parameters) setProperty("pay", parameters.pay);
-        if ("paid" in parameters) setProperty("paid", parameters.paid);
         if ("distance" in parameters) setProperty("distance", parameters.distance);
         if ("distanceProgress" in parameters) setProperty("distanceProgress", parameters.distanceProgress);
         if ("skipped" in parameters) setProperty("skipped", parameters.skipped);
@@ -104,7 +100,7 @@ function Mission(parameters) {
             if (isComplete()) {
                 currentMissionCompletedDistance = getDistance("meters");
             } else {
-                var taskDistance = util.math.kilometersToMeters(svl.taskContainer.getCompletedTaskDistance({units: 'kilometers'}));
+                var taskDistance = util.math.kmsToMeters(svl.taskContainer.getCompletedTaskDistance({units: 'kilometers'}));
                 var offset = svl.missionContainer.getTasksMissionsOffset();
                 offset = offset ? offset : 0;
 
@@ -174,7 +170,7 @@ function Mission(parameters) {
 
         if (unit === "miles")           return util.math.metersToMiles(getProperty("distance"));
         else if (unit === "feet")       return util.math.metersToFeet(getProperty("distance"));
-        else if (unit === "kilometers") return util.math.metersToKilometers(getProperty("distance"));
+        else if (unit === "kilometers") return util.math.metersToKms(getProperty("distance"));
         else if (unit === "meters")     return getProperty("distance");
         else {
             console.error("Unit must be miles, feet, kilometers, or meters. Given: " + unit);

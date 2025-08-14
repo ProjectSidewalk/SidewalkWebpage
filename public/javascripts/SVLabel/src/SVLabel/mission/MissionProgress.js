@@ -97,12 +97,11 @@ function MissionProgress(svl, missionModel, modalModel, neighborhoodModel, statu
         // 1. User has completed numMissionsBeforeSurvey number of missions
         // 2. The user has just completed more than 60% of the current mission
         // 3. The user has not been shown the survey before
-        // 4. They are not on the crowdstudy server that has pre- and post-study questionnaires.
         if (completionRate > 0.6 && completionRate < 0.9) {
             $.ajax({
                 async: true,
                 url: '/survey/display',
-                type: 'get',
+                method: 'GET',
                 success: function (data) {
                     if (data.displayModal) {
                         $('#survey-modal-container').modal({
@@ -110,23 +109,8 @@ function MissionProgress(svl, missionModel, modalModel, neighborhoodModel, statu
                             keyboard: false
                         });
 
-                        //we will log in the webpage activity table if the survey has been shown
-                        var activity = "SurveyShown";
-                        var url = "/userapi/logWebpageActivity";
-                        var async = true;
-                        $.ajax({
-                            async: async,
-                            contentType: 'application/json; charset=utf-8',
-                            url: url,
-                            type: 'post',
-                            data: JSON.stringify(activity),
-                            dataType: 'json',
-                            success: function (result) {
-                            },
-                            error: function (result) {
-                                console.error(result);
-                            }
-                        });
+                        // Log in the webpage activity table if the survey has been shown.
+                        window.logWebpageActivity("SurveyShown", true);
                     }
                 },
                 error: function (xhr, ajaxOptions, thrownError) {

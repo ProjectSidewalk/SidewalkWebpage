@@ -1,0 +1,22 @@
+{
+    "top-ui": {
+        "title": {
+            "curb-ramp": "Is this a <b>Curb Style</b>?"
+        }
+    },
+    "right-ui": {
+        "correct": {
+            "curb-ramp": {
+                "title": "<strong>Correct</strong> Curb Style"
+            }
+        },
+        "incorrect": {
+            "curb-ramp": {
+                "title": "<strong>Incorrect</strong> Curb Style"
+            }
+        }
+    },
+    "mission-complete": {
+        "body-1": "You just validated {{n}} Curb Style labels."
+    }
+}

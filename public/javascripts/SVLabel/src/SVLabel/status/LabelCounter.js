@@ -9,7 +9,7 @@ function LabelCounter (d3) {
     var self = this;
 
     var svgWidth = 200;
-    var svgHeight = 120;
+    var svgHeight = 100;
     var margin = {top: 10, right: 10, bottom: 10, left: 0};
     var padding = {left: 5, top: 15};
     var width = 200 - margin.left - margin.right;
@@ -125,7 +125,7 @@ function LabelCounter (d3) {
             .append("text")
             .text(function () {
                 var ret = dotPlots[key].count + " ";
-                ret += dotPlots[key].count > 1 ? dotPlots[key].descriptionPlural : dotPlots[key].description;
+                ret += dotPlots[key].count === 1 ? dotPlots[key].description : dotPlots[key].descriptionPlural;
                 return ret;
             })
             .style("font-size", "8px")
@@ -277,7 +277,7 @@ function LabelCounter (d3) {
             }
             dotPlots[key].label.text(function () {
                 var ret = dotPlots[key].count + " ";
-                ret += dotPlots[key].count > 1 ? dotPlots[key].descriptionPlural : dotPlots[key].description;
+                ret += dotPlots[key].count === 1 ? dotPlots[key].description : dotPlots[key].descriptionPlural;
                 return ret;
             });
         }

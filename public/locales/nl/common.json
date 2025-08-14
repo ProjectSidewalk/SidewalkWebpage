@@ -1,6 +1,6 @@
 {
     "measurement-system": "metric",
-    "explore-street-link": "<a href='/explore/street/{{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Klik hier</a> om de straat te verkennen!",
+    "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Klik hier</a> om de straat te verkennen!",
     "admin-clear-play-cache": "Cache succesvol gewist",
     "unit-distance-abbreviation": "km",
     "unit-abbreviation-mission-distance": "m",
@@ -12,22 +12,14 @@
     "surface-problem": "Oppervlakte probleem",
     "occlusion": "Trottoir niet zichtbaar",
     "no-sidewalk": "Geen trottoir",
-    "crosswalk": "Oversteekplaats",
+    "crosswalk": "Gemarkeerde oversteekplaats",
     "signal": "Verkeerslicht",
     "other": "Anders",
     "agree": "Mee eens zijn",
     "disagree": "Het oneens zijn",
     "unsure": "Onzeker",
-    "missing-sidewalks": "Ontbrekende trottoirs",
-    "missing-ramps": "Ontbrekende Opritten",
     "surface-problems": "Oppervlakte problemen",
-    "sidewalk-obstacles": "Trottoir obstakels",
     "complete": "voltooid",
-    "mturk-code": "Mturk Code: {{code}}",
-    "right-ui-turk-current-reward": "Huidige missie beloning: ",
-    "right-ui-turk-total-reward": "Totaal verdiende beloning: ",
-    "mission-complete-confirmation-code": "Bevestigingscode: ",
-    "mission-start-turk-reward": "Beloning voor voldoende voltooiing: ",
     "map": {
         "distance-left": "Nog maar {{n}} kilometer te gaan!",
         "distance-left-one-unit": "Nog maar 1 kilometer te gaan!",
@@ -36,6 +28,9 @@
         "thanks": "Dank voor al je hulp!",
         "100-percent-complete": "100% Voltooid!",
         "percent-complete": "{{percent}}% Voltooid"
+    },
+    "deployment-map": {
+        "explore": "Ontdek {{cityName}}"
     },
     "errors": {
         "title": "Oeps, onze fout, maar er zijn geen afbeeldingen meer beschikbaar voor dit label.",
@@ -59,6 +54,7 @@
     "labeled": "Gelabeled",
     "yes": "Ja",
     "no": "Nee",
+    "ai-disclaimer": "AI heeft dit label geanalyseerd en gestemd op \"$t({{aiVal}})\". AI kan echter fouten maken. Maak uw eigen beoordeling.",
     "tag": {
         "narrow": "smal",
         "points into traffic": "het verkeer in gericht",
@@ -95,7 +91,7 @@
         "brick/cobblestone": "steen",
         "very broken": "erg beschadigd",
         "rail/tram track": "spoor/trambaan",
-        "sand/gravel": "zand/grind",
+        "sand/gravel": "modder/zand/grind",
         "uncovered manhole": "onbedekt mangat",
         "ends abruptly": "eindigt plotseling",
         "street has a sidewalk": "straat heeft een trottoir",
@@ -131,7 +127,12 @@
         "cycle lane- faded paint": "fietspad: $t(common:tag.paint fading)",
         "cycle lane- debris / pooled water": "fietspad: $t(common:tag.debris / pooled water)",
         "cycle lane- parked car": "fietspad: $t(common:tag.parked car)",
-        "cycle box": "cyclus doos"
+        "cycle box": "cyclus doos",
+        "not visible": "niet zichtbaar",
+        "cart": "kar",
+        "drainage": "drainage",
+        "electrical box": "elektrische doos",
+        "too dirty/cluttered": "te vuil/rommelig"
     },
     "gsv-info": {
         "details-title": "Details",
@@ -236,7 +237,7 @@
             },
             "slide-2": {
                 "title": "Geen visuele indicator",
-                "description": "Oversteekplaatsen zonder visuele aanduiding mogen <b>niet</b> worden aangemerkt als oversteekplaatsen."
+                "description": "Oversteekplaatsen zonder visuele aanduiding mogen <b>niet</b> worden aangemerkt als gemarkeerde oversteekplaatsen."
             },
             "slide-3": {
                 "title": "Lijn stoppen",
@@ -244,7 +245,7 @@
             },
             "slide-4": {
                 "title": "Verkeersdrempel",
-                "description": "Verkeersdrempels mogen niet als oversteekplaatsen worden bestempeld."
+                "description": "Verkeersdrempels mogen niet als zebrapaden worden bestempeld."
             }
         },
         "signal": {
