@@ -21,7 +21,6 @@ function LabelDescriptionBox () {
         $(desBox).empty();
 
         let severity = label.getAuditProperty('severity');
-        let temporary = label.getAuditProperty('temporary');
         let description = label.getAuditProperty('description');
         let tags = label.getAuditProperty('tags');
 
@@ -37,12 +36,6 @@ function LabelDescriptionBox () {
             $(desBox).append($line1);
         }
 
-        if (temporary) {
-            let htmlString = document.createTextNode(i18next.t('temporary'));
-            desBox.appendChild(htmlString);
-            desBox.appendChild(document.createElement("br"));
-        }
-
         if (tags && tags.length > 0) {
             // Translate to correct language and separate tags with a comma.
             let tag = tags.map(t => i18next.t('common:tag.' + t.replace(/:/g, '-'))).join(', ');
@@ -56,8 +49,8 @@ function LabelDescriptionBox () {
             desBox.appendChild(htmlString);
         }
 
-        if (!severity && !temporary && (!description || description.trim().length == 0) &&
-           (!tags || tags.length == 0)) {
+        if (!severity && (!description || description.trim().length === 0) &&
+           (!tags || tags.length === 0)) {
             let htmlString = document.createTextNode(i18next.t('center-ui.no-info'));
             desBox.appendChild(htmlString);
         }

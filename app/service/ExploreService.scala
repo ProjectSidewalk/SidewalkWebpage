@@ -398,7 +398,6 @@ class ExploreServiceImpl @Inject() (
           unsureCount = 0,
           correct = None,
           severity = label.severity,
-          temporary = false,
           description = label.description,
           tags = label.tagIds.distinct.flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption).toList
         )

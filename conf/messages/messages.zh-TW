@@ -254,7 +254,6 @@ audit.right.ui.distance = 公里
 audit.center.ui.passable = 可通行的
 audit.center.ui.not.passable = 不可通行的
 audit.center.ui.add.tags = 新增標籤：
-audit.center.ui.temporary = 暫時的 (例如：施工、違停車輛)
 
 audit.mission.complete.labels.title = 任務標記
 audit.mission.complete.progress.mission.you = 您於此任務已探索

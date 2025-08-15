@@ -45,7 +45,6 @@
     "no-severity": "Er is geen ernstclassificatie opgegeven voor dit label",
     "unsupported": "Dit labeltype heeft geen betekenisvolle ernstniveaus",
     "tags": "Tags",
-    "temporary": "Tijdelijk",
     "description": "Beschrijving",
     "no-description": "Geen beschrijving",
     "comments": "Effectiviteit beoordelingen",

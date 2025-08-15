@@ -214,7 +214,6 @@ audit.right.ui.distance = kilómetros
 audit.center.ui.passable = Transitable
 audit.center.ui.not.passable = No es transitable
 audit.center.ui.add.tags = Agregar etiquetas:
-audit.center.ui.temporary = Temporal (p. ej., obra en construcción)
 
 audit.mission.complete.labels.title = Etiquetas de la misión
 audit.mission.complete.progress.mission.you = Exploraste en esta misión

@@ -38,13 +38,12 @@
 
 .expanded-view-severity-header,
 .expanded-view-tag-header,
-.expanded-view-temporary-header,
 .expanded-view-description-header {
     font-weight: bold;
     color: #2d2a3f;
 }
 
-.expanded-view-temporary-body, .expanded-view-description-body {
+.expanded-view-description-body {
     color: #888787;
 }
 
@@ -147,17 +146,8 @@
     flex-direction: column;
 }
 
-.gallery-expanded-view-info-temporary {
-    width: 35%;
-    /* Reduce the 45% by however much the tags container's height was adjusted. */
-    height: calc(45% - (max(40%, 5.5vw) - 40%));
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
 .gallery-expanded-view-info-description {
-    width: 65%;
+    width: 100%;
     /* Reduce the 45% by however much the tags container's height was adjusted. */
     height: calc(45% - (max(40%, 5.5vw) - 40%));
     display: flex;

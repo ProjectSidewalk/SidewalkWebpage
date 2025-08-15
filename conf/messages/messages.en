@@ -204,7 +204,6 @@ audit.right.ui.distance = kilometers
 audit.center.ui.passable = Passable
 audit.center.ui.not.passable = Not Passable
 audit.center.ui.add.tags = Add Tags:
-audit.center.ui.temporary = Temporary (e.g., construction)
 
 audit.mission.complete.labels.title = Mission Labels
 audit.mission.complete.progress.mission.you = You explored in this mission

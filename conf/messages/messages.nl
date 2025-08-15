@@ -202,7 +202,6 @@ audit.right.ui.distance = kilometer
 audit.center.ui.passable = Begaanbaar
 audit.center.ui.not.passable = Niet Begaanbaar
 audit.center.ui.add.tags = Voeg<br>Tags toe:
-audit.center.ui.temporary = Tijdelijk (bijvoorveeld bouwconstructie)
 
 audit.mission.complete.labels.title = Missie labels
 audit.mission.complete.progress.mission.you = Je ontdekte in deze missie

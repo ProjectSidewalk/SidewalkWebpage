@@ -23,7 +23,6 @@ function Label(params) {
         pitch: undefined,
         zoom: undefined,
         severity: undefined,
-        temporary: undefined,
         description: undefined,
         streetEdgeId: undefined,
         regionId: undefined,
@@ -128,7 +127,6 @@ function Label(params) {
                 setProperty("oldSeverityCollapsed", collapsedSeverity);
                 setProperty("newSeverity", collapsedSeverity);
             }
-            if ("temporary" in params) setAuditProperty("temporary", params.temporary);
             if ("description" in params) setAuditProperty("description", params.description);
             if ("street_edge_id" in params) setAuditProperty("streetEdgeId", params.street_edge_id);
             if ("region_id" in params) setAuditProperty("regionId", params.region_id);

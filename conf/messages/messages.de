@@ -206,7 +206,6 @@ audit.right.ui.distance = Kilometer
 audit.center.ui.passable = Passierbar
 audit.center.ui.not.passable = Nicht passierbar
 audit.center.ui.add.tags = Tags hinzu&shy;fügen:
-audit.center.ui.temporary = Temporär (z.B. Baustelle)
 
 audit.mission.complete.labels.title = Missionsbeschriftungen
 audit.mission.complete.progress.mission.you = Sie haben diese Mission erfüllt

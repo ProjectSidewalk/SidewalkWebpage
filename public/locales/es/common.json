@@ -46,7 +46,6 @@
     "no-severity": "No se proporcionó una calificación de gravedad para esta etiqueta",
     "unsupported": "Este tipo de etiqueta no tiene niveles de gravedad significativos",
     "tags": "Etiquetas ",
-    "temporary": "Temporal",
     "description": "Descripción",
     "no-description": "Sin descripción",
     "comments": "Revisiones de efectividad",

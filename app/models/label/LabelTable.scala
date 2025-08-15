@@ -47,7 +47,6 @@ case class Label(
     unsureCount: Int,
     correct: Option[Boolean],
     severity: Option[Int],
-    temporary: Boolean,
     description: Option[String],
     tags: List[String]
 )
@@ -130,7 +129,6 @@ case class LabelMetadata(
     timestamp: OffsetDateTime,
     labelType: String,
     severity: Option[Int],
-    temporary: Boolean,
     description: Option[String],
     userValidation: Option[Int],
     aiValidation: Option[Int],
@@ -210,7 +208,6 @@ case class LabelValidationMetadata(
     pov: POV,
     canvasXY: LocationXY,
     severity: Option[Int],
-    temporary: Boolean,
     description: Option[String],
     streetEdgeId: Int,
     regionId: Int,
@@ -240,13 +237,14 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def unsureCount: Rep[Int]            = column[Int]("unsure_count")
   def correct: Rep[Option[Boolean]]    = column[Option[Boolean]]("correct")
   def severity: Rep[Option[Int]]       = column[Option[Int]]("severity")
-  def temporary: Rep[Boolean]          = column[Boolean]("temporary")
   def description: Rep[Option[String]] = column[Option[String]]("description")
   def tags: Rep[List[String]]          = column[List[String]]("tags", O.Default(List()))
 
   def * = (labelId, auditTaskId, missionId, userId, gsvPanoramaId, labelTypeId, deleted, temporaryLabelId, timeCreated,
-    tutorial, streetEdgeId, agreeCount, disagreeCount, unsureCount, correct, severity, temporary, description,
-    tags) <> ((Label.apply _).tupled, Label.unapply)
+    tutorial, streetEdgeId, agreeCount, disagreeCount, unsureCount, correct, severity, description, tags) <> (
+    (Label.apply _).tupled,
+    Label.unapply
+  )
 
 //  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
 //    foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
@@ -305,7 +303,6 @@ object LabelTable {
       (Double, Double, Int),            // pov (heading, pitch, zoom)
       (Int, Int),                       // canvasXY (x, y)
       Option[Int],                      // severity
-      Boolean,                          // temporary
       Option[String],                   // description
       Int,                              // streetEdgeId
       Int,                              // regionId
@@ -328,7 +325,6 @@ object LabelTable {
       (Rep[Double], Rep[Double], Rep[Int]),                 // pov (heading, pitch, zoom)
       (Rep[Int], Rep[Int]),                                 // canvasXY (x, y)
       Rep[Option[Int]],                                     // severity
-      Rep[Boolean],                                         // temporary
       Rep[Option[String]],                                  // description
       Rep[Int],                                             // streetEdgeId
       Rep[Int],                                             // regionId
@@ -346,7 +342,7 @@ object LabelTable {
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
       def fromTuple(t: LabelValidationMetadataTuple): LabelValidationMetadata = LabelValidationMetadata(
         t._1, t._2, t._3, t._4, t._5, t._6.get, t._7.get, POV.tupled(t._8), LocationXY.tupled(t._9), t._10, t._11,
-        t._12, t._13, t._14, LabelValidationInfo.tupled(t._15), t._16, t._17, t._18, t._19, t._20, t._21
+        t._12, t._13, LabelValidationInfo.tupled(t._14), t._15, t._16, t._17, t._18, t._19, t._20
       )
     }
 
@@ -537,7 +533,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC),
       r.nextString(),
       r.nextIntOption(),
-      r.nextBoolean(),
       r.nextStringOption(),
       r.nextIntOption(), // userValidation
       r.nextIntOption(), // aiValidation
@@ -706,7 +701,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              lb1.time_created,
              lb_big.label_type,
              lb_big.severity,
-             lb_big.temporary,
              lb_big.description,
              lb_big.validation_result, -- userValidation
              ai_val.validation_result, -- aiValidation
@@ -727,7 +721,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                  lb.gsv_panorama_id,
                  lbt.label_type,
                  lb.severity,
-                 lb.temporary,
                  lb.description,
                  user_validation.validation_result,
                  lb.tags
@@ -890,7 +883,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           (lp.heading.asColumnOf[Double], lp.pitch.asColumnOf[Double], lp.zoom),
           (lp.canvasX, lp.canvasY),
           l.severity,
-          l.temporary,
           l.description,
           l.streetEdgeId,
           ser.regionId,
@@ -1008,7 +1000,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (l._2.heading.asColumnOf[Double], l._2.pitch.asColumnOf[Double], l._2.zoom),
       (l._2.canvasX, l._2.canvasY),
       l._1.severity,
-      l._1.temporary,
       l._1.description,
       l._1.streetEdgeId,
       l._5.regionId,
