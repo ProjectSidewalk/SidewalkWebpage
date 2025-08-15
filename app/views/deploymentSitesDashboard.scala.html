@@ -46,6 +46,35 @@
         </div>
     </div>
 
+    <template id="city-popup-template">
+        <div class="popup-content">
+            <h3 class="popup-title"></h3>
+            <div class="popup-stats-grid">
+                <div class="popup-stat-group">
+                    <div class="popup-stat-header">@Messages("cities.dashboard.distance")</div>
+                    <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")"/>
+                    <div class="popup-stat-value" data-stat="distance">-</div>
+                </div>
+                <div class="popup-stat-group">
+                    <div class="popup-stat-header">@Messages("labels.caps")</div>
+                    <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")"/>
+                    <div class="popup-stat-value" data-stat="labels">-</div>
+                </div>
+                <div class="popup-stat-group">
+                    <div class="popup-stat-header">@Messages("validations")</div>
+                    <img src='@assets.path("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
+                    <div class="popup-stat-value" data-stat="validations">-</div>
+                </div>
+            </div>
+            <a href="#"
+               class="popup-link city-selection-trigger"
+               target="_blank"
+               rel="noopener noreferrer">
+               @* The text for this link will be set by JavaScript *@
+            </a>
+        </div>
+    </template>
+
     <!-- Include necessary JavaScript libraries -->
     <script src='@assets.path("javascripts/lib/mapbox-gl-3.13.0.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
@@ -103,11 +132,15 @@
             function displayAggregateStats(stats) {
                 // Format numbers for display.
                 function formatNumber(num) {
-                    if (num >= 1000000) {
-                        return i18next.t('common:format-number', { val: (num / 1000000).toFixed(1) }) + 'M';
-                    } else if (num >= 1000) {
-                        return i18next.t('common:format-number', { val: (num / 1000).toFixed(1) }) + 'K';
-                    }
+                    // I played around with this a bit, but I think it is best to just
+                    // show the full number. See:
+                    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3994
+                    // We may need to revisit if we get above 10 million labels or validations.
+                    // if (num >= 1000000) {
+                    //     return i18next.t('common:format-number', { val: (num / 1000000).toFixed(2) }) + 'M';
+                    // } else if (num >= 1000) {
+                    //     return i18next.t('common:format-number', { val: (num / 1000).toFixed(2) }) + 'K';
+                    // }
                     return i18next.t('common:format-number', { val: num });
                 }
 

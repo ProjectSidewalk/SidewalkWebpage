@@ -54,8 +54,8 @@
 
 .popup-title {
     margin: 0 0 12px 0;
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: 800;
     color: #1f2937;
     line-height: 1.2;
 }
@@ -79,6 +79,57 @@
 
 .popup-link:active {
     transform: translateY(0);
+}
+
+/* Styling for the new stats grid within the map popup */
+.popup-stats-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    /* max-width: 1000px; */
+    width: 100%;
+}
+
+.popup-stat-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    min-width: 50px;
+    flex: 1;
+}
+
+.popup-stat-header {
+    font-size: 12px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: auto;
+    line-height: 1.2;
+}
+
+.popup-stat-value {
+    font-size: 10px;
+    font-weight: bold;
+    color: #222;
+}
+
+.popup-stat-group img {
+    height: 30px;
+}
+
+/* Centered text for loading/error states */
+.popup-loading,
+.popup-error {
+    text-align: center;
+    margin: 15px 0;
+    color: #666;
+}
+
+/* Adjustments for the main popup link to give stats space */
+.popup-content .popup-link {
+    display: block;
+    margin-top: 5px;
 }
 
 /* Stats section with modern centering */
