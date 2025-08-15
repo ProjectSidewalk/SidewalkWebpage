@@ -390,14 +390,21 @@
                     <div id="context-menu-holder">
                         <div id="context-menu-close-button-holder">
                             <button id="context-menu-close-button">
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="min-width: 20px; min-height: 20px;">
+                                <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="min-width: 20px; min-height: 20px;">
                                     <path d="M15 5L5 15M5 5L15 15" stroke="#9F9DB1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                                 </svg>
                             </button>
                         </div>
 
-                        <div class="context-menu-section">
-                            <div class="context-menu-header">Add tags</div>
+                        <div id="context-menu-tag-section" class="context-menu-section">
+                            <div class="context-menu-header">
+                                1. Add tags
+                                <img src='@assets.path("images/icons/info-circle.svg")'
+                                    class="context-menu-info-icon"
+                                    title="Please add tags to your labels, which enriches the data with useful information. Mouseover the tags for examples."
+                                    data-toggle="tooltip" data-placement="top"
+                                />
+                            </div>
                             <div id="context-menu-tag-holder">
                                 <button class="context-menu-tag" name='tag' id="0"></button>
                                 <button class="context-menu-tag" name='tag' id="1"></button>
@@ -419,8 +426,14 @@
                             </div>
                         </div>
 
-                        <div class="context-menu-section" id="severity-menu">
-                            <div class="context-menu-header">Rate severity</div>
+                        <div id="severity-menu" class="context-menu-section">
+                            <div class="context-menu-header">
+                                2. Rate severity
+                                <img src='@assets.path("images/icons/info-circle.svg")' class="context-menu-info-icon"
+                                    title="Do your best to assess how severely the labeled obstacle or feature hinders pedestrian access."
+                                    data-toggle="tooltip" data-placement="top"
+                                />
+                            </div>
                             <div id="severity-radio-holder">
                                 <div class="severity-level" id="severity-one" data-toggle="tooltip">
                                     <label>
@@ -452,15 +465,14 @@
                             </div>
                         </div>
 
-                        <div class="context-menu-section" id="problem-property-menu">
-                            <div class="context-menu-header">Describe (optional)</div>
+                        <div id="context-menu-description-section" class="context-menu-section">
+                            <div class="context-menu-header">3. Describe (optional)</div>
                             <div class="description-input-frame">
-                                <input type="text" id="context-menu-problem-description-text-box" placeholder="Describe (optional)">
+                                <input type="text" id="context-menu-description-text-box" placeholder="Description">
                                 <button id="context-menu-ok-button">OK</button>
                             </div>
                         </div>
                     </div>
-                    <div id="context-menu-vertical-connector"></div>
                 </div>
             </div>
             <div id="minimap-holder">

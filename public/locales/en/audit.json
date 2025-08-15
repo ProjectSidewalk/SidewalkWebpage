@@ -110,7 +110,7 @@
     },
     "center-ui": {
         "context-menu": {
-            "description": "Description (optional)",
+            "description": "Description",
             "severity": "Please click to label a severity",
             "severity-shortcuts": "Press keys 1-3 for severity",
             "label-popup-shortcuts": "Press <tag-underline>{{c}}</tag-underline> to add tag",

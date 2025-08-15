@@ -3,32 +3,21 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    padding: 10px;
-    width: 440px;
+    padding: 12px;
+    width: 380px;
     background: #FFFFFF;
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
     border-radius: 8.1px;
-    border: solid 5px black;
+    border: solid 1px lightgray;
     visibility: hidden;
     z-index: 1050; /* so that tooltips will show up on top of the navbar */
-    -webkit-border-radius: 3px 3px 3px 3px;
-    -moz-border-radius: 3px 3px 3px 3px;
     box-sizing: border-box;
-}
-
-#context-menu-vertical-connector {
-    position: absolute;
-    width: 6px;
-    height: 8px;
-    background-color: black;
-    visibility: hidden;
 }
 
 .context-menu-section {
     height: auto;
     width: 100%;
     box-sizing: border-box;
-    margin-bottom: 9px;
+    margin-bottom: 13px;
 }
 
 .context-menu-section:last-child {
@@ -43,6 +32,14 @@
     line-height: 17px;
     color: #464646;
     margin-bottom: 5px;
+}
+
+.context-menu-info-icon {
+    width: 15px;
+}
+
+.context-menu-header .tooltip {
+    font-size: 10px;
 }
 
 #context-menu-tag-holder {
@@ -78,15 +75,15 @@
 #context-menu-tag-holder button:hover,
 #context-menu-tag-holder button:focus {
     transition: all 0.3s ease;
-    background-color: rgba(167,222,202,0.1) !important;
-    color: #40bd90 !important;
-    border-color: #40bd90 !important;
+    background-color: rgba(167,222,202,0.1);
+    color: #40bd90;
+    border-color: #40bd90;
 }
 
 #context-menu-tag-holder button.selected {
-    background: #37A17B !important;
-    color: #FFFFFF !important;
-    border: 1px solid #40bd90 !important;
+    background: #37A17B;
+    color: #FFFFFF;
+    border: 1px solid #40bd90;
 }
 
 #context-menu-tag-holder button.disabled {
@@ -95,8 +92,8 @@
 }
 
 #severity-menu {
-    width: 166px;
-    height: auto !important;
+    width: 130px;
+    height: auto;
     min-height: fit-content;
     margin-top: 1px;
     display: flex;
@@ -118,7 +115,7 @@
     align-items: flex-start;
     justify-content: space-between;
     padding: 0;
-    width: 166px;
+    width: 130px;
     height: auto;
     margin-top: 0;
 }
@@ -173,7 +170,7 @@
 
 .severity-level .severity-label {
     font-family: 'Open Sans', sans-serif;
-    font-weight: 700;
+    font-weight: 600;
     font-size: 10px;
     text-align: center;
     color: #514d4d;
@@ -205,13 +202,13 @@
     fill: #e85f2b;
 }
 
-#problem-property-menu {
+#context-menu-description-section {
     width: 100%;
     height: auto;
     margin-top: 5px;
 }
 
-#context-menu-problem-description-text-box {
+#context-menu-description-text-box {
     box-sizing: border-box;
     height: 23px;
     width: 100%;
@@ -225,7 +222,7 @@
     color: #9C9C9C;
 }
 
-#context-menu-problem-description-text-box:not(:placeholder-shown) {
+#context-menu-description-text-box:not(:placeholder-shown) {
     color: #000000;
 }
 
@@ -251,7 +248,7 @@
     width: 20px;
     height: 20px;
     right: 10px;
-    top: 12px;
+    top: 10px;
 }
 
 #context-menu-close-button {

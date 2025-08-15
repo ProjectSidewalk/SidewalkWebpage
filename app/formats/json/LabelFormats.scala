@@ -211,7 +211,6 @@ object LabelFormats {
       "severity"         -> label.labelData.severity,
       "tutorial"         -> label.labelData.tutorial,
       "temporaryLabelId" -> label.labelData.temporaryLabelId,
-      "temporaryLabel"   -> label.labelData.temporary,
       "description"      -> label.labelData.description,
       "canvasX"          -> label.pointData.canvasX,
       "canvasY"          -> label.pointData.canvasY,

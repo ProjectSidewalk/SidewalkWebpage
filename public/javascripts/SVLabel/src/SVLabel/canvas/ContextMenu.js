@@ -13,26 +13,21 @@ function ContextMenu (uiContextMenu) {
             disableTagging: false
         };
     var $menuWindow = uiContextMenu.holder;
-    var $connector = uiContextMenu.connector;
     var $severityMenu = uiContextMenu.severityMenu;
     var $severityButtons = uiContextMenu.radioButtons;
-    var $temporaryLabelCheckbox = uiContextMenu.temporaryLabelCheckbox;
     var $descriptionTextBox = uiContextMenu.textBox;
-    var windowWidth = $menuWindow.width();
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
     var $radioButtonLabels = $menuWindow.find(".severity-level");
     var $tagHolder = uiContextMenu.tagHolder;
     var $tags = uiContextMenu.tags;
-    var lastShownLabelColor;
 
-    var CONNECTOR_BUFFER = 6; // Buffer for connector to overlap border of label icon.
-    var PAGE_BOTTOM_SPACE = 30; // Additional space avail below GSV where we can still show the context menu.
-    var RIGHT_OFFSET = 20; // Offset to shift menu to the right.
+    var windowWidth = $menuWindow.width();
+    var LABEL_TO_MENU_GAP = 8; // Amount of space between the label and context menu.
+    var PAGE_BOTTOM_SPACE = 29; // Additional space avail below GSV where we can still show the context menu.
 
     document.addEventListener('mousedown', _handleMouseDown);
     $menuWindow.on('mousedown', _handleMenuWindowMouseDown);
     $severityButtons.on('change', _handleSeverityChange);
-    $temporaryLabelCheckbox.on('change', _handleTemporaryLabelCheckboxChange);
     $descriptionTextBox.on('change', _handleDescriptionTextBoxChange);
     $descriptionTextBox.on('focus', _handleDescriptionTextBoxFocus);
     $descriptionTextBox.on('blur', _handleDescriptionTextBoxBlur);
@@ -214,10 +209,7 @@ function ContextMenu (uiContextMenu) {
         $tags.each((index, tag) => {
             var classWithTagId = tag.className.split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0];
             if (classWithTagId !== undefined && parseInt(classWithTagId.match(/\d+/)[0], 10) === tagId) {
-                tag.style.backgroundColor = "white";
-                tag.style.color = "#000000";
-                tag.style.fontWeight = "600";
-                tag.style.border = "0.8px solid #666666";
+                $(`.${classWithTagId}`).removeClass('selected');
             }
         });
 
@@ -231,15 +223,6 @@ function ContextMenu (uiContextMenu) {
         return labelTags;
     }
 
-    function _handleTemporaryLabelCheckboxChange(e) {
-        var checked = $(this).is(":checked");
-        svl.tracker.push('ContextMenu_CheckboxChange', { checked: checked });
-
-        if (status.targetLabel) {
-            status.targetLabel.setProperty('temporaryLabel', checked);
-        }
-    }
-
     /**
      * Hide the context menu.
      */
@@ -250,8 +233,6 @@ function ContextMenu (uiContextMenu) {
         }
 
         $menuWindow.css('visibility', 'hidden');
-        $connector.css('visibility', 'hidden');
-        _setBorderColor('black');
         setStatus('visibility', 'hidden');
 
         return this;
@@ -263,15 +244,6 @@ function ContextMenu (uiContextMenu) {
      */
     function isOpen() {
         return getStatus('visibility') === 'visible';
-    }
-
-    /**
-     * Set the border color of the menu window.
-     * @param color
-     */
-    function _setBorderColor(color) {
-        $menuWindow.css('border-color', color);
-        $connector.css('background-color', color);
     }
 
     /**
@@ -473,7 +445,6 @@ function ContextMenu (uiContextMenu) {
     function show(targetLabel) {
         setStatus('targetLabel', null);
         $severityButtons.prop('checked', false);
-        $temporaryLabelCheckbox.prop('checked', false);
         $descriptionTextBox.val(null);
 
         var labelType = targetLabel.getLabelType();
@@ -494,47 +465,28 @@ function ContextMenu (uiContextMenu) {
             }
             var menuHeight = $menuWindow.outerHeight();
 
-            var connectorHeight = parseInt(window.getComputedStyle($connector[0]).getPropertyValue("height"));
-            var connectorWidth = parseInt(window.getComputedStyle($connector[0]).getPropertyValue("width"));
-            var menuBorder = parseInt(window.getComputedStyle($menuWindow[0]).getPropertyValue("border-radius"));
-
             // Determine coordinates for context menu to display below the label.
-            var topCoordinate = labelCoord.y + svl.LABEL_ICON_RADIUS + connectorHeight - CONNECTOR_BUFFER;
-            var connectorCoordinate = menuBorder - connectorHeight;
+            var topCoordinate = labelCoord.y + svl.LABEL_ICON_RADIUS + LABEL_TO_MENU_GAP;
 
             // If there isn't enough room to show the context menu below the label, determine coords to display above.
             // labelCoord.y is top-left of label but is center of rendered label, so we must add the icon radius.
-            if (labelCoord.y + svl.LABEL_ICON_RADIUS + connectorHeight - CONNECTOR_BUFFER + menuHeight - PAGE_BOTTOM_SPACE > util.EXPLORE_CANVAS_HEIGHT) {
-                topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - connectorHeight - menuHeight + CONNECTOR_BUFFER;
-                connectorCoordinate = menuHeight - menuBorder;
+            if (topCoordinate + menuHeight - PAGE_BOTTOM_SPACE > util.EXPLORE_CANVAS_HEIGHT) {
+                topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - menuHeight - LABEL_TO_MENU_GAP;
             }
 
-            // Set the color of the border.
-            _setBorderColor(labelColor);
-            lastShownLabelColor = labelColor;
-
             // Set the menu value if label has it's value set.
-            var severity = targetLabel.getProperty('severity'),
-                temporaryLabel = targetLabel.getProperty('temporaryLabel'),
-                description = targetLabel.getProperty('description');
+            var severity = targetLabel.getProperty('severity');
+            var description = targetLabel.getProperty('description');
             if (severity) {
                 $severityButtons.each(function(i, v) {
                     if (severity === i + 1) { $(this).prop("checked", true); }
                 });
             }
 
-            $temporaryLabelCheckbox.prop("checked", temporaryLabel);
-
             $menuWindow.css({
                 visibility: 'visible',
-                left: labelCoord.x - windowWidth / 2 + RIGHT_OFFSET,
+                left: labelCoord.x - windowWidth / 2,
                 top: topCoordinate
-            });
-
-            $connector.css({
-                visibility: 'visible',
-                top: topCoordinate + connectorCoordinate,
-                left: labelCoord.x - connectorWidth / 2,
             });
 
             setStatus('visibility', 'visible');
