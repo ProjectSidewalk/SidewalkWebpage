@@ -1,13 +1,15 @@
 /**
- * Project Sidewalk Deployment Map Styles
+ * Project Sidewalk Deployment Map Styles (Consolidated)
  *
- * Styles for the MapBox deployment map including:
- * - Map container styling
- * - Popup styling
- * - Responsive design
+ * Styles for all MapBox-based PS deployment maps, popups, and the
+ * deployment sites dashboard layout.
  */
 
-/* Map container */
+/* ==========================================================================
+   Map Container Styles
+   ========================================================================== */
+
+/* Used on the landing page (index.scala.html) */
 #deployment-map {
     width: 100%;
     height: 100vh;
@@ -18,7 +20,30 @@
     top: 10px;
 }
 
-/* Popup styling */
+/* Used on the dashboard page (deploymentSitesDashboard.scala.html) */
+.map-section {
+  width: 100%;
+  height: 600px;
+}
+
+.map-holder {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.map {
+  height: 100%;
+  width: 100%;
+}
+
+/* ==========================================================================
+   Popup Styles (Consolidated & Used by Both Pages)
+   ========================================================================== */
+
 .deployment-popup .mapboxgl-popup-content {
     padding: 16px;
     border-radius: 8px;
@@ -31,20 +56,20 @@
     border-top-color: #ffffff;
 }
 
-/* Popup content */
 .popup-content {
     text-align: center;
 }
 
 .popup-title {
     margin: 0 0 12px 0;
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: 800;
     color: #1f2937;
     line-height: 1.2;
 }
 
 .popup-link {
+    margin-top: 10px;
     display: inline-block;
     padding: 8px 16px;
     background-color: #3b82f6;
@@ -65,47 +90,190 @@
     transform: translateY(0);
 }
 
-/* Responsive design */
+/* Popup stats grid */
+.popup-stats-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    /* max-width: 1000px; */
+    width: 100%;
+}
+
+.popup-stat-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    min-width: 50px;
+    flex: 1;
+}
+
+.popup-stat-header {
+    font-size: 12px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 4px;
+    line-height: 1.2;
+
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popup-stat-value {
+    font-size: 14px;
+    font-weight: bold;
+    color: #222;
+}
+
+.popup-stat-group img {
+    height: 30px;
+    width: auto;
+    margin-bottom: 4px;
+}
+
+/* Popup message for private deployments */
+.popup-private-message {
+    margin-top: 12px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+    background-color: #f3f4f6;
+    border-radius: 6px;
+    text-align: center;
+}
+
+/* Centered text for loading/error states */
+.popup-loading,
+.popup-error {
+    text-align: center;
+    margin: 15px 0;
+    color: #666;
+}
+
+/* ==========================================================================
+   Dashboard-Specific Styles
+   ========================================================================== */
+
+/* Main container */
+.deployment-sites-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 15px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* Dashboard stats grid */
+.stats-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.deployment-sites-stats-holder {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 40px;
+  max-width: 1000px;
+  width: 100%;
+}
+
+.stat-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 120px;
+  flex: 1;
+}
+
+.stat-group img {
+  height: 70px;
+  margin: 15px 0;
+  transition: transform 0.2s ease;
+}
+
+.stat-group img:hover {
+  transform: scale(1.05);
+}
+
+.deployment-sites-stats-header {
+  font-size: 30px;
+  font-family: raleway-extrabold, sans-serif;
+  color: #2c3e50;
+  line-height: 1.2;
+}
+
+.deployment-sites-stats-stat {
+  font-size: 30px;
+  font-family: raleway, 'Open Sans', 'Noto Sans', sans-serif;
+  color: #34495e;
+  font-weight: 600;
+}
+
+/* Loading screen */
+.loading-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #78B9AB;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
 @media (max-width: 768px) {
-    #deployment-map {
-        height: 60vh;
-        max-height: 500px;
-        border-radius: 4px;
-    }
+    /* General map adjustments */
+    #deployment-map { height: 60vh; max-height: 500px; }
+    .map-section { height: 400px; }
 
-    .deployment-popup .mapboxgl-popup-content {
-        padding: 12px;
-        max-width: 200px;
-    }
-
-    .popup-title {
-        font-size: 14px;
-        margin-bottom: 8px;
-    }
-
-    .popup-link {
-        padding: 6px 12px;
-        font-size: 13px;
-    }
+    /* Dashboard layout */
+    .deployment-sites-container { padding: 10px 15px; gap: 20px; }
+    .deployment-sites-stats-holder { gap: 25px; }
+    .stat-group { min-width: 100px; }
+    .deployment-sites-stats-header { font-size: 20px; }
+    .deployment-sites-stats-stat { font-size: 22px; }
+    .stat-group img { height: 50px; margin: 10px 0; }
 }
 
 @media (max-width: 480px) {
-    #deployment-map {
-        height: 50vh;
-        max-height: 400px;
-    }
+    /* General map adjustments */
+    #deployment-map { height: 50vh; max-height: 400px; }
+    .map-section { height: 300px; }
 
-    .deployment-popup .mapboxgl-popup-content {
-        padding: 10px;
-        max-width: 180px;
-    }
-
-    .popup-title {
-        font-size: 13px;
-    }
-
-    .popup-link {
-        padding: 5px 10px;
-        font-size: 12px;
-    }
+    /* Dashboard layout */
+    .deployment-sites-container { padding: 10px; gap: 15px; }
+    .deployment-sites-stats-holder { gap: 20px; }
+    .stat-group { min-width: 80px; }
+    .deployment-sites-stats-header { font-size: 16px; }
+    .deployment-sites-stats-stat { font-size: 18px; }
+    .stat-group img { height: 40px; margin: 8px 0; }
 }

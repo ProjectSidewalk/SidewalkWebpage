@@ -46,34 +46,7 @@
         </div>
     </div>
 
-    <template id="city-popup-template">
-        <div class="popup-content">
-            <h3 class="popup-title"></h3>
-            <div class="popup-stats-grid">
-                <div class="popup-stat-group">
-                    <div class="popup-stat-header">@Messages("cities.dashboard.distance")</div>
-                    <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")"/>
-                    <div class="popup-stat-value" data-stat="distance">-</div>
-                </div>
-                <div class="popup-stat-group">
-                    <div class="popup-stat-header">@Messages("labels.caps")</div>
-                    <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")"/>
-                    <div class="popup-stat-value" data-stat="labels">-</div>
-                </div>
-                <div class="popup-stat-group">
-                    <div class="popup-stat-header">@Messages("validations")</div>
-                    <img src='@assets.path("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
-                    <div class="popup-stat-value" data-stat="validations">-</div>
-                </div>
-            </div>
-            <a href="#"
-               class="popup-link city-selection-trigger"
-               target="_blank"
-               rel="noopener noreferrer">
-               @* The text for this link will be set by JavaScript *@
-            </a>
-        </div>
-    </template>
+    @common.cityPopupTemplate()
 
     <!-- Include necessary JavaScript libraries -->
     <script src='@assets.path("javascripts/lib/mapbox-gl-3.13.0.js")'></script>
@@ -82,7 +55,7 @@
     <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
 
     <!-- Deployment Sites Dashboard CSS -->
-    <link href='@assets.path("stylesheets/deployment-sites-dashboard.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/deployment-map.css")' rel="stylesheet"/>
 
     <script>
         /**

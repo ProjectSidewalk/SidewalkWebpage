@@ -69,8 +69,8 @@ function AddCitiesToMap(map, citiesData, params) {
         let hoveredCityId = null;
 
         map.on('mousemove', CITIES_LAYER_NAME, function (e) {
+            map.getCanvas().style.cursor = 'pointer';
             let currCity = e.features[0];
-            map.getCanvas().style.cursor = (currCity.properties.visibility === 'public') ? 'pointer' : '';
 
             if (hoveredCityId !== null && hoveredCityId !== currCity.id) {
                 map.setFeatureState({ source: CITIES_LAYER_NAME, id: hoveredCityId }, { hover: false });
@@ -91,6 +91,18 @@ function AddCitiesToMap(map, citiesData, params) {
         });
     }
 
+    /**
+     * Adds click event handlers to the map for displaying city statistics in a popup.
+     * When a city feature is clicked, fetches overall stats from the API, clones and populates
+     * a popup template, and displays it at the clicked location. Handles both public and private
+     * deployments, showing an appropriate message or link. Also logs click activity if enabled.
+     *
+     * @function
+     * @param {Object} params - Configuration parameters.
+     * @param {string} params.mapName - The name/id of the map element.
+     * @param {boolean} params.logClicks - Whether to log click activity.
+     * @returns {void}
+     */
     function addClickHandlers() {
         const cityPopup = new mapboxgl.Popup({
             focusAfterOpen: false,
@@ -101,16 +113,10 @@ function AddCitiesToMap(map, citiesData, params) {
 
         map.on('click', CITIES_LAYER_NAME, async (e) => {
             const feature = e.features[0];
-            if (feature.properties.visibility !== 'public') return;
 
             const properties = feature.properties;
             let coordinates = feature.geometry.coordinates.slice();
-
-            //const statsUrl = `/v3/api/overallStats?cityId=${properties.cityId}`; // Use cityId to get specific stats
-            //const statsUrl = `${properties.url}/v3/api/overallStats`;
-            //const statsUrl = `${properties.url.replace('-test', '')}/v3/api/overallStats`;
             const statsUrl = `v3/api/overallStats`;
-            console.log(`Clicked on city: ${properties.cityNameFormatted} (${properties.cityId}) with URL: ${statsUrl}`);
 
             // Immediately show a simple loading message.
             cityPopup.setLngLat(coordinates).setHTML('<div class="popup-loading">Loading stats...</div>').addTo(map);
@@ -132,9 +138,20 @@ function AddCitiesToMap(map, citiesData, params) {
                 popupContent.querySelector('[data-stat="validations"]').textContent = formatNumber(stats.validations.total_validations || 0);
 
                 const exploreLink = popupContent.querySelector('.popup-link');
-                exploreLink.href = `${properties.url}/explore`;
-                exploreLink.setAttribute('cityId', properties.cityId);
-                exploreLink.textContent = i18next.t('common:deployment-map.explore', { cityName: properties.cityNameShort });
+                if (properties.visibility === 'private') {
+                    // Create a new div for the "Private Deployment" message.
+                    const privateMessage = document.createElement('div');
+                    privateMessage.className = 'popup-private-message';
+                    privateMessage.textContent = 'Private Deployment';
+
+                    // Replace the link with the new message.
+                    exploreLink.replaceWith(privateMessage);
+                } else {
+                    // Otherwise, populate the link as normal for public cities.
+                    exploreLink.href = `${properties.url}/explore`;
+                    exploreLink.setAttribute('cityId', properties.cityId);
+                    exploreLink.textContent = i18next.t('common:deployment-map.explore', { cityName: properties.cityNameShort });
+                }
 
                 // 3. Update the popup with the populated HTML node.
                 cityPopup.setDOMContent(popupContent);
@@ -145,7 +162,7 @@ function AddCitiesToMap(map, citiesData, params) {
             }
         });
 
-        // Logging functionality remains the same.
+        // Logging functionality
         if (params.logClicks) {
             $(`#${params.mapName}`).on('click', '.city-selection-trigger', function () {
                 const activity = `Click_module=${params.mapName}_cityId=${$(this).attr('cityId')}`;
