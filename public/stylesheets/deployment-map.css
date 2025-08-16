@@ -247,6 +247,65 @@
 }
 
 /* ==========================================================================
+   Call to Action (CTA) Section
+   ========================================================================== */
+
+.cta-section {
+    width: 95%;
+    padding: 20px 20px;
+    background-color: #f0f5f4; /* A very light, complementary green */
+    border-radius: 8px;
+    margin-top: 20px;
+    margin-left: auto;   /* These two properties center the block */
+    margin-right: auto;  /* within its parent container */
+}
+
+.cta-content {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.cta-logo {
+    height: 100px;
+    width: auto;
+    margin-bottom: 20px;
+}
+
+.cta-title {
+    font-size: 28px;
+    font-family: raleway-extrabold, sans-serif;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.cta-text {
+    font-size: 18px;
+    color: #34495e;
+    line-height: 1.6;
+    margin-bottom: 30px;
+}
+
+.cta-button {
+    display: inline-block;
+    padding: 12px 28px;
+    background-color: #78B9AB; /* Project Sidewalk primary green */
+    color: white !important;
+    text-decoration: none !important;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.cta-button:hover {
+    background-color: #548177; /* A darker shade for hover */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* ==========================================================================
    Responsive Design
    ========================================================================== */
 
