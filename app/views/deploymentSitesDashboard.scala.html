@@ -7,6 +7,9 @@
 @common.main(commonData, title) {
     @common.navbar(commonData, Some(user))
 
+    <!-- Deployment Sites Dashboard CSS -->
+    <link href='@assets.path("stylesheets/deployment-map.css")' rel="stylesheet"/>
+
     <div class="deployment-sites-container">
         <div class="map-section">
             <div id="deployment-sites-map-holder" class="map-holder">
@@ -65,9 +68,6 @@
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
     <link href='@assets.path("javascripts/lib/mapbox-gl-3.13.0.css")' rel="stylesheet"/>
     <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
-
-    <!-- Deployment Sites Dashboard CSS -->
-    <link href='@assets.path("stylesheets/deployment-map.css")' rel="stylesheet"/>
 
     <script>
         /**
