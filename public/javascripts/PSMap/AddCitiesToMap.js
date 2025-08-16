@@ -116,50 +116,49 @@ function AddCitiesToMap(map, citiesData, params) {
 
             const properties = feature.properties;
             let coordinates = feature.geometry.coordinates.slice();
-            const statsUrl = `v3/api/overallStats`;
+
+            // On localhost, for testing, I've just been using the following (because otherwise we run into CORS issues):
+            // const statsUrl = `v3/api/overallStats`;
+            const statsUrl = `${properties.url}/v3/api/overallStats`;
 
             // Immediately show a simple loading message.
             cityPopup.setLngLat(coordinates).setHTML('<div class="popup-loading">Loading stats...</div>').addTo(map);
 
+            const template = document.getElementById('city-popup-template');
+            const popupContent = template.content.cloneNode(true);
+
+            // Populate the parts of the template that do not depend on the stats API.
+            popupContent.querySelector('.popup-title').textContent = properties.cityNameFormatted;
+            const exploreLink = popupContent.querySelector('.popup-link');
+            if (properties.visibility === 'private') {
+                const privateMessage = document.createElement('div');
+                privateMessage.className = 'popup-private-message';
+                privateMessage.textContent = 'Private Deployment';
+                exploreLink.replaceWith(privateMessage);
+            } else {
+                exploreLink.href = `${properties.url}/explore`;
+                exploreLink.setAttribute('cityId', properties.cityId);
+                exploreLink.textContent = i18next.t('common:deployment-map.explore', { cityName: properties.cityNameShort });
+            }
+
             try {
-                // Fetch stats for the selected city.
+                // We only TRY to fetch and populate the stats.
                 const response = await fetch(statsUrl);
                 if (!response.ok) throw new Error('Network response was not ok');
                 const stats = await response.json();
 
-                // 1. Clone the template from the HTML document.
-                const template = document.getElementById('city-popup-template');
-                const popupContent = template.content.cloneNode(true);
-
-                // 2. Populate the cloned template with data.
-                popupContent.querySelector('.popup-title').textContent = properties.cityNameFormatted;
+                // If successful, fill in the stat values.
                 popupContent.querySelector('[data-stat="distance"]').textContent = formatDistance(stats.km_explored || 0);
                 popupContent.querySelector('[data-stat="labels"]').textContent = formatNumber(stats.labels.label_count || 0);
                 popupContent.querySelector('[data-stat="validations"]').textContent = formatNumber(stats.validations.total_validations || 0);
-
-                const exploreLink = popupContent.querySelector('.popup-link');
-                if (properties.visibility === 'private') {
-                    // Create a new div for the "Private Deployment" message.
-                    const privateMessage = document.createElement('div');
-                    privateMessage.className = 'popup-private-message';
-                    privateMessage.textContent = 'Private Deployment';
-
-                    // Replace the link with the new message.
-                    exploreLink.replaceWith(privateMessage);
-                } else {
-                    // Otherwise, populate the link as normal for public cities.
-                    exploreLink.href = `${properties.url}/explore`;
-                    exploreLink.setAttribute('cityId', properties.cityId);
-                    exploreLink.textContent = i18next.t('common:deployment-map.explore', { cityName: properties.cityNameShort });
-                }
-
-                // 3. Update the popup with the populated HTML node.
-                cityPopup.setDOMContent(popupContent);
-
             } catch (error) {
+                // If the fetch fails, just log the error. The popup will still be shown,
+                // but the stats will be the default placeholder values from the template.
                 console.error('Failed to fetch city stats:', error);
-                cityPopup.setHTML('<div class="popup-error">Could not load stats.</div>');
             }
+
+            // Finally, update the popup with the content, which will have stats if they loaded.
+            cityPopup.setDOMContent(popupContent);
         });
 
         // Logging functionality
