@@ -113,6 +113,17 @@ object ExploreFormats {
   )
   case class SurveySingleSubmission(surveyQuestionId: String, answerText: String)
 
+  case class AiLabelSubmission(
+      labelType: String,
+      panoX: Int,
+      panoY: Int,
+      confidence: Double,
+      model_id: String,
+      model_training_date: OffsetDateTime,
+      api_version: String,
+      pano: GsvPanoramaSubmission
+  )
+
   implicit val pointWrites: Writes[Point] = Writes { point =>
     Json.obj(
       "lat" -> point.getX,
@@ -315,4 +326,15 @@ object ExploreFormats {
     (JsPath \ "name").read[String] and
       (JsPath \ "value").read[String]
   )(SurveySingleSubmission.apply _)
+
+  implicit val aiLabelSubmissionReads: Reads[AiLabelSubmission] = (
+    (JsPath \ "label_type").read[String] and
+      (JsPath \ "pano_x").read[Int] and
+      (JsPath \ "pano_y").read[Int] and
+      (JsPath \ "confidence").read[Double] and
+      (JsPath \ "model_id").read[String] and
+      (JsPath \ "model_training_date").read[OffsetDateTime] and
+      (JsPath \ "api_version").read[String] and
+      (JsPath \ "pano").read[GsvPanoramaSubmission]
+  )(AiLabelSubmission.apply _)
 }

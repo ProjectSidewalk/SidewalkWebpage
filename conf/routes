@@ -163,7 +163,10 @@ POST    /saveRoute                                      controllers.RouteBuilder
 
 # Images
 POST    /saveImage                                      controllers.ImageController.saveImage
-POST    /api/gemini/analyze                             controllers.GeminiController.analyzeImage()
+
+# AI
+POST    /ai/analyzeScene                                controllers.AiController.analyzeScene()
+POST    /ai/submitLabel                                 controllers.AiController.submitAiLabel
 
 # Public API (v3) for Project Sidewalk data and metadata.
 GET     /v3/api/rawLabels                               controllers.api.LabelApiController.getRawLabelsV3(bbox: Option[String], labelType: Option[String], tags: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], validationStatus: Option[String], highQualityUserOnly: Option[Boolean], startDate: Option[String], endDate: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])

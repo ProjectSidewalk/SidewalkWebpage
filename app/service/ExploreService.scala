@@ -10,6 +10,7 @@ import models.region.{Region, RegionCompletionTable, RegionTable}
 import models.route._
 import models.street._
 import models.survey.{SurveyQuestionTable, SurveyQuestionWithOptions}
+import models.user.SidewalkUserTable.aiUserId
 import models.user._
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
@@ -60,6 +61,7 @@ trait ExploreService {
   def savePanoInfo(gsvPanoramas: Seq[GsvPanoramaSubmission]): Future[Unit]
   def insertComment(comment: AuditTaskComment): Future[Int]
   def insertNoGsv(streetIssue: StreetEdgeIssue): Future[Int]
+  def submitAiLabelData(data: AiLabelSubmission): Future[Unit]
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue]
   def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float]
   def selectTasksInRoute(userRouteId: Int): Future[Seq[NewTask]]
@@ -463,6 +465,50 @@ class ExploreServiceImpl @Inject() (
     db.run(streetEdgeIssueTable.insert(streetIssue))
   }
 
+  def submitAiLabelData(data: AiLabelSubmission): Future[Unit] = {
+    val currTime: OffsetDateTime = OffsetDateTime.now
+    for {
+      latLng <- Future.successful((-1F, -1F)) // Copy toLatLng() method on front-end to compute lat/lng using panoXY.
+      streetEdgeId <- db.run(labelTable.getStreetEdgeIdClosestToLatLng(latLng._1, latLng._2))
+      regionId <- db.run(streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId)).map(_.get.regionId)
+      missionId <- Future.successful(-1) // Check if we have one for the region, and make one if not.
+      auditTaskId <- Future.successful(-1) // Check if we have one for the street, and make one if not.
+      tempLabelId <- db.run(labelTable.nextTempLabelId(aiUserId))
+      labelPoint: LabelPointSubmission <- Future.successful(
+        LabelPointSubmission(
+          panoX = data.panoX,
+          panoY = data.panoY,
+          canvasX = LabelPointTable.canvasWidth / 2,
+          canvasY = LabelPointTable.canvasHeight / 2,
+          heading = -1F, // I think use `calculatePovFromPanoXY()` from front-end
+          pitch = -1F, // I think use `calculatePovFromPanoXY()` from front-end
+          zoom = -1, // TODO decide on a reasonable zoom
+          lat = Some(latLng._1),
+          lng = Some(latLng._2),
+          computationMethod = Some("approximation2")
+        )
+      )
+      labelSubmission: LabelSubmission <- Future.successful(
+        LabelSubmission(
+          gsvPanoramaId = data.pano.gsvPanoramaId,
+          auditTaskId = auditTaskId,
+          labelType = data.labelType,
+          deleted = false,
+          temporaryLabelId = tempLabelId,
+          timeCreated = Some(currTime),
+          tutorial = false,
+          severity = None,
+          temporary = false,
+          description = None,
+          tagIds = Seq.empty[Int],
+          point = labelPoint
+        )
+      )
+      _ <- db.run(insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId))
+      _ <- savePanoInfo(Seq(data.pano))
+    } yield ()
+  }
+
   /**
    * Takes data submitted from the Explore page and updates the database accordingly.
    * @param data All data submitted from front-end.
@@ -516,7 +562,7 @@ class ExploreServiceImpl @Inject() (
           labelTable.find(label.temporaryLabelId, userId).flatMap {
             case Some(existingLabel) =>
               // If there is already a label with this temp id but a mismatched label type, the user probably has the
-              // Explore page open in multiple browsers. Don't add the label, and tell the front-end to refresh the page.
+              // Explore page open in multiple browsers. Don't add the label; tell the front-end to refresh the page.
               if (existingLabel.labelTypeId != labelTypeId) {
                 refreshPage = true
                 DBIO.successful(None)

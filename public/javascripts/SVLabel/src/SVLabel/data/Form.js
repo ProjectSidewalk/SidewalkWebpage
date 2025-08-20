@@ -31,7 +31,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         for (let i = 0; i < prevPanos.length; i++) {
             history.push({
                 pano_id: prevPanos[i].pano,
-                date: moment(prevPanos[i].Gw).format('YYYY-MM')
+                date: moment(prevPanos[i].Iz).format('YYYY-MM')
             });
         }
         return history;

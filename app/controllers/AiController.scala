@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
+import formats.json.ExploreFormats.AiLabelSubmission
 import play.api.libs.json._
 import play.api.libs.ws._
 import play.api.mvc._
@@ -14,11 +15,12 @@ import scala.concurrent.{ExecutionContext, Future}
  * Controller for handling API requests for the Gemini 2.0 Flash model, sending GSV screenshots for visual analysis.
  */
 @Singleton
-class GeminiController @Inject() (
+class AiController @Inject() (
     cc: CustomControllerComponents,
     ws: WSClient,
     config: Configuration,
     configService: service.ConfigService,
+    exploreService: service.ExploreService,
     gsvDataService: service.GsvDataService
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
@@ -28,6 +30,17 @@ class GeminiController @Inject() (
   private val geminiApiKey: Option[String] = config.getOptional[String]("gemini-api-key")
   private val geminiApiUrl: Option[String] = geminiApiKey.map { key =>
     s"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=$key"
+  }
+
+  /**
+   * Parse and process the submitted AI-generated label.
+   */
+  def submitAiLabel = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    val submission = request.body.validate[AiLabelSubmission]
+    submission.fold(
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => { exploreService.submitAiLabelData(submission).map(_ => Ok("success!")) }
+    )
   }
 
   private def generatePrompt(wayType: String, cityName: String): String = {
@@ -52,8 +65,8 @@ class GeminiController @Inject() (
    *
    * @return JSON response containing the analysis result
    */
-  def analyzeImage(): Action[JsValue] = cc.securityService.SecuredAction(parse.json) { implicit request =>
-    // Extract image data and prompt from request.
+  def analyzeScene(): Action[JsValue] = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    // Extract street info from request.
     val wayType      = (request.body \ "way_type").as[String]
     val streetEdgeId = (request.body \ "street_edge_id").as[Int]
     val cityName     = configService.getCityName(request.lang)
