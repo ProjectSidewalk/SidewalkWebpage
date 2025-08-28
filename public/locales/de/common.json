@@ -30,8 +30,10 @@
         "100-percent-complete": "100% abgeschlossen!",
         "percent-complete": "{{percent}}% abgeschlossen"
     },
-    "deployment-map": {
-        "explore": "Entdecken {{cityName}}"
+    "cities-map": {
+        "explore": "Entdecken {{cityName}}",
+        "loading-stats": "Statistiken werden geladen …",
+        "private-deployment": "Private Bereitstellung"
     },
     "errors": {
         "title": "Ups, unser Fehler! Für diese Beschriftung sind keine Bilder mehr verfügbar.",

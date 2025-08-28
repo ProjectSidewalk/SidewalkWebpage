@@ -6,6 +6,7 @@
  * @param {Object} citiesData - GeoJSON object containing cities to draw on the map.
  * @param {Object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
+ * @param {boolean} params.logClicks - Whether to log click activity.
  * @returns {Promise} Promise that resolves when the streets have been added to the map.
 */
 function AddCitiesToMap(map, citiesData, params) {
@@ -59,7 +60,7 @@ function AddCitiesToMap(map, citiesData, params) {
 
     // Add filter/hover effects and fit the map to our cities.
     addHoverEffects();
-    addClickHandlers();
+    addClickHandlers(params);
     fitMapToCities();
 
     /**
@@ -68,20 +69,24 @@ function AddCitiesToMap(map, citiesData, params) {
     function addHoverEffects() {
         let hoveredCityId = null;
 
+        // Change cursor on hover and update feature state.
         map.on('mousemove', CITIES_LAYER_NAME, function (e) {
             map.getCanvas().style.cursor = 'pointer';
             let currCity = e.features[0];
 
+            // If a different city was being hovered before, update the state for each.
             if (hoveredCityId !== null && hoveredCityId !== currCity.id) {
                 map.setFeatureState({ source: CITIES_LAYER_NAME, id: hoveredCityId }, { hover: false });
                 hoveredCityId = currCity.id;
                 map.setFeatureState({ source: CITIES_LAYER_NAME, id: hoveredCityId }, { hover: true });
             } else if (hoveredCityId === null) {
+                // If no city was being hovered before, just update the current one.
                 hoveredCityId = currCity.id;
                 map.setFeatureState({ source: CITIES_LAYER_NAME, id: hoveredCityId }, { hover: true });
             }
         });
 
+        // Reset cursor and styling when leaving.
         map.on('mouseleave', CITIES_LAYER_NAME, (e) => {
             if (hoveredCityId !== null) {
                 map.setFeatureState({ source: CITIES_LAYER_NAME, id: hoveredCityId }, { hover: false });
@@ -93,9 +98,10 @@ function AddCitiesToMap(map, citiesData, params) {
 
     /**
      * Adds click event handlers to the map for displaying city statistics in a popup.
-     * When a city feature is clicked, fetches overall stats from the API, clones and populates
-     * a popup template, and displays it at the clicked location. Handles both public and private
-     * deployments, showing an appropriate message or link. Also logs click activity if enabled.
+     *
+     * When a city feature is clicked, fetches overall stats from the API, clones and populates a popup template, and
+     * displays it at the clicked location. Handles both public and private deployments, showing an appropriate message
+     * or link. Also logs click activity if enabled.
      *
      * @function
      * @param {Object} params - Configuration parameters.
@@ -103,7 +109,7 @@ function AddCitiesToMap(map, citiesData, params) {
      * @param {boolean} params.logClicks - Whether to log click activity.
      * @returns {void}
      */
-    function addClickHandlers() {
+    function addClickHandlers(params) {
         const cityPopup = new mapboxgl.Popup({
             focusAfterOpen: false,
             closeButton: true,
@@ -113,16 +119,16 @@ function AddCitiesToMap(map, citiesData, params) {
 
         map.on('click', CITIES_LAYER_NAME, async (e) => {
             const feature = e.features[0];
-
             const properties = feature.properties;
-            let coordinates = feature.geometry.coordinates.slice();
+            const coordinates = feature.geometry.coordinates.slice();
 
-            // On localhost, for testing, I've just been using the following (because otherwise we run into CORS issues):
+            // On localhost, for testing, I've just been using the following (otherwise we run into CORS issues):
             // const statsUrl = `v3/api/overallStats`;
             const statsUrl = `${properties.url}/v3/api/overallStats`;
 
             // Immediately show a simple loading message.
-            cityPopup.setLngLat(coordinates).setHTML('<div class="popup-loading">Loading stats...</div>').addTo(map);
+            const loadingMessage = i18next.t('common:cities-map.loading-stats');
+            cityPopup.setLngLat(coordinates).setHTML(`<div class="popup-loading">${loadingMessage}</div>`).addTo(map);
 
             const template = document.getElementById('city-popup-template');
             const popupContent = template.content.cloneNode(true);
@@ -133,12 +139,12 @@ function AddCitiesToMap(map, citiesData, params) {
             if (properties.visibility === 'private') {
                 const privateMessage = document.createElement('div');
                 privateMessage.className = 'popup-private-message';
-                privateMessage.textContent = 'Private Deployment';
+                privateMessage.textContent = i18next.t('common:cities-map.private-deployment');
                 exploreLink.replaceWith(privateMessage);
             } else {
                 exploreLink.href = `${properties.url}/explore`;
                 exploreLink.setAttribute('cityId', properties.cityId);
-                exploreLink.textContent = i18next.t('common:deployment-map.explore', { cityName: properties.cityNameShort });
+                exploreLink.textContent = i18next.t('common:cities-map.explore', { cityName: properties.cityNameShort });
             }
 
             try {
@@ -161,7 +167,7 @@ function AddCitiesToMap(map, citiesData, params) {
             cityPopup.setDOMContent(popupContent);
         });
 
-        // Logging functionality
+        // Logging functionality.
         if (params.logClicks) {
             $(`#${params.mapName}`).on('click', '.city-selection-trigger', function () {
                 const activity = `Click_module=${params.mapName}_cityId=${$(this).attr('cityId')}`;
@@ -194,10 +200,13 @@ function AddCitiesToMap(map, citiesData, params) {
      * Fit the map view to show all cities. Calculates bounds and adjusts map viewport.
      */
     function fitMapToCities() {
+        // Set different zoom restrictions and projection than our other maps, since we're zooming out so far.
         map.setMinZoom(null);
         map.setMaxZoom(10);
         map.setProjection('mercator');
         map.setMaxBounds(null);
+
+        // Extend bounds to include all cities.
         if (citiesData.features.length === 0) return;
         const bounds = new mapboxgl.LngLatBounds();
         citiesData.features.forEach(city => {
@@ -206,6 +215,9 @@ function AddCitiesToMap(map, citiesData, params) {
         map.fitBounds(bounds, { padding: 50 });
     }
 
+    /**
+     * Handle window resize events. Ensures map resizes properly with the browser window.
+     */
     function handleResize() {
         if (map) {
             fitMapToCities();
@@ -213,6 +225,7 @@ function AddCitiesToMap(map, citiesData, params) {
     }
     window.addEventListener('resize', handleResize);
 
+    // Return promise that is resolved once all the layers have been added to the map.
     return new Promise((resolve, reject) => {
         if (map.getLayer(CITIES_LAYER_NAME)) {
             resolve();

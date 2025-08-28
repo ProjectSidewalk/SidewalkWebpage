@@ -393,3 +393,7 @@ footer.logo.create.alt = Centrum voor Onderzoek en Onderwijs over Toegankelijke 
 cities.dashboard.cities = Implementatiesteden
 cities.dashboard.distance = Verkende straten
 cities.dashboard.cities.icon.alt = Rolstoelgebruiker van Project Sidewalk-logo met een vlag
+cities.dashboard.cta.title = Breng Project Sidewalk naar uw stad!
+cities.dashboard.cta.content = Wilt u de toegankelijkheid in uw omgeving in kaart brengen? <br/> We zijn altijd op zoek naar nieuwe partners die ons kunnen helpen de toekomst van stedelijke toegankelijkheid te transformeren.
+cities.dashboard.cta.button = Leer hoe u kunt implementeren
+cities.dashboard.cta.logo.alt = Het logo van Project Sidewalk met de tekst projectsidewalk.org

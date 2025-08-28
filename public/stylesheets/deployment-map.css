@@ -1,8 +1,7 @@
 /**
  * Project Sidewalk Deployment Map Styles (Consolidated)
  *
- * Styles for all MapBox-based PS deployment maps, popups, and the
- * deployment sites dashboard layout.
+ * Styles for all MapBox-based PS deployment maps, popups, and the deployment sites dashboard layout.
  */
 
 /* ==========================================================================
@@ -96,7 +95,6 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: 10px;
-    /* max-width: 1000px; */
     width: 100%;
 }
 
