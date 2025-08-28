@@ -43,6 +43,8 @@ city.name.madison-wi = Madison
 city.name.tainan-tw = Tainan
 city.name.niagara-falls-ny = Niagara Falls
 city.name.chandigarh-india = Chandigarh
+city.name.vancouver-wa = Vancouver
+city.name.rancagua-chile = Rancagua
 
 state.name.oregon = Oregon
 state.name.washington = Washington
@@ -66,6 +68,7 @@ country.name.new-zealand = New Zealand
 country.name.ecuador = Ecuador
 country.name.canada = Canada
 country.name.india = India
+country.name.chile = Chile
 
 lang.name.en-US = US English
 lang.name.en-NZ = NZ English
@@ -76,7 +79,7 @@ lang.name.de = Deutsch
 lang.name.zh-TW = 繁體中文
 
 ##
-## Text that requires non-English translations. Using this file as default/fallback.
+## Text that requires non-English translations. Using this file until we add those translations.
 ##
 
 # Label type descriptions.
