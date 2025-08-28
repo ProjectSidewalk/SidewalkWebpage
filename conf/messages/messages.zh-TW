@@ -95,6 +95,8 @@ city.name.madison-wi = 麥迪遜
 city.name.tainan-tw = 臺南市
 city.name.niagara-falls-ny = 尼加拉瀑布
 city.name.chandigarh-india = 昌迪加爾
+city.name.vancouver-wa = 溫哥華
+city.name.rancagua-chile = 蘭卡瓜
 
 state.name.oregon = 奧勒岡州
 state.name.washington = 華盛頓州
@@ -118,6 +120,7 @@ country.name.new-zealand = 紐西蘭
 country.name.ecuador = 厄瓜多
 country.name.canada = 加拿大
 country.name.india = 印度
+country.name.chile = 智利
 
 navbar.explore = 探索
 navbar.validate = 檢核
