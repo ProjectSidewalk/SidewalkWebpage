@@ -477,11 +477,11 @@ function UtilitiesMisc (JSON) {
             },
             2: {
                 message: i18next.t('center-ui.context-menu.tooltip.difficult-to-pass'),
-                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_3_White_Small.png'
+                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_2_White_Small.png'
             },
             3: {
                 message: i18next.t('center-ui.context-menu.tooltip.not-passable'),
-                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_5_White_Small.png'
+                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_3_White_Small.png'
             }
         };
     }
