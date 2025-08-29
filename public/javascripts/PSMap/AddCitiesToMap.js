@@ -18,11 +18,15 @@ function AddCitiesToMap(map, citiesData, params) {
         fillOpacity: 0.7,
         strokeColor: '#548177',
         strokeWidth: 1,
+        strokeOpacity: 1,
         radius: 6,
         hoverFillColor: '#FBD78B', // Project Sidewalk yellow
         hoverStrokeColor: '#b8a06b',
         privateFillColor: '#EB734D', // Project Sidewalk orange
-        privateStrokeColor: '#C85B3A'  // Darker orange for stroke
+        privateFillOpacity: 0.4,
+        privateStrokeColor: '#C85B3A',  // Darker orange for stroke
+        privateStrokeOpacity: 0.5,
+        privateRadius: 5
     };
 
     // Render cities as circles.
@@ -36,7 +40,12 @@ function AddCitiesToMap(map, citiesData, params) {
         type: 'circle',
         source: CITIES_LAYER_NAME,
         paint: {
-            'circle-radius': CIRCLE_CONFIG.radius,
+            'circle-radius': [
+                'case',
+                ['==', ['get', 'visibility'], 'private'],
+                CIRCLE_CONFIG.privateRadius,
+                CIRCLE_CONFIG.radius
+            ],
             'circle-color': [
                 'case',
                 ['boolean', ['feature-state', 'hover'], false],
@@ -45,8 +54,19 @@ function AddCitiesToMap(map, citiesData, params) {
                 CIRCLE_CONFIG.privateFillColor,
                 CIRCLE_CONFIG.fillColor
             ],
-            'circle-opacity': CIRCLE_CONFIG.fillOpacity,
+            'circle-opacity': [
+                'case',
+                ['==', ['get', 'visibility'], 'private'],
+                CIRCLE_CONFIG.privateFillOpacity,
+                CIRCLE_CONFIG.fillOpacity
+            ],
             'circle-stroke-width': CIRCLE_CONFIG.strokeWidth,
+            'circle-stroke-opacity': [
+                'case',
+                ['==', ['get', 'visibility'], 'private'],
+                CIRCLE_CONFIG.privateStrokeOpacity,
+                CIRCLE_CONFIG.strokeOpacity
+            ],
             'circle-stroke-color': [
                 'case',
                 ['boolean', ['feature-state', 'hover'], false],
