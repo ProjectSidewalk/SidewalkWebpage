@@ -30,8 +30,10 @@
         "100-percent-complete": "已完成100%！",
         "percent-complete": "{{percent}}%完成"
     },
-    "deployment-map": {
-        "explore": "探索{{cityName}}"
+    "cities-map": {
+        "explore": "探索{{cityName}}",
+        "loading-stats": "正在載入統計數據...",
+        "private-deployment": "私有部署"
     },
     "errors": {
         "title": "啊糟糕！我們現在沒有與此標記相關的圖片可供參考。",

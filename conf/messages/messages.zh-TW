@@ -450,3 +450,7 @@ footer.logo.create.alt = 無障礙技術和體驗研究與教育中心 (CREATE) 
 cities.dashboard.cities = 部署城市
 cities.dashboard.distance = 已探索街道
 cities.dashboard.cities.icon.alt = 來自 Project Sidewalk 標誌的輪椅使用者手持旗幟
+cities.dashboard.cta.title = 將 Project Sidewalk 帶到您的城市！
+cities.dashboard.cta.content = 有興趣繪製您所在社區的無障礙地圖嗎？ <br/>我們一直在尋找新的合作夥伴來幫助改變城市無障礙的未來。
+cities.dashboard.cta.button = 了解如何部署
+cities.dashboard.cta.logo.alt = Project Sidewalk 徽標，帶有文字 projectsidewalk.org

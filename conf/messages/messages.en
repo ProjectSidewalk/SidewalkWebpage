@@ -395,3 +395,7 @@ footer.logo.create.alt = Center for Research and Education on Accessible Technol
 cities.dashboard.cities = Deployment Cities
 cities.dashboard.distance = Streets Explored
 cities.dashboard.cities.icon.alt = Wheelchair user from Project Sidewalk logo holding a flag
+cities.dashboard.cta.title = Bring Project Sidewalk to Your City!
+cities.dashboard.cta.content = Interested in mapping accessibility in your community? <br/> We're always looking for new partners to help transform the future of urban accessibility.
+cities.dashboard.cta.button = Learn How to Deploy
+cities.dashboard.cta.logo.alt = The Project Sidewalk logo with text saying projectsidewalk.org

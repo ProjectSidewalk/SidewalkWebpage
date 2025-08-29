@@ -405,3 +405,7 @@ footer.logo.create = Logotipo del Centro de Investigación y Educación sobre Te
 cities.dashboard.cities = Ciudades de Despliegue
 cities.dashboard.distance = Calles Exploradas
 cities.dashboard.cities.icon.alt = Usuario de silla de ruedas del logotipo de Project Sidewalk sosteniendo una bandera
+cities.dashboard.cta.title = ¡Trae Project Sidewalk a tu ciudad!
+cities.dashboard.cta.content = ¿Está interesado en mapear la accesibilidad en su comunidad? <br/> Siempre estamos buscando nuevos socios para ayudar a transformar el futuro de la accesibilidad urbana.
+cities.dashboard.cta.button = Aprenda a implementar
+cities.dashboard.cta.logo.alt = El logotipo de Project Sidewalk con el texto projectsidewalk.org

@@ -30,8 +30,10 @@
         "100-percent-complete": "¡100% Completa!",
         "percent-complete": "{{percent}}% Completa"
     },
-    "deployment-map": {
-        "explore": "Explorar {{cityName}}"
+    "cities-map": {
+        "explore": "Explorar {{cityName}}",
+        "loading-stats": "Cargando estadísticas...",
+        "private-deployment": "Despliegue privado"
     },
     "errors": {
         "title": "Vaya, es culpa nuestra, pero ya no hay imágenes disponibles para esta etiqueta.",

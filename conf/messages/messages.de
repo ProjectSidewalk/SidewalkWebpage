@@ -399,3 +399,7 @@ footer.logo.create.alt = Logo des Zentrums für Forschung und Bildung zu barrier
 cities.dashboard.cities = Einsatzorte
 cities.dashboard.distance = Erkundete Strassen
 cities.dashboard.cities.icon.alt = Rollstuhlfahrer vom Project Sidewalk-Logo hält eine Flagge
+cities.dashboard.cta.title = Bringen Sie Project Sidewalk in Ihre Stadt!
+cities.dashboard.cta.content = Möchten Sie die Barrierefreiheit in Ihrer Gemeinde kartieren? <br/> Wir sind immer auf der Suche nach neuen Partnern, die uns dabei helfen, die Zukunft der städtischen Barrierefreiheit zu verändern.
+cities.dashboard.cta.button = Informationen zur Bereitstellung
+cities.dashboard.cta.logo.alt = Das Project Sidewalk-Logo mit dem Text projectsidewalk.org
