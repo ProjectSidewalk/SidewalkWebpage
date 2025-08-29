@@ -258,9 +258,12 @@ audit.right.ui.overall.stats = 整體統計數據
 audit.right.ui.current.neighborhood = 目前所在的鄰里
 audit.right.ui.distance = 公里
 
-audit.center.ui.passable = 可通行的
-audit.center.ui.not.passable = 不可通行的
-audit.center.ui.add.tags = 新增標籤：
+audit.center.ui.tags.header = 新增標籤
+audit.center.ui.tags.info = 請為您的標籤新增標籤，以便為資料提供有用的信息。將滑鼠懸停在標籤上即可查看範例。
+audit.center.ui.severity.header = 評分嚴重程度
+audit.center.ui.severity.info = 盡力評估標記的障礙物或特徵對行人通行的阻礙程度。
+audit.center.ui.description.header = 描述（可選）
+audit.center.ui.description.placeholder = 描述
 
 audit.mission.complete.labels.title = 任務標記
 audit.mission.complete.progress.mission.you = 您於此任務已探索

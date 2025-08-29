@@ -388,10 +388,10 @@
 
                         <div id="context-menu-tag-section" class="context-menu-section">
                             <div class="context-menu-header">
-                                1. Add tags
+                                1. @Messages("audit.center.ui.tags.header")
                                 <img src='@assets.path("images/icons/info-circle.svg")'
                                     class="context-menu-info-icon"
-                                    title="Please add tags to your labels, which enriches the data with useful information. Mouseover the tags for examples."
+                                    title="@Messages("audit.center.ui.tags.info")"
                                     data-toggle="tooltip" data-placement="top"
                                 />
                             </div>
@@ -418,9 +418,9 @@
 
                         <div id="severity-menu" class="context-menu-section">
                             <div class="context-menu-header">
-                                2. Rate severity
+                                2. @Messages("audit.center.ui.severity.header")
                                 <img src='@assets.path("images/icons/info-circle.svg")' class="context-menu-info-icon"
-                                    title="Do your best to assess how severely the labeled obstacle or feature hinders pedestrian access."
+                                    title="@Messages("audit.center.ui.severity.info")"
                                     data-toggle="tooltip" data-placement="top"
                                 />
                             </div>
@@ -456,9 +456,9 @@
                         </div>
 
                         <div id="context-menu-description-section" class="context-menu-section">
-                            <div class="context-menu-header">3. Describe (optional)</div>
+                            <div class="context-menu-header">3. @Messages("audit.center.ui.description.header")</div>
                             <div class="description-input-frame">
-                                <input type="text" id="context-menu-description-text-box" placeholder="Description">
+                                <input type="text" id="context-menu-description-text-box" placeholder="@Messages("audit.center.ui.description.placeholder")">
                                 <button id="context-menu-ok-button">OK</button>
                             </div>
                         </div>

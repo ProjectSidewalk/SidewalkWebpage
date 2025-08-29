@@ -469,28 +469,17 @@ function UtilitiesMisc (JSON) {
      *              5: {message: string, severityImage: string}}}
      */
     function getSeverityDescription() {
+        console.log("GETTING SEVERITY DESCRIPTION");
         return {
             1: {
                 message: i18next.t('center-ui.context-menu.tooltip.passable'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_1_White_Small.png'
             },
-
             2: {
-                message: i18next.t('center-ui.context-menu.tooltip.somewhat-passable'),
-                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_2_White_Small.png'
-            },
-
-            3: {
                 message: i18next.t('center-ui.context-menu.tooltip.difficult-to-pass'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_3_White_Small.png'
             },
-
-            4: {
-                message: i18next.t('center-ui.context-menu.tooltip.very-difficult-to-pass'),
-                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_4_White_Small.png'
-            },
-
-            5: {
+            3: {
                 message: i18next.t('center-ui.context-menu.tooltip.not-passable'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_5_White_Small.png'
             }

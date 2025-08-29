@@ -204,9 +204,12 @@ audit.right.ui.overall.stats = Algemene statistieken
 audit.right.ui.current.neighborhood = Huidige Wijk
 audit.right.ui.distance = kilometer
 
-audit.center.ui.passable = Begaanbaar
-audit.center.ui.not.passable = Niet Begaanbaar
-audit.center.ui.add.tags = Voeg<br>Tags toe:
+audit.center.ui.tags.header = Voeg tags toe
+audit.center.ui.tags.info = Voeg tags toe aan uw labels om de gegevens te verrijken met nuttige informatie. Beweeg de muis over de tags voor voorbeelden.
+audit.center.ui.severity.header = Ernst van de snelheid
+audit.center.ui.severity.info = Probeer zo goed mogelijk in te schatten in hoeverre het gemarkeerde obstakel of de gemarkeerde voorziening de toegang voor voetgangers belemmert.
+audit.center.ui.description.header = Beschrijf (optioneel)
+audit.center.ui.description.placeholder = Beschrijving
 
 audit.mission.complete.labels.title = Missie labels
 audit.mission.complete.progress.mission.you = Je ontdekte in deze missie

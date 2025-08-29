@@ -15,8 +15,8 @@
         "mission-message": "Absolvieren Sie die Einführung!",
         "select-label-type-1": "In diesem “Street View”-Bild haben wir einen Pfeil zu einer Trottoirabsenkung eingezeichnet. Diese werden wir nun beschriften. Klicken Sie oben auf das beschriftete <span class=\"bold\">\"Trottoirabsenkung\"-Symbol</span>.",
         "label-attribute-1": "Gut! Nun <span class=\"bold\">klicken Sie auf die Trottoirabsenkung</span> unterhalb des gelb blinkenden Pfeils, um sie zu beschriften.",
-        "rate-severity-1": "Jetzt können Sie die Qualität der Trottoirabsenkung bewerten, wobei 1 für passierbar und 5 für nicht passierbar für Rollstuhlfahrende steht. Da sie breit genug ist und eine taktile Orientierungshilfe hat, <span class=\"bold\">wird sie mit 1, passierbar</span> bewertet.",
-        "redo-rate-attribute-1": "Ups, Sie sollten diese Trottoirabsenkung mit 1, passierbar bewerten. Es handelt sich um eine gute Trottoirabsenkung, die breit genug ist und eine taktile Orientierungshilfe hat. <span class=\"bold\">Wählen Sie \"1\" aus, um sie zu bewerten.</span>",
+        "rate-severity-1": "Jetzt können Sie den Schweregrad etwaiger Probleme mit der Bordsteinrampe bewerten, die für einen Rollstuhlfahrer ein Problem darstellen könnten. Da sie breit genug ist und eine taktile Orientierungshilfe hat, <span class=\"bold\">Bewerten wir den Schweregrad als „Niedrig“.</span>",
+        "redo-rate-attribute-1": "Ups, Sie sollten diese Trottoirabsenkung mit Niedrig, passierbar bewerten. Es handelt sich um eine gute Trottoirabsenkung, die breit genug ist und eine taktile Orientierungshilfe hat. <span class=\"bold\">Wählen Sie \"Niedrig\" aus, um sie zu bewerten.</span>",
         "select-label-type-2": "Beschriften wir nun den aufgemalten Fussgängerübergang. <span class=\"bold\">Klicken Sie auf das \"Markierter Fussgängerstreifen\"-Symbol.</span>.",
         "label-attribute-2": "Toll! Jetzt <span class=\"bold\">klicken Sie unter den blinkenden gelben Pfeil</span> um den Fussgängerübergang zu kennzeichnen.",
         "adjust-heading-angle-1": "Gut! Nun passen wir die Ansicht an, um eine andere Ecke der Kreuzung zu betrachten. <span class=\"bold\">Greifen und ziehen Sie das “Street View”-Bild, um nach links zu blicken.</span>",
@@ -24,13 +24,13 @@
         "select-label-type-3": "Sehr gut! Wir haben eine weitere Trottoirabsenkung gefunden. Beschriften wir sie! <span class=\"bold\">Klicken Sie auf das “Trottoirabsenkung”-Symbol</span> wie vorhin.",
         "label-attribute-3": "Nun <span class=\"bold\">klicken Sie auf die Trottoirabsenkung</span> unterhalb des gelb blinkenden Pfeils, um sie zu beschriften.",
         "rate-severity-3": "Gut, nun <span class=\"bold\">bewerten Sie die Qualität</span> der Trottoirabsenkung.",
-        "redo-rate-attribute-3": "Ups, Sie sollten diese Trottoirabsenkung mit 2, einigermassen passierbar bewerten.  Es handelt sich um eine gute Trottoirabsenkung, aber es hat keinen Platz am oberen Ende der Absenkung, um zu wenden. <span class=\"bold\">Wählen Sie \"2\" aus, um sie zu bewerten.</span>",
+        "redo-rate-attribute-3": "Ups, Sie sollten diese Trottoirabsenkung mit Medium, einigermassen passierbar bewerten.  Es handelt sich um eine gute Trottoirabsenkung, aber es hat keinen Platz am oberen Ende der Absenkung, um zu wenden. <span class=\"bold\">Wählen Sie \"Medium\" aus, um sie zu bewerten.</span>",
         "tag-attribute-3": "Jede Beschriftung enthält optionale Tags, mit denen zusätzliche Informationen hinzugefügt werden. Wählen Sie für jede Beschriftung, die Sie erstellen, die passenden Tags! <span class=\"bold\">Fügen Sie den “nicht genug Platz”-Tag</span> hinzu, da es am oberen Ende der Trottoirabsenkung für eine rollstuhlfahrende Person nicht genügend Platz hat um zu wenden.",
         "redo-tag-attribute-3": "Nur der \"nicht genug Platz\"-Tag trifft hier zu, da die Trottoirabsenkung eine taktile Orientierungshilfe hat, nicht zu schmal oder zu steil ist und nicht auf den Verkehr ausgerichtet ist. Fügen Sie <span class=\"bold\">nur den \"nicht genug Platz\"-Tag hinzu.</span>",
         "select-label-type-4": "Beachten Sie, dass es am Ende dieses Fussgängerstreifens keine Trottoirabsenkung hat. <span class=\"bold\">Klicken Sie das\"Fehlende Trottoirabsenkung\"-Symbol</span>, um dies zu beschriften.",
         "label-attribute-4": "Nun klicken Sie unterhalb des gelb blinkenden Pfeils, um <span class=\"bold\">die fehlende Trottoirabsenkung zu beschriften</span>",
-        "rate-severity-4": "Da sich neben der fehlenden Trottoirabsenkung eine bestehende Trottoirabsenkung befindet, ist dieses Problem der Zugänglichkeit weniger schwerwiegend. Darum <span class=\"bold\">bewerten wir es mit 3.</span> Wenn Sie Zugänglichkeit bewerten, <span class=\"bold\">nutzen Sie einfach Ihr bestes Urteilsvermögen!</span>",
-        "redo-rate-attribute-4": "Hmm, da sich neben der fehlenden Trottoirabsenkung eine bestehende Trottoirabsenkung befindet, ist dieses Problem der Zugänglichkeit weniger schwerwiegend. <span class=\"bold\">Klicken Sie \"3\", um den Schweregrad der fehlenden Trottoirabsenkung zu ändern.</span>",
+        "rate-severity-4": "Da sich neben der fehlenden Trottoirabsenkung eine bestehende Trottoirabsenkung befindet, ist dieses Problem der Zugänglichkeit weniger schwerwiegend. Darum <span class=\"bold\">bewerten wir es mit Medium.</span> Wenn Sie Zugänglichkeit bewerten, <span class=\"bold\">nutzen Sie einfach Ihr bestes Urteilsvermögen!</span>",
+        "redo-rate-attribute-4": "Hmm, da sich neben der fehlenden Trottoirabsenkung eine bestehende Trottoirabsenkung befindet, ist dieses Problem der Zugänglichkeit weniger schwerwiegend. <span class=\"bold\">Klicken Sie \"Medium\", um den Schweregrad der fehlenden Trottoirabsenkung zu ändern.</span>",
         "tag-attribute-4": "<span class=\"bold\">Fügen Sie den \"alternative Route vorhanden\"-Tag</span> hinzu, da eine nahegelegene Trottoirabsenkung genutzt werden kann.",
         "redo-tag-attribute-4": "Der \"alternative Route vorhanden\"-Tag ist der einzige Tag, der hier zutrifft, da eine nahegelegene Trottoirabsenkung genutzt werden kann. Fügen Sie <span class=\"bold\">nur den \"alternative Route vorhanden\"-Tag</span> hinzu.",
         "select-label-type-5": "Auf der Pole können Sie ein Licht sehen, das Fußgängern sagt, dass sie die Straße überqueren können. <span class=\"bold\"> Klicken Sie auf die Schaltfläche \"Fußgängersignal\"</span>, um es zu kennzeichnen.",
@@ -43,15 +43,15 @@
         "speed-things-up": "Um den Prozess zu beschleunigen, beschriften wir für Sie diese beiden Trottoirabsenkungen, diesen Fussgängerübergang und dieses Fussgängerlichtsignal. <span class=\"bold\">Künftig sollten Sie diese selbst beschriften!</span>",
         "select-label-type-7": "Beachten Sie, dass das Trottoir hier plötzlich endet. Bitte beschriften Sie dies. Klicken Sie auf das <span class=\"bold\">\"kein Trottoir\"</span>-Symbol, um es zu beschriften.",
         "label-attribute-7": "<span class=\"bold\">Klicken Sie auf den Boden</span>, wo das Trottoir fehlt.",
-        "rate-severity-7": "Da es ein Trottoir auf der anderen Seite der Strasse hat, ist dieses Zugänglichkeitsproblem weniger schwerwiegend. <span class=\"bold\">Daher können Sie es mit 3 bewerten.</span>",
-        "redo-rate-attribute-7": "Hmm, da es ein Trottoir auf der anderen Seite der Strasse hat, ist dieses Zugänglichkeitsproblem weniger schwerwiegend. <span class=\"bold\">Klicken Sie \"3\", um den Schweregrad des fehlenden Trottoirs zu ändern.</span>",
+        "rate-severity-7": "Da es ein Trottoir auf der anderen Seite der Strasse hat, ist dieses Zugänglichkeitsproblem weniger schwerwiegend. <span class=\"bold\">Daher können Sie es mit Medium bewerten.</span>",
+        "redo-rate-attribute-7": "Hmm, da es ein Trottoir auf der anderen Seite der Strasse hat, ist dieses Zugänglichkeitsproblem weniger schwerwiegend. <span class=\"bold\">Klicken Sie \"Medium\", um den Schweregrad des fehlenden Trottoirs zu ändern.</span>",
         "tag-attribute-7": "<span class=\"bold\">Fügen Sie die \"endet abrupt\"- und \"Strasse hat ein Trottoir\"-Tags hinzu</span>, da es ein Trottoir auf der anderen Seite der Strasse hat.",
         "redo-tag-attribute-7": "Die \"endet abrupt\"-und \"Strasse hat einen Trottoir\"-Tags sind die einzigen Tags, die hier zutreffen. <span class=\"bold\">Stellen Sie sicher, dass Sie nur diese beiden Tags ausgewählt haben.</span>",
         "adjust-heading-angle-4": "Toll! Lassen Sie uns die letzte Trottoirabsenkung auf der Kreuzung beschriften. Zuerst <span class=\"bold\">greifen und ziehen Sie das “Street View”-Bild.</span>",
         "select-label-type-8": "Gut! Nun <span class=\"bold\">klicken Sie auf das \"Trottoirabsenkung\"-Symbol</span> im Menu, um sie zu beschriften.",
         "label-attribute-8": "<span class=\"bold\">Klicken Sie auf die Trottoirabsenkung</span> unterhalb des gelb blinkenden Pfeils, um sie zu beschriften.",
         "rate-severity-8": "Nun <span class=\"bold\">beurteilen Sie die Qualität der Trottoirabsenkung</span>. Nutzen Sie Ihr bestes Urteilsvermögen. Sie können auch Kommentare ins <span class=\"bold\">Beschreibungsfeld</span> schreiben.",
-        "redo-rate-attribute-8": "Hmm, Sie sollten diese Trottoirabsenkung mit 1, passierbar bewerten. Diese Trottoirabsenkung ist breit genug, hat eine taktile Orientierungshilfe und ist nicht auf den Verkehr ausgerichtet. <span class=\"bold\">Klicken Sie \"1\" um den Schweregrad zu ändern.</span>",
+        "redo-rate-attribute-8": "Hmm, Sie sollten diese Trottoirabsenkung mit Niedrig, passierbar bewerten. Diese Trottoirabsenkung ist breit genug, hat eine taktile Orientierungshilfe und ist nicht auf den Verkehr ausgerichtet. <span class=\"bold\">Klicken Sie \"Niedrig\" um den Schweregrad zu ändern.</span>",
         "select-label-type-9": "Wir sollten das Fussgängerlichtsignal nicht vergessen! <span class=\"bold\">Klicken Sie auf das \"Fussgängerlichtsignal\"-Symbol</span> um dieses zu beschriften.",
         "label-attribute-9": "<span class=\"bold\">Klicken Sie auf das untere Ende des Pfostens</span> um dieses Fussgängerlichtsignal zu beschriften.",
         "adjust-heading-angle-5": "Gut gemacht! Wir sind beinahe fertig. Nun wollen wir lernen, wie Sie sich bewegen können. <span class=\"bold\">Greifen und ziehen Sie das “Street View”-Bild</span>.",
@@ -71,8 +71,8 @@
             "label-too-far-signal": "$t(audit:tutorial.common.label-too-far-start) Bei hohen Objekten, wie z. B. Pfosten, bitten wir Sie, Beschriftungen am unteren Ende des Pfostens anzubringen. So erhalten wir genauere Informationen zum Standort! $t(audit:tutorial.common.label-too-far-end)",
             "label-too-far-generic": "$t(audit:tutorial.common.label-too-far-start) Lassen Sie uns die falsch platzierte Beschriftung entfernen. $t(audit:tutorial.common.label-too-far-end)",
             "re-label": "Gut! Nun werden wir eine neue Beschriftung hinzufügen. <span class=\"bold\">Klicken Sie auf das \"{{label_type}}\"-Symbol</span> oberhalb.",
-            "rate-crosswalk-sev-1": "Jetzt können Sie die Qualität des Fussgängerstreifens bewerten, wobei 1 für passierbar und 5 für nicht passierbar für eine Person im Rollstuhl steht. Da die Oberfläche glatt und die Farbe nicht verblasst ist, <span class=\"bold\">bewerten wir ihn mit 1, passierbar.</span>",
-            "redo-rate-crosswalk-sev-1": "Achtung! Sie sollten diesen Fussgängerstreifen mit 1, passierbar, bewerten. Die Oberfläche ist glatt und die Farbe nicht verblasst. <span class=\"bold\">Klicken Sie auf \"1\" um den entsprechenden Schweregrad anzugeben.</span>"
+            "rate-crosswalk-sev-1": "Jetzt können Sie den Schweregrad aller Probleme mit dem Zebrastreifen bewerten, die für einen Rollstuhlfahrer ein Problem darstellen könnten. Da die Oberfläche glatt und die Farbe nicht verblasst ist, <span class=\"bold\">Bewerten wir den Schweregrad als „Niedrig“.</span>",
+            "redo-rate-crosswalk-sev-1": "Achtung! Sie sollten diesen Fussgängerstreifen mit Niedrig, passierbar, bewerten. Die Oberfläche ist glatt und die Farbe nicht verblasst. <span class=\"bold\">Klicken Sie auf \"Niedrig\" um den entsprechenden Schweregrad anzugeben.</span>"
         }
     },
     "mission-complete": {
@@ -110,7 +110,6 @@
     },
     "center-ui": {
         "context-menu": {
-            "description": "Beschreibung (optional)",
             "severity": "Zur Kennzeichnung eines Schweregrades bitte anklicken",
             "severity-shortcuts": "Drücken Sie die Tasten 1-3 für den Schweregrad",
             "label-popup-shortcuts": "Drücken Sie <tag-underline>{{c}}</tag-underline>, um einen Tag hinzuzufügen",
@@ -194,9 +193,7 @@
             },
             "tooltip": {
                 "passable": "Passierbar",
-                "somewhat-passable": "Einigermassen passierbar",
                 "difficult-to-pass": "Schwer passierbar",
-                "very-difficult-to-pass": "Sehr schwer passierbar",
                 "not-passable": "Nicht passierbar"
             }
         },

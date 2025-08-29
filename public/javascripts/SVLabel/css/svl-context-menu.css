@@ -92,7 +92,7 @@
 }
 
 #severity-menu {
-    width: 130px;
+    width: 100%;
     height: auto;
     min-height: fit-content;
     margin-top: 1px;

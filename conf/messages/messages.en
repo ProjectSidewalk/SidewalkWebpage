@@ -205,9 +205,12 @@ audit.right.ui.overall.stats = Overall Stats
 audit.right.ui.current.neighborhood = Current Neighborhood
 audit.right.ui.distance = kilometers
 
-audit.center.ui.passable = Passable
-audit.center.ui.not.passable = Not Passable
-audit.center.ui.add.tags = Add Tags:
+audit.center.ui.tags.header = Add tags
+audit.center.ui.tags.info = Please add tags to your labels, which enriches the data with useful information. Mouseover the tags for examples.
+audit.center.ui.severity.header = Rate severity
+audit.center.ui.severity.info = Do your best to assess how severely the labeled obstacle or feature hinders pedestrian access.
+audit.center.ui.description.header = Describe (optional)
+audit.center.ui.description.placeholder = Description
 
 audit.mission.complete.labels.title = Mission Labels
 audit.mission.complete.progress.mission.you = You explored in this mission

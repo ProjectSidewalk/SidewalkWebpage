@@ -207,9 +207,12 @@ audit.right.ui.overall.stats = Gesamtübersicht
 audit.right.ui.current.neighborhood = Aktuelles Quartier
 audit.right.ui.distance = Kilometer
 
-audit.center.ui.passable = Passierbar
-audit.center.ui.not.passable = Nicht passierbar
-audit.center.ui.add.tags = Tags hinzu&shy;fügen:
+audit.center.ui.tags.header = Tags hinzufügen
+audit.center.ui.tags.info = Fügen Sie Ihren Etiketten Tags hinzu, um die Daten mit nützlichen Informationen anzureichern. Bewegen Sie den Mauszeiger über die Tags, um Beispiele anzuzeigen.
+audit.center.ui.severity.header = Schweregrad bewerten
+audit.center.ui.severity.info = Versuchen Sie nach Möglichkeit zu beurteilen, wie stark das gekennzeichnete Hindernis oder Merkmal den Zugang für Fußgänger behindert.
+audit.center.ui.description.header = Beschreiben (optional)
+audit.center.ui.description.placeholder = Beschreibung
 
 audit.mission.complete.labels.title = Missionsbeschriftungen
 audit.mission.complete.progress.mission.you = Sie haben diese Mission erfüllt

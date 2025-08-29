@@ -29,7 +29,7 @@
         "redo-tag-attribute-3": "Only the \"not enough landing space\" tag applies here, since the curb ramp has a tactile warning, is not too narrow nor steep, and does not point into traffic. So add <span class=\"bold\">only the \"not enough landing space\" tag.</span>",
         "select-label-type-4": "Notice that there is no curb ramp at the end of this crosswalk. <span class=\"bold\">Click the \"Missing Curb Ramp\" button</span> to label it.",
         "label-attribute-4": "Now click beneath the flashing yellow arrow to <span class=\"bold\">label the missing curb ramp.</span>",
-        "rate-severity-4": "Since this missing curb ramp is next to an existing curb ramp, this accessibility problem is less severe. So <span class=\"bold\">let’s rate it as a Medium.</span> When you rate accessibility, we just ask that you <span class=\"bold\">use your best judgment!</span>",
+        "rate-severity-4": "Since this missing curb ramp is next to an existing curb ramp, this accessibility problem is less severe. So <span class=\"bold\">let’s rate it as Medium.</span> When you rate accessibility, we just ask that you <span class=\"bold\">use your best judgment!</span>",
         "redo-rate-attribute-4": "Hmm, since this missing curb ramp is next to an existing curb ramp, this accessibility problem is less severe. <span class=\"bold\">Let’s click \"Medium\" to change the severity of the missing curb ramp.</span>",
         "tag-attribute-4": "<span class=\"bold\">Let's add the \"alternate route present\" tag</span> because there is a nearby curb ramp that could be used.",
         "redo-tag-attribute-4": "The \"alternate route present\" tag is the only tag that applies here because there is a nearby curb ramp that could be used. So add <span class=\"bold\">only the \"alternate route present\" tag.</span>",
@@ -43,7 +43,7 @@
         "speed-things-up": "To help speed things up, we are labeling these two curb ramps, this crosswalk, and this pedestrian signal for you. <span class=\"bold\">In the future, you should label all of these yourself!</span>",
         "select-label-type-7": "Notice that the sidewalk suddenly ends here. Let’s label this. Click the <span class=\"bold\">\"No Sidewalk\"</span> button to label it.",
         "label-attribute-7": "<span class=\"bold\">Click on the ground</span> where the sidewalk is missing.",
-        "rate-severity-7": "Since there is a sidewalk on the other side of the street, this accessibility problem is less severe. So <span class=\"bold\">let’s rate it as a Medium.</span>",
+        "rate-severity-7": "Since there is a sidewalk on the other side of the street, this accessibility problem is less severe. So <span class=\"bold\">let’s rate it as Medium.</span>",
         "redo-rate-attribute-7": "Hmm, since there is a sidewalk on the other side of the street, this accessibility problem is less severe. <span class=\"bold\">Let’s click \"Medium\" to change the severity of the no sidewalk label.</span>",
         "tag-attribute-7": "<span class=\"bold\">Let's add the \"ends abruptly\" and \"street has a sidewalk\" tags</span> because there is a sidewalk on the other side of the street.",
         "redo-tag-attribute-7": "The \"ends abruptly\" and \"street has a sidewalk\" tags are the only tags that apply here. So <span class=\"bold\">make sure to add only those two tags.</span>",
@@ -110,7 +110,6 @@
     },
     "center-ui": {
         "context-menu": {
-            "description": "Description",
             "severity": "Please click to label a severity",
             "severity-shortcuts": "Press keys 1-3 for severity",
             "label-popup-shortcuts": "Press <tag-underline>{{c}}</tag-underline> to add tag",
