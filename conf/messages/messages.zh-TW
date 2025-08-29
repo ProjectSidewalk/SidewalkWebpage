@@ -15,6 +15,10 @@ crosswalk = 有標記的行人穿越道
 signal = 行人號誌
 occlusion = 看不見人行道
 other = 其他
+low = 低的
+medium = 中等的
+high = 高的
+rating = 評分
 validated.correct = 檢核正確
 validated.incorrect = 檢核不正確
 unvalidated = 未檢核
@@ -433,10 +437,6 @@ routebuilder.build.another.route = 設立另一條路線
 routebuilder.share.title = 儲存此連結供未來使用：
 routebuilder.copy.link = 複製連結
 routebuilder.share.warning = 當無此連結時，您將無法取得此路線。
-
-help.rating.1 = Rating 1: 順暢通行
-help.rating.3 = Rating 3: 還好
-help.rating.5 = Rating 5: 無法通行
 
 footer.logo.nsf.alt = 美國國家科學基金會標誌
 footer.logo.google.alt = Google 標誌

@@ -15,6 +15,10 @@ crosswalk = Cruce peatonal marcado
 signal = Semáforo peatonal
 occlusion = No puedo ver la banqueta
 other = Otro
+low = Bajo
+medium = Medio
+high = Alto
+rating = Calificación
 validated.correct = Validado correcto
 validated.incorrect = Validado incorrecto
 unvalidated = No Validado
@@ -388,10 +392,6 @@ routebuilder.build.another.route = Construir otra ruta
 routebuilder.share.title = Guarde este enlace para el acceso futuro:
 routebuilder.copy.link = Copiar link
 routebuilder.share.warning = No podrá acceder a esta ruta sin el enlace.
-
-help.rating.1 = Calificación 1: Transitable
-help.rating.3 = Calificación 3: Neutral
-help.rating.5 = Calificación 5: No es transitable
 
 footer.logo.nsf = Logotipo de la Fundación Nacional de Ciencias
 footer.logo.google = Logotipo de Google

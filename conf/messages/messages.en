@@ -15,6 +15,10 @@ crosswalk = Marked Crosswalk
 signal = Pedestrian Signal
 occlusion = Can''t See the Sidewalk
 other = Other
+low = Low
+medium = Medium
+high = High
+rating = Rating
 validated.correct = Validated correct
 validated.incorrect = Validated incorrect
 unvalidated = Unvalidated
@@ -378,10 +382,6 @@ routebuilder.build.another.route = Build Another Route
 routebuilder.share.title = Save this link for future access:
 routebuilder.copy.link = Copy Link
 routebuilder.share.warning = You will not be able to access this route without the link.
-
-help.rating.1 = Rating 1: Passable
-help.rating.3 = Rating 3: Neutral
-help.rating.5 = Rating 5: Not passable
 
 footer.logo.nsf.alt = National Science Foundation Logo
 footer.logo.google.alt = Google Logo

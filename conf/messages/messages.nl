@@ -15,6 +15,10 @@ crosswalk = Gemarkeerde oversteekplaats
 signal = Verkeerslicht
 occlusion = Ik kan geen trottoir zien
 other = Anders
+low = Laag
+medium = Medium
+high = Hoog
+rating = Beoordeling
 validated.correct = Gevalideerd juist
 validated.incorrect = Gevalideerd onjuist
 unvalidated = Niet gevalideerd
@@ -378,10 +382,6 @@ routebuilder.build.another.route = Bouw een andere route
 routebuilder.share.title = Sla deze link op voor toekomstige toegang:
 routebuilder.copy.link = Kopieer link
 routebuilder.share.warning = U hebt geen toegang tot deze route zonder de link.
-
-help.rating.1 = Rating 1: Begaanbaar
-help.rating.3 = Rating 3: Neutraal
-help.rating.5 = Rating 5: Niet begaanbaar
 
 footer.logo.nsf.alt = National Science Foundation-logo
 footer.logo.google.alt = Google-logo

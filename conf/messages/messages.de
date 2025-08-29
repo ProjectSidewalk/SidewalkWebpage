@@ -15,6 +15,10 @@ crosswalk = Markierter Fussgängerstreifen
 signal = Fussgängerlichtsignal
 occlusion = Trottoir nicht sichtbar
 other = Andere
+low = Niedrig
+medium = Medium
+high = Hoch
+rating = Bewertung
 validated.correct = Validiert als richtig
 validated.incorrect = validiert als falsch
 unvalidated = Nicht validiert
@@ -382,10 +386,6 @@ routebuilder.build.another.route = Bauen Sie eine andere Route
 routebuilder.share.title = Speichern Sie diesen Link für den zukünftigen Zugriff:
 routebuilder.copy.link = Link kopieren
 routebuilder.share.warning = Ohne den Link können Sie nicht auf diese Route zugreifen.
-
-help.rating.1 = Bewertung 1: Passierbar
-help.rating.3 = Bewertung 3: Schwer passierbar
-help.rating.5 = Bewertung 5: Nicht passierbar
 
 footer.logo.nsf.alt = Logo der National Science Foundation
 footer.logo.google.alt = Google-Logo

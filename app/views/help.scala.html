@@ -224,13 +224,13 @@
                     <div class="row">
                         <div class="col-sm-6">
                             <figure class="text-center">
-                                <img src='@assets.path("images/help/Timeshot1_Cropped.png")' alt="An older Street View image without a curb ramp at the end of crosswalk" class="img-responsive" align="">
+                                <img src='@assets.path("images/help/Timeshot1_Cropped.png")' alt="An older Street View image without a curb ramp at the end of crosswalk" class="img-responsive">
                                 <figcaption>An older Street View image without a curb ramp at the end of crosswalk. You should label the problem as a "Missing Curb Ramp."</figcaption>
                             </figure>
                         </div>
                         <div class="col-sm-6">
                             <figure class="text-center">
-                                <img src='@assets.path("images/help/Timeshot2_Cropped.png")' alt="A newer Street View image of the same location. The problem is fixed." class="img-responsive" align="">
+                                <img src='@assets.path("images/help/Timeshot2_Cropped.png")' alt="A newer Street View image of the same location. The problem is fixed." class="img-responsive">
                                 <figcaption>A newer Street View image of the same location. The problem is fixed and there is a curb ramp, so you should label this as a "Curb Ramp."</figcaption>
                             </figure>
                         </div>
@@ -427,7 +427,7 @@
                                         <figure>
                                             <img src='@assets.path("images/examples/CurbRamp_Passable.png")' class="img-responsive" alt="Two good curb ramps" />
                                             <figcaption>
-                                                <p class="bold">@Messages("help.rating.1")</p>
+                                                <p class="bold">@Messages("rating"): @Messages("low")</p>
                                                 <p>Clean curb ramps that are aligned with crosswalks.</p>
                                             </figcaption>
                                         </figure>
@@ -436,7 +436,7 @@
                                         <figure>
                                             <img src='@assets.path("images/examples/CurbRamp_HardToPass.png")' class="img-responsive" alt="Water has accumulated in the curb ramp" />
                                             <figcaption>
-                                                <p class="bold">@Messages("help.rating.3")</p>
+                                                <p class="bold">@Messages("rating"): @Messages("medium")</p>
                                                 <p>A curb ramp with a pole standing in the middle. People who use large electrical wheelchairs
                                                 may have trouble using this curb ramp.</p>
                                             </figcaption>
@@ -446,7 +446,7 @@
                                         <figure>
                                             <img src='@assets.path("images/examples/CurbRamp_NotPassable.png")' class="img-responsive" alt="Water has accumulated in the curb ramp" />
                                             <figcaption>
-                                                <p class="bold">@Messages("help.rating.5")</p>
+                                                <p class="bold">@Messages("rating"): @Messages("high")</p>
                                                 <p>Water has accumulated in this curb ramp due to poor drainage. It is hard for manual wheelchair users to use this curb ramp.</p>
                                             </figcaption>
                                         </figure>
@@ -468,7 +468,7 @@
                                         <figure>
                                             <img src='@assets.path("images/examples/NoCurbRamp_Passable.png")' class="img-responsive" alt="Curb ramp is not aligned to the crosswalk" />
                                             <figcaption>
-                                                <p class="bold">@Messages("help.rating.1")</p>
+                                                <p class="bold">@Messages("rating"): @Messages("low")</p>
                                                 <p>Although there is no curb ramp, the level difference is small and
                                                 wheelchair users would be able to get on or off the sidewalk.
                                                 There is also a curb ramp at the same corner that people could use,
@@ -480,7 +480,7 @@
                                         <figure>
                                             <img src='@assets.path("images/examples/NoCurbRamp_HardToPass.png")' class="img-responsive" alt="No curb ramp at the end of the crosswalk" />
                                             <figcaption>
-                                                <p class="bold">@Messages("help.rating.3")</p>
+                                                <p class="bold">@Messages("rating"): @Messages("medium")</p>
                                                 <p>There is no curb ramp at the end of the crosswalk.
                                                 Wheelchair users are forced to use the curb ramp that is not aligned with the crosswalk.</p>
                                             </figcaption>
@@ -490,7 +490,7 @@
                                         <figure>
                                             <img src='@assets.path("images/examples/NoCurbRamp_NotPassable.png")' class="img-responsive" alt="No curb ramp at the end of the crosswalk" />
                                             <figcaption>
-                                            <p class="bold">@Messages("help.rating.5")</p>
+                                            <p class="bold">@Messages("rating"): @Messages("high")</p>
                                             <p>No curb ramp at the end of the crosswalk. Wheelchair users cannot get on or off the sidewalk and cross the street here.</p>
                                             </figcaption>
                                         </figure>
@@ -512,7 +512,7 @@
                                         <figure>
                                             <img src='@assets.path("images/examples/Obstacle_Passable.png")' class="img-responsive" alt="Overgrown bush is partly blocking the path." />
                                             <figcaption>
-                                                <p class="bold">@Messages("help.rating.1")</p>
+                                                <p class="bold">@Messages("rating"): @Messages("low")</p>
                                                 <p>A traffic light standing in the middle of the sidewalk. There seems to be enough space
                                                     for wheelchair users to pass, but those who are using larger chairs
                                                     could have trouble navigating.</p>
@@ -523,7 +523,7 @@
                                         <figure>
                                             <img src='@assets.path("images/examples/Obstacle_HardToPass.png")' class="img-responsive" alt="Overgrown bush is partly blocking the path." />
                                             <figcaption>
-                                                <p class="bold">@Messages("help.rating.3")</p>
+                                                <p class="bold">@Messages("rating"): @Messages("medium")</p>
                                                 <p>The plant is obstructing the path, making it hard for wheelchair users to use this sidewalk.</p>
                                             </figcaption>
                                         </figure>
@@ -532,7 +532,7 @@
                                         <figure>
                                             <img src='@assets.path("images/examples/Obstacle_NotPassable.png")' class="img-responsive" alt="A tree is completely blocking the path." />
                                             <figcaption>
-                                                <p class="bold">@Messages("help.rating.5")</p>
+                                                <p class="bold">@Messages("rating"): @Messages("high")</p>
                                                 <p>The tree is completely blocking the path, making it not passable for wheelchair users.</p>
                                             </figcaption>
                                         </figure>
@@ -554,7 +554,7 @@
                                         <figure>
                                             <img src='@assets.path("images/examples/SurfaceProblem_Passable.png")' class="img-responsive" alt="A partially damaged sidewalk." />
                                             <figcaption>
-                                                <p class="bold">@Messages("help.rating.1")</p>
+                                                <p class="bold">@Messages("rating"): @Messages("low")</p>
                                                 <p>Partially damaged sidewalk. Because there is enough space next to the damaged part of
                                                 the sidewalk, wheelchair users would be able to pass. </p>
                                             </figcaption>
@@ -564,7 +564,7 @@
                                         <figure>
                                             <img src='@assets.path("images/examples/SurfaceProblem_HardToPass.png")' class="img-responsive" alt="Cobblestone sidewalks and crosswalks." />
                                             <figcaption>
-                                                <p class="bold">@Messages("help.rating.3")</p>
+                                                <p class="bold">@Messages("rating"): @Messages("medium")</p>
                                                 <p>Wheelchair users would have difficulty navigating on the cobblestone
                                                     sidewalks and crosswalks.</p>
                                             </figcaption>
@@ -574,7 +574,7 @@
                                         <figure>
                                             <img src='@assets.path("images/examples/SurfaceProblem_NotPassable.png")' class="img-responsive" alt="A tree is completely blocking the path." />
                                             <figcaption>
-                                                <p class="bold">@Messages("help.rating.5")</p>
+                                                <p class="bold">@Messages("rating"): @Messages("high")</p>
                                                 <p>Wheelchair users cannot pass severely degraded sidewalk surfaces
                                                     due to the over-grown vegetation.</p>
                                             </figcaption>
