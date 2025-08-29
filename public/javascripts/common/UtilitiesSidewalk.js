@@ -469,7 +469,6 @@ function UtilitiesMisc (JSON) {
      *              5: {message: string, severityImage: string}}}
      */
     function getSeverityDescription() {
-        console.log("GETTING SEVERITY DESCRIPTION");
         return {
             1: {
                 message: i18next.t('center-ui.context-menu.tooltip.passable'),
