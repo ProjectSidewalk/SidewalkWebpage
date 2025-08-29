@@ -112,7 +112,7 @@
         "context-menu": {
             "description": "Beschreibung (optional)",
             "severity": "Zur Kennzeichnung eines Schweregrades bitte anklicken",
-            "severity-shortcuts": "Drücken Sie die Tasten 1-5 für den Schweregrad",
+            "severity-shortcuts": "Drücken Sie die Tasten 1-3 für den Schweregrad",
             "label-popup-shortcuts": "Drücken Sie <tag-underline>{{c}}</tag-underline>, um einen Tag hinzuzufügen",
             "tag": {
                 "narrow": "schm<tag-underline>a</tag-underline>l",
@@ -230,7 +230,7 @@
         "signup-button-signup": "Ich möchte mich registrieren!",
         "signup-button-signin": "Ich habe bereits einen Account. Ich möchte mich anmelden.",
         "signup-button-no": "Nein",
-        "severity-shortcuts": "Bitte geben Sie einen Schweregrad für jede Beschriftung an, indem Sie <kbd>1</kbd> bis <kbd>5</kbd> drücken.",
+        "severity-shortcuts": "Bitte geben Sie einen Schweregrad für jede Beschriftung an, indem Sie <kbd>1</kbd> bis <kbd>3</kbd> drücken.",
         "zoom-shortcuts": "Sie können auch die Taste <kbd>Z</kbd> drücken um hineinzuzoomen und die Tasten <kbd>Shift</kbd> + <kbd>Z</kbd> um hinauszuzoomen.",
         "label-shortcuts-curb-ramp": "Sie können auch die Taste <kbd>{{key}}</kbd> drücken, um die Beschriftung für eine Trottoirabsenkung zu wählen.",
         "label-shortcuts-no-curb-ramp": "Sie können auch die Taste the <kbd>{{key}}</kbd> drücken, um die Beschriftung für eine fehlende Trottoirabsenkung zu wählen.",

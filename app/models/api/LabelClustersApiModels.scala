@@ -24,8 +24,8 @@ import java.time.OffsetDateTime
  * @param minClusterSize Optional minimum cluster size to include
  * @param minAvgImageCaptureDate Optional minimum average image capture date to filter by
  * @param minAvgLabelDate Optional minimum average label date to filter by
- * @param minSeverity Optional minimum severity score (1-5 scale)
- * @param maxSeverity Optional maximum severity score (1-5 scale)
+ * @param minSeverity Optional minimum severity score (1-3 scale)
+ * @param maxSeverity Optional maximum severity score (1-3 scale)
  */
 case class LabelClusterFiltersForApi(
     bbox: Option[LatLngBBox] = None,
@@ -46,7 +46,7 @@ case class LabelClusterFiltersForApi(
  * @param labelId Unique identifier for the label
  * @param userId Anonymized identifier of the user who created the label
  * @param gsvPanoramaId Google Street View panorama identifier where the label was placed
- * @param severity Optional severity rating (1-5 scale)
+ * @param severity Optional severity rating (1-3 scale)
  * @param timeCreated Timestamp when the label was created
  * @param latitude Geographic latitude coordinate
  * @param longitude Geographic longitude coordinate

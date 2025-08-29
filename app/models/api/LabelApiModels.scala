@@ -19,8 +19,8 @@ import java.time.OffsetDateTime
  * @param bbox Optional bounding box to filter labels by geographic location
  * @param labelTypes Optional list of label types to include (e.g., "CurbRamp", "NoCurbRamp")
  * @param tags Optional list of tags to filter by (e.g., "narrow", "cracked")
- * @param minSeverity Optional minimum severity score (1-5 scale)
- * @param maxSeverity Optional maximum severity score (1-5 scale)
+ * @param minSeverity Optional minimum severity score (1-3 scale)
+ * @param maxSeverity Optional maximum severity score (1-3 scale)
  * @param validationStatus Optional validation status filter ("Agreed", "Disagreed", "Unsure")
  * @param startDate Optional start date for filtering labels by creation time
  * @param endDate Optional end date for filtering labels by creation time
@@ -69,7 +69,7 @@ object LabelValidationSummaryForApi {
  * @param userId Anonymized identifier of the user who created the label
  * @param gsvPanoramaId Google Street View panorama identifier where the label was placed
  * @param labelType Type of accessibility issue (e.g., "CurbRamp", "SurfaceProblem")
- * @param severity Optional severity rating (1-5 scale)
+ * @param severity Optional severity rating (1-3 scale)
  * @param tags List of descriptive tags applied to the label
  * @param description Optional user-provided description of the issue
  * @param timeCreated Timestamp when the label was created

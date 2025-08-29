@@ -112,7 +112,7 @@
         "context-menu": {
             "description": "Descripción (opcional)",
             "severity": "Por favor haz clic para etiquetar la gravedad",
-            "severity-shortcuts": "Presiona las teclas 1-5 para gravedad",
+            "severity-shortcuts": "Presiona las teclas 1-3 para gravedad",
             "label-popup-shortcuts": "Presiona <tag-underline>{{c}}</tag-underline> para agregar la etiqueta",
             "tag": {
                 "narrow": "muy <tag-underline>a</tag-underline>ngosta",
@@ -230,7 +230,7 @@
         "signup-button-signup": "¡Quiero registrarme!",
         "signup-button-signin": "¡Tengo una cuenta! Déjame iniciar sesión.",
         "signup-button-no": "No",
-        "severity-shortcuts": "Por favor proporciona clasificaciones de gravedad para cada etiqueta presionando las teclas <kbd>1</kbd> a <kbd>5</kbd>",
+        "severity-shortcuts": "Por favor proporciona clasificaciones de gravedad para cada etiqueta presionando las teclas <kbd>1</kbd> a <kbd>3</kbd>",
         "zoom-shortcuts": "También puedes presionar la tecla <kbd>Z</kbd> para acercar y las teclas <kbd>Shift</kbd> + <kbd>Z</kbd> para alejar.",
         "label-shortcuts-curb-ramp": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de la Rampa Peatonal.",
         "label-shortcuts-no-curb-ramp": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de la Rampa Peatonal Ausente.",

@@ -112,7 +112,7 @@
         "context-menu": {
             "description": "Beschrijving (optioneel)",
             "severity": "Klik om de mate van  ernst te labelen",
-            "severity-shortcuts": "Druk toetsen 1-5 voor de beoordeling van de ernst",
+            "severity-shortcuts": "Druk toetsen 1-3 voor de beoordeling van de ernst",
             "label-popup-shortcuts": "Druk <tag-underline>{{c}}</tag-underline> om een tag toe te voegen",
             "tag": {
                 "narrow": "sm<tag-underline>a</tag-underline>l",
@@ -230,7 +230,7 @@
         "signup-button-signup": "Ik wil me registreren!",
         "signup-button-signin": "Ik heb al een account! Log in.",
         "signup-button-no": "Nee",
-        "severity-shortcuts": "Beoordeel de ernst van elk label door tussen <kbd>1</kbd> en <kbd>5</kbd> in te drukken",
+        "severity-shortcuts": "Beoordeel de ernst van elk label door tussen <kbd>1</kbd> en <kbd>3</kbd> in te drukken",
         "zoom-shortcuts": "Je kunt ook de <kbd>Z</kbd> toets gebruiken om in te zoomen en <kbd>Shift</kbd> + <kbd>Z</kbd> toetsen om uit te zoomen.",
         "label-shortcuts-curb-ramp": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van het trottoir oprit label.",
         "label-shortcuts-no-curb-ramp": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van het ontbrekende trottoir oprit label.",
