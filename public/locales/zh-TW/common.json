@@ -48,7 +48,6 @@
     "no-severity": "該標記無嚴重度評分",
     "unsupported": "此類標記不適用嚴重度區別",
     "tags": "標籤",
-    "temporary": "暫時的",
     "description": "描述",
     "no-description": "無描述",
     "comments": "验证者评论",

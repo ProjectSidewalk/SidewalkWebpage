@@ -47,7 +47,6 @@ function ExpandedView(uiModal) {
         original_canvas_x: undefined,
         original_canvas_y: undefined,
         severity: undefined,
-        temporary: undefined,
         description: undefined,
         street_edge_id: undefined,
         region_id: undefined,
@@ -69,7 +68,6 @@ function ExpandedView(uiModal) {
         self.tags = $('.gallery-expanded-view-info-tags');
         self.timestamps = $('.gallery-expanded-view-info-timestamps');
         self.severity = $('.gallery-expanded-view-info-severity');
-        self.temporary = $('.gallery-expanded-view-info-temporary');
         self.validation_info = $('.gallery-expanded-view-info-validation');
         self.description = $('.gallery-expanded-view-info-description');
         self.header = $('.gallery-expanded-view-header');
@@ -130,7 +128,6 @@ function ExpandedView(uiModal) {
      */
     function resetExpandedView() {
         self.description.empty();
-        self.temporary.empty();
         self.validation_info.empty()
         self.severity.empty();
         self.timestamps.empty();
@@ -169,16 +166,6 @@ function ExpandedView(uiModal) {
         );
         new TagDisplay(self.tags, properties.tags, true);
         self.validationMenu.addExpandedViewValInfoOnClicks(self.validationInfoDisplay);
-
-        // Add the information about the temporary property to the expanded view.
-        let temporaryHeader = document.createElement('div');
-        temporaryHeader.className = 'expanded-view-temporary-header';
-        temporaryHeader.innerHTML = i18next.t("temporary");
-        let temporaryBody = document.createElement('div');
-        temporaryBody.className = 'expanded-view-temporary-body';
-        temporaryBody.innerHTML = properties.temporary ? i18next.t('yes') : i18next.t('no');
-        self.temporary.append(temporaryHeader);
-        self.temporary.append(temporaryBody);
 
         // Add the information about the description of the label to the expanded view.
         let descriptionHeader = document.createElement('div');

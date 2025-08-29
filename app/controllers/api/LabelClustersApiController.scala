@@ -53,8 +53,8 @@ class LabelClustersApiController @Inject() (
    * @param clusterSize Optional filter for minimum cluster size
    * @param avgImageCaptureDate Optional filter for average image capture date (ISO 8601)
    * @param avgLabelDate Optional filter for average label date (ISO 8601)
-   * @param minSeverity Optional minimum severity score (1-5 scale)
-   * @param maxSeverity Optional maximum severity score (1-5 scale)
+   * @param minSeverity Optional minimum severity score (1-3 scale)
+   * @param maxSeverity Optional maximum severity score (1-3 scale)
    * @param filetype Output format: "geojson" (default), "csv", "shapefile"
    * @param inline Whether to display the file inline or as an attachment
    */
@@ -104,19 +104,19 @@ class LabelClustersApiController @Inject() (
             )
           )
         )
-      } else if (minSeverity.isDefined && (minSeverity.get < 1 || minSeverity.get > 5)) {
+      } else if (minSeverity.isDefined && (minSeverity.get < 1 || minSeverity.get > 3)) {
         Future.successful(
           BadRequest(
             Json.toJson(
-              ApiError.invalidParameter("Invalid minSeverity value. Must be between 1-5.", "minSeverity")
+              ApiError.invalidParameter("Invalid minSeverity value. Must be between 1-3.", "minSeverity")
             )
           )
         )
-      } else if (maxSeverity.isDefined && (maxSeverity.get < 1 || maxSeverity.get > 5)) {
+      } else if (maxSeverity.isDefined && (maxSeverity.get < 1 || maxSeverity.get > 3)) {
         Future.successful(
           BadRequest(
             Json.toJson(
-              ApiError.invalidParameter("Invalid maxSeverity value. Must be between 1-5.", "maxSeverity")
+              ApiError.invalidParameter("Invalid maxSeverity value. Must be between 1-3.", "maxSeverity")
             )
           )
         )

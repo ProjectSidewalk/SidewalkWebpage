@@ -224,7 +224,7 @@ function Admin(_, $, mapboxApiKey) {
                 });
 
                 // Add listeners on the sliders.
-                let sliderStepText = ["N/A", 1, 2, 3, 4, 5];
+                let sliderStepText = ["N/A", 1, 2, 3];
                 $( "*[id*='slider']" ).each(function() {
                     $(this).slider('option', {
                         // Change the text next to the slider as it's moved.

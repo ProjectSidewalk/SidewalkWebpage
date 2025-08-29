@@ -13,24 +13,21 @@ function ContextMenu (uiContextMenu) {
             disableTagging: false
         };
     var $menuWindow = uiContextMenu.holder;
-    var $connector = uiContextMenu.connector;
     var $severityMenu = uiContextMenu.severityMenu;
     var $severityButtons = uiContextMenu.radioButtons;
-    var $temporaryLabelCheckbox = uiContextMenu.temporaryLabelCheckbox;
     var $descriptionTextBox = uiContextMenu.textBox;
-    var windowWidth = $menuWindow.width();
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
-    var $radioButtonLabels = $menuWindow.find(".radio-button-labels");
+    var $radioButtonLabels = $menuWindow.find(".severity-level");
     var $tagHolder = uiContextMenu.tagHolder;
     var $tags = uiContextMenu.tags;
-    var lastShownLabelColor;
 
-    var CONNECTOR_BUFFER = 6; // Buffer for connector to overlap border of label icon.
+    var windowWidth = $menuWindow.width();
+    var LABEL_TO_MENU_GAP = 8; // Amount of space between the label and context menu.
+    var PAGE_BOTTOM_SPACE = 29; // Additional space avail below GSV where we can still show the context menu.
 
     document.addEventListener('mousedown', _handleMouseDown);
     $menuWindow.on('mousedown', _handleMenuWindowMouseDown);
     $severityButtons.on('change', _handleSeverityChange);
-    $temporaryLabelCheckbox.on('change', _handleTemporaryLabelCheckboxChange);
     $descriptionTextBox.on('change', _handleDescriptionTextBoxChange);
     $descriptionTextBox.on('focus', _handleDescriptionTextBoxFocus);
     $descriptionTextBox.on('blur', _handleDescriptionTextBoxBlur);
@@ -209,11 +206,10 @@ function ContextMenu (uiContextMenu) {
      * @param {*} labelTags  List of tags that the current label has.
      */
     function _autoRemoveAlternateTagAndUpdateUI(tagId, labelTags) {
-        // Find the tag that has the class named "tag-id-<tagId>" and change it's background color.
         $tags.each((index, tag) => {
             var classWithTagId = tag.className.split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0];
             if (classWithTagId !== undefined && parseInt(classWithTagId.match(/\d+/)[0], 10) === tagId) {
-                tag.style.backgroundColor = "white";
+                $(`.${classWithTagId}`).removeClass('selected');
             }
         });
 
@@ -227,15 +223,6 @@ function ContextMenu (uiContextMenu) {
         return labelTags;
     }
 
-    function _handleTemporaryLabelCheckboxChange(e) {
-        var checked = $(this).is(":checked");
-        svl.tracker.push('ContextMenu_CheckboxChange', { checked: checked });
-
-        if (status.targetLabel) {
-            status.targetLabel.setProperty('temporaryLabel', checked);
-        }
-    }
-
     /**
      * Hide the context menu.
      */
@@ -246,8 +233,6 @@ function ContextMenu (uiContextMenu) {
         }
 
         $menuWindow.css('visibility', 'hidden');
-        $connector.css('visibility', 'hidden');
-        _setBorderColor('black');
         setStatus('visibility', 'hidden');
 
         return this;
@@ -259,15 +244,6 @@ function ContextMenu (uiContextMenu) {
      */
     function isOpen() {
         return getStatus('visibility') === 'visible';
-    }
-
-    /**
-     * Set the border color of the menu window.
-     * @param color
-     */
-    function _setBorderColor(color) {
-        $menuWindow.css('border-color', color);
-        $connector.css('background-color', color);
     }
 
     /**
@@ -308,11 +284,11 @@ function ContextMenu (uiContextMenu) {
             if (buttonText) {
                 var tagId = parseInt($(this).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
 
-                // Sets color to be white or gray if the label tag has been selected.
+                // Sets color to match OK button green when selected
                 if (labelTags.includes(tagId)) {
-                    $(this).css('background-color', 'rgb(200, 200, 200)');
+                    $(this).addClass('selected');
                 } else {
-                    $(this).css('background-color', 'white');
+                    $(this).removeClass('selected');
                 }
             }
         });
@@ -422,8 +398,8 @@ function ContextMenu (uiContextMenu) {
     function _setSeverityTooltips(labelType) {
         // Files are named as severity 1/2/3 because we have begun transitioning to a 3-point scale.
         var sevImgUrlOne = `/assets/images/examples/severity/${labelType}_Severity1.png`
-        var sevImgUrlThree = `/assets/images/examples/severity/${labelType}_Severity2.png`
-        var sevImgUrlFive = `/assets/images/examples/severity/${labelType}_Severity3.png`
+        var sevImgUrlTwo = `/assets/images/examples/severity/${labelType}_Severity2.png`
+        var sevImgUrlThree = `/assets/images/examples/severity/${labelType}_Severity3.png`
 
         // Add severity tooltips for the current label type if we have images for them.
         util.getImage(sevImgUrlOne).then(img => {
@@ -434,18 +410,18 @@ function ContextMenu (uiContextMenu) {
                 title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
         });
-        util.getImage(sevImgUrlThree).then(img => {
+        util.getImage(sevImgUrlTwo).then(img => {
             var tooltipHeader = i18next.t('common:severity-example-tooltip-2');
             var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            $('#severity-three').tooltip({
+            $('#severity-two').tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
                 title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
         });
-        util.getImage(sevImgUrlFive).then(img => {
+        util.getImage(sevImgUrlThree).then(img => {
             var tooltipHeader = i18next.t('common:severity-example-tooltip-3');
             var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            $('#severity-five').tooltip({
+            $('#severity-three').tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
                 title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
@@ -458,8 +434,8 @@ function ContextMenu (uiContextMenu) {
      */
     function _removePrevSeverityTooltips() {
         $('#severity-one').tooltip('destroy');
+        $('#severity-two').tooltip('destroy');
         $('#severity-three').tooltip('destroy');
-        $('#severity-five').tooltip('destroy');
     }
 
     /**
@@ -469,7 +445,6 @@ function ContextMenu (uiContextMenu) {
     function show(targetLabel) {
         setStatus('targetLabel', null);
         $severityButtons.prop('checked', false);
-        $temporaryLabelCheckbox.prop('checked', false);
         $descriptionTextBox.val(null);
 
         var labelType = targetLabel.getLabelType();
@@ -484,42 +459,29 @@ function ContextMenu (uiContextMenu) {
 
             // Hide the severity menu for the Pedestrian Signal label type.
             if (labelType === 'Signal') {
-                $severityMenu.css({visibility: 'hidden', height: '0px'});
+                $severityMenu.addClass('hidden');
             } else {
-                $severityMenu.css({visibility: 'inherit', height: '50px'});
+                $severityMenu.removeClass('hidden');
             }
             var menuHeight = $menuWindow.outerHeight();
 
-            var connectorHeight = parseInt(window.getComputedStyle($connector[0]).getPropertyValue("height"));
-            var connectorWidth = parseInt(window.getComputedStyle($connector[0]).getPropertyValue("width"));
-            var menuBorder = parseInt(window.getComputedStyle($menuWindow[0]).getPropertyValue("border-radius"));
-
             // Determine coordinates for context menu to display below the label.
-            var topCoordinate = labelCoord.y + svl.LABEL_ICON_RADIUS + connectorHeight - CONNECTOR_BUFFER;
-            var connectorCoordinate = menuBorder - connectorHeight;
+            var topCoordinate = labelCoord.y + svl.LABEL_ICON_RADIUS + LABEL_TO_MENU_GAP;
 
             // If there isn't enough room to show the context menu below the label, determine coords to display above.
             // labelCoord.y is top-left of label but is center of rendered label, so we must add the icon radius.
-            if (labelCoord.y + svl.LABEL_ICON_RADIUS + connectorHeight + menuHeight - CONNECTOR_BUFFER > util.EXPLORE_CANVAS_HEIGHT) {
-                topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - connectorHeight - menuHeight + CONNECTOR_BUFFER;
-                connectorCoordinate = menuHeight - menuBorder;
+            if (topCoordinate + menuHeight - PAGE_BOTTOM_SPACE > util.EXPLORE_CANVAS_HEIGHT) {
+                topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - menuHeight - LABEL_TO_MENU_GAP;
             }
-
-            // Set the color of the border.
-            _setBorderColor(labelColor);
-            lastShownLabelColor = labelColor;
 
             // Set the menu value if label has it's value set.
-            var severity = targetLabel.getProperty('severity'),
-                temporaryLabel = targetLabel.getProperty('temporaryLabel'),
-                description = targetLabel.getProperty('description');
+            var severity = targetLabel.getProperty('severity');
+            var description = targetLabel.getProperty('description');
             if (severity) {
                 $severityButtons.each(function(i, v) {
-                   if (severity === i + 1) { $(this).prop("checked", true); }
+                    if (severity === i + 1) { $(this).prop("checked", true); }
                 });
             }
-
-            $temporaryLabelCheckbox.prop("checked", temporaryLabel);
 
             $menuWindow.css({
                 visibility: 'visible',
@@ -527,19 +489,10 @@ function ContextMenu (uiContextMenu) {
                 top: topCoordinate
             });
 
-            $connector.css({
-                visibility: 'visible',
-                top: topCoordinate + connectorCoordinate,
-                left: labelCoord.x - connectorWidth / 2,
-            });
-
             setStatus('visibility', 'visible');
 
             if (description) {
                 $descriptionTextBox.val(description);
-            } else {
-                var defaultText = i18next.t('center-ui.context-menu.description');
-                $descriptionTextBox.prop("placeholder", defaultText);
             }
             var labelProps = status.targetLabel.getProperties();
 
@@ -563,9 +516,9 @@ function ContextMenu (uiContextMenu) {
      */
     function _toggleTagColor(labelTags, id, target) {
         if (labelTags.includes(id)) {
-            target.style.backgroundColor = 'rgb(200, 200, 200)';
+            target.classList.add('selected');
         } else {
-            target.style.backgroundColor = "white";
+            target.classList.remove('selected');
         }
     }
 

@@ -127,8 +127,8 @@ class LabelApiController @Inject() (
    * @param bbox Bounding box in format "minLng,minLat,maxLng,maxLat"
    * @param labelType Comma-separated list of label types to include
    * @param tags Comma-separated list of tags to filter by
-   * @param minSeverity Minimum severity score (1-5 scale)
-   * @param maxSeverity Maximum severity score (1-5 scale)
+   * @param minSeverity Minimum severity score (1-3 scale)
+   * @param maxSeverity Maximum severity score (1-3 scale)
    * @param validationStatus Filter by validation status: "validated_correct", "validated_incorrect", "unvalidated"
    * @param highQualityUserOnly Optional filter to include only labels from high quality users if true
    * @param startDate Start date for filtering (ISO 8601 format)

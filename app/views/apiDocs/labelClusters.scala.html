@@ -82,7 +82,7 @@
             <p><code><a href="/v3/api/labelClusters?filetype=csv">/v3/api/labelClusters?filetype=csv</a></code> Get all label clusters in a CSV</p>
             <p><code><a href="/v3/api/labelClusters?includeRawLabels=true">/v3/api/labelClusters&includeRawLabels=true</a></code> Get all label clusters and the raw labels within each cluster.</p>
             <p><code><a href="/v3/api/labelClusters?labelType=CurbRamp">/v3/api/labelClusters?labelType=CurbRamp</a></code> Get all label clusters of type <code>CurbRamp</code>. The available label types match those in the <a href="@routes.ApiDocsController.labelTypes">Label Types API</a></p>
-            <p><code><a href="/v3/api/labelClusters?labelType=SurfaceProblem&minSeverity=4">/v3/api/labelClusters?labelType=SurfaceProblem&minSeverity=4</a></code> Get all label clusters of type <code>SurfaceProblem</code> with a minimum median severity of 4.</p>
+            <p><code><a href="/v3/api/labelClusters?labelType=SurfaceProblem&minSeverity=2">/v3/api/labelClusters?labelType=SurfaceProblem&minSeverity=2</a></code> Get all label clusters of type <code>SurfaceProblem</code> with a minimum median severity of 2.</p>
         </div>
     </div>
 
@@ -185,12 +185,12 @@
                     <tr>
                         <td><code>minSeverity</code></td>
                         <td><code>integer</code></td>
-                        <td>Filter clusters with a median severity rating greater than or equal to this value (1-5).</td>
+                        <td>Filter clusters with a median severity rating greater than or equal to this value (1-3).</td>
                     </tr>
                     <tr>
                         <td><code>maxSeverity</code></td>
                         <td><code>integer</code></td>
-                        <td>Filter clusters with a median severity rating less than or equal to this value (1-5).</td>
+                        <td>Filter clusters with a median severity rating less than or equal to this value (1-3).</td>
                     </tr>
                     <tr>
                         <td><code>filetype</code></td>
@@ -337,7 +337,7 @@
                     <tr>
                         <td><code>properties.median_severity</code></td>
                         <td><code>integer</code></td>
-                        <td>Median severity rating of all labels in the cluster, from 1 (minor issue) to 5 (major barrier). For accessibility features like curb ramps, a low severity indicates good condition, while for barriers, it indicates a less significant obstacle.</td>
+                        <td>Median severity rating of all labels in the cluster, from 1 (minor issue) to 3 (major barrier). For accessibility features like curb ramps, a low severity indicates good condition, while for barriers, it indicates a less significant obstacle.</td>
                     </tr>
                     <tr>
                         <td><code>properties.cluster_size</code></td>

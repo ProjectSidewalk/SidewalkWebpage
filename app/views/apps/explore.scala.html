@@ -111,7 +111,7 @@
     @* Should be consistent with the icons in icons.scala.html. *@
     @* These are the exact same icons with the fill and stroke hardcoded. *@
     @* As it is required to draw them inside the canvas element. *@
-    <div class="severity-icon severity-1 template">
+    <div class="severity-icon severity-neutral template">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="30" height="30" fill="transparent">
             <g>
                 <path stroke="white" d="M74 146C112.66 146 144 114.66 144 76C144 37.3401 112.66 6 74 6C35.3401 6 4 37.3401 4 76C4 114.66 35.3401 146 74 146Z" stroke-width="10"/>
@@ -121,7 +121,7 @@
             </g>
         </svg>
     </div>
-    <div class="severity-icon severity-2 template">
+    <div class="severity-icon severity-1 template">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="30" height="30" fill="transparent">
             <g>
                 <path stroke="white" d="M75 145C113.66 145 145 113.66 145 75C145 36.3401 113.66 5 75 5C36.3401 5 5 36.3401 5 75C5 113.66 36.3401 145 75 145Z" stroke-width="10"/>
@@ -131,17 +131,7 @@
             </g>
         </svg>
     </div>
-    <div class="severity-icon severity-3 template">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="30" height="30" fill="transparent">
-            <g>
-                <path stroke="white" d="M75 145C113.66 145 145 113.66 145 75C145 36.3401 113.66 5 75 5C36.3401 5 5 36.3401 5 75C5 113.66 36.3401 145 75 145Z" stroke-width="10"/>
-                <path fill="white" d="M50.36 60.87C52.6847 60.5732 54.8933 59.6807 56.7715 58.279C58.6497 56.8773 60.1339 55.0141 61.08 52.87C61.2941 52.2736 61.2737 51.6181 61.0229 51.0362C60.7722 50.4542 60.3098 49.9892 59.7293 49.7351C59.1488 49.4811 58.4934 49.4569 57.8958 49.6676C57.2982 49.8783 56.8029 50.308 56.51 50.87C55.9041 52.2228 54.9611 53.3975 53.7713 54.2816C52.5815 55.1656 51.1846 55.7295 49.7145 55.9191C48.2443 56.1088 46.7501 55.9179 45.3749 55.3648C43.9996 54.8117 42.7894 53.9148 41.86 52.76C41.67 52.4642 41.4198 52.2118 41.1257 52.0193C40.8315 51.8268 40.5001 51.6984 40.153 51.6427C39.8059 51.5869 39.4509 51.605 39.1113 51.6957C38.7717 51.7865 38.455 51.9478 38.1819 52.1692C37.9089 52.3906 37.6856 52.6671 37.5266 52.9807C37.3677 53.2943 37.2767 53.6378 37.2595 53.9889C37.2423 54.3401 37.2994 54.6909 37.427 55.0184C37.5546 55.346 37.7498 55.643 38 55.89C39.2663 57.4793 40.8737 58.7637 42.7033 59.6482C44.5329 60.5327 46.5378 60.9947 48.57 61C49.1687 60.9913 49.7663 60.9479 50.36 60.87V60.87Z"/>
-                <path fill="white" d="M111.65 52.37C111.134 51.9559 110.474 51.7633 109.816 51.8345C109.158 51.9058 108.556 52.235 108.14 52.75C107.211 53.9048 106 54.8017 104.625 55.3548C103.25 55.908 101.756 56.0988 100.286 55.9092C98.8154 55.7195 97.4185 55.1557 96.2287 54.2716C95.0389 53.3875 94.0959 52.2129 93.49 50.86C93.1971 50.2981 92.7018 49.8683 92.1042 49.6576C91.5066 49.4469 90.8512 49.4711 90.2707 49.7251C89.6902 49.9792 89.2278 50.4442 88.9771 51.0262C88.7263 51.6081 88.7059 52.2636 88.92 52.86C89.8661 55.0041 91.3503 56.8674 93.2285 58.269C95.1067 59.6707 97.3153 60.5632 99.64 60.86C100.234 60.9312 100.832 60.9679 101.43 60.97C103.46 60.9683 105.463 60.511 107.293 59.6318C109.122 58.7526 110.731 57.4739 112 55.89C112.208 55.636 112.365 55.3434 112.46 55.0289C112.555 54.7145 112.587 54.3844 112.555 54.0575C112.522 53.7306 112.425 53.4133 112.27 53.1237C112.115 52.8342 111.904 52.5781 111.65 52.37V52.37Z"/>
-                <path fill="white" d="M75 94.24C63.0305 94.2084 51.4503 98.4897 42.38 106.3C42.1215 106.512 41.908 106.773 41.7521 107.068C41.5962 107.364 41.5012 107.687 41.4725 108.02C41.4439 108.353 41.4822 108.688 41.5853 109.006C41.6883 109.324 41.854 109.618 42.0726 109.87C42.2911 110.123 42.5581 110.329 42.8577 110.477C43.1574 110.625 43.4835 110.711 43.817 110.73C44.1505 110.75 44.4845 110.702 44.7994 110.591C45.1142 110.479 45.4034 110.305 45.65 110.08C53.8249 103.076 64.235 99.2262 75 99.2262C85.765 99.2262 96.1751 103.076 104.35 110.08C104.597 110.305 104.886 110.479 105.201 110.591C105.515 110.702 105.849 110.75 106.183 110.73C106.516 110.711 106.843 110.625 107.142 110.477C107.442 110.329 107.709 110.123 107.927 109.87C108.146 109.618 108.312 109.324 108.415 109.006C108.518 108.688 108.556 108.353 108.528 108.02C108.499 107.687 108.404 107.364 108.248 107.068C108.092 106.773 107.879 106.512 107.62 106.3C98.5498 98.4897 86.9695 94.2084 75 94.24V94.24Z"/>
-            </g>
-        </svg>
-    </div>
-    <div class="severity-icon severity-4 template">
+    <div class="severity-icon severity-2 template">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="30" height="30" fill="transparent">
             <g>
                 <path stroke="white" d="M74 146C112.66 146 144 114.66 144 76C144 37.3401 112.66 6 74 6C35.3401 6 4 37.3401 4 76C4 114.66 35.3401 146 74 146Z" stroke-width="10"/>
@@ -151,7 +141,7 @@
             </g>
         </svg>
     </div>
-    <div class="severity-icon severity-5 template">
+    <div class="severity-icon severity-3 template">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="30" height="30" fill="transparent">
             <g>
                 <path stroke="white" d="M74 146C112.66 146 144 114.66 144 76C144 37.3401 112.66 6 74 6C35.3401 6 4 37.3401 4 76C4 114.66 35.3401 146 74 146Z" stroke-width="10"/>
@@ -312,11 +302,11 @@
                     <h1 class="status-holder-header-1">@Messages("audit.right.ui.current.neighborhood")</h1>
                     <span id="status-neighborhood-name"><span id="status-holder-neighborhood-name"></span>@currentCity.cityNameShort</span>
                     <div class="status-row" id="neighborhood-status-row">
-                        <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("distance.icon.alt")" align="">
+                        <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("distance.icon.alt")">
                         <span><strong id="status-audited-distance">0.00</strong> <small>@Messages("audit.right.ui.distance")</small></span>
                     </div>
                     <div class="status-row" id="neighborhood-status-row">
-                        <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' class="status-icon" alt="@Messages("label.icon.alt")" align="">
+                        <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' class="status-icon" alt="@Messages("label.icon.alt")">
                         <span><strong id="status-neighborhood-label-count">0</strong> <small>@Messages("labels")</small></span>
                     </div>
                 </div>
@@ -386,74 +376,25 @@
                     <div id="delete-icon-holder">
                         <img src='@assets.path("javascripts/SVLabel/img/icons/Icon_Delete.png")' id="label-delete-icon" />
                     </div>
+                    <!-- Context Menu Container -->
                     <div id="context-menu-holder">
                         <div id="context-menu-close-button-holder">
-                            <button type="button" id="context-menu-close-button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                            <button id="context-menu-close-button">
+                                <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="min-width: 20px; min-height: 20px;">
+                                    <path d="M15 5L5 15M5 5L15 15" stroke="#9F9DB1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                </svg>
+                            </button>
                         </div>
-                        <div id="severity-menu">
-                            <div id="severity-radio-holder">
-                                <div class="radio-inline" id="column-passable">
-                                    <img src='@assets.path("javascripts/SVLabel/img/icons/WheelchairAccessible.png")'
-                                        class="context-menu-wheelchair-icons" alt="Wheelchair accessible icon">
-                                    <div class="label-severity-axis-label">@Messages("audit.center.ui.passable")</div>
-                                </div>
-                                <div class="severity-level radio-inline" id="severity-one" data-toggle="tooltip">
-                                    <label class="radio-button-labels">
-                                        <input type="radio" name="label-severity" value="1">
-                                        <div class="severity-icon severity-1">
-                                            <svg viewBox="0 0 150 150"><use xlink:href="#smiley-neutral"></use></svg>
-                                        </div>
-                                        <div class="severity-label">1</div>
-                                    </label>
-                                </div>
-                                <div class="severity-level radio-inline" id="severity-two">
-                                    <label class="radio-button-labels">
-                                        <input type="radio" name="label-severity" value="2">
-                                        <div class="severity-icon severity-2">
-                                            <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-1"></use></svg>
-                                        </div>
-                                        <div class="severity-label">2</div>
-                                    </label>
-                                </div>
-                                <div class="severity-level radio-inline" id="severity-three" data-toggle="tooltip">
-                                  <label class="radio-button-labels">
-                                      <input type="radio" name="label-severity" value="3">
-                                      <div class="severity-icon severity-3">
-                                          <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-2"></use></svg>
-                                      </div>
-                                        <div class="severity-label">3</div>
-                                    </label>
-                                </div>
-                                <div class="severity-level radio-inline" id="severity-four">
-                                    <label class="radio-button-labels">
-                                        <input type="radio" name="label-severity" value="4">
-                                        <div class="severity-icon severity-4">
-                                            <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-3"></use></svg>
-                                        </div>
-                                        <div class="severity-label">4</div>
-                                    </label>
-                                </div>
-                                <div class="severity-level radio-inline" id="severity-five" data-toggle="tooltip">
-                                  <label class="radio-button-labels">
-                                      <input type="radio" name="label-severity" value="5">
-                                      <div class="severity-icon severity-5">
-                                          <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-4"></use></svg>
-                                      </div>
-                                        <div class="severity-label">5</div>
-                                    </label>
-                                </div>
-                                <div class="severity-level radio-inline" id="column-not-passable">
-                                    <img src='@assets.path("javascripts/SVLabel/img/icons/WheelchairInaccessible.png")'
-                                        class="context-menu-wheelchair-icons" alt="Wheelchair inaccessible icon">
-                                    <div class="label-severity-axis-label">@Html(Messages("audit.center.ui.not.passable"))</div>
-                                </div>
+
+                        <div id="context-menu-tag-section" class="context-menu-section">
+                            <div class="context-menu-header">
+                                1. @Messages("audit.center.ui.tags.header")
+                                <img src='@assets.path("images/icons/info-circle.svg")'
+                                    class="context-menu-info-icon"
+                                    title="@Messages("audit.center.ui.tags.info")"
+                                    data-toggle="tooltip" data-placement="top"
+                                />
                             </div>
-                        </div>
-                        <div id="problem-property-menu">
-                            <div>
-                                <input type="text" class="form-control" placeholder="Description" id="context-menu-problem-description-text-box">
-                            </div>
-                            <div class="add-tags-label">@Html(Messages("audit.center.ui.add.tags"))</div>
                             <div id="context-menu-tag-holder">
                                 <button class="context-menu-tag" name='tag' id="0"></button>
                                 <button class="context-menu-tag" name='tag' id="1"></button>
@@ -473,13 +414,55 @@
                                 <button class="context-menu-tag" name='tag' id="15"></button>
                                 <button class="context-menu-tag" name='tag' id="16"></button>
                             </div>
-                            <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
-                                <label><input type="checkbox" id="context-menu-temporary-problem-checkbox" value="temporary-problem">@Messages("audit.center.ui.temporary")</label>
+                        </div>
+
+                        <div id="severity-menu" class="context-menu-section">
+                            <div class="context-menu-header">
+                                2. @Messages("audit.center.ui.severity.header")
+                                <img src='@assets.path("images/icons/info-circle.svg")' class="context-menu-info-icon"
+                                    title="@Messages("audit.center.ui.severity.info")"
+                                    data-toggle="tooltip" data-placement="top"
+                                />
                             </div>
-                            <button id="context-menu-ok-button">OK</button>
+                            <div id="severity-radio-holder">
+                                <div class="severity-level" id="severity-one" data-toggle="tooltip">
+                                    <label>
+                                        <input type="radio" name="label-severity" value="1">
+                                        <div class="severity-icon severity-1">
+                                            <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-1"></use></svg>
+                                        </div>
+                                        <div class="severity-label">@Messages("low")</div>
+                                    </label>
+                                </div>
+                                <div class="severity-level" id="severity-two" data-toggle="tooltip">
+                                    <label>
+                                        <input type="radio" name="label-severity" value="2">
+                                        <div class="severity-icon severity-2">
+                                            <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-2"></use></svg>
+                                        </div>
+                                        <div class="severity-label">@Messages("medium")</div>
+                                    </label>
+                                </div>
+                                <div class="severity-level" id="severity-three" data-toggle="tooltip">
+                                    <label>
+                                        <input type="radio" name="label-severity" value="3">
+                                        <div class="severity-icon severity-3">
+                                            <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-3"></use></svg>
+                                        </div>
+                                        <div class="severity-label">@Messages("high")</div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="context-menu-description-section" class="context-menu-section">
+                            <div class="context-menu-header">3. @Messages("audit.center.ui.description.header")</div>
+                            <div class="description-input-frame">
+                                <input type="text" id="context-menu-description-text-box" placeholder="@Messages("audit.center.ui.description.placeholder")">
+                                <button id="context-menu-ok-button">OK</button>
+                            </div>
                         </div>
                     </div>
-                    <div id="context-menu-vertical-connector"></div>
                 </div>
             </div>
             <div id="minimap-holder">
