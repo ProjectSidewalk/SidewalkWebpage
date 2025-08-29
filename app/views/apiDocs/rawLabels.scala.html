@@ -73,7 +73,7 @@
             <p><code><a target="_blank" href="/v3/api/rawLabels?filetype=geojson&inline=true">/v3/api/rawLabels?filetype=geojson&inline=true</a></code> Get all raw labels in GeoJSON but opened in the browser</p>
             <p><code><a href="/v3/api/rawLabels?filetype=csv">/v3/api/rawLabels?filetype=csv</a></code> Get all raw labels in a CSV</p>
             <p><code><a href="/v3/api/rawLabels?labelType=CurbRamp">/v3/api/rawLabels?labelType=CurbRamp</a></code> Get all raw labels of type <code>CurbRamp</code>. The available label types match those in the <a href="@routes.ApiDocsController.labelTypes">Label Types API</a></p>
-            <p><code><a href="/v3/api/rawLabels?labelType=SurfaceProblem&minSeverity=4">/v3/api/rawLabels?labelType=SurfaceProblem&minSeverity=4</a></code> Get all raw labels of type <code>SurfaceProblem</code> with a minimum severity of 4.</p>
+            <p><code><a href="/v3/api/rawLabels?labelType=SurfaceProblem&minSeverity=2">/v3/api/rawLabels?labelType=SurfaceProblem&minSeverity=2</a></code> Get all raw labels of type <code>SurfaceProblem</code> with a minimum severity of 2.</p>
         </div>
     </div>
 
@@ -159,12 +159,12 @@
                     <tr>
                         <td><code>minSeverity</code></td>
                         <td><code>integer</code></td>
-                        <td>Filter labels with a severity rating greater than or equal to this value (1-5).</td>
+                        <td>Filter labels with a severity rating greater than or equal to this value (1-3).</td>
                     </tr>
                     <tr>
                         <td><code>maxSeverity</code></td>
                         <td><code>integer</code></td>
-                        <td>Filter labels with a severity rating less than or equal to this value (1-5).</td>
+                        <td>Filter labels with a severity rating less than or equal to this value (1-3).</td>
                     </tr>
                     <tr>
                         <td><code>validationStatus</code></td>
@@ -364,7 +364,7 @@
                     <tr>
                         <td><code>properties.severity</code></td>
                         <td><code>integer</code></td>
-                        <td>User-reported severity rating from 1 (minor issue) to 5 (major barrier). For accessibility features like curb ramps, a low severity indicates good condition, while for barriers, it indicates a less significant obstacle.</td>
+                        <td>User-reported severity rating from 1 (minor issue) to 3 (major barrier). For accessibility features like curb ramps, a low severity indicates good condition, while for barriers, it indicates a less significant obstacle.</td>
                     </tr>
                     <tr>
                         <td><code>properties.tags</code></td>

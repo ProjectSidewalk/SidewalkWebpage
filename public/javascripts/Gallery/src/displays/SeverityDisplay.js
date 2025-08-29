@@ -44,8 +44,8 @@ function SeverityDisplay(container, severity, labelType, isExpandedView= false) 
 
         // Highlight the correct severity.
         // We do so by darkening a number of circles from the left equal to the severity. For example, if the severity
-        // is 3, we will darken the left 3 circles.
-        for (let i = 1; i <= 5; i++) {
+        // is 2, we will darken the left 2 circles.
+        for (let i = 1; i <= 3; i++) {
 
             let $severityCircle;
 

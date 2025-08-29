@@ -460,7 +460,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    return "rate-severity-3";
+                    return "tag-attribute-3";
                 } else {
                     return "delete-attribute-3";
                 }
@@ -535,7 +535,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 2) {
-                    return "tag-attribute-3";
+                    contextMenu.hide();
+                    return "select-label-type-4";
                 } else {
                     return "redo-rate-attribute-3";
                 }
@@ -560,7 +561,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 if (severity === 2) {
-                    return "tag-attribute-3";
+                    contextMenu.hide();
+                    return "select-label-type-4";
                 } else {
                     return "redo-rate-attribute-3";
                 }
@@ -585,8 +587,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var tags = this.getProperty('tagIds');
                 if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
-                    contextMenu.hide();
-                    return "select-label-type-4";
+                    return "rate-severity-3";
                 } else {
                     return "redo-tag-attribute-3";
                 }
@@ -611,8 +612,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var tags = this.getProperty('tagIds');
                 if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
-                    contextMenu.hide();
-                    return "select-label-type-4";
+                    return "rate-severity-3";
                 } else {
                     return "redo-tag-attribute-3";
                 }
@@ -671,7 +671,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    return "rate-severity-4";
+                    return "tag-attribute-4";
                 } else {
                     return "delete-attribute-4";
                 }
@@ -745,8 +745,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "annotations": null,
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
-                if (severity === 3) {
-                    return "tag-attribute-4";
+                if (severity === 2) {
+                    contextMenu.hide();
+                    return "select-label-type-5";
                 } else {
                     return "redo-rate-attribute-4";
                 }
@@ -770,8 +771,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "annotations": null,
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
-                if (severity === 3) {
-                    return "tag-attribute-4";
+                if (severity === 2) {
+                    contextMenu.hide();
+                    return "select-label-type-5";
                 } else {
                     return "redo-rate-attribute-4";
                 }
@@ -796,8 +798,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var tags = this.getProperty('tagIds');
                 if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
-                    contextMenu.hide();
-                    return "select-label-type-5";
+                    return "rate-severity-4";
                 } else {
                     return "redo-tag-attribute-4";
                 }
@@ -822,8 +823,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "transition": function () {
                 var tags = this.getProperty('tagIds');
                 if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
-                    contextMenu.hide();
-                    return "select-label-type-5";
+                    return "rate-severity-4";
                 } else {
                     return "redo-tag-attribute-4";
                 }
@@ -1283,7 +1283,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             ],
             "transition": [function (params) {
                 if (params.accurate) {
-                    return "rate-severity-7";
+                    return "tag-attribute-7";
                 } else {
                     return "delete-attribute-7";
                 }
@@ -1358,8 +1358,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "annotations": null,
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
-                if (severity === 3) {
-                    return "tag-attribute-7";
+                if (severity === 2) {
+                    contextMenu.hide();
+                    return "adjust-heading-angle-4";
                 } else {
                     return "redo-rate-attribute-7";
                 }
@@ -1384,8 +1385,9 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "annotations": null,
             "transition": function () {
                 var severity = parseInt(this.getAttribute("value"), 10);
-                if (severity === 3) {
-                    return "tag-attribute-7";
+                if (severity === 2) {
+                    contextMenu.hide();
+                    return "adjust-heading-angle-4";
                 } else {
                     return "redo-rate-attribute-7";
                 }
@@ -1412,8 +1414,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var tags = this.getProperty('tagIds');
                 if (tags.length === 2 && tags.includes(20) && tags.includes(21)) {
                     // We have both tags correct, so lets continue.
-                    contextMenu.hide();
-                    return "adjust-heading-angle-4";
+                    return "rate-severity-7";
                 } else if (tags.length === 1 && (tags.includes(20) || tags.includes(21))) {
                     // We have one of the two tags so far, so stay in this state.
                     return "tag-attribute-7";
@@ -1444,8 +1445,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 var tags = this.getProperty('tagIds');
                 if (tags.length === 2 && tags.includes(20) && tags.includes(21)) {
                     // We have both tags correct, so let's continue.
-                    contextMenu.hide();
-                    return "adjust-heading-angle-4";
+                    return "rate-severity-7";
                 } else if (tags.includes(20) || tags.includes(21)) {
                     // We have at least one of the two tags so far, but not both. Move progress bar, stay in this state.
                     return "redo-tag-attribute-7";

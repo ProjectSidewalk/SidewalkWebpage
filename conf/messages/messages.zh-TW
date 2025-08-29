@@ -15,6 +15,10 @@ crosswalk = 有標記的行人穿越道
 signal = 行人號誌
 occlusion = 看不見人行道
 other = 其他
+low = 低的
+medium = 中等的
+high = 高的
+rating = 評分
 validated.correct = 檢核正確
 validated.incorrect = 檢核不正確
 unvalidated = 未檢核
@@ -254,10 +258,12 @@ audit.right.ui.overall.stats = 整體統計數據
 audit.right.ui.current.neighborhood = 目前所在的鄰里
 audit.right.ui.distance = 公里
 
-audit.center.ui.passable = 可通行的
-audit.center.ui.not.passable = 不可通行的
-audit.center.ui.add.tags = 新增標籤：
-audit.center.ui.temporary = 暫時的 (例如：施工、違停車輛)
+audit.center.ui.tags.header = 新增標籤
+audit.center.ui.tags.info = 請為您的標籤新增標籤，以便為資料提供有用的信息。將滑鼠懸停在標籤上即可查看範例。
+audit.center.ui.severity.header = 評分嚴重程度
+audit.center.ui.severity.info = 盡力評估標記的障礙物或特徵對行人通行的阻礙程度。
+audit.center.ui.description.header = 描述（可選）
+audit.center.ui.description.placeholder = 描述
 
 audit.mission.complete.labels.title = 任務標記
 audit.mission.complete.progress.mission.you = 您於此任務已探索
@@ -434,10 +440,6 @@ routebuilder.build.another.route = 設立另一條路線
 routebuilder.share.title = 儲存此連結供未來使用：
 routebuilder.copy.link = 複製連結
 routebuilder.share.warning = 當無此連結時，您將無法取得此路線。
-
-help.rating.1 = Rating 1: 順暢通行
-help.rating.3 = Rating 3: 還好
-help.rating.5 = Rating 5: 無法通行
 
 footer.logo.nsf.alt = 美國國家科學基金會標誌
 footer.logo.google.alt = Google 標誌

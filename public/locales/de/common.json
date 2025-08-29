@@ -46,7 +46,6 @@
     "no-severity": "Bei dieser Beschriftung wurde kein Schweregrad angegeben",
     "unsupported": "Diese Beschriftungkategorie hat keinen bedeutenden Schweregrad",
     "tags": "Tags",
-    "temporary": "Temporär",
     "description": "Beschreibung",
     "no-description": "keine Beschreibung",
     "comments": "Validator Kommentare",
