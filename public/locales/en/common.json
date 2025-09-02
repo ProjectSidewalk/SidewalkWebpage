@@ -30,8 +30,10 @@
         "100-percent-complete": "100% Complete!",
         "percent-complete": "{{percent}}% Complete"
     },
-    "deployment-map": {
-        "explore": "Explore {{cityName}}"
+    "cities-map": {
+        "explore": "Explore {{cityName}}",
+        "loading-stats": "Loading stats...",
+        "private-deployment": "Private Deployment"
     },
     "errors": {
         "title": "Oops, our fault but there is no longer imagery available for this label.",
@@ -46,7 +48,6 @@
     "no-severity": "A severity rating was not provided for this label",
     "unsupported": "This label type does not have meaningful severity levels",
     "tags": "Tags",
-    "temporary": "Temporary",
     "description": "Description",
     "no-description": "No description",
     "comments": "Validator Comments",

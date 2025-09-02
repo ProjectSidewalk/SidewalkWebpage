@@ -230,7 +230,7 @@ class ApplicationController @Inject() (
       } yield {
         // Make sure that list of region IDs, severities, and validation options are formatted correctly.
         val regionIdsList: Seq[Int] = parseIntegerSeq(neighborhoods).filter(possibleRegions.contains)
-        val severityList: Seq[Int]  = parseIntegerSeq(severities).filter(s => s > 0 && s < 6)
+        val severityList: Seq[Int]  = parseIntegerSeq(severities).filter(s => s > 0 && s < 4)
         val tagList: List[String]   = tags.split(",").filter(possibleTags.contains).toList
         val valOptions: Seq[String] =
           validationOptions.split(",").filter(Seq("correct", "incorrect", "unsure", "unvalidated").contains(_)).toSeq

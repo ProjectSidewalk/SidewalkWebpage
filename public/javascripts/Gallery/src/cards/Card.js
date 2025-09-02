@@ -28,7 +28,6 @@ function Card (params, imageUrl, expandedView) {
         original_canvas_x: undefined,
         original_canvas_y: undefined,
         severity: undefined,
-        temporary: undefined,
         description: undefined,
         street_edge_id: undefined,
         region_id: undefined,

@@ -83,7 +83,6 @@ trait LabelService {
       labelId: Int,
       deleted: Boolean,
       severity: Option[Int],
-      temporary: Boolean,
       description: Option[String],
       tags: List[String]
   ): DBIO[Int]
@@ -516,7 +515,6 @@ class LabelServiceImpl @Inject() (
    * @param labelId ID of the label to update
    * @param deleted Whether the label is deleted or not
    * @param severity Optional severity of the label, None if not set
-   * @param temporary Whether the label is temporary or not
    * @param description Optional description of the label, None if not set
    * @param tags List of tags associated with the label
    * @return
@@ -525,7 +523,6 @@ class LabelServiceImpl @Inject() (
       labelId: Int,
       deleted: Boolean,
       severity: Option[Int],
-      temporary: Boolean,
       description: Option[String],
       tags: List[String]
   ): DBIO[Int] = {
@@ -556,8 +553,8 @@ class LabelServiceImpl @Inject() (
 
       // Finally, update the label table.
       rowsUpdated: Int <- labelToUpdateQuery
-        .map(l => (l.deleted, l.severity, l.temporary, l.description, l.tags))
-        .update((deleted, severity, temporary, description, cleanedTags))
+        .map(l => (l.deleted, l.severity, l.description, l.tags))
+        .update((deleted, severity, description, cleanedTags))
     } yield {
       rowsUpdated
     }

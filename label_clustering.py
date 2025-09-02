@@ -33,11 +33,11 @@ def cluster(labels, curr_type, thresholds, single_user):
     labelsCopy = labels.copy()
     labelsCopy.loc[:,'cluster'] = fcluster(link, t=thresholds[curr_type], criterion='distance')
 
-    # Cuts tree so that only labels less than clust_threth kilometers apart are clustered.
+    # Cuts tree so that only labels less than clust_thresh kilometers apart are clustered.
     clusters = labelsCopy.groupby('cluster')
 
     # Computes the center and median severity of each cluster.
-    cluster_df = pd.DataFrame(columns=cluster_cols) # DataFrame with columns (label_type, cluster_num, lat, lng, severity).
+    cluster_df = pd.DataFrame(columns=cluster_cols) # DataFrame with cols (label_type, cluster_num, lat, lng, severity).
     for clust_num, clust in clusters:
         cluster_centroid = np.mean(clust['coords'].tolist(), axis=0) # use ave pos of clusters.
         median_severity = None if pd.isnull(clust['severity']).all() else int(round(np.median(clust['severity'][~np.isnan(clust['severity'])])))

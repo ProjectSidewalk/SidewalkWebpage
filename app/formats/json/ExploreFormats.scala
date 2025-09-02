@@ -55,7 +55,6 @@ object ExploreFormats {
       labelType: String,
       deleted: Boolean,
       severity: Option[Int],
-      temporary: Boolean,
       description: Option[String],
       tagIds: Seq[Int],
       point: LabelPointSubmission,
@@ -257,7 +256,6 @@ object ExploreFormats {
       (JsPath \ "label_type").read[String] and
       (JsPath \ "deleted").read[Boolean] and
       (JsPath \ "severity").readNullable[Int] and
-      (JsPath \ "temporary").read[Boolean] and
       (JsPath \ "description").readNullable[String] and
       (JsPath \ "tag_ids").read[Seq[Int]] and
       (JsPath \ "label_point").read[LabelPointSubmission] and

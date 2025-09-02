@@ -7,6 +7,9 @@
 @common.main(commonData, title) {
     @common.navbar(commonData, Some(user))
 
+    <!-- Deployment Sites Dashboard CSS -->
+    <link href='@assets.path("stylesheets/deployment-map.css")' rel="stylesheet"/>
+
     <div class="deployment-sites-container">
         <div class="map-section">
             <div id="deployment-sites-map-holder" class="map-holder">
@@ -44,16 +47,27 @@
                 </div>
             </div>
         </div>
+
+        <div class="cta-section">
+            <div class="cta-content">
+                <img src='@assets.path("images/logos/ProjectSidewalkLogo_WithCurvedText_3600x3600.png")' alt="@Messages("cities.dashboard.cta.logo.alt")" class="cta-logo"/>
+
+                <h2 class="cta-title">@Messages("cities.dashboard.cta.title")</h2>
+                <p class="cta-text">@Html(Messages("cities.dashboard.cta.content"))</p>
+                <a href="https://accessiblecommunities.org/use-project-sidewalk" class="cta-button" target="_blank" rel="noopener noreferrer">
+                    @Messages("cities.dashboard.cta.button")
+                </a>
+            </div>
+        </div>
     </div>
+
+    @common.cityPopupTemplate()
 
     <!-- Include necessary JavaScript libraries -->
     <script src='@assets.path("javascripts/lib/mapbox-gl-3.13.0.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
     <link href='@assets.path("javascripts/lib/mapbox-gl-3.13.0.css")' rel="stylesheet"/>
     <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
-
-    <!-- Deployment Sites Dashboard CSS -->
-    <link href='@assets.path("stylesheets/deployment-sites-dashboard.css")' rel="stylesheet"/>
 
     <script>
         /**
@@ -103,11 +117,15 @@
             function displayAggregateStats(stats) {
                 // Format numbers for display.
                 function formatNumber(num) {
-                    if (num >= 1000000) {
-                        return i18next.t('common:format-number', { val: (num / 1000000).toFixed(1) }) + 'M';
-                    } else if (num >= 1000) {
-                        return i18next.t('common:format-number', { val: (num / 1000).toFixed(1) }) + 'K';
-                    }
+                    // I played around with this a bit, but I think it is best to just
+                    // show the full number. See:
+                    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3994
+                    // We may need to revisit if we get above 10 million labels or validations.
+                    // if (num >= 1000000) {
+                    //     return i18next.t('common:format-number', { val: (num / 1000000).toFixed(2) }) + 'M';
+                    // } else if (num >= 1000) {
+                    //     return i18next.t('common:format-number', { val: (num / 1000).toFixed(2) }) + 'K';
+                    // }
                     return i18next.t('common:format-number', { val: num });
                 }
 

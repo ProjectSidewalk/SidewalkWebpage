@@ -15,6 +15,10 @@ crosswalk = Markierter Fussgängerstreifen
 signal = Fussgängerlichtsignal
 occlusion = Trottoir nicht sichtbar
 other = Andere
+low = Niedrig
+medium = Medium
+high = Hoch
+rating = Bewertung
 validated.correct = Validiert als richtig
 validated.incorrect = validiert als falsch
 unvalidated = Nicht validiert
@@ -203,10 +207,12 @@ audit.right.ui.overall.stats = Gesamtübersicht
 audit.right.ui.current.neighborhood = Aktuelles Quartier
 audit.right.ui.distance = Kilometer
 
-audit.center.ui.passable = Passierbar
-audit.center.ui.not.passable = Nicht passierbar
-audit.center.ui.add.tags = Tags hinzu&shy;fügen:
-audit.center.ui.temporary = Temporär (z.B. Baustelle)
+audit.center.ui.tags.header = Tags hinzufügen
+audit.center.ui.tags.info = Fügen Sie Ihren Etiketten Tags hinzu, um die Daten mit nützlichen Informationen anzureichern. Bewegen Sie den Mauszeiger über die Tags, um Beispiele anzuzeigen.
+audit.center.ui.severity.header = Schweregrad bewerten
+audit.center.ui.severity.info = Versuchen Sie nach Möglichkeit zu beurteilen, wie stark das gekennzeichnete Hindernis oder Merkmal den Zugang für Fußgänger behindert.
+audit.center.ui.description.header = Beschreiben (optional)
+audit.center.ui.description.placeholder = Beschreibung
 
 audit.mission.complete.labels.title = Missionsbeschriftungen
 audit.mission.complete.progress.mission.you = Sie haben diese Mission erfüllt
@@ -384,10 +390,6 @@ routebuilder.share.title = Speichern Sie diesen Link für den zukünftigen Zugri
 routebuilder.copy.link = Link kopieren
 routebuilder.share.warning = Ohne den Link können Sie nicht auf diese Route zugreifen.
 
-help.rating.1 = Bewertung 1: Passierbar
-help.rating.3 = Bewertung 3: Schwer passierbar
-help.rating.5 = Bewertung 5: Nicht passierbar
-
 footer.logo.nsf.alt = Logo der National Science Foundation
 footer.logo.google.alt = Google-Logo
 footer.logo.sloan.alt = Logo der Alfred P. Sloan Foundation
@@ -397,3 +399,7 @@ footer.logo.create.alt = Logo des Zentrums für Forschung und Bildung zu barrier
 cities.dashboard.cities = Einsatzorte
 cities.dashboard.distance = Erkundete Strassen
 cities.dashboard.cities.icon.alt = Rollstuhlfahrer vom Project Sidewalk-Logo hält eine Flagge
+cities.dashboard.cta.title = Bringen Sie Project Sidewalk in Ihre Stadt!
+cities.dashboard.cta.content = Möchten Sie die Barrierefreiheit in Ihrer Gemeinde kartieren? <br/> Wir sind immer auf der Suche nach neuen Partnern, die uns dabei helfen, die Zukunft der städtischen Barrierefreiheit zu verändern.
+cities.dashboard.cta.button = Informationen zur Bereitstellung
+cities.dashboard.cta.logo.alt = Das Project Sidewalk-Logo mit dem Text projectsidewalk.org

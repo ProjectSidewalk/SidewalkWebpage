@@ -15,6 +15,10 @@ crosswalk = Cruce peatonal marcado
 signal = Semáforo peatonal
 occlusion = No puedo ver la banqueta
 other = Otro
+low = Bajo
+medium = Medio
+high = Alto
+rating = Calificación
 validated.correct = Validado correcto
 validated.incorrect = Validado incorrecto
 unvalidated = No Validado
@@ -211,10 +215,12 @@ audit.right.ui.overall.stats = Estadísticas generales
 audit.right.ui.current.neighborhood = Colonia actual
 audit.right.ui.distance = kilómetros
 
-audit.center.ui.passable = Transitable
-audit.center.ui.not.passable = No es transitable
-audit.center.ui.add.tags = Agregar etiquetas:
-audit.center.ui.temporary = Temporal (p. ej., obra en construcción)
+audit.center.ui.tags.header = Agregar etiquetas
+audit.center.ui.tags.info = Añade etiquetas a tus etiquetas para enriquecer los datos con información útil. Pasa el cursor sobre las etiquetas para ver ejemplos.
+audit.center.ui.severity.header = Gravedad de la tasa
+audit.center.ui.severity.info = Haga todo lo posible por evaluar en qué medida el obstáculo o característica señalado dificulta el acceso peatonal.
+audit.center.ui.description.header = Describe (opcional)
+audit.center.ui.description.placeholder = Descripción
 
 audit.mission.complete.labels.title = Etiquetas de la misión
 audit.mission.complete.progress.mission.you = Exploraste en esta misión
@@ -390,10 +396,6 @@ routebuilder.share.title = Guarde este enlace para el acceso futuro:
 routebuilder.copy.link = Copiar link
 routebuilder.share.warning = No podrá acceder a esta ruta sin el enlace.
 
-help.rating.1 = Calificación 1: Transitable
-help.rating.3 = Calificación 3: Neutral
-help.rating.5 = Calificación 5: No es transitable
-
 footer.logo.nsf = Logotipo de la Fundación Nacional de Ciencias
 footer.logo.google = Logotipo de Google
 footer.logo.sloan = Logotipo de la Fundación Alfred P. Sloan
@@ -403,3 +405,7 @@ footer.logo.create = Logotipo del Centro de Investigación y Educación sobre Te
 cities.dashboard.cities = Ciudades de Despliegue
 cities.dashboard.distance = Calles Exploradas
 cities.dashboard.cities.icon.alt = Usuario de silla de ruedas del logotipo de Project Sidewalk sosteniendo una bandera
+cities.dashboard.cta.title = ¡Trae Project Sidewalk a tu ciudad!
+cities.dashboard.cta.content = ¿Está interesado en mapear la accesibilidad en su comunidad? <br/> Siempre estamos buscando nuevos socios para ayudar a transformar el futuro de la accesibilidad urbana.
+cities.dashboard.cta.button = Aprenda a implementar
+cities.dashboard.cta.logo.alt = El logotipo de Project Sidewalk con el texto projectsidewalk.org

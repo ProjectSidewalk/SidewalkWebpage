@@ -400,7 +400,6 @@ class ExploreServiceImpl @Inject() (
           unsureCount = 0,
           correct = None,
           severity = label.severity,
-          temporary = label.temporary,
           description = label.description,
           tags = label.tagIds.distinct.flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption).toList
         )
@@ -575,7 +574,7 @@ class ExploreServiceImpl @Inject() (
                     .flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption)
                     .toList
                   _ <- labelService.updateLabelFromExplore(existingLabel.labelId, label.deleted, label.severity,
-                    label.temporary, label.description, tagStrings)
+                    label.description, tagStrings)
                 } yield None
               }
             // If there is no existing label with this temp id, insert a new one.
