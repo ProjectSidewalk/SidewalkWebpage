@@ -185,6 +185,13 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
   }
 
   /**
+   * Find a task.
+   */
+  def find(userId: String, streetEdgeId: Int): DBIO[Option[AuditTask]] = {
+    auditTasks.filter(a => a.userId === userId && a.streetEdgeId === streetEdgeId).result.headOption
+  }
+
+  /**
    * Gets the list of streets in the specified region that the user has not audited.
    */
   def getStreetEdgeRegionsNotAuditedQuery(
@@ -503,7 +510,7 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
 
   /**
    * Gets a list of tasks associated with a user's route.
-   * @param userRouteId
+   * @param userRouteId ID of the user_route.
    */
   def selectTasksInRoute(userRouteId: Int): DBIO[Seq[NewTask]] = {
     val timestamp: OffsetDateTime = OffsetDateTime.now

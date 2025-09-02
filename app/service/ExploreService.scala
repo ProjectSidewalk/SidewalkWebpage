@@ -464,24 +464,47 @@ class ExploreServiceImpl @Inject() (
     db.run(streetEdgeIssueTable.insert(streetIssue))
   }
 
+  /**
+   * Returns existing entry in audit_task table for the AI user on the given street, or creates one if none exists.
+   * @param missionId The mission_id to associate with the task if a new one is created
+   * @param streetEdgeId The street_edge_id of the street to get/create a task for
+   * @return The audit_task_id of the existing or newly created task, wrapped in a DBIO action
+   */
+  private def resumeOrCreateNewAiAuditTask(missionId: Int, streetEdgeId: Int): DBIO[Int] = {
+    auditTaskTable
+      .find(aiUserId, streetEdgeId)
+      .flatMap {
+        case Some(existingTask) =>
+          DBIO.successful(existingTask.auditTaskId)
+        case _ =>
+          auditTaskTable.selectANewTask(streetEdgeId, missionId).flatMap { task =>
+            auditTaskTable.insert(
+              AuditTask(0, None, aiUserId, streetEdgeId, task.taskStart, OffsetDateTime.now, completed = false,
+                task.currentLat, task.currentLng, task.startPointReversed, Some(missionId), task.currentMissionStart,
+                lowQuality = false, incomplete = false, stale = false)
+            )
+          }
+      }
+  }
+
   def submitAiLabelData(data: AiLabelSubmission): Future[Unit] = {
     val currTime: OffsetDateTime = OffsetDateTime.now
     for {
-      latLng <- Future.successful((-1F, -1F)) // Copy toLatLng() method on front-end to compute lat/lng using panoXY.
+      latLng <- Future.successful((-1f, -1f)) // Copy toLatLng() method on front-end to compute lat/lng using panoXY.
       streetEdgeId <- db.run(labelTable.getStreetEdgeIdClosestToLatLng(latLng._1, latLng._2))
-      regionId <- db.run(streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId)).map(_.get.regionId)
-      missionId <- Future.successful(-1) // Check if we have one for the region, and make one if not.
-      auditTaskId <- Future.successful(-1) // Check if we have one for the street, and make one if not.
-      tempLabelId <- db.run(labelTable.nextTempLabelId(aiUserId))
+      regionId     <- db.run(streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId)).map(_.get.regionId)
+      missionId    <- db.run(missionService.resumeOrCreateNewAiExploreMission(regionId)).map(_.missionId)
+      auditTaskId  <- db.run(resumeOrCreateNewAiAuditTask(missionId, streetEdgeId))
+      tempLabelId  <- db.run(labelTable.nextTempLabelId(aiUserId))
       labelPoint: LabelPointSubmission <- Future.successful(
         LabelPointSubmission(
           panoX = data.panoX,
           panoY = data.panoY,
           canvasX = LabelPointTable.canvasWidth / 2,
           canvasY = LabelPointTable.canvasHeight / 2,
-          heading = -1F, // I think use `calculatePovFromPanoXY()` from front-end
-          pitch = -1F, // I think use `calculatePovFromPanoXY()` from front-end
-          zoom = -1, // TODO decide on a reasonable zoom
+          heading = -1f, // I think use `calculatePovFromPanoXY()` from front-end
+          pitch = -1f,   // I think use `calculatePovFromPanoXY()` from front-end
+          zoom = -1,     // TODO decide on a reasonable zoom
           lat = Some(latLng._1),
           lng = Some(latLng._2),
           computationMethod = Some("approximation2")
@@ -497,13 +520,13 @@ class ExploreServiceImpl @Inject() (
           timeCreated = Some(currTime),
           tutorial = false,
           severity = None,
-          temporary = false,
           description = None,
           tagIds = Seq.empty[Int],
           point = labelPoint
         )
       )
       _ <- db.run(insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId))
+      // TODO There's probably some new AI table that we need to enter data into too.
       _ <- savePanoInfo(Seq(data.pano))
     } yield ()
   }
