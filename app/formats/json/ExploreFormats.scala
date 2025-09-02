@@ -117,9 +117,9 @@ object ExploreFormats {
       panoX: Int,
       panoY: Int,
       confidence: Double,
-      model_id: String,
-      model_training_date: OffsetDateTime,
-      api_version: String,
+      modelId: String,
+      modelTrainingDate: OffsetDateTime,
+      apiVersion: String,
       pano: GsvPanoramaSubmission
   )
 

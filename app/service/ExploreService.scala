@@ -90,10 +90,12 @@ class ExploreServiceImpl @Inject() (
     auditTaskUserRouteTable: AuditTaskUserRouteTable,
     streetEdgePriorityTable: StreetEdgePriorityTable,
     regionCompletionTable: RegionCompletionTable,
+    streetEdgeTable: StreetEdgeTable,
     streetEdgeRegionTable: StreetEdgeRegionTable,
     gsvDataTable: GsvDataTable,
     gsvLinkTable: GsvLinkTable,
     panoHistoryTable: PanoHistoryTable,
+    labelAiInfoTable: LabelAiInfoTable,
     streetEdgeIssueTable: StreetEdgeIssueTable,
     webpageActivityTable: WebpageActivityTable,
     surveyQuestionTable: SurveyQuestionTable,
@@ -477,12 +479,16 @@ class ExploreServiceImpl @Inject() (
         case Some(existingTask) =>
           DBIO.successful(existingTask.auditTaskId)
         case _ =>
-          auditTaskTable.selectANewTask(streetEdgeId, missionId).flatMap { task =>
-            auditTaskTable.insert(
-              AuditTask(0, None, aiUserId, streetEdgeId, task.taskStart, OffsetDateTime.now, completed = false,
-                task.currentLat, task.currentLng, task.startPointReversed, Some(missionId), task.currentMissionStart,
-                lowQuality = false, incomplete = false, stale = false)
-            )
+          streetEdgeTable.getStreet(streetEdgeId).flatMap {
+            case None =>
+              DBIO.failed(new Exception(s"Street edge with ID $streetEdgeId not found."))
+            case Some(street) =>
+              // No existing task found, create a new one.
+              auditTaskTable.insert(
+                AuditTask(0, None, aiUserId, streetEdgeId, OffsetDateTime.now, OffsetDateTime.now, completed = false,
+                  street.x1, street.y1, startPointReversed = false, Some(missionId), None, lowQuality = false,
+                  incomplete = false, stale = false)
+              )
           }
       }
   }
@@ -525,8 +531,8 @@ class ExploreServiceImpl @Inject() (
           point = labelPoint
         )
       )
-      _ <- db.run(insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId))
-      // TODO There's probably some new AI table that we need to enter data into too.
+      labelId <- db.run(insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId)).map(_._1)
+      _ <- db.run(labelAiInfoTable.save(LabelAiInfo(0, labelId, data.confidence, data.apiVersion, data.modelId, data.modelTrainingDate)))
       _ <- savePanoInfo(Seq(data.pano))
     } yield ()
   }
