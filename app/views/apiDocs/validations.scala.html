@@ -160,8 +160,8 @@
         "label_type": "NoCurbRamp",
         "validation_result": 1,
         "validation_result_string": "Agree",
-        "old_severity": 3,
-        "new_severity": 4,
+        "old_severity": 2,
+        "new_severity": 3,
         "old_tags": ["narrow"],
         "new_tags": ["narrow", "steep"],
         "user_id": "user_abc123",
@@ -222,8 +222,8 @@
                     <tr><td><code>label_type</code></td><td><code>string</code></td><td>Name of the label type (e.g., "CurbRamp", "Obstacle").</td></tr>
                     <tr><td><code>validation_result</code></td><td><code>integer</code></td><td>Validation judgment: 1 (Agree), 2 (Disagree), 3 (Unsure).</td></tr>
                     <tr><td><code>validation_result_string</code></td><td><code>string</code></td><td>Validation judgment: Agree, Disagree, Unsure.</td></tr>
-                    <tr><td><code>old_severity</code></td><td><code>integer | null</code></td><td>Severity rating before validation (1-5 scale), or null if not applicable.</td></tr>
-                    <tr><td><code>new_severity</code></td><td><code>integer | null</code></td><td>Severity rating after validation, or null if not changed/applicable.</td></tr>
+                    <tr><td><code>old_severity</code></td><td><code>integer | null</code></td><td>Severity rating before validation (1-3 scale), or null if not applicable.</td></tr>
+                    <tr><td><code>new_severity</code></td><td><code>integer | null</code></td><td>Severity rating after validation (1-3 scale), or null if not applicable.</td></tr>
                     <tr><td><code>old_tags</code></td><td><code>array[string]</code></td><td>Array of tag names before validation.</td></tr>
                     <tr><td><code>new_tags</code></td><td><code>array[string]</code></td><td>Array of tag names after validation.</td></tr>
                     <tr><td><code>user_id</code></td><td><code>string</code></td><td>ID of the user who performed the validation.</td></tr>

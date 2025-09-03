@@ -15,6 +15,10 @@ crosswalk = Marked Crosswalk
 signal = Pedestrian Signal
 occlusion = Can''t See the Sidewalk
 other = Other
+low = Low
+medium = Medium
+high = High
+rating = Rating
 validated.correct = Validated correct
 validated.incorrect = Validated incorrect
 unvalidated = Unvalidated
@@ -201,10 +205,12 @@ audit.right.ui.overall.stats = Overall Stats
 audit.right.ui.current.neighborhood = Current Neighborhood
 audit.right.ui.distance = kilometers
 
-audit.center.ui.passable = Passable
-audit.center.ui.not.passable = Not Passable
-audit.center.ui.add.tags = Add Tags:
-audit.center.ui.temporary = Temporary (e.g., construction)
+audit.center.ui.tags.header = Add tags
+audit.center.ui.tags.info = Please add tags to your labels, which enriches the data with useful information. Mouseover the tags for examples.
+audit.center.ui.severity.header = Rate severity
+audit.center.ui.severity.info = Do your best to assess how severely the labeled obstacle or feature hinders pedestrian access.
+audit.center.ui.description.header = Describe (optional)
+audit.center.ui.description.placeholder = Description
 
 audit.mission.complete.labels.title = Mission Labels
 audit.mission.complete.progress.mission.you = You explored in this mission
@@ -380,10 +386,6 @@ routebuilder.share.title = Save this link for future access:
 routebuilder.copy.link = Copy Link
 routebuilder.share.warning = You will not be able to access this route without the link.
 
-help.rating.1 = Rating 1: Passable
-help.rating.3 = Rating 3: Neutral
-help.rating.5 = Rating 5: Not passable
-
 footer.logo.nsf.alt = National Science Foundation Logo
 footer.logo.google.alt = Google Logo
 footer.logo.sloan.alt = Alfred P. Sloan Foundation Logo
@@ -393,3 +395,7 @@ footer.logo.create.alt = Center for Research and Education on Accessible Technol
 cities.dashboard.cities = Deployment Cities
 cities.dashboard.distance = Streets Explored
 cities.dashboard.cities.icon.alt = Wheelchair user from Project Sidewalk logo holding a flag
+cities.dashboard.cta.title = Bring Project Sidewalk to Your City!
+cities.dashboard.cta.content = Interested in mapping accessibility in your community? <br/> We're always looking for new partners to help transform the future of urban accessibility.
+cities.dashboard.cta.button = Learn How to Deploy
+cities.dashboard.cta.logo.alt = The Project Sidewalk logo with text saying projectsidewalk.org

@@ -1,6 +1,6 @@
 /**
  * A Severity Bucket to store Severities.
- * 
+ *
  * @param initialActiveSeverities array of severity levels to start out as active. Received from query params.
  * @returns {SeverityBucket}
  * @constructor
@@ -15,14 +15,14 @@ function SeverityBucket(initialActiveSeverities) {
      * Initialize SeverityBucket.
      */
     function _init() {
-        for (let i = 1; i <= 5; i++ ) {
+        for (let i = 1; i <= 3; i++ ) {
             push(new Severity(i, initialActiveSeverities ? initialActiveSeverities.includes(i) > 0 : false));
         }
     }
 
     /**
      * Add severity.
-     * 
+     *
      * @param {*} severity
      */
     function push(severity) {
@@ -71,7 +71,7 @@ function SeverityBucket(initialActiveSeverities) {
     function disable() {
         bucket.forEach(severity => severity.disable());
     }
-    
+
     /**
      * Enable interaction with Severities.
      */

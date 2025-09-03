@@ -110,7 +110,7 @@ function CreateMapLayerTracker() {
         let labelType = labelTypes[i];
         mapData.sortedLabels[labelType] = [];
         mapData.layerNames[labelType] = [];
-        for (let j = 0; j < 6; j++) {
+        for (let j = 0; j < 4; j++) {
             mapData.sortedLabels[labelType][j] = [];
             mapData.layerNames[labelType][j] = [];
         }

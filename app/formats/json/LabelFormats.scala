@@ -25,7 +25,6 @@ object LabelFormats {
       (__ \ "unsure_count").write[Int] and
       (__ \ "correct").writeNullable[Boolean] and
       (__ \ "severity").writeNullable[Int] and
-      (__ \ "temporary").write[Boolean] and
       (__ \ "description").writeNullable[String] and
       (__ \ "tags").write[List[String]]
   )(unlift(Label.unapply))
@@ -56,7 +55,6 @@ object LabelFormats {
       (__ \ "timestamp").write[OffsetDateTime] and
       (__ \ "label_type").write[String] and
       (__ \ "severity").write[Option[Int]] and
-      (__ \ "temporary").write[Boolean] and
       (__ \ "description").write[Option[String]] and
       (__ \ "user_validation").write[Option[Int]] and
       (__ \ "ai_validation").write[Option[Int]] and
@@ -86,7 +84,6 @@ object LabelFormats {
       "canvas_x"           -> labelMetadata.canvasXY.x,
       "canvas_y"           -> labelMetadata.canvasXY.y,
       "severity"           -> labelMetadata.severity,
-      "temporary"          -> labelMetadata.temporary,
       "description"        -> labelMetadata.description,
       "street_edge_id"     -> labelMetadata.streetEdgeId,
       "region_id"          -> labelMetadata.regionId,
@@ -129,7 +126,6 @@ object LabelFormats {
       "timestamp"          -> labelMetadata.timestamp,
       "label_type"         -> labelMetadata.labelType,
       "severity"           -> labelMetadata.severity,
-      "temporary"          -> labelMetadata.temporary,
       "description"        -> labelMetadata.description,
       "user_validation"    -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
       "ai_validation"      -> labelMetadata.aiValidation.map(LabelValidationTable.validationOptions.get),
@@ -211,7 +207,6 @@ object LabelFormats {
       "severity"         -> label.labelData.severity,
       "tutorial"         -> label.labelData.tutorial,
       "temporaryLabelId" -> label.labelData.temporaryLabelId,
-      "temporaryLabel"   -> label.labelData.temporary,
       "description"      -> label.labelData.description,
       "canvasX"          -> label.pointData.canvasX,
       "canvasY"          -> label.pointData.canvasY,

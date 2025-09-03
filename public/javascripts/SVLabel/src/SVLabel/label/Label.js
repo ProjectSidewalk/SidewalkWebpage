@@ -62,7 +62,6 @@ function Label(params) {
         severity: null,
         tutorial: null,
         temporaryLabelId: null,
-        temporaryLabel: false,
         description: null,
         crop: undefined
     };

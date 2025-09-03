@@ -30,7 +30,7 @@ function AdminGSVLabelView(admin, source) {
                                 '<div id="validation-button-holder" style="padding-top: 10px;">' +
                                     '<button id="validation-agree-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                        i18next.t('common:agree') +
+                                        i18next.t('common:yes') +
                                     '</button>' +
                                     '<button id="validation-disagree-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
@@ -55,10 +55,6 @@ function AdminGSVLabelView(admin, source) {
                                     '<tr>' +
                                         `<th>${i18next.t('common:severity')}</th>` +
                                         '<td id="severity"></td>' +
-                                    '</tr>' +
-                                    '<tr>' +
-                                        `<th>${i18next.t('common:temporary')}</th>` +
-                                        '<td id="temporary"></td>' +
                                     '</tr>' +
                                     '<tr>' +
                                         `<th>${i18next.t('common:tags')}</th>` +
@@ -238,7 +234,6 @@ function AdminGSVLabelView(admin, source) {
         self.modalTitle = self.modal.find("#myModalLabel");
         self.modalTimestamp = self.modal.find("#timestamp");
         self.modalSeverity = self.modal.find("#severity");
-        self.modalTemporary = self.modal.find("#temporary");
         self.modalTags = self.modal.find("#tags");
         self.modalDescription = self.modal.find("#label-description");
         self.modalValidations = self.modal.find("#label-validations");
@@ -593,7 +588,6 @@ function AdminGSVLabelView(admin, source) {
         // Change modal title
         self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + camelToKebab(labelMetadata['label_type']))}`);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
-        self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
         // Create a list of translated tags that's parsable by i18next.
         var translatedTags = labelMetadata['tags'].map(tag => i18next.t(`common:tag.${tag.replace(/:/g, '-')}`));
         self.modalTags.html(translatedTags.join(', ')); // Join to format using commas and spaces.

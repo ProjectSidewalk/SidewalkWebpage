@@ -15,6 +15,10 @@ crosswalk = Gemarkeerde oversteekplaats
 signal = Verkeerslicht
 occlusion = Ik kan geen trottoir zien
 other = Anders
+low = Laag
+medium = Medium
+high = Hoog
+rating = Beoordeling
 validated.correct = Gevalideerd juist
 validated.incorrect = Gevalideerd onjuist
 unvalidated = Niet gevalideerd
@@ -66,6 +70,7 @@ country.name.usa = USA
 country.name.netherlands = Nederland
 country.name.switzerland = Zwitserland
 country.name.new-zealand = Nieuw-Zeeland
+country.name.chile = Chili
 
 navbar.explore = Ontdekken
 navbar.validate = Bevestigen
@@ -199,10 +204,12 @@ audit.right.ui.overall.stats = Algemene statistieken
 audit.right.ui.current.neighborhood = Huidige Wijk
 audit.right.ui.distance = kilometer
 
-audit.center.ui.passable = Begaanbaar
-audit.center.ui.not.passable = Niet Begaanbaar
-audit.center.ui.add.tags = Voeg<br>Tags toe:
-audit.center.ui.temporary = Tijdelijk (bijvoorveeld bouwconstructie)
+audit.center.ui.tags.header = Voeg tags toe
+audit.center.ui.tags.info = Voeg tags toe aan uw labels om de gegevens te verrijken met nuttige informatie. Beweeg de muis over de tags voor voorbeelden.
+audit.center.ui.severity.header = Ernst van de snelheid
+audit.center.ui.severity.info = Probeer zo goed mogelijk in te schatten in hoeverre het gemarkeerde obstakel of de gemarkeerde voorziening de toegang voor voetgangers belemmert.
+audit.center.ui.description.header = Beschrijf (optioneel)
+audit.center.ui.description.placeholder = Beschrijving
 
 audit.mission.complete.labels.title = Missie labels
 audit.mission.complete.progress.mission.you = Je ontdekte in deze missie
@@ -379,10 +386,6 @@ routebuilder.share.title = Sla deze link op voor toekomstige toegang:
 routebuilder.copy.link = Kopieer link
 routebuilder.share.warning = U hebt geen toegang tot deze route zonder de link.
 
-help.rating.1 = Rating 1: Begaanbaar
-help.rating.3 = Rating 3: Neutraal
-help.rating.5 = Rating 5: Niet begaanbaar
-
 footer.logo.nsf.alt = National Science Foundation-logo
 footer.logo.google.alt = Google-logo
 footer.logo.sloan.alt = Alfred P. Sloan Foundation-logo
@@ -392,3 +395,7 @@ footer.logo.create.alt = Centrum voor Onderzoek en Onderwijs over Toegankelijke 
 cities.dashboard.cities = Implementatiesteden
 cities.dashboard.distance = Verkende straten
 cities.dashboard.cities.icon.alt = Rolstoelgebruiker van Project Sidewalk-logo met een vlag
+cities.dashboard.cta.title = Breng Project Sidewalk naar uw stad!
+cities.dashboard.cta.content = Wilt u de toegankelijkheid in uw omgeving in kaart brengen? <br/> We zijn altijd op zoek naar nieuwe partners die ons kunnen helpen de toekomst van stedelijke toegankelijkheid te transformeren.
+cities.dashboard.cta.button = Leer hoe u kunt implementeren
+cities.dashboard.cta.logo.alt = Het logo van Project Sidewalk met de tekst projectsidewalk.org
