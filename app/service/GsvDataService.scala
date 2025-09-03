@@ -6,6 +6,8 @@ import models.gsv.{GsvDataSlim, GsvDataTable, PanoHistory, PanoHistoryTable}
 import models.label.LabelPointTable
 import models.street.StreetEdge
 import models.utils.MyPostgresProfile
+import org.geotools.referencing.GeodeticCalculator
+import org.geotools.referencing.crs.DefaultGeographicCRS
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.Json
@@ -41,6 +43,147 @@ object GsvDataService {
       195.93 / scala.math.pow(1.92, zoom * 1.0)
     }
   }
+
+  /**
+   * Returns the pov of this label if it were centered based on panorama's POV using panorama XY coordinates.
+   *
+   * @param panoX The x-coordinate within the panorama image
+   * @param panoY The y-coordinate within the panorama image
+   * @param panoWidth The total width of the panorama image
+   * @param panoHeight The total height of the panorama image
+   * @return A tuple containing the calculated heading (0-360 degrees) and pitch (-90 to 90 degrees)
+   */
+  def calculatePovFromPanoXY(panoX: Double, panoY: Double, panoWidth: Double, panoHeight: Double): (Double, Double) = {
+    (
+      (panoX / panoWidth) * 360 % 360,
+      (panoY / (panoHeight / 2)) * 90
+    )
+  }
+
+  /**
+   * Parameters determined from a series of linear regressions. Here links to the analysis and relevant Github issues:
+   * - https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
+   * - https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2374
+   * - https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2362
+   */
+  case class LatLngEstimationParams(
+      headingIntercept: Double,
+      headingCanvasXSlope: Double,
+      distanceIntercept: Double,
+      distancePanoYSlope: Double,
+      distanceCanvasYSlope: Double
+  )
+
+  object LatLngEstimationParams {
+    val LATLNG_ESTIMATION_PARAMS: Map[Int, LatLngEstimationParams] = Map(
+      1 -> LatLngEstimationParams(
+        headingIntercept = -51.2401711, headingCanvasXSlope = 0.1443374, distanceIntercept = 18.6051843,
+        distancePanoYSlope = 0.0138947, distanceCanvasYSlope = 0.0011023
+      ),
+      2 -> LatLngEstimationParams(
+        headingIntercept = -27.5267447, headingCanvasXSlope = 0.0784357, distanceIntercept = 20.8794248,
+        distancePanoYSlope = 0.0184087, distanceCanvasYSlope = 0.0022135
+      ),
+      3 -> LatLngEstimationParams(
+        headingIntercept = -13.5675945, headingCanvasXSlope = 0.0396061, distanceIntercept = 25.2472682,
+        distancePanoYSlope = 0.0264216, distanceCanvasYSlope = 0.0011071
+      )
+    )
+  }
+
+  /**
+   * Get the label's estimated latitude/longitude position.
+   *
+   * Estimates heading difference and distance from panorama using output from regression analysis.
+   * https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
+   *
+   * @param panoLat The latitude of the panorama location
+   * @param panoLng The longitude of the panorama location
+   * @param panoHeading The heading of the panorama in degrees
+   * @param zoom The zoom level (1, 2, or 3)
+   * @param canvasX The x-coordinate on the canvas
+   * @param canvasY The y-coordinate on the canvas
+   * @param panoY The y-coordinate within the panorama
+   * @param panoHeight The height of the panorama
+   * @return A LatLng containing the estimated latitude and longitude
+   */
+  def toLatLng(
+      panoLat: Double,
+      panoLng: Double,
+      panoHeading: Double,
+      zoom: Int,
+      canvasX: Double,
+      canvasY: Double,
+      panoY: Double,
+      panoHeight: Double
+  ): (Double, Double) = {
+    val params = LatLngEstimationParams.LATLNG_ESTIMATION_PARAMS(zoom)
+
+    // Estimate heading difference and distance from pano using regression analysis output.
+    val estHeadingDiff =
+      params.headingIntercept + params.headingCanvasXSlope * canvasX
+
+    val estDistanceFromPanoKm = math.max(
+      0.0,
+      params.distanceIntercept +
+        params.distancePanoYSlope * (panoHeight / 2 - panoY) +
+        params.distanceCanvasYSlope * canvasY
+    ) / 1000.0
+
+    val estHeading = panoHeading + estHeadingDiff
+
+    // Calculate destination point using spherical geometry.
+    val destination0: (Double, Double) = calculateDestination(panoLat, panoLng, estDistanceFromPanoKm, estHeading)
+
+    // Preferred calculation using Geotools library, but I need to check that we're getting similar results.
+    val calculator = new GeodeticCalculator(DefaultGeographicCRS.WGS84)
+    calculator.setStartingGeographicPoint(panoLng, panoLat)
+    calculator.setDirection(math.toRadians(estHeading), estDistanceFromPanoKm * 1000) // meters
+    val destination = calculator.getDestinationGeographicPoint
+
+    println(destination0)
+    println(destination)
+
+//    LatLng(lat = destination._1, lng = destination._2)
+//    destination
+    (destination.getY, destination.getX)
+  }
+
+  /**
+   * Calculate a destination point given a starting point, distance, and bearing.
+   * Uses the Haversine formula for spherical geometry calculations.
+   *
+   * @param startLat Starting latitude in degrees
+   * @param startLng Starting longitude in degrees
+   * @param distanceKm Distance in kilometers
+   * @param bearingDegrees Bearing in degrees (0-360, where 0 is north)
+   * @return Tuple of (latitude, longitude) for the destination point
+   */
+  private def calculateDestination(
+      startLat: Double,
+      startLng: Double,
+      distanceKm: Double,
+      bearingDegrees: Double
+  ): (Double, Double) = {
+    val earthRadiusKm   = 6371.0
+    val lat1Rad         = math.toRadians(startLat)
+    val lng1Rad         = math.toRadians(startLng)
+    val bearingRad      = math.toRadians(bearingDegrees)
+    val angularDistance = distanceKm / earthRadiusKm
+
+    val lat2Rad = math.asin(
+      math.sin(lat1Rad) * math.cos(angularDistance) +
+        math.cos(lat1Rad) * math.sin(angularDistance) * math.cos(bearingRad)
+    )
+
+    val lng2Rad = lng1Rad + math.atan2(
+      math.sin(bearingRad) * math.sin(angularDistance) * math.cos(lat1Rad),
+      math.cos(angularDistance) - math.sin(lat1Rad) * math.sin(lat2Rad)
+    )
+
+    (math.toDegrees(lat2Rad), math.toDegrees(lng2Rad))
+  }
+
 }
 
 @ImplementedBy(classOf[GsvDataServiceImpl])

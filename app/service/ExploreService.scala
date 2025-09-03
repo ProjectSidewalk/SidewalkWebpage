@@ -495,25 +495,22 @@ class ExploreServiceImpl @Inject() (
 
   def submitAiLabelData(data: AiLabelSubmission): Future[Unit] = {
     val currTime: OffsetDateTime = OffsetDateTime.now
+    val pov  = GsvDataService.calculatePovFromPanoXY(data.panoX, data.panoY, data.pano.width.get, data.pano.height.get)
+    val zoom = 1 // TODO decide on a reasonable zoom
+    val canvasX = LabelPointTable.canvasWidth / 2
+    val canvasY = LabelPointTable.canvasHeight / 2
+    val latLng  = GsvDataService.toLatLng(data.pano.lat.get, data.pano.lng.get, data.pano.cameraHeading.get, zoom,
+      canvasX, canvasY, data.panoY, data.pano.height.get)
     for {
-      latLng <- Future.successful((-1f, -1f)) // Copy toLatLng() method on front-end to compute lat/lng using panoXY.
-      streetEdgeId <- db.run(labelTable.getStreetEdgeIdClosestToLatLng(latLng._1, latLng._2))
+      streetEdgeId <- db.run(labelTable.getStreetEdgeIdClosestToLatLng(latLng._1.toFloat, latLng._2.toFloat))
       regionId     <- db.run(streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId)).map(_.get.regionId)
       missionId    <- db.run(missionService.resumeOrCreateNewAiExploreMission(regionId)).map(_.missionId)
       auditTaskId  <- db.run(resumeOrCreateNewAiAuditTask(missionId, streetEdgeId))
       tempLabelId  <- db.run(labelTable.nextTempLabelId(aiUserId))
       labelPoint: LabelPointSubmission <- Future.successful(
         LabelPointSubmission(
-          panoX = data.panoX,
-          panoY = data.panoY,
-          canvasX = LabelPointTable.canvasWidth / 2,
-          canvasY = LabelPointTable.canvasHeight / 2,
-          heading = -1f, // I think use `calculatePovFromPanoXY()` from front-end
-          pitch = -1f,   // I think use `calculatePovFromPanoXY()` from front-end
-          zoom = -1,     // TODO decide on a reasonable zoom
-          lat = Some(latLng._1),
-          lng = Some(latLng._2),
-          computationMethod = Some("approximation2")
+          data.panoX, data.panoY, canvasX, canvasY, heading = pov._1.toFloat, pitch = pov._2.toFloat, zoom,
+          lat = Some(latLng._1.toFloat), lng = Some(latLng._2.toFloat), computationMethod = Some("approximation2")
         )
       )
       labelSubmission: LabelSubmission <- Future.successful(
@@ -532,7 +529,11 @@ class ExploreServiceImpl @Inject() (
         )
       )
       labelId <- db.run(insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId)).map(_._1)
-      _ <- db.run(labelAiInfoTable.save(LabelAiInfo(0, labelId, data.confidence, data.apiVersion, data.modelId, data.modelTrainingDate)))
+      _       <- db.run(
+        labelAiInfoTable.save(
+          LabelAiInfo(0, labelId, data.confidence, data.apiVersion, data.modelId, data.modelTrainingDate)
+        )
+      )
       _ <- savePanoInfo(Seq(data.pano))
     } yield ()
   }
