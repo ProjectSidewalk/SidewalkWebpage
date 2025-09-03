@@ -29,6 +29,10 @@ function AddCitiesToMap(map, citiesData, params) {
         privateRadius: 5
     };
 
+    // Hide a few deployments for now that are covering up legitimate deployments.
+    citiesData.features = citiesData.features
+        .filter(city => !['crowdstudy', 'validation-study', 'la-piedad-old'].includes(city.properties.cityId));
+
     // Render cities as circles.
     map.addSource(CITIES_LAYER_NAME, {
         type: 'geojson',
