@@ -11,5 +11,10 @@ CREATE TABLE IF NOT EXISTS label_ai_info (
 );
 ALTER TABLE label_ai_info OWNER TO sidewalk;
 
+-- Set dummy AI user as high quality to avoid the possibility of all its data being filtered out.
+UPDATE user_stat SET high_quality_manual = TRUE WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4';
+
 # --- !Downs
+UPDATE user_stat SET high_quality_manual = NULL WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4';
+
 DROP TABLE IF EXISTS label_ai_info;
