@@ -39,7 +39,13 @@ class AiController @Inject() (
     val submission = request.body.validate[AiLabelSubmission]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => { exploreService.submitAiLabelData(submission).map(_ => Ok("success!")) }
+      submission => {
+        if (configService.getCityId == "vancouver-wa") {
+          exploreService.submitAiLabelData(submission).map(_ => Ok("success!"))
+        } else {
+          Future.successful(BadRequest("AI label submission beta is only supported in Vancouver, WA at the moment."))
+        }
+      }
     )
   }
 
