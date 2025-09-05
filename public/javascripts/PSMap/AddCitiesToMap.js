@@ -217,7 +217,8 @@ function AddCitiesToMap(map, citiesData, params) {
     function formatDistance(km) {
         const distUnit = i18next.t('common:unit-distance-abbreviation');
         const dist = i18next.t('common:measurement-system') === 'metric' ? km : util.math.kmsToMiles(km);
-        return i18next.t('common:format-number', { val: Math.round(dist) }) + ' ' + distUnit;
+        const roundedDist = Math.round(dist) < 10 ? Math.round(dist * 10) / 10 : Math.round(dist);
+        return i18next.t('common:format-number', { val: roundedDist }) + ' ' + distUnit;
     }
 
     /**
