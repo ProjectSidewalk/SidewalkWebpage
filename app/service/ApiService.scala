@@ -17,6 +17,7 @@ import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
 import slick.sql.SqlStreamingAction
+import play.api.libs.json.JsArray
 
 import java.time.OffsetDateTime
 import javax.inject._
@@ -109,6 +110,7 @@ class ApiServiceImpl @Inject() (
   globalClusteringSessionTable: GlobalClusteringSessionTable,
   globalAttributeUserAttributeTable: GlobalAttributeUserAttributeTable,
   labelValidationTable: LabelValidationTable,
+  redisService: RedisService,
   implicit val ec: ExecutionContext
 ) extends ApiService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -399,11 +401,21 @@ class ApiServiceImpl @Inject() (
    * Gets the count of labels used in clustering, and the user attributes and global attributes created from clustering.
    */
   def getClusteringInfo: Future[(Int, Int, Int)] = {
-    db.run(for {
-      labelCount <- userAttributeLabelTable.countUserAttributeLabels
-      userAttributeCount <- userAttributeTable.countUserAttributes
-      globalAttributeCount <- globalAttributeTable.countGlobalAttributes
-    } yield (labelCount, userAttributeCount, globalAttributeCount))
+    redisService.getClusteringCache().flatMap {
+      case Some(json) =>
+        val userLabels = (json \ "user_attribute_label").as[JsArray].value.size
+        val userAttributes = (json \ "user_attribute").as[JsArray].value.size
+        val globalAttributes = (json \ "global_attribute").as[JsArray].value.size
+        Future.successful((userLabels, userAttributes, globalAttributes))
+
+      case None =>
+        // in case errors with Redis
+        db.run(for {
+          labelCount <- userAttributeLabelTable.countUserAttributeLabels
+          userAttributeCount <- userAttributeTable.countUserAttributes
+          globalAttributeCount <- globalAttributeTable.countGlobalAttributes
+        } yield (labelCount, userAttributeCount, globalAttributeCount))
+    }
   }
 
   /**

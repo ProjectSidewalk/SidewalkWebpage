@@ -1,8 +1,9 @@
 package service
 
 import com.google.inject.ImplementedBy
-import akka.actor.ActorSystem
-import com.redis.RedisClient
+import org.apache.pekko.actor.ActorSystem
+import redis.RedisClient 
+import play.api.libs.json._
 
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
@@ -12,6 +13,7 @@ trait RedisService {
     def setRunning(): Future[Boolean]
     def isRunning(): Future[Boolean]
     def clearRunning(): Future[Long]
+    def getClusteringCache(): Future[Option[JsValue]]
 }
 
 @Singleton
@@ -48,5 +50,12 @@ class RedisServiceImpl @Inject()(config: play.api.Configuration)
    */
   def clearRunning(): Future[Long] = {
     client.del(RunningKey)
+  }
+
+  /**
+   * Reads the cached data from Redis
+   */
+  def getClusteringCache(): Future[Option[JsValue]] = {
+    client.get("clusters_cache").map(_.map(bs => Json.parse(bs.utf8String)))(ec)
   }
 }

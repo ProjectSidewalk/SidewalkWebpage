@@ -9,6 +9,7 @@ import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.{Json, OFormat}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -115,4 +116,17 @@ class UserClusteringSessionTable @Inject()(protected val dbConfigProvider: Datab
   def insert(newSess: UserClusteringSession): DBIO[Int] = {
     (userClusteringSessions returning userClusteringSessions.map(_.userClusteringSessionId)) += newSess
   }
+}
+
+class UserClusteringSessionCachedTableDef(tag: slick.lifted.Tag)
+  extends Table[UserClusteringSession](tag, "user_clustering_session_cached") {
+  def userClusteringSessionId = column[Int]("user_clustering_session_id", O.PrimaryKey, O.AutoInc)
+  def userId = column[String]("user_id")
+  def timeCreated = column[OffsetDateTime]("time_created")
+
+  def * = (userClusteringSessionId, userId, timeCreated) <> ((UserClusteringSession.apply _).tupled, UserClusteringSession.unapply)
+}
+
+object UserClusteringSession {
+  implicit val userClusteringSessionFormat: OFormat[UserClusteringSession] = Json.format[UserClusteringSession]
 }

@@ -4,6 +4,7 @@ import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.{Json, OFormat}
 
 import javax.inject.{Inject, Singleton}
 
@@ -43,4 +44,20 @@ class UserAttributeLabelTable @Inject()(protected val dbConfigProvider: Database
   def insertMultiple(labels: Seq[UserAttributeLabel]): DBIO[Seq[Int]] = {
     (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) ++= labels
   }
+}
+
+class UserAttributeLabelCachedTableDef(tag: slick.lifted.Tag)
+  extends Table[UserAttributeLabel](tag, "user_attribute_label_cached") {
+
+  def userAttributeLabelId: Rep[Int] = column[Int]("user_attribute_label_id", O.PrimaryKey, O.AutoInc)
+  def userAttributeId: Rep[Int] = column[Int]("user_attribute_id")
+  def labelId: Rep[Int] = column[Int]("label_id")
+
+  def * = (userAttributeLabelId, userAttributeId, labelId) <> 
+    ((UserAttributeLabel.apply _).tupled, UserAttributeLabel.unapply)
+
+}
+
+object UserAttributeLabel {
+  implicit val UserAttributeLabelFormat: OFormat[UserAttributeLabel] = Json.format[UserAttributeLabel]
 }

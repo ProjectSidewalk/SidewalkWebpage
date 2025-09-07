@@ -4,6 +4,7 @@ import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.{Json, OFormat}
 
 import javax.inject.{Inject, Singleton}
 
@@ -64,4 +65,29 @@ class UserAttributeTable @Inject()(protected val dbConfigProvider: DatabaseConfi
   def saveMultiple(attributes: Seq[UserAttribute]): DBIO[Seq[Int]] = {
     (userAttributes returning userAttributes.map(_.userAttributeId)) ++= attributes
   }
+}
+
+class UserAttributeCachedTableDef(tag: slick.lifted.Tag)
+  extends Table[UserAttribute](tag, "user_attribute_cached") {
+
+  def userAttributeId: Rep[Int] = column[Int]("user_attribute_id", O.PrimaryKey, O.AutoInc)
+  def userClusteringSessionId: Rep[Int] = column[Int]("user_clustering_session_id")
+  def clusteringThreshold: Rep[Float] = column[Float]("clustering_threshold")
+  def labelTypeId: Rep[Int] = column[Int]("label_type_id")
+  def regionId: Rep[Int] = column[Int]("region_id")
+  def lat: Rep[Float] = column[Float]("lat")
+  def lng: Rep[Float] = column[Float]("lng")
+  def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
+
+  def * = (userAttributeId,
+           userClusteringSessionId,
+           clusteringThreshold,
+           labelTypeId,
+           regionId,
+           lat, lng,
+           severity) <> ((UserAttribute.apply _).tupled, UserAttribute.unapply)
+}
+
+object UserAttribute {
+  implicit val UserAttributeFormat: OFormat[UserAttribute] = Json.format[UserAttribute]
 }

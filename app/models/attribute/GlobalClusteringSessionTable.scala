@@ -4,6 +4,7 @@ import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.{Json, OFormat}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -70,4 +71,18 @@ class GlobalClusteringSessionTable @Inject()(protected val dbConfigProvider: Dat
   def insert(newSess: GlobalClusteringSession): DBIO[Int] = {
     (globalClusteringSessions returning globalClusteringSessions.map(_.globalClusteringSessionId)) += newSess
   }
+}
+
+class GlobalClusteringSessionCachedTableDef(tag: slick.lifted.Tag)
+  extends Table[GlobalClusteringSession](tag, "global_clustering_session_cached") {
+
+  def globalClusteringSessionId: Rep[Int] = column[Int]("global_clustering_session_id", O.PrimaryKey, O.AutoInc)
+  def regionId: Rep[Int] = column[Int]("region_id")
+  def timeCreated: Rep[OffsetDateTime] = column[OffsetDateTime]("time_created")
+
+  def * = (globalClusteringSessionId, regionId, timeCreated) <> ((GlobalClusteringSession.apply _).tupled, GlobalClusteringSession.unapply)
+}
+
+object GlobalClusteringSession {
+  implicit val GlobalClusteringSessionFormat: OFormat[GlobalClusteringSession] = Json.format[GlobalClusteringSession]
 }

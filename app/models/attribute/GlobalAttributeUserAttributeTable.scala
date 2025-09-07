@@ -4,6 +4,7 @@ import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.{Json, OFormat}
 
 import javax.inject.{Inject, Singleton}
 
@@ -39,4 +40,18 @@ class GlobalAttributeUserAttributeTable @Inject()(protected val dbConfigProvider
   def insertMultiple(attributes: Seq[GlobalAttributeUserAttribute]): DBIO[Seq[Int]] = {
     (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) ++= attributes
   }
+}
+
+class GlobalAttributeUserAttributeCachedTableDef(tag: slick.lifted.Tag)
+  extends Table[GlobalAttributeUserAttribute](tag, "global_attribute_user_attribute_cached") {
+
+  def globalAttributeUserAttributeId: Rep[Int] = column[Int]("global_attribute_user_attribute_id", O.PrimaryKey, O.AutoInc)
+  def globalAttributeId: Rep[Int] = column[Int]("global_attribute_id")
+  def userAttributeId: Rep[Int] = column[Int]("user_attribute_id")
+
+  def * = (globalAttributeUserAttributeId, globalAttributeId, userAttributeId) <> ((GlobalAttributeUserAttribute.apply _).tupled, GlobalAttributeUserAttribute.unapply)
+}
+
+object GlobalAttributeUserAttribute {
+  implicit val GlobalAttributeUserAttributeFormat: OFormat[GlobalAttributeUserAttribute] = Json.format[GlobalAttributeUserAttribute]
 }

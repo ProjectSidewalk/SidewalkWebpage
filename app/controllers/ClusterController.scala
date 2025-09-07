@@ -14,6 +14,12 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.stringSeqToProcess
+import redis.RedisClient
+// Note currently we use Akka not Pekko
+import org.apache.pekko.actor.ActorSystem
+import models.attribute._
+import slick.jdbc.JdbcProfile
+import play.api.db.slick.DatabaseConfigProvider
 
 @Singleton
 class ClusterController @Inject()(cc: CustomControllerComponents,
@@ -21,10 +27,21 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
                                   val config: Configuration,
                                   configService: service.ConfigService,
                                   apiService: service.ApiService,
-                                  redisService: service.RedisService
-                                 )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
+                                  redisService: service.RedisService,
+                                  dbConfigProvider: DatabaseConfigProvider
+                                 )(implicit ec: ExecutionContext, assets: AssetsFinder, system: ActorSystem) extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
   private val logger = Logger(this.getClass)
+  private val dbConfig = dbConfigProvider.get[JdbcProfile]
+  import dbConfig.profile.api._
+  private val db = dbConfig.db
+
+  private val userClusteringSessionCachedTable = TableQuery[UserClusteringSessionCachedTableDef]
+  private val userAttributeLabelCachedTable = TableQuery[UserAttributeLabelCachedTableDef]
+  private val userAttributeCachedTable = TableQuery[UserAttributeCachedTableDef]
+  private val globalAttributeCachedTable = TableQuery[GlobalAttributeCachedTableDef]
+  private val globalAttributeUserAttributeCachedTable = TableQuery[GlobalAttributeUserAttributeCachedTableDef]
+  private val globalClusteringSessionCachedTable = TableQuery[GlobalClusteringSessionCachedTableDef]
 
   /**
    * Returns the clustering webpage with GUI if the user is an admin, otherwise redirects to the landing page.
@@ -96,6 +113,7 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
       // Run the appropriate clustering function(s).
       _ <- if (Seq("singleUser", "both").contains(clusteringType)) runSingleUserClustering(statusRef) else Future.successful(())
       _ <- if (Seq("multiUser", "both").contains(clusteringType)) runMultiUserClustering(statusRef) else Future.successful(())
+      _ <- copyClusteringResultsToCache()
       // Gets the counts of labels/attributes from the affected tables to show how many clusters were created.
       clusteringResults <- apiService.getClusteringInfo
     } yield {
@@ -250,4 +268,49 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
       Future.failed(new NotAuthorizedException("Could not authenticate with provided key."))
     }
   }
+
+  def copyClusteringResultsToCache(): Future[Unit] = {
+    val redisClient = RedisClient("redis", 6379)
+
+    val copyActions = DBIO.seq(
+      copyTable("user_clustering_session"),
+      copyTable("user_attribute"),
+      copyTable("user_attribute_label"),
+      copyTable("global_clustering_session"),
+      copyTable("global_attribute"),
+      copyTable("global_attribute_user_attribute")
+    )
+
+    val readAll = for {
+      userClustering     <- db.run(userClusteringSessionCachedTable.result)
+      userAttr           <- db.run(userAttributeCachedTable.result)
+      userAttrLabel      <- db.run(userAttributeLabelCachedTable.result)
+      globalClustering   <- db.run(globalClusteringSessionCachedTable.result)
+      globalAttr         <- db.run(globalAttributeCachedTable.result)
+      globalAttrUserAttr <- db.run(globalAttributeUserAttributeCachedTable.result)
+    } yield Map(
+      "user_clustering_session" -> Json.toJson(userClustering),
+      "user_attribute" -> Json.toJson(userAttr),
+      "user_attribute_label" -> Json.toJson(userAttrLabel),
+      "global_clustering_session" -> Json.toJson(globalClustering),
+      "global_attribute" -> Json.toJson(globalAttr),
+      "global_attribute_user_attribute" -> Json.toJson(globalAttrUserAttr)
+    )
+
+    for {
+      _ <- db.run(copyActions)
+      jsonMap <- readAll
+      _ <- redisClient.set("clusters_cache", Json.stringify(Json.toJson(jsonMap)))
+    } yield ()
+  }
+
+/**
+ * Helper method to copy data into cached tables.
+ *
+ */
+private def copyTable(baseName: String): DBIOAction[Unit, NoStream, Effect.Write] =
+  DBIO.seq(
+    sqlu"DELETE FROM #${baseName}_cached",
+    sqlu"INSERT INTO #${baseName}_cached SELECT * FROM #$baseName"
+  )
 }

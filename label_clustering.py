@@ -8,6 +8,7 @@ from scipy.spatial.distance import pdist
 import argparse
 import requests
 import json
+import redis
 # from pandas.io.json import json_normalize
 from concurrent.futures import ProcessPoolExecutor
 
@@ -218,4 +219,7 @@ if __name__ == '__main__':
 
     # POST results.
     response = requests.post(postURL, data=output_json, headers=POST_HEADER)
+
+    redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
+    redis_client.set("clusters_cache", output_json)
     sys.exit()

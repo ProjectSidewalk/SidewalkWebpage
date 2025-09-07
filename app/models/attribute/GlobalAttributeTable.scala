@@ -9,6 +9,7 @@ import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.{Json, OFormat}
 import play.api.libs.json._
 import service.GsvDataService
 import slick.dbio.Effect
@@ -495,4 +496,25 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   def saveMultiple(attributes: Seq[GlobalAttribute]): DBIO[Seq[Int]] = {
     (globalAttributes returning globalAttributes.map(_.globalAttributeId)) ++= attributes
   }
+}
+
+class GlobalAttributeCachedTableDef(tag: slick.lifted.Tag)
+  extends Table[GlobalAttribute](tag, "global_attribute_cached") {
+
+  def globalAttributeId: Rep[Int] = column[Int]("global_attribute_id", O.PrimaryKey, O.AutoInc)
+  def globalClusteringSessionId: Rep[Int] = column[Int]("global_clustering_session_id")
+  def clusteringThreshold: Rep[Float] = column[Float]("clustering_threshold")
+  def labelTypeId: Rep[Int] = column[Int]("label_type_id")
+  def streetEdgeId: Rep[Int] = column[Int]("street_edge_id")
+  def regionId: Rep[Int] = column[Int]("region_id")
+  def lat: Rep[Float] = column[Float]("lat")
+  def lng: Rep[Float] = column[Float]("lng")
+  def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
+
+  def * = (globalAttributeId, globalClusteringSessionId, clusteringThreshold, labelTypeId, streetEdgeId, regionId,
+           lat, lng, severity) <> ((models.attribute.GlobalAttribute.apply _).tupled, models.attribute.GlobalAttribute.unapply)
+}
+
+object GlobalAttribute {
+  implicit val GlobalAttributeFormat: OFormat[GlobalAttribute] = Json.format[GlobalAttribute]
 }
