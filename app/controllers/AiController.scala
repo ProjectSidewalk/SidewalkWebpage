@@ -35,7 +35,7 @@ class AiController @Inject() (
   /**
    * Parse and process the submitted AI-generated label.
    */
-  def submitAiLabel = cc.securityService.SecuredAction(parse.json) { implicit request =>
+  def submitAiLabel = Action.async(parse.json) { implicit request =>
     val submission = request.body.validate[AiLabelSubmission]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },

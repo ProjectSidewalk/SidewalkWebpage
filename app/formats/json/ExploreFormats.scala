@@ -118,7 +118,7 @@ object ExploreFormats {
       panoY: Int,
       confidence: Double,
       modelId: String,
-      modelTrainingDate: OffsetDateTime,
+      modelTrainingDate: String,
       apiVersion: String,
       pano: GsvPanoramaSubmission
   )
@@ -331,7 +331,7 @@ object ExploreFormats {
       (JsPath \ "pano_y").read[Int] and
       (JsPath \ "confidence").read[Double] and
       (JsPath \ "model_id").read[String] and
-      (JsPath \ "model_training_date").read[OffsetDateTime] and
+      (JsPath \ "model_training_date").read[String] and
       (JsPath \ "api_version").read[String] and
       (JsPath \ "pano").read[GsvPanoramaSubmission]
   )(AiLabelSubmission.apply _)

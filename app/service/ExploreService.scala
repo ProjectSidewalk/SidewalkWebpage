@@ -19,7 +19,8 @@ import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -494,14 +495,21 @@ class ExploreServiceImpl @Inject() (
   }
 
   def submitAiLabelData(data: AiLabelSubmission): Future[Unit] = {
-    val currTime: OffsetDateTime = OffsetDateTime.now
-    val pov  = GsvDataService.calculatePovFromPanoXY(data.panoX, data.panoY, data.pano.width.get, data.pano.height.get)
-    val zoom = 1 // TODO decide on a reasonable zoom
+    val currTime: OffsetDateTime          = OffsetDateTime.now
+    val dateFormatter                     = DateTimeFormatter.ofPattern("MM-dd-yyyy")
+    val modelTrainingDate: OffsetDateTime = LocalDate
+      .parse(data.modelTrainingDate, dateFormatter)
+      .atStartOfDay(ZoneOffset.UTC)
+      .toOffsetDateTime
+    val pov = GsvDataService.calculatePovFromPanoXY(data.panoX, data.panoY, data.pano.width.get, data.pano.height.get,
+      data.pano.cameraHeading.get.toDouble)
+    val zoom    = 1 // TODO decide on a reasonable zoom
     val canvasX = LabelPointTable.canvasWidth / 2
     val canvasY = LabelPointTable.canvasHeight / 2
     val latLng  = GsvDataService.toLatLng(data.pano.lat.get.toDouble, data.pano.lng.get.toDouble,
       data.pano.cameraHeading.get.toDouble, zoom, canvasX, canvasY, data.panoY, data.pano.height.get)
     for {
+      _            <- savePanoInfo(Seq(data.pano))
       streetEdgeId <- db.run(labelTable.getStreetEdgeIdClosestToLatLng(latLng._1.toFloat, latLng._2.toFloat))
       regionId     <- db.run(streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId)).map(_.get.regionId)
       missionId    <- db.run(missionService.resumeOrCreateNewAiExploreMission(regionId)).map(_.missionId)
@@ -531,10 +539,9 @@ class ExploreServiceImpl @Inject() (
       labelId <- db.run(insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId)).map(_._1)
       _       <- db.run(
         labelAiInfoTable.save(
-          LabelAiInfo(0, labelId, data.confidence, data.apiVersion, data.modelId, data.modelTrainingDate)
+          LabelAiInfo(0, labelId, data.confidence, data.apiVersion, data.modelId, modelTrainingDate)
         )
       )
-      _ <- savePanoInfo(Seq(data.pano))
     } yield ()
   }
 

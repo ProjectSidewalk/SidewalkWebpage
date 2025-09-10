@@ -47,16 +47,17 @@ object GsvDataService {
   /**
    * Returns the pov of this label if it were centered based on panorama's POV using panorama XY coordinates.
    *
-   * @param panoX The x-coordinate within the panorama image
-   * @param panoY The y-coordinate within the panorama image
-   * @param panoWidth The total width of the panorama image
-   * @param panoHeight The total height of the panorama image
+   * @param x The x-coordinate within the panorama image
+   * @param y The y-coordinate within the panorama image
+   * @param width The total width of the panorama image
+   * @param height The total height of the panorama image
+   * @param cameraHeading The heading of the camera in degrees
    * @return A tuple containing the calculated heading (0-360 degrees) and pitch (-90 to 90 degrees)
    */
-  def calculatePovFromPanoXY(panoX: Int, panoY: Int, panoWidth: Int, panoHeight: Int): (Double, Double) = {
+  def calculatePovFromPanoXY(x: Int, y: Int, width: Int, height: Int, cameraHeading: Double): (Double, Double) = {
     (
-      (panoX.toDouble / panoWidth) * 360 % 360,
-      (panoY.toDouble / (panoHeight / 2)) * 90
+      (cameraHeading - 180 + (x.toDouble / width) * 360) % 360,
+      90d - 180d * y / height
     )
   }
 
