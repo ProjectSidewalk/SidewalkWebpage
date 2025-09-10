@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
-import formats.json.ExploreFormats.AiLabelSubmission
+import formats.json.ExploreFormats.AiLabelsSubmission
 import play.api.libs.json._
 import play.api.libs.ws._
 import play.api.mvc._
@@ -36,12 +36,14 @@ class AiController @Inject() (
    * Parse and process the submitted AI-generated label.
    */
   def submitAiLabel = Action.async(parse.json) { implicit request =>
-    val submission = request.body.validate[AiLabelSubmission]
+    val submission = request.body.validate[AiLabelsSubmission]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
         if (configService.getCityId == "vancouver-wa") {
-          exploreService.submitAiLabelData(submission).map(_ => Ok("success!"))
+          exploreService.savePanoInfo(Seq(submission.pano)).flatMap { _ =>
+            exploreService.submitAiLabelData(submission).map(_ => Ok("success!"))
+          }
         } else {
           Future.successful(BadRequest("AI label submission beta is only supported in Vancouver, WA at the moment."))
         }

@@ -62,7 +62,7 @@ trait ExploreService {
   def savePanoInfo(gsvPanoramas: Seq[GsvPanoramaSubmission]): Future[Unit]
   def insertComment(comment: AuditTaskComment): Future[Int]
   def insertNoGsv(streetIssue: StreetEdgeIssue): Future[Int]
-  def submitAiLabelData(data: AiLabelSubmission): Future[Unit]
+  def submitAiLabelData(data: AiLabelsSubmission): Future[Seq[Unit]]
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue]
   def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float]
   def selectTasksInRoute(userRouteId: Int): Future[Seq[NewTask]]
@@ -494,55 +494,54 @@ class ExploreServiceImpl @Inject() (
       }
   }
 
-  def submitAiLabelData(data: AiLabelSubmission): Future[Unit] = {
+  def submitAiLabelData(data: AiLabelsSubmission): Future[Seq[Unit]] = {
     val currTime: OffsetDateTime          = OffsetDateTime.now
     val dateFormatter                     = DateTimeFormatter.ofPattern("MM-dd-yyyy")
     val modelTrainingDate: OffsetDateTime = LocalDate
       .parse(data.modelTrainingDate, dateFormatter)
       .atStartOfDay(ZoneOffset.UTC)
       .toOffsetDateTime
-    val pov = GsvDataService.calculatePovFromPanoXY(data.panoX, data.panoY, data.pano.width.get, data.pano.height.get,
-      data.pano.cameraHeading.get.toDouble)
-    val zoom    = 1 // TODO decide on a reasonable zoom
-    val canvasX = LabelPointTable.canvasWidth / 2
-    val canvasY = LabelPointTable.canvasHeight / 2
-    val latLng  = GsvDataService.toLatLng(data.pano.lat.get.toDouble, data.pano.lng.get.toDouble,
-      data.pano.cameraHeading.get.toDouble, zoom, canvasX, canvasY, data.panoY, data.pano.height.get)
-    for {
-      _            <- savePanoInfo(Seq(data.pano))
-      streetEdgeId <- db.run(labelTable.getStreetEdgeIdClosestToLatLng(latLng._1.toFloat, latLng._2.toFloat))
-      regionId     <- db.run(streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId)).map(_.get.regionId)
-      missionId    <- db.run(missionService.resumeOrCreateNewAiExploreMission(regionId)).map(_.missionId)
-      auditTaskId  <- db.run(resumeOrCreateNewAiAuditTask(missionId, streetEdgeId))
-      tempLabelId  <- db.run(labelTable.nextTempLabelId(aiUserId))
-      labelPoint: LabelPointSubmission <- Future.successful(
-        LabelPointSubmission(
-          data.panoX, data.panoY, canvasX, canvasY, heading = pov._1.toFloat, pitch = pov._2.toFloat, zoom,
-          lat = Some(latLng._1.toFloat), lng = Some(latLng._2.toFloat), computationMethod = Some("approximation2")
-        )
-      )
-      labelSubmission: LabelSubmission <- Future.successful(
-        LabelSubmission(
-          gsvPanoramaId = data.pano.gsvPanoramaId,
-          auditTaskId = auditTaskId,
-          labelType = data.labelType,
-          deleted = false,
-          temporaryLabelId = tempLabelId,
-          timeCreated = Some(currTime),
-          tutorial = false,
-          severity = None,
-          description = None,
-          tagIds = Seq.empty[Int],
-          point = labelPoint
-        )
-      )
-      labelId <- db.run(insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId)).map(_._1)
-      _       <- db.run(
-        labelAiInfoTable.save(
-          LabelAiInfo(0, labelId, data.confidence, data.apiVersion, data.modelId, modelTrainingDate)
-        )
-      )
-    } yield ()
+    val zoom = 1 // TODO decide on a reasonable zoom
+    val pano = data.pano
+
+    val labelSubmitActions = DBIO.sequence {
+      data.labels.map { label =>
+        val pov = GsvDataService.calculatePovFromPanoXY(label.panoX, label.panoY, pano.width.get, pano.height.get,
+          pano.cameraHeading.get.toDouble)
+        val canvasX = LabelPointTable.canvasWidth / 2
+        val canvasY = LabelPointTable.canvasHeight / 2
+        val latLng  = GsvDataService.toLatLng(pano.lat.get.toDouble, pano.lng.get.toDouble,
+          pano.cameraHeading.get.toDouble, zoom, canvasX, canvasY, label.panoY, pano.height.get)
+        for {
+          streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(latLng._1.toFloat, latLng._2.toFloat)
+          regionId     <- streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId).map(_.get.regionId)
+          missionId    <- missionService.resumeOrCreateNewAiExploreMission(regionId).map(_.missionId)
+          auditTaskId  <- resumeOrCreateNewAiAuditTask(missionId, streetEdgeId)
+          tempLabelId  <- labelTable.nextTempLabelId(aiUserId)
+          labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
+            heading = pov._1.toFloat, pitch = pov._2.toFloat, zoom, lat = Some(latLng._1.toFloat),
+            lng = Some(latLng._2.toFloat), computationMethod = Some("approximation2"))
+          labelSubmission: LabelSubmission = LabelSubmission(
+            gsvPanoramaId = pano.gsvPanoramaId,
+            auditTaskId = auditTaskId,
+            labelType = data.labelType,
+            deleted = false,
+            temporaryLabelId = tempLabelId,
+            timeCreated = Some(currTime),
+            tutorial = false,
+            severity = None,
+            description = None,
+            tagIds = Seq.empty[Int],
+            point = labelPoint
+          )
+          labelId <- insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId).map(_._1)
+          _       <- labelAiInfoTable.save(
+            LabelAiInfo(0, labelId, label.confidence, data.apiVersion, data.modelId, modelTrainingDate)
+          )
+        } yield ()
+      }
+    }
+    db.run(labelSubmitActions.transactionally)
   }
 
   /**
