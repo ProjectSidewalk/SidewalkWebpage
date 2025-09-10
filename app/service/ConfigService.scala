@@ -247,7 +247,7 @@ class ConfigServiceImpl @Inject() (
       val schema = getCitySchema(cityId)
 
       // Use cache to avoid repeated database queries.
-      cacheApi.getOrElseUpdate[Option[MapParams]](s"getMapParams_$cityId") {
+      cacheApi.getOrElseUpdate[Option[MapParams]](s"getMapParams_$cityId", Duration(1, "days")) {
         try {
           // Attempt to run the database query.
           db.run(configTable.getCityMapParamsBySchema(schema))
@@ -279,7 +279,7 @@ class ConfigServiceImpl @Inject() (
    */
   def getAggregateStats(): Future[AggregateStats] = {
     // Use cache to avoid repeated expensive calculations.
-    cacheApi.getOrElseUpdate[AggregateStats]("getAggregateStats", Duration(1, "seconds")) {
+    cacheApi.getOrElseUpdate[AggregateStats]("getAggregateStats", Duration(5, "minutes")) {
       // Get all configured city IDs.
       val configuredCityIds = config.get[Seq[String]]("city-params.city-ids")
 

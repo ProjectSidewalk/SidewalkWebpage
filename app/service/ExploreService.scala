@@ -499,8 +499,8 @@ class ExploreServiceImpl @Inject() (
     val zoom = 1 // TODO decide on a reasonable zoom
     val canvasX = LabelPointTable.canvasWidth / 2
     val canvasY = LabelPointTable.canvasHeight / 2
-    val latLng  = GsvDataService.toLatLng(data.pano.lat.get, data.pano.lng.get, data.pano.cameraHeading.get, zoom,
-      canvasX, canvasY, data.panoY, data.pano.height.get)
+    val latLng  = GsvDataService.toLatLng(data.pano.lat.get.toDouble, data.pano.lng.get.toDouble,
+      data.pano.cameraHeading.get.toDouble, zoom, canvasX, canvasY, data.panoY, data.pano.height.get)
     for {
       streetEdgeId <- db.run(labelTable.getStreetEdgeIdClosestToLatLng(latLng._1.toFloat, latLng._2.toFloat))
       regionId     <- db.run(streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId)).map(_.get.regionId)

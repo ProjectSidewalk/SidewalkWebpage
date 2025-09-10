@@ -53,10 +53,10 @@ object GsvDataService {
    * @param panoHeight The total height of the panorama image
    * @return A tuple containing the calculated heading (0-360 degrees) and pitch (-90 to 90 degrees)
    */
-  def calculatePovFromPanoXY(panoX: Double, panoY: Double, panoWidth: Double, panoHeight: Double): (Double, Double) = {
+  def calculatePovFromPanoXY(panoX: Int, panoY: Int, panoWidth: Int, panoHeight: Int): (Double, Double) = {
     (
-      (panoX / panoWidth) * 360 % 360,
-      (panoY / (panoHeight / 2)) * 90
+      (panoX.toDouble / panoWidth) * 360 % 360,
+      (panoY.toDouble / (panoHeight / 2)) * 90
     )
   }
 
@@ -112,10 +112,10 @@ object GsvDataService {
       panoLng: Double,
       panoHeading: Double,
       zoom: Int,
-      canvasX: Double,
-      canvasY: Double,
-      panoY: Double,
-      panoHeight: Double
+      canvasX: Int,
+      canvasY: Int,
+      panoY: Int,
+      panoHeight: Int
   ): (Double, Double) = {
     val params = LatLngEstimationParams.LATLNG_ESTIMATION_PARAMS(zoom)
 

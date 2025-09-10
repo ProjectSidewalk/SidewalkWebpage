@@ -29,6 +29,10 @@ function AddCitiesToMap(map, citiesData, params) {
         privateRadius: 5
     };
 
+    // Hide a few deployments for now that are covering up legitimate deployments.
+    citiesData.features = citiesData.features
+        .filter(city => !['crowdstudy', 'validation-study', 'la-piedad-old'].includes(city.properties.cityId));
+
     // Render cities as circles.
     map.addSource(CITIES_LAYER_NAME, {
         type: 'geojson',
@@ -213,7 +217,8 @@ function AddCitiesToMap(map, citiesData, params) {
     function formatDistance(km) {
         const distUnit = i18next.t('common:unit-distance-abbreviation');
         const dist = i18next.t('common:measurement-system') === 'metric' ? km : util.math.kmsToMiles(km);
-        return i18next.t('common:format-number', { val: Math.round(dist) }) + ' ' + distUnit;
+        const roundedDist = Math.round(dist) < 10 ? Math.round(dist * 10) / 10 : Math.round(dist);
+        return i18next.t('common:format-number', { val: roundedDist }) + ' ' + distUnit;
     }
 
     /**

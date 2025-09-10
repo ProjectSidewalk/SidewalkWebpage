@@ -2,7 +2,7 @@ package models.label
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile.api._
-import models.utils.{AiTagConfidence, MyPostgresProfile}
+import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
