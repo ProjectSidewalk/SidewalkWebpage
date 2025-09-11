@@ -55,6 +55,11 @@ object GsvDataService {
    * @return A tuple containing the calculated heading (0-360 degrees) and pitch (-90 to 90 degrees)
    */
   def calculatePovFromPanoXY(x: Int, y: Int, width: Int, height: Int, cameraHeading: Double): (Double, Double) = {
+    // Mikey Sep 2025 - I tested out taking into account camera_roll. Sometimes it helped, sometimes it made it worse.
+    // val rawPitch = 90d - 180d * y / height
+    // val horizontalOffset = (x.toDouble / width - 0.5) * 360 // -180 to +180 degrees from center
+    // Apply roll correction: roll affects pitch based on horizontal position.
+    // val correctedPitch = rawPitch - cameraRoll * math.sin(math.toRadians(horizontalOffset))
     (
       (cameraHeading - 180 + (x.toDouble / width) * 360) % 360,
       90d - 180d * y / height
