@@ -5,9 +5,7 @@ import formats.json.PanoHistoryFormats.PanoHistorySubmission
 import models.gsv.{GsvDataSlim, GsvDataTable, PanoHistory, PanoHistoryTable}
 import models.label.LabelPointTable
 import models.street.StreetEdge
-import models.utils.MyPostgresProfile
-import org.geotools.referencing.GeodeticCalculator
-import org.geotools.referencing.crs.DefaultGeographicCRS
+import models.utils.{CommonUtils, MyPostgresProfile}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.Json
@@ -138,58 +136,9 @@ object GsvDataService {
 
     val estHeading = panoHeading + estHeadingDiff
 
-    // Calculate destination point using spherical geometry.
-    val destination0: (Double, Double) = calculateDestination(panoLat, panoLng, estDistanceFromPanoKm, estHeading)
-
-    // Preferred calculation using Geotools library, but I need to check that we're getting similar results.
-    val calculator = new GeodeticCalculator(DefaultGeographicCRS.WGS84)
-    calculator.setStartingGeographicPoint(panoLng, panoLat)
-    calculator.setDirection(math.toRadians(estHeading), estDistanceFromPanoKm * 1000) // meters
-    val destination = calculator.getDestinationGeographicPoint
-
-    println(destination0)
-    println(destination)
-
-//    LatLng(lat = destination._1, lng = destination._2)
-//    destination
-    (destination.getY, destination.getX)
+    // Calculate destination point using haversine formula.
+    CommonUtils.calculateDestination(panoLat, panoLng, estDistanceFromPanoKm, estHeading)
   }
-
-  /**
-   * Calculate a destination point given a starting point, distance, and bearing.
-   * Uses the Haversine formula for spherical geometry calculations.
-   *
-   * @param startLat Starting latitude in degrees
-   * @param startLng Starting longitude in degrees
-   * @param distanceKm Distance in kilometers
-   * @param bearingDegrees Bearing in degrees (0-360, where 0 is north)
-   * @return Tuple of (latitude, longitude) for the destination point
-   */
-  private def calculateDestination(
-      startLat: Double,
-      startLng: Double,
-      distanceKm: Double,
-      bearingDegrees: Double
-  ): (Double, Double) = {
-    val earthRadiusKm   = 6371.0
-    val lat1Rad         = math.toRadians(startLat)
-    val lng1Rad         = math.toRadians(startLng)
-    val bearingRad      = math.toRadians(bearingDegrees)
-    val angularDistance = distanceKm / earthRadiusKm
-
-    val lat2Rad = math.asin(
-      math.sin(lat1Rad) * math.cos(angularDistance) +
-        math.cos(lat1Rad) * math.sin(angularDistance) * math.cos(bearingRad)
-    )
-
-    val lng2Rad = lng1Rad + math.atan2(
-      math.sin(bearingRad) * math.sin(angularDistance) * math.cos(lat1Rad),
-      math.cos(angularDistance) - math.sin(lat1Rad) * math.sin(lat2Rad)
-    )
-
-    (math.toDegrees(lat2Rad), math.toDegrees(lng2Rad))
-  }
-
 }
 
 @ImplementedBy(classOf[GsvDataServiceImpl])
