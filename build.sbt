@@ -17,10 +17,10 @@ resolvers ++= Seq(
 // Play: https://mvnrepository.com/artifact/com.typesafe.play/play?repo=central
 libraryDependencies ++= Seq(
   // General Play stuff.
-  "org.playframework" %% "play-guice" % "3.0.8",
-  "org.playframework" %% "play-cache" % "3.0.8",
-  "org.playframework" %% "play-ws" % "3.0.8",
-  "org.playframework" %% "play-caffeine-cache" % "3.0.8",
+  "org.playframework" %% "play-guice" % "3.0.9",
+  "org.playframework" %% "play-cache" % "3.0.9",
+  "org.playframework" %% "play-ws" % "3.0.9",
+  "org.playframework" %% "play-caffeine-cache" % "3.0.9",
   "org.playframework" %% "play-mailer" % "10.1.0", // play-mailer is on a different versioning scheme than Play itself.
   "org.playframework" %% "play-mailer-guice" % "10.1.0", // play-mailer is on a different versioning scheme than Play itself.
   "org.playframework" %% "play-json" % "3.0.5", // play-json is on a different versioning scheme than Play itself.
