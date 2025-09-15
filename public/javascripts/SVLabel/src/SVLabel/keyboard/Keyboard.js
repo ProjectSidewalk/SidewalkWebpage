@@ -21,11 +21,9 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * also, we added a buffer to the z key to fix inconsistent behavior when shift and z were pressed at the same time.
      * sometimes, the shift up was detected before the z up. Adding the 100ms buffer fixed this issue.
      */
-    var lastShiftKeyUpTimestamp = new Date(0);
     var status = {
         focusOnTextField: false,
         isOnboarding: false,
-        shiftDown: false,
         disableKeyboard: false,
         moving: false,
         disableMovement: false
@@ -132,47 +130,22 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             e.stopPropagation();
         }
 
-        if (!status.focusOnTextField && !status.disableKeyboard) {
-            // Only set shift if the event was made after the keyup.
-            if (e.timeStamp > lastShiftKeyUpTimestamp) {
-                status.shiftDown = e.shiftKey;
-            }
-        }
-
         if (!status.disableKeyboard && !status.focusOnTextField) {
-            if (contextMenu.isOpen()) {
-                var label;
-                // Rating severity.
-                if (e.keyCode >= 49 && e.keyCode <= 51 && !contextMenu.isRatingSeverityDisabled()) {
-                    const severity = e.keyCode - 48; // "1" - "3"
-                    contextMenu.checkRadioButton(severity);
-                    label = contextMenu.getTargetLabel();
-                    if (label) {
-                        label.setProperty('severity', severity);
-                        svl.tracker.push("KeyboardShortcut_Severity_" + severity, {
-                            keyCode: e.keyCode
-                        });
-                        svl.canvas.clear().render();
-                    }
-                }
-            } else {
-                switch (e.keyCode) {
-                    case 37:  // "ArrowLeft"
+            // Shortcuts that only apply when the context menu is closed (moving/panning).
+            if (!contextMenu.isOpen()) {
+                switch (e.key) {
+                    case "ArrowLeft":
                         self._rotatePovByDegree(-2);
                         break;
-                    case 39:  // "ArrowRight"
+                    case "ArrowRight":
                         self._rotatePovByDegree(2);
                         break;
-                }
-                if (!status.disableMovement) {
-                    switch (e.keyCode) {
-                        case 38: // "ArrowUp"
-                            self._moveForward();
-                            break;
-                        case 40:  // "ArrowDown"
-                            self._moveBackward();
-                            break;
-                    }
+                    case "ArrowUp":
+                        if (!status.disableMovement) { self._moveForward(); }
+                        break;
+                    case "ArrowDown":
+                        if (!status.disableMovement) { self._moveBackward(); }
+                        break;
                 }
             }
         }
@@ -184,79 +157,75 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * @private
      */
     this._documentKeyUp = function (e) {
-        if (!status.disableKeyboard) {
-            status.shiftDown = e.shiftKey;
-            if (!status.focusOnTextField) {
-                // e: Walk, c: CurbRamp, m: NoCurbRamp, o: Obstacle, s: SurfaceProblem: n: NoSidewalk, w: Crosswalk,
-                // p: Signal, b: Occlusion
-                for (const mode of ['Walk'].concat(util.misc.VALID_LABEL_TYPES_WITHOUT_OTHER)) {
-                    if (e.key.toUpperCase() === util.misc.getLabelDescriptions(mode)['keyChar']) {
-                        if (mode !== 'Walk') _closeContextMenu(e.keyCode);
-                        ribbon.modeSwitch(mode);
-                        svl.tracker.push("KeyboardShortcut_ModeSwitch_" + mode, {
-                            keyCode: e.keyCode
-                        });
-                    }
-                }
-                switch(e.keyCode) {
-                    // Zoom Hotkeys
-                    case 16: // Shift
-                        // Store the timestamp here so that we can check if the z-up event is in the buffer range.
-                        lastShiftKeyUpTimestamp = e.timeStamp;
-                        break;
-                    case 90:
-                        if (contextMenu.isOpen()) {
-                            svl.tracker.push("KeyboardShortcut_CloseContextMenu");
-                            contextMenu.hide();
-                        }
-                        // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
-                        // if shift was down w/in 100 ms of the z up, then it will also zoom out.
-                        // This is to catch the scenarios where shift up is detected before the z up.
-                        if (status.shiftDown || (e.timeStamp - lastShiftKeyUpTimestamp) < 100) {
-                            // Zoom out
-                            zoomControl.zoomOut();
-                            svl.tracker.push("KeyboardShortcut_ZoomOut", {
-                                keyCode: e.keyCode
-                            });
-                        } else {
-                            // Zoom in
-                            zoomControl.zoomIn();
-                            svl.tracker.push("KeyboardShortcut_ZoomIn", {
-                                keyCode: e.keyCode
-                            });
-                        }
-                }
-
-                // Hotkeys for tag selection.
-                if (contextMenu.getTargetLabel() != null && contextMenu.isOpen() && !contextMenu.isTaggingDisabled()) {
-                    var labelType = contextMenu.getTargetLabel().getProperty('labelType');
-                    var tags = contextMenu.labelTags.filter(tag => tag.label_type === labelType);
-                    for (const tag of tags) {
-                        if (e.key.toUpperCase() === util.misc.getLabelDescriptions(labelType)['tagInfo'][tag.tag]['keyChar']) {
-                            $('.tag-id-' + tag.tag_id).first().trigger("click", {lowLevelLogging: false});
-                        }
-                    }
-                }
-            }
-
-            switch (e.keyCode) {
-                case 13:
-                    // "Enter"
-                    if(contextMenu.isOpen()) {
-                        svl.tracker.push("KeyboardShortcut_CloseContextMenu");
-                        contextMenu.handleSeverityPopup();
-                        svl.tracker.push("ContextMenu_ClosePressEnter");
-                        contextMenu.hide();
-                    }
+        // Ways to close context menu. Separated from later code because we want these to work in description textbox.
+        if (!status.disableKeyboard && contextMenu.isOpen()) {
+            switch (e.key) {
+                case "Enter":
+                    svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                    contextMenu.handleSeverityPopup();
+                    svl.tracker.push("ContextMenu_ClosePressEnter");
+                    contextMenu.hide();
                     break;
-                case 27:
-                    // "Escape"
+                case "Escape":
                     _closeContextMenu(e.keyCode);
                     ribbon.backToWalk();
                     break;
             }
+        }
 
-            contextMenu.updateRadioButtonImages();
+        if (!status.disableKeyboard && !status.focusOnTextField) {
+            // Switch labeling mode. e: Walk, c: CurbRamp, m: NoCurbRamp, o: Obstacle, s: SurfaceProblem: n: NoSidewalk,
+            // w: Crosswalk, p: Signal, b: Occlusion.
+            for (const mode of ['Walk'].concat(util.misc.VALID_LABEL_TYPES_WITHOUT_OTHER)) {
+                if (e.key.toUpperCase() === util.misc.getLabelDescriptions(mode)['keyChar']) {
+                    if (mode !== 'Walk') _closeContextMenu(e.keyCode);
+                    ribbon.modeSwitch(mode);
+                    svl.tracker.push("KeyboardShortcut_ModeSwitch_" + mode, { keyCode: e.keyCode });
+                }
+            }
+
+            // Zooming in/out.
+            if (e.code === 'KeyZ') {
+                // Close the context menu whenever we zoom.
+                if (contextMenu.isOpen()) {
+                    svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                    contextMenu.hide();
+                }
+
+                // Zoom in or out depending on whether shift is down.
+                if (e.shiftKey) {
+                    zoomControl.zoomOut();
+                    svl.tracker.push("KeyboardShortcut_ZoomOut", { keyCode: e.keyCode });
+                } else {
+                    zoomControl.zoomIn();
+                    svl.tracker.push("KeyboardShortcut_ZoomIn", { keyCode: e.keyCode });
+                }
+            }
+
+            // Shortcuts that only apply when the context menu is open (like rating severity and adding/removing tags).
+            if (contextMenu.isOpen()) {
+                let targetLabel = contextMenu.getTargetLabel();
+
+                // Rating severity. Can use either number keys or numpad keys.
+                if (["1", "2", "3"].includes(e.key) && targetLabel && !contextMenu.isRatingSeverityDisabled()) {
+                    const severity = Number(e.key); // "1" - "3"
+                    contextMenu.checkRadioButton(severity);
+                    targetLabel.setProperty('severity', severity);
+                    svl.tracker.push("KeyboardShortcut_Severity_" + severity, { keyCode: e.keyCode });
+                    svl.canvas.clear().render();
+                }
+
+                // Adding/removing tags.
+                if (targetLabel && !contextMenu.isTaggingDisabled()) {
+                    var labelType = targetLabel.getProperty('labelType');
+                    var tags = contextMenu.labelTags.filter(tag => tag.label_type === labelType);
+                    for (const tag of tags) {
+                        if (e.key.toUpperCase() === util.misc.getLabelDescriptions(labelType)['tagInfo'][tag.tag]['keyChar']) {
+                            $('.tag-id-' + tag.tag_id).first().trigger("click", { lowLevelLogging: false });
+                        }
+                    }
+                }
+            }
         }
     };
 
