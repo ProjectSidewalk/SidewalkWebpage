@@ -1,4 +1,4 @@
-function OnboardingStates (contextMenu, compass, mapService, statusModel, tracker) {
+function OnboardingStates (contextMenu, compass, mapService) {
     var panoId = "tutorial";
     var afterWalkPanoId = "afterWalkTutorial";
     var headingRanges = {
@@ -86,6 +86,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
+                "labelNumber": 1,
                 "labelType": "CurbRamp",
                 "imageX": 1170,
                 "imageY": 3800,
@@ -120,6 +121,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
+                "labelNumber": 1,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1],
@@ -144,6 +146,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
+                "labelNumber": 1,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1],
@@ -168,6 +171,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "RateSeverity",
+                "labelNumber": 1,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1]
@@ -194,6 +198,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
+                "labelNumber": 1,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1]
@@ -220,6 +225,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "SelectLabelType",
+                "labelNumber": 2,
                 "labelType": "Crosswalk",
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1]
@@ -244,6 +250,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
+                "labelNumber": 2,
                 "labelType": "Crosswalk",
                 "imageX": 420,
                 "imageY": 3800,
@@ -278,6 +285,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
+                "labelNumber": 2,
                 "labelType": "Crosswalk",
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1],
@@ -302,6 +310,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
+                "labelNumber": 2,
                 "labelType": "Crosswalk",
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1],
@@ -326,6 +335,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "RateSeverity",
+                "labelNumber": 2,
                 "labelType": "Crosswalk",
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1]
@@ -350,6 +360,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
+                "labelNumber": 2,
                 "labelType": "Crosswalk",
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1]
@@ -412,6 +423,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "SelectLabelType",
+                "labelNumber": 3,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
@@ -437,6 +449,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
+                "labelNumber": 3,
                 "labelType": "CurbRamp",
                 "imageX": 12950,
                 "imageY": 3720,
@@ -471,6 +484,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
+                "labelNumber": 3,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1],
@@ -496,6 +510,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
+                "labelNumber": 3,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1],
@@ -521,6 +536,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "RateSeverity",
+                "labelNumber": 3,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
@@ -547,6 +563,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
+                "labelNumber": 3,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
@@ -573,6 +590,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "AddTag",
+                "labelNumber": 3,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
@@ -598,6 +616,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoAddTag",
+                "labelNumber": 3,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
@@ -623,6 +642,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "SelectLabelType",
+                "labelNumber": 4,
                 "labelType": "NoCurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
@@ -648,6 +668,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
+                "labelNumber": 4,
                 "labelType": "NoCurbRamp",
                 "imageX": 12560,
                 "imageY": 3720,
@@ -682,6 +703,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
+                "labelNumber": 4,
                 "labelType": "NoCurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1],
@@ -707,6 +729,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
+                "labelNumber": 4,
                 "labelType": "NoCurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1],
@@ -732,6 +755,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "RateSeverity",
+                "labelNumber": 4,
                 "labelType": "NoCurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
@@ -758,6 +782,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
+                "labelNumber": 4,
                 "labelType": "NoCurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
@@ -784,6 +809,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "AddTag",
+                "labelNumber": 4,
                 "labelType": "NoCurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
@@ -809,6 +835,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoAddTag",
+                "labelNumber": 4,
                 "labelType": "NoCurbRamp",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
@@ -834,6 +861,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "SelectLabelType",
+                "labelNumber": 5,
                 "labelType": "Signal",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1]
@@ -865,6 +893,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
+                "labelNumber": 5,
                 "labelType": "Signal",
                 "imageX": 12500,
                 "imageY": 3690,
@@ -907,6 +936,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
+                "labelNumber": 5,
                 "labelType": "Signal",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1],
@@ -939,6 +969,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
+                "labelNumber": 5,
                 "labelType": "Signal",
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1],
@@ -1009,6 +1040,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "SelectLabelType",
+                "labelNumber": 6,
                 "labelType": "Crosswalk",
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1]
@@ -1033,6 +1065,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
+                "labelNumber": 6,
                 "labelType": "Crosswalk",
                 "imageX": 11850,
                 "imageY": 3980,
@@ -1067,6 +1100,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
+                "labelNumber": 6,
                 "labelType": "Crosswalk",
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1],
@@ -1092,6 +1126,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
+                "labelNumber": 6,
                 "labelType": "Crosswalk",
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1],
@@ -1117,6 +1152,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "RateSeverity",
+                "labelNumber": 6,
                 "labelType": "Crosswalk",
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1]
@@ -1141,6 +1177,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
+                "labelNumber": 6,
                 "labelType": "Crosswalk",
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1]
@@ -1235,6 +1272,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "SelectLabelType",
+                "labelNumber": 7,
                 "labelType": "NoSidewalk",
                 "minHeading": headingRanges["stage-4"][0],
                 "maxHeading": headingRanges["stage-4"][1]
@@ -1260,6 +1298,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
+                "labelNumber": 7,
                 "labelType": "NoSidewalk",
                 "imageX": 7550,
                 "imageY": 3900,
@@ -1294,6 +1333,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
+                "labelNumber": 7,
                 "labelType": "NoSidewalk",
                 "minHeading": headingRanges["stage-4"][0],
                 "maxHeading": headingRanges["stage-4"][1],
@@ -1319,6 +1359,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
+                "labelNumber": 7,
                 "labelType": "NoSidewalk",
                 "minHeading": headingRanges["stage-4"][0],
                 "maxHeading": headingRanges["stage-4"][1],
@@ -1344,6 +1385,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "RateSeverity",
+                "labelNumber": 7,
                 "labelType": "NoSidewalk",
                 "minHeading": headingRanges["stage-4"][0],
                 "maxHeading": headingRanges["stage-4"][1]
@@ -1371,6 +1413,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
+                "labelNumber": 7,
                 "labelType": "NoSidewalk",
                 "minHeading": headingRanges["stage-4"][0],
                 "maxHeading": headingRanges["stage-4"][1]
@@ -1398,6 +1441,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "AddTag",
+                "labelNumber": 7,
                 "labelType": "NoSidewalk",
                 "minHeading": headingRanges["stage-4"][0],
                 "maxHeading": headingRanges["stage-4"][1]
@@ -1429,6 +1473,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoAddTag",
+                "labelNumber": 7,
                 "labelType": "NoSidewalk",
                 "minHeading": headingRanges["stage-4"][0],
                 "maxHeading": headingRanges["stage-4"][1]
@@ -1477,6 +1522,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "SelectLabelType",
+                "labelNumber": 8,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1]
@@ -1502,6 +1548,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
+                "labelNumber": 8,
                 "labelType": "CurbRamp",
                 "imageX": 5550,
                 "imageY": 4080,
@@ -1536,6 +1583,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
+                "labelNumber": 8,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1],
@@ -1561,6 +1609,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
+                "labelNumber": 8,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1],
@@ -1586,6 +1635,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "RateSeverity",
+                "labelNumber": 8,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1]
@@ -1612,6 +1662,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoRateSeverity",
+                "labelNumber": 8,
                 "labelType": "CurbRamp",
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1]
@@ -1638,6 +1689,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": {
                 "action": "SelectLabelType",
+                "labelNumber": 9,
                 "labelType": "Signal",
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1]
@@ -1669,6 +1721,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": true,
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
+                "labelNumber": 9,
                 "labelType": "Signal",
                 "imageX": 5015,
                 "imageY": 4260,
@@ -1711,6 +1764,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "DeleteAccessibilityAttribute",
+                "labelNumber": 9,
                 "labelType": "Signal",
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1],
@@ -1743,6 +1797,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "progression": false,
             "properties": {
                 "action": "RedoSelectLabelType",
+                "labelNumber": 9,
                 "labelType": "Signal",
                 "minHeading": headingRanges["stage-5"][0],
                 "maxHeading": headingRanges["stage-5"][1],

@@ -703,7 +703,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     function _visitRateSeverity(state, listener) {
-        contextMenu.enableRatingSeverity();
+        contextMenu.enableRatingSeverityForTutorialLabel(state.properties.labelNumber);
         var $target = svl.ui.contextMenu.radioButtons;
         var callback = function () {
             if (listener) google.maps.event.removeListener(listener);
@@ -714,7 +714,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         $target.on("click", callback);
     }
     function _visitAddTag(state, listener) {
-        contextMenu.enableTagging();
+        contextMenu.enableTaggingForTutorialLabel(state.properties.labelNumber);
         var $target = svl.ui.contextMenu.tagHolder; // Grab tag holder so we can add an event listener.
         var callback = function () {
             if (listener) google.maps.event.removeListener(listener);
@@ -766,24 +766,16 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      */
     function _visitSelectLabelTypeState(state, listener) {
         var labelType = state.properties.labelType;
-        var subcategory = "subcategory" in state.properties ? state.properties.subcategory : null;
-        var event;
-
-        if (subcategory) {
-            event = subcategory
-        } else {
-            event = labelType
-        }
 
         if (state === getState("select-label-type-1")) {
             $("#mini-footer-audit").css("visibility", "visible");
         }
-        ribbon.enableMode(labelType, subcategory);
-        ribbon.startBlinking(labelType, subcategory);
+        ribbon.enableMode(labelType);
+        ribbon.startBlinking(labelType);
 
-        // To handle when user presses ESC - disable mode only when the user places the label
+        // To handle when user presses ESC - disable mode only when the user places the label.
         _mouseDownCanvasDrawingHandler = function () {
-            ribbon.disableMode(labelType, subcategory);
+            ribbon.disableMode(labelType);
         };
 
         var callback = function () {
@@ -793,12 +785,12 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             uiCanvas.drawingLayer.on("mousedown", _mouseDownCanvasDrawingHandler);
 
             ribbon.stopBlinking();
-            $(document).off('ModeSwitch_' + event, callback);
+            $(document).off('ModeSwitch_' + labelType, callback);
             if (listener) google.maps.event.removeListener(listener);
             next(state.transition);
         };
 
-        $(document).on('ModeSwitch_' + event, callback);
+        $(document).on('ModeSwitch_' + labelType, callback);
     }
 
     /**
@@ -859,60 +851,43 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * @private
      */
     function _visitLabelAccessibilityAttributeState(state, listener) {
-        var $target = uiCanvas.drawingLayer;
-        var properties = state.properties;
-        var transition = state.transition;
+        const properties = state.properties[0];
+        const transition = state.transition;
 
-        // TODO instead of having this callback on click, make an event when a label is created. Use .getProperty('panoXY') instead of all the math we do now.
-        var callback = function (e) {
-            var i = 0;
-            var labelAppliedCorrectly = false;
-            var distance = []; // Keeps track of how far away the label is from each possible label.
-            var panoData = svl.panoramaContainer.getPanorama(state.panoId).data();
-            var svImgWidth = panoData.tiles.worldSize.width;
-            var svImgHeight = panoData.tiles.worldSize.height;
-            var cameraHeading = panoData.tiles.originHeading;
-
-            while (i < properties.length && !labelAppliedCorrectly) {
-                var imageX = properties[i].imageX;
-                var imageY = properties[i].imageY;
-                var tolerance = properties[i].tolerance;
-
-                var clickCoordinate = mouseposition(e, this);
-                var pov = mapService.getPov();
-                var canvasX = clickCoordinate.x;
-                var canvasY = clickCoordinate.y;
-                var panoXY = util.panomarker.canvasXYToPanoXY(
-                    pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, cameraHeading, svImgWidth, svImgHeight
-                );
-                panoXY.x *= svl.TUTORIAL_PANO_SCALE_FACTOR;
-                panoXY.y *= svl.TUTORIAL_PANO_SCALE_FACTOR;
-
-                distance[i] = (imageX - panoXY.x) * (imageX - panoXY.x) + (imageY - panoXY.y) * (imageY - panoXY.y);
-                currentLabelState = state;
-                i = i + 1;
-            }
-
+        // Add an event that fires when a label is added and checks if the label was placed in the right spot.
+        function _tutorialLabelListener(event) {
             if (listener) google.maps.event.removeListener(listener);
-            var indexOfClosest = distance.indexOf(Math.min(...distance));
-            if (distance[indexOfClosest] < tolerance * tolerance) {
-                // Disable deleting of label
+
+            const label = event.detail.label;
+            const panoX = label.getProperty('panoXY').x * svl.TUTORIAL_PANO_SCALE_FACTOR;
+            const panoY = label.getProperty('panoXY').y * svl.TUTORIAL_PANO_SCALE_FACTOR;
+            const imageX = properties.imageX;
+            const imageY = properties.imageY;
+            const tolerance = properties.tolerance;
+
+            const distance = (imageX - panoX) * (imageX - panoX) + (imageY - panoY) * (imageY - panoY);
+            currentLabelState = state;
+
+            // If the label was placed close enough to the target, move on to the next state.
+            if (distance < tolerance * tolerance) {
+                label.setProperty('tutorialLabelNumber', properties.labelNumber);
+
+                // Disable deleting of label.
                 canvas.unlockDisableLabelDelete();
                 canvas.disableLabelDelete();
                 canvas.lockDisableLabelDelete();
 
-                // Disable labeling mode
-                ribbon.disableMode(properties[indexOfClosest].labelType, properties[indexOfClosest].subcategory);
+                // Disable labeling mode.
+                ribbon.disableMode(label.getLabelType());
                 ribbon.enableMode("Walk");
                 uiCanvas.drawingLayer.off("mousedown", _mouseDownCanvasDrawingHandler);
 
-                next(transition[indexOfClosest], { accurate: true });
+                next(transition[0], { accurate: true });
             } else {
-                next(transition[indexOfClosest], { accurate: false });
+                next(transition[0], { accurate: false });
             }
-            $target.off("click", callback);
-        };
-        $target.on("click", callback);
+        }
+        document.addEventListener('addTutorialLabel', _tutorialLabelListener, { once: true });
     }
 
     /**
@@ -923,7 +898,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * @private
      */
     function _visitDeleteAccessibilityAttributeState(state, listener) {
-        ribbon.disableMode(state.properties.labelType, state.properties.subcategory);
+        ribbon.disableMode(state.properties.labelType);
         ribbon.enableMode("Walk");
         canvas.unlockDisableLabelDelete();
         canvas.enableLabelDelete();

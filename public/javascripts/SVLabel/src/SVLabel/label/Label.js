@@ -61,6 +61,7 @@ function Label(params) {
         tagIds: [],
         severity: null,
         tutorial: null,
+        tutorialLabelNumber: undefined,
         temporaryLabelId: null,
         description: null,
         crop: undefined
