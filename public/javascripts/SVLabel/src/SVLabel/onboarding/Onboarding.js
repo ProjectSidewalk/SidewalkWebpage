@@ -80,6 +80,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         compass.hideMessage();
         compass.disableCompassClick();
 
+        contextMenu.disableRatingSeverity();
+        contextMenu.disableTagging();
+
         // Make sure that the context menu covers instructions when hovering over the context menu.
         svl.ui.contextMenu.holder.on('mouseover', function() {
             uiOnboarding.messageHolder.css('z-index', 2);
@@ -700,23 +703,23 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     function _visitRateSeverity(state, listener) {
-        contextMenu.disableTagging();
+        contextMenu.enableRatingSeverity();
         var $target = svl.ui.contextMenu.radioButtons;
         var callback = function () {
             if (listener) google.maps.event.removeListener(listener);
             $target.off("click", callback);
-            contextMenu.enableTagging();
+            contextMenu.disableRatingSeverity();
             next.call(this, state.transition);
         };
         $target.on("click", callback);
     }
     function _visitAddTag(state, listener) {
+        contextMenu.enableTagging();
         var $target = svl.ui.contextMenu.tagHolder; // Grab tag holder so we can add an event listener.
         var callback = function () {
-            if (listener) {
-                google.maps.event.removeListener(listener);
-            }
+            if (listener) google.maps.event.removeListener(listener);
             $target.off("tagIds-updated", callback);
+            contextMenu.disableTagging();
             next.call(contextMenu.getTargetLabel(), state.transition);
         };
         // We use a custom event here to ensure that this is triggered after the tags have been updated.

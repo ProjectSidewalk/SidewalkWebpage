@@ -10,6 +10,7 @@ function ContextMenu (uiContextMenu) {
         status = {
             targetLabel: null,
             visibility: 'hidden',
+            disableRatingSeverity: false,
             disableTagging: false
         };
     var $menuWindow = uiContextMenu.holder;
@@ -247,6 +248,15 @@ function ContextMenu (uiContextMenu) {
     }
 
     /**
+     * Disable rating severity. Adds the disabled visual effects to the severity buttons on current context menu.
+     */
+    function disableRatingSeverity() {
+        setStatus('disableRatingSeverity', true);
+        // $severityButtons.prop('disabled', true);
+        $radioButtonLabels.addClass('disabled');
+    }
+
+    /**
      * Disable tagging. Adds the disabled visual effects to the tags on current context menu.
      */
     function disableTagging() {
@@ -257,6 +267,15 @@ function ContextMenu (uiContextMenu) {
     }
 
     /**
+     * Enable rating severity. Removes the disabled visual effects to the severity buttons on current context menu.
+     */
+    function enableRatingSeverity() {
+        setStatus('disableRatingSeverity', false);
+        // $severityButtons.prop('disabled', false);
+        $radioButtonLabels.removeClass('disabled');
+    }
+
+    /**
      * Enable tagging. Removes the disabled visual effects to the tags on current context menu.
      */
     function enableTagging() {
@@ -264,6 +283,13 @@ function ContextMenu (uiContextMenu) {
         $("body").find("button[name=tag]").each(function(t) {
             $(this).removeClass('disabled');
         });
+    }
+
+    /**
+     * Returns true if rating severity is currently disabled.
+     */
+    function isRatingSeverityDisabled() {
+        return getStatus('disableRatingSeverity');
     }
 
     /**
@@ -448,7 +474,6 @@ function ContextMenu (uiContextMenu) {
         $descriptionTextBox.val(null);
 
         var labelType = targetLabel.getLabelType();
-        var labelColor = util.misc.getLabelColors()[labelType].fillStyle;
         var labelCoord = targetLabel.getCanvasXY();
 
         if (labelType !== 'Occlusion') {
@@ -530,8 +555,11 @@ function ContextMenu (uiContextMenu) {
     self.hide = hide;
     self.isOpen = isOpen;
     self.show = show;
+    self.disableRatingSeverity = disableRatingSeverity;
     self.disableTagging = disableTagging;
+    self.enableRatingSeverity = enableRatingSeverity;
     self.enableTagging = enableTagging;
+    self.isRatingSeverityDisabled = isRatingSeverityDisabled;
     self.isTaggingDisabled = isTaggingDisabled;
     return self;
 }
