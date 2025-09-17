@@ -1654,6 +1654,39 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Get a list of labels for AI to validate, prioritizing unvalidated labels on older images.
+   * @param n The number of labels to retrieve
+   * @return A sequence of LabelDataForAi objects to feed to the SidewalkAI API for validation
+   */
+  def getLabelsToValidateWithAi(n: Int): DBIO[Seq[LabelDataForAi]] = {
+    val possibleLabels = labelsUnfiltered
+      .filter(_.labelTypeId inSet LabelTypeEnum.aiLabelTypeIds)
+      .filter(label => label.userId =!= aiUserId) // No labels created by AI
+      .joinLeft(labelAiAssessments)
+      .on(_.labelId === _.labelId)
+      .filter(_._2.map(_.labelId).isEmpty) // No labels that AI has already tried to validate
+      .map(_._1)
+
+    possibleLabels
+      .join(labelPoints)
+      .on(_.labelId === _.labelId)
+      .join(gsvData)
+      .on { case ((label, point), gsv) => label.gsvPanoramaId === gsv.gsvPanoramaId }
+      .filter { case ((label, point), gsv) => !gsv.expired && gsv.width.isDefined && gsv.height.isDefined }
+      .sortBy { case ((label, point), gsv) =>
+        (
+          label.correct.isDefined.asc,                                      // Unsure/unvalidated first
+          gsv.captureDate.asc.nullsLast,                                    // Older images first
+          (label.agreeCount + label.disagreeCount + label.unsureCount).asc, // Fewer validations first
+          label.timeCreated.desc                                            // More recently added labels first
+        )
+      }
+      .take(n)
+      .result
+      .map(_.map { case ((label, point), gsv) => LabelDataForAi(label.labelId, label.labelTypeId, point, gsv) })
+  }
+
+  /**
    * Get next temp label id to be used. That would be the max used + 1, or just 1 if no labels in this task.
    */
   def nextTempLabelId(userId: String): DBIO[Int] = {

@@ -186,7 +186,6 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    * @return DBIO[Int] - the mission ID for the AI validation mission of the given label type
    */
   def getAiValidateMissionId(labelTypeId: Int): DBIO[Int] = {
-    println("Getting AI validation mission ID for label type: " + labelTypeId)
     missions
       .filter(m => m.labelTypeId === labelTypeId && m.missionTypeId === missionTypeToId("aiValidation"))
       .map(_.missionId)
