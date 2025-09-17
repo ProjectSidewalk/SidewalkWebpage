@@ -87,7 +87,7 @@ object LabelTypeEnum {
 
   // Set of label types are accepted for validation using the Sidewalk AI API.
   lazy val aiLabelTypes: Set[String] = Set(
-    CurbRamp.name, NoCurbRamp.name, Obstacle.name, SurfaceProblem.name, NoSidewalk.name, Crosswalk.name
+    CurbRamp.name, NoCurbRamp.name, Obstacle.name, SurfaceProblem.name, Crosswalk.name
   )
   lazy val aiLabelTypeIds: Set[Int] = aiLabelTypes.map(labelTypeToId)
 }

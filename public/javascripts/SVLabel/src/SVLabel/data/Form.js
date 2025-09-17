@@ -29,10 +29,16 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     this.convertPanoHistoryFormat = function (prevPanos) {
         var history = [];
         for (let i = 0; i < prevPanos.length; i++) {
-            history.push({
-                pano_id: prevPanos[i].pano,
-                date: moment(prevPanos[i].Iz).format('YYYY-MM')
-            });
+            // Try to find the date since this is an internal API and the property name can change.
+            const prevPanoDate = Object.values(prevPanos[i]).find(value => value instanceof Date);
+            if (prevPanoDate) {
+                history.push({
+                    pano_id: prevPanos[i].pano,
+                    date: moment(prevPanoDate).format('YYYY-MM')
+                });
+            } else {
+                console.error('Could not find date in pano history object:', prevPanos[i]);
+            }
         }
         return history;
     }

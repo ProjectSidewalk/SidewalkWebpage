@@ -192,7 +192,7 @@ class GsvDataServiceImpl @Inject() (
         val imageStatus          = (Json.parse(response.body) \ "status").as[String]
         val imageExists: Boolean = imageStatus == "OK"
 
-        if (imageExists || imageStatus != "ZERO_RESULTS") {
+        if (imageExists || imageStatus == "ZERO_RESULTS") {
           // Mark the expired status, last_checked, and last_viewed columns in the db.
           val timestamp = OffsetDateTime.now
           db.run(gsvDataTable.updateExpiredStatus(gsvPanoId, !imageExists, timestamp)).map(_ => Some(imageExists))

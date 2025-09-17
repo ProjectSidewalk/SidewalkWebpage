@@ -30,10 +30,10 @@ class RecalculateStreetPriorityActor @Inject() (streetService: StreetService, re
     super.preStart()
     // Get the number of hours later to run the code in this city. Used to stagger computation/resource use.
     configService.getOffsetHours.foreach { hoursOffset =>
-      // Target time is 12:45 am Pacific + offset.
+      // Target time is 1:45 am Pacific + offset.
       cancellable = Some(
         context.system.scheduler.scheduleAtFixedRate(
-          getTimeToNextUpdate(0, 45, hoursOffset).toMillis.millis,
+          getTimeToNextUpdate(1, 45, hoursOffset).toMillis.millis,
           24.hours,
           self,
           RecalculateStreetPriorityActor.Tick
