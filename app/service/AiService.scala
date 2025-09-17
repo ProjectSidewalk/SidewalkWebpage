@@ -15,7 +15,8 @@ import slick.dbio.DBIO
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 @ImplementedBy(classOf[AiServiceImpl])
 trait AiService {
@@ -44,7 +45,8 @@ class AiServiceImpl @Inject() (
     labelTable: models.label.LabelTable,
     validationService: ValidationService,
     labelAiAssessmentTable: models.label.LabelAiAssessmentTable,
-    missionTable: models.mission.MissionTable
+    missionTable: models.mission.MissionTable,
+    gsvDataService: GsvDataService
 )(implicit val ec: ExecutionContext)
     extends AiService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -198,6 +200,8 @@ class AiServiceImpl @Inject() (
             )
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")
+            // Most common failure is for expired imagery, so do that check and mark it as expired here.
+            Await.result(gsvDataService.panoExists(labelData.gsvData.gsvPanoramaId), 5.seconds)
             None
           }
         } catch {
