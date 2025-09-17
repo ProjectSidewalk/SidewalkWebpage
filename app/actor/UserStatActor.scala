@@ -28,10 +28,10 @@ class UserStatActor @Inject() (adminService: AdminService)(implicit ec: Executio
     super.preStart()
     // Get the number of hours later to run the code in this city. Used to stagger computation/resource use.
     configService.getOffsetHours.foreach { hoursOffset =>
-      // Target time is 12:30 am Pacific + offset.
+      // Target time is 1:30 am Pacific + offset.
       cancellable = Some(
         context.system.scheduler.scheduleAtFixedRate(
-          getTimeToNextUpdate(0, 30, hoursOffset).toMillis.millis,
+          getTimeToNextUpdate(1, 30, hoursOffset).toMillis.millis,
           24.hours,
           self,
           UserStatActor.Tick

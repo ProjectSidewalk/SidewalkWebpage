@@ -1,10 +1,9 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
-import controllers.ClusterController
 import org.apache.pekko.actor.{Actor, Cancellable, Props}
 import play.api.Logger
-import service.ConfigService
+import service.{AiService, ConfigService}
 
 import java.time.Instant
 import javax.inject._
@@ -12,14 +11,14 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-object ClusterLabelAttributesActor {
-  val Name  = "cluster-label-attributes-actor"
-  def props = Props[ClusterLabelAttributesActor]()
+object GetAiValidationsActor {
+  val Name  = "get-ai-validations-actor"
+  def props = Props[GetAiValidationsActor]()
   case object Tick
 }
 
 @Singleton
-class ClusterLabelAttributesActor @Inject() (clusterController: ClusterController)(implicit
+class GetAiValidationsActor @Inject() (aiService: AiService)(implicit
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {
@@ -31,16 +30,16 @@ class ClusterLabelAttributesActor @Inject() (clusterController: ClusterControlle
     super.preStart()
     // Get the number of hours later to run the code in this city. Used to stagger computation/resource use.
     configService.getOffsetHours.foreach { hoursOffset =>
-      // Target time is 4:00 am Pacific + offset.
+      // Target time is 12:30 am Pacific + offset.
       cancellable = Some(
         context.system.scheduler.scheduleAtFixedRate(
-          getTimeToNextUpdate(4, 0, hoursOffset).toMillis.millis,
+          getTimeToNextUpdate(0, 30, hoursOffset).toMillis.millis,
           24.hours,
           self,
-          ClusterLabelAttributesActor.Tick
+          GetAiValidationsActor.Tick
         )(context.dispatcher)
       )
-      logger.info("ClusterLabelAttributesActor created")
+      logger.info("GetAiValidationsActor created")
     }
   }
 
@@ -50,15 +49,16 @@ class ClusterLabelAttributesActor @Inject() (clusterController: ClusterControlle
     super.postStop()
   }
 
-  def receive: Receive = { case ClusterLabelAttributesActor.Tick =>
+  def receive: Receive = { case GetAiValidationsActor.Tick =>
     val currentTimeStart: String = dateFormatter.format(Instant.now())
-    logger.info(s"Auto-scheduled clustering of label attributes starting at: $currentTimeStart")
-    clusterController.runClusteringHelper("both").onComplete {
+    logger.info(s"Auto-scheduled AI validating started at: $currentTimeStart")
+    // Try to validate up to 1000 labels that AI haven't yet been validated by AI.
+    aiService.validateLabelsWithAiDaily(1000).onComplete {
       case Success(results) =>
+        logger.info(s"Attempted ${results.length} AI validations, ${results.flatten.length} successful.")
         val currentEndTime: String = dateFormatter.format(Instant.now())
-        logger.info(s"Label attribute clustering completed at: $currentEndTime")
-        logger.info("Clustering results: " + results)
-      case Failure(e) => logger.error(s"Error clustering labels: ${e.getMessage}")
+        logger.info(s"AI validations completed at: $currentEndTime")
+      case Failure(e) => logger.error(s"Critical error when performing AI validations: ${e.getMessage}")
     }
   }
 }
