@@ -2,7 +2,7 @@ package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import org.apache.pekko.actor.{Actor, Cancellable, Props}
-import play.api.Logger
+import play.api.{Configuration, Logger}
 import service.{AiService, ConfigService}
 
 import java.time.Instant
@@ -20,7 +20,8 @@ object GetAiValidationsActor {
 @Singleton
 class GetAiValidationsActor @Inject() (aiService: AiService)(implicit
     ec: ExecutionContext,
-    configService: ConfigService
+    configService: ConfigService,
+    val config: Configuration
 ) extends Actor {
 
   private var cancellable: Option[Cancellable] = None
@@ -52,8 +53,9 @@ class GetAiValidationsActor @Inject() (aiService: AiService)(implicit
   def receive: Receive = { case GetAiValidationsActor.Tick =>
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled AI validating started at: $currentTimeStart")
-    // Try to validate up to 1000 labels that AI haven't yet been validated by AI.
-    aiService.validateLabelsWithAiDaily(1000).onComplete {
+    // Try to validate up to 500 labels that haven't yet been validated by AI.
+    val n = if (config.get[String]("environment-type") == "prod") 500 else 20
+    aiService.validateLabelsWithAiDaily(n).onComplete {
       case Success(results) =>
         logger.info(s"Attempted ${results.length} AI validations, ${results.flatten.length} successful.")
         val currentEndTime: String = dateFormatter.format(Instant.now())
