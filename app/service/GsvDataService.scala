@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import formats.json.PanoHistoryFormats.PanoHistorySubmission
 import models.gsv.{GsvDataSlim, GsvDataTable, PanoHistory, PanoHistoryTable}
-import models.label.LabelPointTable
+import models.label.{LabelPointTable, POV}
 import models.street.StreetEdge
 import models.utils.{CommonUtils, MyPostgresProfile}
 import org.locationtech.jts.geom.Point
@@ -50,17 +50,18 @@ object GsvDataService {
    * @param width The total width of the panorama image
    * @param height The total height of the panorama image
    * @param cameraHeading The heading of the camera in degrees
-   * @return A tuple containing the calculated heading (0-360 degrees) and pitch (-90 to 90 degrees)
+   * @return A tuple containing the calculated heading (0-360 degrees), pitch (-90 to 90 degrees), and zoom (default 1)
    */
-  def calculatePovFromPanoXY(x: Int, y: Int, width: Int, height: Int, cameraHeading: Double): (Double, Double) = {
+  def calculatePovFromPanoXY(x: Int, y: Int, width: Int, height: Int, cameraHeading: Double): POV = {
     // Mikey Sep 2025 - I tested out taking into account camera_roll. Sometimes it helped, sometimes it made it worse.
     // val rawPitch = 90d - 180d * y / height
     // val horizontalOffset = (x.toDouble / width - 0.5) * 360 // -180 to +180 degrees from center
     // Apply roll correction: roll affects pitch based on horizontal position.
     // val correctedPitch = rawPitch - cameraRoll * math.sin(math.toRadians(horizontalOffset))
-    (
+    POV(
       (cameraHeading - 180 + (x.toDouble / width) * 360) % 360,
-      90d - 180d * y / height
+      90d - 180d * y / height,
+      1 // Just defaulting to a zoom level of 1 since the AI looked at the whole pano and had no zoom.
     )
   }
 
@@ -103,7 +104,7 @@ object GsvDataService {
    *
    * @param panoLat The latitude of the panorama location
    * @param panoLng The longitude of the panorama location
-   * @param panoHeading The heading of the panorama in degrees
+   * @param heading The user's with respect to true north in degrees
    * @param zoom The zoom level (1, 2, or 3)
    * @param canvasX The x-coordinate on the canvas
    * @param canvasY The y-coordinate on the canvas
@@ -114,7 +115,7 @@ object GsvDataService {
   def toLatLng(
       panoLat: Double,
       panoLng: Double,
-      panoHeading: Double,
+      heading: Double,
       zoom: Int,
       canvasX: Int,
       canvasY: Int,
@@ -134,7 +135,7 @@ object GsvDataService {
         params.distanceCanvasYSlope * canvasY
     ) / 1000.0
 
-    val estHeading = panoHeading + estHeadingDiff
+    val estHeading = heading + estHeadingDiff
 
     // Calculate destination point using haversine formula.
     CommonUtils.calculateDestination(panoLat, panoLng, estDistanceFromPanoKm, estHeading)
