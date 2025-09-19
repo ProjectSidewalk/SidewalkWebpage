@@ -531,6 +531,7 @@ class ExploreServiceImpl @Inject() (
 
     val labelSubmitActions = DBIO.sequence {
       data.labels.map { label =>
+        // Calculate the label's lat/lng and theoretical user's heading/pitch from its panoX/panoY coordinates.
         val pov = GsvDataService.calculatePovFromPanoXY(label.panoX, label.panoY, pano.width.get, pano.height.get,
           pano.cameraHeading.get.toDouble)
         val canvasX = LabelPointTable.canvasWidth / 2
@@ -538,11 +539,14 @@ class ExploreServiceImpl @Inject() (
         val latLng  = GsvDataService.toLatLng(pano.lat.get.toDouble, pano.lng.get.toDouble, pov.heading, pov.zoom,
           canvasX, canvasY, label.panoY, pano.height.get)
         for {
+          // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
           streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(latLng._1.toFloat, latLng._2.toFloat)
           regionId     <- streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId).map(_.get.regionId)
           missionId    <- missionService.resumeOrCreateNewAiExploreMission(regionId).map(_.missionId)
           auditTaskId  <- resumeOrCreateNewAiAuditTask(missionId, streetEdgeId)
           tempLabelId  <- labelTable.nextTempLabelId(aiUserId)
+
+          // Create and insert the label and label_point entries.
           labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
             heading = pov.heading.toFloat, pitch = pov.pitch.toFloat, pov.zoom, lat = Some(latLng._1.toFloat),
             lng = Some(latLng._2.toFloat), computationMethod = Some("approximation2"))
