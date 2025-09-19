@@ -59,14 +59,44 @@ trait ExploreService {
   def selectTasksInARegion(regionId: Int, userId: String): Future[Seq[NewTask]]
   def insertEnvironment(env: AuditTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[AuditTaskInteraction]): Future[Unit]
+
+  /**
+   * Takes data submitted from the Explore page updates the gsv_data, gsv_link, and pano_history tables accordingly.
+   * @param gsvPanoramas All pano-related data submitted from the Explore page front-end.
+   */
   def savePanoInfo(gsvPanoramas: Seq[GsvPanoramaSubmission]): Future[Unit]
   def insertComment(comment: AuditTaskComment): Future[Int]
   def insertNoGsv(streetIssue: StreetEdgeIssue): Future[Int]
+
+  /**
+   * Inserts a set of AI-generated labels into the database, filling in appropriate tables with dummy data.
+   * @param data The AiLabelsSubmission object submitted through a POST request.
+   * @return A Future containing a sequence of Unit values, one for each label submitted.
+   */
   def submitAiLabelData(data: AiLabelsSubmission): Future[Seq[Unit]]
+
+  /**
+   * Takes data submitted from the Explore page and updates the database accordingly.
+   * @param data All data submitted from front-end.
+   * @param userId The user_id of the user who submitted the data.
+   */
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue]
   def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float]
   def selectTasksInRoute(userRouteId: Int): Future[Seq[NewTask]]
+
+  /**
+   * Check if the user should be shown the survey. It's shown exactly once, in the middle of the 2nd mission.
+   * @param userId User ID of the user to check.
+   * @return True if the user should be shown the survey, false otherwise.
+   */
   def shouldDisplaySurvey(userId: String): Future[Boolean]
+
+  /**
+   * Submit the survey data to the database.
+   * @param userId User ID of the user submitting the survey.
+   * @param ipAddress IP address of the user submitting the survey.
+   * @param data Data submitted from the survey.
+   */
   def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
 }
 
@@ -264,7 +294,7 @@ class ExploreServiceImpl @Inject() (
   /**
    * Select a region with high avg street priority where the user hasn't explored every street; assign it to them.
    */
-  def assignRegion(userId: String): DBIO[Option[Region]] = {
+  private def assignRegion(userId: String): DBIO[Option[Region]] = {
     for {
       newRegion <- selectAHighPriorityRegion(userId)
       // If region successfully selected, assign it to them.
@@ -418,10 +448,6 @@ class ExploreServiceImpl @Inject() (
     }
   }
 
-  /**
-   * Takes data submitted from the Explore page updates the gsv_data, gsv_link, and pano_history tables accordingly.
-   * @param gsvPanoramas All pano-related data submitted from the Explore page front-end.
-   */
   def savePanoInfo(gsvPanoramas: Seq[GsvPanoramaSubmission]): Future[Unit] = {
     val currTime: OffsetDateTime = OffsetDateTime.now
     val panoSubmissionActions    = gsvPanoramas.map { pano: GsvPanoramaSubmission =>
@@ -543,11 +569,6 @@ class ExploreServiceImpl @Inject() (
     db.run(labelSubmitActions.transactionally)
   }
 
-  /**
-   * Takes data submitted from the Explore page and updates the database accordingly.
-   * @param data All data submitted from front-end.
-   * @param userId The user_id of the user who submitted the data.
-   */
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue] = {
     var refreshPage: Boolean = false // If we notice something out of whack, tell the front-end to refresh the page.
     val streetEdgeId: Int    = data.auditTask.streetEdgeId
@@ -648,10 +669,6 @@ class ExploreServiceImpl @Inject() (
   def selectTasksInRoute(userRouteId: Int): Future[Seq[NewTask]] =
     db.run(auditTaskTable.selectTasksInRoute(userRouteId))
 
-  /**
-   * Check if the user should be shown the survey. It's shown exactly once, in the middle of the 2nd mission.
-   * @param userId
-   */
   def shouldDisplaySurvey(userId: String): Future[Boolean] = {
     val numMissionsBeforeSurvey = 1
     db.run(for {
@@ -663,12 +680,6 @@ class ExploreServiceImpl @Inject() (
     })
   }
 
-  /**
-   * Submit the survey data to the database.
-   * @param userId User ID of the user submitting the survey.
-   * @param ipAddress IP address of the user submitting the survey.
-   * @param data Data submitted from the survey.
-   */
   def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
     db.run((for {
       numMissionsCompleted: Int <- missionTable
