@@ -356,7 +356,7 @@ function Label(params) {
             // Estimate the latlng point from the camera position and the heading when point cloud data isn't available.
             var panoLat = getProperty("panoLat");
             var panoLng = getProperty("panoLng");
-            var panoHeading = getProperty("originalPov").heading;
+            var heading = getProperty("originalPov").heading;
             var zoom = Math.round(getProperty("originalPov").zoom); // Need to round specifically for Safari.
             var canvasX = getProperty('originalCanvasXY').x;
             var canvasY = getProperty('originalCanvasXY').y;
@@ -372,7 +372,7 @@ function Label(params) {
                 LATLNG_ESTIMATION_PARAMS[zoom].distancePanoYSlope * (panoHeight / 2 - panoY) +
                 LATLNG_ESTIMATION_PARAMS[zoom].distanceCanvasYSlope * canvasY
             ) / 1000.0;
-            var estHeading = panoHeading + estHeadingDiff;
+            var estHeading = heading + estHeadingDiff;
             var startPoint = turf.point([panoLng, panoLat]);
 
             // Use the pano location, distance from pano estimate, and heading estimate, calculate label location.

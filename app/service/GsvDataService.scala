@@ -3,9 +3,9 @@ package service
 import com.google.inject.ImplementedBy
 import formats.json.PanoHistoryFormats.PanoHistorySubmission
 import models.gsv.{GsvDataSlim, GsvDataTable, PanoHistory, PanoHistoryTable}
-import models.label.LabelPointTable
+import models.label.{LabelPointTable, POV}
 import models.street.StreetEdge
-import models.utils.MyPostgresProfile
+import models.utils.{CommonUtils, MyPostgresProfile}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.Json
@@ -40,6 +40,105 @@ object GsvDataService {
     } else {
       195.93 / scala.math.pow(1.92, zoom * 1.0)
     }
+  }
+
+  /**
+   * Returns the pov of this label if it were centered based on panorama's POV using panorama XY coordinates.
+   *
+   * @param x The x-coordinate within the panorama image
+   * @param y The y-coordinate within the panorama image
+   * @param width The total width of the panorama image
+   * @param height The total height of the panorama image
+   * @param cameraHeading The heading of the camera in degrees
+   * @return A tuple containing the calculated heading (0-360 degrees), pitch (-90 to 90 degrees), and zoom (default 1)
+   */
+  def calculatePovFromPanoXY(x: Int, y: Int, width: Int, height: Int, cameraHeading: Double): POV = {
+    // Mikey Sep 2025 - I tested out taking into account camera_roll. Sometimes it helped, sometimes it made it worse.
+    // val rawPitch = 90d - 180d * y / height
+    // val horizontalOffset = (x.toDouble / width - 0.5) * 360 // -180 to +180 degrees from center
+    // Apply roll correction: roll affects pitch based on horizontal position.
+    // val correctedPitch = rawPitch - cameraRoll * math.sin(math.toRadians(horizontalOffset))
+    POV(
+      (cameraHeading - 180 + (x.toDouble / width) * 360) % 360,
+      90d - 180d * y / height,
+      1 // Just defaulting to a zoom level of 1 since the AI looked at the whole pano and had no zoom.
+    )
+  }
+
+  /**
+   * Parameters determined from a series of linear regressions. Here links to the analysis and relevant Github issues:
+   * - https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
+   * - https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2374
+   * - https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2362
+   */
+  case class LatLngEstimationParams(
+      headingIntercept: Double,
+      headingCanvasXSlope: Double,
+      distanceIntercept: Double,
+      distancePanoYSlope: Double,
+      distanceCanvasYSlope: Double
+  )
+
+  object LatLngEstimationParams {
+    val LATLNG_ESTIMATION_PARAMS: Map[Int, LatLngEstimationParams] = Map(
+      1 -> LatLngEstimationParams(
+        headingIntercept = -51.2401711, headingCanvasXSlope = 0.1443374, distanceIntercept = 18.6051843,
+        distancePanoYSlope = 0.0138947, distanceCanvasYSlope = 0.0011023
+      ),
+      2 -> LatLngEstimationParams(
+        headingIntercept = -27.5267447, headingCanvasXSlope = 0.0784357, distanceIntercept = 20.8794248,
+        distancePanoYSlope = 0.0184087, distanceCanvasYSlope = 0.0022135
+      ),
+      3 -> LatLngEstimationParams(
+        headingIntercept = -13.5675945, headingCanvasXSlope = 0.0396061, distanceIntercept = 25.2472682,
+        distancePanoYSlope = 0.0264216, distanceCanvasYSlope = 0.0011071
+      )
+    )
+  }
+
+  /**
+   * Get the label's estimated latitude/longitude position.
+   *
+   * Estimates heading difference and distance from panorama using output from regression analysis.
+   * https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
+   *
+   * @param panoLat The latitude of the panorama location
+   * @param panoLng The longitude of the panorama location
+   * @param heading The user's with respect to true north in degrees
+   * @param zoom The zoom level (1, 2, or 3)
+   * @param canvasX The x-coordinate on the canvas
+   * @param canvasY The y-coordinate on the canvas
+   * @param panoY The y-coordinate within the panorama
+   * @param panoHeight The height of the panorama
+   * @return A LatLng containing the estimated latitude and longitude
+   */
+  def toLatLng(
+      panoLat: Double,
+      panoLng: Double,
+      heading: Double,
+      zoom: Int,
+      canvasX: Int,
+      canvasY: Int,
+      panoY: Int,
+      panoHeight: Int
+  ): (Double, Double) = {
+    val params = LatLngEstimationParams.LATLNG_ESTIMATION_PARAMS(zoom)
+
+    // Estimate heading difference and distance from pano using regression analysis output.
+    val estHeadingDiff =
+      params.headingIntercept + params.headingCanvasXSlope * canvasX
+
+    val estDistanceFromPanoKm = math.max(
+      0.0,
+      params.distanceIntercept +
+        params.distancePanoYSlope * (panoHeight / 2 - panoY) +
+        params.distanceCanvasYSlope * canvasY
+    ) / 1000.0
+
+    val estHeading = heading + estHeadingDiff
+
+    // Calculate destination point using haversine formula.
+    CommonUtils.calculateDestination(panoLat, panoLng, estDistanceFromPanoKm, estHeading)
   }
 }
 

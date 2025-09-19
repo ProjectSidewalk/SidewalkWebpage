@@ -109,21 +109,13 @@ class AiServiceImpl @Inject() (
       case Some((aiResults, labelData)) =>
         logger.debug(aiResults.toString)
 
-        // Add AI information to the label_ai_assessment table.
-        val saveAiAssessmentAction = db.run(labelAiAssessmentTable.save(aiResults))
-        saveAiAssessmentAction.onComplete(x => {
-          if (x.isFailure) {
-            logger.warn(s"Failed to save AI results for label ${labelId}: ${x.failed.get.getMessage}")
-          }
-        })
-
         // If AI validations are enabled and confidence is above the threshold, submit a validation.
-        val submitValidationAction: Future[Option[Int]] =
+        val validationId: DBIO[Option[Int]] =
           if (AI_VALIDATIONS_ON && aiResults.validationAccuracy >= AI_VALIDATION_MIN_ACCURACY) {
             val labelPoint = labelData.labelPoint
 
             // Get the AI's mission_id and the label's current info, then create and submit the validation.
-            db.run((for {
+            for {
               aiMissionId: Int <- getAiValidateMissionId(labelData.labelTypeId)
               label: Label     <- labelTable.find(labelId).map(_.get) // If we got this far, we know label exists.
               validation: LabelValidation = LabelValidation(
@@ -137,11 +129,24 @@ class AiServiceImpl @Inject() (
                   Seq(ValidationSubmission(validation, comment = None, undone = false, redone = false))
                 )
                 .map(_.headOption)
-            } yield valId).transactionally)
-          } else Future.successful(Option.empty[Int])
+            } yield valId
+          } else DBIO.successful(None)
 
-        // Run both actions in parallel and return the AI results.
-        saveAiAssessmentAction.zip(submitValidationAction).map(_ => Some(aiResults))
+        // Add AI information to the label_ai_assessment table, including validation_id if one was added.
+        val saveDataAction: Future[Option[LabelAiAssessment]] = db.run((for {
+          validationIdOpt: Option[Int] <- validationId
+          aiResultsWithValId = aiResults.copy(labelValidationId = validationIdOpt)
+          _ <- labelAiAssessmentTable.save(aiResultsWithValId)
+        } yield Some(aiResultsWithValId)).transactionally)
+
+        // Set up some error logging.
+        saveDataAction.onComplete(x => {
+          if (x.isFailure) {
+            logger.warn(s"Failed to save AI results for label ${labelId}: ${x.failed.get.getMessage}")
+          }
+        })
+
+        saveDataAction
     }
   }
 
@@ -196,7 +201,7 @@ class AiServiceImpl @Inject() (
 
             Some(
               LabelAiAssessment(0, labelData.labelId, valResult, valAccuracy, valConfidence, tags, tagsConfidence,
-                apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate, OffsetDateTime.now)
+                apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate, OffsetDateTime.now, None)
             )
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")

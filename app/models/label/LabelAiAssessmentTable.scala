@@ -22,7 +22,8 @@ case class LabelAiAssessment(
     validatorTrainingDate: OffsetDateTime,
     taggerModelId: Option[String],
     taggerTrainingDate: Option[OffsetDateTime],
-    timestamp: OffsetDateTime
+    timestamp: OffsetDateTime,
+    labelValidationId: Option[Int]
 )
 
 class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, "label_ai_assessment") {
@@ -38,11 +39,13 @@ class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, 
   def validatorTrainingDate: Rep[OffsetDateTime]        = column[OffsetDateTime]("validator_training_date")
   def taggerModelId: Rep[Option[String]]                = column[Option[String]]("tagger_model_id")
   def taggerTrainingDate: Rep[Option[OffsetDateTime]]   = column[Option[OffsetDateTime]]("tagger_training_date")
-  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp", O.Default(OffsetDateTime.now))
+  def timestamp: Rep[OffsetDateTime]      = column[OffsetDateTime]("timestamp", O.Default(OffsetDateTime.now))
+  def labelValidationId: Rep[Option[Int]] = column[Option[Int]]("label_validation_id")
 
   def * =
     (labelAiAssessmentId, labelId, validationResult, validationAccuracy, validationConfidence, tags, tagsConfidence,
-      apiVersion, validatorModelId, validatorTrainingDate, taggerModelId, taggerTrainingDate, timestamp) <> (
+      apiVersion, validatorModelId, validatorTrainingDate, taggerModelId, taggerTrainingDate, timestamp,
+      labelValidationId) <> (
       (LabelAiAssessment.apply _).tupled,
       LabelAiAssessment.unapply
     )

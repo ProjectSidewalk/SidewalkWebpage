@@ -6,6 +6,7 @@ import formats.json.ValidateFormats.ValidationMissionProgress
 import models.audit.AuditTaskTable
 import models.mission.MissionTable.{distanceForLaterMissions, distancesForFirstAuditMissions}
 import models.mission.{Mission, MissionTable}
+import models.user.SidewalkUserTable.aiUserId
 import models.user.SidewalkUserWithRole
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -25,6 +26,7 @@ trait MissionService {
   ): DBIO[Option[Mission]]
   def resumeOrCreateNewAuditOnboardingMission(userId: String): DBIO[Option[Mission]]
   def resumeOrCreateNewAuditMission(userId: String, regionId: Int): DBIO[Option[Mission]]
+  def resumeOrCreateNewAiExploreMission(regionId: Int): DBIO[Mission]
   def resumeOrCreateNewValidationMission(userId: String, missionType: String, labelTypeId: Int): Future[Option[Mission]]
   def updateCompleteAndGetNextValidationMission(
       userId: String,
@@ -107,7 +109,7 @@ class MissionServiceImpl @Inject() (
   }
 
   /**
-   * Gets auditOnboarding mission the user started in the region if one exists, o/w makes a new mission.
+   * Gets auditOnboarding mission the user started if one exists, o/w makes a new mission.
    */
   def resumeOrCreateNewAuditOnboardingMission(userId: String): DBIO[Option[Mission]] = {
     queryMissionTableExploreMissions(Seq("getMission"), userId, None, Some(true), None, None, None, None)
@@ -135,7 +137,7 @@ class MissionServiceImpl @Inject() (
    * @param actions Seq containing one or more of "updateProgress", "updateComplete", or "getMission"; required.
    * @param userId Always required.
    * @param regionId Only required if actions contains "getMission".
-   * @param retakingTutorial Only required if actions contains "getMissions".
+   * @param retakingTutorial Only required if actions contains "getMission".
    * @param missionId Only required if actions contains "updateProgress" or "updateComplete".
    * @param distanceProgress Only required if actions contains "updateProgress".
    */
@@ -215,6 +217,20 @@ class MissionServiceImpl @Inject() (
       } yield result
 
     combinedAction.transactionally
+  }
+
+  /**
+   * Returns existing entry in mission table for the AI user in the given region, or creates one if none exists.
+   * @param regionId ID of the region for the mission
+   * @return The existing or newly created AI mission wrapped in a DBIO action
+   */
+  def resumeOrCreateNewAiExploreMission(regionId: Int): DBIO[Mission] = {
+    missionTable
+      .getCurrentMissionInRegion(aiUserId, regionId)
+      .flatMap {
+        case Some(incompleteMission) => DBIO.successful(incompleteMission)
+        case _                       => missionTable.createNextAuditMission(aiUserId, Float.PositiveInfinity, regionId)
+      }
   }
 
   /**

@@ -86,10 +86,10 @@ util.panomarker.calculatePovIfCentered = calculatePovIfCentered;
 /**
  * Returns the pov of this label if it were centered based on panorama's POV using panorama XY coordinates.
  *
- * @param panoX
- * @param panoY
- * @param panoWidth
- * @param panoHeight
+ * @param panoX The x-coordinate within the panorama image
+ * @param panoY The y-coordinate within the panorama image
+ * @param panoWidth The width of the panorama image
+ * @param panoHeight The height of the panorama image
  * @returns {{heading: Number, pitch: Number}}
  */
 function calculatePovFromPanoXY(panoX, panoY, panoWidth, panoHeight) {

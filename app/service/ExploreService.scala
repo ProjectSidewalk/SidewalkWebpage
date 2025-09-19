@@ -10,6 +10,7 @@ import models.region.{Region, RegionCompletionTable, RegionTable}
 import models.route._
 import models.street._
 import models.survey.{SurveyQuestionTable, SurveyQuestionWithOptions}
+import models.user.SidewalkUserTable.aiUserId
 import models.user._
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
@@ -18,7 +19,8 @@ import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -57,13 +59,44 @@ trait ExploreService {
   def selectTasksInARegion(regionId: Int, userId: String): Future[Seq[NewTask]]
   def insertEnvironment(env: AuditTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[AuditTaskInteraction]): Future[Unit]
+
+  /**
+   * Takes data submitted from the Explore page updates the gsv_data, gsv_link, and pano_history tables accordingly.
+   * @param gsvPanoramas All pano-related data submitted from the Explore page front-end.
+   */
   def savePanoInfo(gsvPanoramas: Seq[GsvPanoramaSubmission]): Future[Unit]
   def insertComment(comment: AuditTaskComment): Future[Int]
   def insertNoGsv(streetIssue: StreetEdgeIssue): Future[Int]
+
+  /**
+   * Inserts a set of AI-generated labels into the database, filling in appropriate tables with dummy data.
+   * @param data The AiLabelsSubmission object submitted through a POST request.
+   * @return A Future containing a sequence of Unit values, one for each label submitted.
+   */
+  def submitAiLabelData(data: AiLabelsSubmission): Future[Seq[Unit]]
+
+  /**
+   * Takes data submitted from the Explore page and updates the database accordingly.
+   * @param data All data submitted from front-end.
+   * @param userId The user_id of the user who submitted the data.
+   */
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue]
   def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float]
   def selectTasksInRoute(userRouteId: Int): Future[Seq[NewTask]]
+
+  /**
+   * Check if the user should be shown the survey. It's shown exactly once, in the middle of the 2nd mission.
+   * @param userId User ID of the user to check.
+   * @return True if the user should be shown the survey, false otherwise.
+   */
   def shouldDisplaySurvey(userId: String): Future[Boolean]
+
+  /**
+   * Submit the survey data to the database.
+   * @param userId User ID of the user submitting the survey.
+   * @param ipAddress IP address of the user submitting the survey.
+   * @param data Data submitted from the survey.
+   */
   def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
 }
 
@@ -88,10 +121,12 @@ class ExploreServiceImpl @Inject() (
     auditTaskUserRouteTable: AuditTaskUserRouteTable,
     streetEdgePriorityTable: StreetEdgePriorityTable,
     regionCompletionTable: RegionCompletionTable,
+    streetEdgeTable: StreetEdgeTable,
     streetEdgeRegionTable: StreetEdgeRegionTable,
     gsvDataTable: GsvDataTable,
     gsvLinkTable: GsvLinkTable,
     panoHistoryTable: PanoHistoryTable,
+    labelAiInfoTable: LabelAiInfoTable,
     streetEdgeIssueTable: StreetEdgeIssueTable,
     webpageActivityTable: WebpageActivityTable,
     surveyQuestionTable: SurveyQuestionTable,
@@ -259,7 +294,7 @@ class ExploreServiceImpl @Inject() (
   /**
    * Select a region with high avg street priority where the user hasn't explored every street; assign it to them.
    */
-  def assignRegion(userId: String): DBIO[Option[Region]] = {
+  private def assignRegion(userId: String): DBIO[Option[Region]] = {
     for {
       newRegion <- selectAHighPriorityRegion(userId)
       // If region successfully selected, assign it to them.
@@ -413,10 +448,6 @@ class ExploreServiceImpl @Inject() (
     }
   }
 
-  /**
-   * Takes data submitted from the Explore page updates the gsv_data, gsv_link, and pano_history tables accordingly.
-   * @param gsvPanoramas All pano-related data submitted from the Explore page front-end.
-   */
   def savePanoInfo(gsvPanoramas: Seq[GsvPanoramaSubmission]): Future[Unit] = {
     val currTime: OffsetDateTime = OffsetDateTime.now
     val panoSubmissionActions    = gsvPanoramas.map { pano: GsvPanoramaSubmission =>
@@ -463,10 +494,85 @@ class ExploreServiceImpl @Inject() (
   }
 
   /**
-   * Takes data submitted from the Explore page and updates the database accordingly.
-   * @param data All data submitted from front-end.
-   * @param userId The user_id of the user who submitted the data.
+   * Returns existing entry in audit_task table for the AI user on the given street, or creates one if none exists.
+   * @param missionId The mission_id to associate with the task if a new one is created
+   * @param streetEdgeId The street_edge_id of the street to get/create a task for
+   * @return The audit_task_id of the existing or newly created task, wrapped in a DBIO action
    */
+  private def resumeOrCreateNewAiAuditTask(missionId: Int, streetEdgeId: Int): DBIO[Int] = {
+    auditTaskTable
+      .find(aiUserId, streetEdgeId)
+      .flatMap {
+        case Some(existingTask) =>
+          DBIO.successful(existingTask.auditTaskId)
+        case _ =>
+          streetEdgeTable.getStreet(streetEdgeId).flatMap {
+            case None =>
+              DBIO.failed(new Exception(s"Street edge with ID $streetEdgeId not found."))
+            case Some(street) =>
+              // No existing task found, create a new one.
+              auditTaskTable.insert(
+                AuditTask(0, None, aiUserId, streetEdgeId, OffsetDateTime.now, OffsetDateTime.now, completed = false,
+                  street.x1, street.y1, startPointReversed = false, Some(missionId), None, lowQuality = false,
+                  incomplete = false, stale = false)
+              )
+          }
+      }
+  }
+
+  def submitAiLabelData(data: AiLabelsSubmission): Future[Seq[Unit]] = {
+    val currTime: OffsetDateTime          = OffsetDateTime.now
+    val dateFormatter                     = DateTimeFormatter.ofPattern("MM-dd-yyyy")
+    val modelTrainingDate: OffsetDateTime = LocalDate
+      .parse(data.modelTrainingDate, dateFormatter)
+      .atStartOfDay(ZoneOffset.UTC)
+      .toOffsetDateTime
+    val pano = data.pano
+
+    val labelSubmitActions = DBIO.sequence {
+      data.labels.map { label =>
+        // Calculate the label's lat/lng and theoretical user's heading/pitch from its panoX/panoY coordinates.
+        val pov = GsvDataService.calculatePovFromPanoXY(label.panoX, label.panoY, pano.width.get, pano.height.get,
+          pano.cameraHeading.get.toDouble)
+        val canvasX = LabelPointTable.canvasWidth / 2
+        val canvasY = LabelPointTable.canvasHeight / 2
+        val latLng  = GsvDataService.toLatLng(pano.lat.get.toDouble, pano.lng.get.toDouble, pov.heading, pov.zoom,
+          canvasX, canvasY, label.panoY, pano.height.get)
+        for {
+          // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
+          streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(latLng._1.toFloat, latLng._2.toFloat)
+          regionId     <- streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId).map(_.get.regionId)
+          missionId    <- missionService.resumeOrCreateNewAiExploreMission(regionId).map(_.missionId)
+          auditTaskId  <- resumeOrCreateNewAiAuditTask(missionId, streetEdgeId)
+          tempLabelId  <- labelTable.nextTempLabelId(aiUserId)
+
+          // Create and insert the label and label_point entries.
+          labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
+            heading = pov.heading.toFloat, pitch = pov.pitch.toFloat, pov.zoom, lat = Some(latLng._1.toFloat),
+            lng = Some(latLng._2.toFloat), computationMethod = Some("approximation2"))
+          labelSubmission: LabelSubmission = LabelSubmission(
+            gsvPanoramaId = pano.gsvPanoramaId,
+            auditTaskId = auditTaskId,
+            labelType = data.labelType,
+            deleted = false,
+            temporaryLabelId = tempLabelId,
+            timeCreated = Some(currTime),
+            tutorial = false,
+            severity = None,
+            description = None,
+            tagIds = Seq.empty[Int],
+            point = labelPoint
+          )
+          labelId <- insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId).map(_._1)
+          _       <- labelAiInfoTable.save(
+            LabelAiInfo(0, labelId, label.confidence, data.apiVersion, data.modelId, modelTrainingDate)
+          )
+        } yield ()
+      }
+    }
+    db.run(labelSubmitActions.transactionally)
+  }
+
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue] = {
     var refreshPage: Boolean = false // If we notice something out of whack, tell the front-end to refresh the page.
     val streetEdgeId: Int    = data.auditTask.streetEdgeId
@@ -515,7 +621,7 @@ class ExploreServiceImpl @Inject() (
           labelTable.find(label.temporaryLabelId, userId).flatMap {
             case Some(existingLabel) =>
               // If there is already a label with this temp id but a mismatched label type, the user probably has the
-              // Explore page open in multiple browsers. Don't add the label, and tell the front-end to refresh the page.
+              // Explore page open in multiple browsers. Don't add the label; tell the front-end to refresh the page.
               if (existingLabel.labelTypeId != labelTypeId) {
                 refreshPage = true
                 DBIO.successful(None)
@@ -567,10 +673,6 @@ class ExploreServiceImpl @Inject() (
   def selectTasksInRoute(userRouteId: Int): Future[Seq[NewTask]] =
     db.run(auditTaskTable.selectTasksInRoute(userRouteId))
 
-  /**
-   * Check if the user should be shown the survey. It's shown exactly once, in the middle of the 2nd mission.
-   * @param userId
-   */
   def shouldDisplaySurvey(userId: String): Future[Boolean] = {
     val numMissionsBeforeSurvey = 1
     db.run(for {
@@ -582,12 +684,6 @@ class ExploreServiceImpl @Inject() (
     })
   }
 
-  /**
-   * Submit the survey data to the database.
-   * @param userId User ID of the user submitting the survey.
-   * @param ipAddress IP address of the user submitting the survey.
-   * @param data Data submitted from the survey.
-   */
   def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
     db.run((for {
       numMissionsCompleted: Int <- missionTable

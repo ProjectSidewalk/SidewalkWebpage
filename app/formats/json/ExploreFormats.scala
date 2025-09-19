@@ -112,6 +112,17 @@ object ExploreFormats {
   )
   case class SurveySingleSubmission(surveyQuestionId: String, answerText: String)
 
+  // Includes a list of labels found on a single panorama.
+  case class AiLabelsSubmission(
+      labelType: String,
+      modelId: String,
+      modelTrainingDate: String,
+      apiVersion: String,
+      pano: GsvPanoramaSubmission,
+      labels: Seq[AiLabelDetection]
+  )
+  case class AiLabelDetection(panoX: Int, panoY: Int, confidence: Double)
+
   implicit val pointWrites: Writes[Point] = Writes { point =>
     Json.obj(
       "lat" -> point.getX,
@@ -313,4 +324,19 @@ object ExploreFormats {
     (JsPath \ "name").read[String] and
       (JsPath \ "value").read[String]
   )(SurveySingleSubmission.apply _)
+
+  implicit val aiLabelDetectionReads: Reads[AiLabelDetection] = (
+    (JsPath \ "pano_x").read[Int] and
+      (JsPath \ "pano_y").read[Int] and
+      (JsPath \ "confidence").read[Double]
+    )(AiLabelDetection.apply _)
+
+  implicit val aiLabelSubmissionReads: Reads[AiLabelsSubmission] = (
+    (JsPath \ "label_type").read[String] and
+      (JsPath \ "model_id").read[String] and
+      (JsPath \ "model_training_date").read[String] and
+      (JsPath \ "api_version").read[String] and
+      (JsPath \ "pano").read[GsvPanoramaSubmission] and
+      (JsPath \ "labels").read[Seq[AiLabelDetection]]
+  )(AiLabelsSubmission.apply _)
 }
