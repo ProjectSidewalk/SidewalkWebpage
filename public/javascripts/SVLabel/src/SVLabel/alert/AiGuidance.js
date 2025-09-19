@@ -23,7 +23,7 @@ function AiGuidance(tracker, popUpMessage) {
             };
 
             // Send request to the backend.
-            const response = await fetch('/api/gemini/analyze', {
+            const response = await fetch('/ai/analyzeScene', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

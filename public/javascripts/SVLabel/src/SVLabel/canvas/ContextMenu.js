@@ -10,7 +10,8 @@ function ContextMenu (uiContextMenu) {
         status = {
             targetLabel: null,
             visibility: 'hidden',
-            disableTagging: false
+            ratingSeverityEnabledForTutorialLabel: null, // During tutorial, disabled except for specific steps
+            taggingEnabledForTutorialLabel: null, // During tutorial, disabled except for specific steps
         };
     var $menuWindow = uiContextMenu.holder;
     var $severityMenu = uiContextMenu.severityMenu;
@@ -246,31 +247,64 @@ function ContextMenu (uiContextMenu) {
         return getStatus('visibility') === 'visible';
     }
 
-    /**
-     * Disable tagging. Adds the disabled visual effects to the tags on current context menu.
-     */
+    // Disable rating severity.
+    function disableRatingSeverity() {
+        setStatus('ratingSeverityEnabledForTutorialLabel', null);
+        _showRatingSeverityDisabled();
+    }
+
+    // Disable tagging.
     function disableTagging() {
-        setStatus('disableTagging', true);
+        setStatus('taggingEnabledForTutorialLabel', null);
+        _showTaggingDisabled();
+    }
+
+    // Enable rating severity for a given tutorial label.
+    function enableRatingSeverityForTutorialLabel(tutorialLabelNumber) {
+        setStatus('ratingSeverityEnabledForTutorialLabel', tutorialLabelNumber);
+        if (svl.isOnboarding() && !isRatingSeverityDisabled()) _showRatingSeverityEnabled();
+    }
+
+    // Enable tagging for a given tutorial label.
+    function enableTaggingForTutorialLabel(tutorialLabelNumber) {
+        setStatus('taggingEnabledForTutorialLabel', tutorialLabelNumber);
+        if (svl.isOnboarding() && !isTaggingDisabled()) _showTaggingEnabled();
+    }
+
+    // Adds the disabled visual effects to the severity buttons on current context menu.
+    function _showRatingSeverityEnabled() {
+        $radioButtonLabels.removeClass('disabled');
+    }
+
+    // Adds the disabled visual effects to the tags on current context menu.
+    function _showRatingSeverityDisabled() {
+        $radioButtonLabels.addClass('disabled');
+    }
+
+    function _showTaggingEnabled() {
+        $("body").find("button[name=tag]").each(function(t) {
+            $(this).removeClass('disabled');
+        });
+    }
+
+    function _showTaggingDisabled() {
         $("body").find("button[name=tag]").each(function(t) {
             $(this).addClass('disabled');
         });
     }
 
     /**
-     * Enable tagging. Removes the disabled visual effects to the tags on current context menu.
+     * Returns true if rating severity is currently disabled.
      */
-    function enableTagging() {
-        setStatus('disableTagging', false);
-        $("body").find("button[name=tag]").each(function(t) {
-            $(this).removeClass('disabled');
-        });
+    function isRatingSeverityDisabled() {
+        return status.ratingSeverityEnabledForTutorialLabel !== status.targetLabel.getProperty('tutorialLabelNumber');
     }
 
     /**
      * Returns true if tagging is currently disabled.
      */
     function isTaggingDisabled() {
-        return getStatus('disableTagging');
+        return status.taggingEnabledForTutorialLabel !== status.targetLabel.getProperty('tutorialLabelNumber');
     }
 
     /**
@@ -448,7 +482,6 @@ function ContextMenu (uiContextMenu) {
         $descriptionTextBox.val(null);
 
         var labelType = targetLabel.getLabelType();
-        var labelColor = util.misc.getLabelColors()[labelType].fillStyle;
         var labelCoord = targetLabel.getCanvasXY();
 
         if (labelType !== 'Occlusion') {
@@ -481,6 +514,14 @@ function ContextMenu (uiContextMenu) {
                 $severityButtons.each(function(i, v) {
                     if (severity === i + 1) { $(this).prop("checked", true); }
                 });
+            }
+
+            // Enable rating severity and tagging on tutorial labels if appropriate.
+            if (svl.isOnboarding()) {
+                if (!isRatingSeverityDisabled()) _showRatingSeverityEnabled();
+                else _showRatingSeverityDisabled();
+                if (!isTaggingDisabled()) _showTaggingEnabled();
+                else _showTaggingDisabled();
             }
 
             $menuWindow.css({
@@ -530,8 +571,11 @@ function ContextMenu (uiContextMenu) {
     self.hide = hide;
     self.isOpen = isOpen;
     self.show = show;
+    self.disableRatingSeverity = disableRatingSeverity;
     self.disableTagging = disableTagging;
-    self.enableTagging = enableTagging;
+    self.enableRatingSeverityForTutorialLabel = enableRatingSeverityForTutorialLabel;
+    self.enableTaggingForTutorialLabel = enableTaggingForTutorialLabel;
+    self.isRatingSeverityDisabled = isRatingSeverityDisabled;
     self.isTaggingDisabled = isTaggingDisabled;
     return self;
 }

@@ -100,6 +100,14 @@ function Canvas(ribbon) {
             svl.audioEffect.play('drip');
         }
 
+        // If in the tutorial, send an event to the onboarding module.
+        if (svl.onboarding) {
+            const customEvent = new CustomEvent('addTutorialLabel', {
+                detail: { label: status.currentLabel }
+            });
+            document.dispatchEvent(customEvent);
+        }
+
         // Wait for the crop to be saved before switching back to walk mode.
         // We are hiding the 'road labels' in the labeling mode as we don't want them to show in the crop.
         // So we need to ensure we don't switch back to explore mode until the crop is saved.

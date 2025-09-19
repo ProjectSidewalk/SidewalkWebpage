@@ -15,11 +15,25 @@ import slick.dbio.DBIO
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 @ImplementedBy(classOf[AiServiceImpl])
 trait AiService {
-  def validateLabelsWithAi(labelIds: Seq[Int]): Future[Seq[LabelAiAssessment]]
+
+  /**
+   * Validates labels using AI by fetching label metadata, calling the AI API, and saving results.
+   * @param labelIds A sequence of label_ids to validate
+   * @return A Future containing a sequence of LabelAiAssessment objects with validation results and tags
+   */
+  def validateLabelsWithAi(labelIds: Seq[Int]): Future[Seq[Option[LabelAiAssessment]]]
+
+  /**
+   * Validates n highest priority labels using AI by fetching label metadata, calling the AI API, and saving results.
+   * @param n The number of labels to validate
+   * @return A Future containing a sequence of LabelAiAssessment objects with validation results and tags
+   */
+  def validateLabelsWithAiDaily(n: Int): Future[Seq[Option[LabelAiAssessment]]]
 }
 
 @Singleton
@@ -31,7 +45,8 @@ class AiServiceImpl @Inject() (
     labelTable: models.label.LabelTable,
     validationService: ValidationService,
     labelAiAssessmentTable: models.label.LabelAiAssessmentTable,
-    missionTable: models.mission.MissionTable
+    missionTable: models.mission.MissionTable,
+    gsvDataService: GsvDataService
 )(implicit val ec: ExecutionContext)
     extends AiService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -42,74 +57,96 @@ class AiServiceImpl @Inject() (
   private val AI_TAG_SUGGESTIONS_ON: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$cityId")
   private val AI_VALIDATION_MIN_ACCURACY: Double = config.get[Double](s"city-params.ai-validation-min-accuracy.$cityId")
 
-  /**
-   * Validates labels using AI by fetching label metadata, calling the AI API, and saving results.
-   * @param labelIds A sequence of label_ids to validate
-   * @return A Future containing a sequence of LabelAiAssessment objects with validation results and tags
-   */
-  def validateLabelsWithAi(labelIds: Seq[Int]): Future[Seq[LabelAiAssessment]] = {
+  def validateLabelsWithAi(labelIds: Seq[Int]): Future[Seq[Option[LabelAiAssessment]]] = {
     if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
-      val startTime = OffsetDateTime.now
-      Future
-        .sequence {
-          labelIds.map { labelId =>
-            // Fetch label metadata from the database.
-            db.run(labelTable.getLabelDataForAi(labelId))
-              .flatMap {
-                // Call the AI API to process the panorama data and validate labels.
-                case Some(labelData) =>
-                  callAiApi(labelData).map(_.map(aiResults => (aiResults, labelData)))
-                case None =>
-                  logger.warn(s"Info for label with ID $labelId not found.")
-                  Future.failed(new Exception(s"Label with ID $labelId not found."))
-              }
-              .flatMap {
-                case None => Future.successful(None) // No AI results; callAiApi already logs all errors.
+      Future.sequence {
+        labelIds.map { labelId =>
+          // Fetch label metadata from the database.
+          db.run(labelTable.getLabelDataForAi(labelId))
+            .flatMap {
+              // Call the AI API to process the panorama data and validate labels.
+              case Some(labelData) => callAiApiAndSubmitData(labelData)
+              case None            =>
+                logger.warn(s"Info for label with ID $labelId not found.")
+                Future.failed(new Exception(s"Label with ID $labelId not found."))
+            }
+        }
+      }
+    } else {
+      logger.info("AI validations or tag suggestions are disabled for this city.")
+      Future.successful(Seq.empty[Option[LabelAiAssessment]])
+    }
+  }
 
-                // Save AI results to the database and submit validation if applicable.
-                case Some((aiResults, labelData)) =>
-                  logger.debug(aiResults.toString)
-                  // Add AI information to the label_ai_assessment table.
-                  val saveAiAssessmentAction = db.run(labelAiAssessmentTable.save(aiResults))
-                  saveAiAssessmentAction.onComplete(x => {
-                    if (x.isFailure) {
-                      logger.warn(s"Failed to save AI results for label ${labelId}: ${x.failed.get.getMessage}")
-                    } else {
-                      logger.info(s"Successfully saved AI results for label ${labelId}.")
-                    }
-                  })
-
-                  // If AI validations are enabled and confidence is above the threshold, submit a validation.
-                  val submitValidationAction: Future[Seq[Int]] =
-                    if (AI_VALIDATIONS_ON && aiResults.validationAccuracy >= AI_VALIDATION_MIN_ACCURACY) {
-                      val labelPoint = labelData.labelPoint
-
-                      // Get the AI's mission_id and the label's current info, then create and submit the validation.
-                      db.run((for {
-                        aiMissionId: Int <- getAiValidateMissionId(labelData.labelTypeId)
-                        label: Label <- labelTable.find(labelId).map(_.get) // If we got this far, we know label exists.
-                        validation: LabelValidation = LabelValidation(
-                          0, labelId, aiResults.validationResult, label.severity, label.severity, label.tags,
-                          label.tags, SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX),
-                          Some(labelPoint.canvasY), labelPoint.heading, labelPoint.pitch, labelPoint.zoom.toFloat,
-                          LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, startTime, aiResults.timestamp,
-                          "SidewalkAI"
-                        )
-                        valIds: Seq[Int] <- validationService.submitValidationsDbio(
-                          Seq(ValidationSubmission(validation, comment = None, undone = false, redone = false))
-                        )
-                      } yield valIds).transactionally)
-                    } else Future.successful(Seq.empty[Int])
-
-                  // Run both actions in parallel and return the AI results.
-                  saveAiAssessmentAction.zip(submitValidationAction).map(_ => Some(aiResults))
-              }
+  def validateLabelsWithAiDaily(n: Int): Future[Seq[Option[LabelAiAssessment]]] = {
+    if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
+      db.run(labelTable.getLabelsToValidateWithAi(n)).flatMap { labelDataSeq =>
+        Future.sequence {
+          labelDataSeq.map { labelData =>
+            callAiApiAndSubmitData(labelData) // Call the AI API to process the panorama data and validate the label.
           }
         }
-        .map(_.flatten)
+      }
     } else {
       logger.info("AI validations or tag suggestions are disabled for this city.")
       Future.successful(Seq.empty)
+    }
+  }
+
+  /**
+   * Calls the AI API to validate the label, then saves results and submits validation if applicable.
+   * @param labelData The label data containing panorama and label information
+   * @return A Future containing an optional LabelAiAssessment object, None if API call failed
+   */
+  private def callAiApiAndSubmitData(labelData: LabelDataForAi): Future[Option[LabelAiAssessment]] = {
+    val startTime    = OffsetDateTime.now
+    val labelId: Int = labelData.labelId
+
+    // Call the AI API to process the panorama data and validate the label.
+    callAiApi(labelData).map(_.map(aiResults => (aiResults, labelData))).flatMap {
+      case None => Future.successful(None) // No AI results; callAiApi already logs all errors.
+      // Save AI results to the database and submit validation if applicable.
+      case Some((aiResults, labelData)) =>
+        logger.debug(aiResults.toString)
+
+        // If AI validations are enabled and confidence is above the threshold, submit a validation.
+        val validationId: DBIO[Option[Int]] =
+          if (AI_VALIDATIONS_ON && aiResults.validationAccuracy >= AI_VALIDATION_MIN_ACCURACY) {
+            val labelPoint = labelData.labelPoint
+
+            // Get the AI's mission_id and the label's current info, then create and submit the validation.
+            for {
+              aiMissionId: Int <- getAiValidateMissionId(labelData.labelTypeId)
+              label: Label     <- labelTable.find(labelId).map(_.get) // If we got this far, we know label exists.
+              validation: LabelValidation = LabelValidation(
+                0, labelId, aiResults.validationResult, label.severity, label.severity, label.tags, label.tags,
+                SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX), Some(labelPoint.canvasY),
+                labelPoint.heading, labelPoint.pitch, labelPoint.zoom.toFloat, LabelPointTable.canvasWidth,
+                LabelPointTable.canvasHeight, startTime, aiResults.timestamp, "SidewalkAI"
+              )
+              valId: Option[Int] <- validationService
+                .submitValidationsDbio(
+                  Seq(ValidationSubmission(validation, comment = None, undone = false, redone = false))
+                )
+                .map(_.headOption)
+            } yield valId
+          } else DBIO.successful(None)
+
+        // Add AI information to the label_ai_assessment table, including validation_id if one was added.
+        val saveDataAction: Future[Option[LabelAiAssessment]] = db.run((for {
+          validationIdOpt: Option[Int] <- validationId
+          aiResultsWithValId = aiResults.copy(labelValidationId = validationIdOpt)
+          _ <- labelAiAssessmentTable.save(aiResultsWithValId)
+        } yield Some(aiResultsWithValId)).transactionally)
+
+        // Set up some error logging.
+        saveDataAction.onComplete(x => {
+          if (x.isFailure) {
+            logger.warn(s"Failed to save AI results for label ${labelId}: ${x.failed.get.getMessage}")
+          }
+        })
+
+        saveDataAction
     }
   }
 
@@ -164,10 +201,12 @@ class AiServiceImpl @Inject() (
 
             Some(
               LabelAiAssessment(0, labelData.labelId, valResult, valAccuracy, valConfidence, tags, tagsConfidence,
-                apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate, OffsetDateTime.now)
+                apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate, OffsetDateTime.now, None)
             )
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")
+            // Most common failure is for expired imagery, so do that check and mark it as expired here.
+            Await.result(gsvDataService.panoExists(labelData.gsvData.gsvPanoramaId), 5.seconds)
             None
           }
         } catch {
@@ -187,7 +226,7 @@ class AiServiceImpl @Inject() (
    * @param labelTypeId The ID of the label type for which to get the AI validation mission_id
    * @return A DBIO containing the AI validation mission_id
    */
-  def getAiValidateMissionId(labelTypeId: Int): DBIO[Int] =
+  private def getAiValidateMissionId(labelTypeId: Int): DBIO[Int] =
     configService.cachedDBIO[Int](s"getAiValidateMissionId($labelTypeId)")(
       missionTable.getAiValidateMissionId(labelTypeId)
     )
