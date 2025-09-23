@@ -268,7 +268,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       val bbox = filters.bbox.get
       whereConditions :+= s"cluster.geom && ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)"
     } else if (filters.regionId.isDefined) {
-      whereConditions :+= s"cluster.region_id = ${filters.regionId.get}"
+      whereConditions :+= s"street_edge_region.region_id = ${filters.regionId.get}"
     } else if (filters.regionName.isDefined) {
       whereConditions :+= s"region.name = '${filters.regionName.get.replace("'", "''")}'"
     }
@@ -341,7 +341,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
           label_type.label_type,
           cluster.street_edge_id,
           osm_way_street_edge.osm_way_id,
-          cluster.region_id,
+          street_edge_region.region_id,
           region.name AS region_name,
           image_capture_dates.avg_capture_date AS avg_image_capture_date,
           validation_counts.avg_label_date,
