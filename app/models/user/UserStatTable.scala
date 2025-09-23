@@ -1,9 +1,8 @@
 package models.user
 
 import com.google.inject.ImplementedBy
-import models.attribute.{UserAttributeLabelTableDef, UserClusteringSessionTable}
 import models.audit.AuditTaskTableDef
-import models.label.{LabelTable, LabelTableDef, LabelTypeEnum}
+import models.label.{LabelTable, LabelTypeEnum}
 import models.mission.{MissionTableDef, MissionTypeTable}
 import models.street.StreetEdgeTableDef
 import models.user.RoleTable.{RESEARCHER_ROLES, ROLES_RESEARCHER_COLLAPSED}
@@ -127,25 +126,22 @@ trait UserStatTableRepository {}
 class UserStatTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     sidewalkUserTable: SidewalkUserTable,
-    labelTable: LabelTable,
-    userClusteringSessionTable: UserClusteringSessionTable
+    labelTable: LabelTable
 )(implicit ec: ExecutionContext)
     extends UserStatTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  val userStats               = TableQuery[UserStatTableDef]
-  val userTable               = TableQuery[SidewalkUserTableDef]
-  val userRoleTable           = TableQuery[UserRoleTableDef]
-  val userAttributeLabelTable = TableQuery[UserAttributeLabelTableDef]
-  val labelsUnfiltered        = TableQuery[LabelTableDef]
-  val auditTaskTable          = TableQuery[AuditTaskTableDef]
-  val streetEdgeTable         = TableQuery[StreetEdgeTableDef]
-  val missionTable            = TableQuery[MissionTableDef]
-  val labelValidationTable    = TableQuery[LabelValidationTableDef]
+  private val userStats            = TableQuery[UserStatTableDef]
+  private val userTable            = TableQuery[SidewalkUserTableDef]
+  private val userRoleTable        = TableQuery[UserRoleTableDef]
+  private val auditTaskTable       = TableQuery[AuditTaskTableDef]
+  private val streetEdgeTable      = TableQuery[StreetEdgeTableDef]
+  private val missionTable         = TableQuery[MissionTableDef]
+  private val labelValidationTable = TableQuery[LabelValidationTableDef]
 
-  val auditMissions = missionTable.filter(_.missionTypeId === MissionTypeTable.missionTypeToId("audit"))
+  private val auditMissions = missionTable.filter(_.missionTypeId === MissionTypeTable.missionTypeToId("audit"))
 
-  val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
+  private val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
 
   implicit val userStatApiConverter: GetResult[UserStatApi] = GetResult[UserStatApi](r =>
     UserStatApi(
@@ -182,30 +178,6 @@ class UserStatTable @Inject() (
 
   def isExcludedUser(userId: String): DBIO[Boolean] = {
     userStats.filter(_.userId === userId).map(_.excluded).result.head
-  }
-
-  /**
-   * Get the list of users whose data needs to be re-clustered.
-   *
-   * We find the list of users by determining which labels _should_ show up in the API and compare that to which labels
-   * _are_present in the API. Any mismatches indicate that the user's data should be re-clustered.
-   */
-  def usersToUpdateInApi: DBIO[Seq[String]] = {
-    // Get the labels that are currently present in the API.
-    val labelsInApi = for {
-      _ual <- userAttributeLabelTable
-      _l   <- labelsUnfiltered if _ual.labelId === _l.labelId
-    } yield (_l.userId, _l.labelId)
-
-    // Find all mismatches between the list of labels above using an outer join.
-    userClusteringSessionTable.labelsForApiQuery
-      .joinFull(labelsInApi)
-      .on(_._2 === _._2)                               // FULL OUTER JOIN.
-      .filter(x => x._1.isEmpty || x._2.isEmpty)       // WHERE no_api.label_id IS NULL OR in_api.label_id IS NULL.
-      .map(x => x._1.map(_._1).ifNull(x._2.map(_._1))) // COALESCE(no_api.label_id, in_api.label_id).
-      .distinct
-      .result
-      .map(_.flatten) // SELECT DISTINCT and flatten.
   }
 
   /**

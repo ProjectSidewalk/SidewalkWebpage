@@ -150,13 +150,11 @@ GET     /userapi/getTeams                               controllers.UserProfileC
 # Map resources from the /public folder to the /assets URL path. Prefix must match `play.assets.urlPrefix`
 GET     /assets/*file                                    controllers.Assets.versioned(file)
 
-# Clustering and Attributes
+# Clustering
 GET     /clustering                                     controllers.ClusterController.index
-GET     /runClustering                                  controllers.ClusterController.runClustering(clusteringType: String ?= "both")
-GET     /userLabelsToCluster                            controllers.ClusterController.getUserLabelsToCluster(key: String, userId: String)
-GET     /clusteredLabelsInRegion                        controllers.ClusterController.getClusteredLabelsInRegion(key: String, regionId: Int)
-POST    /singleUserClusteringResults                    controllers.ClusterController.postSingleUserClusteringResults(key: String, userId: String)
-POST    /multiUserClusteringResults                     controllers.ClusterController.postMultiUserClusteringResults(key: String, regionId: Int)
+GET     /runClustering                                  controllers.ClusterController.runClustering()
+GET     /labelsToClusterInRegion                        controllers.ClusterController.getLabelsToClusterInRegion(key: String, regionId: Int)
+POST    /clusteringResults                              controllers.ClusterController.postClusteringResults(key: String, regionId: Int)
 
 # RouteBuilder
 POST    /saveRoute                                      controllers.RouteBuilderController.saveRoute
@@ -196,8 +194,6 @@ GET     /v3/api-docs/validations                        controllers.ApiDocsContr
 GET     /v3/api-docs/user-stats                         controllers.ApiDocsController.userStats
 GET     /v3/api-docs/overall-stats                      controllers.ApiDocsController.overallStats
 
-# Old Public API (v2)
-GET     /v2/access/attributes                           controllers.api.LabelClustersApiController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
-GET     /v2/access/attributesWithLabels                 controllers.api.LabelClustersApiController.getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
+# Old Public API (v2).
 GET     /v2/access/score/streets                        controllers.api.AccessScoreApiController.getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
 GET     /v2/access/score/neighborhoods                  controllers.api.AccessScoreApiController.getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])

@@ -11,22 +11,11 @@ import json
 # from pandas.io.json import json_normalize
 from concurrent.futures import ProcessPoolExecutor
 
-# Custom distance function that returns max float if from the same user id, haversine distance otherwise.
-def custom_dist(u, v):
-    if u[2] == v[2]:
-        return sys.float_info.max
-    else:
-        return haversine([u[0], u[1]], [v[0], v[1]])
-
 # For each label type, cluster based on haversine distance.
-def cluster(labels, curr_type, thresholds, single_user):
+def cluster(labels, curr_type, thresholds):
 
-    # Makes a normal dist matrix for a single user, but uses special dist function for multi-user clustering that
-    # prevents the same user's attributes from being clustered together.
-    if single_user:
-        dist_matrix = pdist(np.array(labels[['lat', 'lng']].values), lambda x, y: haversine(x, y))
-    else:
-        dist_matrix = pdist(np.array(labels[['lat', 'lng', 'user_id']].values), custom_dist)
+    # Computes the distance matrix between all points using haversine distance.
+    dist_matrix = pdist(np.array(labels[['lat', 'lng']].values), lambda x, y: haversine(x, y))
     link = linkage(dist_matrix, method='complete')
 
     # Copies the labels dataframe and adds a column to it for the cluster id each label is in.
@@ -49,46 +38,29 @@ def cluster(labels, curr_type, thresholds, single_user):
 
 if __name__ == '__main__':
 
+    N_PROCESSORS = 8
     POST_HEADER = {'content-type': 'application/json; charset=utf-8'}
+    PORT = os.environ.get('SIDEWALK_HTTP_PORT', '9000')
 
     # Read in arguments from command line.
     parser = argparse.ArgumentParser(description='Gets a set of labels, posts the labels grouped into clusters.')
     parser.add_argument('--key', type=str,
                         help='Key string that is used to authenticate when using API.')
-    parser.add_argument('--user_id', type=str,
-                        help='User id of a single user who\'s labels should be clustered.')
     parser.add_argument('--region_id', type=int,
-                        help='Region id of a region who\'s user-clustered should be clustered.')
+                        help='Region id of a region who\'s labels should be clustered.')
     parser.add_argument('--debug', action='store_true',
                         help='Debug mode adds print statements')
     args = parser.parse_args()
     KEY = args.key
     DEBUG = args.debug
-    USER_ID = args.user_id.strip('\'\"') if args.user_id else None
     REGION_ID = args.region_id
-    PORT = os.environ.get('SIDEWALK_HTTP_PORT', '9000')
+    GET_URL = 'http://localhost:' + PORT +'/labelsToClusterInRegion?key=' + KEY + '&regionId=' + str(REGION_ID)
+    POST_URL = 'http://localhost:' + PORT +'/clusteringResults?key=' + KEY + '&regionId=' + str(REGION_ID)
 
-    N_PROCESSORS = 8
-
-    # Determine what type of clustering should be done from command line args, and set variable accordingly.
-    getURL = None
-    postURL = None
-    SINGLE_USER = None
-
-    if USER_ID:
-        SINGLE_USER = True
-        getURL = 'http://localhost:' + PORT +'/userLabelsToCluster?key=' + KEY + '&userId=' + str(USER_ID)
-        postURL = 'http://localhost:' + PORT +'/singleUserClusteringResults?key=' + KEY + '&userId=' + str(USER_ID)
-    elif REGION_ID:
-        SINGLE_USER = False
-        getURL = 'http://localhost:' + PORT +'/clusteredLabelsInRegion?key=' + KEY + '&regionId=' + str(REGION_ID)
-        postURL = 'http://localhost:' + PORT +'/multiUserClusteringResults?key=' + KEY + '&regionId=' + str(REGION_ID)
 
     # Send GET request to get the labels to be clustered.
     try:
-        print(getURL)
-        print(postURL)
-        response = requests.get(getURL)
+        response = requests.get(GET_URL)
         data = response.json()
         label_data = pd.json_normalize(data)
         # print label_data
@@ -96,33 +68,21 @@ if __name__ == '__main__':
         print("Failed to get labels needed to cluster.")
         sys.exit()
 
-    # Define thresholds for single and multi-user clustering (numbers are in kilometers).
-    if SINGLE_USER:
-        thresholds = {'CurbRamp': 0.002,
-                      'NoCurbRamp': 0.002,
-                      'SurfaceProblem': 0.0075,
-                      'Obstacle': 0.0075,
-                      'NoSidewalk': 0.0075,
-                      'Crosswalk': 0.0075,
-                      'Signal': 0.0075,
-                      'Occlusion': 0.0075,
-                      'Other': 0.0075,
-                      'Problem': 0.0075}
-    else:
-        thresholds = {'CurbRamp': 0.0075,
-                      'NoCurbRamp': 0.0075,
-                      'SurfaceProblem': 0.01,
-                      'Obstacle': 0.01,
-                      'NoSidewalk': 0.01,
-                      'Crosswalk': 0.01,
-                      'Signal': 0.01,
-                      'Occlusion': 0.01,
-                      'Other': 0.01,
-                      'Problem': 0.01}
+    # Define thresholds clustering (numbers are in kilometers).
+    thresholds = {'CurbRamp': 0.0075,
+                  'NoCurbRamp': 0.0075,
+                  'SurfaceProblem': 0.01,
+                  'Obstacle': 0.01,
+                  'NoSidewalk': 0.01,
+                  'Crosswalk': 0.01,
+                  'Signal': 0.01,
+                  'Occlusion': 0.01,
+                  'Other': 0.01,
+                  'Problem': 0.01}
 
     # Pick which label types should be included in clustering, and which should be included in the "Problem" type.
     label_types = ['CurbRamp', 'NoSidewalk', 'Problem', 'Occlusion', 'SurfaceProblem', 'Obstacle', 'Other', 'NoCurbRamp', 'Crosswalk', 'Signal']
-    problem_types = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp'] if SINGLE_USER else ['Problem']
+    problem_types = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp']
 
     # These are the columns required in the POST requests for the labels and clusters, respectively.
     label_cols = ['label_id', 'label_type', 'cluster']
@@ -130,7 +90,7 @@ if __name__ == '__main__':
 
     # Check if there are 0 labels. If so, just send the post request and exit.
     if len(label_data) == 0:
-        response = requests.post(postURL, data=json.dumps({'thresholds': [], 'labels': [], 'clusters': []}), headers=POST_HEADER)
+        response = requests.post(POST_URL, data=json.dumps({'thresholds': [], 'labels': [], 'clusters': []}), headers=POST_HEADER)
         sys.exit()
 
     # Remove weird entries with latitude and longitude values (on the order of 10^14).
@@ -143,7 +103,7 @@ if __name__ == '__main__':
 
     # Check if there are 0 labels left after removing those with errors. If so, just send the post request and exit.
     if len(label_data) == 0:
-        response = requests.post(postURL, data=json.dumps({'thresholds': [], 'labels': [], 'clusters': []}), headers=POST_HEADER)
+        response = requests.post(POST_URL, data=json.dumps({'thresholds': [], 'labels': [], 'clusters': []}), headers=POST_HEADER)
         sys.exit()
 
     # Put lat-lng in a tuple so it plays nice w/ haversine function.
@@ -163,7 +123,7 @@ if __name__ == '__main__':
 
         # If there are >1 labels, we can do clustering. Otherwise just copy the 1 (or 0) labels.
         if type_data.shape[0] > 1:
-            (clusters_for_type_i, labels_for_type_i) = cluster(type_data, label_type, thresholds, SINGLE_USER)
+            (clusters_for_type_i, labels_for_type_i) = cluster(type_data, label_type, thresholds)
         elif type_data.shape[0] == 1:
             labels_for_type_i = type_data.copy()
             labels_for_type_i.loc[:,'cluster'] = 1 # Gives the single cluster a cluster_id of 1.
@@ -217,5 +177,5 @@ if __name__ == '__main__':
     # print 'chars in json: ' + str(len(output_json))
 
     # POST results.
-    response = requests.post(postURL, data=output_json, headers=POST_HEADER)
+    response = requests.post(POST_URL, data=output_json, headers=POST_HEADER)
     sys.exit()

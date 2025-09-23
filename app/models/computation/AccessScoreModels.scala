@@ -37,7 +37,7 @@ case class StreetScore(
     regionId: Int,
     score: Double,
     auditCount: Int,
-    attributes: Array[Int],
+    clusters: Array[Int],
     significance: Array[Double],
     avgImageCaptureDate: Option[OffsetDateTime],
     avgLabelDate: Option[OffsetDateTime],
@@ -67,7 +67,7 @@ case class RegionScore(
     regionId: Int,
     coverage: Double,
     score: Double,
-    attributeScores: Array[Double],
+    clusterScores: Array[Double],
     significanceScores: Array[Double],
     avgImageCaptureDate: Option[OffsetDateTime],
     avgLabelDate: Option[OffsetDateTime]

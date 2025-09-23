@@ -63,11 +63,19 @@ trait MyPostgresProfile
         v => Json.stringify(Json.toJson(v))
       )
 
-    // New mapper for Seq[AiTag] stored as JSONB.
+    // New mapper for Seq[AiTagConfidence] stored as JSONB.
     implicit val aiTagConfidenceSeqMapper: DriverJdbcType[Seq[AiTagConfidence]] =
       new GenericJdbcType[Seq[AiTagConfidence]](
         pgjson,
         s => if (s == null) List.empty[AiTagConfidence] else Json.parse(s).as[Seq[AiTagConfidence]],
+        v => Json.stringify(Json.toJson(v))
+      )
+
+    // New mapper for Seq[ClusteringThreshold] stored as JSONB.
+    implicit val clusteringThresholdSeqMapper: DriverJdbcType[Seq[ClusteringThreshold]] =
+      new GenericJdbcType[Seq[ClusteringThreshold]](
+        pgjson,
+        s => if (s == null) List.empty[ClusteringThreshold] else Json.parse(s).as[Seq[ClusteringThreshold]],
         v => Json.stringify(Json.toJson(v))
       )
   }
@@ -106,6 +114,25 @@ object AiTagConfidence {
       (__ \ "tag").write[String] and
         (__ \ "confidence").write[Double]
     )(unlift(AiTagConfidence.unapply))
+
+    Format(reads, writes)
+  }
+}
+
+// Define ClusteringThreshold and it's formatter. Stored in the database as JSONB.
+// Would like to use a composite type in the future once there is more support in Slick for them.
+case class ClusteringThreshold(labelType: String, threshold: Double)
+object ClusteringThreshold {
+  implicit val clusteringThresholdFormat: Format[ClusteringThreshold] = {
+    val reads: Reads[ClusteringThreshold] = (
+      (__ \ "label_type").read[String] and
+        (__ \ "threshold").read[Double]
+    )(ClusteringThreshold.apply _)
+
+    val writes: Writes[ClusteringThreshold] = (
+      (__ \ "label_type_id").write[String] and
+        (__ \ "threshold").write[Double]
+    )(unlift(ClusteringThreshold.unapply))
 
     Format(reads, writes)
   }

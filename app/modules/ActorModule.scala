@@ -11,7 +11,7 @@ class ActorModule extends AbstractModule with PekkoGuiceSupport {
     bindActor[UserStatActor]("user-stats-actor")
     bindActor[RecalculateStreetPriorityActor]("recalculate-street-priority-actor")
     bindActor[AuthTokenCleanerActor]("auth-token-cleaner-actor")
-    bindActor[ClusterLabelAttributesActor]("cluster-label-attributes-actor")
+    bindActor[ClusteringActor]("clustering-actor")
     bind(classOf[ActorInitializer]).asEagerSingleton()
   }
 }

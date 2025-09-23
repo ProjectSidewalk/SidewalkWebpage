@@ -1,9 +1,7 @@
 package controllers.helper
 
 import models.api.{LabelClusterForApi, LabelDataForApi, StreetDataForApi}
-import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
 import models.computation.{RegionScore, StreetScore}
-import models.label.LabelPointTable
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
@@ -230,122 +228,6 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     StreamConverters
       .fromInputStream(() => new BufferedInputStream(Files.newInputStream(zipPath)))
       .mapMaterializedValue(_.map { _ => Files.deleteIfExists(zipPath) })
-  }
-
-  def createAttributeShapefile(
-      source: Source[GlobalAttributeForApi, _],
-      outputFile: String,
-      batchSize: Int
-  ): Future[Option[Path]] = {
-    // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
-    val featureType: SimpleFeatureType = DataUtilities.createType(
-      "Location",
-      "the_geom:Point:srid=4326," // the geometry attribute: Point type
-      + "id:Integer,"             // global attribute ID
-      + "labelType:String,"       // Label type
-      + "streetId:Integer,"       // Street edge ID of the nearest street
-      + "osmWayId:String,"        // OSM way ID of the nearest street
-      + "neighborhd:String,"      // Neighborhood Name
-      + "avgImgDate:String,"      // Image date
-      + "avgLblDate:String,"      // Label date
-      + "severity:Integer,"       // Severity
-      + "nAgree:Integer,"         // Agree validations
-      + "nDisagree:Integer,"      // Disagree validations
-      + "nUnsure:Integer,"        // Unsure validations
-      + "clusterSze:Integer,"     // Number of labels in the cluster
-      + "userIds:String"          // List of User Ids
-    )
-
-    val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
-    def buildFeature(a: GlobalAttributeForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
-      featureBuilder.add(geometryFactory.createPoint(new Coordinate(a.lng.toDouble, a.lat.toDouble)))
-      featureBuilder.add(a.globalAttributeId)
-      featureBuilder.add(a.labelType)
-      featureBuilder.add(a.streetEdgeId)
-      featureBuilder.add(a.osmStreetId.toString)
-      featureBuilder.add(a.neighborhoodName)
-      featureBuilder.add(a.avgImageCaptureDate)
-      featureBuilder.add(a.avgLabelDate)
-      featureBuilder.add(a.severity.map(Integer.valueOf).orNull)
-      featureBuilder.add(a.agreeCount)
-      featureBuilder.add(a.disagreeCount)
-      featureBuilder.add(a.unsureCount)
-      featureBuilder.add(a.labelCount)
-      featureBuilder.add(a.usersList.mkString("[", ",", "]"))
-      featureBuilder.buildFeature(null)
-    }
-
-    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
-  }
-
-  def createLabelShapefile(
-      source: Source[GlobalAttributeWithLabelForApi, _],
-      outputFile: String,
-      batchSize: Int
-  ): Future[Option[Path]] = {
-    // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
-    val featureType: SimpleFeatureType = DataUtilities.createType(
-      "Location",
-      "the_geom:Point:srid=4326," // the geometry attribute: Point type
-      + "labelId:Integer,"        // label ID
-      + "attribId:Integer,"       // attribute ID
-      + "labelType:String,"       // Label type
-      + "streetId:Integer,"       // Street edge ID of the nearest street
-      + "osmWayId:String,"        // Street OSM ID of the nearest street
-      + "neighborhd:String,"      // Neighborhood Name
-      + "severity:Integer,"       // Severity
-      + "gsvPanoId:String,"       // GSV Panorama ID
-      + "heading:Double,"         // heading of panorama
-      + "pitch:Double,"           // pitch of panorama
-      + "zoom:Integer,"           // zoom of panorama
-      + "canvasX:Integer,"        // canvasX position of panorama
-      + "canvasY:Integer,"        // canvasY position of panorama
-      + "canvasWdth:Integer,"     // width of source viewfinder
-      + "canvasHght:Integer,"     // height of source viewfinder
-      + "gsvUrl:String,"          // GSV URL
-      + "imageDate:String,"       // Image date
-      + "labelDate:String,"       // Label date
-      + "nAgree:Integer,"         // Agree validations
-      + "nDisagree:Integer,"      // Disagree validations
-      + "nUnsure:Integer,"        // Unsure validations
-      + "labelTags:String,"       // Label Tags
-      + "labelDescr:String,"      // Label Description
-      + "userId:String,"          // User Id
-    )
-
-    val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
-    def buildFeature(l: GlobalAttributeWithLabelForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
-      featureBuilder.add(
-        geometryFactory.createPoint(new Coordinate(l.labelLatLng._2.toDouble, l.labelLatLng._1.toDouble))
-      )
-      featureBuilder.add(l.labelId)
-      featureBuilder.add(l.globalAttributeId)
-      featureBuilder.add(l.labelType)
-      featureBuilder.add(l.streetEdgeId)
-      featureBuilder.add(l.osmStreetId.toString)
-      featureBuilder.add(l.neighborhoodName)
-      featureBuilder.add(l.labelSeverity.map(Integer.valueOf).orNull)
-      featureBuilder.add(l.gsvPanoramaId)
-      featureBuilder.add(l.pov.heading)
-      featureBuilder.add(l.pov.pitch)
-      featureBuilder.add(l.pov.zoom)
-      featureBuilder.add(l.canvasXY.x)
-      featureBuilder.add(l.canvasXY.y)
-      featureBuilder.add(LabelPointTable.canvasWidth)
-      featureBuilder.add(LabelPointTable.canvasHeight)
-      featureBuilder.add(l.gsvUrl)
-      featureBuilder.add(l.imageLabelDates._1)
-      featureBuilder.add(l.imageLabelDates._2)
-      featureBuilder.add(l.agreeDisagreeUnsureCount._1)
-      featureBuilder.add(l.agreeDisagreeUnsureCount._2)
-      featureBuilder.add(l.agreeDisagreeUnsureCount._3)
-      featureBuilder.add(l.labelTags.mkString("[", ",", "]"))
-      featureBuilder.add(l.labelDescription.map(String.valueOf).orNull)
-      featureBuilder.add(l.userId)
-      featureBuilder.buildFeature(null)
-    }
-
-    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
   }
 
   /**
@@ -649,10 +531,10 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(s.significance(1))
       featureBuilder.add(s.significance(2))
       featureBuilder.add(s.significance(3))
-      featureBuilder.add(s.attributes(0))
-      featureBuilder.add(s.attributes(1))
-      featureBuilder.add(s.attributes(2))
-      featureBuilder.add(s.attributes(3))
+      featureBuilder.add(s.clusters(0))
+      featureBuilder.add(s.clusters(1))
+      featureBuilder.add(s.clusters(2))
+      featureBuilder.add(s.clusters(3))
       featureBuilder.add(s.avgImageCaptureDate.map(String.valueOf).orNull)
       featureBuilder.add(s.avgLabelDate.map(String.valueOf).orNull)
       featureBuilder.buildFeature(null)
@@ -696,10 +578,10 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(n.significanceScores(1))
       featureBuilder.add(n.significanceScores(2))
       featureBuilder.add(n.significanceScores(3))
-      featureBuilder.add(n.attributeScores(0))
-      featureBuilder.add(n.attributeScores(1))
-      featureBuilder.add(n.attributeScores(2))
-      featureBuilder.add(n.attributeScores(3))
+      featureBuilder.add(n.clusterScores(0))
+      featureBuilder.add(n.clusterScores(1))
+      featureBuilder.add(n.clusterScores(2))
+      featureBuilder.add(n.clusterScores(3))
       featureBuilder.add(n.avgImageCaptureDate.map(String.valueOf).orNull)
       featureBuilder.add(n.avgLabelDate.map(String.valueOf).orNull)
       featureBuilder.buildFeature(null)
