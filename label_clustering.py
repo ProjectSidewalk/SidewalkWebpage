@@ -11,11 +11,18 @@ import json
 # from pandas.io.json import json_normalize
 from concurrent.futures import ProcessPoolExecutor
 
+# Custom distance function that returns max float if from the same user and pano id, haversine distance otherwise.
+def custom_dist(u, v):
+    if u[2] == v[2] and u[3] == v[3]: # same user and pano id
+        return sys.float_info.max
+    else:
+        return haversine([u[0], u[1]], [v[0], v[1]])
+
 # For each label type, cluster based on haversine distance.
 def cluster(labels, curr_type, thresholds):
 
     # Computes the distance matrix between all points using haversine distance.
-    dist_matrix = pdist(np.array(labels[['lat', 'lng']].values), lambda x, y: haversine(x, y))
+    dist_matrix = pdist(np.array(labels[['lat', 'lng', 'user_id', 'pano_id']].values), custom_dist)
     link = linkage(dist_matrix, method='complete')
 
     # Copies the labels dataframe and adds a column to it for the cluster id each label is in.

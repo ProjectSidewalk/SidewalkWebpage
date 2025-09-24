@@ -24,6 +24,8 @@ case class ClusteringSession(
 
 case class LabelToCluster(
     regionId: Int,
+    userId: String,
+    panoId: String,
     labelId: Int,
     labelType: String,
     lat: Float,
@@ -98,8 +100,8 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
   // Get labels that should be in the API. Labels from high quality users that haven't been explicitly marked as
   // incorrect should be included, plus labels from low quality users that have been explicitly marked as correct.
   def labelsForApiQuery: Query[
-    (Rep[Int], Rep[Int], Rep[String], Rep[Float], Rep[Float], Rep[Option[Int]]),
-    (Int, Int, String, Float, Float, Option[Int]),
+    (Rep[Int], Rep[String], Rep[String], Rep[Int], Rep[String], Rep[Float], Rep[Float], Rep[Option[Int]]),
+    (Int, String, String, Int, String, Float, Float, Option[Int]),
     Seq
   ] = for {
     m   <- missions
@@ -113,7 +115,8 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
     if r.deleted === false
     if l.correct || (us.highQuality && l.correct.isEmpty && !at.lowQuality)
     if lp.lat.isDefined && lp.lng.isDefined
-  } yield (ser.regionId, l.labelId, lt.labelType, lp.lat.ifNull(-1f), lp.lng.ifNull(-1f), l.severity)
+  } yield (ser.regionId, us.userId, l.gsvPanoramaId, l.labelId, lt.labelType, lp.lat.ifNull(-1f), lp.lng.ifNull(-1f),
+    l.severity)
 
   def getRegionsToCluster: DBIO[Seq[Int]] = {
     // Get the labels that are currently present in the API.
@@ -126,7 +129,7 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
     // Find all mismatches between the list of labels above using an outer join.
     labelsForApiQuery
       .joinFull(labelsInApi)
-      .on(_._2 === _._2)                               // FULL OUTER JOIN.
+      .on(_._4 === _._2)                               // FULL OUTER JOIN on label_id.
       .filter(x => x._1.isEmpty || x._2.isEmpty)       // WHERE no_api.label_id IS NULL OR in_api.label_id IS NULL.
       .map(x => x._1.map(_._1).ifNull(x._2.map(_._1))) // COALESCE(no_api.region_id, in_api.region_id).
       .distinct                                        // SELECT DISTINCT and flatten.

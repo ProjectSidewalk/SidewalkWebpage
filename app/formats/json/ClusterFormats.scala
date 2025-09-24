@@ -36,6 +36,8 @@ object ClusterFormats {
 
   implicit val labelToClusterWrites: Writes[LabelToCluster] = (
     (JsPath \ "region_id").write[Int] and
+      (JsPath \ "user_id").write[String] and
+      (JsPath \ "pano_id").write[String] and
       (JsPath \ "label_id").write[Int] and
       (JsPath \ "label_type").write[String] and
       (JsPath \ "lat").write[Float] and
