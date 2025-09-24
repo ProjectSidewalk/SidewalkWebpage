@@ -75,7 +75,7 @@ class AccessScoreService @Inject() (
 
         if (auditedStreetsIntersecting.nonEmpty) {
           averagedStreetFeatures = auditedStreetsIntersecting
-            .map(_.attributes) // attributes from AccessScoreStreet (Array[Int] of 4 elements).
+            .map(_.clusters) // clusters from AccessScoreStreet (Array[Int] of 4 elements).
             .transpose
             .map(_.sum.toDouble / auditedStreetsIntersecting.size)
             .toArray
@@ -114,7 +114,7 @@ class AccessScoreService @Inject() (
           assert(coverage <= 1.0, s"Coverage cannot be greater than 1.0. Was: $coverage for neighborhood ${n.regionId}")
         }
         RegionScore(name = n.name, geom = n.geom, regionId = n.regionId, coverage = coverage, score = accessScore,
-          attributeScores = averagedStreetFeatures, significanceScores = significance,
+          clusterScores = averagedStreetFeatures, significanceScores = significance,
           avgImageCaptureDate = avgImageCaptureDate, avgLabelDate = avgLabelDate)
       }
       neighborhoodList
@@ -127,7 +127,7 @@ class AccessScoreService @Inject() (
    * The method performs the following steps:
    * 1. Retrieves streets intersecting the bounding box from the database.
    * 2. Initializes a counter for each street to track attributes such as label counts and image counts.
-   * 3. Fetches attributes for the streets in batches and updates the counters based on the attributes.
+   * 3. Fetches clusters for the streets in batches and updates the counters based on the attributes.
    * 4. Computes the access score and other statistics for each street in parallel.
    *
    * The access score is computed using a weighted significance array and the counts of specific attributes
@@ -136,7 +136,7 @@ class AccessScoreService @Inject() (
    * The resulting `AccessScoreStreet` objects include:
    * - Street information (e.g., street edge, OSM ID, region ID).
    * - Computed access score.
-   * - Audit count and attribute counts.
+   * - Audit count and cluster counts.
    * - Average image capture date and label date (if available).
    * - Total number of images and labels.
    *
@@ -154,7 +154,7 @@ class AccessScoreService @Inject() (
     // Significance array corresponds to the order in scoreRelevantLabelTypes.
     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
 
-    // Get streets from db and set up attribute counter for the streets.
+    // Get streets from db and set up cluster counter for the streets.
     apiService
       .selectStreetsIntersecting(spatialQueryType, bbox)
       .flatMap { streets: Seq[StreetEdgeInfo] =>
@@ -175,30 +175,30 @@ class AccessScoreService @Inject() (
             }
             .to(mutable.Seq)
 
-        // Get attributes for the streets in batches and increment the counters based on those attributes.
+        // Get clusters for the streets in batches and increment the counters based on those clusters.
         apiService
-          .getAttributesInBoundingBox(spatialQueryType, bbox, None, batchSize)
-          .runWith(Sink.foreach { attribute =>
+          .getClustersInBoundingBox(spatialQueryType, bbox, None, batchSize)
+          .runWith(Sink.foreach { cluster =>
             // Find the street counter safely.
             val streetOpt: Option[StreetLabelCounter] = streetAttCounts
-              .find(_._2.streetEdgeId == attribute.streetEdgeId)
+              .find(_._2.streetEdgeId == cluster.streetEdgeId)
               .map(_._2)
 
             streetOpt.foreach { street =>
-              street.nLabels += attribute.labelCount
-              street.nImages += attribute.imageCount
+              street.nLabels += cluster.labelCount
+              street.nImages += cluster.imageCount
 
               // Safely update age sums.
-              if (attribute.avgLabelDate != null) {
-                street.labelAgeSum += attribute.avgLabelDate.toInstant.toEpochMilli * attribute.labelCount
+              if (cluster.avgLabelDate != null) {
+                street.labelAgeSum += cluster.avgLabelDate.toInstant.toEpochMilli * cluster.labelCount
               }
-              if (attribute.avgImageCaptureDate != null) {
-                street.imageAgeSum += attribute.avgImageCaptureDate.toInstant.toEpochMilli * attribute.imageCount
+              if (cluster.avgImageCaptureDate != null) {
+                street.imageAgeSum += cluster.avgImageCaptureDate.toInstant.toEpochMilli * cluster.imageCount
               }
 
               // Increment count for the specific label type if it's one we're tracking.
-              if (street.labelCounter.contains(attribute.labelType)) {
-                street.labelCounter(attribute.labelType) += 1
+              if (street.labelCounter.contains(cluster.labelType)) {
+                street.labelCounter(cluster.labelType) += 1
               }
             }
           })
@@ -226,15 +226,15 @@ class AccessScoreService @Inject() (
                   }
 
                 // Compute access score using the predefined order from scoreRelevantLabelTypes.
-                val attributes: Array[Int] = scoreRelevantLabelTypes
+                val clusters: Array[Int] = scoreRelevantLabelTypes
                   .map(lt => cnt.labelCounter.getOrElse(lt.name, 0))
                   .toArray
 
-                val score: Double = computeAccessScore(attributes.map(_.toDouble), significance)
+                val score: Double = computeAccessScore(clusters.map(_.toDouble), significance)
 
                 StreetScore(
                   streetEdge = s.street, osmId = s.osmId, regionId = s.regionId, score = score,
-                  auditCount = s.auditCount, attributes = attributes, significance = significance,
+                  auditCount = s.auditCount, clusters = clusters, significance = significance,
                   avgImageCaptureDate = avgImageCaptureDate, avgLabelDate = avgLabelDate, imageCount = cnt.nImages,
                   labelCount = cnt.nLabels
                 )
@@ -245,20 +245,20 @@ class AccessScoreService @Inject() (
   }
 
   /**
-   * Computes the access score based on the given attributes and their significance weights.
+   * Computes the access score based on the given clusters and their significance weights.
    *
    * The method performs the following steps:
-   * 1. Calculates the dot product of the `attributes` and `significance` arrays.
+   * 1. Calculates the dot product of the `clusters` and `significance` arrays.
    * 2. Applies the sigmoid function to the result of the dot product to normalize the score to a value between 0 and 1.
    *
-   * @param attributes An array of feature values representing the attributes.
-   * @param significance An array of weights representing the significance of each attribute. Must have the same length
-   *                     as `attributes`.
+   * @param clusters An array of feature values representing the clusters.
+   * @param significance An array of weights representing the significance of each cluster. Must have the same length
+   *                     as `clusters`.
    * @return A normalized access score as a `Double` in the range [0, 1].
    */
-  def computeAccessScore(attributes: Array[Double], significance: Array[Double]): Double = {
-    // Ensure attributes and significance have the same length before zipping; expecting them to be 4 elements each.
-    val t: Double = (attributes.take(significance.length) zip significance).map { case (f, s) => f * s }.sum // dot product.
+  def computeAccessScore(clusters: Array[Double], significance: Array[Double]): Double = {
+    // Ensure clusters and significance have the same length before zipping; expecting them to be 4 elements each.
+    val t: Double = (clusters.take(significance.length) zip significance).map { case (f, s) => f * s }.sum // dot product.
     val s: Double = 1 / (1 + math.exp(-t)) // sigmoid function.
     s
   }

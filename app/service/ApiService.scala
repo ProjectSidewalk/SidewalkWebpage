@@ -3,16 +3,18 @@ package service
 import com.google.inject.ImplementedBy
 import formats.json.ClusterFormats.{ClusterSubmission, ClusteredLabelSubmission}
 import models.api._
-import models.attribute._
+import models.cluster._
 import models.label._
 import models.region.{Region, RegionTable}
 import models.street.{StreetEdgeInfo, StreetEdgeTable}
 import models.user.{UserStatApi, UserStatTable}
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.{LatLngBBox, MyPostgresProfile}
+import models.utils.{ClusteringThreshold, LatLngBBox, MyPostgresProfile}
 import models.validation.LabelValidationTable
 import org.apache.pekko.stream.scaladsl.Source
+import org.geotools.geometry.jts.JTSFactoryFinder
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
@@ -25,18 +27,13 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[ApiServiceImpl])
 trait ApiService {
 
-  def getAttributesInBoundingBox(
+  // Sets up streaming query to get clusters in a bounding box.
+  def getClustersInBoundingBox(
       spatialQueryType: SpatialQueryType,
       bbox: LatLngBBox,
       severity: Option[String],
       batchSize: Int
-  ): Source[GlobalAttributeForApi, _]
-
-  def getGlobalAttributesWithLabelsInBoundingBox(
-      bbox: LatLngBBox,
-      severity: Option[String],
-      batchSize: Int
-  ): Source[GlobalAttributeWithLabelForApi, _]
+  ): Source[ClusterForApi, _]
 
   def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]]
 
@@ -44,32 +41,72 @@ trait ApiService {
 
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _]
 
-  def getUserLabelsToCluster(userId: String): Future[Seq[LabelToCluster]]
-  def getClusteredLabelsInRegion(regionId: Int): Future[Seq[LabelToCluster]]
-  def getUsersToClusterAndWipeOldData: Future[Seq[String]]
+  def getLabelsToClusterInRegion(regionId: Int): Future[Seq[LabelToCluster]]
   def getRegionsToClusterAndWipeOldData: Future[Seq[Int]]
-  def submitSingleUserClusteringResults(
-      userId: String,
-      clusters: Seq[ClusterSubmission],
-      labels: Seq[ClusteredLabelSubmission],
-      thresholds: Map[String, Float]
-  ): Future[Int]
-  def submitMultiUserClusteringResults(
+
+  /**
+   * Submits clustering results for a region.
+   *
+   * @param regionId The region ID of the region whose clustering results are being submitted.
+   * @param clusters The clusters created.
+   * @param labels The labels used to create the clusters.
+   * @param thresholds Cutoff points used to determine max distance between points in a cluster for each label type.
+   * @return The ID of the clustering session created.
+   */
+  def submitClusteringResults(
       regionId: Int,
       clusters: Seq[ClusterSubmission],
-      userAttributes: Seq[ClusteredLabelSubmission],
-      thresholds: Map[String, Float]
+      labels: Seq[ClusteredLabelSubmission],
+      thresholds: Seq[ClusteringThreshold]
   ): Future[Int]
-  def getClusteringInfo: Future[(Int, Int, Int)]
+
+  /**
+   * Gets the count of labels used in clustering and number of clusters created.
+   */
+  def getClusteringInfo: Future[(Int, Int)]
 
   /** The v3 APIs * */
+  /**
+   * Gets all street types with their counts from the database.
+   *
+   * @return A future containing a sequence of StreetTypeForApi objects
+   */
   def getStreetTypes(lang: Lang): Future[Seq[StreetTypeForApi]]
+
+  /**
+   * Retrieves streets based on the provided filters and returns them as a reactive stream source.
+   *
+   * @param filters   The filters to apply when retrieving streets.
+   * @param batchSize The number of records to fetch in each batch from the database.
+   * @return          A reactive stream source that emits StreetDataForApi objects.
+   */
   def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, _]
 
+  /**
+   * Retrieves the region with the most labels from the database.
+   *
+   * @return A `Future` containing an `Option` of `Region`. The `Option` will be:
+   *         - `Some(region)` if a region with the most labels exists.
+   *         - `None` if no regions are found.
+   */
   def getRegionWithMostLabels: Future[Option[Region]]
 
+  /**
+   * Retrieves label clusters based on the provided filters and returns them as a reactive stream source.
+   *
+   * @param filters   The filters to apply when retrieving label clusters
+   * @param batchSize The number of records to fetch in each batch from the database
+   * @return          A reactive stream source that emits `LabelClusterForApi` objects
+   */
   def getLabelClusters(filters: LabelClusterFiltersForApi, batchSize: Int): Source[LabelClusterForApi, _]
 
+  /**
+   * Sets up streaming query to get raw labels with filters.
+   *
+   * @param filters The filters to apply to the label data.
+   * @param batchSize The size of each batch of data to fetch.
+   * @return A source of label data.
+   */
   def getRawLabels(filters: RawLabelFiltersForApi, batchSize: Int): Source[LabelDataForApi, _]
 
   /**
@@ -80,6 +117,15 @@ trait ApiService {
    */
   def getLabelTypes(lang: Lang): Set[LabelTypeForApi]
 
+  /**
+   * Gets user statistics with optional filtering parameters applied at the database level.
+   *
+   * @param minLabels Optional minimum number of labels a user must have.
+   * @param minMetersExplored Optional minimum meters explored a user must have.
+   * @param highQualityOnly Optional filter to include only high quality users if true.
+   * @param minAccuracy Optional minimum label accuracy a user must have.
+   * @return A Future containing a sequence of UserStatApi objects that match the filters.
+   */
   def getUserStats(
       minLabels: Option[Int] = None,
       minMetersExplored: Option[Float] = None,
@@ -89,7 +135,19 @@ trait ApiService {
 
   def getOverallStats(filterLowQuality: Boolean): Future[ProjectSidewalkStats]
 
+  /**
+   * Retrieves validation data based on the provided filters and returns them as a reactive stream source.
+   *
+   * @param filters   The filters to apply when retrieving validations.
+   * @param batchSize The number of records to fetch in each batch from the database.
+   * @return          A reactive stream source that emits ValidationDataForApi objects.
+   */
   def getValidations(filters: ValidationFiltersForApi, batchSize: Int): Source[ValidationDataForApi, _]
+
+  /**
+   * Retrieves all validation result types with their counts.
+   * @return A future containing a sequence of ValidationResultTypeForApi objects
+   */
   def getValidationResultTypes: Future[Seq[ValidationResultTypeForApi]]
 }
 
@@ -98,20 +156,18 @@ class ApiServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     messagesApi: MessagesApi,
     config: Configuration,
-    globalAttributeTable: GlobalAttributeTable,
+    clusterTable: ClusterTable,
     streetEdgeTable: StreetEdgeTable,
     regionTable: RegionTable,
     labelTable: LabelTable,
     userStatTable: UserStatTable,
-    userClusteringSessionTable: UserClusteringSessionTable,
-    userAttributeTable: UserAttributeTable,
-    userAttributeLabelTable: UserAttributeLabelTable,
-    globalClusteringSessionTable: GlobalClusteringSessionTable,
-    globalAttributeUserAttributeTable: GlobalAttributeUserAttributeTable,
+    clusteringSessionTable: ClusteringSessionTable,
+    clusterLabelTable: ClusterLabelTable,
     labelValidationTable: LabelValidationTable,
     implicit val ec: ExecutionContext
 ) extends ApiService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
+  val gf: GeometryFactory = JTSFactoryFinder.getGeometryFactory
 
   /**
    * Sets up a streaming query to fetch data from the database in batches.
@@ -128,47 +184,17 @@ class ApiServiceImpl @Inject() (
     Source.fromPublisher(db.stream(query.transactionally.withStatementParameters(fetchSize = batchSize)))
   }
 
-  /**
-   * Retrieves streets based on the provided filters and returns them as a reactive stream source.
-   *
-   * @param filters   The filters to apply when retrieving streets.
-   * @param batchSize The number of records to fetch in each batch from the database.
-   * @return          A reactive stream source that emits StreetDataForApi objects.
-   */
   def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, _] = {
     setUpStreamFromDb(streetEdgeTable.getStreetsForApi(filters), batchSize)
   }
 
-  /**
-   * Retrieves label clusters based on the provided filters and returns them as a reactive stream source.
-   *
-   * @param filters   The filters to apply when retrieving label clusters. These filters determine which label clusters
-   *                  are included in the result.
-   * @param batchSize The number of records to fetch in each batch from the database.
-   * @return          A reactive stream source (`pekko.stream.scaladsl.Source`) that emits. `LabelClusterForApi` objects
-   *                  representing the label clusters.
-   */
   def getLabelClusters(filters: LabelClusterFiltersForApi, batchSize: Int): Source[LabelClusterForApi, _] = {
-    setUpStreamFromDb(globalAttributeTable.getLabelClustersV3(filters), batchSize)
+    setUpStreamFromDb(clusterTable.getLabelClustersV3(filters), batchSize)
   }
 
-  /**
-   * Retrieves the region with the most labels from the database.
-   *
-   * @return A `Future` containing an `Option` of `Region`. The `Option` will be:
-   *         - `Some(region)` if a region with the most labels exists.
-   *         - `None` if no regions are found.
-   */
   def getRegionWithMostLabels: Future[Option[Region]] =
     db.run(regionTable.getRegionWithMostLabels)
 
-  /**
-   * Sets up streaming query to get raw labels with filters.
-   *
-   * @param filters The filters to apply to the label data.
-   * @param batchSize The size of each batch of data to fetch.
-   * @return A source of label data.
-   */
   def getRawLabels(filters: RawLabelFiltersForApi, batchSize: Int): Source[LabelDataForApi, _] = {
     setUpStreamFromDb(labelTable.getLabelDataWithFilters(filters), batchSize)
   }
@@ -188,23 +214,13 @@ class ApiServiceImpl @Inject() (
     }
   }
 
-  // Sets up streaming query to get global attributes in a bounding box.
-  def getAttributesInBoundingBox(
+  def getClustersInBoundingBox(
       spatialQueryType: SpatialQueryType,
       bbox: LatLngBBox,
       severity: Option[String],
       batchSize: Int
-  ): Source[GlobalAttributeForApi, _] = {
-    setUpStreamFromDb(globalAttributeTable.getAttributesInBoundingBox(spatialQueryType, bbox, severity), batchSize)
-  }
-
-  // Sets up streaming query to get global attributes with their associated labels in a bounding box.
-  def getGlobalAttributesWithLabelsInBoundingBox(
-      bbox: LatLngBBox,
-      severity: Option[String],
-      batchSize: Int
-  ): Source[GlobalAttributeWithLabelForApi, _] = {
-    setUpStreamFromDb(globalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity), batchSize)
+  ): Source[ClusterForApi, _] = {
+    setUpStreamFromDb(clusterTable.getClustersInBoundingBox(spatialQueryType, bbox, severity), batchSize)
   }
 
   def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]] =
@@ -223,15 +239,6 @@ class ApiServiceImpl @Inject() (
     )
   }
 
-  /**
-   * Gets user statistics with optional filtering parameters applied at the database level.
-   *
-   * @param minLabels Optional minimum number of labels a user must have.
-   * @param minMetersExplored Optional minimum meters explored a user must have.
-   * @param highQualityOnly Optional filter to include only high quality users if true.
-   * @param minAccuracy Optional minimum label accuracy a user must have.
-   * @return A Future containing a sequence of UserStatApi objects that match the filters.
-   */
   def getUserStats(
       minLabels: Option[Int] = None,
       minMetersExplored: Option[Float] = None,
@@ -252,154 +259,62 @@ class ApiServiceImpl @Inject() (
     } yield overallStats)
   }
 
-  def getUserLabelsToCluster(userId: String): Future[Seq[LabelToCluster]] =
-    db.run(userClusteringSessionTable.getUserLabelsToCluster(userId))
-
-  def getClusteredLabelsInRegion(regionId: Int): Future[Seq[LabelToCluster]] =
-    db.run(userClusteringSessionTable.getClusteredLabelsInRegion(regionId))
-
-  def getUsersToClusterAndWipeOldData: Future[Seq[String]] = {
-    db.run((for {
-      // Get the list of users whose data we want to delete or re-cluster (or cluster for the first time).
-      usersToUpdate: Seq[String] <- userStatTable.usersToUpdateInApi
-      // Delete data from users we want to re-cluster.
-      _ <- userClusteringSessionTable.deleteUserClusteringSessions(usersToUpdate)
-    } yield usersToUpdate).transactionally)
-  }
+  def getLabelsToClusterInRegion(regionId: Int): Future[Seq[LabelToCluster]] =
+    db.run(clusteringSessionTable.getLabelsToClusterInRegion(regionId))
 
   def getRegionsToClusterAndWipeOldData: Future[Seq[Int]] = {
     db.run(for {
-      // Get the list of neighborhoods that need to be updated because the underlying users' clusters changed.
-      regionIds: Seq[Int] <- globalClusteringSessionTable.getNeighborhoodsToReCluster
+      // Get the list of region that need to be updated because the underlying labels have changed.
+      regionIds: Seq[Int] <- clusteringSessionTable.getRegionsToCluster
       // Delete the data for those regions.
-      _ <- globalClusteringSessionTable.deleteGlobalClusteringSessions(regionIds)
+      _ <- clusteringSessionTable.deleteClusteringSessions(regionIds)
     } yield regionIds)
   }
 
-  /**
-   * Submits clustering results for a single user.
-   *
-   * @param userId The user ID of the user whose clustering results are being submitted.
-   * @param clusters The clusters created.
-   * @param labels The labels used to create the clusters.
-   * @param thresholds Cutoff points used to determine max distance between points in a cluster for each label type.
-   * @return The ID of the user clustering session created.
-   */
-  def submitSingleUserClusteringResults(
-      userId: String,
-      clusters: Seq[ClusterSubmission],
-      labels: Seq[ClusteredLabelSubmission],
-      thresholds: Map[String, Float]
-  ): Future[Int] = {
-    val timestamp = OffsetDateTime.now
-    db.run((for {
-      // Add the corresponding entry to the user_clustering_session table.
-      userSessionId: Int <- userClusteringSessionTable.insert(UserClusteringSession(0, userId, timestamp))
-
-      // Query the db for the closest region for each cluster. This runs batched under the hood.
-      regionIds: Seq[Int] <- regionTable.getRegionIdClosestToLatLngs(clusters.map(c => (c.lat, c.lng)))
-
-      // Turn each cluster into a UserAttribute object.
-      userAttributes: Seq[UserAttribute] =
-        clusters.zip(regionIds).map { case (cluster, regionId) =>
-          UserAttribute(
-            userAttributeId = 0, userClusteringSessionId = userSessionId,
-            clusteringThreshold = thresholds(cluster.labelType),
-            labelTypeId = LabelTypeEnum.labelTypeToId(cluster.labelType), regionId = regionId, lat = cluster.lat,
-            lng = cluster.lng, severity = cluster.severity
-          )
-        }
-
-      // Bulk insert user attributes and return their newly created IDs in the same order.
-      userAttrIds: Seq[Int] <- userAttributeTable.saveMultiple(userAttributes)
-
-      // Map clusters to their new userAttributeId.
-      userAttrIdsMap: Map[Int, Int] = clusters
-        .zip(userAttrIds)
-        .map { case (c, attrId) => (c.clusterNum, attrId) }
-        .toMap
-
-      // Add all the associated labels to the user_attribute_label table.
-      userAttrLabels: Seq[UserAttributeLabel] = labels.map { label =>
-        UserAttributeLabel(0, userAttrIdsMap(label.clusterNum), label.labelId)
-      }
-
-      // Bulk insert user_attribute_labels.
-      _ <- userAttributeLabelTable.insertMultiple(userAttrLabels)
-    } yield userSessionId).transactionally)
-  }
-
-  /**
-   * Submits clustering results for a region.
-   *
-   * @param regionId The region ID of the region whose clustering results are being submitted.
-   * @param clusters The clusters created.
-   * @param userAttributes The user_attributes used to create the clusters.
-   * @param thresholds Cutoff points used to determine max distance between points in a cluster for each label type.
-   * @return The ID of the global clustering session created.
-   */
-  def submitMultiUserClusteringResults(
+  def submitClusteringResults(
       regionId: Int,
       clusters: Seq[ClusterSubmission],
-      userAttributes: Seq[ClusteredLabelSubmission],
-      thresholds: Map[String, Float]
+      labels: Seq[ClusteredLabelSubmission],
+      thresholds: Seq[ClusteringThreshold]
   ): Future[Int] = {
     val timestamp = OffsetDateTime.now
     db.run((for {
-      // Add the corresponding entry to the global_clustering_session table.
-      globalSessionId: Int <- globalClusteringSessionTable.insert(GlobalClusteringSession(0, regionId, timestamp))
+      // Add the corresponding entry to the clustering_session table.
+      sessionId: Int <- clusteringSessionTable.insert(ClusteringSession(0, regionId, thresholds, timestamp))
 
-      // Query the db for the closest street and region for each cluster. These run batched under the hood.
+      // Query the db for the closest street for each cluster. These run batched under the hood.
       streetIds: Seq[Int] <- labelTable.getStreetEdgeIdClosestToLatLngs(clusters.map(c => (c.lat, c.lng)))
-      regionIds: Seq[Int] <- regionTable.getRegionIdClosestToLatLngs(clusters.map(c => (c.lat, c.lng)))
 
-      // Turn each cluster into a GlobalAttribute object.
-      globalAttributes: Seq[GlobalAttribute] =
-        clusters.zip(streetIds).zip(regionIds).map { case ((cluster, streetId), regionId) =>
-          GlobalAttribute(
-            globalAttributeId = 0, globalClusteringSessionId = globalSessionId,
-            clusteringThreshold = thresholds(cluster.labelType),
-            labelTypeId = LabelTypeEnum.labelTypeToId(cluster.labelType), streetEdgeId = streetId, regionId = regionId,
-            lat = cluster.lat, lng = cluster.lng, severity = cluster.severity
-          )
+      // Turn each cluster into a Cluster object.
+      clusterObjs: Seq[Cluster] =
+        clusters.zip(streetIds).map { case (cluster, streetId) =>
+          val labelTypeId: Int = LabelTypeEnum.labelTypeToId(cluster.labelType)
+          val geom = gf.createPoint(new Coordinate(cluster.lng, cluster.lat))
+          Cluster(0, sessionId, labelTypeId, streetId, geom, cluster.severity)
         }
 
-      // Bulk insert global attributes and return their newly created IDs in the same order.
-      globalAttrIds: Seq[Int] <- globalAttributeTable.saveMultiple(globalAttributes)
+      // Bulk insert clusters and return their newly created IDs in the same order.
+      clusterIds: Seq[Int] <- clusterTable.saveMultiple(clusterObjs)
 
-      // Map clusters to their new globalAttributeId.
-      globalAttrIdsMap: Map[Int, Int] = clusters
-        .zip(globalAttrIds)
-        .map { case (c, attrId) => (c.clusterNum, attrId) }
+      // Map input clusters to their new clusterId.
+      clusterIdsMap: Map[Int, Int] = clusters
+        .zip(clusterIds)
+        .map { case (c, clusterId) => (c.clusterNum, clusterId) }
         .toMap
 
-      // Add all the associated labels to the global_attribute_user_attribute table.
-      globalAttrUserAttrs: Seq[GlobalAttributeUserAttribute] = userAttributes
-        .map { userAttribute =>
-          GlobalAttributeUserAttribute(0, globalAttrIdsMap(userAttribute.clusterNum), userAttribute.labelId)
-        }
-
-      // Bulk insert global_attribute_user_attributes.
-      _ <- globalAttributeUserAttributeTable.insertMultiple(globalAttrUserAttrs)
-    } yield globalSessionId).transactionally)
+      // Add all the associated labels to the cluster_label table.
+      clusterLabels = labels.map { label => ClusterLabel(0, clusterIdsMap(label.clusterNum), label.labelId) }
+      _ <- clusterLabelTable.insertMultiple(clusterLabels)
+    } yield sessionId).transactionally)
   }
 
-  /**
-   * Gets the count of labels used in clustering, and the user attributes and global attributes created from clustering.
-   */
-  def getClusteringInfo: Future[(Int, Int, Int)] = {
+  def getClusteringInfo: Future[(Int, Int)] = {
     db.run(for {
-      labelCount           <- userAttributeLabelTable.countUserAttributeLabels
-      userAttributeCount   <- userAttributeTable.countUserAttributes
-      globalAttributeCount <- globalAttributeTable.countGlobalAttributes
-    } yield (labelCount, userAttributeCount, globalAttributeCount))
+      labelCount   <- clusterLabelTable.countClusterLabels
+      clusterCount <- clusterTable.countClusters
+    } yield (labelCount, clusterCount))
   }
 
-  /**
-   * Gets all street types with their counts from the database.
-   *
-   * @return A future containing a sequence of StreetTypeForApi objects
-   */
   def getStreetTypes(lang: Lang): Future[Seq[StreetTypeForApi]] = {
     db.run(streetEdgeTable.getStreetTypes).map { wayTypeCounts =>
       // Transform to StreetTypeForApi objects with descriptions.
@@ -412,14 +327,6 @@ class ApiServiceImpl @Inject() (
     }
   }
 
-  /**
-   * Retrieves validation data based on the provided filters and returns them as a reactive stream source.
-   *
-   * @param filters   The filters to apply when retrieving validations. These filters determine which validations are
-   *                  included in the result.
-   * @param batchSize The number of records to fetch in each batch from the database.
-   * @return          A reactive stream source that emits ValidationDataForApi objects.
-   */
   def getValidations(filters: ValidationFiltersForApi, batchSize: Int): Source[ValidationDataForApi, _] = {
     // NOTE can't use `setUpStreamFromDb` here bc we need to call `mapResult` to convert to `ValidationFiltersForApi`.
     Source.fromPublisher(
@@ -433,11 +340,6 @@ class ApiServiceImpl @Inject() (
     )
   }
 
-  /**
-   * Retrieves all validation result types with their counts.
-   *
-   * @return A future containing a sequence of ValidationResultTypeForApi objects
-   */
   def getValidationResultTypes: Future[Seq[ValidationResultTypeForApi]] = {
     db.run(labelValidationTable.getValidationResultTypes)
   }

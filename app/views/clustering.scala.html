@@ -8,30 +8,26 @@
     @common.navbar(commonData, Some(user))
     <div id="content">
         <div class="container">
-            <h1>Clustering labels into attributes</h1>
-            <button id="btn-single-user-clustering">Single User Clustering</button>
-            <button id="btn-multi-user-clustering">Multi User Clustering</button>
-            <button id="btn-both-clustering">Single AND Multi User Clustering</button>
+            <h1>Clustering labels</h1>
+            <button id="btn-run-clustering">Run Clustering</button>
             <br/>
             <p id="clustering-status"></p>
         </div>
     </div>
 
     <script>
-        // Add onclicks to each button that calls clustering code and extracts results from the response.
+        // Add onclick to the run clustering button and extracts results from the response.
         $(document).ready(function () {
-            let clusterStatusElement = document.getElementById('clustering-status');
+            let clusterStatusEl = document.getElementById('clustering-status');
 
             // Handles the event stream. Updates the clustering-status element as clustering progresses.
             function clusteringEventOnMessage(event) {
                 const data = JSON.parse(event.data);
-                clusterStatusElement.textContent = data.status;
+                clusterStatusEl.textContent = data.status;
 
                 // If processing is complete, show final results and close the connection.
                 if (data.status === 'Complete') {
-                    clusterStatusElement.textContent = `Labels: ${data.results.user_labels}, ` +
-                        `User Attributes: ${data.results.user_attributes}, ` +
-                        `Global Attributes: ${data.results.global_attributes}`;
+                    clusterStatusEl.textContent = `Labels: ${data.results.labels}, Clusters: ${data.results.clusters}`;
                     this.close();
                 }
             }
@@ -39,23 +35,13 @@
             // Handles errors in the clustering event stream.
             function clusteringEventOnError(event) {
                 console.error('EventSource error:', event);
-                clusterStatusElement.textContent = 'Error occurred.';
+                clusterStatusEl.textContent = 'Error occurred.';
                 this.close();
             }
 
-            // Creates a new EventSource for each button click and sets up the event handlers.
-            document.getElementById('btn-single-user-clustering').onclick = function() {
-                const eventSource = new EventSource('/runClustering?clusteringType=singleUser');
-                eventSource.onmessage = clusteringEventOnMessage;
-                eventSource.onerror = clusteringEventOnError;
-            };
-            document.getElementById('btn-multi-user-clustering').onclick = function() {
-                const eventSource = new EventSource('/runClustering?clusteringType=multiUser');
-                eventSource.onmessage = clusteringEventOnMessage;
-                eventSource.onerror = clusteringEventOnError;
-            };
-            document.getElementById('btn-both-clustering').onclick = function() {
-                const eventSource = new EventSource('/runClustering?clusteringType=both');
+            // Creates a new EventSource for the run clustering button click and sets up the event handlers.
+            document.getElementById('btn-run-clustering').onclick = function() {
+                const eventSource = new EventSource('/runClustering');
                 eventSource.onmessage = clusteringEventOnMessage;
                 eventSource.onerror = clusteringEventOnError;
             };

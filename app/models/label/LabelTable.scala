@@ -1216,7 +1216,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param latLngs Seq of lat/lng pairs to find the closest street for.
    * @return Seq of street_edge_ids that are the closest street to the corresponding lat/lng in the input Seq.
    */
-  def getStreetEdgeIdClosestToLatLngs(latLngs: Seq[(Float, Float)]): DBIO[Seq[Int]] = {
+  def getStreetEdgeIdClosestToLatLngs(latLngs: Seq[(Double, Double)]): DBIO[Seq[Int]] = {
     if (latLngs.isEmpty) {
       DBIO.successful(Seq.empty)
     } else {

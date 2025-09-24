@@ -1,6 +1,6 @@
 package formats.json
 
-import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
+import models.cluster.ClusterForApi
 import models.computation.{RegionScore, StreetScore}
 import models.gsv.GsvDataSlim
 import models.label._
@@ -15,7 +15,7 @@ import play.api.libs.json._
 import java.time.OffsetDateTime
 
 object ApiFormats {
-  def formatOptionForCSV(x: Option[Any]): String = { x.map(_.toString).getOrElse("NA").replace("\"", "\"\"") }
+  private def formatOptionForCSV(x: Option[Any]): String = { x.map(_.toString).getOrElse("NA").replace("\"", "\"\"") }
 
   /**
    * Converts a Region object to JSON format
@@ -73,10 +73,10 @@ object ApiFormats {
           LabelTypeEnum.SurfaceProblem.name -> n.significanceScores(3)
         ),
         "avg_attribute_count" -> Json.obj(
-          LabelTypeEnum.CurbRamp.name       -> n.attributeScores(0),
-          LabelTypeEnum.NoCurbRamp.name     -> n.attributeScores(1),
-          LabelTypeEnum.Obstacle.name       -> n.attributeScores(2),
-          LabelTypeEnum.SurfaceProblem.name -> n.attributeScores(3)
+          LabelTypeEnum.CurbRamp.name       -> n.clusterScores(0),
+          LabelTypeEnum.NoCurbRamp.name     -> n.clusterScores(1),
+          LabelTypeEnum.Obstacle.name       -> n.clusterScores(2),
+          LabelTypeEnum.SurfaceProblem.name -> n.clusterScores(3)
         ),
         "avg_image_capture_date" -> n.avgImageCaptureDate.map(_.toString),
         "avg_label_date"         -> n.avgLabelDate.map(_.toString)
@@ -105,8 +105,8 @@ object ApiFormats {
   def regionScoreToCSVRow(n: RegionScore): String = {
     val coordStr: String = s""""[${n.geom.getCoordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
     if (n.coverage > 0.0d) {
-      s""""${n.name}",${n.regionId},${n.score},$coordStr,${n.coverage},${n.attributeScores(0)},""" +
-        s"${n.attributeScores(1)},${n.attributeScores(2)},${n.attributeScores(3)},${n.significanceScores(0)}," +
+      s""""${n.name}",${n.regionId},${n.score},$coordStr,${n.coverage},${n.clusterScores(0)},""" +
+        s"${n.clusterScores(1)},${n.clusterScores(2)},${n.clusterScores(3)},${n.significanceScores(0)}," +
         s"${n.significanceScores(1)},${n.significanceScores(2)},${n.significanceScores(3)}," +
         s"${n.avgImageCaptureDate.map(_.toString).getOrElse("NA")},${n.avgLabelDate.map(_.toString).getOrElse("NA")}"
     } else {
@@ -131,10 +131,10 @@ object ApiFormats {
         LabelTypeEnum.SurfaceProblem.name -> s.significance(3)
       ),
       "attribute_count" -> Json.obj(
-        LabelTypeEnum.CurbRamp.name       -> s.attributes(0),
-        LabelTypeEnum.NoCurbRamp.name     -> s.attributes(1),
-        LabelTypeEnum.Obstacle.name       -> s.attributes(2),
-        LabelTypeEnum.SurfaceProblem.name -> s.attributes(3)
+        LabelTypeEnum.CurbRamp.name       -> s.clusters(0),
+        LabelTypeEnum.NoCurbRamp.name     -> s.clusters(1),
+        LabelTypeEnum.Obstacle.name       -> s.clusters(2),
+        LabelTypeEnum.SurfaceProblem.name -> s.clusters(3)
       )
     )
     Json.obj("type" -> "Feature", "geometry" -> s.streetEdge.geom, "properties" -> properties)
@@ -142,21 +142,18 @@ object ApiFormats {
 
   def streetScoreToCSVRow(s: StreetScore): String = {
     val coordStr: String = s""""[${s.streetEdge.geom.getCoordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
-    s"${s.streetEdge.streetEdgeId},${s.osmId},${s.regionId},${s.score},$coordStr,${s.auditCount},${s.attributes(0)}," +
-      s"${s.attributes(1)},${s.attributes(2)},${s.attributes(3)},${s.significance(0)},${s.significance(1)}," +
+    s"${s.streetEdge.streetEdgeId},${s.osmId},${s.regionId},${s.score},$coordStr,${s.auditCount},${s.clusters(0)}," +
+      s"${s.clusters(1)},${s.clusters(2)},${s.clusters(3)},${s.significance(0)},${s.significance(1)}," +
       s"${s.significance(2)},${s.significance(3)},${s.avgImageCaptureDate.map(_.toString).getOrElse("NA")}," +
       s"${s.avgLabelDate.map(_.toString).getOrElse("NA")}"
   }
 
-  def globalAttributeToJSON(a: GlobalAttributeForApi): JsObject = {
+  def clusterToJson(a: ClusterForApi): JsObject = {
     Json.obj(
-      "type"     -> "Feature",
-      "geometry" -> Json.obj(
-        "type"        -> "Point",
-        "coordinates" -> Json.arr(a.lng.toDouble, a.lat.toDouble)
-      ),
+      "type"       -> "Feature",
+      "geometry"   -> a.geom,
       "properties" -> Json.obj(
-        "attribute_id"           -> a.globalAttributeId,
+        "cluster_id"             -> a.clusterId,
         "label_type"             -> a.labelType,
         "street_edge_id"         -> a.streetEdgeId,
         "osm_street_id"          -> a.osmStreetId,
@@ -173,61 +170,10 @@ object ApiFormats {
     )
   }
 
-  def globalAttributeToCSVRow(a: GlobalAttributeForApi): String = {
-    s"""${a.globalAttributeId},${a.labelType},${a.streetEdgeId},${a.osmStreetId},"${a.neighborhoodName}",""" +
-      s"${a.lat},${a.lng},${a.avgImageCaptureDate},${a.avgLabelDate},${a.severity.getOrElse("NA")}," +
+  def clusterToCsvRow(a: ClusterForApi): String = {
+    s"""${a.clusterId},${a.labelType},${a.streetEdgeId},${a.osmStreetId},"${a.neighborhoodName}",""" +
+      s"${a.geom.getY},${a.geom.getX},${a.avgImageCaptureDate},${a.avgLabelDate},${a.severity.getOrElse("NA")}," +
       s"""${a.agreeCount},${a.disagreeCount},${a.unsureCount},${a.labelCount},"[${a.usersList.mkString(",")}]""""
-  }
-
-  def globalAttributeWithLabelToJSON(l: GlobalAttributeWithLabelForApi): JsObject = {
-    Json.obj(
-      "type"     -> "Feature",
-      "geometry" -> Json.obj(
-        "type"        -> "Point",
-        "coordinates" -> Json.arr(l.attributeLatLng._2, l.attributeLatLng._1.toDouble)
-      ),
-      "label_geometry" -> Json.obj(
-        "type"        -> "Point",
-        "coordinates" -> Json.arr(l.labelLatLng._2.toDouble, l.labelLatLng._1.toDouble)
-      ),
-      "properties" -> Json.obj(
-        "attribute_id"       -> l.globalAttributeId,
-        "label_type"         -> l.labelType,
-        "street_edge_id"     -> l.streetEdgeId,
-        "osm_street_id"      -> l.osmStreetId,
-        "neighborhood"       -> l.neighborhoodName,
-        "severity"           -> l.attributeSeverity,
-        "label_id"           -> l.labelId,
-        "gsv_panorama_id"    -> l.gsvPanoramaId,
-        "heading"            -> l.pov.heading,
-        "pitch"              -> l.pov.pitch,
-        "zoom"               -> l.pov.zoom,
-        "canvas_x"           -> l.canvasXY.x,
-        "canvas_y"           -> l.canvasXY.y,
-        "canvas_width"       -> LabelPointTable.canvasWidth,
-        "canvas_height"      -> LabelPointTable.canvasHeight,
-        "gsv_url"            -> l.gsvUrl,
-        "image_capture_date" -> l.imageLabelDates._1,
-        "label_date"         -> l.imageLabelDates._2.toString(),
-        "label_severity"     -> l.labelSeverity,
-        "agree_count"        -> l.agreeDisagreeUnsureCount._1,
-        "disagree_count"     -> l.agreeDisagreeUnsureCount._2,
-        "unsure_count"       -> l.agreeDisagreeUnsureCount._3,
-        "label_tags"         -> l.labelTags,
-        "label_description"  -> l.labelDescription,
-        "user_id"            -> l.userId
-      )
-    )
-  }
-
-  def globalAttributeWithLabelToCSVRow(l: GlobalAttributeWithLabelForApi): String = {
-    s"${l.globalAttributeId},${l.labelType},${l.attributeSeverity.getOrElse("NA")},${l.streetEdgeId}," +
-      s"""${l.osmStreetId},"${l.neighborhoodName}",${l.labelId},${l.gsvPanoramaId},${l.attributeLatLng._1},""" +
-      s"${l.attributeLatLng._2},${l.labelLatLng._1},${l.labelLatLng._2},${l.pov.heading},${l.pov.pitch}," +
-      s"${l.pov.zoom},${l.canvasXY.x},${l.canvasXY.y},${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight}," +
-      s""""${l.gsvUrl}",${l.imageLabelDates._1},${l.imageLabelDates._2},${l.labelSeverity.getOrElse("NA")},""" +
-      s"${l.agreeDisagreeUnsureCount._1},${l.agreeDisagreeUnsureCount._2},${l.agreeDisagreeUnsureCount._3}," +
-      s""""[${l.labelTags.mkString(",")}]","${l.labelDescription.getOrElse("NA").replace("\"", "\"\"")}",${l.userId}"""
   }
 
   def projectSidewalkStatsToJson(stats: ProjectSidewalkStats): JsObject = {
@@ -340,7 +286,7 @@ object ApiFormats {
       (__ \ "camera_pitch").write[Float]
   )(unlift(LabelCVMetadata.unapply))
 
-  def labelTypeStatToCSVRow(l: LabelTypeStat): String = {
+  private def labelTypeStatToCSVRow(l: LabelTypeStat): String = {
     s"${l.labels},${l.validatedCorrect},${l.validatedIncorrect},${l.notValidated}"
   }
 

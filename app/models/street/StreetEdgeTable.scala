@@ -259,7 +259,7 @@ class StreetEdgeTable @Inject() (
    * @return A DBIO that yields a Seq of `StreetEdgeInfo` objects representing the streets intersecting the bbox.
    */
   def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): DBIO[Seq[StreetEdgeInfo]] = {
-    require(spatialQueryType != SpatialQueryType.LabelCluster, "This method is not supported for the Attributes API.")
+    require(spatialQueryType != SpatialQueryType.LabelCluster, "This method is not supported for the Clusters API.")
 
     // Do all the necessary joins to get all the data we need.
     val baseQuery = streetEdgesWithoutDeleted
