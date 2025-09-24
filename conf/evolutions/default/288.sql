@@ -79,6 +79,7 @@ CREATE TABLE global_attribute
     clustering_threshold DOUBLE PRECISION NOT NULL,
     label_type_id INT NOT NULL REFERENCES label_type(label_type_id),
     region_id INT NOT NULL REFERENCES region(region_id),
+    street_edge_id INTEGER NOT NULL DEFAULT -1,
     lat DOUBLE PRECISION NOT NULL,
     lng DOUBLE PRECISION NOT NULL,
     severity INT
