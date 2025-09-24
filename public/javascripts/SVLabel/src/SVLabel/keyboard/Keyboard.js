@@ -1,7 +1,6 @@
 /**
  * A Keyboard module.
  *
-
  * @returns {{className: string}}
  * @constructor
  */

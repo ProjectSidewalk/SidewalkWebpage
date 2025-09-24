@@ -10,8 +10,8 @@ function ContextMenu (uiContextMenu) {
         status = {
             targetLabel: null,
             visibility: 'hidden',
-            ratingSeverityEnabledForTutorialLabel: null, // During tutorial, disabled except for specific steps
-            taggingEnabledForTutorialLabel: null, // During tutorial, disabled except for specific steps
+            ratingSeverityEnabledForTutorialLabel: undefined, // During tutorial, disabled except for specific steps
+            taggingEnabledForTutorialLabel: undefined, // During tutorial, disabled except for specific steps
         };
     var $menuWindow = uiContextMenu.holder;
     var $severityMenu = uiContextMenu.severityMenu;
