@@ -47,7 +47,7 @@ class UserStatActor @Inject() (adminService: AdminService)(implicit ec: Executio
     super.postStop()
   }
 
-  def receive: Receive = { case ClusterLabelAttributesActor.Tick =>
+  def receive: Receive = { case UserStatActor.Tick =>
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled computation of user stats starting at: $currentTimeStart")
     // Update stats for anyone who audited in past 36 hours.

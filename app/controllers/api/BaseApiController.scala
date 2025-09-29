@@ -107,7 +107,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       filename: String
   ): Future[Result] = {
     val csvSource: Source[String, _] = dbDataStream
-      .map(attribute => attribute.toCsvRow)
+      .map(row => row.toCsvRow)
       .intersperse(csvHeader, "\n", "\n")
 
     Future.successful(
@@ -131,7 +131,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       filename: String
   ): Future[Result] = {
     val jsonSource: Source[String, _] = dbDataStream
-      .map(attribute => attribute.toJson.toString)
+      .map(row => row.toJson.toString)
       .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
 
     Future.successful(
@@ -154,7 +154,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       filename: String
   ): Future[Result] = {
     val jsonSource: Source[String, _] = dbDataStream
-      .map(attribute => attribute.toJson.toString)
+      .map(row => row.toJson.toString)
       .intersperse("[", ",", "]")
 
     Future.successful(

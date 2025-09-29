@@ -5,6 +5,7 @@ import formats.json.ClusterFormats._
 import models.auth.{DefaultEnv, WithAdmin}
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json._
+import play.api.mvc.{Action, AnyContent}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.api.exceptions.NotAuthorizedException
@@ -31,7 +32,7 @@ class ClusterController @Inject() (
   /**
    * Returns the clustering webpage with GUI if the user is an admin, otherwise redirects to the landing page.
    */
-  def index = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def index: Action[AnyContent] = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Clustering")
     configService
       .getCommonPageData(request2Messages.lang)
@@ -47,17 +48,16 @@ class ClusterController @Inject() (
   }
 
   /**
-   * Calls the appropriate clustering function(s); either single-user clustering, multi-user clustering, or both.
-   * @param clusteringType One of "singleUser", "multiUser", or "both".
+   * Runs clustering, emitting status updates as a server-sent event stream.
    */
-  def runClustering(clusteringType: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def runClustering(): Action[AnyContent] = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
 
     // Create a shared status object for clustering progress updates.
     val statusRef = new AtomicReference[String]("Starting")
 
     // Run the clustering.
-    val resultFuture: Future[JsObject] = runClusteringHelper(clusteringType, Some(statusRef))
+    val resultFuture: Future[JsObject] = runClusteringHelper(Some(statusRef))
 
     // Create a source that emits status updates.
     val statusSource = Source
@@ -90,61 +90,24 @@ class ClusterController @Inject() (
   }
 
   /**
-   * Calls the appropriate clustering function(s); either single-user clustering, multi-user clustering, or both.
-   * @param clusteringType One of "singleUser", "multiUser", or "both".
+   * Runs clustering, updating the attached reference with progress.
    * @param statusRef Reference to a string that will be updated with the clustering progress.
-   * @return Final counts of labels, user attributes, and global attributes in JSON.
+   * @return Final counts of labels, and clusters in JSON.
    */
-  def runClusteringHelper(
-      clusteringType: String,
-      statusRef: Option[AtomicReference[String]] = None
-  ): Future[JsObject] = {
+  def runClusteringHelper(statusRef: Option[AtomicReference[String]] = None): Future[JsObject] = {
     for {
-      // Run the appropriate clustering function(s).
-      _ <-
-        if (Seq("singleUser", "both").contains(clusteringType)) runSingleUserClustering(statusRef)
-        else Future.successful(())
-      _ <-
-        if (Seq("multiUser", "both").contains(clusteringType)) runMultiUserClustering(statusRef)
-        else Future.successful(())
-      // Gets the counts of labels/attributes from the affected tables to show how many clusters were created.
-      clusteringResults <- apiService.getClusteringInfo
+      _                 <- runMultiUserClustering(statusRef)
+      clusteringResults <- apiService.getClusteringInfo // Gets the counts to show how many labels were clustered.
     } yield {
       Json.obj(
-        "user_labels"       -> clusteringResults._1,
-        "user_attributes"   -> clusteringResults._2,
-        "global_attributes" -> clusteringResults._3
+        "labels"   -> clusteringResults._1,
+        "clusters" -> clusteringResults._2
       )
     }
   }
 
   /**
-   * Runs single user clustering for each high quality user who has placed a label since `cutoffTime`.
-   * @param statusRef Reference to a string that will be updated with the clustering progress.
-   */
-  def runSingleUserClustering(statusRef: Option[AtomicReference[String]]): Future[Unit] = {
-    val key: String = config.get[String]("internal-api-key")
-
-    apiService.getUsersToClusterAndWipeOldData.map { usersToCluster =>
-      val nUsers = usersToCluster.length
-      logger.info("N users = " + nUsers)
-
-      // Run clustering for each user that we are re-clustering.
-      for ((userId, i) <- usersToCluster.view.zipWithIndex) {
-        // Update the status in event stream and send a log message.
-        statusRef.foreach(_.set(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users"))
-        logger.info(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
-
-        // Run the clustering script for this user.
-        val clusteringOutput = Seq("/usr/bin/python3", "label_clustering.py", "--key", key, "--user_id", userId).!!
-        logger.debug(clusteringOutput)
-      }
-      logger.info("Finished 100% of users!!\n")
-    }
-  }
-
-  /**
-   * Runs multi-user clustering for the user attributes in each region.
+   * Runs clustering for the labels in each region.
    * @param statusRef Reference to a string that will be updated with the clustering progress.
    */
   private def runMultiUserClustering(statusRef: Option[AtomicReference[String]]): Future[Unit] = {
@@ -154,7 +117,7 @@ class ClusterController @Inject() (
       val nRegions: Int = regionIds.length
       logger.info("N regions = " + nRegions)
 
-      // Runs multi-user clustering within each region.
+      // Runs clustering within each region.
       for ((regionId, i) <- regionIds.view.zipWithIndex) {
         // Update the status in event stream and send a log message.
         statusRef.foreach(_.set(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions"))
@@ -170,96 +133,42 @@ class ClusterController @Inject() (
   }
 
   /**
-   * Returns the set of all labels associated with the given user, in the format needed for clustering.
-   * @param key A key used for authentication.
-   * @param userId The user_id of the user whose labels should be retrieved.
-   */
-  def getUserLabelsToCluster(key: String, userId: String) = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    if (authenticate(key)) {
-      apiService.getUserLabelsToCluster(userId).map(labels => Ok(Json.toJson(labels)))
-    } else {
-      Future.failed(new NotAuthorizedException("Could not authenticate with provided key."))
-    }
-  }
-
-  /**
-   * Returns the set of clusters from single-user clustering that are in this region as JSON.
+   * Returns the set of labels in this region that should be clustered as JSON.
    * @param key A key used for authentication.
    * @param regionId The region whose labels should be retrieved.
    */
-  def getClusteredLabelsInRegion(key: String, regionId: Int) = Action.async { implicit request =>
+  def getLabelsToClusterInRegion(key: String, regionId: Int): Action[AnyContent] = Action.async { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     if (authenticate(key)) {
-      apiService.getClusteredLabelsInRegion(regionId).map { labels => Ok(Json.toJson(labels)) }
+      apiService.getLabelsToClusterInRegion(regionId).map { labels => Ok(Json.toJson(labels)) }
     } else {
       Future.failed(new NotAuthorizedException("Could not authenticate with provided key."))
     }
   }
 
   /**
-   * Takes in results of single-user clustering, and adds the data in bulk to the relevant tables.
-   *
-   * NOTE The maxLength argument allows a 100MB max load size for the POST request.
-   * TODO haven't tested that parse.json(maxLength = 1024 * 1024 * 100L) actually works.
-   * @param key A key used for authentication.
-   * @param userId The user_id address of the user whose labels were clustered.
-   */
-  def postSingleUserClusteringResults(key: String, userId: String) =
-    Action.async(parse.json(maxLength = 1024 * 1024 * 100L)) { implicit request =>
-      if (authenticate(key)) {
-        val submission = request.body.validate[ClusteringSubmission]
-        submission.fold(
-          errors => {
-            logger.warn("Failed to parse JSON POST request for single-user clustering results.")
-            logger.info(Json.prettyPrint(request.body))
-            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-          },
-          submission => {
-            // Extract the thresholds, clusters, and labels, and put them into separate variables.
-            val thresholds: Map[String, Float]        = submission.thresholds.map(t => (t.labelType, t.threshold)).toMap
-            val clusters: Seq[ClusterSubmission]      = submission.clusters
-            val labels: Seq[ClusteredLabelSubmission] = submission.labels
-
-            // Add all the new data into the db.
-            apiService.submitSingleUserClusteringResults(userId, clusters, labels, thresholds).map { userSessionId =>
-              Ok(Json.obj("session" -> userSessionId))
-            }
-          }
-        )
-      } else {
-        Future.failed(new NotAuthorizedException("Could not authenticate with provided key."))
-      }
-    }
-
-  /**
-   * Takes in results of multi-user clustering, and adds the data in bulk to the relevant tables.
+   * Takes in results of clustering, and adds the data in bulk to the relevant tables.
    *
    * NOTE The maxLength argument allows a 100MB max load size for the POST request.
    * TODO haven't tested that parse.json(maxLength = 1024 * 1024 * 100L) actually works.
    * @param key A key used for authentication.
    * @param regionId The region whose labels were clustered.
    */
-  def postMultiUserClusteringResults(key: String, regionId: Int) =
+  def postClusteringResults(key: String, regionId: Int): Action[JsValue] =
     Action.async(parse.json(maxLength = 1024 * 1024 * 100)) { implicit request =>
       if (authenticate(key)) {
         val submission = request.body.validate[ClusteringSubmission]
         submission.fold(
           errors => {
-            logger.error("Failed to parse JSON POST request for multi-user clustering results.")
+            logger.error("Failed to parse JSON POST request for clustering results.")
             logger.info(Json.prettyPrint(request.body))
             Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
           },
           submission => {
-            // Extract the thresholds, clusters, and labels, and put them into separate variables.
-            val thresholds: Map[String, Float]   = submission.thresholds.map(t => (t.labelType, t.threshold)).toMap
-            val clusters: Seq[ClusterSubmission] = submission.clusters
-            val userAttributes: Seq[ClusteredLabelSubmission] = submission.labels
-
             // Add all the new data into the db.
-            apiService.submitMultiUserClusteringResults(regionId, clusters, userAttributes, thresholds).map {
-              globalSessionId => Ok(Json.obj("session" -> globalSessionId))
-            }
+            apiService
+              .submitClusteringResults(regionId, submission.clusters, submission.labels, submission.thresholds)
+              .map { sessionId => Ok(Json.obj("session" -> sessionId)) }
           }
         )
       } else {
