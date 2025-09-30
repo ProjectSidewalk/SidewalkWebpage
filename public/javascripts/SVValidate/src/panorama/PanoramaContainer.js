@@ -6,7 +6,7 @@
  * @returns {PanoramaContainer}
  * @constructor
  */
-function PanoramaContainer (labelList) {
+async function PanoramaContainer (labelList) {
     let labels = labelList;    // labels that all panoramas from the screen are going to be validating from
     let labelsUpdateCallback = () => {};
     let properties = {
@@ -19,11 +19,11 @@ function PanoramaContainer (labelList) {
      * Initializes panorama(s) on the validate page.
      * @private
      */
-    function _init() {
-        svv.panorama = new Panorama(labelList[getProperty("progress")]);
+    async function _init() {
+        svv.panorama = await Panorama(labelList[getProperty("progress")]);
         setProperty("progress", getProperty("progress") + 1);
 
-        // Set the HTML
+        // Set the HTML.
         svv.statusField.updateLabelText(labelList[0].getAuditProperty('labelType'));
         svv.statusExample.updateLabelImage(labelList[0].getAuditProperty('labelType'));
     }
@@ -190,7 +190,7 @@ function PanoramaContainer (labelList) {
     self.getPanoHistories = getPanoHistories;
     self.clearPanoHistories = clearPanoHistories;
 
-    _init();
+    await _init();
 
     return this;
 }

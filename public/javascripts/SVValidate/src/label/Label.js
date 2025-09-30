@@ -170,16 +170,15 @@ function Label(params) {
     }
 
     /**
-     * Gets the position of this label from the POV from which it was originally placed.
+     * Calculate heading/pitch for drawing this Label on the pano from the POV of the user when placing the label.
      * @returns {heading: number, pitch: number}
      */
-    function getPosition() {
-        // This calculates the heading and position for placing this Label onto the panorama from
-        // the same POV as when the user placed the label.
-        let pos = svv.util.properties.panorama.getPosition(getAuditProperty('canvasX'),
-            getAuditProperty('canvasY'), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
-            getAuditProperty('zoom'), getAuditProperty('heading'), getAuditProperty('pitch'));
-        return pos;
+    function getOriginalPov() {
+        return svv.util.properties.panorama.getPosition(
+            getAuditProperty('canvasX'), getAuditProperty('canvasY'), util.EXPLORE_CANVAS_WIDTH,
+            util.EXPLORE_CANVAS_HEIGHT, getAuditProperty('zoom'), getAuditProperty('heading'),
+            getAuditProperty('pitch')
+        );
     }
 
     /**
@@ -252,14 +251,14 @@ function Label(params) {
      */
     function validate(validationResult, comment) {
         // This is the POV of the PanoMarker, where the PanoMarker would be loaded at the center of the viewport.
-        let pos = getPosition();
+        let pov = getOriginalPov();
         let panomarkerPov = {
-            heading: pos.heading,
-            pitch: pos.pitch
+            heading: pov.heading,
+            pitch: pov.pitch
         };
 
         // This is the POV of the viewport center - this is where the user is looking.
-        let userPov = svv.panorama.getPov();
+        let userPov = svv.panoViewer.getPov();
 
         // Calculates the center xy coordinates of the Label on the current viewport.
         let pixelCoordinates = svv.util.properties.panorama.povToPixel3d(panomarkerPov, userPov, svv.canvasWidth, svv.canvasHeight);
@@ -333,7 +332,7 @@ function Label(params) {
     self.getProperty = getProperty;
     self.getProperties = getProperties;
     self.setProperty = setProperty;
-    self.getPosition = getPosition;
+    self.getOriginalPov = getOriginalPov;
     self.getRadius = getRadius;
     self.validate = validate;
 

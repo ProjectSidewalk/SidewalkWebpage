@@ -1,5 +1,5 @@
 /*
- * An additional layer on top of the Google StreetView object on validation interface. This layer handles panning.
+ * An additional layer on top of the Google Street View object on validation interface. This layer handles panning.
  */
 function GSVOverlay () {
     let self = this;
@@ -84,7 +84,7 @@ function GSVOverlay () {
             // If a mouse is being dragged on the control layer, move the pano.
             let dx = mouseStatus.currX - mouseStatus.prevX;
             let dy = mouseStatus.currY - mouseStatus.prevY;
-            let pov = svv.panorama.getPov();
+            let pov = svv.panoViewer.getPov();
             let zoomLevel = pov.zoom;
             dx = dx / (2 * zoomLevel);
             dy = dy / (2 * zoomLevel);
@@ -102,13 +102,13 @@ function GSVOverlay () {
      * @param dy
      */
     function updatePov (dx, dy) {
-        let pano = svv.panorama.getPanorama();
-        if (pano) {
-            let pov = pano.getPov();
+        let panoViewer = svv.panoViewer;
+        if (panoViewer) {
+            let pov = panoViewer.getPov();
             let alpha = 0.25;
             pov.heading -= alpha * dx;
             pov.pitch += alpha * dy;
-            pano.setPov(pov);
+            panoViewer.setPov(pov);
         } else {
             throw self.className + ' updatePov(): panorama not defined!';
         }

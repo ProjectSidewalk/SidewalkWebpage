@@ -29,7 +29,7 @@ function ZoomControl () {
      * Zoom levels: {1, 2, 3}
      */
     function zoomIn() {
-        const zoomLevel = Math.round(svv.panorama.getPov().zoom);
+        const zoomLevel = Math.round(svv.panoViewer.getPov().zoom);
         if (zoomLevel <= 2) {
             svv.panorama.setZoom(zoomLevel + 1);
         }
@@ -41,7 +41,7 @@ function ZoomControl () {
      * Zoom levels: {1, 2, 3}
      */
     function zoomOut() {
-        const zoomLevel = Math.round(svv.panorama.getPov().zoom);
+        const zoomLevel = Math.round(svv.panoViewer.getPov().zoom);
         if (zoomLevel >= 2) {
             svv.panorama.setZoom(zoomLevel - 1);
         }
@@ -55,7 +55,7 @@ function ZoomControl () {
      * Zoom levels: { 1 (Zoom-out Disabled), 2 (Both buttons enabled), 3 (Zoom-In Disabled) }
      */
     function updateZoomAvailability() {
-        let zoomLevel = svv.panorama.getPov().zoom;
+        let zoomLevel = svv.panoViewer.getPov().zoom;
         if (zoomLevel >= 3) {
             zoomInButton.css('opacity', 0.5);
             zoomInButton.addClass('disabled');

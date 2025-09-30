@@ -20,7 +20,7 @@ function PinchZoomDetector () {
      * @private
      */
     function _init () {
-        let panorama = svv.panorama.getPanorama();
+        let panorama = svv.panoViewer.panorama;
         let screen = document.getElementById("svv-panorama");
         panorama.addListener('zoom_changed', processZoomChange);
         screen.addEventListener('touchstart', processTouchstart);
@@ -34,7 +34,7 @@ function PinchZoomDetector () {
      */
     function processTouchstart (e) {
         if (e.touches.length >= 2) {
-            prevZoomLevel = svv.panorama.getPov().zoom;
+            prevZoomLevel = svv.panoViewer.getPov().zoom;
             pinchZooming = true;
             pinchZoomCode = ZOOM_UNKNOWN_CODE;
         }
@@ -45,7 +45,7 @@ function PinchZoomDetector () {
      * @private
      */
     function processZoomChange () {
-        let currentZoom = svv.panorama.getPov().zoom;
+        let currentZoom = svv.panoViewer.getPov().zoom;
         // Logs interaction only if a user is pinch zooming and current zoom is less than max zoom.
         if (pinchZooming && currentZoom <= 4) {
             let zoomChange = currentZoom - prevZoomLevel;

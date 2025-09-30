@@ -5,7 +5,6 @@
  */
 function Tracker() {
     let self = this;
-    let panorama = undefined;
     let actions = [];
     let prevActions = [];
 
@@ -51,10 +50,10 @@ function Tracker() {
         let note = _notesToString(notes);
         let timestamp = new Date();
 
-        panorama = svv.panorama ? svv.panorama : null;
-        let panoId = panorama ? panorama.getPanoId() : null;
-        let position = panorama ? panorama.getPosition() : null;  // sometimes buggy, so position will be null.
-        let pov = panorama ? panorama.getPov() : null;
+        let panoViewer = svv.panoViewer ? svv.panoViewer : null;
+        let panoId = panoViewer ? panoViewer.getPanoId() : null;
+        let position = panoViewer ? panoViewer.getPosition() : null;  // sometimes buggy, so position will be null.
+        let pov = panoViewer ? panoViewer.getPov() : null;
 
         let missionContainer = svv.missionContainer ? svv.missionContainer : null;
         let currentMission = missionContainer ? missionContainer.getCurrentMission() : null;
