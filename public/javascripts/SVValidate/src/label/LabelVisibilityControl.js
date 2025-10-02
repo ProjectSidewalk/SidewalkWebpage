@@ -32,8 +32,9 @@ function LabelVisibilityControl () {
      * depending on current state.
      * @param {boolean} newLabel Indicates whether we unhide due to showing a new label vs. clicking the unhide button.
      */
-    function unhideLabel (newLabel) {
+    function unhideLabel(newLabel) {
         let panomarker = svv.panoContainer.getPanomarker();
+        if (!panomarker) return; // TODO panomarker only works on GSV right now.
         let label = svv.labelContainer.getCurrentLabel();
         panomarker.setIcon(label.getIconUrl());
         panomarker.draw();

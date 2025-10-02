@@ -62,10 +62,6 @@ class GsvViewer extends PanoViewer {
         return this.panorama.getPano();
     }
 
-    /**
-     * Gets the lat/lng location of the current panorama.
-     * @returns {Object} The current location with lat and lng properties.
-     */
     getPosition = () => {
         const gLatLng = this.panorama.getPosition();
         if (gLatLng) {
