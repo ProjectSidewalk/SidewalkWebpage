@@ -23,13 +23,13 @@ class PanoViewer {
     }
 
     /**
-     * Factory method to create and initialize instances. Ex: `const viewer = await GsvViewer.create();`.
+     * Factory method to create and initialize instances. Ex: `const viewer = await GsvViewer.create(canvasElem);`.
      * @static
      * @returns {Promise<PanoViewer>}
      */
-    static async create(lat, lng) {
+    static async create(canvasElem, panoOptions = {}) {
         const newViewer = new this();
-        await newViewer.initialize(lat, lng);
+        await newViewer.initialize(canvasElem, panoOptions);
         newViewer.initialized = true;
         return newViewer;
     }
@@ -108,5 +108,14 @@ class PanoViewer {
      */
     showNavigationArrows() {
         throw new Error('showNavigationArrows() must be implemented by subclass');
+    }
+
+    /**
+     * Adds an event listener for the specified event type.
+     * @param event One of ['pano_changed', 'pov_changed']
+     * @param handler The function to call when the event occurs.
+     */
+    addListener(event, handler) {
+        throw new Error('addListener() must be implemented by subclass');
     }
 }

@@ -27,7 +27,7 @@ function Form(url, beaconUrl) {
         let mission = missionContainer ? missionContainer.getCurrentMission() : null;
 
         let labelContainer = svv.labelContainer;
-        let labelList = labelContainer ? labelContainer.getCurrentLabels() : null;
+        let labelList = labelContainer ? labelContainer.getLabelsToSubmit() : null;
         // Only submit mission progress if there is a mission when we're compiling submission data.
         if (mission) {
             // Add the current mission
@@ -75,9 +75,9 @@ function Form(url, beaconUrl) {
 
         data.interactions = svv.tracker.getActions();
         data.pano_histories = [];
-        if (svv.panoramaContainer) {
-            data.pano_histories = svv.panoramaContainer.getPanoHistories();
-            svv.panoramaContainer.clearPanoHistories();
+        if (svv.panoContainer) {
+            data.pano_histories = svv.panoContainer.getPanoHistories();
+            svv.panoContainer.clearPanoHistories();
         }
         svv.tracker.refresh();
         return data;
@@ -107,8 +107,8 @@ function Form(url, beaconUrl) {
                     if (result.has_mission_available) {
                         if (result.mission) {
                             svv.missionContainer.createAMission(result.mission, result.progress);
-                            svv.panoramaContainer.setLabelList(result.labels);
-                            svv.panoramaContainer.reset();
+                            svv.labelContainer.resetLabelList(result.labels);
+                            svv.labelContainer.renderCurrentLabel(); // TODO This return a Promise.
                             svv.modalMissionComplete.setProperty('clickable', true);
                         }
                     } else {

@@ -104,7 +104,16 @@ class AppManager {
                     'Csrf-Token': csrfToken
                 }
             };
-            return originalFetch(url, newOptions);
+
+            const requestUrl = (typeof url === 'string') ? url : url.url;
+
+            // Bypass adding CSRF token for requests to certain external APIs that don't accept the Csrf-Token header.
+            const pathsToBypass = ['mapbox.com', 'api.infra3d.com', 'wmts.geo.admin.ch'];
+            if (pathsToBypass.some(path => requestUrl.includes(path))) {
+                return originalFetch(url, options);
+            } else {
+                return originalFetch(url, newOptions);
+            }
         };
     }
 

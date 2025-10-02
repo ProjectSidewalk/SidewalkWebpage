@@ -33,8 +33,8 @@ function LabelVisibilityControl () {
      * @param {boolean} newLabel Indicates whether we unhide due to showing a new label vs. clicking the unhide button.
      */
     function unhideLabel (newLabel) {
-        let panomarker = svv.panorama.getPanomarker();
-        let label = svv.panorama.getCurrentLabel();
+        let panomarker = svv.panoContainer.getPanomarker();
+        let label = svv.labelContainer.getCurrentLabel();
         panomarker.setIcon(label.getIconUrl());
         panomarker.draw();
         visible = true;
@@ -53,7 +53,7 @@ function LabelVisibilityControl () {
      * Hides label in Google StreetView Panorama.
      */
     function hideLabel () {
-        let panomarker = svv.panorama.getPanomarker();
+        let panomarker = svv.panoContainer.getPanomarker();
         panomarker.setIcon("assets/javascripts/SVLabel/img/icons/Label_Outline.svg");
         panomarker.draw();
         visible = false;

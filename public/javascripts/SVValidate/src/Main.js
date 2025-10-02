@@ -153,11 +153,11 @@ function Main (param) {
         svv.ui.dateHolder = $("#svv-panorama-date-holder");
     }
 
-    function _init() {
+    async function _init() {
         svv.util = {};
         svv.util.properties = {};
 
-        const labelType = param.labelList[0].getAuditProperty('labelType');
+        const labelType = svv.labelTypes[param.mission.label_type_id];
 
         if (svv.expertValidate) svv.rightMenu = new RightMenu(svv.ui.expertValidate);
         svv.util.properties.panorama = new PanoProperties();
@@ -171,51 +171,48 @@ function Main (param) {
         svv.statusExample = new StatusExample(svv.ui.status.examples);
         svv.tracker = new Tracker();
         svv.labelDescriptionBox = new LabelDescriptionBox();
-        svv.labelContainer = new LabelContainer();
 
-        // TODO deal with the asynchronous functions more gracefully.
-        // For now I just put anything that requires the pano viewer in here (or at least what I've noticed so far).
-        PanoramaContainer(param.labelList).then((panoContainer) => {
-            svv.panoramaContainer = panoContainer;
-            // There are certain features that will only make sense on desktop.
-            if (!isMobile()) {
-                svv.gsvOverlay = new GSVOverlay();
-                if (svv.expertValidate) {
-                    svv.keyboard = new Keyboard(svv.ui.expertValidate);
-                } else {
-                    svv.keyboard = new Keyboard(svv.ui.validation);
-                }
-                svv.labelVisibilityControl = new LabelVisibilityControl();
-                svv.speedLimit = new SpeedLimit(svv.panoViewer.panorama, svv.panoViewer.getPosition, () => false, svv.panoramaContainer, labelType);
-                svv.zoomControl = new ZoomControl();
+        svv.panoContainer = await PanoContainer();
+        svv.labelContainer = await LabelContainer(param.labelList);
+
+        // There are certain features that will only make sense on desktop.
+        if (!isMobile()) {
+            svv.gsvOverlay = new GSVOverlay();
+            if (svv.expertValidate) {
+                svv.keyboard = new Keyboard(svv.ui.expertValidate);
+            } else {
+                svv.keyboard = new Keyboard(svv.ui.validation);
             }
-            // Logs when user zoom in/out on mobile.
-            if (isMobile()) {
-                svv.pinchZoom = new PinchZoomDetector();
-            }
+            svv.labelVisibilityControl = new LabelVisibilityControl();
+            svv.speedLimit = new SpeedLimit(svv.panoViewer, svv.panoViewer.getPosition, () => false, svv.panoContainer, labelType);
+            svv.zoomControl = new ZoomControl();
+        }
+        // Logs when user zoom in/out on mobile.
+        if (isMobile()) {
+            svv.pinchZoom = new PinchZoomDetector();
+        }
 
-            svv.undoValidation = new UndoValidation(svv.ui.undoValidation);
+        svv.undoValidation = new UndoValidation(svv.ui.undoValidation);
 
-            svv.missionContainer = new MissionContainer();
-            svv.missionContainer.createAMission(param.mission, param.progress);
+        svv.modalMission = new ModalMission(svv.ui.modalMission, svv.user);
+        svv.modalInfo = new ModalInfo(svv.ui.modalInfo, param.modalText);
+        svv.missionContainer = new MissionContainer();
+        svv.missionContainer.createAMission(param.mission, param.progress);
 
-            svv.infoPopover = new GSVInfoPopover(svv.ui.dateHolder, svv.panoViewer.panorama, svv.panoViewer.getPosition,
-                svv.panoViewer.getPanoId,
-                function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('streetEdgeId'); },
-                function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('regionId'); },
-                svv.panorama.getPov, svv.cityName, true, function() { svv.tracker.push('GSVInfoButton_Click'); },
-                function() { svv.tracker.push('GSVInfoCopyToClipboard_Click'); },
-                function() { svv.tracker.push('GSVInfoViewInGSV_Click'); },
-                function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('labelId'); }
-            );
-        });
+        svv.infoPopover = new GSVInfoPopover(
+            svv.ui.dateHolder, svv.panoViewer, svv.panoViewer.getPosition, svv.panoViewer.getPanoId,
+            function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('streetEdgeId'); },
+            function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('regionId'); },
+            svv.panoViewer.getPov, svv.cityName, true, function() { svv.tracker.push('GSVInfoButton_Click'); },
+            function() { svv.tracker.push('GSVInfoCopyToClipboard_Click'); },
+            function() { svv.tracker.push('GSVInfoViewInGSV_Click'); },
+            function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('labelId'); }
+        );
 
         svv.menuButtons = new MenuButton(svv.ui.validation);
         svv.modalComment = new ModalComment(svv.ui.modalComment);
-        svv.modalMission = new ModalMission(svv.ui.modalMission, svv.user);
         svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user);
         svv.skipValidation = new SkipValidation(svv.ui.skipValidation);
-        svv.modalInfo = new ModalInfo(svv.ui.modalInfo, param.modalText);
         svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 

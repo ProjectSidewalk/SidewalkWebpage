@@ -1,5 +1,6 @@
 /**
  * Google Street View implementation of the panorama viewer.
+ * Docs: https://developers.google.com/maps/documentation/javascript/reference/street-view
  */
 class GsvViewer extends PanoViewer {
     constructor() {
@@ -136,5 +137,13 @@ class GsvViewer extends PanoViewer {
 
     showNavigationArrows = () => {
         return this.panorama.set('linksControl', true);
+    }
+
+    addListener(event, handler) {
+        if (event === 'pano_changed') {
+            this.panorama.addListener(event, handler);
+        } else if (event === 'pov_changed') {
+            this.panorama.addListener(event, handler);
+        }
     }
 }

@@ -35,14 +35,14 @@ function MenuButton(menuUI) {
         menuUI.yesButton.removeClass("validate");
         menuUI.noButton.removeClass("validate");
         menuUI.unsureButton.removeClass("validate");
-        
+
         let comment = '';
         let validationTextArea = menuUI.comment[0];
         if (validationTextArea && validationTextArea.value !== '') comment = validationTextArea.value;
 
         // If enough time has passed between validations, log validations.
-        if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
-            svv.panoramaContainer.validateLabel(action, timestamp, comment);
+        if (timestamp - svv.labelContainer.getProperty('validationTimestamp') > 800) {
+            svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
         }
     }
 

@@ -298,21 +298,21 @@ function Label(params) {
             case "Agree":
                 setProperty("validationResult", 1);
                 svv.missionContainer.getCurrentMission().updateValidationResult(1, false);
-                svv.labelContainer.push(getAuditProperty('labelId'), getProperties(), prepareCommentData());
+                svv.labelContainer.pushToLabelsToSubmit(getAuditProperty('labelId'), getProperties(), prepareCommentData());
                 svv.missionContainer.updateAMission();
                 break;
             // Disagree option selected.
             case "Disagree":
                 setProperty("validationResult", 2);
                 svv.missionContainer.getCurrentMission().updateValidationResult(2, false);
-                svv.labelContainer.push(getAuditProperty('labelId'), getProperties(), prepareCommentData());
+                svv.labelContainer.pushToLabelsToSubmit(getAuditProperty('labelId'), getProperties(), prepareCommentData());
                 svv.missionContainer.updateAMission();
                 break;
             // Unsure option selected.
             case "Unsure":
                 setProperty("validationResult", 3);
                 svv.missionContainer.getCurrentMission().updateValidationResult(3, false);
-                svv.labelContainer.push(getAuditProperty('labelId'), getProperties(), prepareCommentData());
+                svv.labelContainer.pushToLabelsToSubmit(getAuditProperty('labelId'), getProperties(), prepareCommentData());
                 svv.missionContainer.updateAMission();
                 break;
         }
@@ -320,7 +320,7 @@ function Label(params) {
         // If there are more labels left to validate, add a new label to the panorama. Otherwise, we will load a new
         // label onto the panorama from Form.js - where we still need to retrieve 10 more labels for the next mission.
         if (!svv.missionContainer.getCurrentMission().isComplete()) {
-            svv.panoramaContainer.loadNewLabelOntoPanorama();
+            svv.labelContainer.moveToNextLabel();
         }
     }
 

@@ -34,7 +34,7 @@ function SkipValidation (uiSkip) {
      */
     function skip() {
         svv.tracker.push("ModalSkip_ClickOK");
-        svv.panorama.skipLabel();
+        svv.labelContainer.skipLabel();
         svv.undoValidation.disableUndo();
     }
 

@@ -2,7 +2,7 @@
  * Displays info about the current GSV pane.
  *
  * @param {HTMLElement} container Element where the info button will be displayed
- * @param {StreetViewPanorama} panorama Panorama object
+ * @param {PanoViewer} panoViewer PanoViewer object
  * @param {function} coords Function that returns current longitude and latitude coordinates
  * @param {function} panoId Function that returns current panorama ID
  * @param {function} streetEdgeId Function that returns current Street Edge ID
@@ -17,7 +17,7 @@
  * @returns {GSVInfoPopover} Popover object, which holds the popover title html, content html, info button html, and
  * update values method
  */
-function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regionId, pov, cityName, whiteIcon, infoLogging, clipboardLogging, viewGSVLogging, labelId) {
+function GSVInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, regionId, pov, cityName, whiteIcon, infoLogging, clipboardLogging, viewGSVLogging, labelId) {
     let self = this;
 
     function _init() {
@@ -99,9 +99,9 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
             }
         });
         // Dismiss popover whenever panorama changes.
-        panorama.addListener('pano_changed', () => {
+        panoViewer.addListener('pano_changed', () => {
             $('#gsv-info-button').popover('hide');
-        })
+        });
     }
 
     /**

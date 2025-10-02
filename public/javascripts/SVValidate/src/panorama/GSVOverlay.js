@@ -79,7 +79,7 @@ function GSVOverlay () {
         mouseStatus.currY = mouseposition(e, this).y;
 
         let timestamp = new Date();  // Waits till the pano is fully loaded.
-        if ((timestamp - svv.panorama.getProperty("prevSetPanoTimestamp") > 500)
+        if ((timestamp - svv.panoContainer.getProperty("prevSetPanoTimestamp") > 500)
             && mouseStatus.isLeftDown && panningDisabled === false) {
             // If a mouse is being dragged on the control layer, move the pano.
             let dx = mouseStatus.currX - mouseStatus.prevX;

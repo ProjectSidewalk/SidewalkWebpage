@@ -74,6 +74,8 @@ function MissionContainer () {
         addAMission(mission);
         svv.modalMission.setMissionMessage(mission);
         svv.modalInfo.setMissionInfo(mission);
+        svv.statusField.updateLabelText(svv.labelTypes[mission.getProperty('labelTypeId')]);
+        svv.statusExample.updateLabelImage(svv.labelTypes[mission.getProperty('labelTypeId')]);
         svv.statusField.refreshLabelCountsDisplay();
     }
 

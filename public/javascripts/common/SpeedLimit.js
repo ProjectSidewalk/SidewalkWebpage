@@ -1,14 +1,15 @@
 /**
  * An indicator that displays the speed limit of the current position's nearest road.
  *
- * @param {StreetViewPanorama} panorama Panorama object.
+ * @param {PanoViewer} panoViewer PanoramaViewer object.
  * @param {function} coords Function that returns current longitude and latitude coordinates.
  * @param {function} isOnboarding Function that returns a boolean on whether the current mission is the tutorial task.
- * @param {PanoramaContainer} panoContainer Panorama container that is used to pre-fetch validation labels. Can be left null.
+ * @param {PanoContainer} panoContainer Panorama container that is used to pre-fetch validation labels. Can be left null.
+ * @param labelType
  * @returns {SpeedLimit} SpeedLimit object with updateSpeedLimit function, container, speedLimit object with
  * number and sub (units, e.g. 'mph'), speedLimitVisible boolean.
  */
-function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
+function SpeedLimit(panoViewer, coords, isOnboarding, panoContainer, labelType) {
     const ROAD_HIGHWAY_TYPES = [
         'motorway',
         'trunk',
@@ -33,7 +34,7 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
     function _init() {
         if (typeof(panoContainer) !== "undefined" && panoContainer !== null) {
             prefetchLabels();
-            panoContainer.setLabelsUpdateCallback(prefetchLabels);
+            panoContainer.resetLabelListUpdateCallback(prefetchLabels);
         }
 
         self.container = document.getElementById('speed-limit-sign');
@@ -44,8 +45,8 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
         self.speedLimitVisible = false;
         updateSpeedLimit();
 
-        // Listen for position changes.
-        panorama.addListener('position_changed', positionChange);
+        // Listen for pano changes.
+        panoViewer.addListener('pano_changed', panoChangeListener);
     }
 
     /**
@@ -159,7 +160,7 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
     /**
      * Function to be called on a position change/movement in the google street view.
      */
-    async function positionChange() {
+    async function panoChangeListener() {
         // If user is in the onboarding/tutorial mission, we can skip getting the speed limit and hide the sign.
         if (isOnboarding()) {
             self.speedLimitVisible = false;

@@ -157,7 +157,7 @@ function ModalComment (modalUI) {
 
         let data = {
             comment: comment,
-            label_id: svv.panorama.getCurrentLabel().getAuditProperty("labelId"),
+            label_id: svv.labelContainer.getCurrentLabel().getAuditProperty("labelId"),
             gsv_panorama_id: svv.panoViewer.getPanoId(),
             heading: pov.heading,
             lat: position.lat,
