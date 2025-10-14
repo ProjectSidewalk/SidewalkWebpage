@@ -551,7 +551,7 @@ function MapService (canvas, neighborhoodModel, uiMap) {
             timeoutWalking();
             setTimeout(resetWalking, moveDelay);
         }
-        svl.panoramaContainer.updateCanvas();
+        svl.panoManager.updateCanvas();
         if (currentMission && neighborhood) {
             if ("compass" in svl) {
                 svl.compass.update();
@@ -766,7 +766,7 @@ function MapService (canvas, neighborhoodModel, uiMap) {
     async function setPosition(lat, lng, callback) {
         if (!status.disableWalking) {
             // Check the presence of the Google Street View. If it exists, then set the location, otherwise error.
-            svl.panoramaContainer.setLocation(lat, lng).then((streetViewPanoramaData) => {
+            svl.panoManager.setLocation(lat, lng).then((streetViewPanoramaData) => {
                 const panoData = streetViewPanoramaData.data;
                 self.enableWalking();
 
@@ -1016,7 +1016,7 @@ function MapService (canvas, neighborhoodModel, uiMap) {
                     remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, DIST_INCREMENT, streetEndpoint));
                     currLat = remainder.geometry.coordinates[0][1];
                     currLng = remainder.geometry.coordinates[0][0];
-                    svl.panoramaContainer.setLocation(currLat, currLng).then(successCallback, failureCallback);
+                    svl.panoManager.setLocation(currLat, currLng).then(successCallback, failureCallback);
                 } else {
                     // If all else fails, jump to a new street.
                     svl.tracker.push(failLogMessage);
@@ -1043,13 +1043,13 @@ function MapService (canvas, neighborhoodModel, uiMap) {
                 remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, DIST_INCREMENT, streetEndpoint));
                 currLat = remainder.geometry.coordinates[0][1];
                 currLng = remainder.geometry.coordinates[0][0];
-                svl.panoramaContainer.setLocation(currLat, currLng).then(successCallback, failureCallback);
+                svl.panoManager.setLocation(currLat, currLng).then(successCallback, failureCallback);
             }
             // TODO add this functionality again later. Need to add a parameter to setLocation().
             // else if (MAX_DIST === 10) {
             //     // If we get to the end of the street, increase the radius a bit to try and drop them at the end.
             //     MAX_DIST = 25;
-            //     svl.panoramaContainer.setLocation(currLat, currLng).then(successCallback, failureCallback);
+            //     svl.panoManager.setLocation(currLat, currLng).then(successCallback, failureCallback);
             // }
             else {
                 // If all else fails, jump to a new street.
@@ -1061,7 +1061,7 @@ function MapService (canvas, neighborhoodModel, uiMap) {
         }
 
         // Initial call to getPanorama with using the recursive callback function.
-        svl.panoramaContainer.setLocation(currLat, currLng).then(successCallback, failureCallback);
+        svl.panoManager.setLocation(currLat, currLng).then(successCallback, failureCallback);
     }
 
     /**

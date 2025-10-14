@@ -1,10 +1,9 @@
-async function PanoramaContainer (panoViewerType, params = {}) {
+async function PanoManager (panoViewerType, params = {}) {
     let panoCanvas = document.getElementById('pano');
     let status = {
         bottomLinksClickable: false,
         panoLinkListenerSet: false
-    }
-    let container = {};
+    };
     let _panoChangeSuccessCallbackHelper = null;
     let linksListener = null;
 
@@ -48,8 +47,8 @@ async function PanoramaContainer (panoViewerType, params = {}) {
         //     }
         //     return null;
         // });
-        // svl.panoramaContainer.addPanoMetadata('tutorial', _getCustomPanorama('tutorial'));
-        // svl.panoramaContainer.addPanoMetadata('afterWalkTutorial', _getCustomPanorama('afterWalkTutorial'));
+        // svl.panoStore.addPanoMetadata('tutorial', _getCustomPanorama('tutorial'));
+        // svl.panoStore.addPanoMetadata('afterWalkTutorial', _getCustomPanorama('afterWalkTutorial'));
     }
 
     /**
@@ -73,13 +72,13 @@ async function PanoramaContainer (panoViewerType, params = {}) {
         var panoId = svl.panoViewer.getPanoId();
 
         // Record the pano metadata.
-        addPanoMetadata(panoId, data);
+        svl.panoStore.addPanoMetadata(panoId, data);
 
         // Show the pano date in the bottom-left corner.
         svl.ui.date.text(moment(data.imageDate).format('MMM YYYY'));
         // else if (panoId === "tutorial" || panoId === "afterWalkTutorial") {
         //     // TODO I'm not sure how registering our own panos works for this.
-        //     const imageDate = getPanoData(panoId).data().imageDate;
+        //     const imageDate = svl.panoStore.getPanoData(panoId).data().imageDate;
         //     svl.ui.date.text(moment(imageDate).format('MMM YYYY'));
         // }
     }
@@ -294,50 +293,6 @@ async function PanoramaContainer (panoViewerType, params = {}) {
         }
     }
 
-    /**
-     * This method adds panorama data into the container.
-     * @param panoramaId
-     * @param panoramaMetadata
-     */
-    function addPanoMetadata(panoramaId, panoramaMetadata) {
-        if (!(panoramaId in container)) {
-            if (panoramaId === 'tutorial' || panoramaId === 'tutorialAfterWalk') {
-                panoramaMetadata.submitted = true;
-            }
-            container[panoramaId] = new Panorama(panoramaMetadata);
-        }
-    }
-
-    /**
-     * This method returns the existing panorama data.
-     * @param panoramaId
-     */
-    function getPanoData(panoramaId) {
-        return panoramaId in container ? container[panoramaId] : null;
-    }
-
-    /**
-     * Get all the panorama instances stored in the container.
-     * @returns {Array}
-     */
-    function getAllPanoData() {
-        return Object.keys(container).map(function (panoramaId) { return container[panoramaId]; });
-    }
-
-    /**
-     * Get panorama instances that have not been submitted to the server.
-     * @returns {Array}
-     */
-    function getStagedPanoData() {
-        let panoramas = getAllPanoData();
-        panoramas = panoramas.filter(function (pano) { return !pano.getProperty('submitted'); });
-        return panoramas;
-    }
-
-    self.addPanoMetadata = addPanoMetadata;
-    self.getPanoData = getPanoData;
-    self.getAllPanoData = getAllPanoData;
-    self.getStagedPanoData = getStagedPanoData;
     self.setPanorama = setPanorama;
     self.setLocation = setLocation;
     self.setZoom = setZoom;

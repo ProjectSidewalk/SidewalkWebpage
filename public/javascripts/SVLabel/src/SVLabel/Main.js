@@ -70,7 +70,8 @@ function Main (params) {
         svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);
         const startLat = params.task.properties.current_lat;
         const startLng = params.task.properties.current_lng;
-        svl.panoramaContainer = await PanoramaContainer(GsvViewer, { startLat: startLat, startLng: startLng });
+        svl.panoStore = new PanoStore();
+        svl.panoManager = await PanoManager(GsvViewer, { startLat: startLat, startLng: startLng });
         svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl.streetViewService, svl, svl.tracker);
         svl.taskModel._taskContainer = svl.taskContainer;
 
@@ -120,7 +121,7 @@ function Main (params) {
         svl.missionFactory = new MissionFactory (svl.missionModel);
 
         svl.missionModel.trigger("MissionFactory:create", params.mission); // create current mission and set as current
-        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.panoramaContainer,
+        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.panoStore,
             svl.taskContainer, svl.map, svl.compass, svl.tracker, params.dataStoreUrl);
         if (params.mission.current_audit_task_id) {
             var currTask = svl.taskContainer.getCurrentTask();

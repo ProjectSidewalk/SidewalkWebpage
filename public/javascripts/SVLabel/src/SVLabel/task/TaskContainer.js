@@ -38,7 +38,7 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
         const lat = geometry.coordinates[0][1];
         const lng = geometry.coordinates[0][0];
         const latLng = new google.maps.LatLng(lat, lng);
-        await svl.panoramaContainer.setLocation(lat, lng)
+        await svl.panoManager.setLocation(lat, lng)
             .then(() => {
                 svl.map.enableWalking();
                 let beforeJumpTask = currentTask;

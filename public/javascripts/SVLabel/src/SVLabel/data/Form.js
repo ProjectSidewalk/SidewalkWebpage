@@ -3,7 +3,7 @@
  * @param labelContainer
  * @param missionModel
  * @param missionContainer
- * @param panoramaContainer
+ * @param panoStore
  * @param taskContainer
  * @param mapService
  * @param compass
@@ -12,7 +12,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Form (labelContainer, missionModel, missionContainer, panoramaContainer, taskContainer, mapService, compass, tracker, dataStoreUrl) {
+function Form (labelContainer, missionModel, missionContainer, panoStore, taskContainer, mapService, compass, tracker, dataStoreUrl) {
     var self = this;
     let properties = {
         dataStoreUrl : undefined,
@@ -152,7 +152,7 @@ function Form (labelContainer, missionModel, missionContainer, panoramaContainer
             var panoData;
             var link;
             var links;
-            var panoramas = panoramaContainer.getStagedPanoData();
+            var panoramas = panoStore.getStagedPanoData();
             for (var i = 0, panoramaLen = panoramas.length; i < panoramaLen; i++) {
                 panoData = panoramas[i].data();
                 links = [];

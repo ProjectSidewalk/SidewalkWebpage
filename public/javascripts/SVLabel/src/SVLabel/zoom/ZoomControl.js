@@ -270,7 +270,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             enableZoomIn();
             enableZoomOut();
         }
-        svl.panoramaContainer.setZoom(zoomLevel);
+        svl.panoManager.setZoom(zoomLevel);
         var i,
             labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
