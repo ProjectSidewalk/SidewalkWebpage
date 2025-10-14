@@ -12,7 +12,7 @@ function PanoStore () {
             if (panoramaId === 'tutorial' || panoramaId === 'tutorialAfterWalk') {
                 panoramaMetadata.submitted = true;
             }
-            self.store[panoramaId] = new Panorama(panoramaMetadata);
+            self.store[panoramaId] = new PanoData(panoramaMetadata);
         }
     }
 

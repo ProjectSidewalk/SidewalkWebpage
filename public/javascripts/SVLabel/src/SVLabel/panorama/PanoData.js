@@ -1,7 +1,7 @@
-function Panorama(data) {
-    var self = { className: "Panorama" };
-    var _data = data;
-    var properties = { submitted: _data.submitted ? _data.submitted : false };
+function PanoData(data) {
+    let self = this;
+    const _data = data;
+    let properties = { submitted: _data.submitted ? _data.submitted : false };
 
     function getData () {
         return _data;
