@@ -1,14 +1,12 @@
-function StatusFieldNeighborhood (neighborhoodModel, userModel, uiStatus) {
+function StatusFieldNeighborhood (neighborhoodModel, user, uiStatus) {
     var self = this;
     this._neighborhoodModel = neighborhoodModel;
-    this._userModel = userModel;
     var labelCount = 0;
 
     this._neighborhoodModel.on("NeighborhoodContainer:setNeighborhood", function (newNeighborhood) {
         self.setNeighborhoodName(newNeighborhood.getProperty("name"));
 
-        var user = self._userModel.getUser();
-        if (user && user.getProperty("role") !== "Anonymous") {
+        if (user.getProperty("role") !== "Anonymous") {
             var href = "/dashboard" + "?regionId=" + newNeighborhood.getRegionId();
             self.setHref(href);
         }

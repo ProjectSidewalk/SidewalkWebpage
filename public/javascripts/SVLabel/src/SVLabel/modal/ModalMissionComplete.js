@@ -10,18 +10,16 @@
  * @param modalModel
  * @param statusModel
  * @param onboardingModel
- * @param userModel
  * @returns {{className: string}}
  * @constructor
  */
 function ModalMissionComplete (svl, missionContainer, missionModel, taskContainer, modalMissionCompleteMap,
                                modalMissionProgressBar, uiModalMissionComplete, modalModel, statusModel,
-                               onboardingModel, userModel) {
+                               onboardingModel) {
     var self = this;
     var _missionModel = missionModel;
     var _missionContainer = missionContainer;
     var _modalModel = modalModel;
-    this._userModel = userModel;
 
     this._status = {
         isOpen: false,

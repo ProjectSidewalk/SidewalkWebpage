@@ -409,7 +409,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng) {
                 ];
             // If the task is incomplete and is the current task, render it using two Polylines (red and green).
             } else {
-                var latlng = svl.map.getPosition();
+                var latlng = svl.panoViewer.getPosition();
                 paths = self.getGooglePolylines(latlng.lat, latlng.lng);
             }
 

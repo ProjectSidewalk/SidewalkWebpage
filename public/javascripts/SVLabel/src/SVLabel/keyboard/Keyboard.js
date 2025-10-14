@@ -35,19 +35,19 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         status.disableKeyboard = false;
     };
     // Move in the direction of a link closest to a given angle.
-    // Todo: Get rid of dependency to svl.panorama. Inject a streetViewMap into this module and use its interface.
+    // Todo: Get rid of dependency to svl.panoViewer.panorama. This might be a function to add to PanoViewer class.
     // Todo. Make the method name more descriptive.
     this._movePano = function(angle) {
         if (googleMap.getStatus("disableWalking")) return;
         // take the cosine of the difference for each link to the current heading in radians and stores them to an array
-        var cosines = svl.panorama.links.map(function(link) {
-            var headingAngleOffset = util.math.toRadians(svl.panorama.pov.heading + angle) - util.math.toRadians(link.heading);
+        var cosines = svl.panoViewer.panorama.links.map(function(link) {
+            var headingAngleOffset = util.math.toRadians(svl.panoViewer.panorama.pov.heading + angle) - util.math.toRadians(link.heading);
             return Math.cos(headingAngleOffset);
         });
         var maxVal = Math.max.apply(null, cosines);
         var maxIndex = cosines.indexOf(maxVal);
         if (cosines[maxIndex] > 0.5) {
-            var panoramaId = svl.panorama.links[maxIndex].pano;
+            var panoramaId = svl.panoViewer.panorama.links[maxIndex].pano;
             googleMap.setPano(panoramaId);
             return true;
         } else {
@@ -60,7 +60,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      */
     function timedMove(angle, moveTime){
         if (status.moving || svl.popUpMessage.getStatus("isVisible")){
-            svl.panorama.set("linksControl", false);
+            svl.panoViewer.panorama.set("linksControl", false);
             return;
         }
         svl.contextMenu.hide();
@@ -74,7 +74,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             //additional check to hide arrows after the fact
             //pop-up may become visible during timeout period
             if (svl.popUpMessage.getStatus('isVisible')){
-                svl.panorama.set('linksControl', false);//disable arrows
+                svl.panoViewer.hideNavigationArrows();
             }
         }
     }
@@ -104,16 +104,16 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 labels[i].setHoverInfoVisibility('hidden');
             }
             svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
-            var heading =  svl.panorama.pov.heading;
-            var pitch = svl.panorama.pov.pitch;
-            var zoom = svl.panorama.pov.zoom;
+            var heading =  svl.panoViewer.getPov().heading;
+            var pitch = svl.panoViewer.getPov().pitch;
+            var zoom = svl.panoViewer.getPov().zoom;
             heading = (heading + degree + 360) % 360;
             var pov = svl.map.restrictViewPort({
                 heading: heading,
                 pitch: pitch,
                 zoom: zoom
             });
-            svl.map.setPov({heading: pov.heading, pitch: pov.pitch, zoom: pov.zoom});
+            svl.map.setPov({ heading: pov.heading, pitch: pov.pitch, zoom: pov.zoom });
         }
     };
 

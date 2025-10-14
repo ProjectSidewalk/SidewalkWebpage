@@ -41,7 +41,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      */
     function getTargetAngle() {
         var task = taskContainer.getCurrentTask();
-        var latlng = mapService.getPosition();
+        var latlng = svl.panoViewer.getPosition();
         var geometry = task.getGeometry();  // get the street geometry of the current task
         var coordinates = geometry.coordinates;  // get the latlng coordinates of the streets
         var distArray = coordinates.map(function(o) {
@@ -63,7 +63,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         var task = taskContainer.getCurrentTask();
         if (task) {
             var line = task.getGeoJSON();
-            var latlng = mapService.getPosition();
+            var latlng = svl.panoViewer.getPosition();
             var currentPoint = turf.point([latlng.lng, latlng.lat]);
             return turf.pointToLineDistance(currentPoint, line) < svl.CLOSE_TO_ROUTE_THRESHOLD;
         }
@@ -157,7 +157,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      * @returns {number}
      */
     function _getCompassAngle () {
-        var heading = mapService.getPov().heading;
+        var heading = svl.panoViewer.getPov().heading;
         var targetAngle = getTargetAngle();
         return ((heading - targetAngle + 360) % 360);
     }

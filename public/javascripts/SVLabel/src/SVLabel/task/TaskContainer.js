@@ -3,13 +3,12 @@
  *
  * TODO This module needs to be cleaned up.
  * TODO Split the responsibilities. Storing tasks should remain here, but other things like fetching data from the server (should go to TaskModel) and rendering segments on a map.
- * @param navigationModel
  * @param neighborhoodModel
  * @param streetViewService
  * @param svl
  * @param tracker
  */
-function TaskContainer (navigationModel, neighborhoodModel, streetViewService, svl, tracker) {
+function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
     var self = this;
 
     var previousTasks = [];
@@ -23,45 +22,36 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return tasksFinishedLoading;
     }
 
-    self.getFinishedAndInitNextTask = function (finished) {
+    self.getFinishedAndInitNextTask = async function (finished) {
         var newTask = self.nextTask(finished);
         if (!newTask) {
             svl.neighborhoodModel.setComplete();
         } else {
-            svl.taskContainer.initNextTask(newTask);
+            await svl.taskContainer.initNextTask(newTask);
         }
         return newTask;
     };
 
-    self.initNextTask = function (nextTaskIn) {
-        navigationModel.disableWalking();
-
-        if (streetViewService) {
-            var geometry = nextTaskIn.getGeometry();
-            var lat = geometry.coordinates[0][1];
-            var lng = geometry.coordinates[0][0];
-            var latLng = new google.maps.LatLng(lat, lng);
-            streetViewService.getPanorama({ location: latLng, radius: svl.STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR },
-                function (streetViewPanoramaData, status) {
-                    navigationModel.enableWalking();
-                    if (status === google.maps.StreetViewStatus.OK) {
-                        lat = streetViewPanoramaData.location.latLng.lat();
-                        lng = streetViewPanoramaData.location.latLng.lng();
-                        let beforeJumpTask = currentTask;
-                        self.setCurrentTask(nextTaskIn);
-                        beforeJumpTask.render();
-                        navigationModel.setPosition(lat, lng, function(){
-                            navigationModel.preparePovReset();
-                        });
-                    } else {
-                        console.error("Error loading Street View imagery");
-                        svl.tracker.push("PanoId_NotFound", { 'Location': JSON.stringify(latLng) });
-                        nextTaskIn.complete();
-                        // no street view available in this range.
-                        self.getFinishedAndInitNextTask(nextTaskIn);
-                    }
-                });
-        }
+    self.initNextTask = async function (nextTaskIn) {
+        svl.map.disableWalking();
+        const geometry = nextTaskIn.getGeometry();
+        const lat = geometry.coordinates[0][1];
+        const lng = geometry.coordinates[0][0];
+        const latLng = new google.maps.LatLng(lat, lng);
+        await svl.panoramaContainer.setLocation(lat, lng)
+            .then(() => {
+                svl.map.enableWalking();
+                let beforeJumpTask = currentTask;
+                self.setCurrentTask(nextTaskIn);
+                beforeJumpTask.render();
+                svl.map.preparePovReset();
+                Promise.resolve();
+            }, (error) => {
+                // TODO _panoFailureCallback is reporting no GSV for currentTask's streetEdgeId instead of the one we're aiming for.
+                svl.tracker.push("PanoId_NotFound", { 'Location': JSON.stringify(latLng) });
+                nextTaskIn.complete();
+                self.getFinishedAndInitNextTask(nextTaskIn);
+            });
     };
 
     /**
@@ -84,9 +74,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         // Update the audited distance in the right sidebar.
         updateAuditedDistance();
 
-        if (!('user' in svl) || (svl.user.getProperty('role') === "Anonymous" &&
+        if (svl.user.getProperty('role') === "Anonymous" &&
             getCompletedTaskDistance({units: 'kilometers'}) > 0.15 &&
-            !svl.popUpMessage.haveAskedToSignIn())) {
+            !svl.popUpMessage.haveAskedToSignIn()) {
             svl.popUpMessage.promptSignIn();
         }
 
@@ -247,7 +237,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (!unit) unit = {units: 'kilometers'};
 
         if (currentTask) {
-            var currentLatLng = navigationModel.getPosition();
+            var currentLatLng = svl.panoViewer.getPosition();
             currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
             return currentTask.getAuditedDistance(unit);
         }
@@ -527,7 +517,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * TODO This should be done somewhere else.
      */
     function updateCurrentTask() {
-        var currentLatLng = navigationModel.getPosition();
+        var currentLatLng = svl.panoViewer.getPosition();
         currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
         currentTask.render();
     }

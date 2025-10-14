@@ -255,7 +255,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             i,
             len;
 
-        var currentPov = mapService.getPov();
+        var currentPov = svl.panoViewer.getPov();
         var povChange = svl.map.getPovChangeStatus();
 
         povChange["status"] = true;
@@ -547,7 +547,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         if (_onboardingStateAnnotationExists(state) || savedAnnotations.length > 0) {
             _drawAnnotations(state);
             if (typeof google != "undefined") {
-                annotationListener = google.maps.event.addListener(svl.panorama, "pov_changed", function () {
+                annotationListener = google.maps.event.addListener(svl.panoViewer.panorama, "pov_changed", function () {
                     //Stop the animation for the blinking arrows
                     _removeFlashingFromArrow();
                     _drawAnnotations(state);
@@ -618,7 +618,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 google.maps.event.removeListener(googleTarget);
             };
 
-            googleTarget = google.maps.event.addListener(svl.panorama, "position_changed", googleCallback);
+            googleTarget = google.maps.event.addListener(svl.panoViewer.panorama, "position_changed", googleCallback);
 
             $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
             $(".onboarding-transition-trigger").css({
@@ -642,7 +642,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     function _visitWalkTowards(state, listener) {
         var nextPanoId = 'afterWalkTutorial';
         // Add a link to the second pano so that the user can click on it.
-        svl.panorama.setLinks([{
+        svl.panoViewer.panorama.setLinks([{
             description: nextPanoId,
             heading: 340,
             pano: nextPanoId
@@ -662,7 +662,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         var $target;
         var callback = function () {
-            var panoId = mapService.getPanoId();
+            var panoId = svl.panoViewer.getPanoId();
             if (state.properties.panoId === panoId) {
                 window.setTimeout(function () {
                     mapService.unlockDisableWalking().disableWalking().lockDisableWalking();
@@ -680,7 +680,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         };
 
         // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
-        if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "position_changed", callback);
+        if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panoViewer.panorama, "position_changed", callback);
     }
 
     function _visitAdjustHeadingAngle(state, listener) {
@@ -689,7 +689,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         interval = handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
 
         var callback = function () {
-            var pov = mapService.getPov();
+            var pov = svl.panoViewer.getPov();
             // Note that the tolerance is only a tolerance to the left. Must hit at least the given heading to proceed.
             if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
                 if (typeof google != "undefined") google.maps.event.removeListener($target);
@@ -699,7 +699,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             }
         };
 
-        if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
+        if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panoViewer.panorama, "pov_changed", callback);
     }
 
     function _visitRateSeverity(state, listener) {

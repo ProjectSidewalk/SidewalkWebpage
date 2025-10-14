@@ -99,8 +99,8 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
     this._pollLookingAroundHasFinished = function () {
 
         //check the panoId to make sure the user hasn't walked
-        if (mapService.getPanoId() == initialPanoId) {
-            var currentHeadingAngle = mapService.getPov().heading;
+        if (svl.panoViewer.getPanoId() == initialPanoId) {
+            var currentHeadingAngle = svl.panoViewer.getPov().heading;
             var transformedCurrent = self._transformAngle(currentHeadingAngle);
 
             // An explanation of why/how this code was changed to fix a bug can be found here:
@@ -130,9 +130,9 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
 
             popUpMessage.notify(title, message, self._finishedInstructionToStart);
 
-            initialHeading = mapService.getPov().heading;
-            // lastHeadingTransformed = self._transformAngle(mapService.getPov().heading);
-            initialPanoId = mapService.getPanoId();
+            initialHeading = svl.panoViewer.getPov().heading;
+            // lastHeadingTransformed = self._transformAngle(svl.panoViewer.getPov().heading);
+            initialPanoId = svl.panoViewer.getPanoId();
             lookingAroundInterval = setInterval(self._pollLookingAroundHasFinished, 1);
         }
     };

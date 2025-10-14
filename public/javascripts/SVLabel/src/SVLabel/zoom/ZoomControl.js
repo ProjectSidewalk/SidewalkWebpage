@@ -171,7 +171,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     function _handleZoomInButtonClick () {
         if (tracker)  tracker.push('Click_ZoomIn');
 
-        var pov = mapService.getPov();
+        var pov = svl.panoViewer.getPov();
 
         if (pov.zoom < properties.maxZoomLevel && zoomBlink.isBlinking === false) {
           svl.zoomShortcutAlert.zoomClicked();
@@ -193,7 +193,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     function _handleZoomOutButtonClick () {
         if (tracker) tracker.push('Click_ZoomOut');
 
-        var pov = mapService.getPov();
+        var pov = svl.panoViewer.getPov();
 
         if (pov.zoom > properties.minZoomLevel && zoomBlink.isBlinking === false) {
           svl.zoomShortcutAlert.zoomClicked();
@@ -218,7 +218,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (!status.disableZoomIn) {
 
             var povChange = mapService.getPovChangeStatus();
-            var pov = mapService.getPov();
+            var pov = svl.panoViewer.getPov();
 
             setZoom(pov.zoom + 1);
             povChange["status"] = true;
@@ -236,7 +236,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         if (!status.disableZoomOut) {
 
             var povChange = mapService.getPovChangeStatus();
-            var pov = mapService.getPov();
+            var pov = svl.panoViewer.getPov();
 
             setZoom(pov.zoom - 1);
             povChange["status"] = true;
@@ -270,7 +270,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             enableZoomIn();
             enableZoomOut();
         }
-        mapService.setZoom(zoomLevel);
+        svl.panoramaContainer.setZoom(zoomLevel);
         var i,
             labels = svl.labelContainer.getCanvasLabels(),
             labelLen = labels.length;
@@ -330,7 +330,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
      * @returns {updateOpacity}
      */
     function updateOpacity () {
-        var pov = mapService.getPov();
+        var pov = svl.panoViewer.getPov();
 
         if (pov && uiZoomControl) {
             var zoom = pov.zoom;

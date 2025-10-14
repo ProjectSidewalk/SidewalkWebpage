@@ -37,11 +37,11 @@ function ObservedArea(uiMiniMap) {
         angle = null;
         leftAngle = null;
         rightAngle = null;
-        const panoId = svl.panorama.getPano();
+        const panoId = svl.panoViewer.panorama.getPano();
         currArea = observedAreas.find(area => area.panoId === panoId);
 
         if (!currArea) {
-            currArea = { panoId: panoId, latLng: svl.map.getPosition(), minAngle: null, maxAngle: null };
+            currArea = { panoId: panoId, latLng: svl.panoViewer.getPosition(), minAngle: null, maxAngle: null };
             observedAreas.push(currArea);
         }
     }
@@ -75,7 +75,7 @@ function ObservedArea(uiMiniMap) {
      * Updates all the angle variables necessary to keep track of the user's observed area.
      */
     function updateAngles() {
-        const pov = svl.map.getPov();
+        const pov = svl.panoViewer.getPov();
         let heading = pov.heading;
         const fov = PanoMarker.get3dFov(pov.zoom);
         if (angle) {

@@ -64,7 +64,7 @@ function Canvas(ribbon) {
     function createLabel(canvasX, canvasY) {
         // Generate some metadata for the new label.
         var labelType = ribbon.getStatus('selectedLabelType');
-        var pov = svl.map.getPov();
+        var pov = svl.panoViewer.getPov();
         var povOfLabel = util.panomarker.calculatePovIfCentered(
             pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT
         );
@@ -78,7 +78,7 @@ function Canvas(ribbon) {
             originalCanvasXY: { x: canvasX, y: canvasY },
             currCanvasXY: rerenderCanvasCoord,
             povOfLabelIfCentered: povOfLabel,
-            panoId: svl.map.getPanoId(),
+            panoId: svl.panoViewer.getPanoId(),
             originalPov: pov
         };
 
@@ -150,7 +150,7 @@ function Canvas(ribbon) {
         if (!status.disableLabeling && currTime - mouseStatus.prevMouseUpTime > 300) {
             createLabel(mouseStatus.leftUpX, mouseStatus.leftUpY);
             clear();
-            setOnlyLabelsOnPanoAsVisible(svl.map.getPanoId());
+            setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
             render();
         }
 
@@ -280,7 +280,7 @@ function Canvas(ribbon) {
             return this;
         }
         var labels = svl.labelContainer.getCanvasLabels();
-        var pov = svl.map.getPov();
+        var pov = svl.panoViewer.getPov();
 
         // Render labels.
         for (var i = 0; i < labels.length; i += 1) {

@@ -84,7 +84,7 @@ function Label(params) {
 
         // Save pano data and calculate pano_x/y if the label is new.
         if (properties.panoXY === undefined) {
-            var panoData = svl.panoramaContainer.getPanorama(properties.panoId).data();
+            var panoData = svl.panoramaContainer.getPanoData(properties.panoId).data();
 
             properties.panoWidth = panoData.tiles.worldSize.width;
             properties.panoHeight = panoData.tiles.worldSize.height;

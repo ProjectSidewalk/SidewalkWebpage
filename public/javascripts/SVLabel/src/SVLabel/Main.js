@@ -1,6 +1,3 @@
-/** @namespace */
-var svl = svl || {};
-
 /**
  * Main module of SVLabel
  * @param params
@@ -39,9 +36,10 @@ function Main (params) {
     svl.STREETVIEW_MAX_DISTANCE = 40; // 40 meters.
     svl.CLOSE_TO_ROUTE_THRESHOLD = 0.05; // 50 meters.
 
-    function _init (params) {
+    async function _init (params) {
         params = params || {};
 
+        // Record any params that are important enough to attach directly to the svl object.
         svl.missionsCompleted = 0; // Just since loading the page.
         svl.userHasCompletedAMission = params.hasCompletedAMission;
         svl.routeId = params.routeId;
@@ -50,45 +48,52 @@ function Main (params) {
         svl.cityName = params.cityName;
         svl.cityNameShort = params.cityNameShort;
         svl.makeCrops = params.makeCrops;
-        var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
+
+
+        svl.storage = new TemporaryStorage(JSON);
+        svl.tracker = new Tracker();
+        svl.user = new User(params.user);
+
         // Models
-        if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
-        if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
+        svl.neighborhoodModel = new NeighborhoodModel();
         svl.neighborhoodModel.setAsRouteOrNeighborhood(svl.userRouteId ? 'route' : 'neighborhood');
         svl.modalModel = new ModalModel();
         svl.missionModel = new MissionModel();
         svl.gameEffectModel = new GameEffectModel();
         svl.statusModel = new StatusModel();
-        if (!("taskModel" in svl)) svl.taskModel = new TaskModel();
+        svl.taskModel = new TaskModel();
         svl.onboardingModel = new OnboardingModel();
 
-        if (!("tracker" in svl)) svl.tracker = new Tracker();
+        svl.alert = new Alert();
+        svl.stuckAlert = new StuckAlert(svl.alert);
 
-        if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
         svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);
-        svl.panoramaContainer = new PanoramaContainer(svl.streetViewService);
+        const startLat = params.task.properties.current_lat;
+        const startLng = params.task.properties.current_lng;
+        svl.panoramaContainer = await PanoramaContainer(GsvViewer, { startLat: startLat, startLng: startLng });
+        svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl.streetViewService, svl, svl.tracker);
+        svl.taskModel._taskContainer = svl.taskContainer;
 
+        const isTutorialTask = params.task.properties.street_edge_id === params.tutorialStreetId;
+        const newTask = new Task(params.task, isTutorialTask, startLat, startLng);
+        svl.taskContainer._tasks.push(newTask);
+        svl.taskContainer.setCurrentTask(newTask);
 
         svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
 
-
         // Set map parameters and instantiate it.
-        var mapParam = { lat: SVLat, lng: SVLng, panoramaPov: { heading: 0, pitch: -10, zoom: 1 } };
-        svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map, mapParam);
+        svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map);
         svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
-        svl.alert = new Alert();
         svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alert);
         svl.ratingReminderAlert = new RatingReminderAlert(svl.alert);
         svl.zoomShortcutAlert = new ZoomShortcutAlert(svl.alert);
         svl.jumpModel = new JumpModel();
         svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
-        svl.stuckAlert = new StuckAlert(svl.alert);
-        svl.navigationModel._mapService = svl.map;
 
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldOverall = new StatusFieldOverall(svl.ui.status);
-        svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.userModel, svl.ui.status);
+        svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.user, svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
         svl.statusFieldMission = new StatusFieldMission(svl.modalModel, svl.ui.status);
 
@@ -106,11 +111,6 @@ function Main (params) {
         svl.neighborhoodContainer.add(neighborhood);
         svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
 
-        if (!("taskContainer" in svl && svl.taskContainer)) {
-            svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, svl.streetViewService, svl, svl.tracker);
-        }
-        svl.taskModel._taskContainer = svl.taskContainer;
-
         svl.observedArea = new ObservedArea(svl.ui.minimap);
 
         // Mission
@@ -120,8 +120,8 @@ function Main (params) {
         svl.missionFactory = new MissionFactory (svl.missionModel);
 
         svl.missionModel.trigger("MissionFactory:create", params.mission); // create current mission and set as current
-        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.navigationModel,
-            svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
+        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.panoramaContainer,
+            svl.taskContainer, svl.map, svl.compass, svl.tracker, params.dataStoreUrl);
         if (params.mission.current_audit_task_id) {
             var currTask = svl.taskContainer.getCurrentTask();
             var currTaskId = currTask.getProperty('auditTaskId');
@@ -153,24 +153,24 @@ function Main (params) {
         var modalMissionCompleteProgressBar = new ModalMissionCompleteProgressBar(svl.ui.modalMissionComplete);
         svl.modalMissionComplete = new ModalMissionComplete(svl, svl.missionContainer, svl.missionModel,
             svl.taskContainer, modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete,
-            svl.modalModel, svl.statusModel, svl.onboardingModel, svl.userModel);
+            svl.modalModel, svl.statusModel, svl.onboardingModel);
         svl.modalMissionComplete.hide();
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
         svl.modalSkip = new ModalSkip(svl.form, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
 
-        svl.infoPopover = new GSVInfoPopover(svl.ui.dateHolder, svl.panorama, svl.map.getPosition, svl.map.getPanoId,
+        svl.infoPopover = new GSVInfoPopover(svl.ui.dateHolder, svl.panoViewer.panorama, svl.panoViewer.getPosition, svl.panoViewer.getPanoId,
             svl.taskContainer.getCurrentTaskStreetEdgeId, svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId,
-            svl.map.getPov, svl.cityName, true, function() { svl.tracker.push('GSVInfoButton_Click'); },
+            svl.panoViewer.getPov, svl.cityName, true, function() { svl.tracker.push('GSVInfoButton_Click'); },
             function() { svl.tracker.push('GSVInfoCopyToClipboard_Click'); },
             function() { svl.tracker.push('GSVInfoViewInGSV_Click'); }
         );
 
         // Speed limit
-        svl.speedLimit = new SpeedLimit(svl.panorama, svl.map.getPosition, svl.isOnboarding, null, null);
+        svl.speedLimit = new SpeedLimit(svl.panoViewer.panorama, svl.panoViewer.getPosition, svl.isOnboarding, null, null);
 
         // Survey for select users
-        svl.surveyModalContainer = $("#survey-modal-container").get(0);
+        svl.modalSurvey = new ModalSurvey(svl.ui.modalSurvey);
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
@@ -182,23 +182,6 @@ function Main (params) {
 
         $("#navbar-retake-tutorial-btn").on('click', function () {
             window.location.replace('/explore?retakeTutorial=true');
-        });
-
-        $('#survey-modal-container').on('show.bs.modal', function () {
-            svl.popUpMessage.disableInteractions();
-            svl.ribbon.disableModeSwitch();
-            svl.zoomControl.disableZoomIn();
-            svl.zoomControl.disableZoomOut();
-        });
-        $('#survey-modal-container').on('hide.bs.modal', function () {
-            svl.popUpMessage.enableInteractions();
-            svl.ribbon.enableModeSwitch();
-            svl.zoomControl.enableZoomIn();
-            svl.zoomControl.enableZoomOut();
-        });
-
-        $('#survey-modal-container').keydown(function(e) {
-            e.stopPropagation();
         });
 
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
@@ -292,7 +275,6 @@ function Main (params) {
         }
 
         if (!("onboarding" in svl && svl.onboarding)) {
-            // TODO It should pass UserModel instead of User (i.e., svl.user)
             svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation,
                 svl.map, svl.missionContainer, svl.modalComment, svl.modalSkip, svl.onboardingModel, onboardingStates,
                 svl.ribbon, svl.statusField, svl.tracker, svl.canvas, svl.ui.canvas, svl.contextMenu, svl.ui.onboarding,
@@ -320,7 +302,7 @@ function Main (params) {
 
         svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), function (result) {
             svl.statusFieldNeighborhood.setLabelCount(svl.labelContainer.countLabels());
-            svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.map.getPanoId());
+            svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
 
             // Count the labels of each label type to initialize the current mission label counts.
             var counter = {'CurbRamp': 0, 'NoCurbRamp': 0, 'Obstacle': 0, 'SurfaceProblem': 0, 'NoSidewalk': 0, 'Other': 0};
@@ -501,6 +483,10 @@ function Main (params) {
         svl.ui.modalComment.ok = $("#modal-comment-ok-button");
         svl.ui.modalComment.cancel = $("#modal-comment-cancel-button");
         svl.ui.modalComment.textarea = $("#modal-comment-textarea");
+        svl.ui.modalSurvey = {};
+        svl.ui.modalSurvey.container = $("#survey-modal-container");
+        svl.ui.modalSurvey.form = $("#survey-form");
+        svl.ui.modalSurvey.skipButton = $('#survey-skip-button')
 
         // Modal Mission Complete.
         svl.ui.modalMissionComplete = {};

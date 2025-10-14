@@ -80,7 +80,7 @@ class Infra3dViewer extends PanoViewer {
     }
 
     setPano = async (panoId) => {
-        await this.viewer.moveToKey(panoId);
+        return this.viewer.moveToKey(panoId);
     }
 
     // Move in the direction of a link closest to a given angle.
@@ -93,7 +93,7 @@ class Infra3dViewer extends PanoViewer {
             // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the X-axis in
             // a spherical coordinate system", so we need to adjust it to be like a compass heading.
             const linkHeading = (Math.PI - link.worldMotionAzimuth) % (2 * Math.PI);
-            const headingAngleOffset = util.math.toRadians(svl.panorama.pov.heading + angle) - linkHeading;
+            const headingAngleOffset = util.math.toRadians(svl.panoViewer.panorama.pov.heading + angle) - linkHeading;
             return Math.cos(headingAngleOffset);
         });
         const maxVal = Math.max.apply(null, cosines);
@@ -133,7 +133,6 @@ class Infra3dViewer extends PanoViewer {
     }
 
     setPov = (pov) => {
-        console.log('SET POV', pov);
         const current_node = this.viewer.getCurrentNode();
 
         // Calculate the base orientation from the node's position.

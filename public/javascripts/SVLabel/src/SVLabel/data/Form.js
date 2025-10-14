@@ -3,17 +3,16 @@
  * @param labelContainer
  * @param missionModel
  * @param missionContainer
- * @param navigationModel
  * @param panoramaContainer
  * @param taskContainer
  * @param mapService
  * @param compass
  * @param tracker
- * @param params
+ * @param dataStoreUrl
  * @returns {{className: string}}
  * @constructor
  */
-function Form (labelContainer, missionModel, missionContainer, navigationModel, panoramaContainer, taskContainer, mapService, compass, tracker, params) {
+function Form (labelContainer, missionModel, missionContainer, panoramaContainer, taskContainer, mapService, compass, tracker, dataStoreUrl) {
     var self = this;
     let properties = {
         dataStoreUrl : undefined,
@@ -70,8 +69,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 task_start: task.getProperty("taskStart"),
                 audit_task_id: task.getAuditTaskId(),
                 completed: task.isComplete(),
-                current_lat: navigationModel.getPosition().lat,
-                current_lng: navigationModel.getPosition().lng,
+                current_lat: svl.panoViewer.getPosition().lat,
+                current_lng: svl.panoViewer.getPosition().lng,
                 start_point_reversed: task.getProperty("startPointReversed"),
                 current_mission_start: task.getMissionStart(missionId),
                 last_priority_update_time: properties.lastPriorityUpdateTime,
@@ -153,7 +152,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             var panoData;
             var link;
             var links;
-            var panoramas = panoramaContainer.getStagedPanoramas();
+            var panoramas = panoramaContainer.getStagedPanoData();
             for (var i = 0, panoramaLen = panoramas.length; i < panoramaLen; i++) {
                 panoData = panoramas[i].data();
                 links = [];
@@ -197,7 +196,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     };
 
     this._prepareSkipData = function (issueDescription) {
-        var position = navigationModel.getPosition();
+        var position = svl.panoViewer.getPosition();
         return {
             issue_description: issueDescription,
             lat: position.lat,
@@ -229,6 +228,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             mapService.finishCurrentTaskBeforeJumping();
         }
 
+        // TODO This returns a Promise now.
         taskContainer.getFinishedAndInitNextTask(task);
 
         if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
@@ -305,8 +305,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         });
     };
 
-    properties.dataStoreUrl = params.dataStoreUrl;
-    properties.beaconDataStoreUrl = params.beaconDataStoreUrl;
+    properties.dataStoreUrl = dataStoreUrl;
+    properties.beaconDataStoreUrl = dataStoreUrl + 'Beacon';
 
     $(window).on('beforeunload', function () {
         tracker.push("Unload");

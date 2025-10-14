@@ -25,7 +25,7 @@ function PopUpMessage (form, taskContainer, tracker, user, onboardingModel, uiPo
     };
 
     function disableInteractions () {
-        svl.panorama.set('linksControl', false);//disable arrows
+        svl.panoViewer.hideNavigationArrows();
         svl.map.disableWalking();
         svl.map.unlockDisablePanning();
         svl.map.disablePanning();
@@ -33,7 +33,7 @@ function PopUpMessage (form, taskContainer, tracker, user, onboardingModel, uiPo
         svl.keyboard.disableKeyboard();
     }
     function enableInteractions () {
-        svl.panorama.set('linksControl', true);//enable arrows
+        svl.panoViewer.showNavigationArrows();
         svl.map.enableWalking();
         svl.map.enablePanning();
         svl.canvas.enableLabeling();

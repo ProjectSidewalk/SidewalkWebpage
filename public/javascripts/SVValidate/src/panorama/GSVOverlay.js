@@ -88,8 +88,8 @@ function GSVOverlay () {
             let zoomLevel = pov.zoom;
             dx = dx / (2 * zoomLevel);
             dy = dy / (2 * zoomLevel);
-            dx *= 1.5;
-            dy *= 1.5;
+            dx *= 0.375;
+            dy *= 0.375;
             updatePov(dx, dy);
         }
         mouseStatus.prevX = mouseposition(e, this).x;
@@ -105,9 +105,8 @@ function GSVOverlay () {
         let panoViewer = svv.panoViewer;
         if (panoViewer) {
             let pov = panoViewer.getPov();
-            let alpha = 0.25;
-            pov.heading -= alpha * dx;
-            pov.pitch += alpha * dy;
+            pov.heading -= dx;
+            pov.pitch += dy;
             panoViewer.setPov(pov);
         } else {
             throw self.className + ' updatePov(): panorama not defined!';

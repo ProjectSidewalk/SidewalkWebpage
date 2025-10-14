@@ -87,7 +87,7 @@ function LabelContainer ($, nextTemporaryLabelId) {
                     labelArr[i].originalPov, originalCanvasXY.x, originalCanvasXY.y, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT
                 );
                 let rerenderCanvasXY = util.panomarker.getCanvasCoordinate(
-                    povOfLabelIfCentered, svl.map.getPov(), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+                    povOfLabelIfCentered, svl.panoViewer.getPov(), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
                 );
 
                 labelArr[i].currCanvasXY = { x: rerenderCanvasXY.x, y: rerenderCanvasXY.y };
@@ -108,7 +108,7 @@ function LabelContainer ($, nextTemporaryLabelId) {
      * Returns labels for the current pano ID.
      */
     this.getCanvasLabels = function () {
-        let panoId = svl.map.getPanoId();
+        let panoId = svl.panoViewer.getPanoId();
         return allLabels[panoId] ? allLabels[panoId] : [];
     };
 

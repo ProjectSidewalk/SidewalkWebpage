@@ -4,12 +4,13 @@
  * @returns {PanoContainer}
  * @constructor
  */
-async function PanoContainer () {
+async function PanoContainer (panoViewerType) {
     let properties = {
         prevSetPanoTimestamp: new Date(), // TODO I think that this is just used to estimate if the pano loaded (we give it 500 ms), but we should use promises.
     };
 
     let panoCanvas = document.getElementById('svv-panorama');
+    let _setPanoCallback = null;
     let bottomLinksClickable = false;
     let panoHistories = [];
 
@@ -26,9 +27,13 @@ async function PanoContainer () {
             // zoomControl: false
         }
 
-        // TODO pass in the viewer type as a parameter, or we just create the viewer in Main.js, maybe pass it in as a param?
-        svv.panoViewer = await GsvViewer.create(panoCanvas, panoOptions);
-        // svv.panoViewer = await Infra3dViewer.create(panoCanvas, panoOptions);
+        svv.panoViewer = await panoViewerType.create(panoCanvas, panoOptions);
+        if (panoViewerType === GsvViewer) {
+            _setPanoCallback = _setPanoCallbackGsv;
+        } else if (panoViewerType === Infra3dViewer) {
+            _setPanoCallback = _setPanoCallbackInfra3d;
+        }
+
         svv.panoViewer.addListener('pov_changed', () => svv.tracker.push('POV_Changed'));
         if (isMobile()) {
             _sizePano();
@@ -106,12 +111,10 @@ async function PanoContainer () {
 
     /**
      * Saves historic pano metadata and updates the date text field on the pano in GSV viewer.
-     * @param data The pano data returned from the StreetViewService
+     * @param panoData The pano data returned from the StreetViewService
      * @private
      */
-    function _setPanoCallback(data) {
-        let panoData = data.data;
-
+    function _setPanoCallbackGsv(panoData) {
         // Save the current panorama's history.
         let panoHist = {};
         panoHist.curr_pano_id = svv.panoViewer.getPanoId();
@@ -192,7 +195,8 @@ async function PanoContainer () {
      */
     async function setPanorama(panoId) {
         return svv.panoViewer.setPano(panoId).then(_setPanoCallback).then(() => {
-        // return svv.panoViewer.setPano('vps_baden@meta_ch_baden_masterdemo_v3/114-41').then(_setPanoCallbackInfra3d).then(() => {
+        // return svv.panoViewer.setPosition(47.47149597503096, 8.30860179865082).then(_setPanoCallback).then(() => {
+        // return svv.panoViewer.setPano('vps_baden@meta_ch_baden_masterdemo_v3/114-41').then(_setPanoCallback).then(() => {
             setProperty("prevSetPanoTimestamp", new Date());
             svv.tracker.push('PanoId_Changed');
         });
@@ -235,11 +239,9 @@ async function PanoContainer () {
     self.setProperty = setProperty;
     self.getPanoHistories = getPanoHistories;
     self.clearPanoHistories = clearPanoHistories;
-    self.getProperty = getProperty;
     self.setPanorama = setPanorama;
     self.getPanomarker = getPanomarker;
     self.renderPanoMarker = renderPanoMarker;
-    self.setProperty = setProperty;
     self.setZoom = setZoom;
 
     await _init();

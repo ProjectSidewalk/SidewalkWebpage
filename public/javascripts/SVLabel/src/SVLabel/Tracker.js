@@ -126,7 +126,7 @@ function Tracker() {
 
         // Initialize variables. Note you cannot get pov, panoid, or position before the map and pano load.
         try {
-            pov = svl.map.getPov();
+            pov = svl.panoViewer.getPov();
         } catch (err) {
             pov = {
                 heading: null,
@@ -136,7 +136,7 @@ function Tracker() {
         }
 
         try {
-            latlng = svl.map.getPosition();
+            latlng = svl.panoViewer.getPosition();
         } catch (err) {
             latlng = {
                 lat: null,
@@ -151,7 +151,7 @@ function Tracker() {
         }
 
         try {
-            panoId = svl.map.getPanoId();
+            panoId = svl.panoViewer.getPanoId();
         } catch (err) {
             panoId = null;
         }

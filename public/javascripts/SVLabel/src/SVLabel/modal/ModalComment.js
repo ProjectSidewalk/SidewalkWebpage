@@ -50,9 +50,9 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
         tracker.push("ModalComment_ClickOK");
 
         var task = taskContainer.getCurrentTask();
-        var panoramaId = svl.map.getPanoId();
-        var latlng = svl.map.getPosition();
-        var pov = svl.map.getPov();
+        var panoramaId = svl.panoViewer.getPanoId();
+        var latlng = svl.panoViewer.getPosition();
+        var pov = svl.panoViewer.getPov();
         var data;
 
         data = self._prepareCommentData(panoramaId, latlng.lat, latlng.lng, pov, task);
