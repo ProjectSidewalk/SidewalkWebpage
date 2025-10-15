@@ -39,7 +39,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
         e.preventDefault();
         svl.stuckAlert.compassOrStuckClicked();
         tracker.push('ModalStuck_ClickStuck');
-        svl.map.moveForward('ModalStuck_Unstuck', 'ModalStuck_GSVNotAvailable', svl.stuckAlert.stuckClicked);
+        svl.navigationService.moveForward('ModalStuck_Unstuck', 'ModalStuck_GSVNotAvailable', svl.stuckAlert.stuckClicked);
     }
 
 
@@ -80,7 +80,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
         uiModalSkip.box.hide();
         self.hideSkipMenu();
     };
-    
+
     /**
      * Enable the stuck button
      */
@@ -124,9 +124,9 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
         self.showBackground();
     };
 
-    /** 
+    /**
      * Hide the background of the skip menu.
-     * */ 
+     * */
     this.hideBackground = () => {
         uiModalSkip.background.css({ width: '', height: ''})
     };

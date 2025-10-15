@@ -6,7 +6,7 @@
  * @param compass
  * @param form
  * @param handAnimation
- * @param mapService
+ * @param navigationService
  * @param missionContainer
  * @param modalComment
  * @param modalSkip
@@ -25,7 +25,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, missionContainer, modalComment,
+function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationService, missionContainer, modalComment,
                     modalSkip, onboardingModel, onboardingStates, ribbon, statusField, tracker, canvas, uiCanvas,
                     contextMenu, uiOnboarding, uiLeft, user, zoomControl) {
     var self = this;
@@ -38,7 +38,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
     var _mouseDownCanvasDrawingHandler;
     var currentLabelState;
-    var map = svl.map.getMap();
+    var map = svl.minimap.getMap();
     var currentLabelId;
 
     this.start = function () {
@@ -56,9 +56,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         canvas.disableLabelDelete();
         canvas.lockDisableLabelDelete();
 
-        mapService.unlockDisableWalking();
-        mapService.disableWalking();
-        mapService.lockDisableWalking();
+        navigationService.unlockDisableWalking();
+        navigationService.disableWalking();
+        navigationService.lockDisableWalking();
 
         zoomControl.unlockDisableZoomIn();
         zoomControl.disableZoomIn();
@@ -232,7 +232,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     function _stopAllBlinking() {
-        mapService.stopBlinkingMinimap();
+        navigationService.stopBlinkingMinimap();
         compass.stopBlinking();
         statusField.stopBlinking();
         zoomControl.stopBlinking();
@@ -256,7 +256,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             len;
 
         var currentPov = svl.panoViewer.getPov();
-        var povChange = svl.map.getPovChangeStatus();
+        var povChange = svl.panoManager.getPovChangeStatus();
 
         povChange["status"] = true;
 
@@ -329,7 +329,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 // The first time we draw the label, create the marker on the minimap.
                 if (!annotation.firstDraw && typeof google !== "undefined" && google && google.maps) {
                     var googleMarker = Label.createMinimapMarker(annotation.labelType, annotation.lat, annotation.lng);
-                    googleMarker.setMap(svl.map.getMap());
+                    googleMarker.setMap(svl.minimap.getMap());
                     annotation.firstDraw = true;
                 }
             }
@@ -480,7 +480,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             for (var i = 0; i < len; i++) {
                 switch (state.properties.blinks[i]) {
                     case "minimap":
-                        mapService.blinkMinimap();
+                        navigationService.blinkMinimap();
                         break;
                     case "compass":
                         compass.blink();
@@ -501,7 +501,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                         modalComment.blink();
                         break;
                     case "movement-arrow":
-                        mapService.blinkNavigationArrows();
+                        svl.panoManager.blinkNavigationArrows();
                         break;
                 }
             }
@@ -564,7 +564,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
             if (state.properties.constructor === Array) {
                 // Restrict panning.
-                mapService.setHeadingRange([state.properties[0].minHeading, state.properties[0].maxHeading]);
+                svl.panoManager.setHeadingRange([state.properties[0].minHeading, state.properties[0].maxHeading]);
 
                 // Ideally we need a for loop that goes through every element of the property array and calls the
                 // corresponding action's handler. Not just the label accessibility attribute's handler.
@@ -574,7 +574,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             }
             else {
                 // Restrict panning.
-                mapService.setHeadingRange([state.properties.minHeading, state.properties.maxHeading]);
+                svl.panoManager.setHeadingRange([state.properties.minHeading, state.properties.maxHeading]);
                 if (state.properties.action === "Introduction") {
                     _visitIntroduction(state, annotationListener);
                 } else if (state.properties.action === "SelectLabelType" || state.properties.action === "RedoSelectLabelType") {
@@ -614,7 +614,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         // When they click OK, then the POV changes.
         if (typeof google != "undefined") {
             googleCallback = function () {
-                mapService.setPano(state.panoId, true);
+                navigationService.setPano(state.panoId, true);
                 google.maps.event.removeListener(googleTarget);
             };
 
@@ -628,9 +628,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 if (listener) google.maps.event.removeListener(listener);
                 $target.off("click", callback);
                 next.call(this, state.transition);
-                mapService.setPano(state.panoId, true);
-                mapService.setPov(pov);
-                mapService.setPosition(state.properties.lat, state.properties.lng);
+                navigationService.setPano(state.panoId, true);
+                svl.panoManager.setPov(pov);
+                navigationService.setPosition(state.properties.lat, state.properties.lng);
 
                 compass.hideMessage();
             }
@@ -647,13 +647,13 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             heading: 340,
             pano: nextPanoId
         }]);
-        mapService.unlockDisableWalking();
-        mapService.enableWalking();
-        mapService.lockDisableWalking();
+        navigationService.unlockDisableWalking();
+        navigationService.enableWalking();
+        navigationService.lockDisableWalking();
 
         // Allow clicking on the navigation message to move to the next pano.
         var clickToNextPano = function() {
-            mapService.setPano(nextPanoId, true);
+            navigationService.setPano(nextPanoId, true);
         }
         svl.ui.compass.messageHolder.on('click', clickToNextPano);
         svl.ui.compass.messageHolder.css('cursor', 'pointer');
@@ -665,7 +665,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             var panoId = svl.panoViewer.getPanoId();
             if (state.properties.panoId === panoId) {
                 window.setTimeout(function () {
-                    mapService.unlockDisableWalking().disableWalking().lockDisableWalking();
+                    navigationService.unlockDisableWalking().disableWalking().lockDisableWalking();
                 }, 1000);
                 svl.ui.compass.messageHolder.off('click', clickToNextPano);
                 svl.ui.compass.messageHolder.css('cursor', 'default');
@@ -675,7 +675,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             } else {
                 console.error("Pano mismatch. Shouldn't reach here");
                 // Force the interface to go to the correct position.
-                mapService.setPano(nextPanoId, true);
+                navigationService.setPano(nextPanoId, true);
             }
         };
 

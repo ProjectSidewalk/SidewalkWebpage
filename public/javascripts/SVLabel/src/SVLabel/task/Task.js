@@ -365,15 +365,15 @@ function Task (geojson, tutorialTask, currentLat, currentLng) {
      * @returns {*}
      */
     this.lineDistance = function (unit) {
-        if (!unit) unit = {units: 'kilometers'};
+        if (!unit) unit = { units: 'kilometers' };
         return turf.length(_geojson, unit);
     };
 
     /**
-     * Todo. This should go to the MapService or its submodule.
+     * TODO This should go to the Minimap.
      */
     this.eraseFromMinimap = function () {
-        if ('map' in svl && google && paths) {
+        if (paths) {
             for (var i = 0; i < paths.length; i++) {
                 paths[i].setMap(null);
             }
@@ -382,40 +382,39 @@ function Task (geojson, tutorialTask, currentLat, currentLng) {
 
     /**
      * Render the task path on the Google Maps pane.
-     * Todo. This should go to the MapService or its submodule
+     * TODO This should go to the Minimap.
      * Reference:
      * https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
      * https://developers.google.com/maps/documentation/javascript/examples/polyline-remove
      */
     this.render = function () {
-        if ('map' in svl && google) {
-            self.eraseFromMinimap();
-            // If the task has been completed already, or if it has not been completed and is not the current task,
-            // render it using one green or gray Polyline, respectively.
-            if (self.isComplete() || self.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId()) {
-                var gCoordinates = _geojson.geometry.coordinates.map(function (coord) {
-                    return new google.maps.LatLng(coord[1], coord[0]);
-                });
-                var color = self.isComplete() ? '#00ff00' : '#808080';
-                var opacity = self.isComplete() ? 1.0 : 0.75;
-                paths = [
-                    new google.maps.Polyline({
-                        path: gCoordinates,
-                        geodesic: true,
-                        strokeColor: color,
-                        strokeOpacity: opacity,
-                        strokeWeight: 2
-                    })
-                ];
-            // If the task is incomplete and is the current task, render it using two Polylines (red and green).
-            } else {
-                var latlng = svl.panoViewer.getPosition();
-                paths = self.getGooglePolylines(latlng.lat, latlng.lng);
-            }
+        self.eraseFromMinimap();
 
-            for (var i = 0, len = paths.length; i < len; i++) {
-                paths[i].setMap(svl.map.getMap());
-            }
+        // If the task has been completed already, or if it has not been completed and is not the current task,
+        // render it using one green or gray Polyline, respectively.
+        if (self.isComplete() || self.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId()) {
+            var gCoordinates = _geojson.geometry.coordinates.map(function (coord) {
+                return new google.maps.LatLng(coord[1], coord[0]);
+            });
+            var color = self.isComplete() ? '#00ff00' : '#808080';
+            var opacity = self.isComplete() ? 1.0 : 0.75;
+            paths = [
+                new google.maps.Polyline({
+                    path: gCoordinates,
+                    geodesic: true,
+                    strokeColor: color,
+                    strokeOpacity: opacity,
+                    strokeWeight: 2
+                })
+            ];
+        // If the task is incomplete and is the current task, render it using two Polylines (red and green).
+        } else {
+            var latlng = svl.panoViewer.getPosition();
+            paths = self.getGooglePolylines(latlng.lat, latlng.lng);
+        }
+
+        for (var i = 0, len = paths.length; i < len; i++) {
+            paths[i].setMap(svl.minimap.getMap());
         }
     };
 

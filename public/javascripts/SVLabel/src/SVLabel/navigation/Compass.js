@@ -1,12 +1,12 @@
 /**
  * Compass module
  * @param svl SVL name space. Need this for rootDirectory.
- * @param mapService MapService module
+ * @param navigationService NavigationService module
  * @param taskContainer TaskContainer module
  * @param uiCompass ui elements. // Todo. Future work. Just pass the top level ui element.
  * @constructor
  */
-function Compass (svl, mapService, taskContainer, uiCompass) {
+function Compass (svl, navigationService, taskContainer, uiCompass) {
     var self = {className: 'Compass'};
     var blinkInterval;
     var blinkTimer;
@@ -73,9 +73,9 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function _jumpBackToTheRoute() {
         var task = taskContainer.getCurrentTask();
         var coordinate = task.getStartCoordinate();
-        mapService.preparePovReset();
-        mapService.setPosition(coordinate.lat, coordinate.lng);
-        mapService.setPovToRouteDirection();
+        navigationService.preparePovReset();
+        navigationService.setPosition(coordinate.lat, coordinate.lng);
+        svl.panoManager.setPovToRouteDirection();
     }
 
     function enableCompassClick() {
@@ -100,21 +100,21 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function resetBeforeJump() {
         cancelTimer();
         removeLabelBeforeJumpMessage();
-        mapService.resetBeforeJumpLocationAndListener();
+        navigationService.resetBeforeJumpLocationAndListener();
     }
 
     function _jumpToTheNewTask() {
         svl.tracker.push('LabelBeforeJump_Jump');
         // Finish the current task
-        mapService.finishCurrentTaskBeforeJumping();
+        navigationService.finishCurrentTaskBeforeJumping();
 
         // Finish clean up tasks before jumping
         resetBeforeJump();
 
         var task = taskContainer.getAfterJumpNewTask();
         taskContainer.setCurrentTask(task);
-        svl.map.enableWalking(); // Needed so you can click during the 1 second after taking a step.
-        mapService.moveToTheTaskLocation(task, true);
+        svl.navigationService.enableWalking(); // Needed so you can click during the 1 second after taking a step.
+        navigationService.moveToTheTaskLocation(task, true);
         svl.jumpModel.triggerUserClickJumpMessage();
     }
 
@@ -244,7 +244,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      * Update the compass message.
      */
     function update () {
-        if (!mapService.getLabelBeforeJumpListenerStatus() && !svl.isOnboarding()) {
+        if (!navigationService.getLabelBeforeJumpListenerStatus() && !svl.isOnboarding()) {
             if (_checkEnRoute()) {
                 self.stopBlinking();
                 self.setTurnMessage();
@@ -329,9 +329,9 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
             svl.tracker.push(`Click_Compass_Direction=${direction}`);
 
             if (direction === 'straight') {
-                mapService.moveForward('CompassMove_Success', 'CompassMove_GSVNotAvailable', null);
+                navigationService.moveForward('CompassMove_Success', 'CompassMove_GSVNotAvailable', null);
             } else {
-                mapService.setPovToRouteDirection(250);
+                svl.panoManager.setPovToRouteDirection(250);
             }
         } else {
             svl.tracker.push('Click_Compass_FarFromRoute');

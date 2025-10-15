@@ -4,7 +4,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
+function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomControl) {
     var self = this;
 
     /**
@@ -38,7 +38,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     // Todo: Get rid of dependency to svl.panoViewer.panorama. This might be a function to add to PanoViewer class.
     // Todo. Make the method name more descriptive.
     this._movePano = function(angle) {
-        if (googleMap.getStatus("disableWalking")) return;
+        if (navigationService.getStatus("disableWalking")) return;
         // take the cosine of the difference for each link to the current heading in radians and stores them to an array
         var cosines = svl.panoViewer.panorama.links.map(function(link) {
             var headingAngleOffset = util.math.toRadians(svl.panoViewer.panorama.pov.heading + angle) - util.math.toRadians(link.heading);
@@ -48,7 +48,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         var maxIndex = cosines.indexOf(maxVal);
         if (cosines[maxIndex] > 0.5) {
             var panoramaId = svl.panoViewer.panorama.links[maxIndex].pano;
-            googleMap.setPano(panoramaId);
+            navigationService.setPano(panoramaId);
             return true;
         } else {
             return false;
@@ -68,9 +68,9 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         var moveSuccess = self._movePano(angle);
         if (moveSuccess) {
             //prevent user input of walking commands
-            svl.map.timeoutWalking();
+            navigationService.timeoutWalking();
             //restore user ability to walk after param moveTime
-            setTimeout(svl.map.resetWalking, moveTime);
+            setTimeout(navigationService.resetWalking, moveTime);
             //additional check to hide arrows after the fact
             //pop-up may become visible during timeout period
             if (svl.popUpMessage.getStatus('isVisible')){
@@ -80,11 +80,11 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     }
 
     this._moveForward = function (){
-        timedMove(0, svl.map.getMoveDelay());
+        timedMove(0, navigationService.getMoveDelay());
     };
 
     this._moveBackward = function (){
-        timedMove(180, svl.map.getMoveDelay());
+        timedMove(180, navigationService.getMoveDelay());
     };
 
 
@@ -95,7 +95,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * @param degree
      */
     this._rotatePovByDegree = function(degree) {
-        if (!svl.map.getStatus("disablePanning")) {
+        if (!svl.panoManager.getStatus("disablePanning")) {
             svl.contextMenu.hide();
             // Panning hide label tag and delete icon.
             var labels = svl.labelContainer.getCanvasLabels(),
@@ -104,16 +104,10 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 labels[i].setHoverInfoVisibility('hidden');
             }
             svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
-            var heading =  svl.panoViewer.getPov().heading;
-            var pitch = svl.panoViewer.getPov().pitch;
-            var zoom = svl.panoViewer.getPov().zoom;
-            heading = (heading + degree + 360) % 360;
-            var pov = svl.map.restrictViewPort({
-                heading: heading,
-                pitch: pitch,
-                zoom: zoom
-            });
-            svl.map.setPov({ heading: pov.heading, pitch: pov.pitch, zoom: pov.zoom });
+            const pitch = svl.panoViewer.getPov().pitch;
+            const zoom = svl.panoViewer.getPov().zoom;
+            const heading = (svl.panoViewer.getPov().heading + degree + 360) % 360;
+            svl.panoManager.setPov({ heading: heading, pitch: pitch, zoom: zoom });
         }
     };
 

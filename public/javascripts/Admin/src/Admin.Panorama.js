@@ -296,7 +296,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
     }
 
     /**
-     * TODO: Find a way to use the method in MapService.js to avoid copied code.
+     * TODO: Find a way to use the method in PanoManager.js to avoid copied code.
      * If the user is going through the tutorial, it will return the custom/stored panorama for either the initial
      * tutorial view or the "after walk" view.
      * @param pano - the pano ID/name of the wanted custom panorama.

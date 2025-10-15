@@ -286,7 +286,7 @@ function Canvas(ribbon) {
         for (var i = 0; i < labels.length; i += 1) {
             labels[i].render(ctx, pov);
         }
-        svl.map.getPovChangeStatus()["status"] = false;
+        svl.panoManager.getPovChangeStatus()["status"] = false;
 
         // Update the opacity of Zoom In and Zoom Out buttons.
         if (svl.zoomControl) svl.zoomControl.updateOpacity();

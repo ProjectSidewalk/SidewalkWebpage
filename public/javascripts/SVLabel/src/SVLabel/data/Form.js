@@ -5,14 +5,14 @@
  * @param missionContainer
  * @param panoStore
  * @param taskContainer
- * @param mapService
+ * @param navigationService
  * @param compass
  * @param tracker
  * @param dataStoreUrl
  * @returns {{className: string}}
  * @constructor
  */
-function Form (labelContainer, missionModel, missionContainer, panoStore, taskContainer, mapService, compass, tracker, dataStoreUrl) {
+function Form (labelContainer, missionModel, missionContainer, panoStore, taskContainer, navigationService, compass, tracker, dataStoreUrl) {
     var self = this;
     let properties = {
         dataStoreUrl : undefined,
@@ -221,11 +221,11 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
         self.skipSubmit(data, task);
 
         // If the jump was clicked in the middle of the beforeJumpTask, reset the beforeJump tracking parameters.
-        var jumpListenerStatus = mapService.getLabelBeforeJumpListenerStatus();
+        var jumpListenerStatus = navigationService.getLabelBeforeJumpListenerStatus();
         if (jumpListenerStatus) {
-            mapService.setLabelBeforeJumpListenerStatus(false);
+            navigationService.setLabelBeforeJumpListenerStatus(false);
             compass.resetBeforeJump();
-            mapService.finishCurrentTaskBeforeJumping();
+            navigationService.finishCurrentTaskBeforeJumping();
         }
 
         // TODO This returns a Promise now.

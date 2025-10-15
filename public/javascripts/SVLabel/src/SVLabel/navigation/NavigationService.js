@@ -1,35 +1,20 @@
 /**
- * Todo. This module needs to be cleaned up.
- * Todo. Separate the Google Maps component (UI and logic) and Street View component (UI and logic).
+ * Handles navigation logic, and keeps the minimap and panorama in sync.
  * @param canvas
  * @param neighborhoodModel
  * @param uiMap
  * @returns {{className: string}}
  * @constructor
  */
-function MapService (canvas, neighborhoodModel, uiMap) {
+function NavigationService (canvas, neighborhoodModel, uiMap) {
     var self = { className: 'Map' },
         _canvas = canvas,
         properties = {
-            browser : 'unknown',
-            latlng : {
-                lat : undefined,
-                lng : undefined
-            },
-            map: null,
-            maxPitch: 0,
-            minPitch: -35,
-            minHeading: undefined,
-            maxHeading: undefined,
-            isInternetExplore: undefined
+            browser : 'unknown'
         },
         status = {
-            currPanoId: undefined,
-            disablePanning: false,
             disableWalking : false,
-            lockDisablePanning: false,
             lockDisableWalking : false,
-            svLinkArrowsLoaded : false,
             labelBeforeJumpListenerSet: false,
             jumpMsgShown: false,
             jumpImageryNotFoundStatus: undefined,
@@ -41,21 +26,14 @@ function MapService (canvas, neighborhoodModel, uiMap) {
         jumpLocation = undefined,
         missionJump = undefined,
         _stuckPanos = [];
+    let positionUpdateCallbacks = [];
 
-    var initialPositionUpdate = true,
-        END_OF_STREET_THRESHOLD = 25, // Distance from the endpoint of the street when we consider it complete (meters).
-        minimapPaneBlinkInterval,
-        moveDelay = 800; //delayed move
-    //Move delay exists because too quick navigation causes rendering issues/black screens with no panos
-    //No current solution to check that pano view is completely loaded before navigating
-    //Hard delay is 2nd best option.
-
-    // Used while calculation of canvas coordinates during rendering of labels
-    // TODO: Refactor it to be included in the status variable above so that we can use
-    // svl.map.setStatus("povChange", true); Instead of povChange["status"] = true;
-    var povChange = {
-        status: false
-    };
+    let initialPositionUpdate = true;
+    const END_OF_STREET_THRESHOLD = 25; // Distance from the endpoint of the street when we consider it complete (meters).
+    const moveDelay = 800;
+    // Move delay exists because too quick navigation causes rendering issues/black screens with no panos
+    // No current solution to check that pano view is completely loaded before navigating
+    // Hard delay is 2nd best option.
 
     // Mouse status and mouse event callback functions
     var mouseStatus = {
@@ -70,59 +48,6 @@ function MapService (canvas, neighborhoodModel, uiMap) {
         isLeftDown: false
     };
 
-    // Maps variables
-    var map, mapOptions, mapStyleOptions;
-
-    // Map UI setting
-    // http://www.w3schools.com/googleAPI/google_maps_controls.asp
-    const startingLatLng = svl.panoViewer.getPosition();
-    mapOptions = {
-        center: new google.maps.LatLng(startingLatLng.lat, startingLatLng.lng),
-        mapTypeControl:false,
-        mapTypeId: typeof google != "undefined" ? google.maps.MapTypeId.ROADMAP : null,
-        maxZoom : 20,
-        minZoom : 14,
-        overviewMapControl:false,
-        panControl:false,
-        rotateControl:false,
-        scaleControl:false,
-        streetViewControl:true,
-        cameraControl: false,
-        zoomControl:false,
-        zoom: 18,
-        backgroundColor: "none",
-        disableDefaultUI: true
-    };
-
-    var mapCanvas = document.getElementById("minimap");
-    map = typeof google != "undefined" ? new google.maps.Map(mapCanvas, mapOptions) : null;
-
-    // Styling google map.
-    // http://stackoverflow.com/questions/8406636/how-to-remove-all-from-google-map
-    // http://gmaps-samples-v3.googlecode.com/svn/trunk/styledmaps/wizard/index.html
-    mapStyleOptions = [
-        {
-            featureType: "all",
-            stylers: [
-                { visibility: "off" }
-            ]
-        },
-        {
-            featureType: "road",
-            stylers: [
-                { visibility: "on" }
-            ]
-        },
-        {
-            "elementType": "labels",
-            "stylers": [
-                { "visibility": "off" }
-            ]
-        }
-    ];
-
-    if (map) map.setOptions({styles: mapStyleOptions});
-
     function _init() {
         self.properties = properties; // Make properties public.
         properties.browser = util.getBrowser();
@@ -135,21 +60,10 @@ function MapService (canvas, neighborhoodModel, uiMap) {
 
         uiMap.viewControlLayer[0].onselectstart = function () { return false; };
 
-        // Issue: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2468
-        // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
-        // We are updating the pano POV slightly to simulate an update the gets rid of the black pano.
-        $(window).on('resize', function() {
-            updatePov(.0025,.0025);
-        });
-
         // Add listeners to the SV panorama.
         // https://developers.google.com/maps/documentation/javascript/streetview#StreetViewEvents
         svl.panoViewer.addListener('pano_changed', handlerPositionUpdate);
         svl.panoViewer.addListener('pano_changed', switchToExploreMode); // TODO This was addListenerOnce before...
-        svl.panoViewer.addListener('zoom_changed', handlerZoomChange);
-
-        // Connect the map view and panorama view (adds peg).
-        map.setStreetView(svl.panoViewer.panorama);
     }
 
     /**
@@ -235,49 +149,17 @@ function MapService (canvas, neighborhoodModel, uiMap) {
     }
 
     /**
-     * Blink google maps pane.
-     */
-    function blinkMinimap() {
-        stopBlinkingMinimap();
-        minimapPaneBlinkInterval = window.setInterval(function () {
-            svl.ui.minimap.overlay.toggleClass("highlight-50");
-        }, 500);
-    }
-
-    /**
-     * Disable panning on Street View
-     * @returns {disablePanning}
-     */
-    function disablePanning() {
-        if (!status.lockDisablePanning) {
-            status.disablePanning = true;
-        }
-        return this;
-    }
-
-    /**
      * This method disables walking by hiding links towards other Street View panoramas.
      * @returns {disableWalking}
      */
     function disableWalking() {
         if (!status.lockDisableWalking) {
             // Disable clicking links and changing POV.
-            hideLinks();
+            svl.panoViewer.hideNavigationArrows();
             uiMap.modeSwitchWalk.css('opacity', 0.5);
             status.disableWalking = true;
             // Disable forward and backwards keys
             svl.keyboard.setStatus("disableMovement", true);
-        }
-        return this;
-    }
-
-    /**
-     * Enable panning on Street View.
-     * @returns {enablePanning}
-     */
-    function enablePanning() {
-        if (!status.lockDisablePanning) {
-            status.disablePanning = false;
         }
         return this;
     }
@@ -299,14 +181,6 @@ function MapService (canvas, neighborhoodModel, uiMap) {
     }
 
     /**
-     * Get the google map.
-     * @returns {null}
-     */
-    function getMap() {
-        return map;
-    }
-
-    /**
      * This method returns a value of a specified property.
      * @param prop
      * @returns {*}
@@ -315,9 +189,9 @@ function MapService (canvas, neighborhoodModel, uiMap) {
         return (prop in properties) ? properties[prop] : false;
     }
 
-    self.getStatus = function (key) {
+    function getStatus(key) {
         return status[key];
-    };
+    }
 
     function _jumpToNewTask(task, caller) {
         svl.taskContainer.setCurrentTask(task);
@@ -360,12 +234,12 @@ function MapService (canvas, neighborhoodModel, uiMap) {
             "to move you to another place in the " + currentNeighborhoodName + " neighborhood. Keep up the good work!";
         svl.panoViewer.hideNavigationArrows();
         disableWalking();
-        disablePanning();
+        svl.panoManager.disablePanning();
         svl.canvas.disableLabeling();
 
         var callback = function () {
             enableWalking();
-            enablePanning();
+            svl.panoManager.enablePanning();
             svl.canvas.enableLabeling();
 
             _jumpToNewLocation();
@@ -515,18 +389,18 @@ function MapService (canvas, neighborhoodModel, uiMap) {
     }
 
     // Todo. Wrote this ad-hoc. Clean up and test later.
-    var positionUpdateCallbacks = [];
-    self.bindPositionUpdate = function (callback) {
+    function bindPositionUpdate(callback) {
         if (typeof callback == 'function') {
             positionUpdateCallbacks.push(callback);
         }
-    };
-    self.unbindPositionUpdate = function (callback) {
+    }
+
+    function unbindPositionUpdate(callback) {
         var callbackIndex = positionUpdateCallbacks.indexOf(callback);
         if (callbackIndex >= 0) {
             positionUpdateCallbacks.splice(callbackIndex, 1);
         }
-    };
+    }
 
     /**
      * A callback for position_change.
@@ -539,7 +413,7 @@ function MapService (canvas, neighborhoodModel, uiMap) {
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var currentMission = svl.missionContainer.getCurrentMission();
         // Takes care of position_changed happening after the map has already been set
-        setMinimapLocation(position);
+        svl.minimap.setMinimapLocation(position);
 
         // Hide context menu if walking started
         if (svl.contextMenu.isOpen()) {
@@ -573,7 +447,7 @@ function MapService (canvas, neighborhoodModel, uiMap) {
 
         // Set the heading angle when the user is dropped to the new position.
         if (initialPositionUpdate && 'compass' in svl) {
-            setPovToRouteDirection();
+            svl.panoManager.setPovToRouteDirection();
             initialPositionUpdate = false;
         }
 
@@ -584,15 +458,6 @@ function MapService (canvas, neighborhoodModel, uiMap) {
                 callback();
             }
         }
-    }
-
-    /**
-     * Callback for zoom update.
-     */
-     function handlerZoomChange () {
-        if ("observedArea" in svl) { svl.observedArea.update(); }
-
-        svl.tracker.push("Zoom_Changed");
     }
 
     /**
@@ -660,10 +525,10 @@ function MapService (canvas, neighborhoodModel, uiMap) {
         if (!status.disableWalking) {
             svl.panoViewer.showNavigationArrows();
         } else {
-            hideLinks();
+            svl.panoViewer.hideNavigationArrows();
         }
 
-        if (mouseStatus.isLeftDown && status.disablePanning === false) {
+        if (mouseStatus.isLeftDown && svl.panoManager.getStatus('disablePanning') === false) {
             // If a mouse is being dragged on the control layer, move the pano.
             var dx = mouseStatus.currX - mouseStatus.prevX;
             var dy = mouseStatus.currY - mouseStatus.prevY;
@@ -674,7 +539,7 @@ function MapService (canvas, neighborhoodModel, uiMap) {
             dy = dy / (2 * zoomLevel);
             dx *= 0.375;
             dy *= 0.375;
-            updatePov(dx, dy);
+            svl.panoManager.updatePov(dx, dy);
         }
 
         // Show label delete menu.
@@ -693,26 +558,6 @@ function MapService (canvas, neighborhoodModel, uiMap) {
         mouseStatus.prevY = mouseposition(e, this).y;
     }
 
-
-    /**
-     * This method hides links to neighboring Street View images by changing the svg path elements.
-     *
-     * @returns {hideLinks} This object.
-     */
-    function hideLinks() {
-        svl.panoViewer.hideNavigationArrows();
-        return this;
-    }
-
-    /**
-     * Lock disable panning.
-     * @returns {lockDisablePanning}
-     */
-    function lockDisablePanning() {
-        status.lockDisablePanning = true;
-        return this;
-    }
-
     /**
      * This method locks status.disableWalking.
      * @returns {lockDisableWalking}
@@ -727,10 +572,11 @@ function MapService (canvas, neighborhoodModel, uiMap) {
         uiMap.drawingLayer.css('z-index','1');
         uiMap.viewControlLayer.css('z-index', '0');
 
+        // TODO test if this is still necessary.
         if (properties.browser === 'mozilla') {
             uiMap.drawingLayer.append(uiMap.canvas);
         }
-        hideLinks();
+        svl.panoViewer.hideNavigationArrows();
     }
 
     // Moves label drawing layer to the bottom. Shows navigation arrows if walk is enabled.
@@ -773,7 +619,7 @@ function MapService (canvas, neighborhoodModel, uiMap) {
                 // Sets new panorama.
                 var newPano = panoData.location.pano;
                 self.setPano(newPano);
-                setMinimapLocation({ lat: lat, lng: lng });
+                svl.minimap.setMinimapLocation({ lat: lat, lng: lng });
 
                 self.disableWalking();
                 window.setTimeout(function() { self.enableWalking(); }, 1000);
@@ -791,21 +637,12 @@ function MapService (canvas, neighborhoodModel, uiMap) {
         if (!status.disableWalking) {
             self.enableWalking();
             self.setPano(panoId);
-            setMinimapLocation({ lat: lat, lng: lng });
+            svl.minimap.setMinimapLocation({ lat: lat, lng: lng });
 
             self.disableWalking();
             window.setTimeout(function() { self.enableWalking(); }, 1000);
         }
         return this;
-    }
-
-    function setMinimapLocation(latLng) {
-        map.setCenter(new google.maps.LatLng(latLng.lat, latLng.lng));
-    }
-
-    function stopBlinkingMinimap() {
-        window.clearInterval(minimapPaneBlinkInterval);
-        svl.ui.minimap.overlay.removeClass("highlight-50");
     }
 
     function setViewControlLayerCursor(type) {
@@ -819,150 +656,6 @@ function MapService (canvas, neighborhoodModel, uiMap) {
             default:
                 uiMap.viewControlLayer.css("cursor", "default");
         }
-    }
-
-    /**
-     * Make navigation arrows blink.
-     */
-    function blinkNavigationArrows() {
-        setTimeout(() => {
-            const arrows = document.querySelector("div.gmnoprint.SLHIdE-sv-links-control").querySelector("svg").querySelectorAll("path[fill-opacity='1']");
-            // Obtain interval id to allow for the interval to be cleaned up after the arrow leaves document context.
-            const intervalId = window.setInterval(function () {
-                // Blink logic.
-                arrows.forEach((arrow) => {
-                    arrow.setAttribute("fill", (arrow.getAttribute("fill") === "white" ? "yellow" : "white"));
-
-                    // Once the arrow is removed from the document, stop the interval for all arrows.
-                    if (!document.body.contains(arrow)) window.clearInterval(intervalId);
-                });
-            }, 500);
-        }, 500);
-    }
-
-    /*
-     * Gets the pov change tracking variable.
-     */
-    function getPovChangeStatus() {
-        return povChange;
-    }
-
-    /**
-     * Prevents users from looking at the sky or straight to the ground. Restrict heading angle if specified in props.
-     */
-    function restrictViewPort(pov) {
-        if (pov.pitch > properties.maxPitch) {
-            pov.pitch = properties.maxPitch;
-        } else if (pov.pitch < properties.minPitch) {
-            pov.pitch = properties.minPitch;
-        }
-        if (properties.minHeading && properties.maxHeading) {
-            if (properties.minHeading <= properties.maxHeading) {
-                if (pov.heading > properties.maxHeading) {
-                    pov.heading = properties.maxHeading;
-                } else if (pov.heading < properties.minHeading) {
-                    pov.heading = properties.minHeading;
-                }
-            } else {
-                if (pov.heading < properties.minHeading &&
-                    pov.heading > properties.maxHeading) {
-                    if (Math.abs(pov.heading - properties.maxHeading) < Math.abs(pov.heading - properties.minHeading)) {
-                        pov.heading = properties.maxHeading;
-                    } else {
-                        pov.heading = properties.minHeading;
-                    }
-                }
-            }
-        }
-        return pov;
-    }
-
-    /**
-     * Update POV of Street View as a user drags their mouse cursor.
-     * @param dx
-     * @param dy
-     */
-    function updatePov(dx, dy) {
-        let pov = svl.panoViewer.getPov();
-        pov.heading -= dx;
-        pov.pitch += dy;
-        pov = restrictViewPort(pov);
-        povChange["status"] = true;
-
-        // Update the Street View image.
-        svl.panoViewer.setPov(pov);
-    }
-
-    /**
-     * Set the minimum and maximum heading angle that users can adjust the Street View camera.
-     * @param range
-     * @returns {setHeadingRange}
-     */
-    function setHeadingRange(range) {
-        properties.minHeading = range[0];
-        properties.maxHeading = range[1];
-        return this;
-    }
-
-    /**
-     * Changes the Street View pov. If a transition duration is given, smoothly updates the pov over that time.
-     * @param pov Target pov
-     * @param durationMs Transition duration in milliseconds
-     * @param callback Callback function executed after updating pov.
-     * @returns {setPov}
-     */
-    function setPov(pov, durationMs, callback) {
-        var currentPov = svl.panoViewer.getPov();
-        var interval;
-
-        // Make sure that zoom is set to an integer value.
-        if (pov.zoom) pov.zoom = Math.round(pov.zoom);
-
-        // Pov restriction.
-        restrictViewPort(pov);
-
-        if (durationMs) {
-            var timeSegment = 25; // 25 milliseconds.
-
-            // Get how much angle you change over timeSegment of time.
-            var cw = (pov.heading - currentPov.heading + 360) % 360;
-            var ccw = 360 - cw;
-            var headingIncrement;
-            if (cw < ccw) {
-                headingIncrement = cw * (timeSegment / durationMs);
-            } else {
-                headingIncrement = (-ccw) * (timeSegment / durationMs);
-            }
-
-            var pitchIncrement;
-            var pitchDelta = pov.pitch - currentPov.pitch;
-            pitchIncrement = pitchDelta * (timeSegment / durationMs);
-
-            interval = window.setInterval(function () {
-                var headingDelta = (pov.heading - currentPov.heading + 360) % 360;
-                if (headingDelta > 1 && headingDelta < 359) {
-                    // Update heading angle and pitch angle.
-                    currentPov.heading += headingIncrement;
-                    currentPov.pitch += pitchIncrement;
-                    currentPov.heading = (currentPov.heading + 360) % 360;
-                    svl.panoViewer.setPov(currentPov);
-                } else {
-                    // Set the pov to adjust zoom level, then clear the interval. Invoke a callback if there is one.
-                    if (!pov.zoom) {
-                        pov.zoom = 1;
-                    }
-
-                    svl.panoViewer.setPov(pov);
-                    window.clearInterval(interval);
-                    if (callback) {
-                        callback();
-                    }
-                }
-            }, timeSegment);
-        } else {
-            svl.panoViewer.setPov(pov);
-        }
-        return this;
     }
 
     /**
@@ -1088,15 +781,6 @@ function MapService (canvas, neighborhoodModel, uiMap) {
     }
 
     /**
-     * Unlock disable panning.
-     * @returns {unlockDisablePanning}
-     */
-    function unlockDisablePanning() {
-        status.lockDisablePanning = false;
-        return this;
-    }
-
-    /**
      * Unlock disable walking.
      * @returns {unlockDisableWalking}
      */
@@ -1110,55 +794,32 @@ function MapService (canvas, neighborhoodModel, uiMap) {
         initialPositionUpdate = true;
     }
 
-    // Set the POV in the same direction as the route.
-    function setPovToRouteDirection(durationMs) {
-        var pov = svl.panoViewer.getPov();
-        var newPov = {
-            heading: Math.round(svl.compass.getTargetAngle() + 360) % 360,
-            pitch: pov.pitch,
-            zoom: pov.zoom
-        }
-        setPov(newPov, durationMs);
-    }
-
     function getMoveDelay() {
         return moveDelay;
     }
 
-    self.blinkMinimap = blinkMinimap;
-    self.stopBlinkingMinimap = stopBlinkingMinimap;
-    self.setMinimapLocation = setMinimapLocation;
-    self.blinkNavigationArrows = blinkNavigationArrows;
-    self.disablePanning = disablePanning;
     self.disableWalking = disableWalking;
-    self.enablePanning = enablePanning;
     self.enableWalking = enableWalking;
     self.finishCurrentTaskBeforeJumping = finishCurrentTaskBeforeJumping;
     self.getLabelBeforeJumpListenerStatus = getLabelBeforeJumpListenerStatus;
-    self.getMap = getMap;
     self.getProperty = getProperty;
-    self.getPovChangeStatus = getPovChangeStatus;
-    self.hideLinks = hideLinks;
-    self.lockDisablePanning = lockDisablePanning;
+    self.getStatus = getStatus;
+    self.bindPositionUpdate = bindPositionUpdate;
+    self.unbindPositionUpdate = unbindPositionUpdate;
     self.lockDisableWalking = lockDisableWalking;
     self.switchToLabelingMode = switchToLabelingMode;
     self.switchToExploreMode = switchToExploreMode;
     self.moveToTheTaskLocation = moveToTheTaskLocation;
     self.resetBeforeJumpLocationAndListener = resetBeforeJumpLocationAndListener;
-    self.restrictViewPort = restrictViewPort;
     self.setBeforeJumpLocation = setBeforeJumpLocation;
-    self.setHeadingRange = setHeadingRange;
     self.setLabelBeforeJumpListenerStatus = setLabelBeforeJumpListenerStatus;
     self.setPano = setPano;
     self.setPosition = setPosition;
     self.setPositionByIdAndLatLng = setPositionByIdAndLatLng;
-    self.setPov = setPov;
     self.moveForward = moveForward;
     self.setStatus = setStatus;
     self.unlockDisableWalking = unlockDisableWalking;
-    self.unlockDisablePanning = unlockDisablePanning;
     self.preparePovReset = preparePovReset;
-    self.setPovToRouteDirection = setPovToRouteDirection;
     self.timeoutWalking = timeoutWalking;
     self.resetWalking = resetWalking;
     self.getMoveDelay = getMoveDelay;

@@ -1,16 +1,13 @@
 /**
  * Todo. Separate the UI component and the logic component
  * @param canvas
- * @param mapService
- * @param canvas
- * @param mapService
  * @param tracker
  * @param uiZoomControl
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
+function ZoomControl (canvas, tracker, uiZoomControl) {
     var self = { 'className' : 'ZoomControl' },
         properties = {
             maxZoomLevel: 3,
@@ -178,7 +175,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         }
 
         if (!status.disableZoomIn) {
-            var povChange = mapService.getPovChangeStatus();
+            var povChange = svl.panoManager.getPovChangeStatus();
 
             setZoom(pov.zoom + 1);
             povChange["status"] = true;
@@ -200,7 +197,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         }
 
         if (!status.disableZoomOut) {
-            var povChange = mapService.getPovChangeStatus();
+            var povChange = svl.panoManager.getPovChangeStatus();
             setZoom(pov.zoom - 1);
             povChange["status"] = true;
             canvas.clear();
@@ -217,7 +214,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     function zoomIn () {
         if (!status.disableZoomIn) {
 
-            var povChange = mapService.getPovChangeStatus();
+            var povChange = svl.panoManager.getPovChangeStatus();
             var pov = svl.panoViewer.getPov();
 
             setZoom(pov.zoom + 1);
@@ -235,7 +232,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         // This method is called from outside this class to zoom out from a GSV image.
         if (!status.disableZoomOut) {
 
-            var povChange = mapService.getPovChangeStatus();
+            var povChange = svl.panoManager.getPovChangeStatus();
             var pov = svl.panoViewer.getPov();
 
             setZoom(pov.zoom - 1);

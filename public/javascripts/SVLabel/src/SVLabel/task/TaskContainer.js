@@ -33,18 +33,18 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
     };
 
     self.initNextTask = async function (nextTaskIn) {
-        svl.map.disableWalking();
+        svl.navigationService.disableWalking();
         const geometry = nextTaskIn.getGeometry();
         const lat = geometry.coordinates[0][1];
         const lng = geometry.coordinates[0][0];
         const latLng = new google.maps.LatLng(lat, lng);
         await svl.panoManager.setLocation(lat, lng)
             .then(() => {
-                svl.map.enableWalking();
+                svl.navigationService.enableWalking();
                 let beforeJumpTask = currentTask;
                 self.setCurrentTask(nextTaskIn);
                 beforeJumpTask.render();
-                svl.map.preparePovReset();
+                svl.navigationService.preparePovReset();
                 Promise.resolve();
             }, (error) => {
                 // TODO _panoFailureCallback is reporting no GSV for currentTask's streetEdgeId instead of the one we're aiming for.
@@ -469,7 +469,7 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
         if ('compass' in svl) {
             svl.compass.setTurnMessage();
             svl.compass.showMessage();
-            if (!svl.map.getLabelBeforeJumpListenerStatus()) svl.compass.update();
+            if (!svl.navigationService.getLabelBeforeJumpListenerStatus()) svl.compass.update();
         }
 
         if ('form' in svl){

@@ -67,25 +67,26 @@ function Main (params) {
         svl.alert = new Alert();
         svl.stuckAlert = new StuckAlert(svl.alert);
 
-        svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);
         const startLat = params.task.properties.current_lat;
         const startLng = params.task.properties.current_lng;
         svl.panoStore = new PanoStore();
         svl.panoManager = await PanoManager(GsvViewer, { startLat: startLat, startLng: startLng });
+        svl.minimap = new Minimap();
+
+        svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
+        svl.canvas = new Canvas(svl.ribbon);
+        svl.navigationService = new NavigationService(svl.canvas, svl.neighborhoodModel, svl.ui.map);
+
         svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl.streetViewService, svl, svl.tracker);
         svl.taskModel._taskContainer = svl.taskContainer;
-
         const isTutorialTask = params.task.properties.street_edge_id === params.tutorialStreetId;
         const newTask = new Task(params.task, isTutorialTask, startLat, startLng);
         svl.taskContainer._tasks.push(newTask);
         svl.taskContainer.setCurrentTask(newTask);
-
-        svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
-        svl.canvas = new Canvas(svl.ribbon);
+        svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);
 
         // Set map parameters and instantiate it.
-        svl.map = new MapService(svl.canvas, svl.neighborhoodModel, svl.ui.map);
-        svl.compass = new Compass(svl, svl.map, svl.taskContainer, svl.ui.compass);
+        svl.compass = new Compass(svl, svl.navigationService, svl.taskContainer, svl.ui.compass);
         svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alert);
         svl.ratingReminderAlert = new RatingReminderAlert(svl.alert);
         svl.zoomShortcutAlert = new ZoomShortcutAlert(svl.alert);
@@ -122,7 +123,7 @@ function Main (params) {
 
         svl.missionModel.trigger("MissionFactory:create", params.mission); // create current mission and set as current
         svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.panoStore,
-            svl.taskContainer, svl.map, svl.compass, svl.tracker, params.dataStoreUrl);
+            svl.taskContainer, svl.navigationService, svl.compass, svl.tracker, params.dataStoreUrl);
         if (params.mission.current_audit_task_id) {
             var currTask = svl.taskContainer.getCurrentTask();
             var currTaskId = currTask.getProperty('auditTaskId');
@@ -173,8 +174,8 @@ function Main (params) {
         // Survey for select users
         svl.modalSurvey = new ModalSurvey(svl.ui.modalSurvey);
 
-        svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
-        svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
+        svl.zoomControl = new ZoomControl(svl.canvas, svl.tracker, svl.ui.zoomControl);
+        svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.navigationService, svl.ribbon, svl.zoomControl);
         loadData(svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
         var task = svl.taskContainer.getCurrentTask();
         if (!svl.isOnboarding() && task && typeof google != "undefined") {
@@ -272,14 +273,14 @@ function Main (params) {
 
         if (!onboardingHandAnimation) {
             onboardingHandAnimation = new HandAnimation(svl.rootDirectory, svl.ui.onboarding);
-            onboardingStates = new OnboardingStates(svl.contextMenu, svl.compass, svl.map, svl.statusModel, svl.tracker);
+            onboardingStates = new OnboardingStates(svl.contextMenu, svl.compass, svl.navigationService, svl.statusModel, svl.tracker);
         }
 
         if (!("onboarding" in svl && svl.onboarding)) {
             svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation,
-                svl.map, svl.missionContainer, svl.modalComment, svl.modalSkip, svl.onboardingModel, onboardingStates,
-                svl.ribbon, svl.statusField, svl.tracker, svl.canvas, svl.ui.canvas, svl.contextMenu, svl.ui.onboarding,
-                svl.ui.leftColumn, svl.user, svl.zoomControl);
+                svl.navigationService, svl.missionContainer, svl.modalComment, svl.modalSkip, svl.onboardingModel,
+                onboardingStates, svl.ribbon, svl.statusField, svl.tracker, svl.canvas, svl.ui.canvas, svl.contextMenu,
+                svl.ui.onboarding, svl.ui.leftColumn, svl.user, svl.zoomControl);
         }
         svl.onboarding.start();
     }
@@ -290,7 +291,7 @@ function Main (params) {
         // Popup the message explaining the goal of the current mission.
         if (svl.missionContainer.isTheFirstMission()) {
             neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-            svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map, svl.popUpMessage,
+            svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.navigationService, svl.popUpMessage,
                 svl.taskContainer, svl.labelContainer, svl.aiGuidance, svl.tracker);
             svl.initialMissionInstruction.start(neighborhood);
         } else {

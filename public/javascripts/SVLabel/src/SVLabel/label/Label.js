@@ -100,7 +100,7 @@ function Label(params) {
         if (typeof google !== "undefined" && google && google.maps) {
             var latlng = toLatLng();
             googleMarker = Label.createMinimapMarker(properties.labelType, latlng.lat, latlng.lng);
-            googleMarker.setMap(svl.map.getMap());
+            googleMarker.setMap(svl.minimap.getMap());
         }
     }
 
@@ -202,7 +202,7 @@ function Label(params) {
             }
 
             // Update the coordinates of the label on the canvas.
-            if (svl.map.getPovChangeStatus()) {
+            if (svl.panoManager.getPovChangeStatus()) {
                 properties.currCanvasXY = util.panomarker.getCanvasCoordinate(
                     properties.povOfLabelIfCentered, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
                 );
@@ -222,7 +222,7 @@ function Label(params) {
         // Show the label on the Google Maps pane.
         if (!isDeleted()) {
             if (googleMarker && !googleMarker.map) {
-                googleMarker.setMap(svl.map.getMap());
+                googleMarker.setMap(svl.minimap.getMap());
             }
         } else {
             if (googleMarker && googleMarker.map) {
@@ -511,7 +511,7 @@ Label.createMinimapMarker = function(labelType, lat, lng) {
 
         return new google.maps.Marker({
             position: googleLatLng,
-            map: svl.map.getMap(),
+            map: svl.minimap.getMap(),
             icon: url
         });
     }

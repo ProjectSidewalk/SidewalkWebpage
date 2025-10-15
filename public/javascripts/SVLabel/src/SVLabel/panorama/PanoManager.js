@@ -2,10 +2,25 @@ async function PanoManager (panoViewerType, params = {}) {
     let panoCanvas = document.getElementById('pano');
     let status = {
         bottomLinksClickable: false,
-        panoLinkListenerSet: false
+        panoLinkListenerSet: false,
+        disablePanning: false,
+        lockDisablePanning: false
     };
+    let properties = {
+        maxPitch: 0,
+        minPitch: -35,
+        minHeading: undefined,
+        maxHeading: undefined
+    }
     let _panoChangeSuccessCallbackHelper = null;
     let linksListener = null;
+
+    // Used while calculation of canvas coordinates during rendering of labels
+    // TODO: Refactor it to be included in the status variable above so that we can use
+    // setStatus("povChange", true); Instead of povChange["status"] = true;
+    var povChange = {
+        status: false
+    };
 
     let self = this;
 
@@ -21,7 +36,6 @@ async function PanoManager (panoViewerType, params = {}) {
 
         // Load the pano viewer.
         svl.panoViewer = await panoViewerType.create(panoCanvas, panoOptions);
-        // svl.panoViewer = await Infra3dViewer.create(panoCanvas, panoOptions);
         svl.panoViewer.addListener('pov_changed', _handlerPovChange);
 
         if (panoViewerType === GsvViewer) {
@@ -39,6 +53,13 @@ async function PanoManager (panoViewerType, params = {}) {
 
         // TODO we probably need to do this for any viewer type...
         linksListener = svl.panoViewer.panorama.addListener('links_changed', makeArrowsAndLinksClickable);
+
+        // Issue: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2468
+        // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
+        // We are updating the pano POV slightly to simulate an update the gets rid of the black pano.
+        $(window).on('resize', function() {
+            updatePov(.0025,.0025);
+        });
 
         // TODO not sure why this didn't work at first glance.
         // svl.panoViewer.panorama.registerPanoProvider(function(pano) {
@@ -101,7 +122,7 @@ async function PanoManager (panoViewerType, params = {}) {
 
         // Updates peg location on minimap to match current panorama location.
         const panoramaPosition = svl.panoViewer.getPosition();
-        if (svl.map) svl.map.setMinimapLocation(panoramaPosition);
+        if (svl.minimap) svl.minimap.setMinimapLocation(panoramaPosition);
 
         // povChange["status"] = true;
         if (svl.canvas) { // TODO this if statement is new, need to decide when each thing is initialized.
@@ -144,7 +165,7 @@ async function PanoManager (panoViewerType, params = {}) {
         svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoId});
 
         // Move to a new location
-        svl.map.jumpImageryNotFound(); // TODO it's private right now
+        svl.navigationService.jumpImageryNotFound(); // TODO it's private right now
 
         console.error('Error loading panorama:', error);
         return Promise.resolve();
@@ -244,6 +265,204 @@ async function PanoManager (panoViewerType, params = {}) {
     }
 
     /**
+     * Prevents users from looking at the sky or straight to the ground. Restrict heading angle if specified in props.
+     */
+    function _restrictViewPort(pov) {
+        if (pov.pitch > properties.maxPitch) {
+            pov.pitch = properties.maxPitch;
+        } else if (pov.pitch < properties.minPitch) {
+            pov.pitch = properties.minPitch;
+        }
+        if (properties.minHeading && properties.maxHeading) {
+            if (properties.minHeading <= properties.maxHeading) {
+                if (pov.heading > properties.maxHeading) {
+                    pov.heading = properties.maxHeading;
+                } else if (pov.heading < properties.minHeading) {
+                    pov.heading = properties.minHeading;
+                }
+            } else {
+                if (pov.heading < properties.minHeading &&
+                    pov.heading > properties.maxHeading) {
+                    if (Math.abs(pov.heading - properties.maxHeading) < Math.abs(pov.heading - properties.minHeading)) {
+                        pov.heading = properties.maxHeading;
+                    } else {
+                        pov.heading = properties.minHeading;
+                    }
+                }
+            }
+        }
+        return pov;
+    }
+
+    /**
+     * Update POV of Street View as a user drags their mouse cursor.
+     * @param dx
+     * @param dy
+     */
+    function updatePov(dx, dy) {
+        let pov = svl.panoViewer.getPov();
+        pov.heading -= dx;
+        pov.pitch += dy;
+        pov = _restrictViewPort(pov);
+        povChange["status"] = true;
+
+        // Update the Street View image.
+        svl.panoViewer.setPov(pov);
+    }
+
+    /**
+     * Changes the Street View pov. If a transition duration is given, smoothly updates the pov over that time.
+     * @param pov Target pov
+     * @param durationMs Transition duration in milliseconds
+     * @param callback Callback function executed after updating pov.
+     * @returns {setPov}
+     */
+    function setPov(pov, durationMs, callback) {
+        let currentPov = svl.panoViewer.getPov();
+        let interval;
+
+        // Make sure that zoom is set to an integer value.
+        if (pov.zoom) pov.zoom = Math.round(pov.zoom);
+
+        // Pov restriction.
+        _restrictViewPort(pov);
+
+        if (durationMs) {
+            const timeSegment = 25; // 25 milliseconds.
+
+            // Get how much angle you change over timeSegment of time.
+            const cw = (pov.heading - currentPov.heading + 360) % 360;
+            const ccw = 360 - cw;
+            let headingIncrement;
+            if (cw < ccw) {
+                headingIncrement = cw * (timeSegment / durationMs);
+            } else {
+                headingIncrement = (-ccw) * (timeSegment / durationMs);
+            }
+
+            const pitchDelta = pov.pitch - currentPov.pitch;
+            const pitchIncrement = pitchDelta * (timeSegment / durationMs);
+
+            interval = window.setInterval(function () {
+                const headingDelta = (pov.heading - currentPov.heading + 360) % 360;
+                if (headingDelta > 1 && headingDelta < 359) {
+                    // Update heading angle and pitch angle.
+                    currentPov.heading += headingIncrement;
+                    currentPov.pitch += pitchIncrement;
+                    currentPov.heading = (currentPov.heading + 360) % 360;
+                    svl.panoViewer.setPov(currentPov);
+                } else {
+                    // Set the pov to adjust zoom level, then clear the interval. Invoke a callback if there is one.
+                    if (!pov.zoom) {
+                        pov.zoom = 1;
+                    }
+
+                    svl.panoViewer.setPov(pov);
+                    window.clearInterval(interval);
+                    if (callback) {
+                        callback();
+                    }
+                }
+            }, timeSegment);
+        } else {
+            svl.panoViewer.setPov(pov);
+        }
+        return this;
+    }
+
+    /**
+     * Set the minimum and maximum heading angle that users can adjust the Street View camera.
+     * @param range
+     * @returns {setHeadingRange}
+     */
+    function setHeadingRange(range) {
+        properties.minHeading = range[0];
+        properties.maxHeading = range[1];
+        return this;
+    }
+
+    // Set the POV in the same direction as the route.
+    function setPovToRouteDirection(durationMs) {
+        var pov = svl.panoViewer.getPov();
+        var newPov = {
+            heading: Math.round(svl.compass.getTargetAngle() + 360) % 360,
+            pitch: pov.pitch,
+            zoom: pov.zoom
+        }
+        setPov(newPov, durationMs);
+    }
+
+    /*
+     * Gets the pov change tracking variable.
+     */
+    function getPovChangeStatus() {
+        return povChange;
+    }
+
+    /**
+     * Disable panning on Street View
+     * @returns {disablePanning}
+     */
+    function disablePanning() {
+        if (!status.lockDisablePanning) {
+            status.disablePanning = true;
+        }
+        return this;
+    }
+
+    /**
+     * Enable panning on Street View.
+     * @returns {enablePanning}
+     */
+    function enablePanning() {
+        if (!status.lockDisablePanning) {
+            status.disablePanning = false;
+        }
+        return this;
+    }
+
+    /**
+     * Lock disable panning.
+     * @returns {lockDisablePanning}
+     */
+    function lockDisablePanning() {
+        status.lockDisablePanning = true;
+        return this;
+    }
+
+    /**
+     * Unlock disable panning.
+     * @returns {unlockDisablePanning}
+     */
+    function unlockDisablePanning() {
+        status.lockDisablePanning = false;
+        return this;
+    }
+
+    /**
+     * Make navigation arrows blink.
+     */
+    function blinkNavigationArrows() {
+        setTimeout(() => {
+            const arrows = document.querySelector("div.gmnoprint.SLHIdE-sv-links-control").querySelector("svg").querySelectorAll("path[fill-opacity='1']");
+            // Obtain interval id to allow for the interval to be cleaned up after the arrow leaves document context.
+            const intervalId = window.setInterval(function () {
+                // Blink logic.
+                arrows.forEach((arrow) => {
+                    arrow.setAttribute("fill", (arrow.getAttribute("fill") === "white" ? "yellow" : "white"));
+
+                    // Once the arrow is removed from the document, stop the interval for all arrows.
+                    if (!document.body.contains(arrow)) window.clearInterval(intervalId);
+                });
+            }, 500);
+        }, 500);
+    }
+
+    function getStatus(key) {
+        return status[key];
+    }
+
+    /**
      * If the user is going through the tutorial, it will return the custom/stored panorama for either the initial
      * tutorial view or the "after walk" view.
      * @param pano - the pano ID/name of the wanted custom panorama.
@@ -293,9 +512,20 @@ async function PanoManager (panoViewerType, params = {}) {
         }
     }
 
+    self.setPov = setPov;
+    self.setHeadingRange = setHeadingRange;
+    self.setPovToRouteDirection = setPovToRouteDirection;
     self.setPanorama = setPanorama;
     self.setLocation = setLocation;
     self.setZoom = setZoom;
+    self.getPovChangeStatus = getPovChangeStatus;
+    self.disablePanning = disablePanning;
+    self.enablePanning = enablePanning;
+    self.lockDisablePanning = lockDisablePanning;
+    self.unlockDisablePanning = unlockDisablePanning;
+    self.blinkNavigationArrows = blinkNavigationArrows;
+    self.getStatus = getStatus;
+    self.updatePov = updatePov;
 
     await _init();
 

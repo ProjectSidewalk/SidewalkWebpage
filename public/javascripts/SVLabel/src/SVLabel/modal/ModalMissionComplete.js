@@ -126,8 +126,8 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         } else {
             var nextMission = missionContainer.getCurrentMission();
             _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
-            svl.map.unlockDisableWalking();
-            svl.map.enableWalking();
+            svl.navigationService.unlockDisableWalking();
+            svl.navigationService.enableWalking();
             self.hide();
         }
     };
@@ -153,8 +153,8 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
      */
     this.show = function () {
         this._status.isOpen = true;
-        svl.map.disableWalking();
-        svl.map.lockDisableWalking();
+        svl.navigationService.disableWalking();
+        svl.navigationService.lockDisableWalking();
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', "visible");
         uiModalMissionComplete.background.css('visibility', "visible");

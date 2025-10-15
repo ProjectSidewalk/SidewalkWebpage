@@ -91,15 +91,15 @@ function RibbonMenu(tracker, uiRibbonMenu) {
                 // Switch to walking mode.
                 setStatus('mode', 'Walk');
                 setStatus('selectedLabelType', undefined);
-                if (svl.map) {
-                    svl.map.switchToExploreMode();
+                if (svl.navigationService) {
+                    svl.navigationService.switchToExploreMode();
                 }
             } else {
                 // Switch to labeling mode.
                 setStatus('mode', labelType);
                 setStatus('selectedLabelType', labelType);
-                if (svl.map) {
-                    svl.map.switchToLabelingMode();
+                if (svl.navigationService) {
+                    svl.navigationService.switchToLabelingMode();
                 }
 
                 // Change cursor before mouse is moved.

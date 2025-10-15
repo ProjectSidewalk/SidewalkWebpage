@@ -69,7 +69,7 @@ function ContextMenu (uiContextMenu) {
                 handleSeverityPopup();
             }
             hide();
-            svl.map.setStatus('contextMenuWasOpen', true);
+            svl.navigationService.setStatus('contextMenuWasOpen', true);
         }
     }
 
