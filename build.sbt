@@ -1,8 +1,8 @@
 name := """sidewalk-webpage"""
 
-version := "10.2.0"
+version := "10.2.1"
 
-scalaVersion := "2.13.16"
+scalaVersion := "2.13.17"
 
 // These lines prevent documentation from being generated. Once we clean up our Scaladoc, we can remove these lines.
 Compile / doc / sources := Seq.empty
@@ -23,7 +23,7 @@ libraryDependencies ++= Seq(
   "org.playframework" %% "play-caffeine-cache" % "3.0.9",
   "org.playframework" %% "play-mailer" % "10.1.0", // play-mailer is on a different versioning scheme than Play itself.
   "org.playframework" %% "play-mailer-guice" % "10.1.0", // play-mailer is on a different versioning scheme than Play itself.
-  "org.playframework" %% "play-json" % "3.0.5", // play-json is on a different versioning scheme than Play itself.
+  "org.playframework" %% "play-json" % "3.0.6", // play-json is on a different versioning scheme than Play itself.
 
   // Authentication using Silhouette.
   "org.playframework.silhouette" %% "play-silhouette" % "10.0.3",
@@ -34,7 +34,7 @@ libraryDependencies ++= Seq(
   "com.iheart" %% "ficus" % "1.5.2",
 
   // Slick and Postgres stuff.
-  "org.postgresql" % "postgresql" % "42.7.7",
+  "org.postgresql" % "postgresql" % "42.7.8",
   "org.playframework" %% "play-slick" % "6.2.0",
   "org.playframework" %% "play-slick-evolutions" % "6.2.0",
 
