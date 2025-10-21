@@ -56,7 +56,7 @@ async function PanoManager (panoViewerType, params = {}) {
         } else if ('startPanoId' in params) {
             await setPanorama(params.startPanoId);
         } else if ('startLat' in params && 'startLng' in params) {
-            await setLocation(params.startLat, params.startLng);
+            await setLocation({lat: params.startLat, lng: params.startLng });
         }
 
         // TODO we probably need to do this for any viewer type...
@@ -280,11 +280,10 @@ async function PanoManager (panoViewerType, params = {}) {
 
     /**
      * Sets the panorama ID. Adds a callback function that will record pano metadata and update the date text field.
-     * @param lat The latitude of the desired location.
-     * @param lng The longitude of the desired location.
+     * @param latLng An object with properties lat and lng representing the desired location.
      */
-    async function setLocation(lat, lng) {
-        await svl.panoViewer.setPosition(lat, lng).then(_panoSuccessCallback, _panoFailureCallback);
+    async function setLocation(latLng) {
+        await svl.panoViewer.setPosition(latLng).then(_panoSuccessCallback, _panoFailureCallback);
     }
 
 

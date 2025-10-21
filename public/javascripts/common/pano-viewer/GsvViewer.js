@@ -98,8 +98,8 @@ class GsvViewer extends PanoViewer {
         });
     }
 
-    setPosition = async (lat, lng) => {
-        const gLatLng = new google.maps.LatLng(lat, lng);
+    setPosition = async (latLng) => {
+        const gLatLng = new google.maps.LatLng(latLng.lat, latLng.lng);
         return this.streetViewService.getPanorama(
             { location: gLatLng, radius: svl.STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR }
         ).then(this._getPanoramaCallback);

@@ -71,11 +71,11 @@ class Infra3dViewer extends PanoViewer {
         return { lat: currNode.lat, lng: currNode.lon };
     }
 
-    setPosition = async (lat, lng) => {
+    setPosition = async (latLng) => {
         // Convert from WGS84 to Web Mercator (EPSG:3857), which is what Infra3D uses.
         const wgs84 = 'EPSG:4326';
         const webMercator = 'EPSG:3857';
-        const [easting, northing] = proj4(wgs84, webMercator, [lng, lat]);
+        const [easting, northing] = proj4(wgs84, webMercator, [latLng.lng, latLng.lat]);
 
         // Undefined params are height (deprecated) and distance (in meters). Distance is the max distance to move from
         // current position, so we don't really have a use for it.

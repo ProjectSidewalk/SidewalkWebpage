@@ -410,8 +410,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
 
         // Remove the part of the street geometry that you've already passed using lineSlice.
         let remainder = turf.cleanCoords(turf.lineSlice(startLatLng, streetEndpoint, streetEdge));
-        let currLat = remainder.geometry.coordinates[0][1];
-        let currLng = remainder.geometry.coordinates[0][0];
+        let currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
 
         // Save the current pano ID as one that you're stuck at.
         const currentPano = svl.panoViewer.getPanoId();
@@ -437,9 +436,8 @@ function NavigationService (neighborhoodModel, uiStreetview) {
                     // Try `DIST_INCREMENT` further down the street, using `lineSliceAlong` to find the remaining
                     // subsection of the street to check.
                     remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, DIST_INCREMENT, streetEndpoint));
-                    currLat = remainder.geometry.coordinates[0][1];
-                    currLng = remainder.geometry.coordinates[0][0];
-                    return svl.panoManager.setLocation(currLat, currLng).then(successCallback, failureCallback);
+                    currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
+                    return svl.panoManager.setLocation(currLoc).then(successCallback, failureCallback);
                 } else {
                     // TODO do we just call handleImageryNotFound here instead? Is this different because it's assuming street partially done?
                     return handleImageryNotFound();
@@ -466,15 +464,14 @@ function NavigationService (neighborhoodModel, uiStreetview) {
                 // Try `DIST_INCREMENT` further down the street, using `lineSliceAlong` to find the remaining
                 // subsection of the street to check.
                 remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, DIST_INCREMENT, streetEndpoint));
-                currLat = remainder.geometry.coordinates[0][1];
-                currLng = remainder.geometry.coordinates[0][0];
-                return svl.panoManager.setLocation(currLat, currLng).then(successCallback, failureCallback);
+                currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
+                return svl.panoManager.setLocation(currLoc).then(successCallback, failureCallback);
             }
             // TODO add this functionality again later. Need to add a parameter to setLocation().
             // else if (MAX_DIST === 10) {
             //     // If we get to the end of the street, increase the radius a bit to try and drop them at the end.
             //     MAX_DIST = 25;
-            //     svl.panoManager.setLocation(currLat, currLng).then(successCallback, failureCallback);
+            //     svl.panoManager.setLocation(currLoc).then(successCallback, failureCallback);
             // }
             else {
                 // TODO do we just call handleImageryNotFound here instead? Is this different because it's assuming street partially done?
@@ -488,7 +485,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         }
 
         // Initial call to getPanorama with using the recursive callback function.
-        return svl.panoManager.setLocation(currLat, currLng).then(successCallback, failureCallback);
+        return svl.panoManager.setLocation(currLoc).then(successCallback, failureCallback);
     }
 
     /**
