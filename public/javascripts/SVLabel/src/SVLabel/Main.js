@@ -24,15 +24,6 @@ function Main (params) {
     svl.TUTORIAL_PANO_HEIGHT = 6656;
     svl.TUTORIAL_PANO_WIDTH = 13312;
     svl.TUTORIAL_PANO_SCALE_FACTOR = 3.25;
-    svl.ALPHA_X = 4.6;
-    svl.ALPHA_Y = -4.65;
-    svl.ZOOM_FACTOR = {
-        1: 1,
-        2: 2.1,
-        3: 4,
-        4: 8,
-        5: 16
-    };
     svl.STREETVIEW_MAX_DISTANCE = 40; // 40 meters.
     svl.CLOSE_TO_ROUTE_THRESHOLD = 0.05; // 50 meters.
 
@@ -70,7 +61,7 @@ function Main (params) {
         const startLat = params.task.properties.current_lat;
         const startLng = params.task.properties.current_lng;
         svl.panoStore = new PanoStore();
-        svl.panoManager = await PanoManager(Infra3dViewer, { startLat: startLat, startLng: startLng });
+        svl.panoManager = await PanoManager(GsvViewer, { startLat: startLat, startLng: startLng });
         svl.minimap = new Minimap();
 
         svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);

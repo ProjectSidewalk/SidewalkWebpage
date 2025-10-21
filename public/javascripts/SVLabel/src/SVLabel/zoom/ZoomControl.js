@@ -252,8 +252,7 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
         if (typeof zoomLevelIn !== "number") { return false; }
 
         // Set the zoom level and change the panorama properties.
-        var zoomLevel = undefined;
-        zoomLevelIn = Math.round(zoomLevelIn);
+        let zoomLevel = undefined;
         if (zoomLevelIn <= properties.minZoomLevel) {
             zoomLevel = properties.minZoomLevel;
             enableZoomIn();
@@ -268,10 +267,8 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
             enableZoomOut();
         }
         svl.panoManager.setZoom(zoomLevel);
-        var i,
-            labels = svl.labelContainer.getCanvasLabels(),
-            labelLen = labels.length;
-        for (i = 0; i < labelLen; i += 1) {
+        const labels = svl.labelContainer.getCanvasLabels();
+        for (let i = 0; i < labels.length; i += 1) {
             labels[i].setHoverInfoVisibility('hidden');
         }
         svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');

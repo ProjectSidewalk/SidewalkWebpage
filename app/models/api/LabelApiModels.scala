@@ -124,7 +124,7 @@ case class LabelDataForApi(
     imageCaptureDate: Option[String],
     heading: Option[Double],
     pitch: Option[Double],
-    zoom: Option[Int],
+    zoom: Option[Double],
     canvasX: Option[Int],
     canvasY: Option[Int],
     canvasWidth: Option[Int],

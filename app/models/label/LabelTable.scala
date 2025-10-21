@@ -52,7 +52,7 @@ case class Label(
 )
 
 case class LabelValidationInfo(agreeCount: Int, disagreeCount: Int, unsureCount: Int, correct: Option[Boolean])
-case class POV(heading: Double, pitch: Double, zoom: Int)
+case class POV(heading: Double, pitch: Double, zoom: Double)
 case class Dimensions(width: Int, height: Int)
 case class LocationXY(x: Int, y: Int)
 
@@ -168,7 +168,7 @@ case class LabelCVMetadata(
     canvasHeight: Int,
     canvasX: Int,
     canvasY: Int,
-    zoom: Int,
+    zoom: Double,
     heading: Float,
     pitch: Float,
     cameraHeading: Float,
@@ -271,16 +271,16 @@ object LabelTable {
   // Type aliases for the tuple representation of LabelMetadataUserDash and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
   type LabelMetadataUserDashTuple =
-    (Int, String, (Double, Double, Int), Int, Int, String, OffsetDateTime, Option[String])
+    (Int, String, (Double, Double, Double), Int, Int, String, OffsetDateTime, Option[String])
   type LabelMetadataUserDashTupleRep = (
-      Rep[Int],                             // labelId
-      Rep[String],                          // gsvPanoramaId
-      (Rep[Double], Rep[Double], Rep[Int]), // pov (heading, pitch, zoom)
-      Rep[Int],                             // canvasX
-      Rep[Int],                             // canvasY
-      Rep[String],                          // labelType
-      Rep[OffsetDateTime],                  // timeValidated
-      Rep[Option[String]]                   // validatorComment
+      Rep[Int],                                // labelId
+      Rep[String],                             // gsvPanoramaId
+      (Rep[Double], Rep[Double], Rep[Double]), // pov (heading, pitch, zoom)
+      Rep[Int],                                // canvasX
+      Rep[Int],                                // canvasY
+      Rep[String],                             // labelType
+      Rep[OffsetDateTime],                     // timeValidated
+      Rep[Option[String]]                      // validatorComment
   )
 
   // Define an implicit conversion from the tuple representation to the case class.
@@ -300,7 +300,7 @@ object LabelTable {
       OffsetDateTime,                   // timestamp
       Option[Float],                    // lat
       Option[Float],                    // lng
-      (Double, Double, Int),            // pov (heading, pitch, zoom)
+      (Double, Double, Double),         // pov (heading, pitch, zoom)
       (Int, Int),                       // canvasXY (x, y)
       Option[Int],                      // severity
       Option[String],                   // description
@@ -322,7 +322,7 @@ object LabelTable {
       Rep[OffsetDateTime],                                  // timestamp
       Rep[Option[Float]],                                   // lat
       Rep[Option[Float]],                                   // lng
-      (Rep[Double], Rep[Double], Rep[Int]),                 // pov (heading, pitch, zoom)
+      (Rep[Double], Rep[Double], Rep[Double]),              // pov (heading, pitch, zoom)
       (Rep[Int], Rep[Int]),                                 // canvasXY (x, y)
       Rep[Option[Int]],                                     // severity
       Rep[Option[String]],                                  // description
@@ -363,7 +363,7 @@ object LabelTable {
       Int,         // canvasHeight
       Int,         // canvasX
       Int,         // canvasY
-      Int,         // zoom
+      Double,      // zoom
       Float,       // heading
       Float,       // pitch
       Float,       // cameraHeading
@@ -424,7 +424,7 @@ object LabelTable {
       imageCaptureDate = r.nextStringOption(),
       heading = r.nextDoubleOption(),
       pitch = r.nextDoubleOption(),
-      zoom = r.nextIntOption(),
+      zoom = r.nextDoubleOption(),
       canvasX = r.nextIntOption(),
       canvasY = r.nextIntOption(),
 
@@ -523,7 +523,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextString(),
       r.nextBoolean(),
       r.nextString(),
-      POV(r.nextDouble(), r.nextDouble(), r.nextInt()),
+      POV(r.nextDouble(), r.nextDouble(), r.nextDouble()),
       LocationXY(r.nextInt(), r.nextInt()),
       r.nextInt(),
       r.nextInt(),
@@ -880,7 +880,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           l.timeCreated,
           lp.lat,
           lp.lng,
-          (lp.heading.asColumnOf[Double], lp.pitch.asColumnOf[Double], lp.zoom),
+          (lp.heading.asColumnOf[Double], lp.pitch.asColumnOf[Double], lp.zoom.asColumnOf[Double]),
           (lp.canvasX, lp.canvasY),
           l.severity,
           l.description,
@@ -997,7 +997,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       l._1.timeCreated,
       l._2.lat,
       l._2.lng,
-      (l._2.heading.asColumnOf[Double], l._2.pitch.asColumnOf[Double], l._2.zoom),
+      (l._2.heading.asColumnOf[Double], l._2.pitch.asColumnOf[Double], l._2.zoom.asColumnOf[Double]),
       (l._2.canvasX, l._2.canvasY),
       l._1.severity,
       l._1.description,
@@ -1061,7 +1061,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     } yield (
       _lb.labelId,
       _lb.gsvPanoramaId,
-      (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom),
+      (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom.asColumnOf[Double]),
       _lp.canvasX,
       _lp.canvasY,
       _lt.labelType,

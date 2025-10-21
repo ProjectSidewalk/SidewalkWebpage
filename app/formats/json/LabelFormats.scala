@@ -32,7 +32,7 @@ object LabelFormats {
   implicit val POVWrites: Writes[POV] = (
     (__ \ "heading").write[Double] and
       (__ \ "pitch").write[Double] and
-      (__ \ "zoom").write[Int]
+      (__ \ "zoom").write[Double]
   )(unlift(POV.unapply))
 
   implicit val locationXYWrites: Writes[LocationXY] = (

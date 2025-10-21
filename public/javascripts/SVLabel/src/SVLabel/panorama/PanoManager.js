@@ -50,6 +50,7 @@ async function PanoManager (panoViewerType, params = {}) {
         }
 
         // Move to the specified starting location.
+        // TODO The page totally fails to load if we fail to get imagery at the start location.
         if (panoViewerType === Infra3dViewer) {
             await setPanorama('vps_baden@meta_ch_baden_masterdemo_v3/114-41');
         } else if ('startPanoId' in params) {
@@ -189,6 +190,7 @@ async function PanoManager (panoViewerType, params = {}) {
             // A bug in Firefox? The canvas in the div element with the largest z-index.
             svl.ui.map.viewControlLayer.append(svl.ui.map.canvas);
         }
+
         google.maps.event.removeListener(linksListener);
     }
 
@@ -290,16 +292,16 @@ async function PanoManager (panoViewerType, params = {}) {
      * Sets the zoom level for this panorama.
      * @param zoom  Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
      */
-    function setZoom (zoom) {
+    function setZoom(zoom) {
         const currPov = svl.panoViewer.getPov();
-        currPov.zoom = Math.round(zoom);
-        svl.panoViewer.setPov(currPov);
+        currPov.zoom = zoom;
+        setPov(currPov);
     }
 
     /**
      * Prevents users from looking at the sky or straight to the ground. Restrict heading angle if specified in props.
      */
-    function _restrictViewPort(pov) {
+    function _restrictViewport(pov) {
         if (pov.pitch > properties.maxPitch) {
             pov.pitch = properties.maxPitch;
         } else if (pov.pitch < properties.minPitch) {
@@ -333,13 +335,15 @@ async function PanoManager (panoViewerType, params = {}) {
      */
     function updatePov(dx, dy) {
         let pov = svl.panoViewer.getPov();
-        pov.heading -= dx;
-        pov.pitch += dy;
-        pov = _restrictViewPort(pov);
+        // TODO not sure why Infra3d viewer pans so slowly, or doesn't pan at all if we dx/dy is small.
+        const viewerScaling = panoViewerType === Infra3dViewer ? 3 : 0.375;
+        pov.heading -= dx * viewerScaling;
+        pov.pitch += dy * viewerScaling;
+        pov = _restrictViewport(pov);
         povChange["status"] = true;
 
         // Update the Street View image.
-        svl.panoViewer.setPov(pov);
+        setPov(pov);
     }
 
     /**
@@ -353,11 +357,8 @@ async function PanoManager (panoViewerType, params = {}) {
         let currentPov = svl.panoViewer.getPov();
         let interval;
 
-        // Make sure that zoom is set to an integer value.
-        if (pov.zoom) pov.zoom = Math.round(pov.zoom);
-
         // Pov restriction.
-        _restrictViewPort(pov);
+        _restrictViewport(pov);
 
         if (durationMs) {
             const timeSegment = 25; // 25 milliseconds.

@@ -22,7 +22,7 @@ case class AuditTaskInteraction(
     lng: Option[Float],
     heading: Option[Float],
     pitch: Option[Float],
-    zoom: Option[Int],
+    zoom: Option[Double],
     note: Option[String],
     temporaryLabelId: Option[Int],
     timestamp: OffsetDateTime
@@ -64,7 +64,7 @@ class AuditTaskInteractionTableDef(tag: slick.lifted.Tag)
   def lng: Rep[Option[Float]]            = column[Option[Float]]("lng")
   def heading: Rep[Option[Float]]        = column[Option[Float]]("heading")
   def pitch: Rep[Option[Float]]          = column[Option[Float]]("pitch")
-  def zoom: Rep[Option[Int]]             = column[Option[Int]]("zoom")
+  def zoom: Rep[Option[Double]]          = column[Option[Double]]("zoom")
   def note: Rep[Option[String]]          = column[Option[String]]("note")
   def temporaryLabelId: Rep[Option[Int]] = column[Option[Int]]("temporary_label_id")
   def timestamp: Rep[OffsetDateTime]     = column[OffsetDateTime]("timestamp")
@@ -90,7 +90,7 @@ class AuditTaskInteractionSmallTableDef(tag: slick.lifted.Tag)
   def lng: Rep[Option[Float]]            = column[Option[Float]]("lng")
   def heading: Rep[Option[Float]]        = column[Option[Float]]("heading")
   def pitch: Rep[Option[Float]]          = column[Option[Float]]("pitch")
-  def zoom: Rep[Option[Int]]             = column[Option[Int]]("zoom")
+  def zoom: Rep[Option[Double]]          = column[Option[Double]]("zoom")
   def note: Rep[Option[String]]          = column[Option[String]]("note")
   def temporaryLabelId: Rep[Option[Int]] = column[Option[Int]]("temporary_label_id")
   def timestamp: Rep[OffsetDateTime]     = column[OffsetDateTime]("timestamp")

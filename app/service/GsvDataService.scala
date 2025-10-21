@@ -34,7 +34,7 @@ object GsvDataService {
    * @param zoom Zoom level of the canvas (for fov calculation).
    * @return FOV of image
    */
-  def getFov(zoom: Int): Double = {
+  def getFov(zoom: Double): Double = {
     if (zoom <= 2) {
       126.5 - zoom * 36.75
     } else {
@@ -61,7 +61,7 @@ object GsvDataService {
     POV(
       (cameraHeading - 180 + (x.toDouble / width) * 360) % 360,
       90d - 180d * y / height,
-      1 // Just defaulting to a zoom level of 1 since the AI looked at the whole pano and had no zoom.
+      1d // Just defaulting to a zoom level of 1 since the AI looked at the whole pano and had no zoom.
     )
   }
 
@@ -116,13 +116,14 @@ object GsvDataService {
       panoLat: Double,
       panoLng: Double,
       heading: Double,
-      zoom: Int,
+      zoom: Double,
       canvasX: Int,
       canvasY: Int,
       panoY: Int,
       panoHeight: Int
   ): (Double, Double) = {
-    val params = LatLngEstimationParams.LATLNG_ESTIMATION_PARAMS(zoom)
+    // TODO need to deal with non-integer zoom. Though as of Oct 2025, we only ever call this with zoom = 1.
+    val params = LatLngEstimationParams.LATLNG_ESTIMATION_PARAMS(math.round(zoom).toInt)
 
     // Estimate heading difference and distance from pano using regression analysis output.
     val estHeadingDiff =
@@ -145,7 +146,7 @@ object GsvDataService {
 @ImplementedBy(classOf[GsvDataServiceImpl])
 trait GsvDataService {
   def panoExists(gsvPanoId: String): Future[Option[Boolean]]
-  def getImageUrl(gsvPanoramaId: String, heading: Double, pitch: Double, zoom: Int): String
+  def getImageUrl(gsvPanoramaId: String, heading: Double, pitch: Double, zoom: Double): String
   def getImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
   def getAllPanos: Future[Seq[GsvDataSlim]]
@@ -247,7 +248,7 @@ class GsvDataServiceImpl @Inject() (
    * @param zoom Zoom level of the canvas (for fov calculation).
    * @return Image URL that represents the background of the label.
    */
-  def getImageUrl(gsvPanoramaId: String, heading: Double, pitch: Double, zoom: Int): String = {
+  def getImageUrl(gsvPanoramaId: String, heading: Double, pitch: Double, zoom: Double): String = {
     val url = "https://maps.googleapis.com/maps/api/streetview?" +
       "pano=" + gsvPanoramaId +
       "&size=" + LabelPointTable.canvasWidth + "x" + LabelPointTable.canvasHeight +

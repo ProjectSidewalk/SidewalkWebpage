@@ -120,7 +120,7 @@ class Infra3dViewer extends PanoViewer {
         const verticalAzimuth = (verticalOrientation + currentView.lat) % 360;
 
         // Convert the FOV to a zoom level that you'd see in GSV.
-        const zoom = Math.round(this._getZoomFrom3dFov(currentView.fov));
+        const zoom = this._getZoomFrom3dFov(currentView.fov);
 
         return { heading: horizontalAzimuth, pitch: verticalAzimuth, zoom: zoom };
     }

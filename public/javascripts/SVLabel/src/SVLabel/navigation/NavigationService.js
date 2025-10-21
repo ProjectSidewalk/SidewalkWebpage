@@ -393,10 +393,6 @@ function NavigationService (canvas, neighborhoodModel, uiMap) {
         mouseStatus.leftDownY = mouseposition(e, this).y;
         svl.tracker.push('ViewControl_MouseDown', { x: mouseStatus.leftDownX, y:mouseStatus.leftDownY });
         setViewControlLayerCursor('ClosedHand');
-
-        // This is necessary for supporting touch devices, because there is no mouse hover.
-        mouseStatus.prevX = mouseposition(e, this).x;
-        mouseStatus.prevY = mouseposition(e, this).y;
     }
 
     /**
@@ -453,15 +449,10 @@ function NavigationService (canvas, neighborhoodModel, uiMap) {
 
         if (mouseStatus.isLeftDown && svl.panoManager.getStatus('disablePanning') === false) {
             // If a mouse is being dragged on the control layer, move the pano.
-            var dx = mouseStatus.currX - mouseStatus.prevX;
-            var dy = mouseStatus.currY - mouseStatus.prevY;
-            var pov = svl.panoViewer.getPov();
-            var zoom = Math.round(pov.zoom);
-            var zoomLevel = svl.ZOOM_FACTOR[zoom];
-            dx = dx / (2 * zoomLevel);
-            dy = dy / (2 * zoomLevel);
-            dx *= 0.375;
-            dy *= 0.375;
+            const pov = svl.panoViewer.getPov();
+            const zoomScaling = Math.pow(2, pov.zoom);
+            const dx = (mouseStatus.currX - mouseStatus.prevX) / zoomScaling;
+            const dy = (mouseStatus.currY - mouseStatus.prevY) / zoomScaling;
             svl.panoManager.updatePov(dx, dy);
         }
 

@@ -32,7 +32,7 @@ object ExploreFormats {
       lng: Option[Float],
       heading: Option[Float],
       pitch: Option[Float],
-      zoom: Option[Int],
+      zoom: Option[Double],
       note: Option[String],
       temporaryLabelId: Option[Int],
       timestamp: OffsetDateTime
@@ -44,7 +44,7 @@ object ExploreFormats {
       canvasY: Int,
       heading: Float,
       pitch: Float,
-      zoom: Int,
+      zoom: Double,
       lat: Option[Float],
       lng: Option[Float],
       computationMethod: Option[String]
@@ -158,7 +158,7 @@ object ExploreFormats {
       (__ \ "lng").writeNullable[Float] and
       (__ \ "heading").writeNullable[Float] and
       (__ \ "pitch").writeNullable[Float] and
-      (__ \ "zoom").writeNullable[Int] and
+      (__ \ "zoom").writeNullable[Double] and
       (__ \ "note").writeNullable[String] and
       (__ \ "temporary_label_id").writeNullable[Int] and
       (__ \ "timestamp").write[OffsetDateTime]
@@ -231,7 +231,7 @@ object ExploreFormats {
       (JsPath \ "lng").readNullable[Float] and
       (JsPath \ "heading").readNullable[Float] and
       (JsPath \ "pitch").readNullable[Float] and
-      (JsPath \ "zoom").readNullable[Int] and
+      (JsPath \ "zoom").readNullable[Double] and
       (JsPath \ "note").readNullable[String] and
       (JsPath \ "temporary_label_id").readNullable[Int] and
       (JsPath \ "timestamp").read[OffsetDateTime]
@@ -244,7 +244,7 @@ object ExploreFormats {
       (JsPath \ "canvas_y").read[Int] and
       (JsPath \ "heading").read[Float] and
       (JsPath \ "pitch").read[Float] and
-      (JsPath \ "zoom").read[Int] and
+      (JsPath \ "zoom").read[Double] and
       (JsPath \ "lat").readNullable[Float] and
       (JsPath \ "lng").readNullable[Float] and
       (JsPath \ "computation_method").readNullable[String]
@@ -329,7 +329,7 @@ object ExploreFormats {
     (JsPath \ "pano_x").read[Int] and
       (JsPath \ "pano_y").read[Int] and
       (JsPath \ "confidence").read[Double]
-    )(AiLabelDetection.apply _)
+  )(AiLabelDetection.apply _)
 
   implicit val aiLabelSubmissionReads: Reads[AiLabelsSubmission] = (
     (JsPath \ "label_type").read[String] and

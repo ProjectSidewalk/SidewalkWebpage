@@ -476,7 +476,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.imageCaptureDate.orNull)
       featureBuilder.add(label.heading.orNull)
       featureBuilder.add(label.pitch.orNull)
-      featureBuilder.add(label.zoom.map(Integer.valueOf).orNull)
+      featureBuilder.add(label.zoom.orNull)
       featureBuilder.add(label.canvasX.map(Integer.valueOf).orNull)
       featureBuilder.add(label.canvasY.map(Integer.valueOf).orNull)
       featureBuilder.add(label.canvasWidth.map(Integer.valueOf).orNull)

@@ -279,7 +279,7 @@ object ApiFormats {
       (__ \ "canvas_height").write[Int] and
       (__ \ "canvas_x").write[Int] and
       (__ \ "canvas_y").write[Int] and
-      (__ \ "zoom").write[Int] and
+      (__ \ "zoom").write[Double] and
       (__ \ "heading").write[Float] and
       (__ \ "pitch").write[Float] and
       (__ \ "camera_heading").write[Float] and
