@@ -38,7 +38,7 @@ class Infra3dViewer extends PanoViewer {
             // pov: properties.panoramaPov, // TODO required or optional parameter? -- optional, but do I want to include here?
             // disableDefaultUI: true,
             // TODO keyboardShortcuts..? Looks like only available for `new google.maps.Map`?
-            linksControl: true, // TODO true on Explore, false on Validate
+            linksControl: false,
             // TODO navigationControl?
             zoomControl: true,
         };
@@ -47,7 +47,7 @@ class Infra3dViewer extends PanoViewer {
         this.viewer = await manager.initViewer(panoOpts);
 
         // Handle a few other configs that need to be handled after initialization.
-        if (panoOptions.linksControl === false) {
+        if (panoOpts.linksControl === false) {
             this.hideNavigationArrows();
         }
         if (panoOpts.zoomControl === false) {
@@ -55,7 +55,11 @@ class Infra3dViewer extends PanoViewer {
         }
 
         // Set up listener for pano changes to track the current navigation arrows.
-        this.addListener("pano_changed", (node) => { this.currentLinks = node.spatialEdges.edges; });
+        // TODO for some reason spatialEdges is empty when loading the first pano.
+        this.addListener("pano_changed", (node) => {
+            console.log('pano_changed', node);
+            this.currentLinks = node.spatialEdges.edges;
+        });
     }
 
     getPanoId = () => {
@@ -90,61 +94,61 @@ class Infra3dViewer extends PanoViewer {
             // a spherical coordinate system", so we need to adjust it to be like a compass heading.
             return {
                 panoId: link.to,
-                heading: util.math.toDegrees((Math.PI - link.worldMotionAzimuth) % (2 * Math.PI))
+                heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI))
             };
         });
     }
 
     getPov = () => {
-        const current_view = this.viewer.getCameraView();
-        const current_node = this.viewer.getCurrentNode();
+        const currentView = this.viewer.getCameraView();
+        const currentNode = this.viewer.getCurrentNode();
 
         // Calculate the orientation of the camera.
-        const horizontal_orientation = this._getHeading(
-            current_node.omega,
-            current_node.phi
+        const horizontalOrientation = this._getHeading(
+            currentNode.omega,
+            currentNode.phi
         );
         // Add the orientation of the image to the camera.
-        const horizontal_azimuth = (horizontal_orientation + current_view.lon) % 360;
+        const horizontalAzimuth = (horizontalOrientation + currentView.lon) % 360;
 
         // Calculate the orientation of the camera.
-        const vertical_orientation = this._getPitch(
-            current_node.omega,
-            current_node.phi
+        const verticalOrientation = this._getPitch(
+            currentNode.omega,
+            currentNode.phi
         );
         // Add the orientation of the image to the camera.
-        const vertical_azimuth = (vertical_orientation + current_view.lat) % 360;
+        const verticalAzimuth = (verticalOrientation + currentView.lat) % 360;
 
         // Convert the FOV to a zoom level that you'd see in GSV.
-        const zoom = this._getZoomFrom3dFov(current_view.fov);
+        const zoom = Math.round(this._getZoomFrom3dFov(currentView.fov));
 
-        return { heading: horizontal_azimuth, pitch: vertical_azimuth, fov: zoom };
+        return { heading: horizontalAzimuth, pitch: verticalAzimuth, zoom: zoom };
     }
 
     setPov = (pov) => {
-        const current_node = this.viewer.getCurrentNode();
+        const currentNode = this.viewer.getCurrentNode();
 
         // Calculate the base orientation from the node's position.
-        const base_heading = this._getHeading(current_node.omega, current_node.phi);
-        const base_pitch = this._getPitch(current_node.omega, current_node.phi);
+        const baseHeading = this._getHeading(currentNode.omega, currentNode.phi);
+        const basePitch = this._getPitch(currentNode.omega, currentNode.phi);
 
         // Calculate the required camera adjustment to reach target orientation.
-        // Since: target = base + camera_adjustment
-        // Therefore: camera_adjustment = target - base
-        const required_lon = (pov.heading - base_heading + 360) % 360;
-        const required_lat = (pov.pitch - base_pitch + 360) % 360;
+        // Since: target = base + cameraAdjustment
+        // Therefore: cameraAdjustment = target - base
+        const requiredLng = (pov.heading - baseHeading + 360) % 360;
+        const requiredLat = (pov.pitch - basePitch + 360) % 360;
 
         // Convert to the range expected by setCameraView (typically -180 to 180).
-        const view_lon = required_lon > 180 ? required_lon - 360 : required_lon;
-        const view_lat = required_lat > 180 ? required_lat - 360 : required_lat;
-        const view_fov = pov.zoom ? this._get3dFov(pov.zoom) : this.viewer.getCameraView().fov;
+        const viewLng = requiredLng > 180 ? requiredLng - 360 : requiredLng;
+        const viewLat = requiredLat > 180 ? requiredLat - 360 : requiredLat;
+        const viewFov = pov.zoom ? this._get3dFov(pov.zoom) : this.viewer.getCameraView().fov;
 
         // Set the camera view.
         this.viewer.setCameraView({
             type: 'pano',
-            lon: view_lon,
-            lat: view_lat,
-            fov: view_fov
+            lon: viewLng,
+            lat: viewLat,
+            fov: viewFov
         });
     }
 
@@ -177,9 +181,9 @@ class Infra3dViewer extends PanoViewer {
     }
 
     // Called getHorizontalOrientation in the code we were sent.
-    _getHeading(omega_deg, phi_deg) {
-        const omega = (omega_deg * Math.PI) / 180;
-        const phi = (phi_deg * Math.PI) / 180;
+    _getHeading(omegaDeg, phiDeg) {
+        const omega = (omegaDeg * Math.PI) / 180;
+        const phi = (phiDeg * Math.PI) / 180;
         const x = -1 * Math.sin(phi);
         const y = Math.sin(omega) * Math.cos(phi);
 
@@ -199,9 +203,9 @@ class Infra3dViewer extends PanoViewer {
     }
 
     // Called getVerticalOrientation in the code we were sent.
-    _getPitch(omega_deg, phi_deg) {
-        const omega = (omega_deg * Math.PI) / 180;
-        const phi = (phi_deg * Math.PI) / 180;
+    _getPitch(omegaDeg, phiDeg) {
+        const omega = (omegaDeg * Math.PI) / 180;
+        const phi = (phiDeg * Math.PI) / 180;
         const x = -1 * Math.sin(phi);
         const y = Math.sin(omega) * Math.cos(phi);
         const z = Math.cos(omega) * Math.cos(phi);

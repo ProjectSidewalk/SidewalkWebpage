@@ -391,7 +391,7 @@ function NavigationService (canvas, neighborhoodModel, uiMap) {
         mouseStatus.isLeftDown = true;
         mouseStatus.leftDownX = mouseposition(e, this).x;
         mouseStatus.leftDownY = mouseposition(e, this).y;
-        svl.tracker.push('ViewControl_MouseDown', {x: mouseStatus.leftDownX, y:mouseStatus.leftDownY});
+        svl.tracker.push('ViewControl_MouseDown', { x: mouseStatus.leftDownX, y:mouseStatus.leftDownY });
         setViewControlLayerCursor('ClosedHand');
 
         // This is necessary for supporting touch devices, because there is no mouse hover.
@@ -407,11 +407,11 @@ function NavigationService (canvas, neighborhoodModel, uiMap) {
         mouseStatus.isLeftDown = false;
         mouseStatus.leftUpX = mouseposition(e, this).x;
         mouseStatus.leftUpY = mouseposition(e, this).y;
-        svl.tracker.push('ViewControl_MouseUp', {x:mouseStatus.leftUpX, y:mouseStatus.leftUpY});
+        svl.tracker.push('ViewControl_MouseUp', { x:mouseStatus.leftUpX, y:mouseStatus.leftUpY });
         setViewControlLayerCursor('OpenHand');
-        var currTime = new Date();
+        const currTime = new Date();
 
-        var selectedLabel = _canvas.onLabel(mouseStatus.currX, mouseStatus.currY);
+        const selectedLabel = _canvas.onLabel(mouseStatus.currX, mouseStatus.currY);
         if (selectedLabel && selectedLabel.className === "Label") {
             _canvas.setCurrentLabel(selectedLabel);
 

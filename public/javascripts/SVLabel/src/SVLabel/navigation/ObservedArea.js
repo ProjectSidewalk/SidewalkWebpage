@@ -37,7 +37,7 @@ function ObservedArea(uiMinimap) {
         angle = null;
         leftAngle = null;
         rightAngle = null;
-        const panoId = svl.panoViewer.panorama.getPano();
+        const panoId = svl.panoViewer.getPanoId();
         currArea = observedAreas.find(area => area.panoId === panoId);
 
         if (!currArea) {

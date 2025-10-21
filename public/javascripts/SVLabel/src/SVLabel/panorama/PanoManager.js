@@ -50,14 +50,18 @@ async function PanoManager (panoViewerType, params = {}) {
         }
 
         // Move to the specified starting location.
-        if ('startPanoId' in params) {
+        if (panoViewerType === Infra3dViewer) {
+            await setPanorama('vps_baden@meta_ch_baden_masterdemo_v3/114-41');
+        } else if ('startPanoId' in params) {
             await setPanorama(params.startPanoId);
         } else if ('startLat' in params && 'startLng' in params) {
             await setLocation(params.startLat, params.startLng);
         }
 
         // TODO we probably need to do this for any viewer type...
-        linksListener = svl.panoViewer.panorama.addListener('links_changed', _makeLinksClickable);
+        if (panoViewerType === GsvViewer) {
+            linksListener = svl.panoViewer.panorama.addListener('links_changed', _makeLinksClickable);
+        }
 
         resetNavArrows();
 
@@ -143,8 +147,9 @@ async function PanoManager (panoViewerType, params = {}) {
             panoId: panoId,
             lat: panoramaPosition.lat,
             lng: panoramaPosition.lng,
-            cameraHeading: data.tiles.originHeading,
-            cameraPitch: -data.tiles.originPitch, // cameraPitch is negative originPitch.
+            // TODO need to figure out what to do for Infra3d here.
+            // cameraHeading: data.tiles.originHeading,
+            // cameraPitch: -data.tiles.originPitch, // cameraPitch is negative originPitch.
         });
 
         if ('compass' in svl) {
@@ -216,6 +221,9 @@ async function PanoManager (panoViewerType, params = {}) {
             arrow.setAttribute('pano-id', link.panoId);
             arrowGroup.appendChild(arrow);
         });
+
+        const heading = svl.panoViewer.getPov().heading;
+        arrowGroup.setAttribute('transform', `rotate(${-heading})`);
     }
 
     /**

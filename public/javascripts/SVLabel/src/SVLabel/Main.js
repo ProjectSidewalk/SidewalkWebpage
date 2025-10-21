@@ -70,7 +70,7 @@ function Main (params) {
         const startLat = params.task.properties.current_lat;
         const startLng = params.task.properties.current_lng;
         svl.panoStore = new PanoStore();
-        svl.panoManager = await PanoManager(GsvViewer, { startLat: startLat, startLng: startLng });
+        svl.panoManager = await PanoManager(Infra3dViewer, { startLat: startLat, startLng: startLng });
         svl.minimap = new Minimap();
 
         svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
@@ -161,7 +161,7 @@ function Main (params) {
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
         svl.modalSkip = new ModalSkip(svl.form, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
 
-        svl.infoPopover = new GSVInfoPopover(svl.ui.dateHolder, svl.panoViewer.panorama, svl.panoViewer.getPosition, svl.panoViewer.getPanoId,
+        svl.infoPopover = new GSVInfoPopover(svl.ui.dateHolder, svl.panoViewer, svl.panoViewer.getPosition, svl.panoViewer.getPanoId,
             svl.taskContainer.getCurrentTaskStreetEdgeId, svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId,
             svl.panoViewer.getPov, svl.cityName, true, function() { svl.tracker.push('GSVInfoButton_Click'); },
             function() { svl.tracker.push('GSVInfoCopyToClipboard_Click'); },
@@ -169,7 +169,7 @@ function Main (params) {
         );
 
         // Speed limit
-        svl.speedLimit = new SpeedLimit(svl.panoViewer.panorama, svl.panoViewer.getPosition, svl.isOnboarding, null, null);
+        svl.speedLimit = new SpeedLimit(svl.panoViewer, svl.panoViewer.getPosition, svl.isOnboarding, null, null);
 
         // Survey for select users
         svl.modalSurvey = new ModalSurvey(svl.ui.modalSurvey);
