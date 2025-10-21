@@ -66,7 +66,7 @@ function Main (params) {
 
         svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
-        svl.navigationService = new NavigationService(svl.canvas, svl.neighborhoodModel, svl.ui.map);
+        svl.navigationService = new NavigationService(svl.neighborhoodModel, svl.ui.streetview);
 
         svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl.streetViewService, svl, svl.tracker);
         svl.taskModel._taskContainer = svl.taskContainer;
@@ -152,7 +152,7 @@ function Main (params) {
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
         svl.modalSkip = new ModalSkip(svl.form, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
 
-        svl.infoPopover = new GSVInfoPopover(svl.ui.dateHolder, svl.panoViewer, svl.panoViewer.getPosition, svl.panoViewer.getPanoId,
+        svl.infoPopover = new GSVInfoPopover(svl.ui.streetview.dateHolder, svl.panoViewer, svl.panoViewer.getPosition, svl.panoViewer.getPanoId,
             svl.taskContainer.getCurrentTaskStreetEdgeId, svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId,
             svl.panoViewer.getPov, svl.cityName, true, function() { svl.tracker.push('GSVInfoButton_Click'); },
             function() { svl.tracker.push('GSVInfoCopyToClipboard_Click'); },
@@ -400,13 +400,7 @@ function Main (params) {
         svl.ui.counterHolder = $("#counter-holder");
         svl.ui.labelCounter = $("#label-counter");
 
-        // Map DOMs.
-        svl.ui.map = {};
-        svl.ui.map.canvas = $("canvas#labelCanvas");
-        svl.ui.map.drawingLayer = $("div#labelDrawingLayer");
-        svl.ui.map.pano = $("div#pano");
-        svl.ui.map.viewControlLayer = $("div#view-control-layer");
-        svl.ui.map.modeSwitchWalk = $("#mode-switch-button-walk");
+        // Minimap DOMs.
         svl.ui.minimap = {};
         svl.ui.minimap.holder = $("#minimap-holder");
         svl.ui.minimap.overlay = $("#minimap-overlay");
@@ -415,8 +409,24 @@ function Main (params) {
         svl.ui.minimap.fov = $("#minimap-fov-canvas");
         svl.ui.minimap.progressCircle = $("#minimap-progress-circle-canvas");
         svl.ui.minimap.percentObserved = $("#minimap-percent-observed");
-        svl.ui.dateHolder = $("#svl-panorama-date-holder");
-        svl.ui.date = $("#svl-panorama-date");
+
+        // Street view area DOM elements.
+        svl.ui.streetview = {};
+        svl.ui.streetview.canvas = $("canvas#labelCanvas");
+        svl.ui.streetview.drawingLayer = $("div#labelDrawingLayer");
+        svl.ui.streetview.pano = $("div#pano");
+        svl.ui.streetview.viewControlLayer = $("div#view-control-layer");
+        svl.ui.streetview.modeSwitchWalk = $("#mode-switch-button-walk");
+        svl.ui.streetview.dateHolder = $("#svl-panorama-date-holder");
+        svl.ui.streetview.date = $("#svl-panorama-date");
+
+        // Canvas for the labeling area.
+        svl.ui.canvas = {};
+        svl.ui.canvas.drawingLayer = $("#labelDrawingLayer");
+        svl.ui.canvas.deleteIconHolder = $("#delete-icon-holder");
+        svl.ui.canvas.severityIconHolder = $("#severity-icon-holder");
+        svl.ui.canvas.deleteIcon = $("#label-delete-icon");
+        svl.ui.canvas.severityIcon = $("#severity-icon");
 
         // Status holder.
         svl.ui.status = {};
@@ -536,14 +546,6 @@ function Main (params) {
         svl.ui.compass = {};
         svl.ui.compass.messageHolder = $("#compass-message-holder");
         svl.ui.compass.message = $("#compass-message");
-
-        // Canvas for the labeling area.
-        svl.ui.canvas = {};
-        svl.ui.canvas.drawingLayer = $("#labelDrawingLayer");
-        svl.ui.canvas.deleteIconHolder = $("#delete-icon-holder");
-        svl.ui.canvas.severityIconHolder = $("#severity-icon-holder");
-        svl.ui.canvas.deleteIcon = $("#label-delete-icon");
-        svl.ui.canvas.severityIcon = $("#severity-icon");
 
         // Interaction viewer.
         svl.ui.task = {};

@@ -108,11 +108,11 @@ async function PanoManager (panoViewerType, params = {}) {
         svl.panoStore.addPanoMetadata(panoId, data);
 
         // Show the pano date in the bottom-left corner.
-        svl.ui.date.text(moment(data.imageDate).format('MMM YYYY'));
+        svl.ui.streetview.date.text(moment(data.imageDate).format('MMM YYYY'));
         // else if (panoId === "tutorial" || panoId === "afterWalkTutorial") {
         //     // TODO I'm not sure how registering our own panos works for this.
         //     const imageDate = svl.panoStore.getPanoData(panoId).data().imageDate;
-        //     svl.ui.date.text(moment(imageDate).format('MMM YYYY'));
+        //     svl.ui.streetview.date.text(moment(imageDate).format('MMM YYYY'));
         // }
     }
 
@@ -182,13 +182,13 @@ async function PanoManager (panoViewerType, params = {}) {
             bottomLinks[4].remove(); // Remove mini map keyboard shortcuts link.
             bottomLinks[5].remove(); // Remove mini map copyright text (duplicate of GSV).
             bottomLinks[7].remove(); // Remove mini map terms of use link (duplicate of GSV).
-            svl.ui.map.viewControlLayer.append($(bottomLinks[1]).parent().parent());
+            svl.ui.streetview.viewControlLayer.append($(bottomLinks[1]).parent().parent());
             svl.ui.minimap.overlay.append($(bottomLinks[8]).parent().parent());
         }
 
         if (util.getBrowser() === 'mozilla') {
             // A bug in Firefox? The canvas in the div element with the largest z-index.
-            svl.ui.map.viewControlLayer.append(svl.ui.map.canvas);
+            svl.ui.streetview.viewControlLayer.append(svl.ui.streetview.canvas);
         }
 
         google.maps.event.removeListener(linksListener);

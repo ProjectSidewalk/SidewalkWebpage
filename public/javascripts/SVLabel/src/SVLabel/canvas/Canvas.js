@@ -5,33 +5,25 @@
  * @constructor
  */
 function Canvas(ribbon) {
-    var self = { className: 'Canvas' };
+    let self = { className: 'Canvas' };
 
-    // Mouse status and mouse event callback functions.
-    var mouseStatus = {
-        currX: 0,
-        currY: 0,
-        prevX: 0,
-        prevY: 0,
-        leftDownX: 0,
-        leftDownY: 0,
-        leftUpX: 0,
-        leftUpY: 0,
-        isLeftDown: false,
-        prevMouseDownTime: 0,
-        prevMouseUpTime: 0
-    };
-
-    var status = {
+    let status = {
         currentLabel: null,
         disableLabelDelete: false,
         disableLabeling: false,
         lockDisableLabelDelete: false,
     };
 
+    // Mouse status and mouse event callback functions
+    let mouseStatus = {
+        prevX: 0,
+        prevY: 0,
+        isLeftDown: false
+    };
+
     // Canvas context.
-    var canvasProperties = { 'height': 0, 'width': 0 };
-    var ctx;
+    let canvasProperties = { 'height': 0, 'width': 0 };
+    let ctx;
 
     /**
      * Initialization: set up the canvas context and attach listeners to DOM elements.
@@ -46,16 +38,17 @@ function Canvas(ribbon) {
         canvasProperties.width = el.width;
         canvasProperties.height = el.height;
 
-        // Attach listeners to dom elements.
-        if (svl.ui.canvas.drawingLayer) {
-            svl.ui.canvas.drawingLayer.bind('mousedown', handleDrawingLayerMouseDown);
-            svl.ui.canvas.drawingLayer.bind('mouseup', handleDrawingLayerMouseUp);
-            svl.ui.canvas.drawingLayer.bind('mousemove', handleDrawingLayerMouseMove);
-            $("#interaction-area-holder").on('mouseleave', handleDrawingLayerMouseOut);
-        }
-        if (svl.ui.canvas.deleteIcon) {
-            svl.ui.canvas.deleteIcon.bind("click", labelDeleteIconClick);
-        }
+        // Attach listeners to dom elements. view-control-layer handles panning, drawing-layer handles adding labels.
+        svl.ui.canvas.drawingLayer.bind('mousedown', _handleDrawingLayerMouseDown);
+        svl.ui.canvas.drawingLayer.bind('mouseup', _handleDrawingLayerMouseUp);
+        svl.ui.canvas.drawingLayer.bind('mousemove', _handleDrawingLayerMouseMove);
+        $("#interaction-area-holder").on('mouseleave', _handleDrawingLayerMouseOut);
+        svl.ui.canvas.deleteIcon.bind("click", _labelDeleteIconClick);
+        svl.ui.streetview.viewControlLayer.bind('mousedown', _handlerViewControlLayerMouseDown);
+        svl.ui.streetview.viewControlLayer.bind('mouseup', _handlerViewControlLayerMouseUp);
+        svl.ui.streetview.viewControlLayer.bind('mousemove', _handlerViewControlLayerMouseMove);
+        svl.ui.streetview.viewControlLayer.bind('mouseleave', _handlerViewControlLayerMouseLeave);
+        svl.ui.streetview.viewControlLayer[0].onselectstart = function () { return false; };
     }
 
     /**
@@ -118,10 +111,108 @@ function Canvas(ribbon) {
         }, 20);
     }
 
+    function _setViewControlLayerCursor(type) {
+        switch(type) {
+            case 'OpenHand':
+                svl.ui.streetview.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/openhand.cur) 4 4, move");
+                break;
+            case 'ClosedHand':
+                svl.ui.streetview.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/closedhand.cur) 4 4, move");
+                break;
+            default:
+                svl.ui.streetview.viewControlLayer.css("cursor", "default");
+        }
+    }
+
+    /**
+     * Callback that is fired with the mousedown event on the view control layer (where you control street view angle).
+     * @param e
+     */
+    function _handlerViewControlLayerMouseDown(e) {
+        const currMousePosition = util.mouseposition(e, this);
+        mouseStatus.isLeftDown = true;
+        svl.tracker.push('ViewControl_MouseDown', currMousePosition);
+        _setViewControlLayerCursor('ClosedHand');
+    }
+
+    /**
+     * Callback on mouse up event on the view control layer (where you change the Google Street view angle).
+     * @param e
+     */
+    function _handlerViewControlLayerMouseUp(e) {
+        const currMousePosition = util.mouseposition(e, this);
+        mouseStatus.isLeftDown = false;
+        svl.tracker.push('ViewControl_MouseUp', currMousePosition);
+        _setViewControlLayerCursor('OpenHand');
+        const currTime = new Date();
+
+        const selectedLabel = svl.canvas.onLabel(currMousePosition.x, currMousePosition.y);
+        if (selectedLabel && selectedLabel.className === "Label") {
+            svl.canvas.setCurrentLabel(selectedLabel);
+
+            if ('contextMenu' in svl) {
+                if (status.contextMenuWasOpen) {
+                    svl.contextMenu.hide();
+                } else {
+                    svl.contextMenu.show(selectedLabel);
+                }
+                status.contextMenuWasOpen = false;
+            }
+        } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
+            // Continue logging double click. We don't have any features for it now, but it's good to know how
+            // frequently people are trying to double-click. They might be trying to zoom?
+            svl.tracker.push('ViewControl_DoubleClick');
+        }
+        _setViewControlLayerCursor('OpenHand');
+        mouseStatus.prevMouseUpTime = currTime;
+    }
+
+    function _handlerViewControlLayerMouseLeave(e) {
+        _setViewControlLayerCursor('OpenHand');
+        mouseStatus.isLeftDown = false;
+    }
+
+    /**
+     * Callback that is fired when a user moves a mouse on the view control layer where you change the pov.
+     */
+    function _handlerViewControlLayerMouseMove(e) {
+        const currMousePosition = util.mouseposition(e, this);
+
+        // Show/hide navigation arrows.
+        if (!status.disableWalking) {
+            svl.panoManager.showNavArrows();
+        } else {
+            svl.panoManager.hideNavArrows();
+        }
+
+        if (mouseStatus.isLeftDown && svl.panoManager.getStatus('disablePanning') === false) {
+            // If a mouse is being dragged on the control layer, move the pano.
+            const pov = svl.panoViewer.getPov();
+            const zoomScaling = Math.pow(2, pov.zoom);
+            const dx = (currMousePosition.x - mouseStatus.prevX) / zoomScaling;
+            const dy = (currMousePosition.y - mouseStatus.prevY) / zoomScaling;
+            svl.panoManager.updatePov(dx, dy);
+        }
+
+        // Show label delete menu.
+        var item = svl.canvas.onLabel(currMousePosition.x, currMousePosition.y);
+        if (item && item.className === "Label") {
+            var selectedLabel = item;
+            svl.canvas.setCurrentLabel(selectedLabel);
+            svl.canvas.showLabelHoverInfo(selectedLabel);
+            svl.canvas.clear().render();
+        } else {
+            svl.canvas.showLabelHoverInfo(undefined);
+            svl.canvas.setCurrentLabel(undefined);
+        }
+
+        mouseStatus.prevX = currMousePosition.x;
+        mouseStatus.prevY = currMousePosition.y;
+    }
     /**
      * When mousing out of the canvas, stop trying to add a label type, switching back to Explore mode.
      */
-    function handleDrawingLayerMouseOut(e) {
+    function _handleDrawingLayerMouseOut(e) {
         svl.tracker.push('LabelingCanvas_MouseOut');
         if (!svl.isOnboarding())
             ribbon.backToWalk();
@@ -130,64 +221,48 @@ function Canvas(ribbon) {
     /**
      * Record locations of mouse-down event. Most functionality happens on mouse-up, but mouse-down context matters.
      */
-    function handleDrawingLayerMouseDown(e) {
-        mouseStatus.isLeftDown = true;
-        mouseStatus.leftDownX = util.mouseposition(e, this).x;
-        mouseStatus.leftDownY = util.mouseposition(e, this).y;
-        mouseStatus.prevMouseDownTime = new Date();
-        svl.tracker.push('LabelingCanvas_MouseDown', {x: mouseStatus.leftDownX, y: mouseStatus.leftDownY});
+    function _handleDrawingLayerMouseDown(e) {
+        svl.tracker.push('LabelingCanvas_MouseDown', util.mouseposition(e, this));
     }
 
     /**
      * Create a new label on mouse-up if we are in a labeling mode.
      */
-    function handleDrawingLayerMouseUp(e) {
-        var currTime = new Date();
-        mouseStatus.isLeftDown = false;
-        mouseStatus.leftUpX = util.mouseposition(e, this).x;
-        mouseStatus.leftUpY = util.mouseposition(e, this).y;
+    function _handleDrawingLayerMouseUp(e) {
+        const currMousePosition = util.mouseposition(e, this);
 
-        if (!status.disableLabeling && currTime - mouseStatus.prevMouseUpTime > 300) {
-            createLabel(mouseStatus.leftUpX, mouseStatus.leftUpY);
+        if (!status.disableLabeling) {
+            createLabel(currMousePosition.x, currMousePosition.y);
             clear();
             setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
             render();
         }
 
-        svl.tracker.push('LabelingCanvas_MouseUp', { x: mouseStatus.leftUpX, y: mouseStatus.leftUpY });
-        mouseStatus.prevMouseUpTime = new Date();
-        mouseStatus.prevMouseDownTime = 0;
+        svl.tracker.push('LabelingCanvas_MouseUp', currMousePosition);
         svl.form.submitData();
     }
 
     /**
      * Update the canvas based on a mouse-mouse event: changing cursor, re-rendering, etc.
      */
-    function handleDrawingLayerMouseMove(e) {
-        var mousePosition = mouseposition(e, this);
-        mouseStatus.currX = mousePosition.x;
-        mouseStatus.currY = mousePosition.y;
-
+    function _handleDrawingLayerMouseMove(e) {
         // Change the cursor according to the label type.
-        var iconImagePaths = util.misc.getIconImagePaths();
-        var labelType = ribbon.getStatus('mode');
+        const iconImagePaths = util.misc.getIconImagePaths();
+        const labelType = ribbon.getStatus('mode');
         if (labelType) {
-            var iconImagePath = iconImagePaths[labelType].iconImagePath;
-            var cursorUrl = "url(" + iconImagePath + ") 19 19, auto";
             // Need to reset the cursor first, otherwise Safari strangely doesn't update the cursor.
             $(this).css('cursor', '');
-            $(this).css('cursor', cursorUrl);
+            $(this).css('cursor', `url(${iconImagePaths[labelType].iconImagePath}) 19 19, auto`);
         }
         clear();
         render();
-        mouseStatus.prevX = mouseposition(e, this).x;
-        mouseStatus.prevY = mouseposition(e, this).y;
     }
 
     /**
      * Delete a label. Called when a user clicks a label's delete icon.
+     * @private
      */
-    function labelDeleteIconClick() {
+    function _labelDeleteIconClick() {
         if (!status.disableLabelDelete) {
             var currLabel = self.getCurrentLabel();
             // If in tutorial, only delete if it's the last label that the user added to the canvas.

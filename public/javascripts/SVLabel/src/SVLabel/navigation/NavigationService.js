@@ -1,14 +1,12 @@
 /**
  * Handles navigation logic, and keeps the minimap and panorama in sync.
- * @param canvas
  * @param neighborhoodModel
- * @param uiMap
+ * @param uiStreetview
  * @returns {{className: string}}
  * @constructor
  */
-function NavigationService (canvas, neighborhoodModel, uiMap) {
+function NavigationService (neighborhoodModel, uiStreetview) {
     let self = { className: 'Map' },
-        _canvas = canvas,
         properties = {
             browser : 'unknown'
         },
@@ -29,35 +27,11 @@ function NavigationService (canvas, neighborhoodModel, uiMap) {
 
     let initialPositionUpdate = true;
     const END_OF_STREET_THRESHOLD = 25; // Distance from the endpoint of the street when we consider it complete (meters).
-    const moveDelay = 800;
-    // Move delay exists because too quick navigation causes rendering issues/black screens with no panos
-    // No current solution to check that pano view is completely loaded before navigating
-    // Hard delay is 2nd best option.
-
-    // Mouse status and mouse event callback functions
-    let mouseStatus = {
-        currX: 0,
-        currY: 0,
-        prevX: 0,
-        prevY: 0,
-        leftDownX: 0,
-        leftDownY: 0,
-        leftUpX: 0,
-        leftUpY: 0,
-        isLeftDown: false
-    };
+    const moveDelay = 800; // Move delay prevents users from spamming through a mission.
 
     function _init() {
         self.properties = properties; // Make properties public.
         properties.browser = util.getBrowser();
-
-        // Attach listeners to dom elements
-        uiMap.viewControlLayer.bind('mousedown', handlerViewControlLayerMouseDown);
-        uiMap.viewControlLayer.bind('mouseup', handlerViewControlLayerMouseUp);
-        uiMap.viewControlLayer.bind('mousemove', handlerViewControlLayerMouseMove);
-        uiMap.viewControlLayer.bind('mouseleave', handlerViewControlLayerMouseLeave);
-
-        uiMap.viewControlLayer[0].onselectstart = function () { return false; };
 
         // Add listeners to the SV panorama.
         // https://developers.google.com/maps/documentation/javascript/streetview#StreetViewEvents
@@ -106,7 +80,7 @@ function NavigationService (canvas, neighborhoodModel, uiMap) {
         if (!status.lockDisableWalking) {
             // Disable clicking links and changing POV.
             svl.panoManager.hideNavArrows();
-            uiMap.modeSwitchWalk.css('opacity', 0.5);
+            uiStreetview.modeSwitchWalk.css('opacity', 0.5);
             status.disableWalking = true;
             // Disable forward and backwards keys
             svl.keyboard.setStatus("disableMovement", true);
@@ -122,7 +96,7 @@ function NavigationService (canvas, neighborhoodModel, uiMap) {
         if (!status.lockDisableWalking) {
             // Enable clicking links and changing POV.
             svl.panoManager.showNavArrows();
-            uiMap.modeSwitchWalk.css('opacity', 1);
+            uiStreetview.modeSwitchWalk.css('opacity', 1);
             status.disableWalking = false;
             // Enable forward and backward keys
             svl.keyboard.setStatus("disableMovement", false);
@@ -384,95 +358,6 @@ function NavigationService (canvas, neighborhoodModel, uiMap) {
     }
 
     /**
-     * Callback that is fired with the mousedown event on the view control layer (where you control street view angle).
-     * @param e
-     */
-    function handlerViewControlLayerMouseDown(e) {
-        mouseStatus.isLeftDown = true;
-        mouseStatus.leftDownX = mouseposition(e, this).x;
-        mouseStatus.leftDownY = mouseposition(e, this).y;
-        svl.tracker.push('ViewControl_MouseDown', { x: mouseStatus.leftDownX, y:mouseStatus.leftDownY });
-        setViewControlLayerCursor('ClosedHand');
-    }
-
-    /**
-     * Callback on mouse up event on the view control layer (where you change the Google Street view angle).
-     * @param e
-     */
-    function handlerViewControlLayerMouseUp(e) {
-        mouseStatus.isLeftDown = false;
-        mouseStatus.leftUpX = mouseposition(e, this).x;
-        mouseStatus.leftUpY = mouseposition(e, this).y;
-        svl.tracker.push('ViewControl_MouseUp', { x:mouseStatus.leftUpX, y:mouseStatus.leftUpY });
-        setViewControlLayerCursor('OpenHand');
-        const currTime = new Date();
-
-        const selectedLabel = _canvas.onLabel(mouseStatus.currX, mouseStatus.currY);
-        if (selectedLabel && selectedLabel.className === "Label") {
-            _canvas.setCurrentLabel(selectedLabel);
-
-            if ('contextMenu' in svl) {
-                if (status.contextMenuWasOpen) {
-                    svl.contextMenu.hide();
-                } else {
-                    svl.contextMenu.show(selectedLabel);
-                }
-                status.contextMenuWasOpen = false;
-            }
-        } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
-            // Continue logging double click. We don't have any features for it now, but it's good to know how
-            // frequently people are trying to double-click. They might be trying to zoom?
-            svl.tracker.push('ViewControl_DoubleClick');
-        }
-        setViewControlLayerCursor('OpenHand');
-        mouseStatus.prevMouseUpTime = currTime;
-    }
-
-    function handlerViewControlLayerMouseLeave(e) {
-        setViewControlLayerCursor('OpenHand');
-        mouseStatus.isLeftDown = false;
-    }
-
-    /**
-     * Callback that is fired when a user moves a mouse on the view control layer where you change the pov.
-     */
-    function handlerViewControlLayerMouseMove(e) {
-        mouseStatus.currX = mouseposition(e, this).x;
-        mouseStatus.currY = mouseposition(e, this).y;
-
-        // Show/hide navigation arrows.
-        if (!status.disableWalking) {
-            svl.panoManager.showNavArrows();
-        } else {
-            svl.panoManager.hideNavArrows();
-        }
-
-        if (mouseStatus.isLeftDown && svl.panoManager.getStatus('disablePanning') === false) {
-            // If a mouse is being dragged on the control layer, move the pano.
-            const pov = svl.panoViewer.getPov();
-            const zoomScaling = Math.pow(2, pov.zoom);
-            const dx = (mouseStatus.currX - mouseStatus.prevX) / zoomScaling;
-            const dy = (mouseStatus.currY - mouseStatus.prevY) / zoomScaling;
-            svl.panoManager.updatePov(dx, dy);
-        }
-
-        // Show label delete menu.
-        var item = _canvas.onLabel(mouseStatus.currX, mouseStatus.currY);
-        if (item && item.className === "Label") {
-            var selectedLabel = item;
-            _canvas.setCurrentLabel(selectedLabel);
-            _canvas.showLabelHoverInfo(selectedLabel);
-            _canvas.clear().render();
-        } else {
-            _canvas.showLabelHoverInfo(undefined);
-            _canvas.setCurrentLabel(undefined);
-        }
-
-        mouseStatus.prevX = mouseposition(e, this).x;
-        mouseStatus.prevY = mouseposition(e, this).y;
-    }
-
-    /**
      * This method locks status.disableWalking.
      * @returns {lockDisableWalking}
      */
@@ -483,35 +368,22 @@ function NavigationService (canvas, neighborhoodModel, uiMap) {
 
     // Moves label drawing layer to the top and hides navigation arrows.
     function switchToLabelingMode() {
-        uiMap.drawingLayer.css('z-index','1');
-        uiMap.viewControlLayer.css('z-index', '0');
+        uiStreetview.drawingLayer.css('z-index','1');
+        uiStreetview.viewControlLayer.css('z-index', '0');
 
         // TODO test if this is still necessary.
         if (properties.browser === 'mozilla') {
-            uiMap.drawingLayer.append(uiMap.canvas);
+            uiStreetview.drawingLayer.append(uiStreetview.canvas);
         }
         svl.panoManager.hideNavArrows();
     }
 
     // Moves label drawing layer to the bottom. Shows navigation arrows if walk is enabled.
     function switchToExploreMode() {
-        uiMap.viewControlLayer.css('z-index', '1');
-        uiMap.drawingLayer.css('z-index','0');
+        uiStreetview.viewControlLayer.css('z-index', '1');
+        uiStreetview.drawingLayer.css('z-index','0');
         if (!status.disableWalking) {
             svl.panoManager.showNavArrows();
-        }
-    }
-
-    function setViewControlLayerCursor(type) {
-        switch(type) {
-            case 'OpenHand':
-                uiMap.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/openhand.cur) 4 4, move");
-                break;
-            case 'ClosedHand':
-                uiMap.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/closedhand.cur) 4 4, move");
-                break;
-            default:
-                uiMap.viewControlLayer.css("cursor", "default");
         }
     }
 
