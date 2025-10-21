@@ -104,16 +104,16 @@ function Task (geojson, tutorialTask, currentLat, currentLng) {
      * @private
      */
     this.getGooglePolylines = function (lat, lng) {
-        var auditedCoordinates = this._getPointsOnAuditedSegments();
-        var unauditedCoordinates = this._getPointsOnUnauditedSegments();
-        var completedPath = [];
-        var incompletePath = [];
+        const auditedCoordinates = this._getPointsOnAuditedSegments();
+        const unauditedCoordinates = this._getPointsOnUnauditedSegments();
+        let completedPath = [];
+        let incompletePath = [];
 
-        for (var i = 0, len = auditedCoordinates.length; i < len; i++) {
+        for (let i = 0, len = auditedCoordinates.length; i < len; i++) {
             completedPath.push(new google.maps.LatLng(auditedCoordinates[i][1], auditedCoordinates[i][0]));
         }
 
-        for (var i = 0, len = unauditedCoordinates.length; i < len; i++) {
+        for (let i = 0, len = unauditedCoordinates.length; i < len; i++) {
             incompletePath.push(new google.maps.LatLng(unauditedCoordinates[i][1], unauditedCoordinates[i][0]));
         }
 

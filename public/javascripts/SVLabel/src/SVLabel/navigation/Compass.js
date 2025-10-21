@@ -70,14 +70,6 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         return true;
     }
 
-    function _jumpBackToTheRoute() {
-        var task = taskContainer.getCurrentTask();
-        var coordinate = task.getStartCoordinate();
-        navigationService.preparePovReset();
-        navigationService.setPosition(coordinate.lat, coordinate.lng);
-        svl.panoManager.setPovToRouteDirection();
-    }
-
     function enableCompassClick() {
         uiCompass.messageHolder.on('click', _handleCompassClick);
         uiCompass.messageHolder.css('cursor', 'pointer');
@@ -113,8 +105,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
 
         var task = taskContainer.getAfterJumpNewTask();
         taskContainer.setCurrentTask(task);
-        svl.navigationService.enableWalking(); // Needed so you can click during the 1 second after taking a step.
-        navigationService.moveToTheTaskLocation(task, true);
+        navigationService.moveForward();
         svl.jumpModel.triggerUserClickJumpMessage();
     }
 
@@ -335,7 +326,9 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
             }
         } else {
             svl.tracker.push('Click_Compass_FarFromRoute');
-            _jumpBackToTheRoute();
+            navigationService.preparePovReset();
+            navigationService.moveForward();
+            svl.panoManager.setPovToRouteDirection();
         }
     }
     enableCompassClick();

@@ -69,11 +69,8 @@ class PanoViewer {
         throw new Error('setPano(panoId) must be implemented by subclass');
     }
 
-    // Move in the direction of a link closest to a given angle.
-    // TODO I think that this function could make the angle an option, if none supplied than it's just the Stuck button.
-    // this._movePano -- and this could maybe use the stuck button functionality as a fallback..?
-    async moveToNextPano(angle) {
-        throw new Error('moveToNextPano(angle) must be implemented by subclass');
+    getLinkedPanos() {
+        throw new Error('getLinkedPanos() must be implemented by subclass');
     }
 
     /**

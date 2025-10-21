@@ -83,28 +83,17 @@ class Infra3dViewer extends PanoViewer {
         return this.viewer.moveToKey(panoId);
     }
 
-    // Move in the direction of a link closest to a given angle.
-    // TODO I think that this function could make the angle an option, if none supplied than it's just the Stuck button.
-    moveToNextPano = async (angle) => {
-        // if (googleMap.getStatus("disableWalking")) return; // TODO do we make this a func of PanoViewer?
-
-        // Take the cosine of the difference bw each link & the current heading in radians and stores them to an array.
-        const cosines = this.currentLinks.map(function(link) {
+    getLinkedPanos = () => {
+        return this.currentLinks.map(function(link) {
+            console.log(link);
             // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the X-axis in
             // a spherical coordinate system", so we need to adjust it to be like a compass heading.
-            const linkHeading = (Math.PI - link.worldMotionAzimuth) % (2 * Math.PI);
-            const headingAngleOffset = util.math.toRadians(svl.panoViewer.panorama.pov.heading + angle) - linkHeading;
-            return Math.cos(headingAngleOffset);
+            return {
+                panoId: link.to,
+                heading: util.math.toDegrees((Math.PI - link.worldMotionAzimuth) % (2 * Math.PI))
+            };
         });
-        const maxVal = Math.max.apply(null, cosines);
-        const maxIndex = cosines.indexOf(maxVal);
-        if (cosines[maxIndex] > 0.5) {
-            await this.setPano(this.currentLinks[maxIndex].to);
-            return true;
-        } else {
-            return false;
-        }
-    };
+    }
 
     getPov = () => {
         const current_view = this.viewer.getCameraView();

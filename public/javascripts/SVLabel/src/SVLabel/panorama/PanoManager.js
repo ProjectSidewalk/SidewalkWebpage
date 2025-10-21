@@ -2,7 +2,6 @@ async function PanoManager (panoViewerType, params = {}) {
     let panoCanvas = document.getElementById('pano');
     let status = {
         bottomLinksClickable: false,
-        panoLinkListenerSet: false,
         disablePanning: false,
         lockDisablePanning: false
     };
@@ -18,7 +17,7 @@ async function PanoManager (panoViewerType, params = {}) {
     // Used while calculation of canvas coordinates during rendering of labels
     // TODO: Refactor it to be included in the status variable above so that we can use
     // setStatus("povChange", true); Instead of povChange["status"] = true;
-    var povChange = {
+    let povChange = {
         status: false
     };
 
@@ -30,13 +29,19 @@ async function PanoManager (panoViewerType, params = {}) {
      */
     async function _init() {
         const panoOptions = {
-            linksControl: true,
             keyboardShortcuts: true
         }
 
         // Load the pano viewer.
         svl.panoViewer = await panoViewerType.create(panoCanvas, panoOptions);
         svl.panoViewer.addListener('pov_changed', _handlerPovChange);
+
+        // Adds event listeners to the navigation arrows.
+        $('#arrow-group').on('click', (event) => {
+            event.stopPropagation();
+            const targetPanoId = event.target.getAttribute('pano-id');
+            if (targetPanoId) svl.navigationService.moveToPano(event.target.getAttribute('pano-id'));
+        });
 
         if (panoViewerType === GsvViewer) {
             _panoChangeSuccessCallbackHelper = _successCallbackHelperGsv;
@@ -52,7 +57,9 @@ async function PanoManager (panoViewerType, params = {}) {
         }
 
         // TODO we probably need to do this for any viewer type...
-        linksListener = svl.panoViewer.panorama.addListener('links_changed', makeArrowsAndLinksClickable);
+        linksListener = svl.panoViewer.panorama.addListener('links_changed', _makeLinksClickable);
+
+        resetNavArrows();
 
         // Issue: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2468
         // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
@@ -90,7 +97,7 @@ async function PanoManager (panoViewerType, params = {}) {
      * @private
      */
     function _successCallbackHelperGsv(data) {
-        var panoId = svl.panoViewer.getPanoId();
+        const panoId = svl.panoViewer.getPanoId();
 
         // Record the pano metadata.
         svl.panoStore.addPanoMetadata(panoId, data);
@@ -110,7 +117,7 @@ async function PanoManager (panoViewerType, params = {}) {
      * @private
      */
     function _panoSuccessCallback(data) {
-        var panoId = svl.panoViewer.getPanoId();
+        const panoId = svl.panoViewer.getPanoId();
 
         if (typeof panoId === "undefined" || panoId.length === 0) {
             if ('compass' in svl) svl.compass.update();
@@ -132,7 +139,6 @@ async function PanoManager (panoViewerType, params = {}) {
         }
         // povChange["status"] = false;
 
-        // console.log(data);
         svl.tracker.push("PanoId_Changed", {
             panoId: panoId,
             lat: panoramaPosition.lat,
@@ -152,31 +158,18 @@ async function PanoManager (panoViewerType, params = {}) {
 
     // TODO I'd like to pass the pano ID or lat/lng in to here if possible?
     function _panoFailureCallback(error) {
-        const currentTask = svl.taskContainer.getCurrentTask();
-        if (currentTask) {
-            util.misc.reportNoStreetView(currentTask.getStreetEdgeId());
-            // TODO not sure if below is the generic version that we want... It's from handleImageryNotFound().
-            // TODO it's not, in initNextTask currentTask is still set to the old task while we test the next one.
-            // console.error("Error Type: " + JSON.stringify(error) +
-            //     "\nNo Street View found at this location: " + panoId + " street " + currentTask.getStreetEdgeId() +
-            //     "\nNeed to move to a new location.");
-        }
-
-        svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoId});
-
-        // Move to a new location
-        svl.navigationService.jumpImageryNotFound(); // TODO it's private right now
-
-        console.error('Error loading panorama:', error);
+        // TODO is there anything that we need to log here? Or should we just remove this callback entirely?
+        // - NavigationService will handle marking streets as having no imagery, etc.
         return Promise.resolve();
     }
 
     /**
-     * This method brings the links (<, >) to the view control layer so that a user can click them to walk around.
+     * Moves the buttons on the bottom-right of the GSV image to the top layer so they are clickable.
+     * @private
      */
-    const makeArrowsAndLinksClickable = function() {
+    const _makeLinksClickable = function() {
         // Bring the links on the bottom of GSV and the mini map to the top layer so they are clickable.
-        var bottomLinks = $('.gm-style-cc');
+        let bottomLinks = $('.gm-style-cc');
         if (!status.bottomLinksClickable && bottomLinks.length > 7) {
             status.bottomLinksClickable = true;
             bottomLinks[0].remove(); // Remove GSV keyboard shortcuts link.
@@ -187,27 +180,57 @@ async function PanoManager (panoViewerType, params = {}) {
             svl.ui.minimap.overlay.append($(bottomLinks[8]).parent().parent());
         }
 
-        // Bring the layer with arrows forward.
-        var $navArrows = svl.ui.map.pano.find('svg').parent();
-        svl.ui.map.viewControlLayer.append($navArrows);
-
-        // Add an event listener to the nav arrows to log their clicks.
-        if (!status.panoLinkListenerSet && $navArrows.length > 0) {
-            // TODO We are adding click events to extra elements that don't need it, we shouldn't do that :)
-            $navArrows[0].addEventListener('click', function (e) {
-                var targetPanoId = e.target.getAttribute('pano');
-                if (targetPanoId) {
-                    svl.tracker.push('WalkTowards', {'TargetPanoId': targetPanoId});
-                }
-            });
-            status.panoLinkListenerSet = true;
-        }
-
         if (util.getBrowser() === 'mozilla') {
             // A bug in Firefox? The canvas in the div element with the largest z-index.
             svl.ui.map.viewControlLayer.append(svl.ui.map.canvas);
         }
         google.maps.event.removeListener(linksListener);
+    }
+
+    function hideNavArrows() {
+        $('#nav-arrows').hide();
+    }
+
+    function showNavArrows() {
+        $('#nav-arrows').show();
+    }
+
+    /**
+     * Removes old navigation arrows and creates new ones based on available links from the current pano.
+     */
+    function resetNavArrows() {
+        // TODO arrowGroup should be stored in svl.ui.
+        const arrowGroup = document.getElementById('arrow-group');
+
+        // Clear existing arrows.
+        while (arrowGroup.firstChild) {
+            arrowGroup.removeChild(arrowGroup.firstChild);
+        }
+
+        // Create an arrow for each link, rotated to its direction.
+        const links = svl.panoViewer.getLinkedPanos();
+        links.forEach(link => {
+            const arrow = _createArrow();
+            const normalizedHeading = (link.heading + 360) % 360;
+            arrow.setAttribute('transform', `translate(15, 0) rotate(${normalizedHeading}, 15, 30)`);
+            arrow.setAttribute('pano-id', link.panoId);
+            arrowGroup.appendChild(arrow);
+        });
+    }
+
+    /**
+     * Create an svg navigation arrow.
+     * TODO move this to icons.scala.html once we've settled on a design, or get one from FontAwesome/NounProject.
+     * @returns {SVGPathElement}
+     * @private
+     */
+    function _createArrow() {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M15 0 L25 10 L20 10 L20 20 L10 20 L10 10 L5 10 Z');
+        path.setAttribute('fill', 'white');
+        path.setAttribute('stroke', 'black');
+        path.setAttribute('stroke-width', '2');
+        return path;
     }
 
     function updateCanvas() {
@@ -218,20 +241,21 @@ async function PanoManager (panoViewerType, params = {}) {
         status.currPanoId = svl.panoViewer.getPanoId();
         svl.canvas.render();
     }
-    this.updateCanvas = updateCanvas;
 
     /**
      * Callback for pov update.
      */
     function _handlerPovChange() {
         // povChange["status"] = true;
-        if (svl.canvas) { // TODO this if statement is new, need to decide when each thing is initialized.
-            updateCanvas();
-        }
+        updateCanvas();
         // povChange["status"] = false;
 
-        if ("compass" in svl) { svl.compass.update(); }
-        if ("observedArea" in svl) { svl.observedArea.update(); }
+        svl.compass.update();
+        svl.observedArea.update();
+
+        const arrowGroup = document.getElementById('arrow-group');
+        const heading = svl.panoViewer.getPov().heading;
+        arrowGroup.setAttribute('transform', `rotate(${-heading})`);
 
         svl.tracker.push("POV_Changed");
     }
@@ -441,6 +465,7 @@ async function PanoManager (panoViewerType, params = {}) {
 
     /**
      * Make navigation arrows blink.
+     * TODO needs to be updated to work with new arrow implementation.
      */
     function blinkNavigationArrows() {
         setTimeout(() => {
@@ -515,6 +540,10 @@ async function PanoManager (panoViewerType, params = {}) {
     self.setPov = setPov;
     self.setHeadingRange = setHeadingRange;
     self.setPovToRouteDirection = setPovToRouteDirection;
+    self.updateCanvas = updateCanvas;
+    self.hideNavArrows = hideNavArrows;
+    self.showNavArrows = showNavArrows;
+    self.resetNavArrows = resetNavArrows;
     self.setPanorama = setPanorama;
     self.setLocation = setLocation;
     self.setZoom = setZoom;

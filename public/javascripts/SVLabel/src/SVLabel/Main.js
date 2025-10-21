@@ -363,6 +363,10 @@ function Main (params) {
                 startTheMission(mission, currentNeighborhood);
             }
 
+            // Update the observed area now that everything has loaded.
+            svl.observedArea.panoChanged();
+            svl.observedArea.update();
+
             // Use CSS zoom to scale the UI for users with high resolution screens.
             // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
             if (bowser.safari) {

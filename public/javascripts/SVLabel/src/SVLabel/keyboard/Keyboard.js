@@ -24,7 +24,6 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
         focusOnTextField: false,
         isOnboarding: false,
         disableKeyboard: false,
-        moving: false,
         disableMovement: false
     };
 
@@ -34,60 +33,6 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
     this.enableKeyboard = function (){
         status.disableKeyboard = false;
     };
-    // Move in the direction of a link closest to a given angle.
-    // Todo: Get rid of dependency to svl.panoViewer.panorama. This might be a function to add to PanoViewer class.
-    // Todo. Make the method name more descriptive.
-    this._movePano = function(angle) {
-        if (navigationService.getStatus("disableWalking")) return;
-        // take the cosine of the difference for each link to the current heading in radians and stores them to an array
-        var cosines = svl.panoViewer.panorama.links.map(function(link) {
-            var headingAngleOffset = util.math.toRadians(svl.panoViewer.panorama.pov.heading + angle) - util.math.toRadians(link.heading);
-            return Math.cos(headingAngleOffset);
-        });
-        var maxVal = Math.max.apply(null, cosines);
-        var maxIndex = cosines.indexOf(maxVal);
-        if (cosines[maxIndex] > 0.5) {
-            var panoramaId = svl.panoViewer.panorama.links[maxIndex].pano;
-            navigationService.setPano(panoramaId);
-            return true;
-        } else {
-            return false;
-        }
-    };
-
-    /*
-       Move user in specific angle relative to current view for a specific moveTime.
-     */
-    function timedMove(angle, moveTime){
-        if (status.moving || svl.popUpMessage.getStatus("isVisible")){
-            svl.panoViewer.panorama.set("linksControl", false);
-            return;
-        }
-        svl.contextMenu.hide();
-        svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
-        var moveSuccess = self._movePano(angle);
-        if (moveSuccess) {
-            //prevent user input of walking commands
-            navigationService.timeoutWalking();
-            //restore user ability to walk after param moveTime
-            setTimeout(navigationService.resetWalking, moveTime);
-            //additional check to hide arrows after the fact
-            //pop-up may become visible during timeout period
-            if (svl.popUpMessage.getStatus('isVisible')){
-                svl.panoViewer.hideNavigationArrows();
-            }
-        }
-    }
-
-    this._moveForward = function (){
-        timedMove(0, navigationService.getMoveDelay());
-    };
-
-    this._moveBackward = function (){
-        timedMove(180, navigationService.getMoveDelay());
-    };
-
-
 
     /**
      * Change the heading of the current panorama point of view by a particular degree value.
@@ -134,10 +79,10 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
                         self._rotatePovByDegree(2);
                         break;
                     case "ArrowUp":
-                        if (!status.disableMovement) { self._moveForward(); }
+                        if (!status.disableMovement) { navigationService.moveToLinkedPano(0); }
                         break;
                     case "ArrowDown":
-                        if (!status.disableMovement) { self._moveBackward(); }
+                        if (!status.disableMovement) { navigationService.moveToLinkedPano(180); }
                         break;
                 }
             }

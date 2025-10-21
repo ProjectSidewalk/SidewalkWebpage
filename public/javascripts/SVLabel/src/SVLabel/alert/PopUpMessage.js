@@ -25,7 +25,7 @@ function PopUpMessage (form, taskContainer, tracker, user, onboardingModel, uiPo
     };
 
     function disableInteractions () {
-        svl.panoViewer.hideNavigationArrows();
+        svl.panoManager.hideNavArrows();
         svl.navigationService.disableWalking();
         svl.panoManager.unlockDisablePanning();
         svl.panoManager.disablePanning();
@@ -33,7 +33,7 @@ function PopUpMessage (form, taskContainer, tracker, user, onboardingModel, uiPo
         svl.keyboard.disableKeyboard();
     }
     function enableInteractions () {
-        svl.panoViewer.showNavigationArrows();
+        svl.panoManager.showNavArrows();
         svl.navigationService.enableWalking();
         svl.panoManager.enablePanning();
         svl.canvas.enableLabeling();

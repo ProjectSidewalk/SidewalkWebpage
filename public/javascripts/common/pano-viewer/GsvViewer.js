@@ -109,27 +109,11 @@ class GsvViewer extends PanoViewer {
         return this.streetViewService.getPanorama({ pano: panoId }).then(this._getPanoramaCallback);
     }
 
-    // Move in the direction of a link closest to a given angle.
-    // TODO I think that this function could make the angle an option, if none supplied than it's just the Stuck button.
-    // TODO should this also be async?
-    moveToNextPano = async (angle) => {
-        if (googleMap.getStatus("disableWalking")) return; // TODO do we make this a func of PanoViewer?
-
-        // Take the cosine of the difference for each link to current heading in radians and stores them in an array.
-        const cosines = this.panorama.links.map(function(link) {
-            const headingAngleOffset = util.math.toRadians(this.panorama.pov.heading + angle) - util.math.toRadians(link.heading);
-            return Math.cos(headingAngleOffset);
+    getLinkedPanos = () => {
+        return this.panorama.links.map(function(link) {
+            return { panoId: link.pano, heading: link.heading };
         });
-        const maxVal = Math.max.apply(null, cosines);
-        const maxIndex = cosines.indexOf(maxVal);
-        if (cosines[maxIndex] > 0.5) {
-            const panoramaId = this.panorama.links[maxIndex].pano;
-            this.setPano(panoramaId);
-            return true;
-        } else {
-            return false;
-        }
-    };
+    }
 
     getPov = () => {
         // Get POV and adjust heading to be between 0 and 360.

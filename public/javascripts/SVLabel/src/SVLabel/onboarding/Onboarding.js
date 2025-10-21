@@ -614,7 +614,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         // When they click OK, then the POV changes.
         if (typeof google != "undefined") {
             googleCallback = function () {
-                navigationService.setPano(state.panoId, true);
+                navigationService.moveToPano(state.panoId, true);
                 google.maps.event.removeListener(googleTarget);
             };
 
@@ -628,9 +628,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
                 if (listener) google.maps.event.removeListener(listener);
                 $target.off("click", callback);
                 next.call(this, state.transition);
-                navigationService.setPano(state.panoId, true);
+                navigationService.moveToPano(state.panoId, true);
                 svl.panoManager.setPov(pov);
-                navigationService.setPosition(state.properties.lat, state.properties.lng);
 
                 compass.hideMessage();
             }
@@ -653,7 +652,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
 
         // Allow clicking on the navigation message to move to the next pano.
         var clickToNextPano = function() {
-            navigationService.setPano(nextPanoId, true);
+            navigationService.moveToPano(nextPanoId, true);
         }
         svl.ui.compass.messageHolder.on('click', clickToNextPano);
         svl.ui.compass.messageHolder.css('cursor', 'pointer');
@@ -675,7 +674,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             } else {
                 console.error("Pano mismatch. Shouldn't reach here");
                 // Force the interface to go to the correct position.
-                navigationService.setPano(nextPanoId, true);
+                navigationService.moveToPano(nextPanoId, true);
             }
         };
 

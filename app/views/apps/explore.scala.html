@@ -365,12 +365,13 @@
                     </div>
                     <div id="userControlLayer"  class="window-streetview" style="z-index: 0;">
                         <div id="view-control-layer"  class="window-streetview" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 1;">
-                            <!-- In IE, it seems like a div element that has nothing inside gets neglected...
-                                So I put an empty canvas as a placeholder.
-                            -->
-                            <!--[if IE]>
-                            <canvas width="720px" height="480px"  class="window-streetview" style=""></canvas>
-                            <![endif]-->
+                            <div id="nav-arrows-container">
+                                <svg width="60" height="60" viewbox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+                                    <g id="arrow-group" transform-origin="center">
+                                        <!-- Arrows will be added here dynamically -->
+                                    </g>
+                                </svg>
+                            </div>
                         </div>
                         <div id="labelDrawingLayer"  class="window-streetview" style="z-index: 0;">
                             <canvas id="label-canvas"  class="window-streetview" width="720px" height="480px" style="cursor: default, move;"></canvas>

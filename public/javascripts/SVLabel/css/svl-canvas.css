@@ -17,6 +17,14 @@
     width: 720px;
 }
 
+#nav-arrows-container {
+    position: absolute;
+    top: 60%;
+    left: calc(50% - 30px);
+    width: 60px;
+    height: 60px;
+}
+
 #delete-icon-holder {
     cursor: pointer;
     visibility: hidden;
