@@ -51,9 +51,7 @@ async function PanoManager (panoViewerType, params = {}) {
 
         // Move to the specified starting location.
         // TODO The page totally fails to load if we fail to get imagery at the start location.
-        if (panoViewerType === Infra3dViewer) {
-            await setPanorama('vps_baden@meta_ch_baden_masterdemo_v3/114-41');
-        } else if ('startPanoId' in params) {
+        if ('startPanoId' in params) {
             await setPanorama(params.startPanoId);
         } else if ('startLat' in params && 'startLng' in params) {
             await setLocation({lat: params.startLat, lng: params.startLng });
@@ -64,7 +62,8 @@ async function PanoManager (panoViewerType, params = {}) {
             linksListener = svl.panoViewer.panorama.addListener('links_changed', _makeLinksClickable);
         }
 
-        resetNavArrows();
+        // TODO with Infra3d, getLinkedPanos doesn't work right away, adding a timeout to show the arrows for now...
+        window.setTimeout(() => resetNavArrows(), 1000);
 
         // Issue: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2468
         // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
@@ -121,7 +120,7 @@ async function PanoManager (panoViewerType, params = {}) {
      * @param data The pano data returned from the StreetViewService (if using GsvViewer)
      * @private
      */
-    function _panoSuccessCallback(data) {
+    async function _panoSuccessCallback(data) {
         const panoId = svl.panoViewer.getPanoId();
 
         if (typeof panoId === "undefined" || panoId.length === 0) {
@@ -163,7 +162,7 @@ async function PanoManager (panoViewerType, params = {}) {
     }
 
     // TODO I'd like to pass the pano ID or lat/lng in to here if possible?
-    function _panoFailureCallback(error) {
+    async function _panoFailureCallback(error) {
         // TODO is there anything that we need to log here? Or should we just remove this callback entirely?
         // - NavigationService will handle marking streets as having no imagery, etc.
         return Promise.resolve();

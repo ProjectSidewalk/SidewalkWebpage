@@ -5,8 +5,8 @@
 @import play.api.libs.json.Json
 @import service.{CommonPageData, ExplorePageData}
 @(
-        commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, data: ExplorePageData,
-        lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None
+    commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, data: ExplorePageData,
+    infra3dToken: String, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -790,6 +790,7 @@
         mainParam.cityNameShort = "@currentCity.cityNameShort";
         mainParam.mapboxApiKey = "@commonData.mapboxApiKey";
         mainParam.makeCrops = @data.makeCrops;
+        mainParam.infra3dToken = '@infra3dToken';
 
         window.appManager.ready(function () {
             new Main(mainParam);

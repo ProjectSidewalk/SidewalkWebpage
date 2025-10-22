@@ -29,7 +29,8 @@ class ExploreController @Inject() (
     configService: service.ConfigService,
     exploreService: service.ExploreService,
     missionService: service.MissionService,
-    aiService: service.AiService
+    aiService: service.AiService,
+    authService: service.AuthenticationService
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
 
@@ -69,7 +70,9 @@ class ExploreController @Inject() (
           exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion, routeId = None,
             resumeRoute, regionId = None, streetEdgeId = None)
       }
-      commonData <- configService.getCommonPageData(request2Messages.lang)
+      commonData           <- configService.getCommonPageData(request2Messages.lang)
+      infra3dToken: String <- authService.getInfra3dToken
+      _ = println(infra3dToken)
     } yield {
       // Log visit to the Explore page.
       val activityStr: String =
@@ -84,10 +87,10 @@ class ExploreController @Inject() (
       // If user is an admin and a panoId or lat/lng are supplied, send to that location, o/w send to street.
       (streetEdgeId, isAdmin(user), panoId, lat, lng) match {
         case (Some(s), true, Some(p), _, _) =>
-          Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, None, None, Some(p)))
+          Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, infra3dToken, None, None, Some(p)))
         case (Some(s), true, _, Some(lt), Some(lg)) =>
-          Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg)))
-        case _ => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData))
+          Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, infra3dToken, Some(lt), Some(lg)))
+        case _ => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, infra3dToken))
       }
     }
   }

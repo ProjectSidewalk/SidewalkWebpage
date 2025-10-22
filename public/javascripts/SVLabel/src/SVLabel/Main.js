@@ -39,6 +39,7 @@ function Main (params) {
         svl.cityName = params.cityName;
         svl.cityNameShort = params.cityNameShort;
         svl.makeCrops = params.makeCrops;
+        svl.infra3dToken = params.infra3dToken;
 
 
         svl.storage = new TemporaryStorage(JSON);
@@ -61,7 +62,7 @@ function Main (params) {
         const startLat = params.task.properties.current_lat;
         const startLng = params.task.properties.current_lng;
         svl.panoStore = new PanoStore();
-        svl.panoManager = await PanoManager(GsvViewer, { startLat: startLat, startLng: startLng });
+        svl.panoManager = await PanoManager(Infra3dViewer, { startLat: startLat, startLng: startLng });
         svl.minimap = new Minimap();
 
         svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);

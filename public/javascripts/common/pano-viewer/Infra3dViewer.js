@@ -6,15 +6,14 @@ class Infra3dViewer extends PanoViewer {
     constructor() {
         super();
         this.viewer = undefined;
-        this.currentLinks = [];
+        this.currentNode;
     }
 
     async initialize(canvasElem, panoOptions = {}) {
-        // const MY_ACCESS_TOKEN = YOUR_CUSTOM_FUNCTION_FOR_RETRIEVING_TOKENS;
-        const MY_ACCESS_TOKEN = await infra3dapi.getGuestAccessToken();
         const manager = await infra3dapi.init(
             canvasElem.id,
-            MY_ACCESS_TOKEN.access_token//,
+            svl.infra3dToken
+            // TODO idk if the user thing matters. As far as I can tell, it just adds a user in top-right corner.
             // {
             //   username: "Guest",  // or  userid: "YOUR_USERID" -- TODO
             //   email: "support@inovitas.ch" // TODO
@@ -57,8 +56,7 @@ class Infra3dViewer extends PanoViewer {
         // Set up listener for pano changes to track the current navigation arrows.
         // TODO for some reason spatialEdges is empty when loading the first pano.
         this.addListener("pano_changed", (node) => {
-            console.log('pano_changed', node);
-            this.currentLinks = node.spatialEdges.edges;
+            this.currentNode = node;
         });
     }
 
@@ -80,7 +78,7 @@ class Infra3dViewer extends PanoViewer {
         // Undefined params are height (deprecated) and distance (in meters). Distance is the max distance to move from
         // current position, so we don't really have a use for it.
         // TODO We'll have to do the radius check GSV does ourselves.
-        this.viewer.moveToPosition(easting, northing, undefined, undefined, 3857);
+        return this.viewer.moveToPosition(easting, northing, undefined, undefined, 3857);
     }
 
     setPano = async (panoId) => {
@@ -88,7 +86,7 @@ class Infra3dViewer extends PanoViewer {
     }
 
     getLinkedPanos = () => {
-        return this.currentLinks.map(function(link) {
+        return this.currentNode.spatialEdges.edges.map(function(link) {
             console.log(link);
             // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the X-axis in
             // a spherical coordinate system", so we need to adjust it to be like a compass heading.
