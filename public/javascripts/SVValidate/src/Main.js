@@ -172,7 +172,7 @@ function Main (param) {
         svv.tracker = new Tracker();
         svv.labelDescriptionBox = new LabelDescriptionBox();
 
-        svv.panoContainer = await PanoContainer(GsvViewer);
+        svv.panoContainer = await PanoContainer(Infra3dViewer);
         svv.labelContainer = await LabelContainer(param.labelList);
 
         // There are certain features that will only make sense on desktop.

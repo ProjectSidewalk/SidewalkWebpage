@@ -167,7 +167,7 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
                     }
                 }
 
-                var panoId = ("location" in panoData && "pano" in panoData.location) ? panoData.location.pano : "";
+                const panoId = ("location" in panoData && "pano" in panoData.location) ? panoData.location.pano : "";
                 temp = {
                     panorama_id: panoId,
                     capture_date: "imageDate" in panoData ? panoData.imageDate : "",

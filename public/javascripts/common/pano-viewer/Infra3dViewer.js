@@ -10,15 +10,7 @@ class Infra3dViewer extends PanoViewer {
     }
 
     async initialize(canvasElem, panoOptions = {}) {
-        const manager = await infra3dapi.init(
-            canvasElem.id,
-            svl.infra3dToken
-            // TODO idk if the user thing matters. As far as I can tell, it just adds a user in top-right corner.
-            // {
-            //   username: "Guest",  // or  userid: "YOUR_USERID" -- TODO
-            //   email: "support@inovitas.ch" // TODO
-            // }
-        );
+        const manager = await infra3dapi.init(canvasElem.id, svl.infra3dToken);
         const fetchedProjects = await manager.getProjects();
         const projectUID = fetchedProjects[0].uid;
 
@@ -118,13 +110,15 @@ class Infra3dViewer extends PanoViewer {
         const verticalAzimuth = (verticalOrientation + currentView.lat) % 360;
 
         // Convert the FOV to a zoom level that you'd see in GSV.
-        const zoom = this._getZoomFrom3dFov(currentView.fov);
+        // TODO hacky fix of multiplying fov by 1.3 to approximate the actual visible fov.
+        const zoom = this._getZoomFrom3dFov(currentView.fov * 1.3);
 
         return { heading: horizontalAzimuth, pitch: verticalAzimuth, zoom: zoom };
     }
 
     setPov = (pov) => {
         const currentNode = this.viewer.getCurrentNode();
+        const currView = this.viewer.getCameraView();
 
         // Calculate the base orientation from the node's position.
         const baseHeading = this._getHeading(currentNode.omega, currentNode.phi);
@@ -137,15 +131,22 @@ class Infra3dViewer extends PanoViewer {
         const requiredLat = (pov.pitch - basePitch + 360) % 360;
 
         // Convert to the range expected by setCameraView (typically -180 to 180).
-        const viewLng = requiredLng > 180 ? requiredLng - 360 : requiredLng;
-        const viewLat = requiredLat > 180 ? requiredLat - 360 : requiredLat;
-        const viewFov = pov.zoom ? this._get3dFov(pov.zoom) : this.viewer.getCameraView().fov;
+        let viewLng = requiredLng > 180 ? requiredLng - 360 : requiredLng;
+        let viewLat = requiredLat > 180 ? requiredLat - 360 : requiredLat;
+        // TODO hacky fix of dividing fov by 1.3 to approximate the actual visible fov.
+        const viewFov = pov.zoom ? this._get3dFov(pov.zoom) / 1.3 : currView.fov;
+
+        // TODO hacky fix: lat/lon are being rounded by setCameraView, so I'm requiring min whole number change.
+        if (Math.round(viewLng) === currView.lng && viewLng < currView.lng) { viewLng -= 1; }
+        else if (Math.round(viewLng) === currView.lng && viewLng > currView.lng) { viewLng += 1; }
+        if (Math.round(viewLat) === currView.lon && viewLng < currView.lon) { viewLat -= 1; }
+        if (Math.round(viewLat) === currView.lon && viewLng > currView.lon) { viewLat += 1; }
 
         // Set the camera view.
         this.viewer.setCameraView({
             type: 'pano',
-            lon: viewLng,
             lat: viewLat,
+            lon: viewLng,
             fov: viewFov
         });
     }

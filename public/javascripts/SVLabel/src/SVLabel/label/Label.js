@@ -84,7 +84,7 @@ function Label(params) {
 
         // Save pano data and calculate pano_x/y if the label is new.
         if (properties.panoXY === undefined) {
-            var panoData = svl.panoStore.getPanoData(properties.panoId).data();
+            const panoData = svl.panoStore.getPanoData(properties.panoId).data();
 
             properties.panoWidth = panoData.tiles.worldSize.width;
             properties.panoHeight = panoData.tiles.worldSize.height;
@@ -97,11 +97,9 @@ function Label(params) {
         }
 
         // Create the marker on the minimap.
-        if (typeof google !== "undefined" && google && google.maps) {
-            var latlng = toLatLng();
-            googleMarker = Label.createMinimapMarker(properties.labelType, latlng.lat, latlng.lng);
-            googleMarker.setMap(svl.minimap.getMap());
-        }
+        const latlng = toLatLng();
+        googleMarker = Label.createMinimapMarker(properties.labelType, latlng.lat, latlng.lng);
+        googleMarker.setMap(svl.minimap.getMap());
     }
 
     // Some functions for easy access to commonly accessed properties.

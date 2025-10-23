@@ -524,7 +524,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
 
         _updateUiBeforeMove();
 
-        await svl.panoViewer.setPano(panoId);
+        await svl.panoManager.setPanorama(panoId);
 
         _updateUiAfterMove();
 

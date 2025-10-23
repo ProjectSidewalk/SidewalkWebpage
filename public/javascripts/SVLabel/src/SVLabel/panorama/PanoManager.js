@@ -88,11 +88,34 @@ async function PanoManager (panoViewerType, params = {}) {
      * @private
      */
     function _successCallbackHelperInfra3d() {
-        // No pano history for Infra3D.
+        // Record the pano metadata.
+        const panoId = svl.panoViewer.getPanoId();
+        const currNode = svl.panoViewer.viewer.getCurrentNode();
+        const data = {
+            location: {
+                pano: panoId,
+                latLng: new google.maps.LatLng(currNode.lat, currNode.lon)
+            },
+            tiles: {
+                originHeading: svl.panoViewer._getHeading(currNode.omega, currNode.phi),
+                // TODO idk if this should be negated or not. And maybe we should defined a func in PanoViewer to get all data.
+                originPitch: svl.panoViewer._getPitch(currNode.omega, currNode.phi),
+                // TODO worldSize and tileSize are made up. Should create a new table for infra3d panos w/out tileSize.
+                worldSize: {
+                    width: 16500,
+                    height: 11000
+                },
+                tileSize: {
+                    width: 512,
+                    height: 512
+                }
+            },
+            imageDate: moment(currNode.date).format('YYYY-MM')
+        }
+        svl.panoStore.addPanoMetadata(panoId, data);
 
         // Show the pano date in the bottom-left corner.
-        const panoDate = svl.panoViewer.viewer.getCurrentNode().date;
-        document.getElementById("svl-panorama-date").innerText = moment(panoDate).format('MMM YYYY');
+        document.getElementById("svl-panorama-date").innerText = moment(currNode.date).format('MMM YYYY');
     }
 
     /**
@@ -121,6 +144,8 @@ async function PanoManager (panoViewerType, params = {}) {
      * @private
      */
     async function _panoSuccessCallback(data) {
+        // TODO Adding a short delay, because the panoId is still set to the old one after Infra3d Promise resolves.
+        await new Promise(resolve => setTimeout(resolve, 100))
         const panoId = svl.panoViewer.getPanoId();
 
         if (typeof panoId === "undefined" || panoId.length === 0) {
@@ -274,7 +299,7 @@ async function PanoManager (panoViewerType, params = {}) {
      * @param panoId    String representation of the Panorama ID
      */
     async function setPanorama(panoId) {
-        await svl.panoViewer.setPano(panoId).then(_panoSuccessCallback, _panoFailureCallback);
+        return svl.panoViewer.setPano(panoId).then(_panoSuccessCallback, _panoFailureCallback);
     }
 
     /**
@@ -282,7 +307,7 @@ async function PanoManager (panoViewerType, params = {}) {
      * @param latLng An object with properties lat and lng representing the desired location.
      */
     async function setLocation(latLng) {
-        await svl.panoViewer.setPosition(latLng).then(_panoSuccessCallback, _panoFailureCallback);
+        return svl.panoViewer.setPosition(latLng).then(_panoSuccessCallback, _panoFailureCallback);
     }
 
 
@@ -334,7 +359,7 @@ async function PanoManager (panoViewerType, params = {}) {
     function updatePov(dx, dy) {
         let pov = svl.panoViewer.getPov();
         // TODO not sure why Infra3d viewer pans so slowly, or doesn't pan at all if we dx/dy is small.
-        const viewerScaling = panoViewerType === Infra3dViewer ? 3 : 0.375;
+        const viewerScaling = panoViewerType === Infra3dViewer ? 2 : 0.375;
         pov.heading -= dx * viewerScaling;
         pov.pitch += dy * viewerScaling;
         pov = _restrictViewport(pov);

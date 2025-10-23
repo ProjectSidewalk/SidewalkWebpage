@@ -194,9 +194,9 @@ async function PanoContainer (panoViewerType) {
      * @param panoId    String representation of the Panorama ID
      */
     async function setPanorama(panoId) {
-        return svv.panoViewer.setPano(panoId).then(_setPanoCallback).then(() => {
+        // return svv.panoViewer.setPano(panoId).then(_setPanoCallback).then(() => {
         // return svv.panoViewer.setPosition({ lat: 47.47149597503096, lng: 8.30860179865082 }).then(_setPanoCallback).then(() => {
-        // return svv.panoViewer.setPano('vps_baden@meta_ch_baden_masterdemo_v3/114-41').then(_setPanoCallback).then(() => {
+        return svv.panoViewer.setPano('777a2f85-2e74-afd3-e383-cbd66d3331f5').then(_setPanoCallback).then(() => {
             setProperty("prevSetPanoTimestamp", new Date());
             svv.tracker.push('PanoId_Changed');
         });
