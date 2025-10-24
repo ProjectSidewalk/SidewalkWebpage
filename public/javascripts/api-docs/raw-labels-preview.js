@@ -203,7 +203,15 @@
             const center = this.getCenterFromRegion(regionData);
 
             // Create the map.
-            const map = L.map('raw-labels-map').setView(center, 16); // Start with zoom level 16.
+            const map = L.map('raw-labels-map', {
+                scrollWheelZoom: false, // disable wheel zoom so page scroll works
+                touchZoom: true,
+                zoomControl: true
+            }).setView(center, 16);
+
+            // Defensive: keep it off even if defaults change elsewhere.
+            map.scrollWheelZoom.disable();
+
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
