@@ -144,8 +144,6 @@ async function PanoManager (panoViewerType, params = {}) {
      * @private
      */
     async function _panoSuccessCallback(data) {
-        // TODO Adding a short delay, because the panoId is still set to the old one after Infra3d Promise resolves.
-        await new Promise(resolve => setTimeout(resolve, 100))
         const panoId = svl.panoViewer.getPanoId();
 
         if (typeof panoId === "undefined" || panoId.length === 0) {

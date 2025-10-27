@@ -7,6 +7,7 @@ class Infra3dViewer extends PanoViewer {
         super();
         this.viewer = undefined;
         this.currentNode;
+        this.currPanoId = null;
     }
 
     async initialize(canvasElem, panoOptions = {}) {
@@ -53,7 +54,7 @@ class Infra3dViewer extends PanoViewer {
     }
 
     getPanoId = () => {
-        return this.viewer.getCurrentNode().id;
+        return this.currPanoId ? this.currPanoId : this.viewer.getCurrentNode().id;
     }
 
     getPosition = () => {
@@ -70,11 +71,19 @@ class Infra3dViewer extends PanoViewer {
         // Undefined params are height (deprecated) and distance (in meters). Distance is the max distance to move from
         // current position, so we don't really have a use for it.
         // TODO We'll have to do the radius check GSV does ourselves.
-        return this.viewer.moveToPosition(easting, northing, undefined, undefined, 3857);
+        return this.viewer.moveToPosition(easting, northing, undefined, undefined, 3857).then(this._trackCurrPanoId);
     }
 
     setPano = async (panoId) => {
-        return this.viewer.moveToKey(panoId);
+        return this.viewer._sdk_viewer.moveToKey(panoId).then(this._trackCurrPanoId);
+    }
+
+    // Because some properties of the node haven't updated even after the Promise from moveToKey has resolved, we have
+    // to use an internal function that returns the node properties and save those. However, we both don't have this
+    // problem with moveToPosition _and_ the internal function doesn't seem to work the same way for it either. So we
+    // are using the normal API call there, and just set the currPanoId back to null in that case.
+    _trackCurrPanoId = async (node) => {
+        this.currPanoId = node ? node.frame.id : null;
     }
 
     getLinkedPanos = () => {
