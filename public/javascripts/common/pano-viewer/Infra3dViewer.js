@@ -109,9 +109,11 @@ class Infra3dViewer extends PanoViewer {
         // Add the orientation of the image to the camera.
         const verticalAzimuth = (verticalOrientation + currentView.lat) % 360;
 
-        // Convert the FOV to a zoom level that you'd see in GSV.
-        // TODO hacky fix of multiplying fov by 1.3 to approximate the actual visible fov.
-        const zoom = this._getZoomFrom3dFov(currentView.fov * 1.3);
+        // Convert from vertical fov to horizontal fov, then convert to a zoom level that you'd see in GSV.
+        const horizontalFov = util.math.toDegrees(
+            2 * Math.atan(Math.tan(util.math.toRadians(currentView.fov) / 2) * util.EXPLORE_CANVAS_ASPECT_RATIO)
+        );
+        const zoom = this._getZoomFrom3dFov(horizontalFov);
 
         return { heading: horizontalAzimuth, pitch: verticalAzimuth, zoom: zoom };
     }
@@ -133,8 +135,17 @@ class Infra3dViewer extends PanoViewer {
         // Convert to the range expected by setCameraView (typically -180 to 180).
         let viewLng = requiredLng > 180 ? requiredLng - 360 : requiredLng;
         let viewLat = requiredLat > 180 ? requiredLat - 360 : requiredLat;
-        // TODO hacky fix of dividing fov by 1.3 to approximate the actual visible fov.
-        const viewFov = pov.zoom ? this._get3dFov(pov.zoom) / 1.3 : currView.fov;
+
+        // If zoom was provided, convert to a horizontal fov, and then convert to the vertical fov used by infra3d.
+        let verticalFov;
+        if (pov.zoom) {
+            const horizontalFov = this._get3dFov(pov.zoom);
+            verticalFov = util.math.toDegrees(
+                2 * Math.atan(Math.tan(util.math.toRadians(horizontalFov / 2)) / util.EXPLORE_CANVAS_ASPECT_RATIO)
+            );
+        } else {
+            verticalFov = currView.fov;
+        }
 
         // TODO hacky fix: lat/lon are being rounded by setCameraView, so I'm requiring min whole number change.
         if (Math.round(viewLng) === currView.lng && viewLng < currView.lng) { viewLng -= 1; }
@@ -147,7 +158,7 @@ class Infra3dViewer extends PanoViewer {
             type: 'pano',
             lat: viewLat,
             lon: viewLng,
-            fov: viewFov
+            fov: verticalFov
         });
     }
 
