@@ -109,7 +109,7 @@ class GsvViewer extends PanoViewer {
         return this.streetViewService.getPanorama({ pano: panoId }).then(this._getPanoramaCallback);
     }
 
-    getLinkedPanos = () => {
+    getLinkedPanos = async () => {
         return this.panorama.links.map(function(link) {
             return { panoId: link.pano, heading: link.heading };
         });

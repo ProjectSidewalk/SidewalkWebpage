@@ -6,7 +6,8 @@ class Infra3dViewer extends PanoViewer {
     constructor() {
         super();
         this.viewer = undefined;
-        this.currentNode;
+        this.currentNode = null;
+        this.currLinks = null;
         this.currPanoId = null;
     }
 
@@ -47,7 +48,6 @@ class Infra3dViewer extends PanoViewer {
         }
 
         // Set up listener for pano changes to track the current navigation arrows.
-        // TODO for some reason spatialEdges is empty when loading the first pano.
         this.addListener("pano_changed", (node) => {
             this.currentNode = node;
         });
@@ -86,16 +86,34 @@ class Infra3dViewer extends PanoViewer {
         this.currPanoId = node ? node.frame.id : null;
     }
 
-    getLinkedPanos = () => {
-        return this.currentNode.spatialEdges.edges.map(function(link) {
-            console.log(link);
-            // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the X-axis in
-            // a spherical coordinate system", so we need to adjust it to be like a compass heading.
-            return {
-                panoId: link.to,
-                heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI))
-            };
+    getLinkedPanos = async () => {
+        return new Promise((resolve) => {
+            // If the links have already been set, just return those.
+            if (this.currLinks) {
+                resolve(processLinks(this.currLinks));
+            } else {
+                // Listen for the event that fires when the links are updated. Only needed when loading first image.
+                const linksListener = this.currentNode.spatialEdges$.subscribe((spatialEdges) => {
+                    if (spatialEdges.cached) {
+                        linksListener.unsubscribe(); // We no longer need the listener at this point.
+                        this.currLinks = spatialEdges.edges;
+                        resolve(processLinks(this.currLinks));
+                    }
+                });
+            }
         });
+
+        // Helper function that converts the link info into the standard format that we use.
+        function processLinks(links) {
+            return links.map(function(link) {
+                // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the X-axis in
+                // a spherical coordinate system", so we need to adjust it to be like a compass heading.
+                return {
+                    panoId: link.to,
+                    heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI))
+                };
+            });
+        }
     }
 
     getPov = () => {

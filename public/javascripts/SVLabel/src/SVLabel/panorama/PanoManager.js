@@ -62,8 +62,7 @@ async function PanoManager (panoViewerType, params = {}) {
             linksListener = svl.panoViewer.panorama.addListener('links_changed', _makeLinksClickable);
         }
 
-        // TODO with Infra3d, getLinkedPanos doesn't work right away, adding a timeout to show the arrows for now...
-        window.setTimeout(() => resetNavArrows(), 1000);
+        await resetNavArrows();
 
         // Issue: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2468
         // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
@@ -227,7 +226,7 @@ async function PanoManager (panoViewerType, params = {}) {
     /**
      * Removes old navigation arrows and creates new ones based on available links from the current pano.
      */
-    function resetNavArrows() {
+    async function resetNavArrows() {
         // TODO arrowGroup should be stored in svl.ui.
         const arrowGroup = document.getElementById('arrow-group');
 
@@ -237,7 +236,7 @@ async function PanoManager (panoViewerType, params = {}) {
         }
 
         // Create an arrow for each link, rotated to its direction.
-        const links = svl.panoViewer.getLinkedPanos();
+        const links = await svl.panoViewer.getLinkedPanos();
         links.forEach(link => {
             const arrow = _createArrow();
             const normalizedHeading = (link.heading + 360) % 360;

@@ -68,7 +68,13 @@ class PanoViewer {
         throw new Error('setPano(panoId) must be implemented by subclass');
     }
 
-    getLinkedPanos() {
+    /**
+     * Gets the panos that are linked to the current one, to be used with navigation arrows.
+     *
+     * NOTE This function is only async because there's a delay in setting links in the first pano in infra3d.
+     * @returns {Promise<Array<{panoId: string, heading: number}>>}
+     */
+    async getLinkedPanos() {
         throw new Error('getLinkedPanos() must be implemented by subclass');
     }
 
