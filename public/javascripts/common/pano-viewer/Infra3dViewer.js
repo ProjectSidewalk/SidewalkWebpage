@@ -171,7 +171,9 @@ class Infra3dViewer extends PanoViewer {
             this.currPanoData.lng = mainNode.lng;
             this.currPanoData.cameraHeading = this._getHeading(mainNode.omega, mainNode.phi);
             this.currPanoData.cameraPitch = this._getPitch(mainNode.omega, mainNode.phi);
-            this.currPanoData.linkedPanos = node.spatialEdges.edges.map(function(link) {
+            this.currPanoData.linkedPanos = node.spatialEdges.edges
+                .filter(link => link.data.direction === 9) // Filters out link to camera on back of car for now.
+                .map(function(link) {
                 // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the X-axis
                 // in a spherical coordinate system", so we need to adjust it to be like a compass heading.
                 return {
