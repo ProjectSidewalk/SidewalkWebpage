@@ -56,9 +56,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         canvas.disableLabelDelete();
         canvas.lockDisableLabelDelete();
 
-        navigationService.unlockDisableWalking();
-        navigationService.disableWalking();
-        navigationService.lockDisableWalking();
+        navigationService.unlockDisableWalking().disableWalking().lockDisableWalking();
 
         zoomControl.unlockDisableZoomIn();
         zoomControl.disableZoomIn();
@@ -79,6 +77,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
 
         compass.hideMessage();
         compass.disableCompassClick();
+        compass.lockDisableCompassClick();
 
         contextMenu.disableRatingSeverity();
         contextMenu.disableTagging();
@@ -232,7 +231,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
     }
 
     function _stopAllBlinking() {
-        navigationService.stopBlinkingMinimap();
+        svl.minimap.stopBlinkingMinimap();
         compass.stopBlinking();
         statusField.stopBlinking();
         zoomControl.stopBlinking();
@@ -480,7 +479,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             for (var i = 0; i < len; i++) {
                 switch (state.properties.blinks[i]) {
                     case "minimap":
-                        navigationService.blinkMinimap();
+                        svl.minimap.blinkMinimap();
                         break;
                     case "compass":
                         compass.blink();
@@ -548,7 +547,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             _drawAnnotations(state);
             if (typeof google != "undefined") {
                 annotationListener = google.maps.event.addListener(svl.panoViewer.panorama, "pov_changed", function () {
-                    //Stop the animation for the blinking arrows
+                    // Stop the animation for the blinking arrows.
                     _removeFlashingFromArrow();
                     _drawAnnotations(state);
                 });
@@ -600,86 +599,58 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
     }
 
     function _visitIntroduction(state, listener) {
-        var pov = {
+        // When user clicks "Let's get started!" to start the tutorial, we set the pano's POV and move to next state.
+        const $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
+        $(".onboarding-transition-trigger").css({ 'cursor': 'pointer' });
+        function callback () {
+            if (listener) google.maps.event.removeListener(listener);
+            $target.off("click", callback);
+            svl.panoManager.setPov({
                 heading: state.properties.heading,
                 pitch: state.properties.pitch,
                 zoom: state.properties.zoom
-            },
-            googleTarget,
-            googleCallback,
-            $target;
-
-        // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
-        // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
-        // When they click OK, then the POV changes.
-        if (typeof google != "undefined") {
-            googleCallback = function () {
-                navigationService.moveToPano(state.panoId, true);
-                google.maps.event.removeListener(googleTarget);
-            };
-
-            googleTarget = google.maps.event.addListener(svl.panoViewer.panorama, "position_changed", googleCallback);
-
-            $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
-            $(".onboarding-transition-trigger").css({
-                'cursor': 'pointer'
             });
-            function callback () {
-                if (listener) google.maps.event.removeListener(listener);
-                $target.off("click", callback);
-                next.call(this, state.transition);
-                navigationService.moveToPano(state.panoId, true);
-                svl.panoManager.setPov(pov);
-
-                compass.hideMessage();
-            }
-
-            $target.on("click", callback);
+            next.call(this, state.transition);
         }
+
+        $target.on("click", callback);
     }
 
+    /**
+     * Called when the user is told to click on the compass or nav arrows to move to the next image.
+     * @param state The current state defined in OnboardingStates.js
+     * @param listener An optional listener on a Google Maps event, to be removed before moving to the next state
+     * @private
+     */
     function _visitWalkTowards(state, listener) {
-        var nextPanoId = 'afterWalkTutorial';
+        const nextPanoId = 'afterWalkTutorial';
+
         // Add a link to the second pano so that the user can click on it.
         svl.panoViewer.panorama.setLinks([{
             description: nextPanoId,
             heading: 340,
             pano: nextPanoId
         }]);
-        navigationService.unlockDisableWalking();
-        navigationService.enableWalking();
-        navigationService.lockDisableWalking();
+        svl.panoManager.resetNavArrows();
 
-        // Allow clicking on the navigation message to move to the next pano.
-        var clickToNextPano = function() {
-            navigationService.moveToPano(nextPanoId, true);
+        // A callback to disable walking after user has moved to 2nd pano, then moves to next state.
+        const callback = function () {
+            navigationService.unlockDisableWalking().disableWalking().lockDisableWalking();
+            svl.ui.compass.messageHolder.off('click', clickToNextPano);
+            svl.ui.compass.messageHolder.css('cursor', 'default');
+            if (listener) google.maps.event.removeListener(listener);
+            next(state.transition);
+        };
+
+        // Replace default behavior when clicking on the navigation message to move to the next pano.
+        const clickToNextPano = function() {
+            navigationService.moveToPano(nextPanoId, true).then(callback);
         }
+        navigationService.unlockDisableWalking().enableWalking().lockDisableWalking();
         svl.ui.compass.messageHolder.on('click', clickToNextPano);
         svl.ui.compass.messageHolder.css('cursor', 'pointer');
 
         blinkInterface(state);
-
-        var $target;
-        var callback = function () {
-            var panoId = svl.panoViewer.getPanoId();
-            if (state.properties.panoId === panoId) {
-                window.setTimeout(function () {
-                    navigationService.unlockDisableWalking().disableWalking().lockDisableWalking();
-                }, 1000);
-                svl.ui.compass.messageHolder.off('click', clickToNextPano);
-                svl.ui.compass.messageHolder.css('cursor', 'default');
-                if (typeof google != "undefined") google.maps.event.removeListener($target);
-                if (listener) google.maps.event.removeListener(listener);
-                next(state.transition);
-            } else {
-                console.error("Pano mismatch. Shouldn't reach here");
-                // Force the interface to go to the correct position.
-                navigationService.moveToPano(nextPanoId, true);
-            }
-        };
-
-        // Add and remove a listener: http://stackoverflow.com/questions/1544151/google-maps-api-v3-how-to-remove-an-event-listener
-        if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panoViewer.panorama, "position_changed", callback);
     }
 
     function _visitAdjustHeadingAngle(state, listener) {

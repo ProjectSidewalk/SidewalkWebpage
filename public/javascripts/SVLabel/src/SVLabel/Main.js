@@ -62,7 +62,9 @@ function Main (params) {
         const startLat = params.task.properties.current_lat;
         const startLng = params.task.properties.current_lng;
         svl.panoStore = new PanoStore();
-        svl.panoManager = await PanoManager(Infra3dViewer, { startLat: startLat, startLng: startLng });
+        const viewerType = svl.isOnboarding() ? GsvViewer : Infra3dViewer;
+        // TODO when we set up passing in a starting pano, could pass in tutorial when appropriate too. Then remove checks from PanoManager.js.
+        svl.panoManager = await PanoManager(viewerType, { startLat: startLat, startLng: startLng });
         svl.minimap = new Minimap();
 
         svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
@@ -265,7 +267,7 @@ function Main (params) {
 
         if (!onboardingHandAnimation) {
             onboardingHandAnimation = new HandAnimation(svl.rootDirectory, svl.ui.onboarding);
-            onboardingStates = new OnboardingStates(svl.contextMenu, svl.compass, svl.navigationService, svl.statusModel, svl.tracker);
+            onboardingStates = new OnboardingStates(svl.contextMenu, svl.compass, svl.panoManager);
         }
 
         if (!("onboarding" in svl && svl.onboarding)) {

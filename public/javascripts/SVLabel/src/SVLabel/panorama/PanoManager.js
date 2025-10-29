@@ -51,7 +51,9 @@ async function PanoManager (panoViewerType, params = {}) {
 
         // Move to the specified starting location.
         // TODO The page totally fails to load if we fail to get imagery at the start location.
-        if ('startPanoId' in params) {
+        if (svl.isOnboarding()) {
+            await setPanorama('tutorial');
+        } else if ('startPanoId' in params) {
             await setPanorama(params.startPanoId);
         } else if ('startLat' in params && 'startLng' in params) {
             await setLocation({lat: params.startLat, lng: params.startLng });
@@ -70,16 +72,6 @@ async function PanoManager (panoViewerType, params = {}) {
         $(window).on('resize', function() {
             updatePov(.0025,.0025);
         });
-
-        // TODO not sure why this didn't work at first glance.
-        // svl.panoViewer.panorama.registerPanoProvider(function(pano) {
-        //     if (pano === 'tutorial' || pano === 'afterWalkTutorial') {
-        //         return _getCustomPanorama(pano);
-        //     }
-        //     return null;
-        // });
-        // svl.panoStore.addPanoMetadata('tutorial', _getCustomPanorama('tutorial'));
-        // svl.panoStore.addPanoMetadata('afterWalkTutorial', _getCustomPanorama('afterWalkTutorial'));
     }
 
     /**
@@ -127,11 +119,6 @@ async function PanoManager (panoViewerType, params = {}) {
 
         // Show the pano date in the bottom-left corner.
         svl.ui.streetview.date.text(moment(data.imageDate).format('MMM YYYY'));
-        // else if (panoId === "tutorial" || panoId === "afterWalkTutorial") {
-        //     // TODO I'm not sure how registering our own panos works for this.
-        //     const imageDate = svl.panoStore.getPanoData(panoId).data().imageDate;
-        //     svl.ui.streetview.date.text(moment(imageDate).format('MMM YYYY'));
-        // }
     }
 
     /**
@@ -182,6 +169,7 @@ async function PanoManager (panoViewerType, params = {}) {
 
     // TODO I'd like to pass the pano ID or lat/lng in to here if possible?
     async function _panoFailureCallback(error) {
+        console.error('failed to load pano!', error);
         // TODO is there anything that we need to log here? Or should we just remove this callback entirely?
         // - NavigationService will handle marking streets as having no imagery, etc.
         return Promise.resolve();
@@ -511,56 +499,6 @@ async function PanoManager (panoViewerType, params = {}) {
 
     function getStatus(key) {
         return status[key];
-    }
-
-    /**
-     * If the user is going through the tutorial, it will return the custom/stored panorama for either the initial
-     * tutorial view or the "after walk" view.
-     * @param pano - the pano ID/name of the wanted custom panorama.
-     * @returns custom Google Street View panorama.
-     * */
-    function _getCustomPanorama(pano) {
-        if (pano === 'tutorial') {
-            return {
-                location: {
-                    pano: 'tutorial',
-                    latLng: new google.maps.LatLng(38.94042608, -77.06766133)
-                },
-                links: [],
-                imageDate: '2014-05',
-                copyright: 'Imagery (c) 2010 Google',
-                tiles: {
-                    tileSize: new google.maps.Size(2048, 1024),
-                    worldSize: new google.maps.Size(4096, 2048),
-                    centerHeading: 50.3866,
-                    originHeading: 50.3866,
-                    originPitch: -1.13769,
-                    getTileUrl: function(pano, zoom, tileX, tileY) {
-                        return `${svl.rootDirectory}img/onboarding/tiles/tutorial/${zoom}-${tileX}-${tileY}.jpg`;
-                    }
-                }
-            };
-        } else if (pano === 'afterWalkTutorial') {
-            return {
-                location: {
-                    pano: 'afterWalkTutorial',
-                    latLng: new google.maps.LatLng(38.94061618, -77.06768201)
-                },
-                links: [],
-                imageDate: '2014-05',
-                copyright: 'Imagery (c) 2010 Google',
-                tiles: {
-                    tileSize: new google.maps.Size(1700, 850),
-                    worldSize: new google.maps.Size(3400, 1700),
-                    centerHeading: 344,
-                    originHeading: 344,
-                    originPitch: 0,
-                    getTileUrl: function(pano, zoom, tileX, tileY) {
-                        return `${svl.rootDirectory}img/onboarding/tiles/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`;
-                    }
-                }
-            };
-        }
     }
 
     self.setPov = setPov;

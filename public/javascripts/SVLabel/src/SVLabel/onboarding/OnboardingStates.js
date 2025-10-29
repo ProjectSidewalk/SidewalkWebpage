@@ -1,4 +1,4 @@
-function OnboardingStates (contextMenu, compass, navigationService) {
+function OnboardingStates (contextMenu, compass, panoManager) {
     var panoId = "tutorial";
     var afterWalkPanoId = "afterWalkTutorial";
     var headingRanges = {
@@ -1909,7 +1909,7 @@ function OnboardingStates (contextMenu, compass, navigationService) {
             },
             "panoId": panoId,
             "transition": function () {
-                navigationService.setPov({heading: 329, pitch: 0, zoom: 1});
+                panoManager.setPov({ heading: 329, pitch: 0, zoom: 1 });
                 svl.ui.minimap.holder.css('backgroundImage', `url('${svl.rootDirectory}img/onboarding/afterWalkTutorialMiniMap.jpg')`);
                 return "walk-4";
             }

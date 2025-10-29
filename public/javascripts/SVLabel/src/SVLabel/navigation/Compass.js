@@ -20,6 +20,10 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         uTurn: svl.rootDirectory + 'img/icons/ArrowUTurn.png'
     };
 
+    let status = {
+        lockDisableCompassClick: false
+    };
+
     /**
      * Blink the compass message
      */
@@ -71,13 +75,25 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     }
 
     function enableCompassClick() {
-        uiCompass.messageHolder.on('click', _handleCompassClick);
-        uiCompass.messageHolder.css('cursor', 'pointer');
+        if (!status.lockDisableCompassClick) {
+            uiCompass.messageHolder.on('click', _handleCompassClick);
+            uiCompass.messageHolder.css('cursor', 'pointer');
+        }
     }
 
     function disableCompassClick() {
-        uiCompass.messageHolder.off('click', _handleCompassClick);
-        uiCompass.messageHolder.css('cursor', 'default');
+        if (!status.lockDisableCompassClick) {
+            uiCompass.messageHolder.off('click', _handleCompassClick);
+            uiCompass.messageHolder.css('cursor', 'default');
+        }
+    }
+
+    function lockDisableCompassClick() {
+        status.lockDisableCompassClick = true;
+    }
+
+    function unlockDisableCompassClick() {
+        status.lockDisableCompassClick = false;
     }
 
     /*
@@ -342,6 +358,8 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     self.setTurnMessage = setTurnMessage;
     self.enableCompassClick = enableCompassClick;
     self.disableCompassClick = disableCompassClick;
+    self.lockDisableCompassClick = lockDisableCompassClick;
+    self.unlockDisableCompassClick = unlockDisableCompassClick;
     self.setLabelBeforeJumpMessage = setLabelBeforeJumpMessage;
     self.stopBlinking = stopBlinking;
     self.showMessage = showMessage;

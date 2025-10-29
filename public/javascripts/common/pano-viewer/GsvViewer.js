@@ -43,7 +43,15 @@ class GsvViewer extends PanoViewer {
             navigationControl: false,
         };
         const panoOpts = { ...defaults, ...panoOptions };
-        this.panorama = typeof google != "undefined" ? await new google.maps.StreetViewPanorama(canvasElem, panoOpts) : null;
+        this.panorama = await new google.maps.StreetViewPanorama(canvasElem, panoOpts);
+
+        // Add support for the tutorial panos that we have supplied locally.
+        this.panorama.registerPanoProvider((pano) => {
+            if (pano === 'tutorial' || pano === 'afterWalkTutorial') {
+                return this._getCustomPanoData(pano);
+            }
+            return null;
+        });
 
         // Issue: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2468
         // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
@@ -106,7 +114,62 @@ class GsvViewer extends PanoViewer {
     }
 
     setPano = async (panoId) => {
-        return this.streetViewService.getPanorama({ pano: panoId }).then(this._getPanoramaCallback);
+        if (panoId === 'tutorial' || panoId === 'afterWalkTutorial') {
+            // For locally stored tutorial panos, skip the getPanorama step and continue w/ our saved data.
+            return this._getPanoramaCallback({ data: this._getCustomPanoData(panoId) });
+        } else {
+            return this.streetViewService.getPanorama({pano: panoId}).then(this._getPanoramaCallback);
+        }
+    }
+
+    /**
+     * If the user is going through the tutorial, it will return the custom/stored panorama for either the initial
+     * tutorial view or the "after walk" view.
+     * @param pano - the pano ID/name of the wanted custom panorama.
+     * @returns custom Google Street View panorama.
+     */
+    _getCustomPanoData = (pano) => {
+        if (pano === 'tutorial') {
+            return {
+                location: {
+                    pano: 'tutorial',
+                    latLng: new google.maps.LatLng(38.94042608, -77.06766133)
+                },
+                links: [],
+                imageDate: '2014-05',
+                copyright: 'Imagery (c) 2010 Google',
+                tiles: {
+                    tileSize: new google.maps.Size(2048, 1024),
+                    worldSize: new google.maps.Size(4096, 2048),
+                    centerHeading: 50.3866,
+                    originHeading: 50.3866,
+                    originPitch: -1.13769,
+                    getTileUrl: function(pano, zoom, tileX, tileY) {
+                        return `${svl.rootDirectory}img/onboarding/tiles/tutorial/${zoom}-${tileX}-${tileY}.jpg`;
+                    }
+                }
+            };
+        } else if (pano === 'afterWalkTutorial') {
+            return {
+                location: {
+                    pano: 'afterWalkTutorial',
+                    latLng: new google.maps.LatLng(38.94061618, -77.06768201)
+                },
+                links: [],
+                imageDate: '2014-05',
+                copyright: 'Imagery (c) 2010 Google',
+                tiles: {
+                    tileSize: new google.maps.Size(1700, 850),
+                    worldSize: new google.maps.Size(3400, 1700),
+                    centerHeading: 344,
+                    originHeading: 344,
+                    originPitch: 0,
+                    getTileUrl: function(pano, zoom, tileX, tileY) {
+                        return `${svl.rootDirectory}img/onboarding/tiles/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`;
+                    }
+                }
+            };
+        }
     }
 
     getLinkedPanos = () => {
