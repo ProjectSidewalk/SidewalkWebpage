@@ -18,7 +18,7 @@ import java.security.MessageDigest
 import java.time.OffsetDateTime
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -332,27 +332,28 @@ class AuthenticationServiceImpl @Inject() (
     db.run(userRoleTable.updateCommunityService(userId, newCommServiceStatus))
 
   def getInfra3dToken: Future[String] = {
-    val clientId: String     = config.get[String]("infra3d-client-id")
-    val clientSecret: String = config.get[String]("infra3d-client-secret")
-    val body                 = Map(
-      "client_id"     -> clientId,
-      "client_secret" -> clientSecret,
-      "grant_type"    -> "client_credentials"
-    )
-    val url = "https://uzh.auth.eu-west-1.amazoncognito.com/oauth2/token"
-    ws.url(url)
-      .addHttpHeaders(
-        "Content-Type" -> ContentTypes.FORM,
-        "Accept"       -> "application/json"
+    // Token expires after 60 minutes, so we don't need to get a new token every time.
+    cacheApi.getOrElseUpdate[String]("getInfra3dToken", Duration(30, "minutes")) {
+      val clientId: String     = config.get[String]("infra3d-client-id")
+      val clientSecret: String = config.get[String]("infra3d-client-secret")
+      val body                 = Map(
+        "client_id"     -> clientId,
+        "client_secret" -> clientSecret,
+        "grant_type"    -> "client_credentials"
       )
-      .post(body)
-      .map { response =>
-        // Check for successful response
-        if (response.status == 200) {
-          (response.json \ "access_token").as[String]
-        } else {
-          throw new RuntimeException(s"Token request failed with status ${response.status}: ${response.body}")
+      ws.url("https://uzh.auth.eu-west-1.amazoncognito.com/oauth2/token")
+        .addHttpHeaders(
+          "Content-Type" -> ContentTypes.FORM,
+          "Accept"       -> "application/json"
+        )
+        .post(body)
+        .map { response =>
+          if (response.status == 200) {
+            (response.json \ "access_token").as[String]
+          } else {
+            throw new RuntimeException(s"Token request failed with status ${response.status}: ${response.body}")
+          }
         }
-      }
+    }
   }
 }
