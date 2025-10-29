@@ -55,8 +55,8 @@ class PanoViewer {
      * @param latLng An object with properties lat and lng representing the desired location.
      * @returns {Promise<Object>} The panorama data object.
      */
-    async setPosition(latLng) {
-        throw new Error('setPosition(latLng) must be implemented by subclass');
+    async setLocation(latLng) {
+        throw new Error('setLocation(latLng) must be implemented by subclass');
     }
 
     /**
@@ -70,11 +70,9 @@ class PanoViewer {
 
     /**
      * Gets the panos that are linked to the current one, to be used with navigation arrows.
-     *
-     * NOTE This function is only async because there's a delay in setting links in the first pano in infra3d.
      * @returns {Promise<Array<{panoId: string, heading: number}>>}
      */
-    async getLinkedPanos() {
+    getLinkedPanos() {
         throw new Error('getLinkedPanos() must be implemented by subclass');
     }
 
@@ -120,4 +118,6 @@ class PanoViewer {
     addListener(event, handler) {
         throw new Error('addListener() must be implemented by subclass');
     }
+
+    // TODO should add a removeListener function.
 }

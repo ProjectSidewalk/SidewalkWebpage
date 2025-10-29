@@ -62,7 +62,7 @@ async function PanoManager (panoViewerType, params = {}) {
             linksListener = svl.panoViewer.panorama.addListener('links_changed', _makeLinksClickable);
         }
 
-        await resetNavArrows();
+        resetNavArrows();
 
         // Issue: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2468
         // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
@@ -86,35 +86,32 @@ async function PanoManager (panoViewerType, params = {}) {
      * Updates the date text field on the pano when pano changes in Infra3d viewer.
      * @private
      */
-    function _successCallbackHelperInfra3d() {
+    function _successCallbackHelperInfra3d(data) {
         // Record the pano metadata.
-        const panoId = svl.panoViewer.getPanoId();
-        const currNode = svl.panoViewer.viewer.getCurrentNode();
-        const data = {
+        const panoData = {
             location: {
-                pano: panoId,
-                latLng: new google.maps.LatLng(currNode.lat, currNode.lon)
+                pano: data.panoId,
+                latLng: new google.maps.LatLng(data.lat, data.lng)
             },
             tiles: {
-                originHeading: svl.panoViewer._getHeading(currNode.omega, currNode.phi),
+                originHeading: data.cameraHeading,
                 // TODO idk if this should be negated or not. And maybe we should defined a func in PanoViewer to get all data.
-                originPitch: svl.panoViewer._getPitch(currNode.omega, currNode.phi),
-                // TODO worldSize and tileSize are made up. Should create a new table for infra3d panos w/out tileSize.
+                originPitch: -data.cameraPitch,
                 worldSize: {
-                    width: 16500,
-                    height: 11000
+                    width: data.width,
+                    height: data.height
                 },
                 tileSize: {
-                    width: 512,
-                    height: 512
+                    width: data.tileWidth,
+                    height: data.tileHeight
                 }
             },
-            imageDate: moment(currNode.date).format('YYYY-MM')
+            imageDate: data.captureDate
         }
-        svl.panoStore.addPanoMetadata(panoId, data);
+        svl.panoStore.addPanoMetadata(data.panoId, panoData);
 
         // Show the pano date in the bottom-left corner.
-        document.getElementById("svl-panorama-date").innerText = moment(currNode.date).format('MMM YYYY');
+        document.getElementById("svl-panorama-date").innerText = moment(data.captureDate).format('MMM YYYY');
     }
 
     /**
@@ -226,7 +223,7 @@ async function PanoManager (panoViewerType, params = {}) {
     /**
      * Removes old navigation arrows and creates new ones based on available links from the current pano.
      */
-    async function resetNavArrows() {
+    function resetNavArrows() {
         // TODO arrowGroup should be stored in svl.ui.
         const arrowGroup = document.getElementById('arrow-group');
 
@@ -236,7 +233,7 @@ async function PanoManager (panoViewerType, params = {}) {
         }
 
         // Create an arrow for each link, rotated to its direction.
-        const links = await svl.panoViewer.getLinkedPanos();
+        const links = svl.panoViewer.getLinkedPanos();
         links.forEach(link => {
             const arrow = _createArrow();
             const normalizedHeading = (link.heading + 360) % 360;
@@ -304,7 +301,7 @@ async function PanoManager (panoViewerType, params = {}) {
      * @param latLng An object with properties lat and lng representing the desired location.
      */
     async function setLocation(latLng) {
-        return svl.panoViewer.setPosition(latLng).then(_panoSuccessCallback, _panoFailureCallback);
+        return svl.panoViewer.setLocation(latLng).then(_panoSuccessCallback, _panoFailureCallback);
     }
 
 

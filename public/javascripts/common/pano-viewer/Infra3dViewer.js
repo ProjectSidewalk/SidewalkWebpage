@@ -6,14 +6,30 @@ class Infra3dViewer extends PanoViewer {
     constructor() {
         super();
         this.viewer = undefined;
-        this.currentNode = null;
-        this.currLinks = null;
-        this.currPanoId = null;
+        this.currNode = null;
+        this.currPanoData = {
+            panoId: null,
+            captureDate: null,
+            width: null,
+            height: null,
+            tileWidth: null,
+            tileHeight: null,
+            lat: null,
+            lng: null,
+            cameraHeading: null,
+            cameraPitch: null,
+            linkedPanos: null,
+            copyright: null,
+            history: []
+        }
     }
 
     async initialize(canvasElem, panoOptions = {}) {
+        // svv.infra3dToken = 'eyJraWQiOiJjT2x6QzZ6RVwvZE9LS2dhNU00cGZtUGVMTlhCbWVNTHU0S0xwU3AxM0dRdz0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIyNWdtMTU3a3FxY2ZraXVwZDU3azQxOWhrciIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoicGVybWlzc2lvblwvZWRpdCBmcmFtZWdhdGVcL3V6aCBnZW9mZWF0dXJlc2VydmVyXC8qIGFkZG9uXC9hcGkgZGVmYXVsdC1tMm0tcmVzb3VyY2Utc2VydmVyLWNybXc5bFwvcmVhZCIsImF1dGhfdGltZSI6MTc2MTY3NTc5NywiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLmV1LXdlc3QtMS5hbWF6b25hd3MuY29tXC9ldS13ZXN0LTFfQXlNRWdSWngzIiwiZXhwIjoxNzYxNjc5Mzk3LCJpYXQiOjE3NjE2NzU3OTcsInZlcnNpb24iOjIsImp0aSI6ImZiZDIyNWZjLTY0ZmItNDczOC1hMzQ1LTdiY2ZjMTBkYTFjMyIsImNsaWVudF9pZCI6IjI1Z20xNTdrcXFjZmtpdXBkNTdrNDE5aGtyIn0.mthkpRviTVhFyRfbLk5PumyraXcoxokQoHyJbbKSzsYm7X3lgL4KImUcgFF-qjrEJ9aB1b055P_6OPMnXcv1vuPdtPrM6e2CIrAo1yB3m-v42YdOYGT-_ofsw8v5QtM5yo9sMi7CA2abQSxfxql1xH6qjWzVwp1Mbk-tdSG4AwPzZth-2LiS3LkjP7gE6P-Ydq6gLL7ErboOY8UhW21UzUQHRDIZleheNPNFxoFdnyKaKA1VqypTvIseu2HT2ZzorzC4gWYlnPf4y0sATjMQJnQ2mkHcwQjv5rgjVsfoMcCvm4uPQfi-mRx4UoAIM8J6BWUtrWfZgRvjkRw2t10N-A';
+        // const manager = await infra3dapi.init(canvasElem.id, svv.infra3dToken);
         const manager = await infra3dapi.init(canvasElem.id, svl.infra3dToken);
         const fetchedProjects = await manager.getProjects();
+        console.log(fetchedProjects);
         const projectUID = fetchedProjects[0].uid;
 
         // Docs on Infra3D viewer options:
@@ -37,7 +53,20 @@ class Infra3dViewer extends PanoViewer {
         };
         const panoOpts = { ...defaults, ...panoOptions };
 
-        this.viewer = await manager.initViewer(panoOpts);
+        try {
+            this.viewer = await manager.initViewer(panoOpts);
+        } catch (error) {
+            console.error('Viewer initialization failed:', error);
+
+            // Try it a second time in case it works...
+            try {
+                this.viewer = await manager.initViewer(panoOpts);
+            } catch (retryError) {
+                console.error('Viewer initialization retry failed:', retryError);
+                // TODO should do a page refresh or something here. Or show an error message.
+            }
+        }
+        console.log(this.viewer);
 
         // Handle a few other configs that need to be handled after initialization.
         if (panoOpts.linksControl === false) {
@@ -48,13 +77,15 @@ class Infra3dViewer extends PanoViewer {
         }
 
         // Set up listener for pano changes to track the current navigation arrows.
-        this.addListener("pano_changed", (node) => {
-            this.currentNode = node;
-        });
+        const panoChangedListener = (node) => {
+            this.currNode = node;
+            this.removeListener('pano_changed', panoChangedListener);
+        }
+        this.addListener("pano_changed", panoChangedListener);
     }
 
     getPanoId = () => {
-        return this.currPanoId ? this.currPanoId : this.viewer.getCurrentNode().id;
+        return this.currPanoData.panoId ? this.currPanoData.panoId : this.viewer.getCurrentNode().id;
     }
 
     getPosition = () => {
@@ -62,7 +93,8 @@ class Infra3dViewer extends PanoViewer {
         return { lat: currNode.lat, lng: currNode.lon };
     }
 
-    setPosition = async (latLng) => {
+    setLocation = async (latLng) => {
+        this.currNode = null;
         // Convert from WGS84 to Web Mercator (EPSG:3857), which is what Infra3D uses.
         const wgs84 = 'EPSG:4326';
         const webMercator = 'EPSG:3857';
@@ -71,49 +103,88 @@ class Infra3dViewer extends PanoViewer {
         // Undefined params are height (deprecated) and distance (in meters). Distance is the max distance to move from
         // current position, so we don't really have a use for it.
         // TODO We'll have to do the radius check GSV does ourselves.
-        return this.viewer.moveToPosition(easting, northing, undefined, undefined, 3857).then(this._trackCurrPanoId);
+        return this.viewer.moveToPosition(easting, northing, undefined, undefined, 3857)
+            .then(this._finishRecordingMetadata);
     }
 
     setPano = async (panoId) => {
-        return this.viewer._sdk_viewer.moveToKey(panoId).then(this._trackCurrPanoId);
+        this.currNode = null;
+        return this.viewer._sdk_viewer.moveToKey(panoId).then(this._finishRecordingMetadata);
     }
 
-    // Because some properties of the node haven't updated even after the Promise from moveToKey has resolved, we have
-    // to use an internal function that returns the node properties and save those. However, we both don't have this
-    // problem with moveToPosition _and_ the internal function doesn't seem to work the same way for it either. So we
-    // are using the normal API call there, and just set the currPanoId back to null in that case.
-    _trackCurrPanoId = async (node) => {
-        this.currPanoId = node ? node.frame.id : null;
-    }
-
-    getLinkedPanos = async () => {
+    /**
+     * Ensures that all image metadata has been saved before letting setPano or setLocation resolve.
+     *
+     * Due to quirks with the Infra3d APIs, there are inconsistencies on when data that we need are available. Data
+     * loads in a different order for the first pano, and data loads in a different order when using moveToKey() vs
+     * moveToPosition(). We handle all edges cases below so that all necessary data is available when this resolves.
+     * @param node {Object | undefined} Infra3d's internal node object; moveToKey sends it but moteToPosition does not
+     * @returns {Promise<Object>} TODO need to define a class for this
+     * @private
+     */
+    _finishRecordingMetadata = async (node) => {
+        // First, make sure that this.currNode has been set.
         return new Promise((resolve) => {
-            // If the links have already been set, just return those.
-            if (this.currLinks) {
-                resolve(processLinks(this.currLinks));
+            if (this.currNode) {
+                // When first pano loads, 'pano_changed' event is fired before moveToPosition() resolves, and since
+                // moveToPosition() doesn't return the node, we had to save the node using a listener in initialize().
+                resolve(this.currNode);
+            } else if (node) {
+                // If _sdk_viewer.moveToKey() was used, it returns the node that we need.
+                this.currNode = node;
+                resolve(node);
             } else {
-                // Listen for the event that fires when the links are updated. Only needed when loading first image.
-                const linksListener = this.currentNode.spatialEdges$.subscribe((spatialEdges) => {
-                    if (spatialEdges.cached) {
-                        linksListener.unsubscribe(); // We no longer need the listener at this point.
-                        this.currLinks = spatialEdges.edges;
-                        resolve(processLinks(this.currLinks));
-                    }
-                });
+                // If moveToPosition() was used, it doesn't return a node, and we have to get it from an event.
+                const panoChangedListener = (node) => {
+                    this.removeListener('pano_changed', panoChangedListener);
+                    this.currNode = node;
+                    resolve(node);
+                };
+                this.addListener('pano_changed', panoChangedListener);
             }
-        });
-
-        // Helper function that converts the link info into the standard format that we use.
-        function processLinks(links) {
-            return links.map(function(link) {
-                // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the X-axis in
-                // a spherical coordinate system", so we need to adjust it to be like a compass heading.
+        }).then((node) => {
+            // Next, make sure that the node has the linked panos initialized (in node.spatialEdges.edges).
+            return new Promise((resolve) => {
+                // Links should be initialized always, except for the first pano. So we can just use them.
+                if (node.spatialEdges.cached) {
+                    resolve(node);
+                } else {
+                    // Listen for the event that fires when the links are updated. Only needed when loading first image.
+                    const linksListener = node.spatialEdges$.subscribe((spatialEdges) => {
+                        if (spatialEdges.cached) {
+                            linksListener.unsubscribe(); // We no longer need the listener at this point.
+                            resolve(node);
+                        }
+                    });
+                }
+            });
+        }).then((node) => {
+            // Now that all the data is available, we can fill the currPanoData object and say that the pano has loaded.
+            const mainNode = this.viewer.getCurrentNode();
+            this.currPanoData.panoId = node.frame.id;
+            this.currPanoData.captureDate = moment(mainNode.date).format('YYYY-MM');
+            this.currPanoData.width = 4 * node.frame.framedatameta.imagewidth;
+            this.currPanoData.height = 2 * node.frame.framedatameta.imageheight;
+            this.currPanoData.tileWidth = node.frame.framedatameta.tilesize;
+            this.currPanoData.tileHeight = node.frame.framedatameta.tilesize;
+            this.currPanoData.lat = mainNode.lat;
+            this.currPanoData.lng = mainNode.lng;
+            this.currPanoData.cameraHeading = this._getHeading(mainNode.omega, mainNode.phi);
+            this.currPanoData.cameraPitch = this._getPitch(mainNode.omega, mainNode.phi);
+            this.currPanoData.linkedPanos = node.spatialEdges.edges.map(function(link) {
+                // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the X-axis
+                // in a spherical coordinate system", so we need to adjust it to be like a compass heading.
                 return {
                     panoId: link.to,
                     heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI))
                 };
             });
-        }
+            return this.currPanoData;
+        });
+    }
+
+    getLinkedPanos = () => {
+        return this.currPanoData.linkedPanos;
     }
 
     getPov = () => {
@@ -121,19 +192,11 @@ class Infra3dViewer extends PanoViewer {
         const currentNode = this.viewer.getCurrentNode();
 
         // Calculate the orientation of the camera.
-        const horizontalOrientation = this._getHeading(
-            currentNode.omega,
-            currentNode.phi
-        );
+        const horizontalOrientation = this._getHeading(currentNode.omega, currentNode.phi);
+        const verticalOrientation = this._getPitch(currentNode.omega, currentNode.phi);
+
         // Add the orientation of the image to the camera.
         const horizontalAzimuth = (horizontalOrientation + currentView.lon) % 360;
-
-        // Calculate the orientation of the camera.
-        const verticalOrientation = this._getPitch(
-            currentNode.omega,
-            currentNode.phi
-        );
-        // Add the orientation of the image to the camera.
         const verticalAzimuth = (verticalOrientation + currentView.lat) % 360;
 
         // Convert from vertical fov to horizontal fov, then convert to a zoom level that you'd see in GSV.
@@ -269,6 +332,14 @@ class Infra3dViewer extends PanoViewer {
             this.viewer.on("panorotationchanged", (evt) => {
                 handler(evt);
             });
+        }
+    }
+
+    removeListener(event, handler) {
+        if (event === 'pano_changed') {
+            this.viewer._sdk_viewer.off("nodechanged", handler);
+        } else if (event === 'pov_changed') {
+            this.viewer.off("panorotationchanged", handler);
         }
     }
 }

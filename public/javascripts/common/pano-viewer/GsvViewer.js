@@ -98,7 +98,7 @@ class GsvViewer extends PanoViewer {
         });
     }
 
-    setPosition = async (latLng) => {
+    setLocation = async (latLng) => {
         const gLatLng = new google.maps.LatLng(latLng.lat, latLng.lng);
         return this.streetViewService.getPanorama(
             { location: gLatLng, radius: svl.STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR }
@@ -109,7 +109,7 @@ class GsvViewer extends PanoViewer {
         return this.streetViewService.getPanorama({ pano: panoId }).then(this._getPanoramaCallback);
     }
 
-    getLinkedPanos = async () => {
+    getLinkedPanos = () => {
         return this.panorama.links.map(function(link) {
             return { panoId: link.pano, heading: link.heading };
         });

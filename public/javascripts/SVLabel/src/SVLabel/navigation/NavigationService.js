@@ -52,7 +52,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
      * Enable walking and indicate that user has finished moving.
      */
     function resetWalking() {
-        svl.panoManager.resetNavArrows(); // This is async, but should happen immediately after the first pano.
+        svl.panoManager.resetNavArrows();
         svl.panoManager.showNavArrows();
         svl.modalSkip.enableStuckButton();
         enableWalking();
@@ -498,7 +498,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
 
         // Figure out if there's a link close to the given heading.
         const currHeading = svl.panoViewer.getPov().heading;
-        const linkedPanos = await svl.panoViewer.getLinkedPanos();
+        const linkedPanos = svl.panoViewer.getLinkedPanos();
         const cosines = linkedPanos.map(function(link) {
             const headingAngleOffset = util.math.toRadians(currHeading + heading) - util.math.toRadians(link.heading);
             return Math.cos(headingAngleOffset);

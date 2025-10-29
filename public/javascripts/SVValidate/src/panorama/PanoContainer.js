@@ -195,8 +195,8 @@ async function PanoContainer (panoViewerType) {
      */
     async function setPanorama(panoId) {
         // return svv.panoViewer.setPano(panoId).then(_setPanoCallback).then(() => {
-        // return svv.panoViewer.setPosition({ lat: 47.47149597503096, lng: 8.30860179865082 }).then(_setPanoCallback).then(() => {
-        return svv.panoViewer.setPano('777a2f85-2e74-afd3-e383-cbd66d3331f5').then(_setPanoCallback).then(() => {
+        // return svv.panoViewer.setLocation({ lat: 47.47149597503096, lng: 8.30860179865082 }).then(_setPanoCallback).then(() => {
+        return svv.panoViewer.setPano('d039ceb9-7926-6a1f-2685-0ecc2d3cd181').then(_setPanoCallback).then(() => {
             setProperty("prevSetPanoTimestamp", new Date());
             svv.tracker.push('PanoId_Changed');
         });
