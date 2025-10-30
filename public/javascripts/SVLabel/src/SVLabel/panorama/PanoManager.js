@@ -45,6 +45,7 @@ async function PanoManager (panoViewerType, params = {}) {
 
         if (panoViewerType === GsvViewer) {
             _panoChangeSuccessCallbackHelper = _successCallbackHelperGsv;
+            $('#imagery-source-logo-holder').hide();
         } else if (panoViewerType === Infra3dViewer) {
             _panoChangeSuccessCallbackHelper = _successCallbackHelperInfra3d;
         }

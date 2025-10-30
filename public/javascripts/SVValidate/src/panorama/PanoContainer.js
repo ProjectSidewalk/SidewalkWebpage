@@ -30,6 +30,7 @@ async function PanoContainer (panoViewerType) {
         svv.panoViewer = await panoViewerType.create(panoCanvas, panoOptions);
         if (panoViewerType === GsvViewer) {
             _setPanoCallback = _setPanoCallbackGsv;
+            $('#imagery-source-logo-holder').hide();
         } else if (panoViewerType === Infra3dViewer) {
             _setPanoCallback = _setPanoCallbackInfra3d;
         }

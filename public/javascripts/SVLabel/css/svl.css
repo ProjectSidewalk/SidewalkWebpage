@@ -136,6 +136,15 @@ input[type="radio"] {
     opacity: 0.5;
 }
 
+#imagery-source-logo-holder {
+    display: flex;
+    height: 29px;
+    position: absolute;
+    bottom: 0;
+    z-index: 1;
+    padding: 4px 0 6px 10px;
+}
+
 #svl-panorama-date-holder {
     display: flex;
     justify-content: flex-start;
