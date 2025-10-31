@@ -1,5 +1,5 @@
 /**
- * Card Filter module. 
+ * Card Filter module.
  * This is responsible for allowing users to apply filters to specify what types of cards to render in the gallery.
  *
  * @param uiCardFilter UI element representing filter components of sidebar.
@@ -38,7 +38,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     let severities = new SeverityBucket(initialFilters.severities);
 
     let validationOptions = new ValidationOptionBucket(initialFilters.validationOptions);
-   
+
     /**
      * Initialize CardFilter.
      */
@@ -51,7 +51,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
 
     /**
      * Grab all tags from backend and sort them by label type into tagsByType.
-     * 
+     *
      * @param {*} callback Function to be called when tags arrive.
      */
     function getTags(callback) {
@@ -146,7 +146,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
      * Render tags and severities in sidebar.
      */
     function render() {
-        if (['Signal', 'Occlusion'].includes(status.currentLabelType)) {
+        if (['NoSidewalk', 'Signal', 'Occlusion'].includes(status.currentLabelType)) {
             $('#severity-header').hide();
             $('#severity-select').hide();
         } else {
@@ -194,7 +194,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
 
     /**
      * Set attribute of status.
-     * 
+     *
      * @param {*} key Status name.
      * @param {*} value Status value.
      */
@@ -236,7 +236,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
 
     /**
      * Unapply all tags of specified label type.
-     * 
+     *
      * @param {*} labelType Label type of tags to unapply.
      */
     function unapplyTags(labelType) {

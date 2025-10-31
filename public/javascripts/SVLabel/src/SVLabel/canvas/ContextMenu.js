@@ -109,8 +109,8 @@ function ContextMenu (uiContextMenu) {
         var labels = svl.labelContainer.getAllLabels();
         if (labels.length > 0) {
             var lastLabelProps = labels[labels.length - 1].getProperties();
-            // If the label is Pedestrian Signal, do not call ratingReminderAlert().
-            if (lastLabelProps.labelType !== 'Signal') {
+            // If the label is No Sidewalk or Pedestrian Signal, do not call ratingReminderAlert().
+            if (!['NoSidewalk', 'Signal'].includes(lastLabelProps.labelType)) {
                 svl.ratingReminderAlert.ratingClicked(lastLabelProps.severity);
             }
         }
@@ -490,8 +490,8 @@ function ContextMenu (uiContextMenu) {
             _setTagColor(targetLabel);
             if (getStatus('disableTagging')) { disableTagging(); }
 
-            // Hide the severity menu for the Pedestrian Signal label type.
-            if (labelType === 'Signal') {
+            // Hide the severity menu for the No Sidewalk and Pedestrian Signal label types.
+            if (['NoSidewalk', 'Signal'].includes(labelType)) {
                 $severityMenu.addClass('hidden');
             } else {
                 $severityMenu.removeClass('hidden');
@@ -540,7 +540,7 @@ function ContextMenu (uiContextMenu) {
             // Don't push event on Occlusion labels; they don't open ContextMenus.
             svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProps.auditTaskId}, {'temporaryLabelId': labelProps.temporaryLabelId});
         }
-        if (labelType !== 'Occlusion' && labelType !== 'Signal') {
+        if (!['NoSidewalk', 'Signal', 'Occlusion'].includes(labelType)) {
             self.updateRadioButtonImages();
             _removePrevSeverityTooltips();
             if (labelType !== 'Other') {
