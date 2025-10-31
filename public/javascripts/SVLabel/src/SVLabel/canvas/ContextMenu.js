@@ -430,36 +430,17 @@ function ContextMenu (uiContextMenu) {
      * @private
      */
     function _setSeverityTooltips(labelType) {
-        // Files are named as severity 1/2/3 because we have begun transitioning to a 3-point scale.
-        var sevImgUrlOne = `/assets/images/examples/severity/${labelType}_Severity1.png`
-        var sevImgUrlTwo = `/assets/images/examples/severity/${labelType}_Severity2.png`
-        var sevImgUrlThree = `/assets/images/examples/severity/${labelType}_Severity3.png`
-
-        // Add severity tooltips for the current label type if we have images for them.
-        util.getImage(sevImgUrlOne).then(img => {
-            var tooltipHeader = i18next.t('common:severity-example-tooltip-1');
-            var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            $('#severity-one').tooltip({
-                placement: "top", html: true, delay: {"show": 300, "hide": 10},
-                title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
+        for (let sev = 1; sev < 4; sev++) {
+            // Add severity tooltips for the current label type if we have images for them.
+            util.getImage(`/assets/images/examples/severity/${labelType}_Severity${sev}.png`).then(img => {
+                const tooltipHeader = i18next.t(`common:severity-example-tooltip-${sev}`);
+                const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
+                $(`#severity-${sev}`).tooltip({
+                    placement: "top", html: true, delay: {"show": 300, "hide": 10},
+                    title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
+                });
             });
-        });
-        util.getImage(sevImgUrlTwo).then(img => {
-            var tooltipHeader = i18next.t('common:severity-example-tooltip-2');
-            var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            $('#severity-two').tooltip({
-                placement: "top", html: true, delay: {"show": 300, "hide": 10},
-                title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
-            });
-        });
-        util.getImage(sevImgUrlThree).then(img => {
-            var tooltipHeader = i18next.t('common:severity-example-tooltip-3');
-            var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            $('#severity-three').tooltip({
-                placement: "top", html: true, delay: {"show": 300, "hide": 10},
-                title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
-            });
-        });
+        }
     }
 
     /**
@@ -467,9 +448,9 @@ function ContextMenu (uiContextMenu) {
      * @private
      */
     function _removePrevSeverityTooltips() {
-        $('#severity-one').tooltip('destroy');
-        $('#severity-two').tooltip('destroy');
-        $('#severity-three').tooltip('destroy');
+        for (let severity = 0; severity < 4; severity++) {
+            $(`#severity-${severity}`).tooltip('destroy');
+        }
     }
 
     /**
