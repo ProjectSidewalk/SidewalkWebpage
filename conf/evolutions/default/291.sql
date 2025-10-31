@@ -1,18 +1,18 @@
 # --- !Ups
--- Remove severity for NoSidewalk label type (label_type_id == 7) in all tables.
-UPDATE label SET severity = NULL WHERE label_type_id = 7;
+-- Remove severity for NoSidewalk (id 7) and Signal (id 10) label types in all tables.
+UPDATE label SET severity = NULL WHERE label_type_id IN (7, 10);
 
 UPDATE label_validation
 SET old_severity = NULL, new_severity = NULL
 FROM label
 WHERE label_validation.label_id = label.label_id
-    AND label_type_id = 7;
+    AND label_type_id IN (7, 10);
 
 UPDATE label_history
 SET severity = NULL
 FROM label
 WHERE label_history.label_id = label.label_id
-  AND label_type_id = 7;
+  AND label_type_id IN (7, 10);
 
 -- Delete entries in the label_history table that no longer represent a change in history after updating severity.
 DELETE FROM label_history
