@@ -423,6 +423,7 @@ function ExpandedView(uiModal) {
     self.previousLabel = previousLabel;
     self.zoomIn = zoomIn;
     self.zoomOut = zoomOut;
+    self.closeExpandedViewAndRemoveCardTransparency = closeExpandedViewAndRemoveCardTransparency;
 
 
     return self;

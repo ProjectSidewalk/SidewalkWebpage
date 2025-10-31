@@ -62,6 +62,11 @@ function Keyboard(expandedView) {
                         }
                     }
                     break;
+                case "ESCAPE":
+                    if (expandedView.open) {
+                        expandedView.closeExpandedViewAndRemoveCardTransparency();
+                    }
+                    break;
                 default:
                     break;
             }
