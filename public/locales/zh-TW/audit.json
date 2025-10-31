@@ -115,7 +115,7 @@
             "label-popup-shortcuts": "點選<tag-underline>{{c}}</tag-underline>以增加標籤",
             "tag": {
                 "narrow": "狹窄(<tag-underline>a</tag-underline>)",
-                "points-into-traffic": "對著交通車流(<tag-underline>i</tag-underline>)",
+                "points-into-traffic": "指向橫向交通(<tag-underline>i</tag-underline>)",
                 "missing-tactile-warning": "缺導盲警示帶(<tag-underline>e</tag-underline>)",
                 "tactile-warning": "導盲警示帶(<tag-underline>h</tag-underline>)",
                 "steep": "陡峭(<tag-underline>t</tag-underline>)",

@@ -59,7 +59,7 @@
     "ai-disclaimer": "AI 分析了此標籤並投票「$t({{aiVal}})」；然而，AI 難免會犯錯。請自行判斷。",
     "tag": {
         "narrow": "狹窄",
-        "points into traffic": "面向交通車流",
+        "points into traffic": "指向橫向交通",
         "missing tactile warning": "缺導盲警示帶",
         "tactile warning": "導盲警示帶",
         "steep": "陡峭",

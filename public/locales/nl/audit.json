@@ -115,7 +115,7 @@
             "label-popup-shortcuts": "Druk <tag-underline>{{c}}</tag-underline> om een tag toe te voegen",
             "tag": {
                 "narrow": "sm<tag-underline>a</tag-underline>l",
-                "points-into-traffic": "het verkeer <tag-underline>i</tag-underline>n gericht",
+                "points-into-traffic": "punten <tag-underline>i</tag-underline>n het kruisende verkeer",
                 "missing-tactile-warning": "tacti<tag-underline>e</tag-underline>le waarschuwing ontbreekt",
                 "tactile-warning": "tactile waarsc<tag-underline>h</tag-underline>uwing",
                 "steep": "s<tag-underline>t</tag-underline>eil",
