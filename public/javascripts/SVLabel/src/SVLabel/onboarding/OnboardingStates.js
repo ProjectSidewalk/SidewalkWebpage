@@ -1381,62 +1381,6 @@ function OnboardingStates (contextMenu, compass, mapService) {
             "transition": "label-attribute-7"
         },
         {
-            "id": "rate-severity-7",
-            "progression": true,
-            "properties": {
-                "action": "RateSeverity",
-                "labelNumber": 7,
-                "labelType": "NoSidewalk",
-                "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1]
-            },
-            "message": {
-                "message": i18next.t('tutorial.rate-severity-7') +
-                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingMissingSidewalk.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">',
-                "left": 410
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                var severity = parseInt(this.getAttribute("value"), 10);
-                if (severity === 2) {
-                    contextMenu.hide();
-                    return "adjust-heading-angle-4";
-                } else {
-                    return "redo-rate-attribute-7";
-                }
-            }
-        },
-        {
-            "id": "redo-rate-attribute-7",
-            "progression": false,
-            "properties": {
-                "action": "RedoRateSeverity",
-                "labelNumber": 7,
-                "labelType": "NoSidewalk",
-                "minHeading": headingRanges["stage-4"][0],
-                "maxHeading": headingRanges["stage-4"][1]
-            },
-            "message": {
-                "message": i18next.t('tutorial.redo-rate-attribute-7') +
-                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingMissingSidewalk.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">',
-                "left": 410
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                var severity = parseInt(this.getAttribute("value"), 10);
-                if (severity === 2) {
-                    contextMenu.hide();
-                    return "adjust-heading-angle-4";
-                } else {
-                    return "redo-rate-attribute-7";
-                }
-            }
-        },
-        {
             "id": "tag-attribute-7",
             "progression": true,
             "properties": {
@@ -1458,7 +1402,8 @@ function OnboardingStates (contextMenu, compass, mapService) {
                 var tags = this.getProperty('tagIds');
                 if (tags.length === 2 && tags.includes(20) && tags.includes(21)) {
                     // We have both tags correct, so lets continue.
-                    return "rate-severity-7";
+                    contextMenu.hide();
+                    return "adjust-heading-angle-4";
                 } else if (tags.length === 1 && (tags.includes(20) || tags.includes(21))) {
                     // We have one of the two tags so far, so stay in this state.
                     return "tag-attribute-7";
@@ -1490,7 +1435,8 @@ function OnboardingStates (contextMenu, compass, mapService) {
                 var tags = this.getProperty('tagIds');
                 if (tags.length === 2 && tags.includes(20) && tags.includes(21)) {
                     // We have both tags correct, so let's continue.
-                    return "rate-severity-7";
+                    contextMenu.hide();
+                    return "adjust-heading-angle-4";
                 } else if (tags.includes(20) || tags.includes(21)) {
                     // We have at least one of the two tags so far, but not both. Move progress bar, stay in this state.
                     return "redo-tag-attribute-7";
