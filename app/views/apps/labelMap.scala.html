@@ -216,14 +216,14 @@
 
                 // Add listeners on the sliders.
                 const sliderNotApplicableText = "@Messages("not.applicable.abbr")";
-                let sliderStepText = [sliderNotApplicableText, 1, 2, 3];
+                const formatSeverityValue = (value) => value === 0 ? sliderNotApplicableText : value;
                 $( "*[id*='slider']" ).each(function() {
                     $(this).slider('option', {
                         // Change the text next to the slider as it's moved.
                         slide: function(event, ui) {
                             let sliderTextEl = this.parentElement.nextElementSibling.firstElementChild;
-                            const low = ui.values[0] === 0 ? sliderNotApplicableText : ui.values[0];
-                            const high = ui.values[1];
+                            const low = formatSeverityValue(ui.values[0]);
+                            const high = formatSeverityValue(ui.values[1]);
 
                             if (low === high) {
                                 sliderTextEl.textContent = low;
