@@ -312,15 +312,7 @@
 
             const center = this.getCenterFromRegion(regionData);
 
-            // Create the map with scroll wheel zoom disabled.
-            const map = L.map(`streets-${mapType}-map`, {
-                scrollWheelZoom: false, // prevent accidental zoom while scrolling page
-                touchZoom: true,
-                zoomControl: true
-            }).setView(center, 16);
-
-            // Defensive: ensure it stays off.
-            map.scrollWheelZoom.disable();
+            const map = L.map(`streets-${mapType}-map`, { scrollWheelZoom: false }).setView(center, 16);
 
             // Add CartoDB Dark Matter tile layer for better line visibility.
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {

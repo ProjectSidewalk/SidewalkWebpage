@@ -102,16 +102,7 @@
             container.appendChild(mapElement);
 
             // Create the map, centered on the world.
-            const map = L.map('cities-map', {
-                // prevent accidental zoom while scrolling the page
-                scrollWheelZoom: false,
-                // keep intentional zoom methods
-                touchZoom: true,
-                zoomControl: true
-            }).setView([20, 0], 2);
-
-            // (Defensive) ensure it stays off even if defaults change elsewhere
-            map.scrollWheelZoom.disable();
+            const map = L.map('cities-map', { scrollWheelZoom: false }).setView([20, 0], 2);
 
             // Add the OpenStreetMap tile layer.
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

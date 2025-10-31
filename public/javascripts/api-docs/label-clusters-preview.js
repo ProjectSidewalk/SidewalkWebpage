@@ -203,14 +203,7 @@
             const center = this.getCenterFromRegion(regionData);
 
             // Create the map.
-            const map = L.map('label-clusters-map', {
-                scrollWheelZoom: false, // disable zooming with scroll wheel
-                touchZoom: true,
-                zoomControl: true
-            }).setView(center, 16);
-
-            // Defensive: ensure scroll wheel zoom remains disabled.
-            map.scrollWheelZoom.disable();
+            const map = L.map('label-clusters-map', { scrollWheelZoom: false }).setView(center, 16);
 
             // Add the OpenStreetMap tile layer with darkened overlay.
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
