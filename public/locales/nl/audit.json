@@ -43,8 +43,6 @@
         "speed-things-up": "Om dingen te helpen versnellen, labelen we deze twee opritten op trottoirs, deze oversteekplaats en dit verkeerslicht voor u. <span class=\"bold\"> In de toekomst moet je al deze zelf labelen!</span>",
         "select-label-type-7": "Merk op dat het trottoir hier plotseling ophoudt. Laten we dit labelen. Klik de <span class=\"bold\">\"Geen Trottoir\"</span> knop om het te labelen.",
         "label-attribute-7": "<span class=\"bold\">Klik op de grond</span> waar het trottoir ontbreekt.",
-        "rate-severity-7": "Aangezien er een trottoir is aan de andere kant van de straat is het minder problematisch voor de toegankelijkheid. Laten we het daarom <span class=\"bold\">beoordelen met een Medium.</span>",
-        "redo-rate-attribute-7": "Hmm, aangezien er een trottoir is aan de andere kant van de straat is het minder problematisch voor de toegankelijkheid. <span class=\"bold\">Klik daarom \"Medium\" om de impact van het geen trottoir label aan te passen.</span>",
         "tag-attribute-7": "<span class=\"bold\">Laten we de \"eindigt abrupt\" en \"straat heeft een trottoir\" tags toevoegen</span> aangezien er een trottoir aan de andere kant van de straat ligt.",
         "redo-tag-attribute-7": "De \"eindigt abrupt\" en \"straat heeft een trottoir\" tags zijn de enige tags die hier van toepassing zijn. Dus <span class=\"bold\">zorg ervoor dat enkel deze tags worden geselecteerd.</span>",
         "adjust-heading-angle-4": "Top! Laten we nu de labeling van de laatste trottoir oprit van het kruispunt afmaken. Eerst, <span class=\"bold\">selecteer en sleep de Street View afbeelding.</span>",
@@ -115,7 +113,7 @@
             "label-popup-shortcuts": "Druk <tag-underline>{{c}}</tag-underline> om een tag toe te voegen",
             "tag": {
                 "narrow": "sm<tag-underline>a</tag-underline>l",
-                "points-into-traffic": "het verkeer <tag-underline>i</tag-underline>n gericht",
+                "points-into-traffic": "punten <tag-underline>i</tag-underline>n het kruisende verkeer",
                 "missing-tactile-warning": "tacti<tag-underline>e</tag-underline>le waarschuwing ontbreekt",
                 "tactile-warning": "tactile waarsc<tag-underline>h</tag-underline>uwing",
                 "steep": "s<tag-underline>t</tag-underline>eil",

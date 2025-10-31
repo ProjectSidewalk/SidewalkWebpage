@@ -14,7 +14,7 @@ function SeverityDisplay(container, severity, labelType, isExpandedView= false) 
 
     // List of label types where severity ratings are not supported.
     // If more unsupported label types are made, add them here!
-    const unsupportedLabels = ['Occlusion', 'Signal'];
+    const unsupportedLabels = ['NoSidewalk', 'Signal', 'Occlusion'];
 
     let unsupported = unsupportedLabels.includes(labelType);
 

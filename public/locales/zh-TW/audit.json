@@ -43,8 +43,6 @@
         "speed-things-up": "為了加快進度，我們將替你標記這兩個路緣斜坡、這個行人穿越道及行人號誌。 <span class=\"bold\">但以後你應該自己來喔！</span>",
         "select-label-type-7": "注意喔，這段人行道突然在這裡中斷，請標記這個狀態。點選<span class=\"bold\">「無實體人行道」</span>項目來標記。",
         "label-attribute-7": "請<span class=\"bold\">點選人行道中斷位置的地面</span>。",
-        "rate-severity-7": "由於此街道的另一側有設置人行道，可及性問題不太嚴重。因此<span class=\"bold\">請將此處評為中等的分。</span>",
-        "redo-rate-attribute-7": "我們看一下喔...由於此街道的另一側有設置人行道，可及性問題不太嚴重。<span class=\"bold\">請點選「中等的」更改無人行道的品質評分。</span>",
         "tag-attribute-7": "<span class=\"bold\">請加上「突然中斷」及「街道另一側有人行道」這兩個標籤。</span>",
         "redo-tag-attribute-7": "「突然中斷」及「街道另一側有人行道」為僅有適用於此處的兩個標籤。因此<span class=\"bold\">請務必僅選擇這兩個標籤。</span>",
         "adjust-heading-angle-4": "好極了！我們來完成這個路口的最後一個路緣斜坡標記吧。請<span class=\"bold\">往右拖拉街景</span>。",
@@ -115,7 +113,7 @@
             "label-popup-shortcuts": "點選<tag-underline>{{c}}</tag-underline>以增加標籤",
             "tag": {
                 "narrow": "狹窄(<tag-underline>a</tag-underline>)",
-                "points-into-traffic": "對著交通車流(<tag-underline>i</tag-underline>)",
+                "points-into-traffic": "指向橫向交通(<tag-underline>i</tag-underline>)",
                 "missing-tactile-warning": "缺導盲警示帶(<tag-underline>e</tag-underline>)",
                 "tactile-warning": "導盲警示帶(<tag-underline>h</tag-underline>)",
                 "steep": "陡峭(<tag-underline>t</tag-underline>)",

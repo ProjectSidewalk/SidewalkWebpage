@@ -43,8 +43,6 @@
         "speed-things-up": "To help speed things up, we are labeling these two curb ramps, this crosswalk, and this pedestrian signal for you. <span class=\"bold\">In the future, you should label all of these yourself!</span>",
         "select-label-type-7": "Notice that the sidewalk suddenly ends here. Let’s label this. Click the <span class=\"bold\">\"No Sidewalk\"</span> button to label it.",
         "label-attribute-7": "<span class=\"bold\">Click on the ground</span> where the sidewalk is missing.",
-        "rate-severity-7": "Since there is a sidewalk on the other side of the street, this accessibility problem is less severe. So <span class=\"bold\">let’s rate it as Medium.</span>",
-        "redo-rate-attribute-7": "Hmm, since there is a sidewalk on the other side of the street, this accessibility problem is less severe. <span class=\"bold\">Let’s click \"Medium\" to change the severity of the no sidewalk label.</span>",
         "tag-attribute-7": "<span class=\"bold\">Let's add the \"ends abruptly\" and \"street has a sidewalk\" tags</span> because there is a sidewalk on the other side of the street.",
         "redo-tag-attribute-7": "The \"ends abruptly\" and \"street has a sidewalk\" tags are the only tags that apply here. So <span class=\"bold\">make sure to add only those two tags.</span>",
         "adjust-heading-angle-4": "Awesome! Let’s finish labeling the last curb ramp in the intersection. First, <span class=\"bold\">grab and drag the Street View image.</span>",
@@ -115,7 +113,7 @@
             "label-popup-shortcuts": "Press <tag-underline>{{c}}</tag-underline> to add tag",
             "tag": {
                 "narrow": "n<tag-underline>a</tag-underline>rrow",
-                "points-into-traffic": "points <tag-underline>i</tag-underline>nto traffic",
+                "points-into-traffic": "points <tag-underline>i</tag-underline>nto cross traffic",
                 "missing-tactile-warning": "missing tactil<tag-underline>e</tag-underline> warning",
                 "tactile-warning": "tactile warning (<tag-underline>h</tag-underline>)",
                 "steep": "s<tag-underline>t</tag-underline>eep",

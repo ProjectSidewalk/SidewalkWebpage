@@ -59,7 +59,7 @@
     "ai-disclaimer": "La IA analizó esta etiqueta y votó \"$t({{aiVal}})\"; sin embargo, la IA puede cometer errores. Por favor, haga su propia evaluación.",
     "tag": {
         "narrow": "muy angosta",
-        "points into traffic": "orientada hacia el tráfico",
+        "points into traffic": "orientado hacia el tráfico transversal",
         "missing tactile warning": "pavimento de advertencia táctil ausente",
         "tactile warning": "advertencia táctil",
         "steep": "empinada (mucha pendiente)",

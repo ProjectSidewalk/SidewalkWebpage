@@ -203,7 +203,7 @@
             const center = this.getCenterFromRegion(regionData);
 
             // Create the map.
-            const map = L.map('label-clusters-map').setView(center, 16); // Start with zoom level 16.
+            const map = L.map('label-clusters-map', { scrollWheelZoom: false }).setView(center, 16);
 
             // Add the OpenStreetMap tile layer with darkened overlay.
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

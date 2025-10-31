@@ -58,7 +58,7 @@
     "ai-disclaimer": "AI heeft dit label geanalyseerd en gestemd op \"$t({{aiVal}})\". AI kan echter fouten maken. Maak uw eigen beoordeling.",
     "tag": {
         "narrow": "smal",
-        "points into traffic": "het verkeer in gericht",
+        "points into traffic": "punten in het kruisende verkeer",
         "missing tactile warning": "tactiele waarschuwing ontbreekt",
         "tactile warning": "tactiele waarschuwing",
         "steep": "steil",

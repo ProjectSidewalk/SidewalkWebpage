@@ -22,7 +22,7 @@ function AddLabelsToMap(map, labelData, params) {
         let labelType = labelData.features[i].properties.label_type;
         let severity = labelData.features[i].properties.severity;
         sortedLabels[labelType] = sortedLabels[labelType] || {};
-        if (labelType === 'Occlusion' || labelType === 'Signal' || !severity) { // No severity level.
+        if (['NoSidewalk', 'Signal', 'Occlusion'].includes(labelType) || !severity) { // No severity level.
             mapData.sortedLabels[labelType][0].push(labelData.features[i]);
         } else {
             mapData.sortedLabels[labelType][severity].push(labelData.features[i]);

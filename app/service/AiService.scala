@@ -80,11 +80,13 @@ class AiServiceImpl @Inject() (
 
   def validateLabelsWithAiDaily(n: Int): Future[Seq[Option[LabelAiAssessment]]] = {
     if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
+      // Run Sidewalk AI API calls sequentially.
       db.run(labelTable.getLabelsToValidateWithAi(n)).flatMap { labelDataSeq =>
-        Future.sequence {
-          labelDataSeq.map { labelData =>
-            callAiApiAndSubmitData(labelData) // Call the AI API to process the panorama data and validate the label.
-          }
+        labelDataSeq.foldLeft(Future.successful(List.empty[Option[LabelAiAssessment]])) { (accFuture, labelData) =>
+          for {
+            acc <- accFuture
+            result <- callAiApiAndSubmitData(labelData)
+          } yield acc :+ result
         }
       }
     } else {
