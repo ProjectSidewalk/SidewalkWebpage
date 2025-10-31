@@ -115,7 +115,7 @@
             "label-popup-shortcuts": "Drücken Sie <tag-underline>{{c}}</tag-underline>, um einen Tag hinzuzufügen",
             "tag": {
                 "narrow": "schm<tag-underline>a</tag-underline>l",
-                "points-into-traffic": "auf den Verkehr ausger<tag-underline>i</tag-underline>chtet",
+                "points-into-traffic": "auf Querverkehr ausger<tag-underline>i</tag-underline>chtet",
                 "missing-tactile-warning": "fehlende taktil<tag-underline>e</tag-underline> Orientierungshilfe",
                 "tactile-warning": "taktile Orientierungs<tag-underline>h</tag-underline>ilfe",
                 "steep": "s<tag-underline>t</tag-underline>eil",

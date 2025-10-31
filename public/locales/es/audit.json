@@ -115,7 +115,7 @@
             "label-popup-shortcuts": "Presiona <tag-underline>{{c}}</tag-underline> para agregar la etiqueta",
             "tag": {
                 "narrow": "muy <tag-underline>a</tag-underline>ngosta",
-                "points-into-traffic": "orientada hac<tag-underline>i</tag-underline>a el tráfico",
+                "points-into-traffic": "orientado hacia el tráf<tag-underline>i</tag-underline>co transversal",
                 "missing-tactile-warning": "pavim<tag-underline>e</tag-underline>nto de advertencia táctil ausente",
                 "tactile-warning": "advertencia táctil (<tag-underline>h</tag-underline>)",
                 "steep": "empinada (mucha pendien<tag-underline>t</tag-underline>e)",
