@@ -311,7 +311,8 @@
             container.appendChild(mapElement);
 
             const center = this.getCenterFromRegion(regionData);
-            const map = L.map(`streets-${mapType}-map`).setView(center, 16);
+
+            const map = L.map(`streets-${mapType}-map`, { scrollWheelZoom: false }).setView(center, 16);
 
             // Add CartoDB Dark Matter tile layer for better line visibility.
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
