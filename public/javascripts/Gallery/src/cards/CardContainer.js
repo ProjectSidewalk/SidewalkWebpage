@@ -262,8 +262,8 @@ function CardContainer(uiCardContainer, initialFilters) {
         let appliedSeverities = sg.cardFilter.getAppliedSeverities();
         let appliedValOptions = sg.cardFilter.getAppliedValidationOptions();
 
-        // Occlusion and Signal don't have severity, Occlusion does not have tags.
-        if (['Occlusion', 'Signal'].includes(currentLabelType)) appliedSeverities = undefined;
+        // NoSidewalk, Occlusion, and Signal don't have severity, Occlusion does not have tags.
+        if (['NoSidewalk', 'Signal', 'Occlusion'].includes(currentLabelType)) appliedSeverities = undefined;
         if ('Occlusion' === currentLabelType) appliedTags = undefined;
 
         currentCards = cardsByType[currentLabelType].copy();

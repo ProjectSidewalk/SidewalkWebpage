@@ -388,7 +388,8 @@
 
                         <div id="context-menu-tag-section" class="context-menu-section">
                             <div class="context-menu-header">
-                                1. @Messages("audit.center.ui.tags.header")
+                                <span id="tag-header-num">1.</span>
+                                <span>@Messages("audit.center.ui.tags.header")</span>
                                 <img src='@assets.path("images/icons/info-circle.svg")'
                                     class="context-menu-info-icon"
                                     title="@Messages("audit.center.ui.tags.info")"
@@ -418,14 +419,15 @@
 
                         <div id="severity-menu" class="context-menu-section">
                             <div class="context-menu-header">
-                                2. @Messages("audit.center.ui.severity.header")
+                                <span id="severity-header-num">2.</span>
+                                <span>@Messages("audit.center.ui.severity.header")</span>
                                 <img src='@assets.path("images/icons/info-circle.svg")' class="context-menu-info-icon"
                                     title="@Messages("audit.center.ui.severity.info")"
                                     data-toggle="tooltip" data-placement="top"
                                 />
                             </div>
                             <div id="severity-radio-holder">
-                                <div class="severity-level" id="severity-one" data-toggle="tooltip">
+                                <div class="severity-level" id="severity-1" data-toggle="tooltip">
                                     <label>
                                         <input type="radio" name="label-severity" value="1">
                                         <div class="severity-icon severity-1">
@@ -434,7 +436,7 @@
                                         <div class="severity-label">@Messages("low")</div>
                                     </label>
                                 </div>
-                                <div class="severity-level" id="severity-two" data-toggle="tooltip">
+                                <div class="severity-level" id="severity-2" data-toggle="tooltip">
                                     <label>
                                         <input type="radio" name="label-severity" value="2">
                                         <div class="severity-icon severity-2">
@@ -443,7 +445,7 @@
                                         <div class="severity-label">@Messages("medium")</div>
                                     </label>
                                 </div>
-                                <div class="severity-level" id="severity-three" data-toggle="tooltip">
+                                <div class="severity-level" id="severity-3" data-toggle="tooltip">
                                     <label>
                                         <input type="radio" name="label-severity" value="3">
                                         <div class="severity-icon severity-3">
@@ -456,7 +458,10 @@
                         </div>
 
                         <div id="context-menu-description-section" class="context-menu-section">
-                            <div class="context-menu-header">3. @Messages("audit.center.ui.description.header")</div>
+                            <div class="context-menu-header">
+                                <span id="description-header-num">3.</span>
+                                <span>@Messages("audit.center.ui.description.header")</span>
+                            </div>
                             <div class="description-input-frame">
                                 <input type="text" id="context-menu-description-text-box" placeholder="@Messages("audit.center.ui.description.placeholder")">
                                 <button id="context-menu-ok-button">OK</button>

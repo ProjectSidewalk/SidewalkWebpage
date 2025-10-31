@@ -415,7 +415,6 @@ function Admin(_, $, mapboxApiKey) {
                 var noCurbRamps = data.features.filter(function(label) {return label.properties.label_type === "NoCurbRamp"});
                 var obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
                 var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
-                var noSidewalks = data.features.filter(function(label) {return label.properties.label_type === "NoSidewalk"});
                 var crosswalks = data.features.filter(function(label) {return label.properties.label_type === "Crosswalk"});
 
                 var curbRampStats = getSummaryStats(curbRamps, "severity");
@@ -433,10 +432,6 @@ function Admin(_, $, mapboxApiKey) {
                 var surfaceProblemStats = getSummaryStats(surfaceProblems, "severity");
                 $("#surface-mean").html((surfaceProblemStats.mean).toFixed(2));
                 $("#surface-std").html((surfaceProblemStats.std).toFixed(2));
-
-                var noSidewalkStats = getSummaryStats(noSidewalks, "severity");
-                $("#no-sidewalk-mean").html((noSidewalkStats.mean).toFixed(2));
-                $("#no-sidewalk-std").html((noSidewalkStats.std).toFixed(2));
 
                 var crosswalkStats = getSummaryStats(crosswalks, "severity");
                 $("#crosswalk-mean").html((crosswalkStats.mean).toFixed(2));
@@ -466,22 +461,22 @@ function Admin(_, $, mapboxApiKey) {
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": obstacles},
+                            "data": {"values": noCurbRamps},
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "severity", "type": "ordinal",
-                                    "axis": {"title": "Obstacle Severity", "labelAngle": 0}},
+                                    "axis": {"title": "Missing Curb Ramp Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         },
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": noSidewalks},
+                            "data": {"values": obstacles},
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "severity", "type": "ordinal",
-                                    "axis": {"title": "No Sidewalk Severity", "labelAngle": 0}},
+                                    "axis": {"title": "Obstacle Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         },
@@ -498,23 +493,12 @@ function Admin(_, $, mapboxApiKey) {
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": noCurbRamps},
-                            "mark": "bar",
-                            "encoding": {
-                                "x": {"field": "severity", "type": "ordinal",
-                                    "axis": {"title": "Missing Curb Ramp Severity", "labelAngle": 0}},
-                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
-                            }
-                        },
-                        {
-                            "height": subPlotHeight,
-                            "width": subPlotWidth,
                             "data": {"values": surfaceProblems},
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "severity", "type": "ordinal",
                                     "axis": {"title": "Surface Problem Severity", "labelAngle": 0}},
-                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of labels"}}
                             }
                         },
                         {
