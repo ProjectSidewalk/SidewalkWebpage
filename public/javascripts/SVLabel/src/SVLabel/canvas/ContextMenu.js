@@ -16,6 +16,7 @@ function ContextMenu (uiContextMenu) {
     var $menuWindow = uiContextMenu.holder;
     var $severityMenu = uiContextMenu.severityMenu;
     var $severityButtons = uiContextMenu.radioButtons;
+    let $descriptionHeaderNumber = $('#description-header-num');
     var $descriptionTextBox = uiContextMenu.textBox;
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
     var $radioButtonLabels = $menuWindow.find(".severity-level");
@@ -527,6 +528,9 @@ function ContextMenu (uiContextMenu) {
             if (labelType !== 'Other') {
                 _setSeverityTooltips(labelType);
             }
+            $descriptionHeaderNumber.text('3.');
+        } else {
+            $descriptionHeaderNumber.text('2.');
         }
     }
 
