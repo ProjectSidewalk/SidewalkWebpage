@@ -215,14 +215,14 @@
                 });
 
                 // Add listeners on the sliders.
-                let sliderStepText = ["N/A", 1, 2, 3];
+                const sliderNotApplicableText = "@Messages("not.applicable.abbr")";
+                let sliderStepText = [sliderNotApplicableText, 1, 2, 3];
                 $( "*[id*='slider']" ).each(function() {
                     $(this).slider('option', {
                         // Change the text next to the slider as it's moved.
                         slide: function(event, ui) {
                             let sliderTextEl = this.parentElement.nextElementSibling.firstElementChild;
-                            // Display 'N/A' instead of 0.
-                            const low = ui.values[0] === 0 ? 'N/A' : ui.values[0];
+                            const low = ui.values[0] === 0 ? sliderNotApplicableText : ui.values[0];
                             const high = ui.values[1];
 
                             if (low === high) {
