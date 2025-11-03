@@ -43,8 +43,6 @@
         "speed-things-up": "Para ayudar a acelerar las cosas, estamos etiquetando estas dos rampas peatonales, este cruce peatonal y esta semáforo peatonal para usted. <span class=\"bold\">En el futuro, ¡debes etiquetar todos estos tú mismo!</span>",
         "select-label-type-7": "Observa que la banqueta termina de repente aquí. Vamos a etiquetar esto. Haz clic en el botón <span class=\"bold\">\"Sin banqueta\"</span> para etiquetarlo.",
         "label-attribute-7": "<span class=\"bold\">Haz clic en el suelo</span> donde falta la banqueta.",
-        "rate-severity-7": "Dado que hay una banqueta al otro lado de la calle, este problema de accesibilidad es menos grave. Así que <span class=\"bold\">puedes calificarlo con un Medio.</span>",
-        "redo-rate-attribute-7": "Hmm, ya que hay una banqueta al otro lado de la calle, este problema de accesibilidad es menos grave. <span class=\"bold\">Haz clic en \"Medio\" para cambiar la gravedad de la etiqueta de “No hay banqueta”.</span>",
         "tag-attribute-7": "<span class=\"bold\">Agreguemos las clasificaciones \"termina abruptamente\" y \"la calle tiene una banqueta\"</span> porque hay una banqueta al otro lado de la calle.",
         "redo-tag-attribute-7": "Las clasificaciones \"termina abruptamente\" y \"la calle tiene una banqueta\" son las únicas clasificaciones que aplican aquí. <span class=\"bold\">Así que asegúrate de agregar solo esas dos etiquetas.</span>",
         "adjust-heading-angle-4": "¡Genial! Terminemos de etiquetar la última rampa de la intersección vial. Primero, <span class=\"bold\">agarra y arrastra la imagen de Google Street View.</span>",
@@ -115,7 +113,7 @@
             "label-popup-shortcuts": "Presiona <tag-underline>{{c}}</tag-underline> para agregar la etiqueta",
             "tag": {
                 "narrow": "muy <tag-underline>a</tag-underline>ngosta",
-                "points-into-traffic": "orientada hac<tag-underline>i</tag-underline>a el tráfico",
+                "points-into-traffic": "orientado hacia el tráf<tag-underline>i</tag-underline>co transversal",
                 "missing-tactile-warning": "pavim<tag-underline>e</tag-underline>nto de advertencia táctil ausente",
                 "tactile-warning": "advertencia táctil (<tag-underline>h</tag-underline>)",
                 "steep": "empinada (mucha pendien<tag-underline>t</tag-underline>e)",

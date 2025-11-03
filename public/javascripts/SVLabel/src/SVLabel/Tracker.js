@@ -216,7 +216,7 @@ function Tracker() {
         actions.push(item);
         var contextMenuLabel = true;
 
-        if (self._isFinishLabelingAction(action) && (notes['labelType'] === 'NoSidewalk' || notes['labelType'] === 'Occlusion')) {
+        if (self._isFinishLabelingAction(action) && (notes['labelType'] === 'Occlusion')) {
             contextMenuLabel = false;
         }
 

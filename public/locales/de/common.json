@@ -59,7 +59,7 @@
     "ai-disclaimer": "Die KI hat dieses Label analysiert und mit „$t({{aiVal}})“ bewertet. KI kann jedoch Fehler machen. Bitte bilden Sie sich Ihre eigene Meinung.",
     "tag": {
         "narrow": "schmal",
-        "points into traffic": "auf den Verkehr ausgerichtet",
+        "points into traffic": "auf Querverkehr ausgerichtet",
         "missing tactile warning": "fehlende taktile Orientierungshilfe",
         "tactile warning": "taktile Orientierungshilfe",
         "steep": "steil",

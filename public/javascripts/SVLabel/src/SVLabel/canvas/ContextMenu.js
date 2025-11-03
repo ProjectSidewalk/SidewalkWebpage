@@ -16,6 +16,7 @@ function ContextMenu (uiContextMenu) {
     var $menuWindow = uiContextMenu.holder;
     var $severityMenu = uiContextMenu.severityMenu;
     var $severityButtons = uiContextMenu.radioButtons;
+    let $descriptionHeaderNumber = $('#description-header-num');
     var $descriptionTextBox = uiContextMenu.textBox;
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
     var $radioButtonLabels = $menuWindow.find(".severity-level");
@@ -109,8 +110,8 @@ function ContextMenu (uiContextMenu) {
         var labels = svl.labelContainer.getAllLabels();
         if (labels.length > 0) {
             var lastLabelProps = labels[labels.length - 1].getProperties();
-            // If the label is Pedestrian Signal, do not call ratingReminderAlert().
-            if (lastLabelProps.labelType !== 'Signal') {
+            // If the label is No Sidewalk or Pedestrian Signal, do not call ratingReminderAlert().
+            if (!['NoSidewalk', 'Signal'].includes(lastLabelProps.labelType)) {
                 svl.ratingReminderAlert.ratingClicked(lastLabelProps.severity);
             }
         }
@@ -430,36 +431,17 @@ function ContextMenu (uiContextMenu) {
      * @private
      */
     function _setSeverityTooltips(labelType) {
-        // Files are named as severity 1/2/3 because we have begun transitioning to a 3-point scale.
-        var sevImgUrlOne = `/assets/images/examples/severity/${labelType}_Severity1.png`
-        var sevImgUrlTwo = `/assets/images/examples/severity/${labelType}_Severity2.png`
-        var sevImgUrlThree = `/assets/images/examples/severity/${labelType}_Severity3.png`
-
-        // Add severity tooltips for the current label type if we have images for them.
-        util.getImage(sevImgUrlOne).then(img => {
-            var tooltipHeader = i18next.t('common:severity-example-tooltip-1');
-            var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            $('#severity-one').tooltip({
-                placement: "top", html: true, delay: {"show": 300, "hide": 10},
-                title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
+        for (let sev = 1; sev < 4; sev++) {
+            // Add severity tooltips for the current label type if we have images for them.
+            util.getImage(`/assets/images/examples/severity/${labelType}_Severity${sev}.png`).then(img => {
+                const tooltipHeader = i18next.t(`common:severity-example-tooltip-${sev}`);
+                const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
+                $(`#severity-${sev}`).tooltip({
+                    placement: "top", html: true, delay: {"show": 300, "hide": 10},
+                    title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
+                });
             });
-        });
-        util.getImage(sevImgUrlTwo).then(img => {
-            var tooltipHeader = i18next.t('common:severity-example-tooltip-2');
-            var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            $('#severity-two').tooltip({
-                placement: "top", html: true, delay: {"show": 300, "hide": 10},
-                title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
-            });
-        });
-        util.getImage(sevImgUrlThree).then(img => {
-            var tooltipHeader = i18next.t('common:severity-example-tooltip-3');
-            var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            $('#severity-three').tooltip({
-                placement: "top", html: true, delay: {"show": 300, "hide": 10},
-                title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
-            });
-        });
+        }
     }
 
     /**
@@ -467,9 +449,9 @@ function ContextMenu (uiContextMenu) {
      * @private
      */
     function _removePrevSeverityTooltips() {
-        $('#severity-one').tooltip('destroy');
-        $('#severity-two').tooltip('destroy');
-        $('#severity-three').tooltip('destroy');
+        for (let severity = 0; severity < 4; severity++) {
+            $(`#severity-${severity}`).tooltip('destroy');
+        }
     }
 
     /**
@@ -490,8 +472,8 @@ function ContextMenu (uiContextMenu) {
             _setTagColor(targetLabel);
             if (getStatus('disableTagging')) { disableTagging(); }
 
-            // Hide the severity menu for the Pedestrian Signal label type.
-            if (labelType === 'Signal') {
+            // Hide the severity menu for the No Sidewalk and Pedestrian Signal label types.
+            if (['NoSidewalk', 'Signal'].includes(labelType)) {
                 $severityMenu.addClass('hidden');
             } else {
                 $severityMenu.removeClass('hidden');
@@ -540,12 +522,15 @@ function ContextMenu (uiContextMenu) {
             // Don't push event on Occlusion labels; they don't open ContextMenus.
             svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProps.auditTaskId}, {'temporaryLabelId': labelProps.temporaryLabelId});
         }
-        if (labelType !== 'Occlusion' && labelType !== 'Signal') {
+        if (!['NoSidewalk', 'Signal', 'Occlusion'].includes(labelType)) {
             self.updateRadioButtonImages();
             _removePrevSeverityTooltips();
             if (labelType !== 'Other') {
                 _setSeverityTooltips(labelType);
             }
+            $descriptionHeaderNumber.text('3.');
+        } else {
+            $descriptionHeaderNumber.text('2.');
         }
     }
 

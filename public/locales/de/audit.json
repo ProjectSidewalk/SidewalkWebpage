@@ -43,8 +43,6 @@
         "speed-things-up": "Um den Prozess zu beschleunigen, beschriften wir für Sie diese beiden Trottoirabsenkungen, diesen Fussgängerübergang und dieses Fussgängerlichtsignal. <span class=\"bold\">Künftig sollten Sie diese selbst beschriften!</span>",
         "select-label-type-7": "Beachten Sie, dass das Trottoir hier plötzlich endet. Bitte beschriften Sie dies. Klicken Sie auf das <span class=\"bold\">\"kein Trottoir\"</span>-Symbol, um es zu beschriften.",
         "label-attribute-7": "<span class=\"bold\">Klicken Sie auf den Boden</span>, wo das Trottoir fehlt.",
-        "rate-severity-7": "Da es ein Trottoir auf der anderen Seite der Strasse hat, ist dieses Zugänglichkeitsproblem weniger schwerwiegend. <span class=\"bold\">Daher können Sie es mit Medium bewerten.</span>",
-        "redo-rate-attribute-7": "Hmm, da es ein Trottoir auf der anderen Seite der Strasse hat, ist dieses Zugänglichkeitsproblem weniger schwerwiegend. <span class=\"bold\">Klicken Sie \"Medium\", um den Schweregrad des fehlenden Trottoirs zu ändern.</span>",
         "tag-attribute-7": "<span class=\"bold\">Fügen Sie die \"endet abrupt\"- und \"Strasse hat ein Trottoir\"-Tags hinzu</span>, da es ein Trottoir auf der anderen Seite der Strasse hat.",
         "redo-tag-attribute-7": "Die \"endet abrupt\"-und \"Strasse hat einen Trottoir\"-Tags sind die einzigen Tags, die hier zutreffen. <span class=\"bold\">Stellen Sie sicher, dass Sie nur diese beiden Tags ausgewählt haben.</span>",
         "adjust-heading-angle-4": "Toll! Lassen Sie uns die letzte Trottoirabsenkung auf der Kreuzung beschriften. Zuerst <span class=\"bold\">greifen und ziehen Sie das “Street View”-Bild.</span>",
@@ -115,7 +113,7 @@
             "label-popup-shortcuts": "Drücken Sie <tag-underline>{{c}}</tag-underline>, um einen Tag hinzuzufügen",
             "tag": {
                 "narrow": "schm<tag-underline>a</tag-underline>l",
-                "points-into-traffic": "auf den Verkehr ausger<tag-underline>i</tag-underline>chtet",
+                "points-into-traffic": "auf Querverkehr ausger<tag-underline>i</tag-underline>chtet",
                 "missing-tactile-warning": "fehlende taktil<tag-underline>e</tag-underline> Orientierungshilfe",
                 "tactile-warning": "taktile Orientierungs<tag-underline>h</tag-underline>ilfe",
                 "steep": "s<tag-underline>t</tag-underline>eil",

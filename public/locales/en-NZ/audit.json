@@ -29,8 +29,6 @@
         "speed-things-up": "To help speed things up, we are labeling these two drop kerbs, this pedestrian crossing, and this pedestrian signal for you. <span class=\"bold\">In the future, you should label all of these yourself!</span>",
         "select-label-type-7": "Notice that the footpath suddenly ends here. Let’s label this. Click the <span class=\"bold\">\"No Footpath\"</span> button to label it.",
         "label-attribute-7": "<span class=\"bold\">Click on the ground</span> where the footpath is missing.",
-        "rate-severity-7": "Since there is a footpath on the other side of the street, this accessibility problem is less severe. So <span class=\"bold\">let’s rate it as Medium.</span>",
-        "redo-rate-attribute-7": "Hmm, since there is a footpath on the other side of the street, this accessibility problem is less severe. <span class=\"bold\">Let’s click \"Medium\" to change the severity of the no footpath label.</span>",
         "tag-attribute-7": "<span class=\"bold\">Let's add the \"ends abruptly\" and \"street has a footpath\" tags</span> because there is a footpath on the other side of the street.",
         "redo-tag-attribute-7": "The \"ends abruptly\" and \"street has a footpath\" tags are the only tags that apply here. So <span class=\"bold\">make sure to add only those two tags.</span>",
         "adjust-heading-angle-4": "Awesome! Let’s finish labeling the last drop kerb in the intersection. First, <span class=\"bold\">grab and drag the Street View image.</span>",

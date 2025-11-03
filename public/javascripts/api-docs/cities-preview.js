@@ -102,7 +102,7 @@
             container.appendChild(mapElement);
 
             // Create the map, centered on the world.
-            const map = L.map('cities-map').setView([20, 0], 2);
+            const map = L.map('cities-map', { scrollWheelZoom: false }).setView([20, 0], 2);
 
             // Add the OpenStreetMap tile layer.
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
