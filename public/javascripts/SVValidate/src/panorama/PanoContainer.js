@@ -31,6 +31,9 @@ async function PanoContainer (panoViewerType) {
         if (panoViewerType === GsvViewer) {
             _setPanoCallback = _setPanoCallbackGsv;
             $('#imagery-source-logo-holder').hide();
+        } else if (panoViewerType === MapillaryViewer) {
+            _setPanoCallback = _setPanoCallbackMapillary;
+            $('#imagery-source-logo-holder').hide();
         } else if (panoViewerType === Infra3dViewer) {
             _setPanoCallback = _setPanoCallbackInfra3d;
         }
@@ -105,8 +108,21 @@ async function PanoContainer (panoViewerType) {
 
         // Show the pano date in the bottom-left corner.
         if (!isMobile()) {
-            const panoDate = svv.panoViewer.viewer.getCurrentNode().date;
-            document.getElementById("svv-panorama-date").innerText = moment(panoDate).format('MMM YYYY');
+            document.getElementById("svv-panorama-date").innerText = moment(data.captureDate).format('MMM YYYY');
+        }
+    }
+
+    /**
+     * Updates the date text field on the pano when pano changes in Mapillary viewer.
+     * @param data
+     * @private
+     */
+    function _setPanoCallbackMapillary(data) {
+        // TODO we could probably construct a history using images API.
+
+        // Show the pano date in the bottom-left corner.
+        if (!isMobile()) {
+            document.getElementById("svv-panorama-date").innerText = moment(data.capturedAt).format('MMM YYYY');
         }
     }
 

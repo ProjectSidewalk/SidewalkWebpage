@@ -46,6 +46,9 @@ async function PanoManager (panoViewerType, params = {}) {
         if (panoViewerType === GsvViewer) {
             _panoChangeSuccessCallbackHelper = _successCallbackHelperGsv;
             $('#imagery-source-logo-holder').hide();
+        } else if (panoViewerType === MapillaryViewer) {
+            _panoChangeSuccessCallbackHelper = _successCallbackHelperMapillary;
+            $('#imagery-source-logo-holder').hide();
         } else if (panoViewerType === Infra3dViewer) {
             _panoChangeSuccessCallbackHelper = _successCallbackHelperInfra3d;
         }
@@ -73,6 +76,54 @@ async function PanoManager (panoViewerType, params = {}) {
         $(window).on('resize', function() {
             updatePov(.0025,.0025);
         });
+    }
+
+    /**
+     * Saves historic pano metadata and updates the date text field on the pano in GSV viewer.
+     * @param data The pano data returned from the StreetViewService
+     * @private
+     */
+    function _successCallbackHelperGsv(data) {
+        const panoId = svl.panoViewer.getPanoId();
+
+        // Record the pano metadata.
+        svl.panoStore.addPanoMetadata(panoId, data);
+
+        // Show the pano date in the bottom-left corner.
+        svl.ui.streetview.date.text(moment(data.imageDate).format('MMM YYYY'));
+    }
+
+    /**
+     * Saves historic pano metadata and updates the date text field on the pano in Mapillary viewer.
+     * @param data The pano data from Mapillary
+     * @private
+     */
+    function _successCallbackHelperMapillary(data) {
+        // Record the pano metadata.
+        const panoData = {
+            location: {
+                pano: data.panoId,
+                latLng: new google.maps.LatLng(data.lat, data.lng)
+            },
+            tiles: {
+                originHeading: data.cameraHeading,
+                // TODO idk if this should be negated or not. And maybe we should defined a func in PanoViewer to get all data.
+                originPitch: -data.cameraPitch,
+                worldSize: {
+                    width: data.width,
+                    height: data.height
+                },
+                tileSize: {
+                    width: data.tileWidth,
+                    height: data.tileHeight
+                }
+            },
+            imageDate: data.captureDate
+        }
+        svl.panoStore.addPanoMetadata(data.panoId, panoData);
+
+        // Show the pano date in the bottom-left corner.
+        svl.ui.streetview.date.text(moment(data.capturedAt).format('MMM YYYY'));
     }
 
     /**
@@ -104,22 +155,7 @@ async function PanoManager (panoViewerType, params = {}) {
         svl.panoStore.addPanoMetadata(data.panoId, panoData);
 
         // Show the pano date in the bottom-left corner.
-        document.getElementById("svl-panorama-date").innerText = moment(data.captureDate).format('MMM YYYY');
-    }
-
-    /**
-     * Saves historic pano metadata and updates the date text field on the pano in GSV viewer.
-     * @param data The pano data returned from the StreetViewService
-     * @private
-     */
-    function _successCallbackHelperGsv(data) {
-        const panoId = svl.panoViewer.getPanoId();
-
-        // Record the pano metadata.
-        svl.panoStore.addPanoMetadata(panoId, data);
-
-        // Show the pano date in the bottom-left corner.
-        svl.ui.streetview.date.text(moment(data.imageDate).format('MMM YYYY'));
+        svl.ui.streetview.date.text(moment(data.captureDate).format('MMM YYYY'));
     }
 
     /**

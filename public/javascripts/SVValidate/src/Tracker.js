@@ -6,7 +6,6 @@
 function Tracker() {
     let self = this;
     let actions = [];
-    let prevActions = [];
 
     function _init() {
         _trackWindowEvents();
@@ -51,9 +50,9 @@ function Tracker() {
         let timestamp = new Date();
 
         let panoViewer = svv.panoViewer ? svv.panoViewer : null;
-        let panoId = panoViewer ? panoViewer.getPanoId() : null;
-        let position = panoViewer ? panoViewer.getPosition() : null;  // sometimes buggy, so position will be null.
-        let pov = panoViewer ? panoViewer.getPov() : null;
+        let panoId = panoViewer.getPanoId();
+        let position = panoViewer.getPosition();  // sometimes buggy, so position will be null.
+        let pov = panoViewer.getPov();
 
         let missionContainer = svv.missionContainer ? svv.missionContainer : null;
         let currentMission = missionContainer ? missionContainer.getCurrentMission() : null;
@@ -100,7 +99,7 @@ function Tracker() {
      */
     function push(action, notes, extraData) {
         let item = _createAction(action, notes, extraData);
-        var prevItem = actions.slice(-1)[0];
+        let prevItem = actions.slice(-1)[0];
         actions.push(item);
         if (actions.length > 200) {
             let data = svv.form.compileSubmissionData(false);
@@ -115,8 +114,6 @@ function Tracker() {
      * Empties actions stored in the Tracker.
      */
     function refresh() {
-        // Commented out to save memory since we aren't using prevActions right now.
-        // prevActions = prevActions.concat(actions);
         actions = [];
         self.push("RefreshTracker");
     }

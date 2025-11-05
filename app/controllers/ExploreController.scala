@@ -85,12 +85,13 @@ class ExploreController @Inject() (
 
       // Load the Explore page. The match statement below just passes along any extra params when using `streetEdgeId`.
       // If user is an admin and a panoId or lat/lng are supplied, send to that location, o/w send to street.
+      val mapillaryToken = config.get[String]("mapillary-access-token")
       (streetEdgeId, isAdmin(user), panoId, lat, lng) match {
         case (Some(s), true, Some(p), _, _) =>
-          Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, infra3dToken, None, None, Some(p)))
+          Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, mapillaryToken, infra3dToken, None, None, Some(p)))
         case (Some(s), true, _, Some(lt), Some(lg)) =>
-          Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, infra3dToken, Some(lt), Some(lg)))
-        case _ => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, infra3dToken))
+          Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, mapillaryToken, infra3dToken, Some(lt), Some(lg)))
+        case _ => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, mapillaryToken, infra3dToken))
       }
     }
   }
