@@ -215,7 +215,7 @@
                 });
 
                 // Add listeners on the sliders.
-                const sliderNotApplicableText = "@Messages("not.applicable.abbr")";
+                const sliderNotApplicableText = '@Messages("not.applicable.abbr")';
                 const formatSeverityValue = (value) => value === 0 ? sliderNotApplicableText : value;
                 $( "*[id*='slider']" ).each(function() {
                     $(this).slider('option', {
