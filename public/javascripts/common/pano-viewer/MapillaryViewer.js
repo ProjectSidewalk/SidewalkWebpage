@@ -13,7 +13,6 @@ class MapillaryViewer extends PanoViewer {
     constructor() {
         super();
         this.viewer = undefined;
-        this.accessToken = undefined;
         this.currRenderCamera = undefined;
         this.currImage = undefined;
         this.currPov = {
@@ -70,41 +69,76 @@ class MapillaryViewer extends PanoViewer {
     }
 
     _getPanoramaCallback = async (newImage) => {
-        this.currImage = newImage;
-        this.currPov = await this._getPov();
+        // Make sure that the node has the linked panos are initialized (in image._cache._spatialEdges.edges).
+        const edgesInitialized= new Promise((resolve) => {
+            // Links should be initialized always, except for the first pano. So we can just use them.
+            if (newImage._cache._spatialEdges.cached) {
+                resolve(newImage._cache._spatialEdges.edges);
+            } else {
+                // Listen for the event that fires when the links are updated.
+                const linksListener = newImage._cache.spatialEdges$.subscribe((spatialEdges) => {
+                    if (spatialEdges.cached) {
+                        linksListener.unsubscribe(); // We no longer need the listener at this point.
+                        resolve(newImage._cache._spatialEdges.edges);
+                    }
+                });
+            }
+        });
 
-        // To get various info about the pano -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Image/
-        this.currPanoData.panoId = this.currImage.id;
-        this.currPanoData.captureDate = moment(this.currImage.capturedAt).format('YYYY-MM');
-        this.currPanoData.width = this.currImage.width;
-        this.currPanoData.height = this.currImage.height;
-        this.currPanoData.tileWidth = this.currImage.width; // TODO
-        this.currPanoData.tileHeight = this.currImage.height; // TODO
-        this.currPanoData.lat = this.currImage.lngLat.lat;
-        this.currPanoData.lng = this.currImage.lngLat.lng;
-        this.currPanoData.cameraHeading = this.currImage.compassAngle;
-        this.currPanoData.linkedPanos = []; // TODO maybe setFilter helps too? https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#setfilter
-        this.currPanoData.copyright = ''; // TODO  = this.currImage.creatorUsername
-        this.currPanoData.history = []; // TODO could use /images endpoint to fill this
-        // TODO merged, might want to record whether it's been merged thru sfm
-        // TODO qualityScore is interesting: A number between zero and one determining the quality of the image. Blurriness, .......
-
-        return new Promise((resolve) => {
-            // Get the renderCamera object async. Once we have it, we can use it to get/set pov/zoom synchronously.
+        // Get the renderCamera object async. Once we have it, we can use it to get/set pov/zoom synchronously.
+        const renderCameraInitialized = new Promise((resolve) => {
             const cameraListener = this.viewer._container.renderService.renderCamera$.subscribe((rc) => {
-                this.currRenderCamera = rc;
-                this.currPanoData.cameraPitch = rc.getTilt();
+                this.currRenderCamera = rc; // Not sure if we need to save this for anything.
                 cameraListener.unsubscribe(); // We no longer need the listener at this point.
-                resolve(this.currPanoData);
+                resolve(rc);
             });
+        });
+
+        // Get the starting POV.
+        const currPov = this._getPov();
+
+        // Once all async processes have finished, let's fill in the currPanoData object.
+        return Promise.all([edgesInitialized, renderCameraInitialized, currPov]).then(([edges, rc, pov]) => {
+            this.currImage = newImage;
+            this.currPov = pov;
+
+            // To get various info about the pano -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Image/
+            this.currPanoData.panoId = this.currImage.id;
+            this.currPanoData.captureDate = moment(this.currImage.capturedAt).format('YYYY-MM');
+            this.currPanoData.width = this.currImage.width;
+            this.currPanoData.height = this.currImage.height;
+            this.currPanoData.tileWidth = this.currImage.width; // TODO
+            this.currPanoData.tileHeight = this.currImage.height; // TODO
+            this.currPanoData.lat = this.currImage.lngLat.lat;
+            this.currPanoData.lng = this.currImage.lngLat.lng;
+            this.currPanoData.cameraHeading = this.currImage.compassAngle;
+            this.currPanoData.cameraPitch = rc.getTilt();
+            // this.currPanoData.linkedPanos = []; // TODO maybe setFilter helps too? https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#setfilter
+            this.currPanoData.linkedPanos = edges
+                .filter(link => link.data.direction === 9) // Filter for only panoramas.
+                .map(function(link) {
+                    // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
+                    // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
+                    return {
+                        panoId: link.target,
+                        heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI))
+                    };
+                });
+            this.currPanoData.copyright = ''; // TODO  = this.currImage.creatorUsername
+            this.currPanoData.history = []; // TODO could use /images endpoint to fill this. But can also see history in the UI https://www.mapillary.com/app/user/uwrapid?lat=47.66374856411&lng=-122.28224790652&z=17&x=0.5871305676894112&y=0.5159912788583514&zoom=0&panos=true&focus=photo&pKey=134748085384999&my_coverage=false&user_coverage=false
+            // TODO merged, might want to record whether it's been merged thru sfm
+            // TODO qualityScore is interesting: A number between zero and one determining the quality of the image. Blurriness, .......
+
+            return this.currPanoData;
         });
     }
 
     setLocation = async (latLng) => {
         // Search for images near the coordinates.
         // Docs for how to filter images: https://www.mapillary.com/developer/api-documentation#image
-        const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
+        const radius = 0.1 * svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
         // TODO don't send accessToken in the URL: https://www.mapillary.com/developer/api-documentation#authentication
+        // TODO start by asking for a smaller area, then move larger if we find nothing. Getting an error if requesting too many images.
         // TODO should be able to use this to find (or decide on our own) links if we want.
 
         // Create a bounding box using to search for imagery.
@@ -117,7 +151,7 @@ class MapillaryViewer extends PanoViewer {
         ];
 
         const params = new URLSearchParams({
-            access_token: svl.accessToken,
+            access_token: svl.mapillaryToken,
             // access_token: svv.accessToken,
             fields: 'id,geometry,computed_geometry,captured_at,sequence,width,camera_type,computed_rotation,detections.value',
             is_pano: 'true',
@@ -159,13 +193,12 @@ class MapillaryViewer extends PanoViewer {
     }
 
     setPano = async (panoId) => {
-        return this.viewer.moveTo('1485659461780098').then(this._getPanoramaCallback);
+        // return this.viewer.moveTo('1485659461780098').then(this._getPanoramaCallback);
+        return this.viewer.moveTo(panoId).then(this._getPanoramaCallback);
     }
 
     getLinkedPanos = () => {
-        // TODO need to implement! Maybe can get the info from DirectionComponent..? But I haven't seen a way to see the arrows available.
-        //      But maybe we should just create our own set based on the output from the graph API?
-        return [];
+        return this.currPanoData.linkedPanos;
     }
 
     // TODO instead of saving it, should we calculate it using getCenter() and getZoom()?
