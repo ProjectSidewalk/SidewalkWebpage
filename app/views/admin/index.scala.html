@@ -460,7 +460,7 @@
                                         <label id="map-legend-title">@Messages("legend")</label>
                                         <button id="map-legend-minimize-button" class="close" onclick="toggleLegend()">-</button>
                                     </div>
-                                    <table class="table filter" id="legend-table">
+                                    <table class="table filter" id="legend-table" data-not-applicable-label='@Messages("not.applicable.abbr")'>
                                         <tr>
                                             <td></td>
                                             <td colspan="2" align="left" style="font-weight:bold">@Messages("label.type")</td>
@@ -471,7 +471,7 @@
                                             <td width="190px">@Messages("curb.ramp")</td>
                                             <td width="12px"  align="center"><input type="checkbox" id="CurbRamp-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                             <td width="113px"align="center"><div id = "CurbRamp-slider" style="margin-top:3px"></div></td>
-                                            <td width="93px" align= "center" ><span id="CurbRamp-severity-label">N/A - 3</span></td>
+                                            <td width="93px" align= "center" ><span id="CurbRamp-severity-label">@Messages("not.applicable.abbr") - 3</span></td>
 
                                         </tr>
                                         <tr>
@@ -479,41 +479,41 @@
                                             <td>@Messages("missing.ramp")</td>
                                             <td><input type="checkbox" id="NoCurbRamp-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                             <td align="left"><div id = "NoCurbRamp-ramp-slider" style="margin-top:3px"></div></td>
-                                            <td align= "center"><span id="NoCurbRamp-ramp-severity-label">N/A - 3</span></td>
+                                            <td align= "center"><span id="NoCurbRamp-ramp-severity-label">@Messages("not.applicable.abbr") - 3</span></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-obstacle" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                                             <td>@Messages("obstacle")</td>
                                             <td><input type="checkbox" id="Obstacle-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                             <td align="left"><div id = "Obstacle-slider" style="margin-top:3px"></div></td>
-                                            <td align= "center"><span id="Obstacle-severity-label">N/A - 3</span></td>
+                                            <td align= "center"><span id="Obstacle-severity-label">@Messages("not.applicable.abbr") - 3</span></td>
                                         </tr>
                                         <tr><td id="map-legend-surface-problem" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                                             <td>@Messages("surface.problem")</td>
                                             <td><input type="checkbox" id="SurfaceProblem-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                             <td align="left"><div id = "SurfaceProblem-slider" style="margin-top:3px"></div></td>
-                                            <td align="center"><span id="SurfaceProblem-severity-label">N/A - 3</span></td>
+                                            <td align="center"><span id="SurfaceProblem-severity-label">@Messages("not.applicable.abbr") - 3</span></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-crosswalk" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                                             <td>@Messages("crosswalk")</td>
                                             <td><input type="checkbox" id="Crosswalk-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                             <td align="left"><div id = "Crosswalk-slider" style="margin-top:3px"></div></td>
-                                            <td align="center"><span id="Crosswalk-severity-label">N/A - 3</span></td>
+                                            <td align="center"><span id="Crosswalk-severity-label">@Messages("not.applicable.abbr") - 3</span></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-no-sidewalk" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                                             <td>@Messages("no.sidewalk")</td>
                                             <td><input type="checkbox" id="NoSidewalk-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                             <td align="left"><div id = "NoSidewalk-slider" style="margin-top:3px"></div></td>
-                                            <td align="center"><span id="NoSidewalk-severity-label">N/A - 3</span></td>
+                                            <td align="center"><span id="NoSidewalk-severity-label">@Messages("not.applicable.abbr") - 3</span></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-other" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                                             <td>@Messages("other")</td>
                                             <td><input type="checkbox" id="Other-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                             <td align="left"><div id = "Other-slider" style="margin-top:3px"></div></td>
-                                            <td align= "center"><span id="Other-severity-label">N/A - 3</span></td>
+                                            <td align= "center"><span id="Other-severity-label">@Messages("not.applicable.abbr") - 3</span></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-signal" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
@@ -991,7 +991,7 @@
             $.fn.dataTable.ext.type.order['date-pre'] = function(data) { return new Date(data).getTime(); };
 
             // Kick off all the API requests to get data to fill in the Admin page.
-            window.admin = Admin(_, $, '@commonData.mapboxApiKey', 'N/A');
+            window.admin = Admin(_, $, '@commonData.mapboxApiKey');
             // Initialize the sliders in the legend. We add the "change" functionality after the map loads.
             $("*[id*='slider']").each(function() {
                 $(this).slider({ range: true, min : 0, max : 3, step: 1, values: [0,3], disabled: true });

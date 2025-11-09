@@ -1,6 +1,7 @@
-function Admin(_, $, mapboxApiKey, notApplicableLabel) {
+function Admin(_, $, mapboxApiKey) {
     var self = {};
-    var sliderNotApplicableText = notApplicableLabel || "N/A";
+    var legendTable = document.getElementById('legend-table');
+    var sliderNotApplicableText = (legendTable && legendTable.dataset.notApplicableLabel) || "N/A";
     var mapLoaded = false;
     var graphsLoaded = false;
     var labelsLoaded = false;
