@@ -11,7 +11,6 @@ async function PanoManager (panoViewerType, params = {}) {
         minHeading: undefined,
         maxHeading: undefined
     }
-    let _panoChangeSuccessCallbackHelper = null;
     let linksListener = null;
 
     // Used while calculation of canvas coordinates during rendering of labels
@@ -44,13 +43,10 @@ async function PanoManager (panoViewerType, params = {}) {
         });
 
         if (panoViewerType === GsvViewer) {
-            _panoChangeSuccessCallbackHelper = _successCallbackHelperGsv;
             $('#imagery-source-logo-holder').hide();
         } else if (panoViewerType === MapillaryViewer) {
-            _panoChangeSuccessCallbackHelper = _successCallbackHelperMapillary;
             $('#imagery-source-logo-holder').hide();
         } else if (panoViewerType === Infra3dViewer) {
-            _panoChangeSuccessCallbackHelper = _successCallbackHelperInfra3d;
         }
 
         // Move to the specified starting location.
@@ -61,6 +57,7 @@ async function PanoManager (panoViewerType, params = {}) {
             await setPanorama(params.startPanoId);
         } else if ('startLat' in params && 'startLng' in params) {
             await setLocation({lat: params.startLat, lng: params.startLng });
+            // await setLocation({lat: 47.66374856411, lng: -122.28224790652 });
         }
 
         // TODO we probably need to do this for any viewer type...
@@ -79,104 +76,25 @@ async function PanoManager (panoViewerType, params = {}) {
     }
 
     /**
-     * Saves historic pano metadata and updates the date text field on the pano in GSV viewer.
-     * @param data The pano data returned from the StreetViewService
-     * @private
-     */
-    function _successCallbackHelperGsv(data) {
-        const panoId = svl.panoViewer.getPanoId();
-
-        // Record the pano metadata.
-        svl.panoStore.addPanoMetadata(panoId, data);
-
-        // Show the pano date in the bottom-left corner.
-        svl.ui.streetview.date.text(moment(data.imageDate).format('MMM YYYY'));
-    }
-
-    /**
-     * Saves historic pano metadata and updates the date text field on the pano in Mapillary viewer.
-     * @param data The pano data from Mapillary
-     * @private
-     */
-    function _successCallbackHelperMapillary(data) {
-        // Record the pano metadata.
-        const panoData = {
-            location: {
-                pano: data.panoId,
-                latLng: new google.maps.LatLng(data.lat, data.lng)
-            },
-            tiles: {
-                originHeading: data.cameraHeading,
-                // TODO idk if this should be negated or not. And maybe we should defined a func in PanoViewer to get all data.
-                originPitch: -data.cameraPitch,
-                worldSize: {
-                    width: data.width,
-                    height: data.height
-                },
-                tileSize: {
-                    width: data.tileWidth,
-                    height: data.tileHeight
-                }
-            },
-            imageDate: data.captureDate
-        }
-        svl.panoStore.addPanoMetadata(data.panoId, panoData);
-
-        // Show the pano date in the bottom-left corner.
-        svl.ui.streetview.date.text(moment(data.capturedAt).format('MMM YYYY'));
-    }
-
-    /**
-     * Updates the date text field on the pano when pano changes in Infra3d viewer.
-     * @private
-     */
-    function _successCallbackHelperInfra3d(data) {
-        // Record the pano metadata.
-        const panoData = {
-            location: {
-                pano: data.panoId,
-                latLng: new google.maps.LatLng(data.lat, data.lng)
-            },
-            tiles: {
-                originHeading: data.cameraHeading,
-                // TODO idk if this should be negated or not. And maybe we should defined a func in PanoViewer to get all data.
-                originPitch: -data.cameraPitch,
-                worldSize: {
-                    width: data.width,
-                    height: data.height
-                },
-                tileSize: {
-                    width: data.tileWidth,
-                    height: data.tileHeight
-                }
-            },
-            imageDate: data.captureDate
-        }
-        svl.panoStore.addPanoMetadata(data.panoId, panoData);
-
-        // Show the pano date in the bottom-left corner.
-        svl.ui.streetview.date.text(moment(data.captureDate).format('MMM YYYY'));
-    }
-
-    /**
      * Refreshes all views for the new pano and saves historic pano metadata.
-     * @param data The pano data returned from the StreetViewService (if using GsvViewer)
+     * @param {PanoData} panoData The pano data returned from the StreetViewService (if using GsvViewer)
      * @private
      */
-    async function _panoSuccessCallback(data) {
-        const panoId = svl.panoViewer.getPanoId();
+    async function _panoSuccessCallback(panoData) {
+        const panoId = panoData.getProperty('panoId');
+        const panoLatLng = { lat: panoData.getProperty('lat'), lng: panoData.getProperty('lng') };
 
-        if (typeof panoId === "undefined" || panoId.length === 0) {
-            if ('compass' in svl) svl.compass.update();
-            return Promise.resolve();
-        }
+        // Store the returned pano metadata.
+        svl.panoStore.addPanoMetadata(panoId, panoData);
+
+        // Add the capture date of the image to the bottom-right corner of the UI.
+        svl.ui.streetview.date.text(panoData.getProperty('captureDate').format('MMM YYYY'));
 
         // Mark that we visited this pano so that we can tell if they've gotten stuck.
         svl.stuckAlert.panoVisited(panoId);
 
         // Updates peg location on minimap to match current panorama location.
-        const panoramaPosition = svl.panoViewer.getPosition();
-        if (svl.minimap) svl.minimap.setMinimapLocation(panoramaPosition);
+        if (svl.minimap) svl.minimap.setMinimapLocation(panoLatLng);
 
         // povChange["status"] = true;
         if (svl.canvas) { // TODO this if statement is new, need to decide when each thing is initialized.
@@ -188,19 +106,16 @@ async function PanoManager (panoViewerType, params = {}) {
 
         svl.tracker.push("PanoId_Changed", {
             panoId: panoId,
-            lat: panoramaPosition.lat,
-            lng: panoramaPosition.lng,
-            // TODO need to figure out what to do for Infra3d here.
-            // cameraHeading: data.tiles.originHeading,
-            // cameraPitch: -data.tiles.originPitch, // cameraPitch is negative originPitch.
+            lat: panoData.getProperty('lat'),
+            lng: panoData.getProperty('lng'),
+            cameraHeading: panoData.getProperty('cameraHeading'),
+            cameraPitch: panoData.getProperty('cameraPitch'),
         });
 
         if ('compass' in svl) {
             svl.compass.update();
         }
 
-        // Pieces that are different based on the viewer type: recording pano metadata, updating pano date.
-        _panoChangeSuccessCallbackHelper(data);
         return Promise.resolve();
     }
 

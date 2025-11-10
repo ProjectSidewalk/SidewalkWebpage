@@ -84,13 +84,13 @@ function Label(params) {
 
         // Save pano data and calculate pano_x/y if the label is new.
         if (properties.panoXY === undefined) {
-            const panoData = svl.panoStore.getPanoData(properties.panoId).data();
+            const panoData = svl.panoStore.getPanoData(properties.panoId).getProperties();
 
-            properties.panoWidth = panoData.tiles.worldSize.width;
-            properties.panoHeight = panoData.tiles.worldSize.height;
-            properties.cameraHeading = panoData.tiles.originHeading;
-            properties.panoLat = panoData.location.latLng.lat();
-            properties.panoLng = panoData.location.latLng.lng();
+            properties.panoWidth = panoData.width;
+            properties.panoHeight = panoData.height;
+            properties.cameraHeading = panoData.cameraHeading;
+            properties.panoLat = panoData.lat;
+            properties.panoLng = panoData.lng;
             properties.panoXY = util.panomarker.calculatePanoXYFromPov(
                 properties.povOfLabelIfCentered, properties.cameraHeading, properties.panoWidth, properties.panoHeight
             );

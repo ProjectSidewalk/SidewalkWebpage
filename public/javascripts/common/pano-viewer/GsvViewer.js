@@ -7,7 +7,7 @@ class GsvViewer extends PanoViewer {
         super();
         this.streetViewService = undefined;
         this.panorama = undefined;
-        this.panoData = undefined;
+        this.currPanoData = undefined;
     }
 
     // TODO maybe do `new google.maps.Map(mapCanvas, mapOptions)` here? But maybe we do that for infra3d too..?
@@ -88,18 +88,59 @@ class GsvViewer extends PanoViewer {
     // Request a pano's data for the given location.
     _getPanoramaCallback = async (newPanoData) => {
         const prevPano = this.getPanoId();
-        this.panoData = newPanoData.data;
-        const newPano = this.panoData.location.pano
 
+        let panoDataParams = {
+            panoId: newPanoData.data.location.pano,
+            source: 'gsv',
+            captureDate: moment(newPanoData.data.imageDate),
+            width: newPanoData.data.tiles.worldSize.width,
+            height: newPanoData.data.tiles.worldSize.height,
+            tileWidth: newPanoData.data.tiles.tileSize.width,
+            tileHeight: newPanoData.data.tiles.tileSize.height,
+            lat: newPanoData.data.location.latLng.lat(),
+            lng: newPanoData.data.location.latLng.lng(),
+            cameraHeading: newPanoData.data.tiles.originHeading,
+            cameraPitch: -newPanoData.data.tiles.originPitch,
+            copyright: newPanoData.data.copyright,
+            history: []
+        }
+
+        panoDataParams.linkedPanos = newPanoData.data.links.map(function(link) {
+            return {
+                panoId: link.pano,
+                heading: link.heading,
+                description: link.description
+            };
+        });
+
+        let history = [];
+        for (let prevPano of newPanoData.data.time) {
+            // Try to find the date since this is an internal API and the property name can change.
+            const prevPanoDate = Object.values(prevPano).find(value => value instanceof Date);
+            if (prevPanoDate) {
+                history.push({
+                    panoId: prevPano.pano,
+                    captureDate: moment(prevPanoDate)
+                });
+            } else {
+                console.error('Could not find date in pano history object:', prevPano);
+            }
+        }
+        panoDataParams.history = history;
+
+        this.currPanoData = new PanoData(panoDataParams);
+
+        // Now we actually set the pano and wait to resolve until it's finished loading.
+        const newPano = this.currPanoData.getProperty('panoId');
         return new Promise((resolve) => {
             // If the pano didn't actually change, no event will be fired, so just resolve immediately.
             if (newPano === prevPano) {
-                resolve(this.panoData);
+                resolve(this.currPanoData);
             } else {
-                // Listen for the position_changed event which fires when the panorama loads.
+                // Listen for the position_changed event which fires when the panorama has finished loading.
                 const listener = this.panorama.addListener('position_changed', () => {
                     google.maps.event.removeListener(listener);
-                    resolve(this.panoData);
+                    resolve(this.currPanoData);
                 });
                 this.panorama.setPano(newPano);
             }
@@ -173,9 +214,7 @@ class GsvViewer extends PanoViewer {
     }
 
     getLinkedPanos = () => {
-        return this.panorama.links.map(function(link) {
-            return { panoId: link.pano, heading: link.heading };
-        });
+        return this.currPanoData.getProperty('linkedPanos');
     }
 
     getPov = () => {

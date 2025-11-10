@@ -20,21 +20,7 @@ class MapillaryViewer extends PanoViewer {
             pitch: null,
             zoom: null
         };
-        this.currPanoData = {
-            panoId: null,
-            captureDate: null,
-            width: null,
-            height: null,
-            tileWidth: null,
-            tileHeight: null,
-            lat: null,
-            lng: null,
-            cameraHeading: null,
-            cameraPitch: null,
-            linkedPanos: null,
-            copyright: null,
-            history: []
-        };
+        this.currPanoData = undefined;
     }
 
     async initialize(canvasElem, panoOptions = {}) {
@@ -89,7 +75,7 @@ class MapillaryViewer extends PanoViewer {
         const renderCameraInitialized = new Promise((resolve) => {
             const cameraListener = this.viewer._container.renderService.renderCamera$.subscribe((rc) => {
                 this.currRenderCamera = rc; // Not sure if we need to save this for anything.
-                cameraListener.unsubscribe(); // We no longer need the listener at this point.
+                // cameraListener.unsubscribe(); // We no longer need the listener at this point.
                 resolve(rc);
             });
         });
@@ -103,18 +89,25 @@ class MapillaryViewer extends PanoViewer {
             this.currPov = pov;
 
             // To get various info about the pano -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Image/
-            this.currPanoData.panoId = this.currImage.id;
-            this.currPanoData.captureDate = moment(this.currImage.capturedAt).format('YYYY-MM');
-            this.currPanoData.width = this.currImage.width;
-            this.currPanoData.height = this.currImage.height;
-            this.currPanoData.tileWidth = this.currImage.width; // TODO
-            this.currPanoData.tileHeight = this.currImage.height; // TODO
-            this.currPanoData.lat = this.currImage.lngLat.lat;
-            this.currPanoData.lng = this.currImage.lngLat.lng;
-            this.currPanoData.cameraHeading = this.currImage.compassAngle;
-            this.currPanoData.cameraPitch = rc.getTilt();
-            // this.currPanoData.linkedPanos = []; // TODO maybe setFilter helps too? https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#setfilter
-            this.currPanoData.linkedPanos = edges
+            // TODO merged, might want to record whether it's been merged thru sfm
+            // TODO qualityScore is interesting: A number between zero and one determining the quality of the image. Blurriness, .......
+            let panoDataParams = {
+                panoId: this.currImage.id,
+                source: 'mapillary',
+                captureDate: moment(this.currImage.capturedAt),
+                width: this.currImage.width,
+                height: this.currImage.height,
+                tileWidth: this.currImage.width,
+                tileHeight: this.currImage.height,
+                lat: this.currImage.lngLat.lat,
+                lng: this.currImage.lngLat.lng,
+                cameraHeading: this.currImage.compassAngle,
+                cameraPitch: rc.getTilt(),
+                copyright: null, // TODO this.currImage.creatorUsername?
+                history: [] // TODO could use /images endpoint to fill this. But can also see history in the UI https://www.mapillary.com/app/user/uwrapid?lat=47.66374856411&lng=-122.28224790652&z=17&x=0.5871305676894112&y=0.5159912788583514&zoom=0&panos=true&focus=photo&pKey=134748085384999&my_coverage=false&user_coverage=false
+            }
+
+            panoDataParams.linkedPanos = edges
                 .filter(link => link.data.direction === 9) // Filter for only panoramas.
                 .map(function(link) {
                     // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
@@ -124,11 +117,8 @@ class MapillaryViewer extends PanoViewer {
                         heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI))
                     };
                 });
-            this.currPanoData.copyright = ''; // TODO  = this.currImage.creatorUsername
-            this.currPanoData.history = []; // TODO could use /images endpoint to fill this. But can also see history in the UI https://www.mapillary.com/app/user/uwrapid?lat=47.66374856411&lng=-122.28224790652&z=17&x=0.5871305676894112&y=0.5159912788583514&zoom=0&panos=true&focus=photo&pKey=134748085384999&my_coverage=false&user_coverage=false
-            // TODO merged, might want to record whether it's been merged thru sfm
-            // TODO qualityScore is interesting: A number between zero and one determining the quality of the image. Blurriness, .......
 
+            this.currPanoData = new PanoData(panoDataParams);
             return this.currPanoData;
         });
     }
@@ -136,7 +126,7 @@ class MapillaryViewer extends PanoViewer {
     setLocation = async (latLng) => {
         // Search for images near the coordinates.
         // Docs for how to filter images: https://www.mapillary.com/developer/api-documentation#image
-        const radius = 0.1 * svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
+        const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
         // TODO don't send accessToken in the URL: https://www.mapillary.com/developer/api-documentation#authentication
         // TODO start by asking for a smaller area, then move larger if we find nothing. Getting an error if requesting too many images.
         // TODO should be able to use this to find (or decide on our own) links if we want.
@@ -198,7 +188,7 @@ class MapillaryViewer extends PanoViewer {
     }
 
     getLinkedPanos = () => {
-        return this.currPanoData.linkedPanos;
+        return this.currPanoData.getProperty('linkedPanos');
     }
 
     // TODO instead of saving it, should we calculate it using getCenter() and getZoom()?
@@ -217,7 +207,7 @@ class MapillaryViewer extends PanoViewer {
     setPov = (pov) => {
         // Find x-position of requested heading on the underlying image [0,1]. To do this, we find the difference b/w
         // requested heading and the heading for the start of the image (which is cameraHeading - 180), divide by 360.
-        const headingPixelZero = (this.currPanoData.cameraHeading - 180 + 360) % 360;
+        const headingPixelZero = (this.currPanoData.getProperty('cameraHeading') - 180 + 360) % 360;
         const x = (((pov.heading - headingPixelZero) + 360) % 360) / 360;
 
         // Find y-position of requested pitch on underlying image [0,1]. Requested pitch is wrt the center of the image.
@@ -227,7 +217,7 @@ class MapillaryViewer extends PanoViewer {
         this.viewer.setCenter([x, y]); // [0,1] along image width/height
 
         // Convert zoom to a horizontal fov, and then convert to the vertical fov used by Mapillary.
-        pov.zoom = pov.zoom ? pov.zoom : this.currPov.zoom ? this.currPov.zoom : 1;
+        pov.zoom = pov.zoom || this.currPov.zoom || 1;
         const horizontalFov = this._get3dFov(pov.zoom);
         const verticalFov = util.math.toDegrees(
             2 * Math.atan(Math.tan(util.math.toRadians(horizontalFov / 2)) / util.EXPLORE_CANVAS_ASPECT_RATIO)

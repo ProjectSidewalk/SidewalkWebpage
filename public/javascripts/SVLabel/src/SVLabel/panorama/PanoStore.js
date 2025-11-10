@@ -10,9 +10,9 @@ function PanoStore () {
     function addPanoMetadata(panoramaId, panoramaMetadata) {
         if (!(panoramaId in self.store)) {
             if (panoramaId === 'tutorial' || panoramaId === 'tutorialAfterWalk') {
-                panoramaMetadata.submitted = true;
+                panoramaMetadata.setProperty('submitted', true);
             }
-            self.store[panoramaId] = new PanoData(panoramaMetadata);
+            self.store[panoramaId] = panoramaMetadata;
         }
     }
 

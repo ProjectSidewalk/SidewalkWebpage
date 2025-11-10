@@ -468,11 +468,7 @@ class ExploreServiceImpl @Inject() (
       } yield {
         // Once panorama is saved, save the links and history.
         val panoLinkInserts = pano.links.map { link =>
-          gsvLinkTable.linkExists(pano.gsvPanoramaId, link.targetGsvPanoramaId).map {
-            case false =>
-              gsvLinkTable.insert(GsvLink(pano.gsvPanoramaId, link.targetGsvPanoramaId, link.yawDeg, link.description))
-            case true => DBIO.successful("")
-          }
+          gsvLinkTable.insertIfNew(GsvLink(pano.gsvPanoramaId, link.targetGsvPanoramaId, link.yawDeg, link.description))
         }
         val panoHistoryInserts = pano.history.map { h =>
           panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, pano.gsvPanoramaId))

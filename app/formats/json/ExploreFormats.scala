@@ -75,7 +75,7 @@ object ExploreFormats {
       requestUpdatedStreetPriority: Boolean
   )
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
-  case class GsvLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
+  case class GsvLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: Option[String])
   case class GsvPanoramaSubmission(
       gsvPanoramaId: String,
       captureDate: String,
@@ -88,7 +88,7 @@ object ExploreFormats {
       cameraHeading: Option[Float],
       cameraPitch: Option[Float],
       links: Seq[GsvLinkSubmission],
-      copyright: String,
+      copyright: Option[String],
       history: Seq[PanoDate]
   )
   case class AuditMissionProgress(
@@ -280,7 +280,7 @@ object ExploreFormats {
   implicit val gsvLinkSubmissionReads: Reads[GsvLinkSubmission] = (
     (JsPath \ "target_gsv_panorama_id").read[String] and
       (JsPath \ "yaw_deg").read[Double] and
-      (JsPath \ "description").read[String]
+      (JsPath \ "description").readNullable[String]
   )(GsvLinkSubmission.apply _)
 
   implicit val gsvPanoramaSubmissionReads: Reads[GsvPanoramaSubmission] = (
@@ -295,7 +295,7 @@ object ExploreFormats {
       (JsPath \ "camera_heading").readNullable[Float] and
       (JsPath \ "camera_pitch").readNullable[Float] and
       (JsPath \ "links").read[Seq[GsvLinkSubmission]] and
-      (JsPath \ "copyright").read[String] and
+      (JsPath \ "copyright").readNullable[String] and
       (JsPath \ "history").read[Seq[PanoDate]]
   )(GsvPanoramaSubmission.apply _)
 

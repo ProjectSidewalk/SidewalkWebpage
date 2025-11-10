@@ -17,7 +17,7 @@ case class GsvData(
     tileWidth: Option[Int],
     tileHeight: Option[Int],
     captureDate: String,
-    copyright: String,
+    copyright: Option[String],
     lat: Option[Float],
     lng: Option[Float],
     cameraHeading: Option[Float],
@@ -46,7 +46,7 @@ class GsvDataTableDef(tag: Tag) extends Table[GsvData](tag, "gsv_data") {
   def tileWidth: Rep[Option[Int]]                   = column[Option[Int]]("tile_width")
   def tileHeight: Rep[Option[Int]]                  = column[Option[Int]]("tile_height")
   def captureDate: Rep[String]                      = column[String]("capture_date")
-  def copyright: Rep[String]                        = column[String]("copyright")
+  def copyright: Rep[Option[String]]                = column[Option[String]]("copyright")
   def lat: Rep[Option[Float]]                       = column[Option[Float]]("lat")
   def lng: Rep[Option[Float]]                       = column[Option[Float]]("lng")
   def cameraHeading: Rep[Option[Float]]             = column[Option[Float]]("camera_heading")

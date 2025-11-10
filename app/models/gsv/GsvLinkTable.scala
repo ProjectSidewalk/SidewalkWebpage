@@ -6,14 +6,15 @@ import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
-case class GsvLink(gsvPanoramaId: String, targetGsvPanoramaId: String, yawDeg: Double, description: String)
+case class GsvLink(gsvPanoramaId: String, targetGsvPanoramaId: String, yawDeg: Double, description: Option[String])
 
 class GsvLinkTableDef(tag: Tag) extends Table[GsvLink](tag, "gsv_link") {
   def gsvPanoramaId: Rep[String]       = column[String]("gsv_panorama_id", O.PrimaryKey)
   def targetGsvPanoramaId: Rep[String] = column[String]("target_panorama_id")
   def yawDeg: Rep[Double]              = column[Double]("yaw_deg")
-  def description: Rep[String]         = column[String]("description")
+  def description: Rep[Option[String]] = column[Option[String]]("description")
 
   def * = (gsvPanoramaId, targetGsvPanoramaId, yawDeg, description) <> ((GsvLink.apply _).tupled, GsvLink.unapply)
 }
@@ -22,21 +23,23 @@ class GsvLinkTableDef(tag: Tag) extends Table[GsvLink](tag, "gsv_link") {
 trait GsvLinkTableRepository {}
 
 @Singleton
-class GsvLinkTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+class GsvLinkTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider, implicit val ec: ExecutionContext)
     extends GsvLinkTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val gsvLinks = TableQuery[GsvLinkTableDef]
 
   /**
-   * This method checks if the link already exists or not.
-   * @param panoramaId Google Street View panorama id
+   * Save a GsvLink object to the GsvLink table if it isn't already in the table.
    */
-  def linkExists(panoramaId: String, targetPanoramaId: String): DBIO[Boolean] = {
-    gsvLinks.filter(x => x.gsvPanoramaId === panoramaId && x.targetGsvPanoramaId === targetPanoramaId).exists.result
-  }
-
-  def insert(link: GsvLink): DBIO[String] = {
-    (gsvLinks returning gsvLinks.map(_.gsvPanoramaId)) += link
+  def insertIfNew(link: GsvLink): DBIO[Int] = {
+    gsvLinks
+      .filter(l => l.gsvPanoramaId === link.gsvPanoramaId && l.targetGsvPanoramaId === link.targetGsvPanoramaId)
+      .result
+      .headOption
+      .flatMap {
+        case Some(_) => DBIO.successful(0)
+        case None    => gsvLinks += link
+      }
   }
 }

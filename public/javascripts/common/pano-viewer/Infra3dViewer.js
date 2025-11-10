@@ -7,25 +7,11 @@ class Infra3dViewer extends PanoViewer {
         super();
         this.viewer = undefined;
         this.currNode = null;
-        this.currPanoData = {
-            panoId: null,
-            captureDate: null,
-            width: null,
-            height: null,
-            tileWidth: null,
-            tileHeight: null,
-            lat: null,
-            lng: null,
-            cameraHeading: null,
-            cameraPitch: null,
-            linkedPanos: null,
-            copyright: null,
-            history: []
-        }
+        this.currPanoData = undefined;
     }
 
     async initialize(canvasElem, panoOptions = {}) {
-        // svv.infra3dToken = 'eyJraWQiOiJjT2x6QzZ6RVwvZE9LS2dhNU00cGZtUGVMTlhCbWVNTHU0S0xwU3AxM0dRdz0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIyNWdtMTU3a3FxY2ZraXVwZDU3azQxOWhrciIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoicGVybWlzc2lvblwvZWRpdCBmcmFtZWdhdGVcL3V6aCBnZW9mZWF0dXJlc2VydmVyXC8qIGFkZG9uXC9hcGkgZGVmYXVsdC1tMm0tcmVzb3VyY2Utc2VydmVyLWNybXc5bFwvcmVhZCIsImF1dGhfdGltZSI6MTc2MTY3NTc5NywiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLmV1LXdlc3QtMS5hbWF6b25hd3MuY29tXC9ldS13ZXN0LTFfQXlNRWdSWngzIiwiZXhwIjoxNzYxNjc5Mzk3LCJpYXQiOjE3NjE2NzU3OTcsInZlcnNpb24iOjIsImp0aSI6ImZiZDIyNWZjLTY0ZmItNDczOC1hMzQ1LTdiY2ZjMTBkYTFjMyIsImNsaWVudF9pZCI6IjI1Z20xNTdrcXFjZmtpdXBkNTdrNDE5aGtyIn0.mthkpRviTVhFyRfbLk5PumyraXcoxokQoHyJbbKSzsYm7X3lgL4KImUcgFF-qjrEJ9aB1b055P_6OPMnXcv1vuPdtPrM6e2CIrAo1yB3m-v42YdOYGT-_ofsw8v5QtM5yo9sMi7CA2abQSxfxql1xH6qjWzVwp1Mbk-tdSG4AwPzZth-2LiS3LkjP7gE6P-Ydq6gLL7ErboOY8UhW21UzUQHRDIZleheNPNFxoFdnyKaKA1VqypTvIseu2HT2ZzorzC4gWYlnPf4y0sATjMQJnQ2mkHcwQjv5rgjVsfoMcCvm4uPQfi-mRx4UoAIM8J6BWUtrWfZgRvjkRw2t10N-A';
+        // svv.infra3dToken = 'eyJraWQiOiJjT2x6QzZ6RVwvZE9LS2dhNU00cGZtUGVMTlhCbWVNTHU0S0xwU3AxM0dRdz0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIyNWdtMTU3a3FxY2ZraXVwZDU3azQxOWhrciIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoicGVybWlzc2lvblwvZWRpdCBmcmFtZWdhdGVcL3V6aCBnZW9mZWF0dXJlc2VydmVyXC8qIGFkZG9uXC9hcGkgZGVmYXVsdC1tMm0tcmVzb3VyY2Utc2VydmVyLWNybXc5bFwvcmVhZCIsImF1dGhfdGltZSI6MTc2MTc3ODI0MywiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLmV1LXdlc3QtMS5hbWF6b25hd3MuY29tXC9ldS13ZXN0LTFfQXlNRWdSWngzIiwiZXhwIjoxNzYxNzgxODQzLCJpYXQiOjE3NjE3NzgyNDMsInZlcnNpb24iOjIsImp0aSI6IjNjZjRkNmZlLWJkOWYtNDQwNi05MGY2LWJlNWVjNjA3ZGI3NiIsImNsaWVudF9pZCI6IjI1Z20xNTdrcXFjZmtpdXBkNTdrNDE5aGtyIn0.ct5F2UzLVjVJP6PyRoQu6GYYuYoZifRBiaJnvIMvZ-i8AoRgQ45WvNzhnwY64ug3yyp84W3zVhZsExuFv04y6ItoMidNh_aWyFfdMk24wtPX5Kh4JWjtgKkf-tl9rjFp1Qc3bfxQTQYyqJE2L9bcYvOkczK2cSA2ukthlvtbd6sm3zJZ1PPHfRcX87qXjeZ1ngG2HwtEcU5gfa-dWGOhSZZ4ZLnRmC7WJBLG-QrmhpnGzQpjG_CPUnNGTIk78ZiObGnGAN7FTevZlizwXMU6zRSwYVjt6-XnGTY1tA5qKMW4zmV_4WfdeP4EO5Pid6hhFb-TFHaZdu-1ay9AePVl3g';
         // const manager = await infra3dapi.init(canvasElem.id, svv.infra3dToken);
         const manager = await infra3dapi.init(canvasElem.id, svl.infra3dToken);
         const fetchedProjects = await manager.getProjects();
@@ -85,12 +71,11 @@ class Infra3dViewer extends PanoViewer {
     }
 
     getPanoId = () => {
-        return this.currPanoData.panoId ? this.currPanoData.panoId : this.viewer.getCurrentNode().id;
+        return this.currPanoData.getProperty('panoId') || this.viewer.getCurrentNode().id;
     }
 
     getPosition = () => {
-        const currNode = this.viewer.getCurrentNode();
-        return { lat: currNode.lat, lng: currNode.lon };
+        return { lat: this.currNode.lat, lng: this.currNode.lon };
     }
 
     setLocation = async (latLng) => {
@@ -159,34 +144,43 @@ class Infra3dViewer extends PanoViewer {
                 }
             });
         }).then((node) => {
-            // Now that all the data is available, we can fill the currPanoData object and say that the pano has loaded.
             const mainNode = this.viewer.getCurrentNode();
-            this.currPanoData.panoId = node.frame.id;
-            this.currPanoData.captureDate = moment(mainNode.date).format('YYYY-MM');
-            this.currPanoData.width = 4 * node.frame.framedatameta.imagewidth;
-            this.currPanoData.height = 2 * node.frame.framedatameta.imageheight;
-            this.currPanoData.tileWidth = node.frame.framedatameta.tilesize;
-            this.currPanoData.tileHeight = node.frame.framedatameta.tilesize;
-            this.currPanoData.lat = mainNode.lat;
-            this.currPanoData.lng = mainNode.lng;
-            this.currPanoData.cameraHeading = this._getHeading(mainNode.omega, mainNode.phi);
-            this.currPanoData.cameraPitch = this._getPitch(mainNode.omega, mainNode.phi);
-            this.currPanoData.linkedPanos = node.spatialEdges.edges
+
+            // Now that all the data is available, we can fill the currPanoData object and say that the pano has loaded.
+            let panoDataParams = {
+                panoId: node.frame.id,
+                source: 'infra3d',
+                captureDate: moment(mainNode.date),
+                width: 4 * node.frame.framedatameta.imagewidth, // width/height are for only one side of the cube map
+                height: 2 * node.frame.framedatameta.imageheight,
+                tileWidth: node.frame.framedatameta.tilesize,
+                tileHeight: node.frame.framedatameta.tilesize,
+                lat: mainNode.lat,
+                lng: mainNode.lon,
+                cameraHeading: this._getHeading(mainNode.omega, mainNode.phi),
+                cameraPitch: this._getPitch(mainNode.omega, mainNode.phi),
+                copyright: null, // TODO should probably fill in infra3d here?
+                history: [] // TODO I don't think we have a history to pull from?
+            }
+
+            panoDataParams.linkedPanos = node.spatialEdges.edges
                 .filter(link => link.data.direction === 9) // Filters out link to camera on back of car for now.
                 .map(function(link) {
-                // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the X-axis
-                // in a spherical coordinate system", so we need to adjust it to be like a compass heading.
-                return {
-                    panoId: link.to,
-                    heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI))
-                };
-            });
+                    // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
+                    // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
+                    return {
+                        panoId: link.to,
+                        heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI))
+                    };
+                });
+
+            this.currPanoData = new PanoData(panoDataParams);
             return this.currPanoData;
         });
     }
 
     getLinkedPanos = () => {
-        return this.currPanoData.linkedPanos;
+        return this.currPanoData.getProperty('linkedPanos');
     }
 
     getPov = () => {

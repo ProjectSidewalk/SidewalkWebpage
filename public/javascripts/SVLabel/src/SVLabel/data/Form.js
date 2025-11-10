@@ -25,23 +25,6 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
         self.submitData(taskContainer.getCurrentTask(), true);
     });
 
-    this.convertPanoHistoryFormat = function (prevPanos) {
-        var history = [];
-        for (let i = 0; i < prevPanos.length; i++) {
-            // Try to find the date since this is an internal API and the property name can change.
-            const prevPanoDate = Object.values(prevPanos[i]).find(value => value instanceof Date);
-            if (prevPanoDate) {
-                history.push({
-                    pano_id: prevPanos[i].pano,
-                    date: moment(prevPanoDate).format('YYYY-MM')
-                });
-            } else {
-                console.error('Could not find date in pano history object:', prevPanos[i]);
-            }
-        }
-        return history;
-    }
-
     /**
      * Gathers all the data needed to submit logs to back end. Uses a lock to prevent duplicate logging.
      * @param task
@@ -89,7 +72,7 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
                 avail_height: screen.availHeight,            // total height - interface };
                 operating_system: util.getOperatingSystem(),
                 language: i18next.language,
-                css_zoom: svl.cssZoom ? svl.cssZoom : 100
+                css_zoom: svl.cssZoom || 100
             };
 
             data.interactions = tracker.getActions();
@@ -111,7 +94,7 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
                     && interaction.audit_task_id === auditTaskId);
                 var timeCreated = associatedInteraction ? associatedInteraction.timestamp : null;
 
-                var temp = {
+                let temp = {
                     deleted : label.isDeleted(),
                     label_type : label.getLabelType(),
                     temporary_label_id: tempLabelId,
@@ -119,7 +102,7 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
                     gsv_panorama_id : prop.panoId,
                     severity: label.getProperty('severity'),
                     tag_ids: label.getProperty('tagIds'),
-                    description: label.getProperty('description') ? label.getProperty('description') : null,
+                    description: label.getProperty('description') || null,
                     time_created: timeCreated,
                     tutorial: prop.tutorial,
                     label_point: {
@@ -148,45 +131,39 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
             // taken (i.e., the date of the accessibility attributes).
             data.gsv_panoramas = [];
 
-            var temp;
-            var panoData;
-            var link;
-            var links;
-            var panoramas = panoStore.getStagedPanoData();
-            for (var i = 0, panoramaLen = panoramas.length; i < panoramaLen; i++) {
-                panoData = panoramas[i].data();
-                links = [];
-                if ("links" in panoData) {
-                    for (j = 0; j < panoData.links.length; j++) {
-                        link = panoData.links[j];
-                        links.push({
-                            target_gsv_panorama_id: ("pano" in link) ? link.pano : "",
-                            yaw_deg: ("heading" in link) ? link.heading : 0.0,
-                            description: ("description" in link) ? link.description : ""
-                        });
+            let temp;
+            const panoramas = panoStore.getStagedPanoData();
+            for (let i = 0; i < panoramas.length; i++) {
+                const panoData = panoramas[i].getProperties();
+                const links = panoData.linkedPanos.map(function(link) {
+                    return {
+                        target_gsv_panorama_id: link.panoId,
+                        yaw_deg: link.heading,
+                        description: link.description || null
                     }
-                }
+                });
+                const history = panoData.history.map(function(prevPano) {
+                    return {
+                        pano_id: prevPano.panoId,
+                        date: prevPano.captureDate.format('YYYY-MM')
+                    }
+                });
 
-                const panoId = ("location" in panoData && "pano" in panoData.location) ? panoData.location.pano : "";
                 temp = {
-                    panorama_id: panoId,
-                    capture_date: "imageDate" in panoData ? panoData.imageDate : "",
-                    width: panoData.tiles.worldSize.width,
-                    height: panoData.tiles.worldSize.height,
-                    tile_width: panoData.tiles.tileSize.width,
-                    tile_height: panoData.tiles.tileSize.height,
-                    lat: panoData.location.latLng.lat(),
-                    lng: panoData.location.latLng.lng(),
-                    camera_heading: panoData.tiles.originHeading,
-                    camera_pitch: -panoData.tiles.originPitch, // camera_pitch is negative origin_pitch.
+                    panorama_id: panoData.panoId,
+                    capture_date: panoData.captureDate.format('YYYY-MM'),
+                    width: panoData.width,
+                    height: panoData.height,
+                    tile_width: panoData.tileWidth,
+                    tile_height: panoData.tileHeight,
+                    lat: panoData.lat,
+                    lng: panoData.lng,
+                    camera_heading: panoData.cameraHeading,
+                    camera_pitch: panoData.cameraPitch,
                     links: links,
-                    copyright: "copyright" in panoData ? panoData.copyright : "",
-                    history: []
+                    copyright: panoData.copyright || null,
+                    history: history
                 };
-
-                if (panoData.time !== undefined && panoId !== "") {
-                    temp.history = this.convertPanoHistoryFormat(panoData.time);
-                }
 
                 data.gsv_panoramas.push(temp);
                 panoramas[i].setProperty("submitted", true);
