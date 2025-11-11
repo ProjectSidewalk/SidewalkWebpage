@@ -1,7 +1,4 @@
 # --- !Ups
-ALTER TABLE label_point ALTER COLUMN zoom TYPE DOUBLE PRECISION;
-ALTER TABLE audit_task_interaction ALTER COLUMN zoom TYPE DOUBLE PRECISION;
-
 -- Change specific references to GSV in table/column names to a more generic "pano".
 ALTER TABLE gsv_data RENAME TO pano_data;
 ALTER TABLE gsv_link RENAME TO pano_link;
@@ -42,7 +39,36 @@ DELETE FROM validation_task_interaction CASCADE WHERE pano_id = '';
 ALTER TABLE pano_data ADD COLUMN source TEXT DEFAULT 'gsv';
 ALTER TABLE pano_data ALTER COLUMN source DROP DEFAULT;
 
+-- Fix the nullable columns in audit_task_comment that aren't ever actually null. Adding delete statement for safety.
+DELETE FROM audit_task_comment WHERE heading IS NULL OR pitch IS NULL OR zoom IS NULL OR pano_id IS NULL;
+ALTER TABLE audit_task_comment
+    ALTER COLUMN heading SET NOT NULL,
+    ALTER COLUMN pitch SET NOT NULL,
+    ALTER COLUMN zoom SET NOT NULL,
+    ALTER COLUMN pano_id SET NOT NULL;
+
+-- Make it so that zoom columns are all Doubles instead of Ints.
+ALTER TABLE audit_task_interaction ALTER COLUMN zoom TYPE DOUBLE PRECISION;
+ALTER TABLE audit_task_interaction_small ALTER COLUMN zoom TYPE DOUBLE PRECISION;
+ALTER TABLE audit_task_comment ALTER COLUMN zoom TYPE DOUBLE PRECISION;
+ALTER TABLE label_point ALTER COLUMN zoom TYPE DOUBLE PRECISION;
+ALTER TABLE validation_task_comment ALTER COLUMN zoom TYPE DOUBLE PRECISION;
+
 # --- !Downs
+-- Set zoom back to an integer where it was before.
+ALTER TABLE validation_task_comment ALTER COLUMN zoom TYPE INTEGER USING round(zoom)::integer;
+ALTER TABLE label_point ALTER COLUMN zoom TYPE INTEGER USING round(zoom)::integer;
+ALTER TABLE audit_task_comment ALTER COLUMN zoom TYPE INTEGER USING round(zoom)::integer;
+ALTER TABLE audit_task_interaction_small ALTER COLUMN zoom TYPE INTEGER USING round(zoom)::integer;
+ALTER TABLE audit_task_interaction ALTER COLUMN zoom TYPE INTEGER USING round(zoom)::integer;
+
+-- Make columns nullable again in audit_task_comment.
+ALTER TABLE audit_task_comment
+    ALTER COLUMN pano_id DROP NOT NULL,
+    ALTER COLUMN zoom DROP NOT NULL,
+    ALTER COLUMN pitch DROP NOT NULL,
+    ALTER COLUMN heading DROP NOT NULL;
+
 ALTER TABLE pano_data DROP COLUMN source;
 
 UPDATE pano_link SET description = '' WHERE description IS NULL;
@@ -50,9 +76,6 @@ ALTER TABLE pano_link ALTER COLUMN description SET NOT NULL;
 
 UPDATE pano_data SET copyright = '' WHERE copyright IS NULL;
 ALTER TABLE pano_data ALTER COLUMN copyright SET NOT NULL;
-
-ALTER TABLE audit_task_interaction ALTER COLUMN zoom TYPE INTEGER USING round(zoom)::integer;
-ALTER TABLE label_point ALTER COLUMN zoom TYPE INTEGER USING round(zoom)::integer;
 
 -- Revert changes to from the more generic "pano" back to "gsv".
 ALTER TABLE validation_task_interaction RENAME COLUMN pano_id TO gsv_panorama_id;

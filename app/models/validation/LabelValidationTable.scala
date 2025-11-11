@@ -32,7 +32,7 @@ case class LabelValidation(
     canvasY: Option[Int],
     heading: Float,
     pitch: Float,
-    zoom: Float,
+    zoom: Double,
     canvasHeight: Int,
     canvasWidth: Int,
     startTimestamp: OffsetDateTime,
@@ -71,7 +71,7 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
   def canvasY: Rep[Option[Int]]           = column[Option[Int]]("canvas_y")
   def heading: Rep[Float]                 = column[Float]("heading")
   def pitch: Rep[Float]                   = column[Float]("pitch")
-  def zoom: Rep[Float]                    = column[Float]("zoom")
+  def zoom: Rep[Double]                   = column[Double]("zoom")
   def canvasHeight: Rep[Int]              = column[Int]("canvas_height")
   def canvasWidth: Rep[Int]               = column[Int]("canvas_width")
   def startTimestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("start_timestamp")

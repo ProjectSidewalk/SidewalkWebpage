@@ -9,12 +9,12 @@ object CommentSubmissionFormats {
       missionId: Int,
       streetEdgeId: Int,
       comment: String,
-      panoId: Option[String],
-      heading: Option[Double],
-      pitch: Option[Double],
-      zoom: Option[Int],
-      lat: Option[Double],
-      lng: Option[Double]
+      panoId: String,
+      heading: Double,
+      pitch: Double,
+      zoom: Double,
+      lat: Double,
+      lng: Double
   )
 
   case class ValidationCommentSubmission(
@@ -24,7 +24,7 @@ object CommentSubmissionFormats {
       panoId: String,
       heading: Double,
       pitch: Double,
-      zoom: Float,
+      zoom: Double,
       lat: Double,
       lng: Double
   )
@@ -36,7 +36,7 @@ object CommentSubmissionFormats {
       panoId: String,
       heading: Double,
       pitch: Double,
-      zoom: Float,
+      zoom: Double,
       lat: Double,
       lng: Double
   )
@@ -46,12 +46,12 @@ object CommentSubmissionFormats {
       (JsPath \ "mission_id").read[Int] and
       (JsPath \ "street_edge_id").read[Int] and
       (JsPath \ "comment").read[String] and
-      (JsPath \ "pano_id").readNullable[String] and
-      (JsPath \ "heading").readNullable[Double] and
-      (JsPath \ "pitch").readNullable[Double] and
-      (JsPath \ "zoom").readNullable[Int] and
-      (JsPath \ "lat").readNullable[Double] and
-      (JsPath \ "lng").readNullable[Double]
+      (JsPath \ "pano_id").read[String] and
+      (JsPath \ "heading").read[Double] and
+      (JsPath \ "pitch").read[Double] and
+      (JsPath \ "zoom").read[Double] and
+      (JsPath \ "lat").read[Double] and
+      (JsPath \ "lng").read[Double]
   )(CommentSubmission.apply _)
 
   implicit val validationCommentSubmissionReads: Reads[ValidationCommentSubmission] = (
@@ -61,7 +61,7 @@ object CommentSubmissionFormats {
       (JsPath \ "pano_id").read[String] and
       (JsPath \ "heading").read[Double] and
       (JsPath \ "pitch").read[Double] and
-      (JsPath \ "zoom").read[Float] and
+      (JsPath \ "zoom").read[Double] and
       (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double]
   )(ValidationCommentSubmission.apply _)
@@ -73,7 +73,7 @@ object CommentSubmissionFormats {
       (JsPath \ "pano_id").read[String] and
       (JsPath \ "heading").read[Double] and
       (JsPath \ "pitch").read[Double] and
-      (JsPath \ "zoom").read[Float] and
+      (JsPath \ "zoom").read[Double] and
       (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double]
   )(LabelMapValidationCommentSubmission.apply _)

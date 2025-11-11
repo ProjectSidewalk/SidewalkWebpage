@@ -10,14 +10,14 @@
  * @constructor
  */
 function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, onboardingModel) {
-    var self = this;
-    var status = {
+    let self = this;
+    let status = {
         disableClickOK: true
     };
-    var blinkInterval;
+    let blinkInterval;
 
-    var _uiModalComment = uiModalComment;
-    var _uiLeftColumn = uiLeftColumn;  // This should not be this module's responsibility.
+    let _uiModalComment = uiModalComment;
+    let _uiLeftColumn = uiLeftColumn;  // This should not be this module's responsibility.
 
     // Initializing feedback popover
     _uiLeftColumn.feedback.popover();
@@ -29,7 +29,7 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
     /**
      * Blink the feedback button on the left
      */
-    self.blink = function () {
+    self.blink = function() {
         self.stopBlinking();
         blinkInterval = window.setInterval(function () {
             _uiLeftColumn.feedback.toggleClass("highlight-50");
@@ -40,27 +40,27 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
      * A callback function for clicking the feedback button on the left
      * @param e
      */
-    function handleClickFeedback (e) {
+    function handleClickFeedback(e) {
         tracker.push("ModalComment_ClickFeedback");
         showCommentMenu();
     }
 
-    function handleClickOK (e) {
+    function handleClickOK(e) {
         e.preventDefault();
         tracker.push("ModalComment_ClickOK");
 
-        var task = taskContainer.getCurrentTask();
-        var panoId = svl.panoViewer.getPanoId();
-        var latlng = svl.panoViewer.getPosition();
-        var pov = svl.panoViewer.getPov();
-        var data;
+        const task = taskContainer.getCurrentTask();
+        const panoId = svl.panoViewer.getPanoId();
+        const latlng = svl.panoViewer.getPosition();
+        const pov = svl.panoViewer.getPov();
+        let data;
 
         data = self._prepareCommentData(panoId, latlng.lat, latlng.lng, pov, task);
         self._submitComment(data);
         self.hide();
     }
 
-    function handleClickCancel (e) {
+    function handleClickCancel(e) {
         tracker.push("ModalComment_ClickCancel");
         e.preventDefault();
         self.hide();
@@ -69,9 +69,8 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
     /**
      * Handles changes in the comment field
      */
-    function handleTextareaChange () {
-        var comment = _uiModalComment.textarea.val();
-        if (comment.length > 0) {
+    function handleTextareaChange() {
+        if (_uiModalComment.textarea.val().length > 0) {
             enableClickOK();
         } else {
             self._disableClickOK();
@@ -86,14 +85,14 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
         ribbon.disableModeSwitch();
     }
 
-    this.hide = function () {
+    this.hide = function() {
         svl.modalSkip.hideSkipMenu();
         _uiModalComment.holder.addClass('hidden');
         svl.popUpMessage.enableInteractions();
         self.hideBackground();
     };
 
-    function showCommentMenu () {
+    function showCommentMenu() {
         _uiModalComment.textarea.val("");
         _uiModalComment.holder.removeClass('hidden');
         _uiModalComment.ok.addClass("disabled");
@@ -102,11 +101,11 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
         self.showBackground();
     }
 
-    this.hideBackground = function (){
+    this.hideBackground = function(){
         $('#modal-comment-background').css({ width: '', height: ''})
     };
 
-    this.showBackground = function (){
+    this.showBackground = function(){
         $('#modal-comment-background').css("background-color", "white");
         $('#modal-comment-background').css({
             width: '100%',
@@ -116,13 +115,13 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
         });
     };
 
-    self._disableClickOK = function () {
+    self._disableClickOK = function() {
         _uiModalComment.ok.attr("disabled", true);
         _uiModalComment.ok.addClass("disabled");
         status.disableClickOK = true;
     };
 
-    function enableClickOK () {
+    function enableClickOK() {
         _uiModalComment.ok.attr("disabled", false);
         _uiModalComment.ok.removeClass("disabled");
         status.disableClickOK = false;
@@ -131,7 +130,7 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
     /**
      * Stop blinking the feedback button on the left column
      */
-    self.stopBlinking = function () {
+    self.stopBlinking = function() {
         window.clearInterval(blinkInterval);
         _uiLeftColumn.feedback.removeClass("highlight-50");
     };
@@ -139,13 +138,11 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
     /**
      * Submit the comment.
      */
-    this._submitComment = function (data) {
-        var url = "/explore/comment";
-        var async = true;
+    this._submitComment = function(data) {
         $.ajax({
-            async: async,
+            async: true,
             contentType: 'application/json; charset=utf-8',
-            url: url,
+            url: '/explore/comment',
             method: 'POST',
             data: JSON.stringify(data),
             dataType: 'json',
@@ -159,21 +156,18 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
         });
     };
 
-    this._prepareCommentData = function (panoId, lat, lng, pov, task) {
-        var streetEdgeId = task.getStreetEdgeId(),
-            comment = _uiModalComment.textarea.val();
-
+    this._prepareCommentData = function(panoId, lat, lng, pov, task) {
         return {
-            comment: comment,
+            comment: _uiModalComment.textarea.val(),
             pano_id: panoId,
-            heading: pov ? pov.heading : null,
+            heading: pov.heading,
             lat: lat,
             lng: lng,
-            pitch: pov ? pov.pitch : null,
-            street_edge_id: streetEdgeId,
+            pitch: pov.pitch,
+            street_edge_id: task.getStreetEdgeId(),
             audit_task_id: task.getAuditTaskId(),
             mission_id: svl.missionContainer.getCurrentMission().getProperty('missionId'),
-            zoom: pov ? pov.zoom : null
+            zoom: pov.zoom
         };
     };
 

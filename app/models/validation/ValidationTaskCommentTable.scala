@@ -20,7 +20,7 @@ case class ValidationTaskComment(
     panoId: String,
     heading: Double,
     pitch: Double,
-    zoom: Int,
+    zoom: Double,
     lat: Double,
     lng: Double,
     timestamp: OffsetDateTime,
@@ -36,7 +36,7 @@ class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskCommen
   def panoId: Rep[String]               = column[String]("pano_id")
   def heading: Rep[Double]              = column[Double]("heading")
   def pitch: Rep[Double]                = column[Double]("pitch")
-  def zoom: Rep[Int]                    = column[Int]("zoom")
+  def zoom: Rep[Double]                 = column[Double]("zoom")
   def lat: Rep[Double]                  = column[Double]("lat")
   def lng: Rep[Double]                  = column[Double]("lng")
   def timestamp: Rep[OffsetDateTime]    = column[OffsetDateTime]("timestamp")
@@ -76,8 +76,6 @@ class ValidationTaskCommentTable @Inject() (
     } yield ("validation", u.username, c.panoId, c.timestamp, c.comment, c.heading, c.pitch, c.zoom, c.labelId))
       .take(n)
       .result
-      .map(
-        _.map(c => GenericComment(c._1, c._2, Some(c._3), c._4, c._5, Some(c._6), Some(c._7), Some(c._8), Some(c._9)))
-      )
+      .map(_.map(c => GenericComment(c._1, c._2, c._3, c._4, c._5, c._6, c._7, c._8, Some(c._9))))
   }
 }

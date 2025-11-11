@@ -123,7 +123,7 @@ class AiServiceImpl @Inject() (
               validation: LabelValidation = LabelValidation(
                 0, labelId, aiResults.validationResult, label.severity, label.severity, label.tags, label.tags,
                 SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX), Some(labelPoint.canvasY),
-                labelPoint.heading, labelPoint.pitch, labelPoint.zoom.toFloat, LabelPointTable.canvasWidth,
+                labelPoint.heading, labelPoint.pitch, labelPoint.zoom, LabelPointTable.canvasWidth,
                 LabelPointTable.canvasHeight, startTime, aiResults.timestamp, "SidewalkAI"
               )
               valId: Option[Int] <- validationService

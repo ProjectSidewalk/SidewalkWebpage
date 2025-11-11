@@ -79,7 +79,7 @@ case class ValidationDataForApi(
     canvasXY: Option[LocationXY],
     heading: Float,
     pitch: Float,
-    zoom: Float,
+    zoom: Double,
     canvasHeight: Int,
     canvasWidth: Int,
     startTimestamp: OffsetDateTime,

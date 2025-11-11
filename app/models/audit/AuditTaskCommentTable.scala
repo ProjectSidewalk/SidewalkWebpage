@@ -17,24 +17,24 @@ case class AuditTaskComment(
     edgeId: Int,
     username: String,
     ipAddress: String,
-    panoId: Option[String],
-    heading: Option[Double],
-    pitch: Option[Double],
-    zoom: Option[Int],
-    lat: Option[Double],
-    lng: Option[Double],
+    panoId: String,
+    heading: Double,
+    pitch: Double,
+    zoom: Double,
+    lat: Double,
+    lng: Double,
     timestamp: OffsetDateTime,
     comment: String
 )
 case class GenericComment(
     commentType: String,
     username: String,
-    panoId: Option[String],
+    panoId: String,
     timestamp: OffsetDateTime,
     comment: String,
-    heading: Option[Double],
-    pitch: Option[Double],
-    zoom: Option[Int],
+    heading: Double,
+    pitch: Double,
+    zoom: Double,
     labelId: Option[Int]
 )
 
@@ -45,12 +45,12 @@ class AuditTaskCommentTableDef(tag: Tag) extends Table[AuditTaskComment](tag, "a
   def edgeId: Rep[Int]               = column[Int]("edge_id")
   def userId: Rep[String]            = column[String]("user_id")
   def ipAddress: Rep[String]         = column[String]("ip_address")
-  def panoId: Rep[Option[String]]    = column[Option[String]]("pano_id")
-  def heading: Rep[Option[Double]]   = column[Option[Double]]("heading")
-  def pitch: Rep[Option[Double]]     = column[Option[Double]]("pitch")
-  def zoom: Rep[Option[Int]]         = column[Option[Int]]("zoom")
-  def lat: Rep[Option[Double]]       = column[Option[Double]]("lat")
-  def lng: Rep[Option[Double]]       = column[Option[Double]]("lng")
+  def panoId: Rep[String]            = column[String]("pano_id")
+  def heading: Rep[Double]           = column[Double]("heading")
+  def pitch: Rep[Double]             = column[Double]("pitch")
+  def zoom: Rep[Double]              = column[Double]("zoom")
+  def lat: Rep[Double]               = column[Double]("lat")
+  def lng: Rep[Double]               = column[Double]("lng")
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
   def comment: Rep[String]           = column[String]("comment")
 

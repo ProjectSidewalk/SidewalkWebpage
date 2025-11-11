@@ -328,8 +328,8 @@ class ValidateController @Inject() (
             newVal.endTimestamp, newVal.source),
           newVal.comment.map(c =>
             ValidationTaskComment(
-              0, c.missionId, c.labelId, user.userId, ipAddress, c.panoId, c.heading, c.pitch, Math.round(c.zoom),
-              c.lat, c.lng, currTime, c.comment
+              0, c.missionId, c.labelId, user.userId, ipAddress, c.panoId, c.heading, c.pitch, c.zoom, c.lat, c.lng,
+              currTime, c.comment
             )
           ),
           newVal.undone,
@@ -465,7 +465,7 @@ class ValidateController @Inject() (
           _              <- validationService.deleteCommentIfExists(submission.labelId, submission.missionId)
           commentId: Int <- validationService.insertComment(
             ValidationTaskComment(0, submission.missionId, submission.labelId, request.identity.userId,
-              request.ipAddress, submission.panoId, submission.heading, submission.pitch, Math.round(submission.zoom),
+              request.ipAddress, submission.panoId, submission.heading, submission.pitch, submission.zoom,
               submission.lat, submission.lng, OffsetDateTime.now, submission.comment)
           )
         } yield {
@@ -491,8 +491,8 @@ class ValidateController @Inject() (
           _              <- validationService.deleteCommentIfExists(submission.labelId, mission.get.missionId)
           commentId: Int <- validationService.insertComment(
             ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
-              submission.panoId, submission.heading, submission.pitch, Math.round(submission.zoom), submission.lat,
-              submission.lng, OffsetDateTime.now, submission.comment)
+              submission.panoId, submission.heading, submission.pitch, submission.zoom, submission.lat, submission.lng,
+              OffsetDateTime.now, submission.comment)
           )
         } yield {
           Ok(Json.obj("commend_id" -> commentId))

@@ -48,7 +48,7 @@ object ValidateFormats {
       canvasY: Option[Int],
       heading: Float,
       pitch: Float,
-      zoom: Float,
+      zoom: Double,
       canvasHeight: Int,
       canvasWidth: Int,
       startTimestamp: OffsetDateTime,
@@ -89,7 +89,7 @@ object ValidateFormats {
       canvasY: Option[Int],
       heading: Float,
       pitch: Float,
-      zoom: Float,
+      zoom: Double,
       canvasHeight: Int,
       canvasWidth: Int,
       startTimestamp: OffsetDateTime,
@@ -140,7 +140,7 @@ object ValidateFormats {
       (JsPath \ "canvas_y").readNullable[Int] and
       (JsPath \ "heading").read[Float] and
       (JsPath \ "pitch").read[Float] and
-      (JsPath \ "zoom").read[Float] and
+      (JsPath \ "zoom").read[Double] and
       (JsPath \ "canvas_height").read[Int] and
       (JsPath \ "canvas_width").read[Int] and
       (JsPath \ "start_timestamp").read[OffsetDateTime] and
@@ -191,7 +191,7 @@ object ValidateFormats {
       (JsPath \ "canvas_y").readNullable[Int] and
       (JsPath \ "heading").read[Float] and
       (JsPath \ "pitch").read[Float] and
-      (JsPath \ "zoom").read[Float] and
+      (JsPath \ "zoom").read[Double] and
       (JsPath \ "canvas_height").read[Int] and
       (JsPath \ "canvas_width").read[Int] and
       (JsPath \ "start_timestamp").read[OffsetDateTime] and
