@@ -150,18 +150,10 @@ class LabelClustersApiController @Inject() (
 
           // Apply region filter precedence logic.
           // If bbox is defined, ignore region filters. If regionId is defined, it takes precedence over regionName.
-          val finalRegionId: Option[Int] = if (bbox.isDefined && parsedBbox.isDefined) {
-            None
-          } else {
-            regionId
-          }
+          val finalRegionId: Option[Int] = if (bbox.isDefined && parsedBbox.isDefined) None else regionId
 
           val finalRegionName: Option[String] =
-            if (bbox.isDefined && parsedBbox.isDefined || regionId.isDefined) {
-              None
-            } else {
-              regionName
-            }
+            if (bbox.isDefined && parsedBbox.isDefined || regionId.isDefined) None else regionName
 
           // Create filters object.
           val filters = LabelClusterFiltersForApi(

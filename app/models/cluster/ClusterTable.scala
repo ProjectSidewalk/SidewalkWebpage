@@ -210,7 +210,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         |       string_agg(capture_dates.users_list, ',') AS users_list
         |FROM (
         |    SELECT cluster.cluster_id,
-        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from CAST(pano_data.capture_date || '-01' AS DATE)))) AS capture_date,
+        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from TO_DATE(pano_data.capture_date, 'YYYY-MM')))) AS capture_date,
         |           array_to_string(array_agg(DISTINCT label.user_id), ',') AS users_list
         |    FROM cluster
         |    INNER JOIN cluster_label ON cluster.cluster_id = cluster_label.cluster_id
@@ -325,7 +325,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         |       string_agg(capture_dates.users_list, ',') AS users_list
         |FROM (
         |    SELECT cluster.cluster_id,
-        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from CAST(pano_data.capture_date || '-01' AS DATE)))) AS capture_date,
+        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from TO_DATE(pano_data.capture_date, 'YYYY-MM')))) AS capture_date,
         |           array_to_string(array_agg(DISTINCT label.user_id), ',') AS users_list
         |    FROM cluster
         |    INNER JOIN cluster_label ON cluster.cluster_id = cluster_label.cluster_id
