@@ -1,7 +1,7 @@
 package service
 
 import com.google.inject.ImplementedBy
-import formats.json.PanoHistoryFormats.PanoHistorySubmission
+import formats.json.PanoFormats.PanoHistorySubmission
 import models.gsv.{GsvDataSlim, GsvDataTable, PanoHistory, PanoHistoryTable}
 import models.label.{LabelPointTable, POV}
 import models.street.StreetEdge

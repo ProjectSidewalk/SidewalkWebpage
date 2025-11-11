@@ -7,6 +7,7 @@ import formats.json.ExploreFormats._
 import formats.json.MissionFormats._
 import models.audit._
 import models.auth.DefaultEnv
+import models.gsv.PanoSource
 import models.label.LabelTypeEnum
 import models.street.StreetEdgeIssue
 import models.user._
@@ -244,8 +245,10 @@ class ExploreController @Inject() (
               interaction.note, interaction.temporaryLabelId, interaction.timestamp)
           })
           .map { _ =>
-            // Send label info to Sidewalk AI API for AI validation async. AI API only available for some label types.
-            val labelsToSend = returnData.newLabels.filter(l => LabelTypeEnum.aiLabelTypes.contains(l._3))
+            // Send labels to SidewalkAI API for AI validation. Only available for some label types and imagery sources.
+            val labelsToSend = returnData.newLabels.filter { l =>
+              LabelTypeEnum.aiLabelTypes.contains(l._3) && l._4 == PanoSource.Gsv
+            }
             aiService
               .validateLabelsWithAi(labelsToSend.map(_._1))
               .onComplete {
@@ -260,7 +263,7 @@ class ExploreController @Inject() (
                 .secondsSpentAuditing(
                   user.userId,
                   returnData.newLabels.map(_._1).min,
-                  returnData.newLabels.map(_._4).max
+                  returnData.newLabels.map(_._5).max
                 )
                 .flatMap { timeSpent: Float =>
                   configService.sendSciStarterContributions(user.email, returnData.newLabels.length, timeSpent)

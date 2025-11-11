@@ -25,8 +25,16 @@ case class GsvData(
     expired: Boolean,
     lastViewed: OffsetDateTime,
     panoHistorySaved: Option[OffsetDateTime],
-    lastChecked: OffsetDateTime
+    lastChecked: OffsetDateTime,
+    source: String // TODO actually make this PanoSource type at some point.
 )
+
+object PanoSource extends Enumeration {
+  type PanoSource = Value
+  val Gsv       = Value("gsv")
+  val Mapillary = Value("mapillary")
+  val Infra3d   = Value("infra3d")
+}
 
 case class GsvDataSlim(
     gsvPanoramaId: String,
@@ -36,7 +44,8 @@ case class GsvDataSlim(
     lat: Option[Float],
     lng: Option[Float],
     cameraHeading: Option[Float],
-    cameraPitch: Option[Float]
+    cameraPitch: Option[Float],
+    source: String // TODO actually make this PanoSource type at some point.
 )
 
 class GsvDataTableDef(tag: Tag) extends Table[GsvData](tag, "gsv_data") {
@@ -55,9 +64,10 @@ class GsvDataTableDef(tag: Tag) extends Table[GsvData](tag, "gsv_data") {
   def lastViewed: Rep[OffsetDateTime]               = column[OffsetDateTime]("last_viewed")
   def panoHistorySaved: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("pano_history_saved")
   def lastChecked: Rep[OffsetDateTime]              = column[OffsetDateTime]("last_checked")
+  def source: Rep[String]                           = column[String]("source")
 
   def * = (gsvPanoramaId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng, cameraHeading,
-    cameraPitch, expired, lastViewed, panoHistorySaved, lastChecked) <>
+    cameraPitch, expired, lastViewed, panoHistorySaved, lastChecked, source) <>
     ((GsvData.apply _).tupled, GsvData.unapply)
 }
 
@@ -83,7 +93,7 @@ class GsvDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       .on(_.gsvPanoramaId === _.gsvPanoramaId)
       .distinctOn(_._1.gsvPanoramaId)
       .map { case (g, l) =>
-        (g.gsvPanoramaId, l.isDefined, g.width, g.height, g.lat, g.lng, g.cameraHeading, g.cameraPitch)
+        (g.gsvPanoramaId, l.isDefined, g.width, g.height, g.lat, g.lng, g.cameraHeading, g.cameraPitch, g.source)
       }
       .result
       .map(_.map(GsvDataSlim.tupled))

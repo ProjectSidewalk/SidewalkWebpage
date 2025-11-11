@@ -75,7 +75,8 @@ class Infra3dViewer extends PanoViewer {
     }
 
     getPosition = () => {
-        return { lat: this.currNode.lat, lng: this.currNode.lon };
+        const currNode = this.viewer.getCurrentNode();
+        return { lat: currNode.lat, lng: currNode.lon };
     }
 
     setLocation = async (latLng) => {

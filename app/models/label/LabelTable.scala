@@ -5,7 +5,7 @@ import formats.json.ApiFormats
 import models.api.{LabelDataForApi, LabelValidationSummaryForApi, RawLabelFiltersForApi}
 import models.audit.AuditTaskTableDef
 import models.computation.StreamingApiType
-import models.gsv.{GsvData, GsvDataTableDef}
+import models.gsv.{GsvData, GsvDataTableDef, PanoSource}
 import models.label.LabelTable._
 import models.label.LabelTypeEnum.validLabelTypes
 import models.mission.MissionTableDef
@@ -1669,7 +1669,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .on(_.labelId === _.labelId)
       .join(gsvData)
       .on { case ((label, point), gsv) => label.gsvPanoramaId === gsv.gsvPanoramaId }
-      .filter { case ((label, point), gsv) => !gsv.expired && gsv.width.isDefined && gsv.height.isDefined }
+      .filter { case ((label, point), gsv) =>
+        !gsv.expired && gsv.width.isDefined && gsv.height.isDefined && gsv.source === PanoSource.Gsv.toString
+      }
       .sortBy { case ((label, point), gsv) =>
         (
           label.correct.isDefined.asc,                                      // Unsure/unvalidated first

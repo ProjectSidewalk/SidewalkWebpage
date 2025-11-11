@@ -32,11 +32,11 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
      */
     this._compileSubmissionData = async function (task) {
         return await compileDataLock.acquire('_compileSubmissionData', async () => {
-            var data = { timestamp: new Date() };
+            let data = { timestamp: new Date() };
             data.user_route_id = svl.userRouteId;
 
-            var mission = missionContainer.getCurrentMission();
-            var missionId = mission.getProperty("missionId");
+            const mission = missionContainer.getCurrentMission();
+            const missionId = mission.getProperty("missionId");
             mission.updateDistanceProgress();
             data.mission = {
                 mission_id: missionId,
@@ -79,27 +79,29 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
             tracker.refresh();
 
             data.labels = [];
-            var labels = labelContainer.getLabelsToLog();
-            for (var i = 0, labelLen = labels.length; i < labelLen; i += 1) {
-                var label = labels[i];
-                var prop = label.getProperties();
-                var labelLatLng = label.toLatLng();
-                var tempLabelId = label.getProperty('temporaryLabelId');
-                var auditTaskId = label.getProperty('auditTaskId');
+            const labels = labelContainer.getLabelsToLog();
+            for (let i = 0, labelLen = labels.length; i < labelLen; i += 1) {
+                let label = labels[i];
+                let prop = label.getProperties();
+                const labelLatLng = label.toLatLng();
+                const tempLabelId = label.getProperty('temporaryLabelId');
+                const auditTaskId = label.getProperty('auditTaskId');
+                const panoData = panoStore.getPanoData(prop.panoId);
 
                 // If this label is a new label, get the timestamp of its creation from the corresponding interaction.
-                var associatedInteraction = data.interactions.find(interaction =>
+                const associatedInteraction = data.interactions.find(interaction =>
                     interaction.action === 'LabelingCanvas_FinishLabeling'
                     && interaction.temporary_label_id === tempLabelId
                     && interaction.audit_task_id === auditTaskId);
-                var timeCreated = associatedInteraction ? associatedInteraction.timestamp : null;
+                const timeCreated = associatedInteraction ? associatedInteraction.timestamp : null;
 
                 let temp = {
                     deleted : label.isDeleted(),
                     label_type : label.getLabelType(),
                     temporary_label_id: tempLabelId,
                     audit_task_id: auditTaskId,
-                    gsv_panorama_id : prop.panoId,
+                    gsv_panorama_id: prop.panoId,
+                    pano_source: panoData.getProperty('source'),
                     severity: label.getProperty('severity'),
                     tag_ids: label.getProperty('tagIds'),
                     description: label.getProperty('description') || null,
@@ -151,6 +153,7 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
 
                 temp = {
                     panorama_id: panoData.panoId,
+                    source: panoData.source,
                     capture_date: panoData.captureDate.format('YYYY-MM'),
                     width: panoData.width,
                     height: panoData.height,

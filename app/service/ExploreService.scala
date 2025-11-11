@@ -3,6 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import formats.json.ExploreFormats._
 import models.audit._
+import models.gsv.PanoSource.PanoSource
 import models.gsv._
 import models.label.{Tag, _}
 import models.mission.{Mission, MissionTable, MissionTypeTable}
@@ -38,8 +39,8 @@ case class ExplorePageData(
 case class ExploreTaskPostReturnValue(
     auditTaskId: Int,
     mission: Option[Mission],
-    // newLabels is a sequence of tuples containing (label_id, temporary_label_id, label_type, time_created).
-    newLabels: Seq[(Int, Int, String, OffsetDateTime)],
+    // A sequence of tuples containing (label_id, temporary_label_id, label_type, pano_source, time_created).
+    newLabels: Seq[(Int, Int, String, PanoSource, OffsetDateTime)],
     updatedStreets: Option[UpdatedStreets],
     refreshPage: Boolean
 )
@@ -390,7 +391,7 @@ class ExploreServiceImpl @Inject() (
       auditTaskId: Int,
       taskStreetId: Int,
       missionId: Int
-  ): DBIO[(Int, Int, String, OffsetDateTime)] = {
+  ): DBIO[(Int, Int, String, PanoSource, OffsetDateTime)] = {
     // Get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp.
     val timeCreated: OffsetDateTime = label.timeCreated match {
       case Some(time) => time
@@ -444,7 +445,7 @@ class ExploreServiceImpl @Inject() (
           point.zoom, point.lat, point.lng, pointGeom, point.computationMethod)
       )
     } yield {
-      (newLabelId, label.temporaryLabelId, label.labelType, timeCreated)
+      (newLabelId, label.temporaryLabelId, label.labelType, label.panoSource, timeCreated)
     }
   }
 
@@ -462,7 +463,7 @@ class ExploreServiceImpl @Inject() (
             gsvDataTable.insert(
               GsvData(pano.gsvPanoramaId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
                 pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, expired = false, currTime,
-                Some(currTime), currTime)
+                Some(currTime), currTime, pano.source.toString)
             )
           }
       } yield {
@@ -548,6 +549,7 @@ class ExploreServiceImpl @Inject() (
             lng = Some(latLng._2.toFloat), computationMethod = Some("approximation2"))
           labelSubmission: LabelSubmission = LabelSubmission(
             gsvPanoramaId = pano.gsvPanoramaId,
+            panoSource = pano.source,
             auditTaskId = auditTaskId,
             labelType = data.labelType,
             deleted = false,
@@ -611,7 +613,7 @@ class ExploreServiceImpl @Inject() (
       } else DBIO.successful(0)
 
       // Insert any labels.
-      val labelSubmitActions: Seq[DBIO[Option[(Int, Int, String, OffsetDateTime)]]] = data.labels.map {
+      val labelSubmitActions: Seq[DBIO[Option[(Int, Int, String, PanoSource, OffsetDateTime)]]] = data.labels.map {
         label: LabelSubmission =>
           val labelTypeId: Int = LabelTypeEnum.labelTypeToId(label.labelType)
           labelTable.find(label.temporaryLabelId, userId).flatMap {

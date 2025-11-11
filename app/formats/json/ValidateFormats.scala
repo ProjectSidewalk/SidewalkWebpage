@@ -2,7 +2,7 @@ package formats.json
 
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.ValidationCommentSubmission
-import formats.json.PanoHistoryFormats._
+import formats.json.PanoFormats._
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{JsPath, Reads}
 

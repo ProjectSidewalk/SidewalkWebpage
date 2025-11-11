@@ -24,7 +24,13 @@ DELETE FROM pano_history CASCADE WHERE location_curr_pano_id = '';
 DELETE FROM validation_task_comment CASCADE WHERE gsv_panorama_id = '';
 DELETE FROM validation_task_interaction CASCADE WHERE gsv_panorama_id = '';
 
+-- Add a new `source` column to the gsv_data table to differentiate between different image sources.
+ALTER TABLE gsv_data ADD COLUMN source TEXT DEFAULT 'gsv';
+ALTER TABLE gsv_data ALTER COLUMN source DROP DEFAULT;
+
 # --- !Downs
+ALTER TABLE gsv_data DROP COLUMN source;
+
 UPDATE gsv_link SET description = '' WHERE description IS NULL;
 ALTER TABLE gsv_link ALTER COLUMN description SET NOT NULL;
 

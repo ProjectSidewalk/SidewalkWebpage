@@ -298,6 +298,7 @@ object ApiFormats {
       (__ \ "lat").writeNullable[Float] and
       (__ \ "lng").writeNullable[Float] and
       (__ \ "camera_heading").writeNullable[Float] and
-      (__ \ "camera_pitch").writeNullable[Float]
+      (__ \ "camera_pitch").writeNullable[Float] and
+      (__ \ "source").write[String]
   )(unlift(GsvDataSlim.unapply))
 }

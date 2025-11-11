@@ -1,7 +1,9 @@
 package formats.json
 
-import formats.json.PanoHistoryFormats.PanoDate
+import formats.json.PanoFormats.{PanoDate, panoSourceReads}
 import models.audit.{AuditTask, AuditTaskInteraction, NewTask}
+import models.gsv.PanoSource
+import models.gsv.PanoSource.PanoSource
 import models.street.StreetEdgePriority
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
@@ -51,6 +53,7 @@ object ExploreFormats {
   )
   case class LabelSubmission(
       gsvPanoramaId: String,
+      panoSource: PanoSource,
       auditTaskId: Int,
       labelType: String,
       deleted: Boolean,
@@ -78,6 +81,7 @@ object ExploreFormats {
   case class GsvLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: Option[String])
   case class GsvPanoramaSubmission(
       gsvPanoramaId: String,
+      source: PanoSource,
       captureDate: String,
       width: Option[Int],
       height: Option[Int],
@@ -252,6 +256,7 @@ object ExploreFormats {
 
   implicit val labelSubmissionReads: Reads[LabelSubmission] = (
     (JsPath \ "gsv_panorama_id").read[String] and
+      (JsPath \ "pano_source").read[PanoSource.Value] and
       (JsPath \ "audit_task_id").read[Int] and
       (JsPath \ "label_type").read[String] and
       (JsPath \ "deleted").read[Boolean] and
@@ -285,6 +290,7 @@ object ExploreFormats {
 
   implicit val gsvPanoramaSubmissionReads: Reads[GsvPanoramaSubmission] = (
     (JsPath \ "panorama_id").read[String] and
+      (JsPath \ "source").read[PanoSource.Value] and
       (JsPath \ "capture_date").read[String] and
       (JsPath \ "width").readNullable[Int] and
       (JsPath \ "height").readNullable[Int] and
