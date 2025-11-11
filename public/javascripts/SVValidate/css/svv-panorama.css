@@ -46,7 +46,7 @@
     height: 16px;
 }
 
-/* Black outline around GSV panorama. */
+/* Black outline around panorama. */
 #svv-panorama-outline {
     border: 5px solid black;
     border-radius: 5px;

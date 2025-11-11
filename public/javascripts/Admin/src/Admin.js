@@ -1419,7 +1419,7 @@ function Admin(_, $, mapboxApiKey) {
                     `<a href='/admin/user/${c.username}'>${c.username}</a>`,
                     // NOTE defining how we can sort based on timestamps is defined in admin/index.scala.html.
                     `<span class="timestamp" data-timestamp="${c.timestamp}">${new Date(c.timestamp)}</span>`,
-                    `<a class="show-comment-location" href="#" data-heading="${c.heading}" data-pitch="${c.pitch}" data-zoom="${c.zoom}" data-label-id="${c.label_id}">${c.gsv_panorama_id}</a>`,
+                    `<a class="show-comment-location" href="#" data-heading="${c.heading}" data-pitch="${c.pitch}" data-zoom="${c.zoom}" data-label-id="${c.label_id}">${c.pano_id}</a>`,
                     c.comment_type,
                     c.comment,
                     c.label_id

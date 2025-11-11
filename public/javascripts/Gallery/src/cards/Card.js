@@ -19,7 +19,7 @@ function Card (params, imageUrl, expandedView) {
     let properties = {
         label_id: undefined,
         label_type: undefined,
-        gsv_panorama_id: undefined,
+        pano_id: undefined,
         image_capture_date: undefined,
         label_timestamp: undefined,
         heading: undefined,

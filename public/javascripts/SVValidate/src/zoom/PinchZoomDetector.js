@@ -1,6 +1,6 @@
 /**
  * Detect pinch zoom on mobile devices and push appropriate logs.
- * This is only used for mobile devices as they use GSV pinch zoom mechanism.
+ * This is only used for mobile devices as they use pano pinch zoom mechanism.
  * return {PinchZoomDetector}
  * @constructor
  */

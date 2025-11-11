@@ -322,9 +322,9 @@
                         validationStatus = `Invalidated (${props.agree_count} agree, ${props.disagree_count} disagree)`;
                     }
 
-                    // Add the GSV URL link to the popup content.
-                    const gsvLink = props.gsv_url ?
-                        `<p><a href="${props.gsv_url}" target="_blank" rel="noopener noreferrer">View in Google Street View</a></p>` :
+                    // Add the image URL link to the popup content.
+                    const panoLink = props.image_url ?
+                        `<p><a href="${props.image_url}" target="_blank" rel="noopener noreferrer">View in Google Street View</a></p>` :
                         '';
 
                     layer.bindPopup(`
@@ -336,7 +336,7 @@
               <p>Created: ${timeCreated}</p>
               <p>${validationStatus}</p>
               <p>Label ID: ${props.label_id}</p>
-              ${gsvLink}
+              ${panoLink}
             </div>
           `);
                 }

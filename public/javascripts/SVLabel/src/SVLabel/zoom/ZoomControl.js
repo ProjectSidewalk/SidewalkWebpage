@@ -229,7 +229,7 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
 
     /** Zoom out */
     function zoomOut () {
-        // This method is called from outside this class to zoom out from a GSV image.
+        // This method is called from outside this class to zoom out from a pano.
         if (!status.disableZoomOut) {
 
             var povChange = svl.panoManager.getPovChangeStatus();

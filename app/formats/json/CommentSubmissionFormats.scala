@@ -9,7 +9,7 @@ object CommentSubmissionFormats {
       missionId: Int,
       streetEdgeId: Int,
       comment: String,
-      gsvPanoramaId: Option[String],
+      panoId: Option[String],
       heading: Option[Double],
       pitch: Option[Double],
       zoom: Option[Int],
@@ -21,7 +21,7 @@ object CommentSubmissionFormats {
       missionId: Int,
       labelId: Int,
       comment: String,
-      gsvPanoramaId: String,
+      panoId: String,
       heading: Double,
       pitch: Double,
       zoom: Float,
@@ -33,7 +33,7 @@ object CommentSubmissionFormats {
       labelId: Int,
       labelType: String,
       comment: String,
-      gsvPanoramaId: String,
+      panoId: String,
       heading: Double,
       pitch: Double,
       zoom: Float,
@@ -46,7 +46,7 @@ object CommentSubmissionFormats {
       (JsPath \ "mission_id").read[Int] and
       (JsPath \ "street_edge_id").read[Int] and
       (JsPath \ "comment").read[String] and
-      (JsPath \ "gsv_panorama_id").readNullable[String] and
+      (JsPath \ "pano_id").readNullable[String] and
       (JsPath \ "heading").readNullable[Double] and
       (JsPath \ "pitch").readNullable[Double] and
       (JsPath \ "zoom").readNullable[Int] and
@@ -58,7 +58,7 @@ object CommentSubmissionFormats {
     (JsPath \ "mission_id").read[Int] and
       (JsPath \ "label_id").read[Int] and
       (JsPath \ "comment").read[String] and
-      (JsPath \ "gsv_panorama_id").read[String] and
+      (JsPath \ "pano_id").read[String] and
       (JsPath \ "heading").read[Double] and
       (JsPath \ "pitch").read[Double] and
       (JsPath \ "zoom").read[Float] and
@@ -70,7 +70,7 @@ object CommentSubmissionFormats {
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[String] and
       (JsPath \ "comment").read[String] and
-      (JsPath \ "gsv_panorama_id").read[String] and
+      (JsPath \ "pano_id").read[String] and
       (JsPath \ "heading").read[Double] and
       (JsPath \ "pitch").read[Double] and
       (JsPath \ "zoom").read[Float] and

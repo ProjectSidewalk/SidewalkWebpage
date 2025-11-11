@@ -1,6 +1,6 @@
 package formats.json
 
-import models.gsv.PanoSource
+import models.pano.PanoSource
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{JsError, JsPath, JsSuccess, Reads}
 

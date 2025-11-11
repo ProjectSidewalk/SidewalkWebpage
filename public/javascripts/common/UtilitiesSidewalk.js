@@ -488,7 +488,7 @@ function UtilitiesMisc (JSON) {
     /**
      * Sends a POST request to the server to report that there is no street view for the given street edge.
      */
-    function reportNoStreetView(streetEdgeId) {
+    function reportNoImagery(streetEdgeId) {
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',
@@ -561,7 +561,7 @@ function UtilitiesMisc (JSON) {
     self.getLabelDescriptions = getLabelDescriptions;
     self.getSeverityDescription = getSeverityDescription;
     self.getLabelColors = getLabelColors;
-    self.reportNoStreetView = reportNoStreetView;
+    self.reportNoImagery = reportNoImagery;
 
     return self;
 }

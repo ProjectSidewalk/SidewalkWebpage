@@ -17,7 +17,7 @@ case class ValidationTaskComment(
     labelId: Int,
     userId: String,
     ipAddress: String,
-    gsvPanoramaId: String,
+    panoId: String,
     heading: Double,
     pitch: Double,
     zoom: Int,
@@ -33,7 +33,7 @@ class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskCommen
   def labelId: Rep[Int]                 = column[Int]("label_id")
   def userId: Rep[String]               = column[String]("user_id")
   def ipAddress: Rep[String]            = column[String]("ip_address")
-  def gsvPanoramaId: Rep[String]        = column[String]("gsv_panorama_id")
+  def panoId: Rep[String]               = column[String]("pano_id")
   def heading: Rep[Double]              = column[Double]("heading")
   def pitch: Rep[Double]                = column[Double]("pitch")
   def zoom: Rep[Int]                    = column[Int]("zoom")
@@ -42,8 +42,8 @@ class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskCommen
   def timestamp: Rep[OffsetDateTime]    = column[OffsetDateTime]("timestamp")
   def comment: Rep[String]              = column[String]("comment")
 
-  def * = (validationTaskCommentId, missionId, labelId, userId, ipAddress, gsvPanoramaId, heading, pitch, zoom, lat,
-    lng, timestamp, comment) <> ((ValidationTaskComment.apply _).tupled, ValidationTaskComment.unapply)
+  def * = (validationTaskCommentId, missionId, labelId, userId, ipAddress, panoId, heading, pitch, zoom, lat, lng,
+    timestamp, comment) <> ((ValidationTaskComment.apply _).tupled, ValidationTaskComment.unapply)
 }
 
 @ImplementedBy(classOf[ValidationTaskCommentTable])
@@ -73,7 +73,7 @@ class ValidationTaskCommentTable @Inject() (
   def getRecentValidateComments(n: Int): DBIO[Seq[GenericComment]] = {
     (for {
       (c, u) <- validationTaskComments.join(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
-    } yield ("validation", u.username, c.gsvPanoramaId, c.timestamp, c.comment, c.heading, c.pitch, c.zoom, c.labelId))
+    } yield ("validation", u.username, c.panoId, c.timestamp, c.comment, c.heading, c.pitch, c.zoom, c.labelId))
       .take(n)
       .result
       .map(

@@ -2,7 +2,7 @@ package formats.json
 
 import models.cluster.ClusterForApi
 import models.computation.{RegionScore, StreetScore}
-import models.gsv.GsvDataSlim
+import models.pano.PanoDataSlim
 import models.label._
 import models.region.Region
 import models.user.{LabelTypeStat, UserStatApi}
@@ -266,7 +266,7 @@ object ApiFormats {
 
   implicit val labelCVMetadataWrites: Writes[LabelCVMetadata] = (
     (__ \ "label_id").write[Int] and
-      (__ \ "gsv_panorama_id").write[String] and
+      (__ \ "pano_id").write[String] and
       (__ \ "label_type_id").write[Int] and
       (__ \ "agree_count").write[Int] and
       (__ \ "disagree_count").write[Int] and
@@ -290,8 +290,8 @@ object ApiFormats {
     s"${l.labels},${l.validatedCorrect},${l.validatedIncorrect},${l.notValidated}"
   }
 
-  implicit val gsvDataSlimWrites: Writes[GsvDataSlim] = (
-    (__ \ "gsv_panorama_id").write[String] and
+  implicit val panoDataSlimWrites: Writes[PanoDataSlim] = (
+    (__ \ "pano_id").write[String] and
       (__ \ "has_labels").write[Boolean] and
       (__ \ "width").writeNullable[Int] and
       (__ \ "height").writeNullable[Int] and
@@ -300,5 +300,5 @@ object ApiFormats {
       (__ \ "camera_heading").writeNullable[Float] and
       (__ \ "camera_pitch").writeNullable[Float] and
       (__ \ "source").write[String]
-  )(unlift(GsvDataSlim.unapply))
+  )(unlift(PanoDataSlim.unapply))
 }

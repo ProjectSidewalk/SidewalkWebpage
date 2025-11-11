@@ -30,23 +30,23 @@ function InitialMissionInstruction(compass, navigationService, popUpMessage, tas
 
                 popUpMessage.notifyWithImage(title, message, image, width, height, x, function() {
                     navigationService.unbindPositionUpdate(self._instructToCheckSidewalks);
-                    navigationService.bindPositionUpdate(self._instructForGSVLabelDisappearing);
+                    navigationService.bindPositionUpdate(self._instructForLabelDisappearing);
                 });
             }
         }
     };
 
-    this._finishedInstructionForGSVLabelDisappearing = function () {
+    this._finishedInstructionForLabelDisappearing = function () {
         svl.minimap.stopBlinkingMinimap();
 
         if (!svl.isOnboarding()) {
-            navigationService.unbindPositionUpdate(self._instructForGSVLabelDisappearing);
+            navigationService.unbindPositionUpdate(self._instructForLabelDisappearing);
         }
     };
 
-    this._instructForGSVLabelDisappearing = function () {
+    this._instructForLabelDisappearing = function () {
         if (!svl.isOnboarding()) {
-            // Instruct the user about GSV labels disappearing when they have labeled and walked for the first time
+            // Instruct the user about labels disappearing when they have labeled and walked for the first time
             var labels = labelContainer.getAllLabels();
             var labelCount = labels.length;
             var nOnboardingLabels = 7;
@@ -54,9 +54,9 @@ function InitialMissionInstruction(compass, navigationService, popUpMessage, tas
                 if (svl.missionContainer.isTheFirstMission() && labelCount !== nOnboardingLabels) {
                     var title = i18next.t('popup.labels-disappear-title');
                     var message = i18next.t('popup.labels-disappear-body');
-                    tracker.push('PopUpShow_GSVLabelDisappear');
+                    tracker.push('PopUpShow_LabelDisappear');
 
-                    popUpMessage.notify(title, message, self._finishedInstructionForGSVLabelDisappearing);
+                    popUpMessage.notify(title, message, self._finishedInstructionForLabelDisappearing);
                     svl.minimap.blinkMinimap();
                 }
             }

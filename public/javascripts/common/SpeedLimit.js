@@ -117,7 +117,7 @@ function SpeedLimit(panoViewer, coords, isOnboarding, panoContainer, labelType) 
      * @returns Object that contains json response and calculated closest road
      */
     async function queryClosestRoadForCoords(lat, lng, shouldCache, label) {
-        const cacheKey = label === null ? (panoContainer === null ? "" : panoContainer.getCurrentLabel().getAuditProperty("gsvPanoramaId")) : label.getAuditProperty("gsvPanoramaId");
+        const cacheKey = label === null ? (panoContainer === null ? "" : panoContainer.getCurrentLabel().getAuditProperty("panoId")) : label.getAuditProperty("panoId");
         if (cacheKey in cache) {
             return await cache[cacheKey];
         }

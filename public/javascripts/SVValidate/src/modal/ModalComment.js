@@ -101,7 +101,7 @@ function ModalComment (modalUI) {
         if (svv.keyboard) svv.keyboard.disableKeyboard();
         svv.skipValidation.disableSkip();
         svv.undoValidation.disableUndo();
-        showBackground();    // doesn't work as expected... overlay isn't applied to GSV pano
+        showBackground();    // doesn't work as expected... overlay isn't applied to pano
     }
 
     /**
@@ -147,8 +147,7 @@ function ModalComment (modalUI) {
 
     /**
      * Converts comment and some validation interface data into an object to be sent to the backend.
-     * @returns Comment data object {{comment, label_id, gsv_panorama_id: *, heading, lat, lng,
-     * pitch, mission_id, zoom}}
+     * @returns Comment data object {{comment, label_id, pano_id: *, heading, lat, lng, pitch, mission_id, zoom}}
      */
     function prepareCommentData () {
         let comment = modalUI.textarea.val();
@@ -158,7 +157,7 @@ function ModalComment (modalUI) {
         let data = {
             comment: comment,
             label_id: svv.labelContainer.getCurrentLabel().getAuditProperty("labelId"),
-            gsv_panorama_id: svv.panoViewer.getPanoId(),
+            pano_id: svv.panoViewer.getPanoId(),
             heading: pov.heading,
             lat: position.lat,
             lng: position.lng,

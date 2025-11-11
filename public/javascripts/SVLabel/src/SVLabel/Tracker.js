@@ -160,7 +160,7 @@ function Tracker() {
 
         return {
             action : action,
-            gsv_panorama_id: panoId,
+            pano_id: panoId,
             lat: latlng.lat,
             lng: latlng.lng,
             heading: pov.heading,

@@ -116,7 +116,7 @@ async function LabelContainer(labelList) {
     async function renderCurrentLabel() {
         currLabel.setProperty('startTimestamp', new Date());
         if (currLabelIndex > 0) { svv.undoValidation.enableUndo(); }
-        await svv.panoContainer.setPanorama(currLabel.getAuditProperty('gsvPanoramaId'));
+        await svv.panoContainer.setPanorama(currLabel.getAuditProperty('panoId'));
         svv.labelDescriptionBox.setDescription(currLabel);
         if (svv.expertValidate) svv.rightMenu.resetMenu(currLabel);
         if (svv.adminVersion) svv.statusField.updateAdminInfo(currLabel);

@@ -77,14 +77,14 @@ function MistakeCarousel(userId) {
                 let imageWrapper = document.createElement('div');
                 imageWrapper.style.position = 'relative';
 
-                // Add the actual GSV image using the URL provided by the backend.
+                // Add the actual image using the URL provided by the backend.
                 let gsvImage = document.createElement('img');
                 gsvImage.src = label.image_url;
                 gsvImage.classList.add('mistake-img');
                 gsvImage.id = `label_id_${label.label_id}`;
                 imageWrapper.appendChild(gsvImage);
 
-                // Add the label icon onto the GSV image.
+                // Add the label icon onto the image.
                 let labelIcon = document.createElement('img');
                 labelIcon.src = `/assets/images/icons/AdminTool_${labelType}.png`;
                 labelIcon.classList.add('label-icon');

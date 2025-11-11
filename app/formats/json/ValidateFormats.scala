@@ -26,7 +26,7 @@ object ValidateFormats {
   case class InteractionSubmission(
       action: String,
       missionId: Option[Int],
-      gsvPanoramaId: Option[String],
+      panoId: Option[String],
       lat: Option[Float],
       lng: Option[Float],
       heading: Option[Float],
@@ -117,7 +117,7 @@ object ValidateFormats {
   implicit val interactionSubmissionReads: Reads[InteractionSubmission] = (
     (JsPath \ "action").read[String] and
       (JsPath \ "mission_id").readNullable[Int] and
-      (JsPath \ "gsv_panorama_id").readNullable[String] and
+      (JsPath \ "pano_id").readNullable[String] and
       (JsPath \ "lat").readNullable[Float] and
       (JsPath \ "lng").readNullable[Float] and
       (JsPath \ "heading").readNullable[Float] and

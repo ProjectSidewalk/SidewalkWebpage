@@ -2,8 +2,8 @@ package service
 
 import com.google.inject.ImplementedBy
 import formats.json.PanoFormats.PanoHistorySubmission
-import models.gsv.{GsvDataSlim, GsvDataTable, PanoHistory, PanoHistoryTable}
 import models.label.{LabelPointTable, POV}
+import models.pano.{PanoDataSlim, PanoDataTable, PanoHistory, PanoHistoryTable}
 import models.street.StreetEdge
 import models.utils.{CommonUtils, MyPostgresProfile}
 import org.locationtech.jts.geom.Point
@@ -11,7 +11,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
-import service.GsvDataService.getFov
+import service.PanoDataService.getFov
 import slick.dbio.DBIO
 
 import java.io.IOException
@@ -27,7 +27,7 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
  * Companion object with constants and functions that are shared throughout codebase, that shouldn't require injection.
  */
-object GsvDataService {
+object PanoDataService {
 
   /**
    * Hacky fix to generate the FOV for an image. Determined experimentally.
@@ -143,26 +143,26 @@ object GsvDataService {
   }
 }
 
-@ImplementedBy(classOf[GsvDataServiceImpl])
-trait GsvDataService {
-  def panoExists(gsvPanoId: String): Future[Option[Boolean]]
-  def getImageUrl(gsvPanoramaId: String, heading: Double, pitch: Double, zoom: Double): String
+@ImplementedBy(classOf[PanoDataServiceImpl])
+trait PanoDataService {
+  def panoExists(panoId: String): Future[Option[Boolean]]
+  def getImageUrl(panoId: String, heading: Double, pitch: Double, zoom: Double): String
   def getImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
-  def getAllPanos: Future[Seq[GsvDataSlim]]
-  def checkForGsvImagery: Future[String]
+  def getAllPanos: Future[Seq[PanoDataSlim]]
+  def checkForImagery: Future[String]
 }
 
 @Singleton
-class GsvDataServiceImpl @Inject() (
+class PanoDataServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     config: Configuration,
     ws: WSClient,
     implicit val ec: ExecutionContext,
-    gsvDataTable: GsvDataTable,
+    panoDataTable: PanoDataTable,
     panoHistoryTable: PanoHistoryTable,
     streetEdgeTable: models.street.StreetEdgeTable
-) extends GsvDataService
+) extends PanoDataService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
@@ -179,12 +179,12 @@ class GsvDataServiceImpl @Inject() (
   /**
    * Checks if the panorama associated with a label exists by pinging Google Maps.
    *
-   * @param gsvPanoId  Panorama ID
+   * @param panoId  Panorama ID
    * @return           True if the panorama exists, false otherwise
    */
-  def panoExists(gsvPanoId: String): Future[Option[Boolean]] = {
+  def panoExists(panoId: String): Future[Option[Boolean]] = {
     val url =
-      s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$gsvPanoId&key=${config.get[String]("google-maps-api-key")}"
+      s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$panoId&key=${config.get[String]("google-maps-api-key")}"
     val signedUrl = signUrl(url)
 
     ws.url(signedUrl)
@@ -197,15 +197,15 @@ class GsvDataServiceImpl @Inject() (
         if (imageExists || imageStatus == "ZERO_RESULTS") {
           // Mark the expired status, last_checked, and last_viewed columns in the db.
           val timestamp = OffsetDateTime.now
-          db.run(gsvDataTable.updateExpiredStatus(gsvPanoId, !imageExists, timestamp)).map(_ => Some(imageExists))
+          db.run(panoDataTable.updateExpiredStatus(panoId, !imageExists, timestamp)).map(_ => Some(imageExists))
         } else {
           // For any other response status, we don't want to assume that the panorama doesn't exist. Log it for now.
-          logger.info(s"$imageStatus - $gsvPanoId")
+          logger.info(s"$imageStatus - $panoId")
           Future.successful(None)
         }
 
       }
-      .recover { // If there was an exception, don't assume it means a lack of GSV imagery.
+      .recover { // If there was an exception, don't assume it means a lack of imagery.
         case _: SocketTimeoutException => None
         case _: IOException            => None
         case _: Exception              => None
@@ -242,15 +242,15 @@ class GsvDataServiceImpl @Inject() (
    * Note that this URL returns the cropped image, but doesn't actually include the label.
    * More information here: https://developers.google.com/maps/documentation/streetview/intro
    *
-   * @param gsvPanoramaId Id of gsv pano.
+   * @param panoId Id of gsv pano.
    * @param heading Compass heading of the camera.
-   * @param pitch Up or down angle of the camera relative to the Street View vehicle.
+   * @param pitch Up or down angle of the camera relative to the vehicle.
    * @param zoom Zoom level of the canvas (for fov calculation).
    * @return Image URL that represents the background of the label.
    */
-  def getImageUrl(gsvPanoramaId: String, heading: Double, pitch: Double, zoom: Double): String = {
+  def getImageUrl(panoId: String, heading: Double, pitch: Double, zoom: Double): String = {
     val url = "https://maps.googleapis.com/maps/api/streetview?" +
-      "pano=" + gsvPanoramaId +
+      "pano=" + panoId +
       "&size=" + LabelPointTable.canvasWidth + "x" + LabelPointTable.canvasHeight +
       "&heading=" + heading +
       "&pitch=" + pitch +
@@ -309,7 +309,7 @@ class GsvDataServiceImpl @Inject() (
     db.run(DBIO.traverse(histories) { panoHist =>
       DBIO.sequence(
         Seq(
-          gsvDataTable.updatePanoHistorySaved(panoHist.currPanoId, Some(panoHist.panoHistorySaved)),
+          panoDataTable.updatePanoHistorySaved(panoHist.currPanoId, Some(panoHist.panoHistorySaved)),
           DBIO.sequence(panoHist.history.map { h =>
             panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, panoHist.currPanoId))
           })
@@ -318,7 +318,7 @@ class GsvDataServiceImpl @Inject() (
     }).map { _ => () }
   }
 
-  def getAllPanos: Future[Seq[GsvDataSlim]] = db.run(gsvDataTable.getAllPanos)
+  def getAllPanos: Future[Seq[PanoDataSlim]] = db.run(panoDataTable.getAllPanos)
 
   /**
    * Checks if panos are expired on a nightly basis. Called from CheckImageExpiryActor.scala.
@@ -328,13 +328,14 @@ class GsvDataServiceImpl @Inject() (
    * last 3 months, check up to 2.5% or 2500 (whichever is smaller) of the panos that are already marked as expired to
    * make sure that they weren't marked so incorrectly.
    */
-  def checkForGsvImagery: Future[String] = {
+  def checkForImagery: Future[String] = {
     db.run(
       for {
         // Choose a bunch of panos that haven't been checked in the past 6 months to check.
-        nPanos: Int <- gsvDataTable.countPanosWithLabels
+        nPanos: Int <- panoDataTable.countPanosWithLabels
         nUnexpiredPanosToCheck: Int = Math.max(5000, Math.min(100, 0.05 * nPanos).toInt)
-        panoIdsToCheck: Seq[String] <- gsvDataTable.getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
+        panoIdsToCheck: Seq[String] <- panoDataTable
+          .getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
         _ = logger.info(s"Checking ${panoIdsToCheck.length} unexpired panos.")
 
         // Choose a few panos that are already marked as expired to double-check.
@@ -342,7 +343,7 @@ class GsvDataServiceImpl @Inject() (
         expiredPanoIdsToCheck: Seq[String] <-
           if (panoIdsToCheck.length < nExpiredPanosToCheck) {
             val nRemainingExpiredPanosToCheck: Int = nExpiredPanosToCheck - panoIdsToCheck.length
-            gsvDataTable.getPanoIdsToCheckExpiration(nRemainingExpiredPanosToCheck, expired = true)
+            panoDataTable.getPanoIdsToCheckExpiration(nRemainingExpiredPanosToCheck, expired = true)
           } else DBIO.successful(Seq())
       } yield {
         logger.info(s"Checking ${expiredPanoIdsToCheck.length} expired panos.")

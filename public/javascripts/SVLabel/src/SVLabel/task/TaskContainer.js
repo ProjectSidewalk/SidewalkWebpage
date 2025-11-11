@@ -45,7 +45,7 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
                 svl.navigationService.preparePovReset();
                 Promise.resolve();
             }, (error) => {
-                // TODO _panoFailureCallback is reporting no GSV for currentTask's streetEdgeId instead of the one we're aiming for.
+                // TODO _panoFailureCallback is reporting no imagery for currentTask's streetEdgeId instead of the one we're aiming for.
                 svl.tracker.push("PanoId_NotFound", { 'Location': JSON.stringify(latLng) });
                 nextTaskIn.complete();
                 self.getFinishedAndInitNextTask(nextTaskIn);

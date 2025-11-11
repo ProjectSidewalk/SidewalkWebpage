@@ -10,7 +10,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsError, JsObject, JsValue, Json}
 import play.api.mvc.{Action, Result}
 import play.silhouette.api.Silhouette
-import service.{GsvDataService, LabelService}
+import service.{PanoDataService, LabelService}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -22,7 +22,7 @@ class GalleryController @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     implicit val ec: ExecutionContext,
     labelService: LabelService,
-    gsvDataService: GsvDataService,
+    panoDataService: PanoDataService,
     galleryTaskInteractionTable: GalleryTaskInteractionTable,
     galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable
 ) extends CustomBaseController(cc)
@@ -52,7 +52,7 @@ class GalleryController @Inject() (
             val jsonList: Seq[JsObject] = labels.map(l =>
               Json.obj(
                 "label"    -> LabelFormats.validationLabelMetadataToJson(l),
-                "imageUrl" -> gsvDataService.getImageUrl(l.gsvPanoramaId, l.pov.heading, l.pov.pitch, l.pov.zoom)
+                "imageUrl" -> panoDataService.getImageUrl(l.panoId, l.pov.heading, l.pov.pitch, l.pov.zoom)
               )
             )
             val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)

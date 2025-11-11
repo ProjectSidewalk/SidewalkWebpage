@@ -3,7 +3,7 @@ package actor
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import org.apache.pekko.actor.{Actor, Cancellable, Props}
 import play.api.Logger
-import service.{ConfigService, GsvDataService}
+import service.{ConfigService, PanoDataService}
 
 import java.time.Instant
 import javax.inject._
@@ -18,7 +18,7 @@ object CheckImageExpiryActor {
 }
 
 @Singleton
-class CheckImageExpiryActor @Inject() (gsvDataService: GsvDataService)(implicit
+class CheckImageExpiryActor @Inject() (panoDataService: PanoDataService)(implicit
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {
@@ -52,7 +52,7 @@ class CheckImageExpiryActor @Inject() (gsvDataService: GsvDataService)(implicit
   def receive: Receive = { case CheckImageExpiryActor.Tick =>
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled checking image expiry started at: $currentTimeStart")
-    gsvDataService.checkForGsvImagery.onComplete {
+    panoDataService.checkForImagery.onComplete {
       case Success(results) =>
         logger.info(results)
         val currentEndTime: String = dateFormatter.format(Instant.now())

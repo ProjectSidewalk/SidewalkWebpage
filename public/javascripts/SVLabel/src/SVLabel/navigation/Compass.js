@@ -336,7 +336,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
             svl.tracker.push(`Click_Compass_Direction=${direction}`);
 
             if (direction === 'straight') {
-                navigationService.moveForward('CompassMove_Success', 'CompassMove_GSVNotAvailable', null);
+                navigationService.moveForward('CompassMove_Success', 'CompassMove_PanoNotAvailable', null);
             } else {
                 svl.panoManager.setPovToRouteDirection(250);
             }

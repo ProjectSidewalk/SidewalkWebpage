@@ -64,7 +64,7 @@ function Minimap () {
         if (map) map.setOptions({styles: mapStyleOptions});
 
         // Connect the map view and panorama view (adds peg at pano's location).
-        // TODO might need to do something different for non-GSV pano viewers.
+        // TODO need to do something different for non-GSV pano viewers.
         map.setStreetView(svl.panoViewer.panorama);
 
         // Add listener to the PanoViewer to update observed area on the minimap when zoom changes.

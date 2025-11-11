@@ -395,7 +395,7 @@ function Label(params) {
     }
 
     /**
-     * Save a screenshot of the GSV named crop_<labelId>.png. The crops are stored in subdirs /<city-id>/<label-type>.
+     * Save a screenshot of the image named crop_<labelId>.png. The crops are stored in subdirs /<city-id>/<label-type>.
      * @param labelId
      * @param retryAttempt {Number} Current retry attempt if image hasn't been saved yet.
      */

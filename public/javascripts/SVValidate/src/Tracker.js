@@ -59,7 +59,7 @@ function Tracker() {
 
         let data = {
             action: action,
-            gsv_panorama_id: panoId,
+            pano_id: panoId,
             lat: position ? position.lat : null,
             lng: position ? position.lng : null,
             heading: pov ? pov.heading : null,

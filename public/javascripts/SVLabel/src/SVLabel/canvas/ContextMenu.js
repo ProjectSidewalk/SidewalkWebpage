@@ -25,7 +25,7 @@ function ContextMenu (uiContextMenu) {
 
     var windowWidth = $menuWindow.width();
     var LABEL_TO_MENU_GAP = 8; // Amount of space between the label and context menu.
-    var PAGE_BOTTOM_SPACE = 29; // Additional space avail below GSV where we can still show the context menu.
+    var PAGE_BOTTOM_SPACE = 29; // Additional space avail below pano where we can still show the context menu.
 
     document.addEventListener('mousedown', _handleMouseDown);
     $menuWindow.on('mousedown', _handleMenuWindowMouseDown);

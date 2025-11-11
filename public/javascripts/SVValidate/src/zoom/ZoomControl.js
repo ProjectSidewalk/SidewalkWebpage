@@ -1,5 +1,5 @@
 /**
- * Handles zooming for the GSV pano. Also called by the Keyboard class to deal with zooming via keyboard shortcuts.
+ * Handles zooming for the pano. Also called by the Keyboard class to deal with zooming via keyboard shortcuts.
  * @returns {ZoomControl}
  * @constructor
  */
@@ -25,7 +25,7 @@ function ZoomControl () {
     }
 
     /**
-     * Increases zoom for the Google StreetView Panorama and checks if 'Zoom In' button needs to be disabled.
+     * Increases zoom for the panorama and checks if 'Zoom In' button needs to be disabled.
      * Zoom levels: {1, 2, 3}
      */
     function zoomIn() {
@@ -37,7 +37,7 @@ function ZoomControl () {
     }
 
     /**
-     * Decreases zoom for the Google StreetView Panorama and checks if 'Zoom Out' button needs to be disabled.
+     * Decreases zoom for the panorama and checks if 'Zoom Out' button needs to be disabled.
      * Zoom levels: {1, 2, 3}
      */
     function zoomOut() {

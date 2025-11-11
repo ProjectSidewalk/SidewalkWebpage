@@ -1,7 +1,7 @@
 /*
- * An additional layer on top of the Google Street View object on validation interface. This layer handles panning.
+ * An additional layer on top of the panorama object on validation interface. This layer handles panning.
  */
-function GSVOverlay () {
+function PanoOverlay () {
     let self = this;
     let panningDisabled = false;
     let viewControlLayer = $("#view-control-layer");
@@ -20,22 +20,21 @@ function GSVOverlay () {
     };
 
     /**
-     * Disables panning on the GSV window.
+     * Disables panning on the pano canvas.
      */
     function disablePanning() {
         panningDisabled = true;
     }
 
     /**
-     * Enables panning on the GSV window.
+     * Enables panning on the pano canvas.
      */
     function enablePanning() {
         panningDisabled = false;
     }
 
     /**
-     * This is a callback function that is fired with the mouse down event on the view
-     * control layer (where you control street view angle.)
+     * A callback function that is fired with the mouse down event on the view control layer (when panning).
      * @param e
      */
     function handlerViewControlLayerMouseDown (e) {
@@ -50,8 +49,7 @@ function GSVOverlay () {
     }
 
     /**
-     * This is a callback function that is called with mouse up event on
-     * the view control layer (where you change the Google Street view angle.
+     * This is a callback function that is called with mouse up event on the view control layer (when panning).
      * @param e
      */
     function handlerViewControlLayerMouseUp (e) {
@@ -71,8 +69,7 @@ function GSVOverlay () {
     }
 
     /**
-     * This is a callback function that is fired when a user moves a mouse on the
-     * view control layer where you change the pov.
+     * Callback function that is fired when a user moves a mouse on the view control layer where you change the pov.
      */
     function handlerViewControlLayerMouseMove (e) {
         mouseStatus.currX = mouseposition(e, this).x;
@@ -97,7 +94,7 @@ function GSVOverlay () {
     }
 
     /**
-     * Update POV of Street View as a user drags their mouse cursor.
+     * Update POV of the image as a user drags their mouse cursor.
      * @param dx
      * @param dy
      */
@@ -123,4 +120,3 @@ function GSVOverlay () {
 
     return self;
 }
-

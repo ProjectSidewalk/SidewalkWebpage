@@ -50,15 +50,15 @@ function LabelContainer ($, nextTemporaryLabelId) {
             _addLabelToListObject(labelsToLog, label);
             svl.labelCounter.increment(label.getLabelType());
 
-            // Save a screenshot of the GSV when a new label is placed.
+            // Save a screenshot of the pano when a new label is placed.
             // Use the setTimeout to avoid blocking UI rendering and interactions.
             if (svl.makeCrops && !params.tutorial) {
                 setTimeout(function() {
                     try {
-                        svl.canvas.saveGSVScreenshot(label);
+                        svl.canvas.saveCanvasScreenshot(label);
                     } catch (e) {
                         // todo: better logging
-                        console.log("Error saving GSV screenshot: ", e);
+                        console.log("Error saving pano screenshot: ", e);
                     }
                 }, 0);
             }

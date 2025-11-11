@@ -92,7 +92,7 @@ trait LabelService {
 class LabelServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     configService: ConfigService,
-    gsvDataService: GsvDataService,
+    panoDataService: PanoDataService,
     labelTable: LabelTable,
     tagTable: TagTable,
     labelValidationTable: LabelValidationTable,
@@ -216,9 +216,9 @@ class LabelServiceImpl @Inject() (
   }
 
   /**
-   * Get n labels for validation, sorted according to priority algorithm, after checking that they have GSV imagery.
+   * Get n labels for validation, sorted according to priority algorithm, after checking that imagery isn't expired.
    *
-   * Starts by querying for n * 5 labels, then checks GSV API to see if each gsv_panorama_id exists until we find n.
+   * Starts by querying for n * 5 labels, then checks GSV API to see if each pano_id exists until we find n.
    *
    * @param userId         User ID for the current user.
    * @param n              Number of labels we need to query.
@@ -247,7 +247,7 @@ class LabelServiceImpl @Inject() (
   }
 
   /**
-   * Query labels from the db in batches until we have enough labels that have GSV imagery available. Works recursively.
+   * Query labels from the db in batches until we have enough labels that have imagery available. Works recursively.
    * @param labelQuery Query to get labels from the db.
    * @param randomize Whether to randomize the label order or not.
    * @param remaining Number of labels remaining to get.
@@ -275,7 +275,7 @@ class LabelServiceImpl @Inject() (
           val shuffledLabels: Seq[A] = if (randomize) scala.util.Random.shuffle(labels) else labels
 
           // Check each of those labels for GSV imagery in parallel.
-          checkGsvImageryBatch(shuffledLabels).flatMap { validLabels =>
+          checkImageryBatch(shuffledLabels).flatMap { validLabels =>
             if (validLabels.isEmpty) {
               Future.successful(accumulator) // No more valid labels found.
             } else {
@@ -295,10 +295,10 @@ class LabelServiceImpl @Inject() (
   }
 
   // Checks each label in a batch for GSV imagery in parallel.
-  private def checkGsvImageryBatch[A <: BasicLabelMetadata](labels: Seq[A]): Future[Seq[A]] = {
+  private def checkImageryBatch[A <: BasicLabelMetadata](labels: Seq[A]): Future[Seq[A]] = {
     Future
       .traverse(labels) { label =>
-        gsvDataService.panoExists(label.gsvPanoramaId).map {
+        panoDataService.panoExists(label.panoId).map {
           case Some(true) => Some(label)
           case _          => None
         }

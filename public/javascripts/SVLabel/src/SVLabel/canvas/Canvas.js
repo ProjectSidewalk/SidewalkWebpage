@@ -413,10 +413,10 @@ function Canvas(ribbon) {
     /**
      * Sets labels on the given pano as visible, all others as hidden.
      */
-    function setOnlyLabelsOnPanoAsVisible(panoramaId) {
+    function setOnlyLabelsOnPanoAsVisible(panoId) {
         var labels = svl.labelContainer.getCanvasLabels();
         for (var i = 0; i < labels.length; i += 1) {
-            if (labels[i].getPanoId() === panoramaId && !labels[i].isDeleted()) {
+            if (labels[i].getPanoId() === panoId && !labels[i].isDeleted()) {
                 labels[i].setVisibility('visible');
             } else {
                 labels[i].setVisibility('hidden');
@@ -429,8 +429,8 @@ function Canvas(ribbon) {
         return this;
     }
 
-    // Saves a screenshot of the GSV when the label was placed, to be uploaded to the server later.
-    function saveGSVScreenshot(label) {
+    // Saves a screenshot of the canvas when the label was placed, to be uploaded to the server later.
+    function saveCanvasScreenshot(label) {
         // If there is no label to associate this crop with, don't save the crop.
         if (!label) {
             console.log('No label found when making a crop.');
@@ -461,7 +461,7 @@ function Canvas(ribbon) {
     self.setVisibility = setVisibility;
     self.setOnlyLabelsOnPanoAsVisible = setOnlyLabelsOnPanoAsVisible;
     self.unlockDisableLabelDelete = unlockDisableLabelDelete;
-    self.saveGSVScreenshot = saveGSVScreenshot;
+    self.saveCanvasScreenshot = saveCanvasScreenshot;
 
     return self;
 }

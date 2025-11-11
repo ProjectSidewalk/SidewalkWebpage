@@ -54,7 +54,7 @@ $(document).ready(function() {
     });
 });
 
-// Prevents double tap functionality. We only want to pinch zoom in GSV.
+// Prevents double tap functionality. We only want to pinch zoom in the pano.
 let doubleTouchStartTimestamp = 0;
 document.addEventListener("touchstart", function(event){
     let now = +(new Date());

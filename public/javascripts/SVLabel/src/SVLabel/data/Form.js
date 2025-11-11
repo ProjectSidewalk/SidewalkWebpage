@@ -100,7 +100,7 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
                     label_type : label.getLabelType(),
                     temporary_label_id: tempLabelId,
                     audit_task_id: auditTaskId,
-                    gsv_panorama_id: prop.panoId,
+                    pano_id: prop.panoId,
                     pano_source: panoData.getProperty('source'),
                     severity: label.getProperty('severity'),
                     tag_ids: label.getProperty('tagIds'),
@@ -129,8 +129,7 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
                 data.labels.push(temp)
             }
 
-            // Keep Street View metadata. This is particularly important to keep track of the date when the images were
-            // taken (i.e., the date of the accessibility attributes).
+            // Keep pano metadata. This is particularly important to keep track of the date when the images were taken.
             data.gsv_panoramas = [];
 
             let temp;
@@ -139,7 +138,7 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
                 const panoData = panoramas[i].getProperties();
                 const links = panoData.linkedPanos.map(function(link) {
                     return {
-                        target_gsv_panorama_id: link.panoId,
+                        target_pano_id: link.panoId,
                         yaw_deg: link.heading,
                         description: link.description || null
                     }
@@ -152,7 +151,7 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
                 });
 
                 temp = {
-                    panorama_id: panoData.panoId,
+                    pano_id: panoData.panoId,
                     source: panoData.source,
                     capture_date: panoData.captureDate.format('YYYY-MM'),
                     width: panoData.width,
@@ -187,10 +186,10 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
     this.skip = function (task, skipReasonLabel) {
         var data = self._prepareSkipData(skipReasonLabel);
 
-        if (skipReasonLabel === "GSVNotAvailable") {
+        if (skipReasonLabel === "PanoNotAvailable") {
             taskContainer.endTask(task);
             missionContainer.getCurrentMission().pushATaskToTheRoute(task);
-            util.misc.reportNoStreetView(task.getStreetEdgeId());
+            util.misc.reportNoImagery(task.getStreetEdgeId());
         } else {
             // Set the tasksMissionsOffset so that the mission progress bar remains the same after the jump.
             var currTaskDist = util.math.kmsToMeters(taskContainer.getCurrentTaskDistance());

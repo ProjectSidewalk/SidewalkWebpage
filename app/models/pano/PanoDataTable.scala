@@ -1,4 +1,4 @@
-package models.gsv
+package models.pano
 
 import com.google.inject.ImplementedBy
 import models.label.LabelTableDef
@@ -10,8 +10,8 @@ import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
-case class GsvData(
-    gsvPanoramaId: String,
+case class PanoData(
+    panoId: String,
     width: Option[Int],
     height: Option[Int],
     tileWidth: Option[Int],
@@ -36,8 +36,8 @@ object PanoSource extends Enumeration {
   val Infra3d   = Value("infra3d")
 }
 
-case class GsvDataSlim(
-    gsvPanoramaId: String,
+case class PanoDataSlim(
+    panoId: String,
     hasLabels: Boolean,
     width: Option[Int],
     height: Option[Int],
@@ -48,8 +48,8 @@ case class GsvDataSlim(
     source: String // TODO actually make this PanoSource type at some point.
 )
 
-class GsvDataTableDef(tag: Tag) extends Table[GsvData](tag, "gsv_data") {
-  def gsvPanoramaId: Rep[String]                    = column[String]("gsv_panorama_id", O.PrimaryKey)
+class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
+  def panoId: Rep[String]                           = column[String]("pano_id", O.PrimaryKey)
   def width: Rep[Option[Int]]                       = column[Option[Int]]("width")
   def height: Rep[Option[Int]]                      = column[Option[Int]]("height")
   def tileWidth: Rep[Option[Int]]                   = column[Option[Int]]("tile_width")
@@ -66,61 +66,60 @@ class GsvDataTableDef(tag: Tag) extends Table[GsvData](tag, "gsv_data") {
   def lastChecked: Rep[OffsetDateTime]              = column[OffsetDateTime]("last_checked")
   def source: Rep[String]                           = column[String]("source")
 
-  def * = (gsvPanoramaId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng, cameraHeading,
-    cameraPitch, expired, lastViewed, panoHistorySaved, lastChecked, source) <>
-    ((GsvData.apply _).tupled, GsvData.unapply)
+  def * = (panoId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng, cameraHeading, cameraPitch,
+    expired, lastViewed, panoHistorySaved, lastChecked, source) <>
+    ((PanoData.apply _).tupled, PanoData.unapply)
 }
 
-@ImplementedBy(classOf[GsvDataTable])
-trait GsvDataTableRepository {}
+@ImplementedBy(classOf[PanoDataTable]) trait PanoDataTableRepository {}
 
 @Singleton
-class GsvDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
-    extends GsvDataTableRepository
+class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+    extends PanoDataTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   import profile.api._
-  val gsvDataRecords = TableQuery[GsvDataTableDef]
-  val labelTable     = TableQuery[LabelTableDef]
+  val panoDataRecords = TableQuery[PanoDataTableDef]
+  val labelTable      = TableQuery[LabelTableDef]
 
   /**
    * Get a pano metadata for all panos with a flag indicating whether they have labels.
    */
-  def getAllPanos: DBIO[Seq[GsvDataSlim]] = {
-    gsvDataRecords
-      .filter(_.gsvPanoramaId =!= "tutorial")
+  def getAllPanos: DBIO[Seq[PanoDataSlim]] = {
+    panoDataRecords
+      .filter(_.panoId =!= "tutorial")
       .joinLeft(labelTable)
-      .on(_.gsvPanoramaId === _.gsvPanoramaId)
-      .distinctOn(_._1.gsvPanoramaId)
+      .on(_.panoId === _.panoId)
+      .distinctOn(_._1.panoId)
       .map { case (g, l) =>
-        (g.gsvPanoramaId, l.isDefined, g.width, g.height, g.lat, g.lng, g.cameraHeading, g.cameraPitch, g.source)
+        (g.panoId, l.isDefined, g.width, g.height, g.lat, g.lng, g.cameraHeading, g.cameraPitch, g.source)
       }
       .result
-      .map(_.map(GsvDataSlim.tupled))
+      .map(_.map(PanoDataSlim.tupled))
   }
 
   /**
    * Count the number of panos that have associated labels.
    */
   def countPanosWithLabels: DBIO[Int] = {
-    labelTable.map(_.gsvPanoramaId).countDistinct.result
+    labelTable.map(_.panoId).countDistinct.result
   }
 
   /**
    * Mark whether the pano was expired with a timestamp. If not expired, also update last_viewed column.
    *
-   * @param gsvPanoramaId
+   * @param panoId
    * @param expired
    * @param lastChecked
    * @return
    */
-  def updateExpiredStatus(gsvPanoramaId: String, expired: Boolean, lastChecked: OffsetDateTime): DBIO[Int] = {
+  def updateExpiredStatus(panoId: String, expired: Boolean, lastChecked: OffsetDateTime): DBIO[Int] = {
     if (expired) {
-      val q = for { img <- gsvDataRecords if img.gsvPanoramaId === gsvPanoramaId } yield (img.expired, img.lastChecked)
+      val q = for { img <- panoDataRecords if img.panoId === panoId } yield (img.expired, img.lastChecked)
       q.update((expired, lastChecked))
     } else {
       val q = for {
-        img <- gsvDataRecords if img.gsvPanoramaId === gsvPanoramaId
+        img <- panoDataRecords if img.panoId === panoId
       } yield (img.expired, img.lastChecked, img.lastViewed)
       q.update((expired, lastChecked, lastChecked))
     }
@@ -132,23 +131,23 @@ class GsvDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    * @param expired Whether to check for expired or unexpired panos.
    */
   def getPanoIdsToCheckExpiration(n: Int, expired: Boolean): DBIO[Seq[String]] = {
-    gsvDataRecords
+    panoDataRecords
       .join(labelTable)
-      .on(_.gsvPanoramaId === _.gsvPanoramaId)
+      .on(_.panoId === _.panoId)
       .filter(gsv => gsv._1.expired === expired && gsv._1.lastChecked < OffsetDateTime.now().minusMonths(3))
       .sortBy(_._1.lastChecked.asc)
       .subquery
-      .map(_._1.gsvPanoramaId)
+      .map(_._1.panoId)
       .distinct
       .take(n)
       .result
   }
 
   /**
-   * Updates the data from the GSV API for a pano that sometimes changes.
+   * Updates the pano data if anything has changed.
    */
   def updateFromExplore(
-      gsvPanoramaId: String,
+      panoId: String,
       lat: Option[Float],
       lng: Option[Float],
       heading: Option[Float],
@@ -158,7 +157,7 @@ class GsvDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       panoHistorySaved: Option[OffsetDateTime]
   ): DBIO[Int] = {
     val q = for {
-      pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId
+      pano <- panoDataRecords if pano.panoId === panoId
     } yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.expired, pano.lastViewed,
       pano.panoHistorySaved, pano.lastChecked)
     q.update((lat, lng, heading, pitch, expired, lastViewed, panoHistorySaved, lastViewed))
@@ -166,23 +165,23 @@ class GsvDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
 
   /**
    * Checks if the given panorama id already exists in the table.
-   * @param panoramaId Google Street View panorama Id
+   * @param panoId Unique ID for the panorama
    */
-  def panoramaExists(panoramaId: String): DBIO[Boolean] = {
-    gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).exists.result
+  def panoramaExists(panoId: String): DBIO[Boolean] = {
+    panoDataRecords.filter(_.panoId === panoId).exists.result
   }
 
   /**
    * This method updates a given panorama's panoHistorySaved field.
-   * @param panoramaId Google Street View panorama Id
+   * @param panoId Unique ID for the panorama
    * @param panoHistorySaved Timestamp that this panorama was last viewed by any user
    * @return
    */
-  def updatePanoHistorySaved(panoramaId: String, panoHistorySaved: Option[OffsetDateTime]): DBIO[Int] = {
-    gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).map(_.panoHistorySaved).update(panoHistorySaved)
+  def updatePanoHistorySaved(panoId: String, panoHistorySaved: Option[OffsetDateTime]): DBIO[Int] = {
+    panoDataRecords.filter(_.panoId === panoId).map(_.panoHistorySaved).update(panoHistorySaved)
   }
 
-  def insert(data: GsvData): DBIO[String] = {
-    (gsvDataRecords returning gsvDataRecords.map(_.gsvPanoramaId)) += data
+  def insert(data: PanoData): DBIO[String] = {
+    (panoDataRecords returning panoDataRecords.map(_.panoId)) += data
   }
 }

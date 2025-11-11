@@ -34,7 +34,7 @@ class ValidateController @Inject() (
     validationService: service.ValidationService,
     authenticationService: service.AuthenticationService,
     regionService: service.RegionService,
-    gsvDataService: service.GsvDataService,
+    panoDataService: service.PanoDataService,
     missionService: service.MissionService
 )(implicit assets: AssetsFinder)
     extends CustomBaseController(cc) {
@@ -328,8 +328,8 @@ class ValidateController @Inject() (
             newVal.endTimestamp, newVal.source),
           newVal.comment.map(c =>
             ValidationTaskComment(
-              0, c.missionId, c.labelId, user.userId, ipAddress, c.gsvPanoramaId, c.heading, c.pitch,
-              Math.round(c.zoom), c.lat, c.lng, currTime, c.comment
+              0, c.missionId, c.labelId, user.userId, ipAddress, c.panoId, c.heading, c.pitch, Math.round(c.zoom),
+              c.lat, c.lng, currTime, c.comment
             )
           ),
           newVal.undone,
@@ -370,7 +370,7 @@ class ValidateController @Inject() (
     // Now we do all the stuff that can be done async, we can return the response before these are done.
     // Insert interactions async.
     validationService.insertMultipleInteractions(data.interactions.map { action =>
-      ValidationTaskInteraction(0, action.missionId, action.action, action.gsvPanoramaId, action.lat, action.lng,
+      ValidationTaskInteraction(0, action.missionId, action.action, action.panoId, action.lat, action.lng,
         action.heading, action.pitch, action.zoom, action.note, action.timestamp, data.source)
     })
 
@@ -383,7 +383,7 @@ class ValidateController @Inject() (
     )
 
     // Adding the new panorama information to the pano_history table async.
-    gsvDataService.insertPanoHistories(data.panoHistories)
+    panoDataService.insertPanoHistories(data.panoHistories)
 
     // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
     val eligibleUser: Boolean = RoleTable.SCISTARTER_ROLES.contains(user.role)
@@ -465,8 +465,8 @@ class ValidateController @Inject() (
           _              <- validationService.deleteCommentIfExists(submission.labelId, submission.missionId)
           commentId: Int <- validationService.insertComment(
             ValidationTaskComment(0, submission.missionId, submission.labelId, request.identity.userId,
-              request.ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
-              Math.round(submission.zoom), submission.lat, submission.lng, OffsetDateTime.now, submission.comment)
+              request.ipAddress, submission.panoId, submission.heading, submission.pitch, Math.round(submission.zoom),
+              submission.lat, submission.lng, OffsetDateTime.now, submission.comment)
           )
         } yield {
           Ok(Json.obj("commend_id" -> commentId))
@@ -491,8 +491,8 @@ class ValidateController @Inject() (
           _              <- validationService.deleteCommentIfExists(submission.labelId, mission.get.missionId)
           commentId: Int <- validationService.insertComment(
             ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
-              submission.gsvPanoramaId, submission.heading, submission.pitch, Math.round(submission.zoom),
-              submission.lat, submission.lng, OffsetDateTime.now, submission.comment)
+              submission.panoId, submission.heading, submission.pitch, Math.round(submission.zoom), submission.lat,
+              submission.lng, OffsetDateTime.now, submission.comment)
           )
         } yield {
           Ok(Json.obj("commend_id" -> commentId))
@@ -507,7 +507,7 @@ class ValidateController @Inject() (
    *
    * @param labelTypeId    Label Type Id this label should have
    * @param skippedLabelId Label ID of the label that was just skipped
-   * @return Label metadata containing GSV metadata and label type
+   * @return Label metadata containing pano metadata and label type
    */
   def getRandomLabelData(labelTypeId: Int, skippedLabelId: Int) = cc.securityService.SecuredAction(parse.json) {
     implicit request =>

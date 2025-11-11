@@ -5,10 +5,10 @@ import formats.json.ApiFormats
 import models.api.{LabelDataForApi, LabelValidationSummaryForApi, RawLabelFiltersForApi}
 import models.audit.AuditTaskTableDef
 import models.computation.StreamingApiType
-import models.gsv.{GsvData, GsvDataTableDef, PanoSource}
 import models.label.LabelTable._
 import models.label.LabelTypeEnum.validLabelTypes
 import models.mission.MissionTableDef
+import models.pano.{PanoData, PanoDataTableDef, PanoSource}
 import models.region.RegionTableDef
 import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
@@ -35,7 +35,7 @@ case class Label(
     auditTaskId: Int,
     missionId: Int,
     userId: String,
-    gsvPanoramaId: String,
+    panoId: String,
     labelTypeId: Int,
     deleted: Boolean,
     temporaryLabelId: Int,
@@ -59,7 +59,7 @@ case class LocationXY(x: Int, y: Int)
 case class LabelLocation(
     labelId: Int,
     auditTaskId: Int,
-    gsvPanoramaId: String,
+    panoId: String,
     labelType: String,
     lat: Float,
     lng: Float,
@@ -110,13 +110,13 @@ case class LabelCount(count: Int, timeInterval: TimeInterval, labelType: String)
 trait BasicLabelMetadata {
   val labelId: Int
   val labelType: String
-  val gsvPanoramaId: String
+  val panoId: String
   val pov: POV
 }
 
 case class LabelMetadata(
     labelId: Int,
-    gsvPanoramaId: String,
+    panoId: String,
     tutorial: Boolean,
     imageCaptureDate: String,
     pov: POV,
@@ -183,11 +183,11 @@ object LabelCVMetadata {
     "Camera Heading,Camera Pitch\n"
 }
 
-case class LabelDataForAi(labelId: Int, labelTypeId: Int, labelPoint: LabelPoint, gsvData: GsvData)
+case class LabelDataForAi(labelId: Int, labelTypeId: Int, labelPoint: LabelPoint, panoData: PanoData)
 
 case class LabelMetadataUserDash(
     labelId: Int,
-    gsvPanoramaId: String,
+    panoId: String,
     pov: POV,
     canvasX: Int,
     canvasY: Int,
@@ -200,7 +200,7 @@ case class LabelMetadataUserDash(
 case class LabelValidationMetadata(
     labelId: Int,
     labelType: String,
-    gsvPanoramaId: String,
+    panoId: String,
     imageCaptureDate: String,
     timestamp: OffsetDateTime,
     lat: Float,
@@ -225,7 +225,7 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def auditTaskId: Rep[Int]            = column[Int]("audit_task_id")
   def missionId: Rep[Int]              = column[Int]("mission_id")
   def userId: Rep[String]              = column[String]("user_id")
-  def gsvPanoramaId: Rep[String]       = column[String]("gsv_panorama_id")
+  def panoId: Rep[String]              = column[String]("pano_id")
   def labelTypeId: Rep[Int]            = column[Int]("label_type_id")
   def deleted: Rep[Boolean]            = column[Boolean]("deleted")
   def temporaryLabelId: Rep[Int]       = column[Int]("temporary_label_id")
@@ -240,7 +240,7 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def description: Rep[Option[String]] = column[Option[String]]("description")
   def tags: Rep[List[String]]          = column[List[String]]("tags", O.Default(List()))
 
-  def * = (labelId, auditTaskId, missionId, userId, gsvPanoramaId, labelTypeId, deleted, temporaryLabelId, timeCreated,
+  def * = (labelId, auditTaskId, missionId, userId, panoId, labelTypeId, deleted, temporaryLabelId, timeCreated,
     tutorial, streetEdgeId, agreeCount, disagreeCount, unsureCount, correct, severity, description, tags) <> (
     (Label.apply _).tupled,
     Label.unapply
@@ -274,7 +274,7 @@ object LabelTable {
     (Int, String, (Double, Double, Double), Int, Int, String, OffsetDateTime, Option[String])
   type LabelMetadataUserDashTupleRep = (
       Rep[Int],                                // labelId
-      Rep[String],                             // gsvPanoramaId
+      Rep[String],                             // panoId
       (Rep[Double], Rep[Double], Rep[Double]), // pov (heading, pitch, zoom)
       Rep[Int],                                // canvasX
       Rep[Int],                                // canvasY
@@ -295,7 +295,7 @@ object LabelTable {
   type LabelValidationMetadataTuple = (
       Int,                              // labelId
       String,                           // labelType
-      String,                           // gsvPanoramaId
+      String,                           // panoId
       String,                           // imageCaptureDate
       OffsetDateTime,                   // timestamp
       Option[Float],                    // lat
@@ -317,7 +317,7 @@ object LabelTable {
   type LabelValidationMetadataTupleRep = (
       Rep[Int],                                             // labelId
       Rep[String],                                          // labelType
-      Rep[String],                                          // gsvPanoramaId
+      Rep[String],                                          // panoId
       Rep[String],                                          // imageCaptureDate
       Rep[OffsetDateTime],                                  // timestamp
       Rep[Option[Float]],                                   // lat
@@ -377,7 +377,7 @@ object LabelTable {
     LabelDataForApi(
       labelId = r.nextInt(),
       userId = r.nextString(),
-      gsvPanoramaId = r.nextString(),
+      panoId = r.nextString(),
       labelType = r.nextString(),
       severity = r.nextIntOption(),
       tags = {
@@ -455,7 +455,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   val labelsUnfiltered       = TableQuery[LabelTableDef]
   val auditTasks             = TableQuery[AuditTaskTableDef]
-  val gsvData                = TableQuery[GsvDataTableDef]
+  val panoData               = TableQuery[PanoDataTableDef]
   val labelTypes             = TableQuery[LabelTypeTableDef]
   val labelPoints            = TableQuery[LabelPointTableDef]
   val labelValidations       = TableQuery[LabelValidationTableDef]
@@ -685,9 +685,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
     sql"""
       SELECT lb1.label_id,
-             lb1.gsv_panorama_id,
+             lb1.pano_id,
              lb1.tutorial,
-             gsv_data.capture_date,
+             pano_data.capture_date,
              lp.heading,
              lp.pitch,
              lp.zoom,
@@ -711,14 +711,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              at.stale,
              comment.comments
       FROM label AS lb1
-      INNER JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
+      INNER JOIN pano_data ON lb1.pano_id = pano_data.pano_id
       INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
       INNER JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
       INNER JOIN sidewalk_user AS u ON at.user_id = u.user_id
       INNER JOIN label_point AS lp ON lb1.label_id = lp.label_id
       INNER JOIN (
           SELECT lb.label_id,
-                 lb.gsv_panorama_id,
+                 lb.pano_id,
                  lbt.label_type,
                  lb.severity,
                  lb.description,
@@ -758,10 +758,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   def getAvailableValidationsLabelsByType(userId: String): DBIO[Seq[LabelTypeValidationsLeft]] = {
     val labelsValidatedByUser = labelValidations.filter(_.userId === userId)
 
-    // Get labels the given user has not placed that have non-expired GSV imagery.
+    // Get labels the given user has not placed that have non-expired imagery.
     val labelsToValidate = for {
       _lb <- labels
-      _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId
+      _gd <- panoData if _gd.panoId === _lb.panoId
       _us <- userStats if _lb.userId === _us.userId
       if _us.highQuality && _gd.expired === false && _lb.userId =!= userId
     } yield (_lb.labelId, _lb.labelTypeId, _lb.correct)
@@ -814,7 +814,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (_lb, _at, _us) <- labelsWithAuditTasksAndUserStats
       _lt             <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp             <- labelPoints if _lb.labelId === _lp.labelId
-      _gd             <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
+      _gd             <- panoData if _lb.panoId === _gd.panoId
       _ser            <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
       if _lt.labelTypeId === labelTypeId && !_gd.expired && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
       if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty                     // Filter out validated labels.
@@ -875,7 +875,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         (
           l.labelId,
           lt.labelType,
-          l.gsvPanoramaId,
+          l.panoId,
           gd.captureDate,
           l.timeCreated,
           lp.lat,
@@ -966,7 +966,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lb  <- _labelsFilteredByCorrectness if !(_lb.labelId inSetBind loadedLabelIds)
       _lt  <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp  <- labelPoints if _lb.labelId === _lp.labelId
-      _gd  <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
+      _gd  <- panoData if _lb.panoId === _gd.panoId
       _us  <- userStats if _lb.userId === _us.userId
       _ser <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
       if _gd.expired === false
@@ -992,7 +992,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     } yield (
       l._1.labelId,
       l._3.labelType,
-      l._1.gsvPanoramaId,
+      l._1.panoId,
       l._4.captureDate,
       l._1.timeCreated,
       l._2.lat,
@@ -1047,7 +1047,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lb <- labelsWithExcludedUsers
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
-      _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
+      _gd <- panoData if _lb.panoId === _gd.panoId
       _vc <- _validationsWithComments if _lb.labelId === _vc._1
       _us <- userStats if _vc._3 === _us.userId
       if _lb.userId === userId &&   // Only include the given user's labels.
@@ -1055,12 +1055,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         _vc._2 === 2 &&             // Only times when users validated as incorrect.
         _us.excluded === false &&   // Don't use validations from excluded users
         _us.highQuality === true && // For now, we only include validations from high quality users.
-        _gd.expired === false &&    // Only include those with non-expired GSV imagery.
+        _gd.expired === false &&    // Only include those with non-expired imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
         _lt.labelType === labType                         // Only include given label types.
     } yield (
       _lb.labelId,
-      _lb.gsvPanoramaId,
+      _lb.panoId,
       (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom.asColumnOf[Double]),
       _lp.canvasX,
       _lp.canvasY,
@@ -1084,7 +1084,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (_l, _at, _us) <- labelsWithAuditTasksAndUserStats
       _lType         <- labelTypes if _l.labelTypeId === _lType.labelTypeId
       _lPoint        <- labelPoints if _l.labelId === _lPoint.labelId
-      _gsv           <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
+      _gsv           <- panoData if _l.panoId === _gsv.panoId
       _ser           <- streetEdgeRegions if _l.streetEdgeId === _ser.streetEdgeId
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
       if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
@@ -1149,7 +1149,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     } yield (
       _l.labelId,
       _l.auditTaskId,
-      _l.gsvPanoramaId,
+      _l.panoId,
       _lt.labelType,
       _lp.lat,
       _lp.lng,
@@ -1254,11 +1254,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _label      <- labels if _mission.missionId === _label.missionId
       _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
       _labelType  <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
-      _gsvData    <- gsvData if _label.gsvPanoramaId === _gsvData.gsvPanoramaId
+      _panoData   <- panoData if _label.panoId === _panoData.panoId
       if _mission.regionId === regionId && _mission.userId === userId
       if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
-    } yield (_label, _labelType.labelType, _labelPoint, _gsvData.lat, _gsvData.lng, _gsvData.cameraHeading,
-      _gsvData.cameraPitch, _gsvData.width, _gsvData.height)).result.map(_.map(ResumeLabelMetadata.tupled))
+    } yield (_label, _labelType.labelType, _labelPoint, _panoData.lat, _panoData.lng, _panoData.cameraHeading,
+      _panoData.cameraPitch, _panoData.width, _panoData.height)).result.map(_.map(ResumeLabelMetadata.tupled))
   }
 
   /**
@@ -1346,7 +1346,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     sql"""
       SELECT label.label_id,
              label.user_id,
-             label.gsv_panorama_id,
+             label.pano_id,
              label_type.label_type,
              label.severity,
              array_to_string(label.tags, ','),
@@ -1362,7 +1362,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              vals.validations,
              audit_task.audit_task_id,
              label.mission_id,
-             gsv_data.capture_date,
+             pano_data.capture_date,
              label_point.heading,
              label_point.pitch,
              label_point.zoom,
@@ -1370,10 +1370,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label_point.canvas_y,
              label_point.pano_x,
              label_point.pano_y,
-             gsv_data.width AS pano_width,
-             gsv_data.height AS pano_height,
-             gsv_data.camera_heading,
-             gsv_data.camera_pitch,
+             pano_data.width AS pano_width,
+             pano_data.height AS pano_height,
+             pano_data.camera_heading,
+             pano_data.camera_pitch,
              label_point.lat,
              label_point.lng
       FROM label
@@ -1383,7 +1383,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
       INNER JOIN region ON street_edge_region.region_id = region.region_id
       INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-      INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
+      INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
       INNER JOIN user_stat ON label.user_id = user_stat.user_id
       LEFT JOIN (
           SELECT label.label_id,
@@ -1636,14 +1636,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Get label data necessary for AI validation and tag prediction.
    * @param labelId The ID of the label to get data for
-   * @return A LabelDataForAi object containing label, label_point, and gsv_data information if they exist
+   * @return A LabelDataForAi object containing label, label_point, and pano_data information if they exist
    */
   def getLabelDataForAi(labelId: Int): DBIO[Option[LabelDataForAi]] = {
     labelsUnfiltered
       .join(labelPoints)
       .on(_.labelId === _.labelId)
-      .join(gsvData)
-      .on { case ((label, point), gsv) => label.gsvPanoramaId === gsv.gsvPanoramaId }
+      .join(panoData)
+      .on { case ((label, point), gsv) => label.panoId === gsv.panoId }
       .filter { case ((label, point), gsv) => label.labelId === labelId && gsv.width.isDefined && gsv.height.isDefined }
       .result
       .headOption
@@ -1667,8 +1667,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     possibleLabels
       .join(labelPoints)
       .on(_.labelId === _.labelId)
-      .join(gsvData)
-      .on { case ((label, point), gsv) => label.gsvPanoramaId === gsv.gsvPanoramaId }
+      .join(panoData)
+      .on { case ((label, point), gsv) => label.panoId === gsv.panoId }
       .filter { case ((label, point), gsv) =>
         !gsv.expired && gsv.width.isDefined && gsv.height.isDefined && gsv.source === PanoSource.Gsv.toString
       }
@@ -1699,11 +1699,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     (for {
       _l   <- labels
       _lp  <- labelPoints if _l.labelId === _lp.labelId
-      _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
+      _gsv <- panoData if _l.panoId === _gsv.panoId
       if _gsv.cameraHeading.isDefined && _gsv.cameraPitch.isDefined
     } yield (
       _l.labelId,
-      _gsv.gsvPanoramaId,
+      _gsv.panoId,
       _l.labelTypeId,
       _l.agreeCount,
       _l.disagreeCount,

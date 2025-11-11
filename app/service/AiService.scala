@@ -46,7 +46,7 @@ class AiServiceImpl @Inject() (
     validationService: ValidationService,
     labelAiAssessmentTable: models.label.LabelAiAssessmentTable,
     missionTable: models.mission.MissionTable,
-    gsvDataService: GsvDataService
+    panoDataService: PanoDataService
 )(implicit val ec: ExecutionContext)
     extends AiService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -84,7 +84,7 @@ class AiServiceImpl @Inject() (
       db.run(labelTable.getLabelsToValidateWithAi(n)).flatMap { labelDataSeq =>
         labelDataSeq.foldLeft(Future.successful(List.empty[Option[LabelAiAssessment]])) { (accFuture, labelData) =>
           for {
-            acc <- accFuture
+            acc    <- accFuture
             result <- callAiApiAndSubmitData(labelData)
           } yield acc :+ result
         }
@@ -166,9 +166,9 @@ class AiServiceImpl @Inject() (
     // Create form data for the multipart request.
     val formData = Map(
       "label_type"  -> LabelTypeEnum.labelTypeIdToLabelType(labelData.labelTypeId).toLowerCase,
-      "panorama_id" -> labelData.gsvData.gsvPanoramaId,
-      "x"           -> (labelData.labelPoint.panoX.toDouble / labelData.gsvData.width.get).toString,
-      "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.gsvData.height.get).toString
+      "panorama_id" -> labelData.panoData.panoId,
+      "x"           -> (labelData.labelPoint.panoX.toDouble / labelData.panoData.width.get).toString,
+      "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.panoData.height.get).toString
     )
 
     ws.url(url)
@@ -208,7 +208,7 @@ class AiServiceImpl @Inject() (
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")
             // Most common failure is for expired imagery, so do that check and mark it as expired here.
-            Await.result(gsvDataService.panoExists(labelData.gsvData.gsvPanoramaId), 5.seconds)
+            Await.result(panoDataService.panoExists(labelData.panoData.panoId), 5.seconds)
             None
           }
         } catch {

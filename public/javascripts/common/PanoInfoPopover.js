@@ -1,5 +1,5 @@
 /**
- * Displays info about the current GSV pane.
+ * Displays info about the current panorama.
  *
  * @param {HTMLElement} container Element where the info button will be displayed
  * @param {PanoViewer} panoViewer PanoViewer object
@@ -12,12 +12,12 @@
  * @param {Boolean} whiteIcon Set to true if using white icon, false if using blue icon.
  * @param {function} infoLogging Function that adds the info button click to the appropriate logs.
  * @param {function} clipboardLogging Function that adds the copy to clipboard click to the appropriate logs.
- * @param {function} viewGSVLogging Function that adds the View in GSV click to the appropriate logs.
+ * @param {function} viewPanoLogging Function that adds the View in GSV click to the appropriate logs.
  * @param {function} [labelId] Optional function that returns the Label ID.
- * @returns {GSVInfoPopover} Popover object, which holds the popover title html, content html, info button html, and
+ * @returns {PanoInfoPopover} Popover object, which holds the popover title html, content html, info button html, and
  * update values method
  */
-function GSVInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, regionId, pov, cityName, whiteIcon, infoLogging, clipboardLogging, viewGSVLogging, labelId) {
+function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, regionId, pov, cityName, whiteIcon, infoLogging, clipboardLogging, viewPanoLogging, labelId) {
     let self = this;
 
     function _init() {
@@ -53,19 +53,19 @@ function GSVInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, re
 
         self.popoverContent.appendChild(dataList);
 
-        // Create element for a link to GSV in a separate tab.
-        let linkGSV = document.createElement('a');
-        linkGSV.classList.add('popover-element');
-        linkGSV.id = 'gsv-link'
-        linkGSV.textContent = i18next.t('common:gsv-info.view-in-gsv');
-        self.popoverContent.appendChild(linkGSV);
+        // Create element for a link to the pano in a separate tab.
+        let linkPano = document.createElement('a');
+        linkPano.classList.add('popover-element');
+        linkPano.id = 'pano-link'
+        linkPano.textContent = i18next.t('common:gsv-info.view-in-gsv');
+        self.popoverContent.appendChild(linkPano);
 
         // Create info button and add popover attributes.
         self.infoButton = document.createElement('img');
         self.infoButton.classList.add('popover-element');
         self.infoButton.id = 'gsv-info-button';
-        if (whiteIcon) self.infoButton.src = '/assets/images/icons/gsv_info_btn_white.svg';
-        else self.infoButton.src = '/assets/images/icons/gsv_info_btn.png';
+        if (whiteIcon) self.infoButton.src = '/assets/images/icons/pano_info_btn_white.svg';
+        else self.infoButton.src = '/assets/images/icons/pano_info_btn.png';
         self.infoButton.setAttribute('data-toggle', 'popover');
 
         container.append(self.infoButton);
@@ -135,11 +135,11 @@ function GSVInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, re
         changeVals('region-id', currRegionId);
         if (currLabelId) changeVals('label-id', currLabelId);
 
-        // Create GSV link and log the click.
-        let gsvLink = $('#gsv-link');
-        gsvLink.attr('href', `https://www.google.com/maps/@?api=1&map_action=pano&pano=${currPanoId}&heading=${currPov.heading}&pitch=${currPov.pitch}`);
-        gsvLink.attr('target', '_blank');
-        gsvLink.on('click', viewGSVLogging);
+        // Create pano link and log the click.
+        let panoLink = $('#pano-link');
+        panoLink.attr('href', `https://www.google.com/maps/@?api=1&map_action=pano&pano=${currPanoId}&heading=${currPov.heading}&pitch=${currPov.pitch}`);
+        panoLink.attr('target', '_blank');
+        panoLink.on('click', viewPanoLogging);
 
         // Position popover.
         let infoPopover = $('.popover');
@@ -163,7 +163,7 @@ function GSVInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, re
                 `${i18next.t(`common:gsv-info.street-id`)}: ${currStreetEdgeId}\n` +
                 `${i18next.t(`common:gsv-info.region-id`)}: ${currRegionId}\n`;
             if (currLabelId) clipboardText += `${i18next.t(`common:gsv-info.label-id`)}: ${currLabelId}\n`;
-            clipboardText += `GSV URL: ${gsvLink.attr('href')}`;
+            clipboardText += `Pano URL: ${panoLink.attr('href')}`;
             navigator.clipboard.writeText(clipboardText);
 
             // The clipboard popover will only show one time until you close and reopen the info button popover. I have

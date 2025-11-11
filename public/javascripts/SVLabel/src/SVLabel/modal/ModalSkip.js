@@ -31,7 +31,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
     /**
      * Callback for clicking stuck button.
      *
-     * The algorithm searches for available GSV imagery along the street you are assigned to. If the pano you are put in
+     * The algorithm searches for available imagery along the street you are assigned to. If the pano you are put in
      * doesn't help, you can click the Stuck button again; we save the attempted panos so we'll try something new. If we
      * can't find anything along the street, we just mark it as complete and move you to a new street.
      */
@@ -39,7 +39,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
         e.preventDefault();
         svl.stuckAlert.compassOrStuckClicked();
         tracker.push('ModalStuck_ClickStuck');
-        svl.navigationService.moveForward('ModalStuck_Unstuck', 'ModalStuck_GSVNotAvailable', svl.stuckAlert.stuckClicked);
+        svl.navigationService.moveForward('ModalStuck_Unstuck', 'ModalStuck_PanoNotAvailable', svl.stuckAlert.stuckClicked);
     }
 
 

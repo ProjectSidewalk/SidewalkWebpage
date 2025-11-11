@@ -3,10 +3,10 @@ package service
 import com.google.inject.ImplementedBy
 import formats.json.ExploreFormats._
 import models.audit._
-import models.gsv.PanoSource.PanoSource
-import models.gsv._
 import models.label.{Tag, _}
 import models.mission.{Mission, MissionTable, MissionTypeTable}
+import models.pano.PanoSource.PanoSource
+import models.pano._
 import models.region.{Region, RegionCompletionTable, RegionTable}
 import models.route._
 import models.street._
@@ -62,12 +62,12 @@ trait ExploreService {
   def insertMultipleInteractions(interactions: Seq[AuditTaskInteraction]): Future[Unit]
 
   /**
-   * Takes data submitted from the Explore page updates the gsv_data, gsv_link, and pano_history tables accordingly.
-   * @param gsvPanoramas All pano-related data submitted from the Explore page front-end.
+   * Takes data submitted from the Explore page updates the pano_data, pano_link, and pano_history tables accordingly.
+   * @param panos All pano-related data submitted from the Explore page front-end.
    */
-  def savePanoInfo(gsvPanoramas: Seq[GsvPanoramaSubmission]): Future[Unit]
+  def savePanoInfo(panos: Seq[PanoSubmission]): Future[Unit]
   def insertComment(comment: AuditTaskComment): Future[Int]
-  def insertNoGsv(streetIssue: StreetEdgeIssue): Future[Int]
+  def insertNoImagery(streetIssue: StreetEdgeIssue): Future[Int]
 
   /**
    * Inserts a set of AI-generated labels into the database, filling in appropriate tables with dummy data.
@@ -124,8 +124,8 @@ class ExploreServiceImpl @Inject() (
     regionCompletionTable: RegionCompletionTable,
     streetEdgeTable: StreetEdgeTable,
     streetEdgeRegionTable: StreetEdgeRegionTable,
-    gsvDataTable: GsvDataTable,
-    gsvLinkTable: GsvLinkTable,
+    panoDataTable: PanoDataTable,
+    panoLinkTable: PanoLinkTable,
     panoHistoryTable: PanoHistoryTable,
     labelAiInfoTable: LabelAiInfoTable,
     streetEdgeIssueTable: StreetEdgeIssueTable,
@@ -422,7 +422,7 @@ class ExploreServiceImpl @Inject() (
           auditTaskId = auditTaskId,
           missionId = missionId,
           userId = userId,
-          gsvPanoramaId = label.gsvPanoramaId,
+          panoId = label.panoId,
           labelTypeId = LabelTypeEnum.labelTypeToId(label.labelType),
           deleted = label.deleted,
           temporaryLabelId = label.temporaryLabelId,
@@ -449,19 +449,19 @@ class ExploreServiceImpl @Inject() (
     }
   }
 
-  def savePanoInfo(gsvPanoramas: Seq[GsvPanoramaSubmission]): Future[Unit] = {
+  def savePanoInfo(panos: Seq[PanoSubmission]): Future[Unit] = {
     val currTime: OffsetDateTime = OffsetDateTime.now
-    val panoSubmissionActions    = gsvPanoramas.map { pano: GsvPanoramaSubmission =>
+    val panoSubmissionActions    = panos.map { pano: PanoSubmission =>
       (for {
-        // Insert new entry to gsv_data table, or update the last_viewed/checked columns if we've already recorded it.
-        panoExists: Boolean <- gsvDataTable.panoramaExists(pano.gsvPanoramaId)
+        // Insert new entry to pano_data table, or update the last_viewed/checked columns if we've already recorded it.
+        panoExists: Boolean <- panoDataTable.panoramaExists(pano.panoId)
         _                   <-
           if (panoExists) {
-            gsvDataTable.updateFromExplore(pano.gsvPanoramaId, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch,
+            panoDataTable.updateFromExplore(pano.panoId, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch,
               expired = false, currTime, Some(currTime))
           } else {
-            gsvDataTable.insert(
-              GsvData(pano.gsvPanoramaId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
+            panoDataTable.insert(
+              PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
                 pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, expired = false, currTime,
                 Some(currTime), currTime, pano.source.toString)
             )
@@ -469,13 +469,13 @@ class ExploreServiceImpl @Inject() (
       } yield {
         // Once panorama is saved, save the links and history.
         val panoLinkInserts = pano.links.map { link =>
-          gsvLinkTable.insertIfNew(GsvLink(pano.gsvPanoramaId, link.targetGsvPanoramaId, link.yawDeg, link.description))
+          panoLinkTable.insertIfNew(PanoLink(pano.panoId, link.targetPanoId, link.yawDeg, link.description))
         }
         val panoHistoryInserts = pano.history.map { h =>
-          panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, pano.gsvPanoramaId))
+          panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, pano.panoId))
         }
 
-        // Run the gsv_link and pano_history inserts in parallel.
+        // Run the pano_link and pano_history inserts in parallel.
         DBIO.sequence(panoLinkInserts).zip(DBIO.sequence(panoHistoryInserts)).map(_ => ())
       }).flatten
     }
@@ -486,7 +486,7 @@ class ExploreServiceImpl @Inject() (
     db.run(auditTaskCommentTable.insert(comment))
   }
 
-  def insertNoGsv(streetIssue: StreetEdgeIssue): Future[Int] = {
+  def insertNoImagery(streetIssue: StreetEdgeIssue): Future[Int] = {
     db.run(streetEdgeIssueTable.insert(streetIssue))
   }
 
@@ -529,11 +529,11 @@ class ExploreServiceImpl @Inject() (
     val labelSubmitActions = DBIO.sequence {
       data.labels.map { label =>
         // Calculate the label's lat/lng and theoretical user's heading/pitch from its panoX/panoY coordinates.
-        val pov = GsvDataService.calculatePovFromPanoXY(label.panoX, label.panoY, pano.width.get, pano.height.get,
+        val pov = PanoDataService.calculatePovFromPanoXY(label.panoX, label.panoY, pano.width.get, pano.height.get,
           pano.cameraHeading.get.toDouble)
         val canvasX = LabelPointTable.canvasWidth / 2
         val canvasY = LabelPointTable.canvasHeight / 2
-        val latLng  = GsvDataService.toLatLng(pano.lat.get.toDouble, pano.lng.get.toDouble, pov.heading, pov.zoom,
+        val latLng  = PanoDataService.toLatLng(pano.lat.get.toDouble, pano.lng.get.toDouble, pov.heading, pov.zoom,
           canvasX, canvasY, label.panoY, pano.height.get)
         for {
           // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
@@ -548,7 +548,7 @@ class ExploreServiceImpl @Inject() (
             heading = pov.heading.toFloat, pitch = pov.pitch.toFloat, pov.zoom, lat = Some(latLng._1.toFloat),
             lng = Some(latLng._2.toFloat), computationMethod = Some("approximation2"))
           labelSubmission: LabelSubmission = LabelSubmission(
-            gsvPanoramaId = pano.gsvPanoramaId,
+            panoId = pano.panoId,
             panoSource = pano.source,
             auditTaskId = auditTaskId,
             labelType = data.labelType,
@@ -578,10 +578,10 @@ class ExploreServiceImpl @Inject() (
 
     // Update the audit_task table and get the audit_task_id. This is needed to submit all other data.
     db.run(updateAuditTaskTable(userId, data.auditTask, missionId).flatMap { auditTaskId: Int =>
-      // If task is complete or the user skipped with `GSVNotAvailable`, mark the task as complete.
+      // If task is complete or the user skipped with `PanoNotAvailable`, mark the task as complete.
       val taskCompletedAction: DBIO[Int] =
         if (
-          data.auditTask.completed.getOrElse(false) || data.incomplete.exists(_.issueDescription == "GSVNotAvailable")
+          data.auditTask.completed.getOrElse(false) || data.incomplete.exists(_.issueDescription == "PanoNotAvailable")
         ) {
           for {
             newPriority: Option[Double] <- updateStreetPriority(streetEdgeId, userId)

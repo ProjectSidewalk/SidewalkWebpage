@@ -50,12 +50,12 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
         tracker.push("ModalComment_ClickOK");
 
         var task = taskContainer.getCurrentTask();
-        var panoramaId = svl.panoViewer.getPanoId();
+        var panoId = svl.panoViewer.getPanoId();
         var latlng = svl.panoViewer.getPosition();
         var pov = svl.panoViewer.getPov();
         var data;
 
-        data = self._prepareCommentData(panoramaId, latlng.lat, latlng.lng, pov, task);
+        data = self._prepareCommentData(panoId, latlng.lat, latlng.lng, pov, task);
         self._submitComment(data);
         self.hide();
     }
@@ -159,13 +159,13 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
         });
     };
 
-    this._prepareCommentData = function (panoramaId, lat, lng, pov, task) {
+    this._prepareCommentData = function (panoId, lat, lng, pov, task) {
         var streetEdgeId = task.getStreetEdgeId(),
             comment = _uiModalComment.textarea.val();
 
         return {
             comment: comment,
-            gsv_panorama_id: panoramaId,
+            pano_id: panoId,
             heading: pov ? pov.heading : null,
             lat: lat,
             lng: lng,

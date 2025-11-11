@@ -1,5 +1,5 @@
 /**
- * An ExpandedView element that provides extended information about a label, along with placing a label in a GSV Panorama
+ * An ExpandedView element that provides extended information about a label, along with placing a label in a Panorama
  * to aid the user in contextualizing the location of labels.
  *
  * @param {HTMLElement} uiModal The container for the ExpandedView in the DOM
@@ -38,7 +38,7 @@ function ExpandedView(uiModal) {
     let properties = {
         label_id: undefined,
         label_type: undefined,
-        gsv_panorama_id: undefined,
+        pano_id: undefined,
         image_capture_date: undefined,
         label_timestamp: undefined,
         heading: undefined,
@@ -59,7 +59,7 @@ function ExpandedView(uiModal) {
 
     /**
      * Initialization function for the ExpandedView. Serves to bind the DOM elements of the ExpandedView to class
-     * variables for future access when populating the fields. It also instantiates the GSV panorama in the specified
+     * variables for future access when populating the fields. It also instantiates the panorama in the specified
      * location of the ExpandedView.
      */
     function _init() {
@@ -149,13 +149,13 @@ function ExpandedView(uiModal) {
 
         // Add info button to the right of the label timestamp.
         let getPanoId = sg.expandedView().pano.getPanoId;
-        self.infoPopover = new GSVInfoPopover(self.labelTimestampData, sg.expandedView().pano.panorama,
+        self.infoPopover = new PanoInfoPopover(self.labelTimestampData, sg.expandedView().pano.panorama,
             sg.expandedView().pano.getPosition, getPanoId,
             function() { return properties['street_edge_id']; }, function() { return properties['region_id']; },
             sg.expandedView().pano.getPov, sg.cityName, false,
-            function() { sg.tracker.push('GSVInfoButton_Click', { panoId: getPanoId() }); },
-            function() { sg.tracker.push('GSVInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
-            function() { sg.tracker.push('GSVInfoViewInGSV_Click', { panoId: getPanoId() }); },
+            function() { sg.tracker.push('PanoInfoButton_Click', { panoId: getPanoId() }); },
+            function() { sg.tracker.push('PanoInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
+            function() { sg.tracker.push('PanoInfoViewInPano_Click', { panoId: getPanoId() }); },
             function() { return properties['label_id']; }
         );
 
@@ -185,7 +185,7 @@ function ExpandedView(uiModal) {
         resetExpandedView();
         self.open = true;
         populateExpandedViewDescriptionFields();
-        self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
+        self.pano.setPano(properties.pano_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
         self.header.text(i18next.t(util.camelToKebab(properties.label_type)));
 

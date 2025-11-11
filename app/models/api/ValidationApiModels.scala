@@ -53,9 +53,9 @@ case class ValidationFiltersForApi(
  * @param validatorType Whether the validation was performed by a human or AI
  * @param missionId ID of the mission during which the validation was performed
  * @param canvasXY Canvas X/Y coordinates of the label when it was validated; can be None if label was offscreen
- * @param heading GSV heading when validation occurred
- * @param pitch GSV pitch when validation occurred
- * @param zoom GSV zoom level when validation occurred
+ * @param heading Pano heading when validation occurred
+ * @param pitch Pano pitch when validation occurred
+ * @param zoom Pano zoom level when validation occurred
  * @param canvasHeight Height of the canvas
  * @param canvasWidth Width of the canvas
  * @param startTimestamp When the validation was started

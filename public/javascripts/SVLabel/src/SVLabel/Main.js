@@ -63,7 +63,7 @@ function Main (params) {
         const startLat = params.task.properties.current_lat;
         const startLng = params.task.properties.current_lng;
         svl.panoStore = new PanoStore();
-        const viewerType = svl.isOnboarding() ? GsvViewer : MapillaryViewer;
+        const viewerType = svl.isOnboarding() ? GsvViewer : Infra3dViewer;
         // TODO when we set up passing in a starting pano, could pass in tutorial when appropriate too. Then remove checks from PanoManager.js.
         svl.panoManager = await PanoManager(viewerType, { startLat: startLat, startLng: startLng });
         svl.minimap = new Minimap();
@@ -156,11 +156,12 @@ function Main (params) {
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
         svl.modalSkip = new ModalSkip(svl.form, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
 
-        svl.infoPopover = new GSVInfoPopover(svl.ui.streetview.dateHolder, svl.panoViewer, svl.panoViewer.getPosition, svl.panoViewer.getPanoId,
-            svl.taskContainer.getCurrentTaskStreetEdgeId, svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId,
-            svl.panoViewer.getPov, svl.cityName, true, function() { svl.tracker.push('GSVInfoButton_Click'); },
-            function() { svl.tracker.push('GSVInfoCopyToClipboard_Click'); },
-            function() { svl.tracker.push('GSVInfoViewInGSV_Click'); }
+        svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, svl.panoViewer, svl.panoViewer.getPosition,
+            svl.panoViewer.getPanoId, svl.taskContainer.getCurrentTaskStreetEdgeId,
+            svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId, svl.panoViewer.getPov, svl.cityName, true,
+            function() { svl.tracker.push('PanoInfoButton_Click'); },
+            function() { svl.tracker.push('PanoInfoCopyToClipboard_Click'); },
+            function() { svl.tracker.push('PanoInfoViewInPano_Click'); }
         );
 
         // Speed limit

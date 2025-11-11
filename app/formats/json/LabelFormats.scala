@@ -13,7 +13,7 @@ object LabelFormats {
       (__ \ "audit_task_id").write[Int] and
       (__ \ "mission_id").write[Int] and
       (__ \ "user_id").write[String] and
-      (__ \ "gsv_panorama_id").write[String] and
+      (__ \ "pano_id").write[String] and
       (__ \ "label_type_id").write[Int] and
       (__ \ "deleted").write[Boolean] and
       (__ \ "temporary_label_id").write[Int] and
@@ -42,7 +42,7 @@ object LabelFormats {
 
   implicit val labelMetadataWrites: Writes[LabelMetadata] = (
     (__ \ "label_id").write[Int] and
-      (__ \ "gsv_panorama_id").write[String] and
+      (__ \ "pano_id").write[String] and
       (__ \ "tutorial").write[Boolean] and
       (__ \ "image_capture_date").write[String] and
       (__ \ "pov").write[POV] and
@@ -71,7 +71,7 @@ object LabelFormats {
     Json.obj(
       "label_id"           -> labelMetadata.labelId,
       "label_type"         -> labelMetadata.labelType,
-      "gsv_panorama_id"    -> labelMetadata.gsvPanoramaId,
+      "pano_id"            -> labelMetadata.panoId,
       "image_capture_date" -> labelMetadata.imageCaptureDate,
       "label_timestamp"    -> labelMetadata.timestamp,
       "lat"                -> labelMetadata.lat,
@@ -113,7 +113,7 @@ object LabelFormats {
   def labelMetadataWithValidationToJson(labelMetadata: LabelMetadata): JsObject = {
     Json.obj(
       "label_id"           -> labelMetadata.labelId,
-      "gsv_panorama_id"    -> labelMetadata.gsvPanoramaId,
+      "pano_id"            -> labelMetadata.panoId,
       "tutorial"           -> labelMetadata.tutorial,
       "image_capture_date" -> labelMetadata.imageCaptureDate,
       "heading"            -> labelMetadata.pov.heading,
@@ -162,7 +162,7 @@ object LabelFormats {
   def labelMetadataUserDashToJson(label: LabelMetadataUserDash, imageUrl: String): JsObject = {
     Json.obj(
       "label_id"          -> label.labelId,
-      "gsv_panorama_id"   -> label.gsvPanoramaId,
+      "pano_id"           -> label.panoId,
       "heading"           -> label.pov.heading,
       "pitch"             -> label.pov.pitch,
       "zoom"              -> label.pov.zoom,
@@ -186,7 +186,7 @@ object LabelFormats {
     Json.obj(
       "labelId"     -> label.labelData.labelId,
       "labelType"   -> label.labelType,
-      "panoId"      -> label.labelData.gsvPanoramaId,
+      "panoId"      -> label.labelData.panoId,
       "panoLat"     -> label.panoLat,
       "panoLng"     -> label.panoLng,
       "originalPov" -> Json.obj(

@@ -244,7 +244,7 @@ function AdminGSVLabelView(admin, source) {
         self.modalTask = self.modal.find("#task");
         self.modalPrevValidations = self.modal.find("#prev-validations");
         self.modalPanoId = self.modal.find('#pano-id');
-        self.modalGsvLink = self.modal.find('#view-in-gsv');
+        self.modalPanoLink = self.modal.find('#view-in-gsv');
         self.modalLat = self.modal.find('#lat');
         self.modalLng = self.modal.find('#lng');
         self.modalLabelId = self.modal.find("#label-id");
@@ -419,7 +419,7 @@ function AdminGSVLabelView(admin, source) {
             label_id: self.panorama.label.labelId,
             label_type: self.panorama.label.label_type,
             comment: comment,
-            gsv_panorama_id: self.panorama.panoId,
+            pano_id: self.panorama.panoId,
             heading: userPov.heading,
             pitch: userPov.pitch,
             zoom: userPov.zoom,
@@ -555,14 +555,14 @@ function AdminGSVLabelView(admin, source) {
         var panoCallback = function () {
             var lat = self.panorama.panorama.getPosition().lat();
             var lng = self.panorama.panorama.getPosition().lng();
-            var href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelMetadata['gsv_panorama_id']}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}`;
+            var href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelMetadata['pano_id']}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}`;
 
-            self.modalGsvLink.html(`<a target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
-            self.modalGsvLink.children(":first").attr('href', href)
+            self.modalPanoLink.html(`<a target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
+            self.modalPanoLink.children(":first").attr('href', href)
             self.modalLat.html(lat.toFixed(8) + '°');
             self.modalLng.html(lng.toFixed(8) + '°');
         }
-        self.panorama.setPano(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
+        self.panorama.setPano(labelMetadata['pano_id'], labelMetadata['heading'],
             labelMetadata['pitch'], labelMetadata['zoom'], panoCallback);
 
         var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type'],
@@ -594,7 +594,7 @@ function AdminGSVLabelView(admin, source) {
         self.modalDescription.text(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
         self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
         self.modalImageDate.html(imageCaptureDate.format('MMMM YYYY'));
-        self.modalPanoId.text(labelMetadata['gsv_panorama_id']);
+        self.modalPanoId.text(labelMetadata['pano_id']);
         self.modalLabelId.html(labelMetadata['label_id']);
         self.modalStreetId.html(labelMetadata['street_edge_id']);
         self.modalRegionId.html(labelMetadata['region_id']);

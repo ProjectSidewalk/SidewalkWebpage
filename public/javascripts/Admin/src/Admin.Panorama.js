@@ -29,7 +29,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         Signal : '/assets/images/icons/AdminTool_Signal.png'
     };
 
-    // Determined experimentally; varies w/ GSV Panorama size
+    // Determined experimentally; varies w/ Panorama size
     var zoomLevel = {
         1: 1,
         2: 1.95,
@@ -48,7 +48,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         if(self.svHolder.css('position') != "absolute" && self.svHolder.css('position') != "relative")
             self.svHolder.css('position', 'relative');
 
-        // GSV will be added to panoCanvas
+        // Panorama will be added to panoCanvas
         self.panoCanvas = $("<div id='pano'>").css({
             width: self.svHolder.width(),
             height: self.svHolder.height()
@@ -348,15 +348,15 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
 
     /**
      * Returns the panorama ID for the current panorama.
-     * @returns {google.maps.StreetViewPanorama} Google StreetView Panorama Id
+     * @returns string Panorama Id
      */
     function getPanoId() {
         return self.panorama.getPano();
     }
 
     /**
-     * Returns the lat lng of this panorama. Note that sometimes position is null/undefined
-     * (probably a bug in GSV), so sometimes this function returns null.
+     * Returns the latLng of this pano. Sometimes position is null/undefined (probably a bug in GSV), so sometimes this
+     * function returns null.
      * @returns {{lat, lng}}
      */
     function getPos() {

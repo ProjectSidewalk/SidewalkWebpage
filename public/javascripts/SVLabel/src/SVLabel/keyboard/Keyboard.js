@@ -203,7 +203,7 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
     };
 
 
-    // Add the keyboard event listeners. We need { capture: true } for keydown to disable StreetView's shortcuts.
+    // Add the keyboard event listeners. We need { capture: true } for keydown to disable pano's shortcuts.
     window.addEventListener('keydown', this._documentKeyDown, { capture: true });
     window.addEventListener('keyup', this._documentKeyUp);
 }

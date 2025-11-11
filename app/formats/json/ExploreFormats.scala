@@ -2,8 +2,8 @@ package formats.json
 
 import formats.json.PanoFormats.{PanoDate, panoSourceReads}
 import models.audit.{AuditTask, AuditTaskInteraction, NewTask}
-import models.gsv.PanoSource
-import models.gsv.PanoSource.PanoSource
+import models.pano.PanoSource
+import models.pano.PanoSource.PanoSource
 import models.street.StreetEdgePriority
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
@@ -29,7 +29,7 @@ object ExploreFormats {
   )
   case class InteractionSubmission(
       action: String,
-      gsvPanoramaId: Option[String],
+      panoId: Option[String],
       lat: Option[Float],
       lng: Option[Float],
       heading: Option[Float],
@@ -52,7 +52,7 @@ object ExploreFormats {
       computationMethod: Option[String]
   )
   case class LabelSubmission(
-      gsvPanoramaId: String,
+      panoId: String,
       panoSource: PanoSource,
       auditTaskId: Int,
       labelType: String,
@@ -78,9 +78,9 @@ object ExploreFormats {
       requestUpdatedStreetPriority: Boolean
   )
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
-  case class GsvLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: Option[String])
-  case class GsvPanoramaSubmission(
-      gsvPanoramaId: String,
+  case class PanoLinkSubmission(targetPanoId: String, yawDeg: Double, description: Option[String])
+  case class PanoSubmission(
+      panoId: String,
       source: PanoSource,
       captureDate: String,
       width: Option[Int],
@@ -91,7 +91,7 @@ object ExploreFormats {
       lng: Option[Float],
       cameraHeading: Option[Float],
       cameraPitch: Option[Float],
-      links: Seq[GsvLinkSubmission],
+      links: Seq[PanoLinkSubmission],
       copyright: Option[String],
       history: Seq[PanoDate]
   )
@@ -110,7 +110,7 @@ object ExploreFormats {
       interactions: Seq[InteractionSubmission],
       environment: EnvironmentSubmission,
       incomplete: Option[IncompleteTaskSubmission],
-      gsvPanoramas: Seq[GsvPanoramaSubmission],
+      panos: Seq[PanoSubmission],
       userRouteId: Option[Int],
       timestamp: OffsetDateTime
   )
@@ -122,7 +122,7 @@ object ExploreFormats {
       modelId: String,
       modelTrainingDate: String,
       apiVersion: String,
-      pano: GsvPanoramaSubmission,
+      pano: PanoSubmission,
       labels: Seq[AiLabelDetection]
   )
   case class AiLabelDetection(panoX: Int, panoY: Int, confidence: Double)
@@ -157,7 +157,7 @@ object ExploreFormats {
       (__ \ "audit_task_id").write[Int] and
       (__ \ "mission_id").write[Int] and
       (__ \ "action").write[String] and
-      (__ \ "gsv_panorama_id").writeNullable[String] and
+      (__ \ "pano_id").writeNullable[String] and
       (__ \ "lat").writeNullable[Float] and
       (__ \ "lng").writeNullable[Float] and
       (__ \ "heading").writeNullable[Float] and
@@ -230,7 +230,7 @@ object ExploreFormats {
 
   implicit val interactionSubmissionReads: Reads[InteractionSubmission] = (
     (JsPath \ "action").read[String] and
-      (JsPath \ "gsv_panorama_id").readNullable[String] and
+      (JsPath \ "pano_id").readNullable[String] and
       (JsPath \ "lat").readNullable[Float] and
       (JsPath \ "lng").readNullable[Float] and
       (JsPath \ "heading").readNullable[Float] and
@@ -255,7 +255,7 @@ object ExploreFormats {
   )(LabelPointSubmission.apply _)
 
   implicit val labelSubmissionReads: Reads[LabelSubmission] = (
-    (JsPath \ "gsv_panorama_id").read[String] and
+    (JsPath \ "pano_id").read[String] and
       (JsPath \ "pano_source").read[PanoSource.Value] and
       (JsPath \ "audit_task_id").read[Int] and
       (JsPath \ "label_type").read[String] and
@@ -282,14 +282,14 @@ object ExploreFormats {
       (JsPath \ "request_updated_street_priority").read[Boolean]
   )(TaskSubmission.apply _)
 
-  implicit val gsvLinkSubmissionReads: Reads[GsvLinkSubmission] = (
-    (JsPath \ "target_gsv_panorama_id").read[String] and
+  implicit val panoLinkSubmissionReads: Reads[PanoLinkSubmission] = (
+    (JsPath \ "target_pano_id").read[String] and
       (JsPath \ "yaw_deg").read[Double] and
       (JsPath \ "description").readNullable[String]
-  )(GsvLinkSubmission.apply _)
+  )(PanoLinkSubmission.apply _)
 
-  implicit val gsvPanoramaSubmissionReads: Reads[GsvPanoramaSubmission] = (
-    (JsPath \ "panorama_id").read[String] and
+  implicit val panoSubmissionReads: Reads[PanoSubmission] = (
+    (JsPath \ "pano_id").read[String] and
       (JsPath \ "source").read[PanoSource.Value] and
       (JsPath \ "capture_date").read[String] and
       (JsPath \ "width").readNullable[Int] and
@@ -300,10 +300,10 @@ object ExploreFormats {
       (JsPath \ "lng").readNullable[Float] and
       (JsPath \ "camera_heading").readNullable[Float] and
       (JsPath \ "camera_pitch").readNullable[Float] and
-      (JsPath \ "links").read[Seq[GsvLinkSubmission]] and
+      (JsPath \ "links").read[Seq[PanoLinkSubmission]] and
       (JsPath \ "copyright").readNullable[String] and
       (JsPath \ "history").read[Seq[PanoDate]]
-  )(GsvPanoramaSubmission.apply _)
+  )(PanoSubmission.apply _)
 
   implicit val auditMissionProgressReads: Reads[AuditMissionProgress] = (
     (JsPath \ "mission_id").read[Int] and
@@ -321,7 +321,7 @@ object ExploreFormats {
       (JsPath \ "interactions").read[Seq[InteractionSubmission]] and
       (JsPath \ "environment").read[EnvironmentSubmission] and
       (JsPath \ "incomplete").readNullable[IncompleteTaskSubmission] and
-      (JsPath \ "gsv_panoramas").read[Seq[GsvPanoramaSubmission]] and
+      (JsPath \ "gsv_panoramas").read[Seq[PanoSubmission]] and
       (JsPath \ "user_route_id").readNullable[Int] and
       (JsPath \ "timestamp").read[OffsetDateTime]
   )(AuditTaskSubmission.apply _)
@@ -342,7 +342,7 @@ object ExploreFormats {
       (JsPath \ "model_id").read[String] and
       (JsPath \ "model_training_date").read[String] and
       (JsPath \ "api_version").read[String] and
-      (JsPath \ "pano").read[GsvPanoramaSubmission] and
+      (JsPath \ "pano").read[PanoSubmission] and
       (JsPath \ "labels").read[Seq[AiLabelDetection]]
   )(AiLabelsSubmission.apply _)
 }

@@ -7,8 +7,8 @@ import formats.json.ExploreFormats._
 import formats.json.MissionFormats._
 import models.audit._
 import models.auth.DefaultEnv
-import models.gsv.PanoSource
 import models.label.LabelTypeEnum
+import models.pano.PanoSource
 import models.street.StreetEdgeIssue
 import models.user._
 import play.api.libs.json._
@@ -108,7 +108,7 @@ class ExploreController @Inject() (
         exploreService
           .insertComment(
             AuditTaskComment(0, data.auditTaskId, data.missionId, data.streetEdgeId, request.identity.userId,
-              request.ipAddress, data.gsvPanoramaId, data.heading, data.pitch, data.zoom, data.lat, data.lng,
+              request.ipAddress, data.panoId, data.heading, data.pitch, data.zoom, data.lat, data.lng,
               OffsetDateTime.now, data.comment)
           )
           .map { commentId: Int => Ok(Json.obj("comment_id" -> commentId)) }
@@ -151,17 +151,17 @@ class ExploreController @Inject() (
   }
 
   /**
-   * This method handles a POST request in which user reports a missing Street View image.
+   * This method handles a POST request in which user reports missing imagery.
    */
-  def postNoStreetView = cc.securityService.SecuredAction(parse.json) { implicit request =>
+  def postNoImagery = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val submission = request.body.validate[Int]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       streetEdgeId => {
         exploreService
-          .insertNoGsv(
+          .insertNoImagery(
             StreetEdgeIssue(
-              0, streetEdgeId, "GSVNotAvailable", request.identity.userId, request.ipAddress, OffsetDateTime.now
+              0, streetEdgeId, "PanoNotAvailable", request.identity.userId, request.ipAddress, OffsetDateTime.now
             )
           )
           .map(_ => Ok)
@@ -225,9 +225,9 @@ class ExploreController @Inject() (
         // Now we do all the stuff that can be done async, we can return the response before these are done.
         // TODO we should catch any errors from these submissions and log them.
 
-        // Insert GSV metadata async.
+        // Insert pano metadata async.
         // TODO would make sense to do this before submitting labels, then label table can have foreign key on pano_id.
-        exploreService.savePanoInfo(data.gsvPanoramas)
+        exploreService.savePanoInfo(data.panos)
 
         // Insert environment async.
         val env: EnvironmentSubmission = data.environment
@@ -240,7 +240,7 @@ class ExploreController @Inject() (
         // Insert interactions async, send time spent auditing to scistarter (which uses the interactions table).
         exploreService
           .insertMultipleInteractions(data.interactions.map { interaction =>
-            AuditTaskInteraction(0, returnData.auditTaskId, missionId, interaction.action, interaction.gsvPanoramaId,
+            AuditTaskInteraction(0, returnData.auditTaskId, missionId, interaction.action, interaction.panoId,
               interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom,
               interaction.note, interaction.temporaryLabelId, interaction.timestamp)
           })

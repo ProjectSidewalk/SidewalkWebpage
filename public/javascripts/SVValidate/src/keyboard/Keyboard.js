@@ -62,11 +62,9 @@ function Keyboard(menuUI) {
      * @param action    {String} Validation action. Must be either agree, disagree, or unsure.
      */
     function validateLabel(button, action, comment) {
-        // Want at least 800ms in-between to allow GSV Panorama to load. (Value determined
-        // experimentally).
-
-        // It does not look like GSV StreetView supports any listeners that will check when the
-        // panorama is fully loaded yet.
+        // Want at least 800ms in-between to allow Panorama to load. (Value determined experimentally).
+        // It does not look like GSV supports any listeners that will check when the pano is fully loaded yet.
+        // TODO changing the pano through PanoViewer now returns a Promise that resolves when it's finished loading.
         let timestamp = new Date();
         if (timestamp - svv.labelContainer.getProperty('validationTimestamp') > 800) {
             button.toggleClass("validate");

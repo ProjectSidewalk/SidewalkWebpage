@@ -1,5 +1,5 @@
 /**
- * Handles the hiding and showing of labels in the Google StreetView panorama.
+ * Handles the hiding and showing of labels in the panorama.
  * This is also called by the Keyboard class to deal with hiding the label
  * via keyboard shortcuts.
  * @returns {LabelVisibilityControl}
@@ -28,8 +28,7 @@ function LabelVisibilityControl () {
     }
 
     /**
-     * Unhides label in Google StreetView Panorama
-     * depending on current state.
+     * Unhides label in the panorama depending on current state.
      * @param {boolean} newLabel Indicates whether we unhide due to showing a new label vs. clicking the unhide button.
      */
     function unhideLabel(newLabel) {
@@ -51,7 +50,7 @@ function LabelVisibilityControl () {
     }
 
     /**
-     * Hides label in Google StreetView Panorama.
+     * Hides label in the panorama.
      */
     function hideLabel () {
         let panomarker = svv.panoContainer.getPanomarker();
@@ -109,7 +108,7 @@ function LabelVisibilityControl () {
     }
 
     /**
-     * Hides the 'Show/Hide Label' button and the description box on GSV pano.
+     * Hides the 'Show/Hide Label' button and the description box on pano.
      */
     function hideTagsAndDeleteButton () {
         labelVisibilityButtonOnPano[0].style.visibility = 'hidden';

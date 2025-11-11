@@ -172,12 +172,12 @@ function Main (param) {
         svv.tracker = new Tracker();
         svv.labelDescriptionBox = new LabelDescriptionBox();
 
-        svv.panoContainer = await PanoContainer(Infra3dViewer);
+        svv.panoContainer = await PanoContainer(MapillaryViewer);
         svv.labelContainer = await LabelContainer(param.labelList);
 
         // There are certain features that will only make sense on desktop.
         if (!isMobile()) {
-            svv.gsvOverlay = new GSVOverlay();
+            svv.panoOverlay = new PanoOverlay();
             if (svv.expertValidate) {
                 svv.keyboard = new Keyboard(svv.ui.expertValidate);
             } else {
@@ -199,13 +199,13 @@ function Main (param) {
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
 
-        svv.infoPopover = new GSVInfoPopover(
+        svv.infoPopover = new PanoInfoPopover(
             svv.ui.dateHolder, svv.panoViewer, svv.panoViewer.getPosition, svv.panoViewer.getPanoId,
             function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('streetEdgeId'); },
             function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('regionId'); },
-            svv.panoViewer.getPov, svv.cityName, true, function() { svv.tracker.push('GSVInfoButton_Click'); },
-            function() { svv.tracker.push('GSVInfoCopyToClipboard_Click'); },
-            function() { svv.tracker.push('GSVInfoViewInGSV_Click'); },
+            svv.panoViewer.getPov, svv.cityName, true, function() { svv.tracker.push('PanoInfoButton_Click'); },
+            function() { svv.tracker.push('PanoInfoCopyToClipboard_Click'); },
+            function() { svv.tracker.push('PanoInfoViewInPano_Click'); },
             function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('labelId'); }
         );
 

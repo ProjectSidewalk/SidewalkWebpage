@@ -14,7 +14,7 @@ function Label(params) {
         cameraLng: undefined,
         canvasX: undefined,
         canvasY: undefined,
-        gsvPanoramaId: undefined,
+        panoId: undefined,
         imageCaptureDate: undefined,
         labelTimestamp: undefined,
         heading: undefined,
@@ -107,7 +107,7 @@ function Label(params) {
             if ("camera_lng" in params) setAuditProperty("cameraLng", params.camera_lng);
             if ("canvas_x" in params) setAuditProperty("canvasX", params.canvas_x);
             if ("canvas_y" in params) setAuditProperty("canvasY", params.canvas_y);
-            if ("gsv_panorama_id" in params) setAuditProperty("gsvPanoramaId", params.gsv_panorama_id);
+            if ("pano_id" in params) setAuditProperty("panoId", params.pano_id);
             if ("image_capture_date" in params) setAuditProperty("imageCaptureDate", params.image_capture_date);
             if ("label_timestamp" in params) setAuditProperty("labelTimestamp", params.label_timestamp);
             if ("heading" in params) setAuditProperty("heading", params.heading);
@@ -227,7 +227,7 @@ function Label(params) {
             return {
                 comment: comment,
                 label_id: getAuditProperty("labelId"),
-                gsv_panorama_id: getAuditProperty("gsvPanoramaId"),
+                pano_id: getAuditProperty("panoId"),
                 heading: getProperty("heading"),
                 lat: getAuditProperty("lat"),
                 lng: getAuditProperty("lng"),

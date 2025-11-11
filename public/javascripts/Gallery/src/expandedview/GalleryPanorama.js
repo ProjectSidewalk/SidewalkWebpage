@@ -1,7 +1,7 @@
 /**
- * A holder class that inserts a GSV Pano into the supplied DOM element.
+ * A holder class that inserts a pano into the supplied DOM element.
  *
- * @param {HTMLElement} svHolder The DOM element that the GSV Pano will be placed in.
+ * @param {HTMLElement} svHolder The DOM element that the pano will be placed in.
  * @returns {GalleryPanorama} The gallery panorama that was generated.
  */
  function GalleryPanorama(svHolder) {
@@ -24,7 +24,7 @@
         Signal : '/assets/images/icons/AdminTool_Signal.png'
     };
 
-    // Determined experimentally; varies w/ GSV Panorama size.
+    // Determined experimentally; varies w/ panorama size.
     const zoomLevel = {
         1: 1,
         2: 1.95,
@@ -42,7 +42,7 @@
         if(self.svHolder.css('position') != "absolute" && self.svHolder.css('position') != "relative")
             self.svHolder.css('position', 'relative');
 
-        // GSV will be added to panoCanvas.
+        // Pano will be added to panoCanvas.
         self.panoCanvas = $("<div id='pano'>").css({
             position: 'relative',
             top: '0px',
@@ -126,7 +126,7 @@
                 self.setPov(heading, pitch, zoom);
                 self.svHolder.css('visibility', 'visible');
 
-                // Show pano if it exists, an error message if there is no GSV imagery, and another error message if we
+                // Show pano if it exists, an error message if there is no imagery, and another error message if we
                 // wait a full 2 seconds without getting a response from Google.
                 if (self.panorama.getStatus() === "OK") {
                     $(self.panoCanvas).css('display', 'block');

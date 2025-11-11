@@ -66,7 +66,7 @@ function ValidationInfoDisplay(container, agreeCount, disagreeCount, aiValidatio
                 // Custom template uses defaults, just adds ai-tooltip class to enforce a wider tooltip. Starting with
                 // Bootstrap 4, we can use `customClass` instead of `template`.
                 template: '<div class="tooltip ai-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
-                container: 'body' // Ensures the tooltip isn't hidden behind the GSV element.
+                container: 'body' // Ensures the tooltip isn't hidden behind the pano canvas element.
             }).tooltip('hide');
 
             // Add AI icon to the appropriate count container based on AI validation.

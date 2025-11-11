@@ -124,7 +124,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     async function handleImageryNotFound() {
         const currentTask = svl.taskContainer.getCurrentTask();
         const currentMission = svl.missionContainer.getCurrentMission();
-        util.misc.reportNoStreetView(currentTask.getStreetEdgeId());
+        util.misc.reportNoImagery(currentTask.getStreetEdgeId());
         console.error("Imagery missing for a large portion of street: " + currentTask.getStreetEdgeId());
 
         // TODO want to get this tracked somewhere when it's applicable.
@@ -388,8 +388,8 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     }
 
     /**
-     * Attempts to move the user forward in GSV by incrementally checking for imagery every few meters along the route.
-     * TODO could the log messages just be done in callbacks to this async function rather than passing them as params?
+     * Attempts to move the user forward by incrementally checking for imagery every few meters along the route.
+     * TODO could the log messages just be done in callbacks to this async function rather than passing them as params.
      *
      * @param successLogMessage String internal logging when imagery is found; different for stuck button v compass.
      * @param failLogMessage String internal logging when imagery is not found; different for stuck button v compass.
@@ -416,7 +416,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         const currentPano = svl.panoViewer.getPanoId();
         if (!_stuckPanos.includes(currentPano)) _stuckPanos.push(currentPano);
 
-        // Set radius around each attempted point for which you'll accept GSV imagery to 10 meters.
+        // Set radius around each attempted point for which you'll accept imagery to 10 meters.
         let MAX_DIST = 10;
         // Set how far to move forward along the street for each new attempt at finding imagery to 10 meters.
         const DIST_INCREMENT = 0.01;
@@ -444,7 +444,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
 
                     // If all else fails, jump to a new street.
                     // svl.tracker.push(failLogMessage);
-                    // svl.form.skip(currentTask, "GSVNotAvailable");
+                    // svl.form.skip(currentTask, "PanoNotAvailable");
                     // svl.stuckAlert.stuckSkippedStreet();
                 }
             } else {
@@ -479,7 +479,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
 
                 // If all else fails, jump to a new street.
                 // svl.tracker.push(failLogMessage);
-                // svl.form.skip(currentTask, "GSVNotAvailable");
+                // svl.form.skip(currentTask, "PanoNotAvailable");
                 // svl.stuckAlert.stuckSkippedStreet();
             }
         }

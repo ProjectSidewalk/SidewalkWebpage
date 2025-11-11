@@ -29,7 +29,7 @@ module.exports = function(grunt) {
                     'public/javascripts/common/Panomarker.js',
                     'public/javascripts/common/UtilitiesPanomarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/GSVInfoPopover.js',
+                    'public/javascripts/common/PanoInfoPopover.js',
                     'public/javascripts/common/SpeedLimit.js',
                     'public/javascripts/common/MissionStartTutorial.js'
                 ],
@@ -76,7 +76,7 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/src/zoom/*.js',
                     'public/javascripts/common/Panomarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/GSVInfoPopover.js',
+                    'public/javascripts/common/PanoInfoPopover.js',
                     'public/javascripts/common/SpeedLimit.js',
                     'public/javascripts/common/MissionStartTutorial.js'
                 ],
@@ -93,7 +93,7 @@ module.exports = function(grunt) {
                     'public/javascripts/Gallery/src/expandedview/*.js',
                     'public/javascripts/Gallery/src/*.js',
                     'public/javascripts/common/Panomarker.js',
-                    'public/javascripts/common/GSVInfoPopover.js'
+                    'public/javascripts/common/PanoInfoPopover.js'
                 ],
                 dest: 'public/javascripts/Gallery/build/Gallery.js'
             },

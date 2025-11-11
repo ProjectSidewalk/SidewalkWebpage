@@ -127,7 +127,7 @@ async function PanoContainer (panoViewerType) {
     }
 
     /**
-     * Saves historic pano metadata and updates the date text field on the pano in GSV viewer.
+     * Saves historic pano metadata and updates the date text field on the pano in pano viewer.
      * @param panoData The pano data returned from the StreetViewService
      * @private
      */
@@ -178,7 +178,7 @@ async function PanoContainer (panoViewerType) {
             });
         }
 
-        // TODO PanoMarker only supported on GSV, not Infra3D. Need to visualize the labels somehow.
+        // TODO PanoMarker only supported on GSV. Need to visualize the labels somehow.
         if (!svv.panoViewer.panorama) return this;
 
         if (!self.labelMarker) {

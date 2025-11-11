@@ -17,7 +17,7 @@ case class AuditTaskInteraction(
     auditTaskId: Int,
     missionId: Int,
     action: String,
-    gsvPanoramaId: Option[String],
+    panoId: Option[String],
     lat: Option[Float],
     lng: Option[Float],
     heading: Option[Float],
@@ -33,7 +33,7 @@ case class InteractionWithLabel(
     auditTaskId: Int,
     missionId: Int,
     action: String,
-    gsvPanoramaId: Option[String],
+    panoId: Option[String],
     lat: Option[Float],
     lng: Option[Float],
     heading: Option[Float],
@@ -59,7 +59,7 @@ class AuditTaskInteractionTableDef(tag: slick.lifted.Tag)
   def auditTaskId: Rep[Int]              = column[Int]("audit_task_id")
   def missionId: Rep[Int]                = column[Int]("mission_id")
   def action: Rep[String]                = column[String]("action")
-  def gsvPanoramaId: Rep[Option[String]] = column[Option[String]]("gsv_panorama_id")
+  def panoId: Rep[Option[String]]        = column[Option[String]]("pano_id")
   def lat: Rep[Option[Float]]            = column[Option[Float]]("lat")
   def lng: Rep[Option[Float]]            = column[Option[Float]]("lng")
   def heading: Rep[Option[Float]]        = column[Option[Float]]("heading")
@@ -69,7 +69,7 @@ class AuditTaskInteractionTableDef(tag: slick.lifted.Tag)
   def temporaryLabelId: Rep[Option[Int]] = column[Option[Int]]("temporary_label_id")
   def timestamp: Rep[OffsetDateTime]     = column[OffsetDateTime]("timestamp")
 
-  def * = (auditTaskInteractionId, auditTaskId, missionId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
+  def * = (auditTaskInteractionId, auditTaskId, missionId, action, panoId, lat, lng, heading, pitch, zoom, note,
     temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
 
 //  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
@@ -85,7 +85,7 @@ class AuditTaskInteractionSmallTableDef(tag: slick.lifted.Tag)
   def auditTaskId: Rep[Int]              = column[Int]("audit_task_id")
   def missionId: Rep[Int]                = column[Int]("mission_id")
   def action: Rep[String]                = column[String]("action")
-  def gsvPanoramaId: Rep[Option[String]] = column[Option[String]]("gsv_panorama_id")
+  def panoId: Rep[Option[String]]        = column[Option[String]]("pano_id")
   def lat: Rep[Option[Float]]            = column[Option[Float]]("lat")
   def lng: Rep[Option[Float]]            = column[Option[Float]]("lng")
   def heading: Rep[Option[Float]]        = column[Option[Float]]("heading")
@@ -95,7 +95,7 @@ class AuditTaskInteractionSmallTableDef(tag: slick.lifted.Tag)
   def temporaryLabelId: Rep[Option[Int]] = column[Option[Int]]("temporary_label_id")
   def timestamp: Rep[OffsetDateTime]     = column[OffsetDateTime]("timestamp")
 
-  def * = (auditTaskInteractionId, auditTaskId, missionId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
+  def * = (auditTaskInteractionId, auditTaskId, missionId, action, panoId, lat, lng, heading, pitch, zoom, note,
     temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
 
 //  def auditTaskInteraction: ForeignKeyQuery[AuditTaskInteractionTable, AuditTaskInteraction] =
@@ -123,7 +123,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
       r.nextInt(),                                                           // audit_task_id
       r.nextInt(),                                                           // mission_id
       r.nextString(),                                                        // action
-      r.nextStringOption(),                                                  // gsv_panorama_id
+      r.nextStringOption(),                                                  // pano_id
       r.nextFloatOption(),                                                   // lat
       r.nextFloatOption(),                                                   // lng
       r.nextFloatOption(),                                                   // heading
@@ -165,7 +165,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
              interaction.audit_task_id,
              interaction.mission_id,
              interaction.action,
-             interaction.gsv_panorama_id,
+             interaction.pano_id,
              interaction.lat,
              interaction.lng,
              interaction.heading,

@@ -77,7 +77,7 @@ async function PanoManager (panoViewerType, params = {}) {
 
     /**
      * Refreshes all views for the new pano and saves historic pano metadata.
-     * @param {PanoData} panoData The pano data returned from the StreetViewService (if using GsvViewer)
+     * @param {PanoData} panoData The PanoData extracted from the PanoViewer when loading the pano
      * @private
      */
     async function _panoSuccessCallback(panoData) {
@@ -286,7 +286,7 @@ async function PanoManager (panoViewerType, params = {}) {
     }
 
     /**
-     * Update POV of Street View as a user drags their mouse cursor.
+     * Update POV of the image as a user drags their mouse cursor.
      * @param dx
      * @param dy
      */
@@ -298,13 +298,11 @@ async function PanoManager (panoViewerType, params = {}) {
         pov.pitch += dy * viewerScaling;
         pov = _restrictViewport(pov);
         povChange["status"] = true;
-
-        // Update the Street View image.
         setPov(pov);
     }
 
     /**
-     * Changes the Street View pov. If a transition duration is given, smoothly updates the pov over that time.
+     * Changes the image pov. If a transition duration is given, smoothly updates the pov over that time.
      * @param pov Target pov
      * @param durationMs Transition duration in milliseconds
      * @param callback Callback function executed after updating pov.

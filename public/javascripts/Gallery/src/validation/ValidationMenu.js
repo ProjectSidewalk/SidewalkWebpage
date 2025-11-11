@@ -154,7 +154,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, expandedView, onExpan
 
 
     /**
-     * Adds the visual effects of validation to the expanded view (opaque button and border color around GSV).
+     * Adds the visual effects of validation to the expanded view (opaque button and border color around pano).
      *
      * @param validationOption
      */
@@ -204,7 +204,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, expandedView, onExpan
         if (keyboardShortcut) {
             actionStr = actionStr.replace("Click", "KeyboardShortcut");
         }
-        sg.tracker.push(actionStr, { panoId: currCardProperties.gsv_panorama_id }, { labelId: currCardProperties.label_id });
+        sg.tracker.push(actionStr, { panoId: currCardProperties.pano_id }, { labelId: currCardProperties.label_id });
 
         let validationTimestamp = new Date();
         let data = {

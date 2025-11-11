@@ -4,24 +4,24 @@ function PanoStore () {
 
     /**
      * This method adds panorama data into the storage.
-     * @param panoramaId
-     * @param panoramaMetadata
+     * @param panoId
+     * @param panoMetadata
      */
-    function addPanoMetadata(panoramaId, panoramaMetadata) {
-        if (!(panoramaId in self.store)) {
-            if (panoramaId === 'tutorial' || panoramaId === 'tutorialAfterWalk') {
-                panoramaMetadata.setProperty('submitted', true);
+    function addPanoMetadata(panoId, panoMetadata) {
+        if (!(panoId in self.store)) {
+            if (panoId === 'tutorial' || panoId === 'tutorialAfterWalk') {
+                panoMetadata.setProperty('submitted', true);
             }
-            self.store[panoramaId] = panoramaMetadata;
+            self.store[panoId] = panoMetadata;
         }
     }
 
     /**
      * This method returns the existing panorama data.
-     * @param panoramaId
+     * @param panoId
      */
-    function getPanoData(panoramaId) {
-        return panoramaId in self.store ? self.store[panoramaId] : null;
+    function getPanoData(panoId) {
+        return panoId in self.store ? self.store[panoId] : null;
     }
 
     /**
@@ -29,7 +29,7 @@ function PanoStore () {
      * @returns {Array}
      */
     function getAllPanoData() {
-        return Object.keys(self.store).map(function (panoramaId) { return self.store[panoramaId]; });
+        return Object.keys(self.store).map(function (panoId) { return self.store[panoId]; });
     }
 
     /**

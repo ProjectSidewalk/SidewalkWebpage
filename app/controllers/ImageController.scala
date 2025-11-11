@@ -21,7 +21,7 @@ class ImageController @Inject() (cc: CustomControllerComponents, config: Configu
   // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
   val CROPS_DIR_NAME = config.get[String]("cropped.image.directory") + File.separator + config.get[String]("city-id")
 
-  // 2x the actual size of the GSV window as retina screen can give us 2x the pixel density.
+  // 2x the actual size of the pano window as retina screen can give us 2x the pixel density.
   val CROP_WIDTH  = 1440
   val CROP_HEIGHT = 960
 
