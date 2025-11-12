@@ -237,7 +237,7 @@ function Tracker() {
     };
 
     this.submitForm = function() {
-        if (svl.hasOwnProperty('taskContainer')) {
+        if (svl.hasOwnProperty('form') && svl.hasOwnProperty('taskContainer')) {
             svl.form.submitData();
         }
     };
