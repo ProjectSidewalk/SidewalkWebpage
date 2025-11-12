@@ -4,12 +4,12 @@
  * @param {PanoViewer} panoViewer PanoramaViewer object.
  * @param {function} coords Function that returns current longitude and latitude coordinates.
  * @param {function} isOnboarding Function that returns a boolean on whether the current mission is the tutorial task.
- * @param {PanoContainer} panoContainer Panorama container that is used to pre-fetch validation labels. Can be left null.
+ * @param {PanoManager} panoManager Panorama container that is used to pre-fetch validation labels. Can be left null.
  * @param labelType
  * @returns {SpeedLimit} SpeedLimit object with updateSpeedLimit function, container, speedLimit object with
  * number and sub (units, e.g. 'mph'), speedLimitVisible boolean.
  */
-function SpeedLimit(panoViewer, coords, isOnboarding, panoContainer, labelType) {
+function SpeedLimit(panoViewer, coords, isOnboarding, panoManager, labelType) {
     const ROAD_HIGHWAY_TYPES = [
         'motorway',
         'trunk',
@@ -32,9 +32,9 @@ function SpeedLimit(panoViewer, coords, isOnboarding, panoContainer, labelType) 
     let cache = {};
 
     function _init() {
-        if (typeof(panoContainer) !== "undefined" && panoContainer !== null) {
+        if (typeof(panoManager) !== "undefined" && panoManager !== null) {
             prefetchLabels();
-            panoContainer.resetLabelListUpdateCallback(prefetchLabels);
+            panoManager.resetLabelListUpdateCallback(prefetchLabels);
         }
 
         self.container = document.getElementById('speed-limit-sign');
@@ -97,7 +97,7 @@ function SpeedLimit(panoViewer, coords, isOnboarding, panoContainer, labelType) 
         cache = {};
 
         // Get the labels from the pano container and prefetch them.
-        const labelsToPrefetch = panoContainer.getLabels();
+        const labelsToPrefetch = panoManager.getLabels();
         for (const label of labelsToPrefetch) {
             const cameraLat = label.getAuditProperty("cameraLat");
             const cameraLng = label.getAuditProperty("cameraLng");
@@ -117,7 +117,7 @@ function SpeedLimit(panoViewer, coords, isOnboarding, panoContainer, labelType) 
      * @returns Object that contains json response and calculated closest road
      */
     async function queryClosestRoadForCoords(lat, lng, shouldCache, label) {
-        const cacheKey = label === null ? (panoContainer === null ? "" : panoContainer.getCurrentLabel().getAuditProperty("panoId")) : label.getAuditProperty("panoId");
+        const cacheKey = label === null ? (panoManager === null ? "" : panoManager.getCurrentLabel().getAuditProperty("panoId")) : label.getAuditProperty("panoId");
         if (cacheKey in cache) {
             return await cache[cacheKey];
         }

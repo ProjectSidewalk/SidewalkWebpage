@@ -12,8 +12,12 @@
 
 @common.main(commonData, title, defaultI18nNamespace = "validate", i18Namespaces = Seq("validate", "common"), "/mobile") {
 
+    <script src='@assets.path("javascripts/common/pano-viewer/PanoData.js")'></script>
+    <script src='@assets.path("javascripts/common/pano-viewer/PanoStore.js")'></script>
     <script src='@assets.path("javascripts/common/pano-viewer/PanoViewer.js")'></script>
     <script src='@assets.path("javascripts/common/pano-viewer/GsvViewer.js")'></script>
+    <script src='@assets.path("javascripts/common/pano-viewer/MapillaryViewer.js")'></script>
+    <script src='@assets.path("javascripts/common/pano-viewer/Infra3dViewer.js")'></script>
     <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
     <script src='@assets.path("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>

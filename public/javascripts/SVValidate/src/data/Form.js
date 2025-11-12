@@ -74,11 +74,28 @@ function Form(url, beaconUrl) {
         };
 
         data.interactions = svv.tracker.getActions();
+
         data.pano_histories = [];
-        if (svv.panoContainer) {
-            data.pano_histories = svv.panoContainer.getPanoHistories();
-            svv.panoContainer.clearPanoHistories();
+        if (svv.panoManager) {
+            const panoramas = svv.panoStore.getStagedPanoData();
+            for (let i = 0; i < svv.panoStore.getStagedPanoData().length; i++) {
+                const panoData = panoramas[i].getProperties();
+                let panoHist = {
+                    curr_pano_id: panoData.panoId,
+                    pano_history_saved: new Date(),
+                    history: panoData.history.map(function(prevPano) {
+                        return {
+                            pano_id: prevPano.panoId,
+                            date: prevPano.captureDate.format('YYYY-MM')
+                        }
+                    })
+                };
+
+                data.pano_histories.push(panoHist);
+                panoramas[i].setProperty('submitted', true);
+            }
         }
+
         svv.tracker.refresh();
         return data;
     }

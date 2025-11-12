@@ -130,7 +130,7 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
             }
 
             // Keep pano metadata. This is particularly important to keep track of the date when the images were taken.
-            data.gsv_panoramas = [];
+            data.panos = [];
 
             let temp;
             const panoramas = panoStore.getStagedPanoData();
@@ -167,8 +167,8 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
                     history: history
                 };
 
-                data.gsv_panoramas.push(temp);
-                panoramas[i].setProperty("submitted", true);
+                data.panos.push(temp);
+                panoramas[i].setProperty('submitted', true);
             }
             return data;
         });

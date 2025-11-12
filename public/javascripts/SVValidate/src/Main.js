@@ -150,7 +150,9 @@ function Main (param) {
         svv.ui.status.admin.labelId = $('#curr-label-id');
         svv.ui.status.admin.prevValidations = $('#curr-label-prev-validations');
 
-        svv.ui.dateHolder = $("#svv-panorama-date-holder");
+        svv.ui.viewer = {};
+        svv.ui.viewer.dateHolder = $('#svv-panorama-date-holder');
+        svv.ui.viewer.date = $('#svv-panorama-date');
     }
 
     async function _init() {
@@ -172,7 +174,8 @@ function Main (param) {
         svv.tracker = new Tracker();
         svv.labelDescriptionBox = new LabelDescriptionBox();
 
-        svv.panoContainer = await PanoContainer(MapillaryViewer);
+        svv.panoStore = new PanoStore();
+        svv.panoManager = await PanoManager(GsvViewer);
         svv.labelContainer = await LabelContainer(param.labelList);
 
         // There are certain features that will only make sense on desktop.
@@ -184,7 +187,7 @@ function Main (param) {
                 svv.keyboard = new Keyboard(svv.ui.validation);
             }
             svv.labelVisibilityControl = new LabelVisibilityControl();
-            svv.speedLimit = new SpeedLimit(svv.panoViewer, svv.panoViewer.getPosition, () => false, svv.panoContainer, labelType);
+            svv.speedLimit = new SpeedLimit(svv.panoViewer, svv.panoViewer.getPosition, () => false, svv.panoManager, labelType);
             svv.zoomControl = new ZoomControl();
         }
         // Logs when user zoom in/out on mobile.
@@ -200,7 +203,7 @@ function Main (param) {
         svv.missionContainer.createAMission(param.mission, param.progress);
 
         svv.infoPopover = new PanoInfoPopover(
-            svv.ui.dateHolder, svv.panoViewer, svv.panoViewer.getPosition, svv.panoViewer.getPanoId,
+            svv.ui.viewer.dateHolder, svv.panoViewer, svv.panoViewer.getPosition, svv.panoViewer.getPanoId,
             function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('streetEdgeId'); },
             function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('regionId'); },
             svv.panoViewer.getPov, svv.cityName, true, function() { svv.tracker.push('PanoInfoButton_Click'); },

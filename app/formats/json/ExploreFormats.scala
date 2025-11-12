@@ -321,7 +321,7 @@ object ExploreFormats {
       (JsPath \ "interactions").read[Seq[InteractionSubmission]] and
       (JsPath \ "environment").read[EnvironmentSubmission] and
       (JsPath \ "incomplete").readNullable[IncompleteTaskSubmission] and
-      (JsPath \ "gsv_panoramas").read[Seq[PanoSubmission]] and
+      (JsPath \ "panos").read[Seq[PanoSubmission]] and
       (JsPath \ "user_route_id").readNullable[Int] and
       (JsPath \ "timestamp").read[OffsetDateTime]
   )(AuditTaskSubmission.apply _)

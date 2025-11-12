@@ -1,18 +1,17 @@
 /**
  * Holds the list of labels to be validated, and distributes them to the panoramas that are on the page. Fetches labels
  * from the backend and converts them into Labels that can be placed onto the Panorama.
- * @returns {PanoContainer}
+ * @returns {PanoManager}
  * @constructor
  */
-async function PanoContainer (panoViewerType) {
+async function PanoManager (panoViewerType) {
     let properties = {
         prevSetPanoTimestamp: new Date(), // TODO I think that this is just used to estimate if the pano loaded (we give it 500 ms), but we should use promises.
     };
 
     let panoCanvas = document.getElementById('svv-panorama');
-    let _setPanoCallback = null;
     let bottomLinksClickable = false;
-    let panoHistories = [];
+    let linksListener = null;
 
     let self = this;
 
@@ -29,13 +28,10 @@ async function PanoContainer (panoViewerType) {
 
         svv.panoViewer = await panoViewerType.create(panoCanvas, panoOptions);
         if (panoViewerType === GsvViewer) {
-            _setPanoCallback = _setPanoCallbackGsv;
             $('#imagery-source-logo-holder').hide();
         } else if (panoViewerType === MapillaryViewer) {
-            _setPanoCallback = _setPanoCallbackMapillary;
             $('#imagery-source-logo-holder').hide();
         } else if (panoViewerType === Infra3dViewer) {
-            _setPanoCallback = _setPanoCallbackInfra3d;
         }
 
         svv.panoViewer.addListener('pov_changed', () => svv.tracker.push('POV_Changed'));
@@ -43,12 +39,17 @@ async function PanoContainer (panoViewerType) {
             _sizePano();
         }
 
+        // TODO we probably need to do this for any viewer type...
+        if (panoViewerType === GsvViewer && !isMobile()) {
+            linksListener = svv.panoViewer.panorama.addListener('links_changed', _makeLinksClickable);
+        }
+
         // TODO instead of renderCurrentLabel, maybe we just pass in a panoId to start? Or that's just passed to the panoViewer?
         // await renderCurrentLabel(currentLabel);
     }
 
     /**
-     * Gets a specific property from the PanoContainer.
+     * Gets a specific property from the PanoManager.
      * @param key   Property name.
      * @returns     Value associated with this property or null.
      */
@@ -57,7 +58,7 @@ async function PanoContainer (panoViewerType) {
     }
 
     /**
-     * Sets a property for the PanoContainer.
+     * Sets a property for the PanoManager.
      * @param key   Name of property
      * @param value Value of property.
      * @returns {setProperty}
@@ -65,29 +66,6 @@ async function PanoContainer (panoViewerType) {
     function setProperty(key, value) {
         properties[key] = value;
         return this;
-    }
-
-    /**
-     * Adds a panorama history to the list of panorama histories.
-     * @param panoHistory   Panorama history to be added.
-     * @private
-     */
-    function _addPanoHistory(panoHistory) {
-        panoHistories.push(panoHistory);
-    }
-
-    /**
-     * Returns a list of all the currently tracked panorama histories.
-     */
-    function getPanoHistories() {
-        return panoHistories;
-    }
-
-    /**
-     * Clears the list of all the currently tracked panorama histories.
-     */
-    function clearPanoHistories() {
-        panoHistories = [];
     }
 
     /**
@@ -99,64 +77,50 @@ async function PanoContainer (panoViewerType) {
     }
 
     /**
-     * Updates the date text field on the pano when pano changes in Infra3d viewer.
-     * @param data
-     * @private
-     */
-    function _setPanoCallbackInfra3d(data) {
-        // No pano history for Infra3D.
-
-        // Show the pano date in the bottom-left corner.
-        if (!isMobile()) {
-            document.getElementById("svv-panorama-date").innerText = moment(data.captureDate).format('MMM YYYY');
-        }
-    }
-
-    /**
-     * Updates the date text field on the pano when pano changes in Mapillary viewer.
-     * @param data
-     * @private
-     */
-    function _setPanoCallbackMapillary(data) {
-        // TODO we could probably construct a history using images API.
-
-        // Show the pano date in the bottom-left corner.
-        if (!isMobile()) {
-            document.getElementById("svv-panorama-date").innerText = moment(data.capturedAt).format('MMM YYYY');
-        }
-    }
-
-    /**
      * Saves historic pano metadata and updates the date text field on the pano in pano viewer.
-     * @param panoData The pano data returned from the StreetViewService
+     * @param {PanoData} panoData The PanoData extracted from the PanoViewer when loading the pano
      * @private
      */
-    function _setPanoCallbackGsv(panoData) {
-        // Save the current panorama's history.
-        let panoHist = {};
-        panoHist.curr_pano_id = svv.panoViewer.getPanoId();
-        panoHist.pano_history_saved = new Date();
-        panoHist.history = panoData.time.map((oldPano) => {
-            return { pano_id: oldPano.pano, date: moment(oldPano.Gw).format('YYYY-MM') };
-        });
-        _addPanoHistory(panoHist);
+    function _setPanoCallback(panoData) {
+        const panoId = panoData.getProperty('panoId');
+
+        // Store the returned pano metadata.
+        svv.panoStore.addPanoMetadata(panoId, panoData);
+
         if (!isMobile()) {
-            document.getElementById("svv-panorama-date").innerText = moment(panoData.imageDate).format('MMM YYYY');
+            // Add the capture date of the image to the bottom-right corner of the UI.
+            svv.ui.viewer.date.text(panoData.getProperty('captureDate').format('MMM YYYY'));
+
             // Remove Keyboard shortcuts link and make Terms of Use & Report a problem links clickable.
             // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2546
             // Uses setTimeout because it usually hasn't quite loaded yet.
-            if (!bottomLinksClickable) {
-                setTimeout(function() {
-                    try {
-                        $('.gm-style-cc')[0].remove();
-                        $("#view-control-layer").append($($('.gm-style-cc')[0]).parent().parent());
-                        bottomLinksClickable = true;
-                    } catch (e) {
-                        bottomLinksClickable = false;
-                    }
-                }, 100);
-            }
+            // if (!bottomLinksClickable) {
+            //     setTimeout(function() {
+            //         try {
+            //             $('.gm-style-cc')[0].remove();
+            //             $("#view-control-layer").append($($('.gm-style-cc')[0]).parent().parent());
+            //             bottomLinksClickable = true;
+            //         } catch (e) {
+            //             bottomLinksClickable = false;
+            //         }
+            //     }, 100);
+            // }
         }
+    }
+
+    /**
+     * Moves the buttons on the bottom-right of the GSV image to the top layer so they are clickable.
+     * @private
+     */
+    const _makeLinksClickable = function() {
+        let bottomLinks = $('.gm-style-cc');
+        if (!bottomLinksClickable && bottomLinks.length > 3) {
+            bottomLinksClickable = true;
+            bottomLinks[0].remove(); // Remove GSV keyboard shortcuts link.
+            $("#view-control-layer").append($(bottomLinks[1]).parent().parent()); // Makes remaining links clickable.
+        }
+
+        google.maps.event.removeListener(linksListener);
     }
 
     /**
@@ -211,9 +175,9 @@ async function PanoContainer (panoViewerType) {
      * @param panoId    String representation of the Panorama ID
      */
     async function setPanorama(panoId) {
-        // return svv.panoViewer.setPano(panoId).then(_setPanoCallback).then(() => {
+        return svv.panoViewer.setPano(panoId).then(_setPanoCallback).then(() => {
         // return svv.panoViewer.setLocation({ lat: 47.47149597503096, lng: 8.30860179865082 }).then(_setPanoCallback).then(() => {
-        return svv.panoViewer.setPano('d039ceb9-7926-6a1f-2685-0ecc2d3cd181').then(_setPanoCallback).then(() => {
+        // return svv.panoViewer.setPano('d039ceb9-7926-6a1f-2685-0ecc2d3cd181').then(_setPanoCallback).then(() => {
             setProperty("prevSetPanoTimestamp", new Date());
             svv.tracker.push('PanoId_Changed');
         });
@@ -254,8 +218,6 @@ async function PanoContainer (panoViewerType) {
 
     self.getProperty = getProperty;
     self.setProperty = setProperty;
-    self.getPanoHistories = getPanoHistories;
-    self.clearPanoHistories = clearPanoHistories;
     self.setPanorama = setPanorama;
     self.getPanomarker = getPanomarker;
     self.renderPanoMarker = renderPanoMarker;
