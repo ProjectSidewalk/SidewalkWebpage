@@ -234,12 +234,6 @@ class Infra3dViewer extends PanoViewer {
             verticalFov = currView.fov;
         }
 
-        // TODO hacky fix: lat/lon are being rounded by setCameraView, so I'm requiring min whole number change.
-        if (Math.round(viewLng) === currView.lng && viewLng < currView.lng) { viewLng -= 1; }
-        else if (Math.round(viewLng) === currView.lng && viewLng > currView.lng) { viewLng += 1; }
-        if (Math.round(viewLat) === currView.lon && viewLng < currView.lon) { viewLat -= 1; }
-        if (Math.round(viewLat) === currView.lon && viewLng > currView.lon) { viewLat += 1; }
-
         // Set the camera view.
         this.viewer.setCameraView({
             type: 'pano',
