@@ -34,39 +34,26 @@ function Tracker() {
      *
      * @param action
      * @param notes
-     * @param extraData
      * @private
      */
-    function _createAction(action, notes, extraData) {
-        if (!notes) {
-            notes = {};
-        }
-
-        if (!extraData) {
-            extraData = {};
-        }
-
-        let note = _notesToString(notes);
-        let timestamp = new Date();
-
+    function _createAction(action, notes) {
         let panoViewer = svv.panoViewer ? svv.panoViewer : null;
-        let panoId = panoViewer.getPanoId();
-        let position = panoViewer.getPosition();  // sometimes buggy, so position will be null.
-        let pov = panoViewer.getPov();
+        let position = panoViewer ? panoViewer.getPosition() : { lat: null, lng: null };
+        let pov = panoViewer ? panoViewer.getPov() : { heading: null, pitch: null, zoom: null };
 
         let missionContainer = svv.missionContainer ? svv.missionContainer : null;
         let currentMission = missionContainer ? missionContainer.getCurrentMission() : null;
 
         let data = {
             action: action,
-            pano_id: panoId,
-            lat: position ? position.lat : null,
-            lng: position ? position.lng : null,
+            pano_id: panoViewer ? panoViewer.getPanoId() : null,
+            lat: position.lat,
+            lng: position.lng,
             heading: pov ? pov.heading : null,
             mission_id: currentMission ? currentMission.getProperty("missionId") : null,
-            note: note,
+            note: _notesToString(notes || {}),
             pitch: pov ? pov.pitch : null,
-            timestamp: timestamp,
+            timestamp: new Date(),
             zoom: pov ? pov.zoom : null
         };
 
@@ -95,10 +82,9 @@ function Tracker() {
      * Pushes information to action list (to be submitted to the database)
      * @param action    (required) Action
      * @param notes     (optional) Notes to be logged into the notes field database
-     * @param extraData (optional) Extra data that should not be stored in the db notes field
      */
-    function push(action, notes, extraData) {
-        let item = _createAction(action, notes, extraData);
+    function push(action, notes) {
+        let item = _createAction(action, notes);
         let prevItem = actions.slice(-1)[0];
         actions.push(item);
         if (actions.length > 200) {

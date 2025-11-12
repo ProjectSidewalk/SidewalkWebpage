@@ -103,13 +103,9 @@ function Tracker() {
      * This function pushes action type, time stamp, current pov, and current panoId into actions list.
      */
     this.create = function(action, notes, extraData) {
-        if (!notes) notes = {};
-        if (!extraData) extraData = {};
+        extraData = extraData || {};
 
-        var pov, latlng, panoId, auditTaskId;
-
-        var note = this._notesToString(notes);
-
+        let auditTaskId;
         if ('canvas' in svl && svl.canvas.getCurrentLabel()) {
             auditTaskId = svl.canvas.getCurrentLabel().getProperties().auditTaskId;
         } else {
@@ -124,52 +120,23 @@ function Tracker() {
             currentLabel = extraData['temporaryLabelId'];
         }
 
-        // Initialize variables. Note you cannot get pov, panoid, or position before the map and pano load.
-        try {
-            pov = svl.panoViewer.getPov();
-        } catch (err) {
-            pov = {
-                heading: null,
-                pitch: null,
-                zoom: null
-            }
-        }
-
-        try {
-            latlng = svl.panoViewer.getPosition();
-        } catch (err) {
-            latlng = {
-                lat: null,
-                lng: null
-            };
-        }
-        if (!latlng) {
-            latlng = {
-                lat: null,
-                lng: null
-            };
-        }
-
-        try {
-            panoId = svl.panoViewer.getPanoId();
-        } catch (err) {
-            panoId = null;
-        }
-
-        var timestamp = new Date();
+        // Initialize variables. Note you cannot get pov, pano_id, or latLng before the map and pano load.
+        const panoViewer = svl.panoViewer ? svl.panoViewer : null;
+        const latlng = panoViewer ? panoViewer.getPosition() : { lat: null, lng: null };
+        const pov = panoViewer ? panoViewer.getPov() : { heading: null, pitch: null, zoom: null };
 
         return {
             action : action,
-            pano_id: panoId,
+            pano_id: panoViewer ? panoViewer.getPanoId() : null,
             lat: latlng.lat,
             lng: latlng.lng,
             heading: pov.heading,
             pitch: pov.pitch,
             zoom: pov.zoom,
-            note: note,
+            note: this._notesToString(notes || {}),
             temporary_label_id: currentLabel,
             audit_task_id: auditTaskId,
-            timestamp: timestamp
+            timestamp: new Date()
         };
     };
 
