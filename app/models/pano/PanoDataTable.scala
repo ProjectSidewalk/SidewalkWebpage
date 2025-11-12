@@ -99,10 +99,16 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
-   * Count the number of panos that have associated labels.
+   * Count the number of panos that have associated labels. Only including GSV imagery for now.
    */
-  def countPanosWithLabels: DBIO[Int] = {
-    labelTable.map(_.panoId).countDistinct.result
+  def countGsvPanosWithLabels: DBIO[Int] = {
+    labelTable
+      .join(panoDataRecords)
+      .on(_.panoId === _.panoId)
+      .filter(_._2.source === PanoSource.Gsv.toString)
+      .map(_._2.panoId)
+      .countDistinct
+      .result
   }
 
   /**
@@ -127,6 +133,8 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
 
   /**
    * Get a list of n least recently checked pano ids that have not been viewed in the last 3 months.
+   *
+   * Note: only getting panos from GSV for now; we haven't set up imagery checking for other sources yet
    * @param n Number of least recently checked panos to return.
    * @param expired Whether to check for expired or unexpired panos.
    */
@@ -134,7 +142,11 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
     panoDataRecords
       .join(labelTable)
       .on(_.panoId === _.panoId)
-      .filter(gsv => gsv._1.expired === expired && gsv._1.lastChecked < OffsetDateTime.now().minusMonths(3))
+      .filter(gsv =>
+        gsv._1.source === PanoSource.Gsv.toString
+          && gsv._1.expired === expired
+          && gsv._1.lastChecked < OffsetDateTime.now().minusMonths(3)
+      )
       .sortBy(_._1.lastChecked.asc)
       .subquery
       .map(_._1.panoId)

@@ -332,7 +332,7 @@ class PanoDataServiceImpl @Inject() (
     db.run(
       for {
         // Choose a bunch of panos that haven't been checked in the past 6 months to check.
-        nPanos: Int <- panoDataTable.countPanosWithLabels
+        nPanos: Int <- panoDataTable.countGsvPanosWithLabels
         nUnexpiredPanosToCheck: Int = Math.max(5000, Math.min(100, 0.05 * nPanos).toInt)
         panoIdsToCheck: Seq[String] <- panoDataTable
           .getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
