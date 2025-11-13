@@ -7,6 +7,7 @@ import models.label.LabelTable._
 import models.label.LabelTypeEnum.labelTypeToId
 import models.label.{Tag, _}
 import models.mission.{Mission, MissionTable}
+import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
 import models.user.SidewalkUserWithRole
 import models.utils.MyPostgresProfile.api._
@@ -46,6 +47,7 @@ trait LabelService {
   ): Future[Seq[LabelLocationWithSeverity]]
   def getGalleryLabels(
       n: Int,
+      viewer: PanoSource,
       labelTypeId: Option[Int],
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
@@ -175,6 +177,7 @@ class LabelServiceImpl @Inject() (
    * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
    * @param n Number of labels to grab.
    * @param labelTypeId       Label type specifying what type of labels to grab. None will give a mix.
+   * @param viewer            The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
    * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param regionIds         Set of neighborhoods to get labels from. All neighborhoods if empty.
@@ -184,6 +187,7 @@ class LabelServiceImpl @Inject() (
    */
   def getGalleryLabels(
       n: Int,
+      viewer: PanoSource,
       labelTypeId: Option[Int],
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
@@ -196,7 +200,8 @@ class LabelServiceImpl @Inject() (
     // If a label type is specified, get labels for that type. Otherwise, get labels for all types.
     if (labelTypeId.isDefined) {
       findValidLabelsForType(
-        labelTable.getGalleryLabelsQuery(labelTypeId.get, loadedLabelIds, valOptions, regionIds, severity, tags,
+        viewer,
+        labelTable.getGalleryLabelsQuery(viewer, labelTypeId.get, loadedLabelIds, valOptions, regionIds, severity, tags,
           userId),
         randomize = true,
         n
@@ -207,7 +212,8 @@ class LabelServiceImpl @Inject() (
       Future
         .sequence(LabelTypeEnum.primaryLabelTypes.map { labelType =>
           findValidLabelsForType(
-            labelTable.getGalleryLabelsQuery(LabelTypeEnum.labelTypeToId(labelType), loadedLabelIds, valOptions,
+            viewer,
+            labelTable.getGalleryLabelsQuery(viewer, LabelTypeEnum.labelTypeToId(labelType), loadedLabelIds, valOptions,
               regionIds, severity, tags, userId),
             randomize = true,
             nPerType
@@ -243,6 +249,7 @@ class LabelServiceImpl @Inject() (
   ): Future[Seq[LabelValidationMetadata]] = {
     // TODO can we make this and the Gallery queries transactions to prevent label dupes?
     findValidLabelsForType(
+      viewer,
       labelTable.retrieveLabelListForValidationQuery(userId, viewer, labelTypeId,
         configService.getAiTagSuggestionsEnabled, userIds, regionIds, unvalidatedOnly, skippedLabelId),
       randomize = true,
@@ -260,6 +267,7 @@ class LabelServiceImpl @Inject() (
    * @param tupleConverter Implicit converter to convert the tuple from the db to the appropriate case class.
    */
   private def findValidLabelsForType[A <: BasicLabelMetadata, TupleRep, Tuple](
+      viewer: PanoSource,
       labelQuery: Query[TupleRep, Tuple, Seq],
       randomize: Boolean,
       remaining: Int,
@@ -279,9 +287,9 @@ class LabelServiceImpl @Inject() (
           val shuffledLabels: Seq[A] = if (randomize) scala.util.Random.shuffle(labels) else labels
 
           // Check each of those labels for GSV imagery in parallel. Only doing the check for GSV imagery for now.
-          // TODO need to pass in viewer type to know whether to check GSV imagery.
+          // TODO maybe we include viewer in BasicLabelMetadata and sort it out in checkImageryBatch() instead?
           val imageryCheck: Future[Seq[A]] =
-            if (false) checkImageryBatch(shuffledLabels) else Future.successful(shuffledLabels)
+            if (viewer == PanoSource.Gsv) checkImageryBatch(shuffledLabels) else Future.successful(shuffledLabels)
           imageryCheck.flatMap { validLabels =>
             if (validLabels.isEmpty) {
               Future.successful(accumulator) // No more valid labels found.
@@ -289,6 +297,7 @@ class LabelServiceImpl @Inject() (
               // Add the valid labels to the accumulator and recurse.
               val newValidLabels = validLabels.take(remaining)
               findValidLabelsForType(
+                viewer,
                 labelQuery,
                 randomize,
                 remaining - newValidLabels.size,
@@ -486,6 +495,7 @@ class LabelServiceImpl @Inject() (
     Future
       .sequence(labelTypes.map { labelType =>
         findValidLabelsForType(
+          PanoSource.Gsv,
           labelTable.getValidatedLabelsForUserQuery(userId, labelType),
           randomize = false,
           nPerType

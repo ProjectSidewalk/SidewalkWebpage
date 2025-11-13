@@ -937,6 +937,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   /**
    * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
+   * @param viewer            The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param labelTypeId       Label type specifying what type of labels to grab.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
    * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
@@ -947,6 +948,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @return                  Query object to get the labels.
    */
   def getGalleryLabelsQuery(
+      viewer: PanoSource,
       labelTypeId: Int,
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
@@ -976,6 +978,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _us  <- userStats if _lb.userId === _us.userId
       _ser <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
       if _pd.expired === false
+      if _pd.source === viewer.toString
       if _lp.lat.isDefined && _lp.lng.isDefined
       if _lt.labelTypeId === labelTypeId
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty

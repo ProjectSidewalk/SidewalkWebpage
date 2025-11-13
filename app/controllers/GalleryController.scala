@@ -5,12 +5,13 @@ import formats.json.GalleryFormats._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
 import models.gallery.{GalleryTaskEnvironment, GalleryTaskEnvironmentTable, GalleryTaskInteraction, GalleryTaskInteractionTable}
+import models.pano.PanoSource
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsError, JsObject, JsValue, Json}
 import play.api.mvc.{Action, Result}
 import play.silhouette.api.Silhouette
-import service.{PanoDataService, LabelService}
+import service.{LabelService, PanoDataService}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -47,7 +48,8 @@ class GalleryController @Inject() (
 
         // Get labels from LabelTable.
         labelService
-          .getGalleryLabels(n, labelTypeId, loadedLabelIds, valOptions, regionIds, severities, tags, userId)
+          .getGalleryLabels(n, PanoSource.Gsv, labelTypeId, loadedLabelIds, valOptions, regionIds, severities, tags,
+            userId)
           .map { labels =>
             val jsonList: Seq[JsObject] = labels.map(l =>
               Json.obj(

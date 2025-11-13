@@ -180,7 +180,7 @@ class PanoDataServiceImpl @Inject() (
    * Checks if the panorama associated with a label exists by pinging Google Maps.
    *
    * @param panoId  Panorama ID
-   * @return           True if the panorama exists, false otherwise
+   * @return        True if the panorama exists, false otherwise
    */
   def panoExists(panoId: String): Future[Option[Boolean]] = {
     val url =
