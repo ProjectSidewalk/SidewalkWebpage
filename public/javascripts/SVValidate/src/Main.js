@@ -12,6 +12,8 @@ function Main (param) {
     svv.adminVersion = param.validateParams.adminVersion;
     svv.validateParams = param.validateParams;
     svv.viewerType = param.validateParams.viewerType;
+    svv.mapillaryToken = param.mapillaryToken;
+    svv.infra3dToken = param.infra3dToken;
     svv.missionLength = param.mission?.labels_validated ?? 0;
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
@@ -176,7 +178,7 @@ function Main (param) {
         svv.labelDescriptionBox = new LabelDescriptionBox();
 
         svv.panoStore = new PanoStore();
-        const viewerClass = svv.viewerType === 'mapillary' ? MapillaryViewer : svv.viewerType === 'Infra3d' ? Infra3dViewer : GsvViewer;
+        const viewerClass = svv.viewerType === 'mapillary' ? MapillaryViewer : svv.viewerType === 'infra3d' ? Infra3dViewer : GsvViewer;
         svv.panoManager = await PanoManager(viewerClass);
         svv.labelContainer = await LabelContainer(param.labelList);
 

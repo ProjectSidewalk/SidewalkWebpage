@@ -28,6 +28,8 @@ async function PanoManager (panoViewerType, params = {}) {
      */
     async function _init() {
         const panoOptions = {
+            infra3dToken: svl.infra3dToken,
+            mapillaryToken: svl.mapillaryToken,
             keyboardShortcuts: true
         }
 

@@ -3,11 +3,8 @@ package service
 import com.google.inject.ImplementedBy
 import models.user._
 import models.utils.MyPostgresProfile
-import play.api.Configuration
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.http.ContentTypes
-import play.api.libs.ws.WSClient
 import play.silhouette.api.LoginInfo
 import play.silhouette.api.services.IdentityService
 import play.silhouette.api.util.{PasswordHasher, PasswordInfo}
@@ -18,7 +15,7 @@ import java.security.MessageDigest
 import java.time.OffsetDateTime
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.duration.{Duration, DurationInt}
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -50,7 +47,6 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def cleanAuthTokens: Future[Int]
   def setCommunityServiceStatus(userId: String, newCommServiceStatus: Boolean): Future[Int]
   def updateRole(userId: String, newRole: String): Future[Int]
-  def getInfra3dToken: Future[String]
 }
 
 @Singleton
@@ -58,7 +54,6 @@ class AuthenticationServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     implicit val ec: ExecutionContext,
     passwordHasher: PasswordHasher,
-    config: Configuration,
     cacheApi: AsyncCacheApi,
     sidewalkUserTable: SidewalkUserTable,
     loginInfoTable: LoginInfoTable,
@@ -66,8 +61,7 @@ class AuthenticationServiceImpl @Inject() (
     userPasswordInfoTable: UserPasswordInfoTable,
     userRoleTable: UserRoleTable,
     userStatTable: UserStatTable,
-    authTokenTable: AuthTokenTable,
-    ws: WSClient
+    authTokenTable: AuthTokenTable
 ) extends AuthenticationService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
@@ -330,30 +324,4 @@ class AuthenticationServiceImpl @Inject() (
 
   def setCommunityServiceStatus(userId: String, newCommServiceStatus: Boolean): Future[Int] =
     db.run(userRoleTable.updateCommunityService(userId, newCommServiceStatus))
-
-  def getInfra3dToken: Future[String] = {
-    // Token expires after 60 minutes, so we don't need to get a new token every time.
-    cacheApi.getOrElseUpdate[String]("getInfra3dToken", Duration(30, "minutes")) {
-      val clientId: String     = config.get[String]("infra3d-client-id")
-      val clientSecret: String = config.get[String]("infra3d-client-secret")
-      val body                 = Map(
-        "client_id"     -> clientId,
-        "client_secret" -> clientSecret,
-        "grant_type"    -> "client_credentials"
-      )
-      ws.url("https://uzh.auth.eu-west-1.amazoncognito.com/oauth2/token")
-        .addHttpHeaders(
-          "Content-Type" -> ContentTypes.FORM,
-          "Accept"       -> "application/json"
-        )
-        .post(body)
-        .map { response =>
-          if (response.status == 200) {
-            (response.json \ "access_token").as[String]
-          } else {
-            throw new RuntimeException(s"Token request failed with status ${response.status}: ${response.body}")
-          }
-        }
-    }
-  }
 }

@@ -31,7 +31,7 @@ class ExploreController @Inject() (
     exploreService: service.ExploreService,
     missionService: service.MissionService,
     aiService: service.AiService,
-    authService: service.AuthenticationService
+    panoDataService: service.PanoDataService
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
 
@@ -72,8 +72,7 @@ class ExploreController @Inject() (
             resumeRoute, regionId = None, streetEdgeId = None)
       }
       commonData           <- configService.getCommonPageData(request2Messages.lang)
-      infra3dToken: String <- authService.getInfra3dToken
-      _ = println(infra3dToken)
+      infra3dToken: String <- panoDataService.getInfra3dToken
     } yield {
       // Log visit to the Explore page.
       val activityStr: String =

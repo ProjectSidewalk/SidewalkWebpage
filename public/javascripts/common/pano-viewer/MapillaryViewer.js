@@ -25,8 +25,7 @@ class MapillaryViewer extends PanoViewer {
 
     async initialize(canvasElem, panoOptions = {}) {
         this.viewer = new mapillary.Viewer({
-            accessToken: svl.mapillaryToken,
-            // accessToken: svv.mapillaryToken,
+            accessToken: panoOptions.mapillaryToken,
             container: canvasElem.id,
             // imageId: '<your image ID for initializing the viewer>',
             component: {

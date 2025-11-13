@@ -57,12 +57,14 @@ class ValidateController @Inject() (
             for {
               (mission, labelList, missionProgress, hasNextMission, completedVals) <-
                 getDataForValidatePages(user, labelCount = 10, validateParams)
-              commonPageData <- configService.getCommonPageData(request2Messages.lang)
+              commonPageData       <- configService.getCommonPageData(request2Messages.lang)
+              infra3dToken: String <- panoDataService.getInfra3dToken
             } yield {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Validate")
+              val mapillaryToken = config.get[String]("mapillary-access-token")
               Ok(
                 views.html.apps.validate(commonPageData, "Sidewalk - Validate", user, validateParams, mission,
-                  labelList, missionProgress, hasNextMission, completedVals)
+                  labelList, missionProgress, hasNextMission, completedVals, mapillaryToken, infra3dToken)
               )
             }
           } else {
@@ -94,13 +96,16 @@ class ValidateController @Inject() (
             for {
               (mission, labelList, missionProgress, hasNextMission, completedVals) <-
                 getDataForValidatePages(user, labelCount = 10, validateParams)
-              commonPageData <- configService.getCommonPageData(request2Messages.lang)
-              tags: Seq[Tag] <- labelService.getTagsForCurrentCity
+              commonPageData       <- configService.getCommonPageData(request2Messages.lang)
+              infra3dToken: String <- panoDataService.getInfra3dToken
+              tags: Seq[Tag]       <- labelService.getTagsForCurrentCity
             } yield {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_ExpertValidate")
+              val mapillaryToken = config.get[String]("mapillary-access-token")
               Ok(
                 views.html.apps.expertValidate(commonPageData, "Sidewalk - Expert Validate", user, validateParams,
-                  mission, labelList, missionProgress, hasNextMission, completedVals, tags)
+                  mission, labelList, missionProgress, hasNextMission, completedVals, mapillaryToken, infra3dToken,
+                  tags)
               )
             }
           } else {
@@ -127,23 +132,20 @@ class ValidateController @Inject() (
                 labelCount = 10,
                 validateParams
               )
-              commonPageData <- configService.getCommonPageData(request2Messages.lang)
+              commonPageData       <- configService.getCommonPageData(request2Messages.lang)
+              infra3dToken: String <- panoDataService.getInfra3dToken
             } yield {
               if (!isMobile(request)) {
                 cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate_RedirectHome")
                 Redirect("/")
               } else {
+                val mapillaryToken = config.get[String]("mapillary-access-token")
                 cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
                 Ok(
                   views.html.apps.mobileValidate(commonPageData, "Sidewalk - Validate", user, validateParams, mission,
-                    labelList, missionProgress, hasNextMission, completedVals)
+                    labelList, missionProgress, hasNextMission, completedVals, mapillaryToken, infra3dToken)
                 )
               }
-              cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
-              Ok(
-                views.html.apps.mobileValidate(commonPageData, "Sidewalk - Validate", user, validateParams, mission,
-                  labelList, missionProgress, hasNextMission, completedVals)
-              )
             }
           } else {
             Future.successful(response)
@@ -174,12 +176,14 @@ class ValidateController @Inject() (
             for {
               (mission, labelList, missionProgress, hasNextMission, completedVals) <-
                 getDataForValidatePages(user, labelCount = 10, validateParams)
-              commonPageData <- configService.getCommonPageData(request2Messages.lang)
+              commonPageData       <- configService.getCommonPageData(request2Messages.lang)
+              infra3dToken: String <- panoDataService.getInfra3dToken
             } yield {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_AdminValidate")
+              val mapillaryToken = config.get[String]("mapillary-access-token")
               Ok(
                 views.html.apps.validate(commonPageData, "Sidewalk - AdminValidate", user, validateParams, mission,
-                  labelList, missionProgress, hasNextMission, completedVals)
+                  labelList, missionProgress, hasNextMission, completedVals, mapillaryToken, infra3dToken)
               )
             }
           } else {

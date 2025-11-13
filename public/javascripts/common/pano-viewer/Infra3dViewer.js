@@ -11,9 +11,7 @@ class Infra3dViewer extends PanoViewer {
     }
 
     async initialize(canvasElem, panoOptions = {}) {
-        // svv.infra3dToken = 'eyJraWQiOiJjT2x6QzZ6RVwvZE9LS2dhNU00cGZtUGVMTlhCbWVNTHU0S0xwU3AxM0dRdz0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIyNWdtMTU3a3FxY2ZraXVwZDU3azQxOWhrciIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoicGVybWlzc2lvblwvZWRpdCBmcmFtZWdhdGVcL3V6aCBnZW9mZWF0dXJlc2VydmVyXC8qIGFkZG9uXC9hcGkgZGVmYXVsdC1tMm0tcmVzb3VyY2Utc2VydmVyLWNybXc5bFwvcmVhZCIsImF1dGhfdGltZSI6MTc2Mjk5MTM3MywiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLmV1LXdlc3QtMS5hbWF6b25hd3MuY29tXC9ldS13ZXN0LTFfQXlNRWdSWngzIiwiZXhwIjoxNzYyOTk0OTczLCJpYXQiOjE3NjI5OTEzNzMsInZlcnNpb24iOjIsImp0aSI6IjczMDc1NGMxLWFkMmItNGE0NC05OTU2LWRhYTUyZWM2OGFlNCIsImNsaWVudF9pZCI6IjI1Z20xNTdrcXFjZmtpdXBkNTdrNDE5aGtyIn0.KeM5jSpaSOKnv5D-xYqkydC74Wv5QOJdMM53048M1h7d9IGRxCxpCq5N91uwK7CcdNAPjYZhLyzTTzxEXSNn4HfWm-OZV90Vzn80hm88a3-cZGORidenK-I0ajOump1muIfAS9DjP-Y1yHgpqdHO3jLlg4efH9fKF0NcTDkefR0Ji42JQDSbA7ZkhcPw8DdSbDn29DT5K4K3oShhXTMEBN6SaG5uO3O3W2D3co4oBTRGxXmi_JstoOnnX7Go013CfB5A_PjGrYEbn-ejzuJgDGXgW9B0h9dH_77wFUoA_cY13PtrgBDpdCYIWiWEypsEQ5RocqsNdbezlDMt_avcmw';
-        // const manager = await infra3dapi.init(canvasElem.id, svv.infra3dToken);
-        const manager = await infra3dapi.init(canvasElem.id, svl.infra3dToken);
+        const manager = await infra3dapi.init(canvasElem.id, panoOptions.infra3dToken);
         const fetchedProjects = await manager.getProjects();
         console.log(fetchedProjects);
         const projectUID = fetchedProjects[0].uid;

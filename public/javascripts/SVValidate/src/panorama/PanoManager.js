@@ -22,6 +22,8 @@ async function PanoManager (panoViewerType) {
     async function _init() {
         // Load the pano viewer.
         const panoOptions = {
+            infra3dToken: svv.infra3dToken,
+            mapillaryToken: svv.mapillaryToken,
             linksControl: false,
             // zoomControl: false
         }

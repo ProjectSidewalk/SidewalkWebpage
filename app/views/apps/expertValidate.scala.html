@@ -7,7 +7,7 @@
 @import service.CommonPageData
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams,
         mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean,
-        completedValidations: Int, tagList: Seq[Tag]
+        completedValidations: Int, mapillaryToken: String, infra3dToken: String, tagList: Seq[Tag]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -254,6 +254,8 @@
             param.canvasWidth = 720;
             param.language = "@messages.lang.code";
             param.cityName = "@currentCity.cityNameFormatted";
+            param.infra3dToken = '@infra3dToken';
+            param.mapillaryToken = '@mapillaryToken';
             param.validateParams = {
                 adminVersion: @validateParams.adminVersion,
                 viewerType: "@validateParams.viewer",

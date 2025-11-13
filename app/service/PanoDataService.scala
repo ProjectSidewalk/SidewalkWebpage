@@ -7,7 +7,9 @@ import models.pano.{PanoDataSlim, PanoDataTable, PanoHistory, PanoHistoryTable}
 import models.street.StreetEdge
 import models.utils.{CommonUtils, MyPostgresProfile}
 import org.locationtech.jts.geom.Point
+import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.http.ContentTypes
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
@@ -21,7 +23,7 @@ import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import javax.inject._
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -145,6 +147,7 @@ object PanoDataService {
 
 @ImplementedBy(classOf[PanoDataServiceImpl])
 trait PanoDataService {
+  def getInfra3dToken: Future[String]
   def panoExists(panoId: String): Future[Option[Boolean]]
   def getImageUrl(panoId: String, heading: Double, pitch: Double, zoom: Double): String
   def getImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
@@ -157,6 +160,7 @@ trait PanoDataService {
 class PanoDataServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     config: Configuration,
+    cacheApi: AsyncCacheApi,
     ws: WSClient,
     implicit val ec: ExecutionContext,
     panoDataTable: PanoDataTable,
@@ -175,6 +179,32 @@ class PanoDataServiceImpl @Inject() (
 
   // Get an HMAC-SHA1 signing key from the raw key bytes.
   val sha1Key: SecretKeySpec = new SecretKeySpec(secretKey, "HmacSHA1")
+
+  def getInfra3dToken: Future[String] = {
+    // Token expires after 60 minutes, so we don't need to get a new token every time.
+    cacheApi.getOrElseUpdate[String]("getInfra3dToken", Duration(30, "minutes")) {
+      val clientId: String     = config.get[String]("infra3d-client-id")
+      val clientSecret: String = config.get[String]("infra3d-client-secret")
+      val body                 = Map(
+        "client_id"     -> clientId,
+        "client_secret" -> clientSecret,
+        "grant_type"    -> "client_credentials"
+      )
+      ws.url("https://uzh.auth.eu-west-1.amazoncognito.com/oauth2/token")
+        .addHttpHeaders(
+          "Content-Type" -> ContentTypes.FORM,
+          "Accept"       -> "application/json"
+        )
+        .post(body)
+        .map { response =>
+          if (response.status == 200) {
+            (response.json \ "access_token").as[String]
+          } else {
+            throw new RuntimeException(s"Token request failed with status ${response.status}: ${response.body}")
+          }
+        }
+    }
+  }
 
   /**
    * Checks if the panorama associated with a label exists by pinging Google Maps.
