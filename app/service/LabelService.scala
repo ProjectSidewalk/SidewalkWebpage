@@ -259,6 +259,7 @@ class LabelServiceImpl @Inject() (
 
   /**
    * Query labels from the db in batches until we have enough labels that have imagery available. Works recursively.
+   * @param viewer The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param labelQuery Query to get labels from the db.
    * @param randomize Whether to randomize the label order or not.
    * @param remaining Number of labels remaining to get.
@@ -331,18 +332,18 @@ class LabelServiceImpl @Inject() (
    *
    * @param userId            User ID of the current user.
    * @param missionLength     Number of labels for this mission.
-   * @param requiredLabelType labelTypeId of the current mission.
+   * @param requiredLabelType labelType of the current mission.
    */
   def getLabelTypeIdToValidate(
       userId: String,
       missionLength: Int,
       viewerType: PanoSource,
-      requiredLabelType: Option[Int]
+      requiredLabelType: Option[LabelTypeEnum.Base]
   ): Future[Option[Int]] = {
     db.run(labelTable.getAvailableValidationsLabelsByType(userId, viewerType).map { availValidations =>
       val availTypes: Seq[LabelTypeValidationsLeft] = availValidations
         .filter(_.validationsAvailable >= missionLength)
-        .filter(x => requiredLabelType.isEmpty || x.labelTypeId == requiredLabelType.get)
+        .filter(x => requiredLabelType.isEmpty || x.labelTypeId == requiredLabelType.get.id)
         .filter(x => LabelTypeEnum.primaryLabelTypeIds.contains(x.labelTypeId))
 
       // Unless NoSidewalk (7) is the only available label type, remove it from the list of available types.
@@ -388,7 +389,7 @@ class LabelServiceImpl @Inject() (
       validateParams: ValidateParams
   ): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
     // TODO can this be merged with `getDataForValidatePostRequest`?
-    getLabelTypeIdToValidate(user.userId, labelCount, validateParams.viewer, validateParams.labelTypeId).flatMap {
+    getLabelTypeIdToValidate(user.userId, labelCount, validateParams.viewer, validateParams.labelType).flatMap {
       case Some(labelTypeId) =>
         for {
           mission: Mission <- missionService
@@ -431,7 +432,7 @@ class LabelServiceImpl @Inject() (
     (for {
       nextMissionLabelTypeId <- {
         if (missionProgress.exists(_.completed))
-          getLabelTypeIdToValidate(user.userId, labelsToRetrieve, validateParams.viewer, validateParams.labelTypeId)
+          getLabelTypeIdToValidate(user.userId, labelsToRetrieve, validateParams.viewer, validateParams.labelType)
         else Future.successful(Option.empty[Int])
       }
     } yield {

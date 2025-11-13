@@ -11,6 +11,7 @@ import formats.json.ValidateFormats.{EnvironmentSubmission, LabelMapValidationSu
 import models.auth.WithAdmin
 import models.label.{LabelTypeEnum, Tag}
 import models.pano.PanoSource
+import models.pano.PanoSource.PanoSource
 import models.user._
 import models.validation.{LabelValidation, ValidationTaskComment, ValidationTaskEnvironment, ValidationTaskInteraction}
 import play.api.Configuration
@@ -43,11 +44,13 @@ class ValidateController @Inject() (
 
   /**
    * Returns the validation page.
-   * @param neighborhoods Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param viewerType      The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
+   * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    */
-  def validate(neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) = cc.securityService.SecuredAction {
-    implicit request =>
-      checkParams(adminVersion = false, None, None, neighborhoods, unvalidatedOnly).flatMap {
+  def validate(viewerType: Option[String], neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) =
+    cc.securityService.SecuredAction { implicit request =>
+      checkParams(adminVersion = false, viewerType, None, None, neighborhoods, unvalidatedOnly).flatMap {
         case (validateParams, response) =>
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
@@ -66,22 +69,25 @@ class ValidateController @Inject() (
             Future.successful(response)
           }
       }
-  }
+    }
 
   /**
    * Returns the new validate beta page, optionally with some admin filters.
+   * @param viewerType      The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param labelType       Label type or label type ID to validate.
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    */
   def expertValidate(
+      viewerType: Option[String],
       labelType: Option[String],
       users: Option[String],
       neighborhoods: Option[String],
       unvalidatedOnly: Option[Boolean]
   ) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-      checkParams(adminVersion = true, labelType, users, neighborhoods, unvalidatedOnly).flatMap {
+      checkParams(adminVersion = true, viewerType, labelType, users, neighborhoods, unvalidatedOnly).flatMap {
         case (validateParams, response) =>
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
@@ -105,11 +111,13 @@ class ValidateController @Inject() (
 
   /**
    * Returns the validation page for mobile.
+   * @param viewerType      The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    */
-  def mobileValidate(neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) =
+  def mobileValidate(viewerType: Option[String], neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) =
     cc.securityService.SecuredAction { implicit request =>
-      checkParams(adminVersion = false, None, None, neighborhoods, unvalidatedOnly).flatMap {
+      checkParams(adminVersion = false, viewerType, None, None, neighborhoods, unvalidatedOnly).flatMap {
         case (validateParams, response) =>
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
@@ -145,18 +153,21 @@ class ValidateController @Inject() (
 
   /**
    * Returns an admin version of the validation page.
+   * @param viewerType      The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param labelType       Label type or label type ID to validate.
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    */
   def adminValidate(
+      viewerType: Option[String],
       labelType: Option[String],
       users: Option[String],
       neighborhoods: Option[String],
       unvalidatedOnly: Option[Boolean]
   ) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-      checkParams(adminVersion = true, labelType, users, neighborhoods, unvalidatedOnly).flatMap {
+      checkParams(adminVersion = true, viewerType, labelType, users, neighborhoods, unvalidatedOnly).flatMap {
         case (validateParams, response) =>
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
@@ -180,12 +191,15 @@ class ValidateController @Inject() (
   /**
    * Checks filtering parameters passed into the validate endpoints, and returns an error message if any are invalid.
    * @param adminVersion    Boolean indicating whether the admin version of the page is being shown.
+   * @param viewerType      The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param labelType       Label type or label type ID to validate.
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    */
   def checkParams(
       adminVersion: Boolean,
+      viewerType: Option[String],
       labelType: Option[String],
       users: Option[String],
       neighborhoods: Option[String],
@@ -194,11 +208,14 @@ class ValidateController @Inject() (
     // If any inputs are invalid, send back error message. For each input, we check if the input is an integer
     // representing a valid ID (label_type_id, user_id, or region_id) or a String representing a valid name for that
     // parameter (label_type, username, or region_name).
-    val parsedLabelTypeId: Option[Option[Int]] = labelType.map { lType =>
-      val parsedId: Try[Int]           = Try(lType.toInt)
-      val lTypeIdFromName: Option[Int] = LabelTypeEnum.labelTypeToId.get(lType)
-      if (parsedId.isSuccess && LabelTypeEnum.primaryLabelTypeIds.contains(parsedId.get)) parsedId.toOption
-      else if (lTypeIdFromName.isDefined) lTypeIdFromName
+    val parsedViewerType: Option[Option[PanoSource]] = viewerType.map { vType =>
+      Try(PanoSource.withName(vType)).toOption
+    }
+    val parsedLabelType: Option[Option[LabelTypeEnum.Base]] = labelType.map { lType =>
+      val lTypeFromId: Option[LabelTypeEnum.Base]   = lType.toIntOption.flatMap(LabelTypeEnum.byId.get)
+      val lTypeFromName: Option[LabelTypeEnum.Base] = LabelTypeEnum.byName.get(lType)
+      if (lTypeFromId.isDefined) lTypeFromId
+      else if (lTypeFromName.isDefined) lTypeFromName
       else None
     }
     val userIdsList: Option[Seq[Future[Option[String]]]] = users.map(
@@ -242,26 +259,34 @@ class ValidateController @Inject() (
         case None            => Future.successful(None)
       }
     } yield {
+      // If a pano viewer type was passed in correctly then use it, otherwise default to Gsv.
+      val viewer: PanoSource = parsedViewerType.flatten.getOrElse(PanoSource.Gsv)
+
       // Return a BadRequest if anything is wrong, or the ValidateParams if everything looks good.
-      if (parsedLabelTypeId.isDefined && parsedLabelTypeId.get.isEmpty) {
+      if (parsedViewerType.isDefined && parsedViewerType.get.isEmpty) {
         (
-          ValidateParams(adminVersion, PanoSource.Gsv),
+          ValidateParams(adminVersion, viewer),
+          BadRequest(s"Invalid viewer type provided: ${viewerType.get}. Valid viewer types are: ${PanoSource.values.mkString(", ")}.")
+        )
+      } else if (parsedLabelType.isDefined && parsedLabelType.get.isEmpty) {
+        (
+          ValidateParams(adminVersion, viewer),
           BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeEnum.primaryLabelTypes.mkString(", ")}. Or you can use their IDs: ${LabelTypeEnum.primaryLabelTypeIds.mkString(", ")}.")
         )
       } else if (userIds.isDefined && userIds.get.length != userIds.get.flatten.length) {
         (
-          ValidateParams(adminVersion, PanoSource.Gsv),
+          ValidateParams(adminVersion, viewer),
           BadRequest(s"One or more of the users provided were not found; please double check your list of users! You can use either their usernames or user IDs. You provided: ${users.get}")
         )
       } else if (regionIds.isDefined && regionIds.get.length != regionIds.get.flatten.length) {
         (
-          ValidateParams(adminVersion, PanoSource.Gsv),
+          ValidateParams(adminVersion, viewer),
           BadRequest(s"One or more of the neighborhoods provided were not found; please double check your list of neighborhoods! You can use either their names or IDs. You provided: ${neighborhoods.get}")
         )
       } else {
         (
           ValidateParams(
-            adminVersion, PanoSource.Gsv, parsedLabelTypeId.flatten, userIds.map(_.flatten), regionIds.map(_.flatten),
+            adminVersion, viewer, parsedLabelType.flatten, userIds.map(_.flatten), regionIds.map(_.flatten),
             unvalidatedOnly.getOrElse(false)
           ),
           Ok("")

@@ -23,10 +23,11 @@ object PanoFormats {
   )(PanoHistorySubmission.apply _)
 
   implicit val panoSourceReads: Reads[PanoSource.Value] = Reads { json =>
-    json.validate[String].flatMap { str =>
-      Try(PanoSource.withName(str)) match {
+    json.validate[String].flatMap { panoSource =>
+      Try(PanoSource.withName(panoSource)) match {
         case Success(source) => JsSuccess(source)
-        case Failure(_) => JsError(s"Invalid PanoSource value: $str")
+        case Failure(_)      =>
+          JsError(s"Invalid viewer type: $panoSource. Valid types are: ${PanoSource.values.mkString(", ")}.")
       }
     }
   }

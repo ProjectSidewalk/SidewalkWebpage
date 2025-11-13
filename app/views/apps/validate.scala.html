@@ -280,7 +280,7 @@
             param.validateParams = {
                 adminVersion: @validateParams.adminVersion,
                 viewerType: "@validateParams.viewer",
-                labelTypeId: @Html(validateParams.labelTypeId.map(_.toString).getOrElse("null")),
+                labelTypeId: @Html(validateParams.labelType.map(_.toString).getOrElse("null")),
                 userIds: @Html(validateParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null")),
                 regionIds: @Html(validateParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
                 unvalidatedOnly: @validateParams.unvalidatedOnly

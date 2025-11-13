@@ -137,7 +137,7 @@ async function LabelContainer(labelList) {
         data.labels = getLabelsToSubmit();
         data.validate_params = {
             admin_version: svv.adminVersion,
-            label_type_id: svv.validateParams.labelTypeId,
+            label_type: svv.validateParams.labelTypeId,
             user_ids: svv.validateParams.userIds,
             neighborhood_ids: svv.validateParams.regionIds,
             unvalidated_only: svv.validateParams.unvalidatedOnly

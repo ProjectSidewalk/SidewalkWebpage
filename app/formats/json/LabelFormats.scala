@@ -40,6 +40,28 @@ object LabelFormats {
       (__ \ "y").write[Int]
   )(unlift(LocationXY.unapply))
 
+  implicit val labelTypeReads: Reads[LabelTypeEnum.Base] = Reads { json =>
+    val errorSubstring =
+      s"Valid types are: ${LabelTypeEnum.primaryLabelTypes.mkString(", ")}. Or you can use their IDs: ${LabelTypeEnum.primaryLabelTypeIds.mkString(", ")}."
+
+    // Try parsing as either the ID number as an int, or the name as a String.
+    json match {
+      case JsString(value) =>
+        LabelTypeEnum.byName.get(value) match {
+          case Some(labelType) => JsSuccess(labelType)
+          case None            => JsError(s"Invalid LabelType name: $value. $errorSubstring")
+        }
+      case JsNumber(value) =>
+        val intValue = value.toInt
+        LabelTypeEnum.byId.get(intValue) match {
+          case Some(labelType) => JsSuccess(labelType)
+          case None            => JsError(s"Invalid LabelType ID: $intValue. $errorSubstring")
+        }
+      case _ =>
+        JsError(s"Expected a string or integer. $errorSubstring")
+    }
+  }
+
   implicit val labelMetadataWrites: Writes[LabelMetadata] = (
     (__ \ "label_id").write[Int] and
       (__ \ "pano_id").write[String] and
