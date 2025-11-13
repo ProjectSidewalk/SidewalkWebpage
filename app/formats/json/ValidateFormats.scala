@@ -3,6 +3,7 @@ package formats.json
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.ValidationCommentSubmission
 import formats.json.PanoFormats._
+import models.pano.PanoSource.PanoSource
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{JsPath, Reads}
 
@@ -162,6 +163,7 @@ object ValidateFormats {
 
   implicit val adminValidateParamsReads: Reads[ValidateParams] = (
     (JsPath \ "admin_version").read[Boolean] and
+      (JsPath \ "viewer_type").read[PanoSource] and
       (JsPath \ "label_type_id").readNullable[Int] and
       (JsPath \ "user_ids").readNullable[Seq[String]] and
       (JsPath \ "neighborhood_ids").readNullable[Seq[Int]] and

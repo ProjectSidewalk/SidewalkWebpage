@@ -7,6 +7,7 @@ import models.label.LabelTable._
 import models.label.LabelTypeEnum.labelTypeToId
 import models.label.{Tag, _}
 import models.mission.{Mission, MissionTable}
+import models.pano.PanoSource.PanoSource
 import models.user.SidewalkUserWithRole
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ExcludedTag, MyPostgresProfile}
@@ -56,6 +57,7 @@ trait LabelService {
   def retrieveLabelListForValidation(
       userId: String,
       n: Int,
+      viewer: PanoSource,
       labelTypeId: Int,
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
@@ -222,6 +224,7 @@ class LabelServiceImpl @Inject() (
    *
    * @param userId         User ID for the current user.
    * @param n              Number of labels we need to query.
+   * @param viewer         The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param labelTypeId    Label Type ID of labels requested.
    * @param userIds        Optional list of user IDs to filter by.
    * @param regionIds      Optional list of region IDs to filter by.
@@ -231,6 +234,7 @@ class LabelServiceImpl @Inject() (
   def retrieveLabelListForValidation(
       userId: String,
       n: Int,
+      viewer: PanoSource,
       labelTypeId: Int,
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
@@ -239,8 +243,8 @@ class LabelServiceImpl @Inject() (
   ): Future[Seq[LabelValidationMetadata]] = {
     // TODO can we make this and the Gallery queries transactions to prevent label dupes?
     findValidLabelsForType(
-      labelTable.retrieveLabelListForValidationQuery(userId, labelTypeId, configService.getAiTagSuggestionsEnabled,
-        userIds, regionIds, unvalidatedOnly, skippedLabelId),
+      labelTable.retrieveLabelListForValidationQuery(userId, viewer, labelTypeId,
+        configService.getAiTagSuggestionsEnabled, userIds, regionIds, unvalidatedOnly, skippedLabelId),
       randomize = true,
       n
     )
@@ -274,8 +278,11 @@ class LabelServiceImpl @Inject() (
           // Randomize the labels to prevent similar labels in a mission.
           val shuffledLabels: Seq[A] = if (randomize) scala.util.Random.shuffle(labels) else labels
 
-          // Check each of those labels for GSV imagery in parallel.
-          checkImageryBatch(shuffledLabels).flatMap { validLabels =>
+          // Check each of those labels for GSV imagery in parallel. Only doing the check for GSV imagery for now.
+          // TODO need to pass in viewer type to know whether to check GSV imagery.
+          val imageryCheck: Future[Seq[A]] =
+            if (false) checkImageryBatch(shuffledLabels) else Future.successful(shuffledLabels)
+          imageryCheck.flatMap { validLabels =>
             if (validLabels.isEmpty) {
               Future.successful(accumulator) // No more valid labels found.
             } else {
@@ -320,9 +327,10 @@ class LabelServiceImpl @Inject() (
   def getLabelTypeIdToValidate(
       userId: String,
       missionLength: Int,
+      viewerType: PanoSource,
       requiredLabelType: Option[Int]
   ): Future[Option[Int]] = {
-    db.run(labelTable.getAvailableValidationsLabelsByType(userId).map { availValidations =>
+    db.run(labelTable.getAvailableValidationsLabelsByType(userId, viewerType).map { availValidations =>
       val availTypes: Seq[LabelTypeValidationsLeft] = availValidations
         .filter(_.validationsAvailable >= missionLength)
         .filter(x => requiredLabelType.isEmpty || x.labelTypeId == requiredLabelType.get)
@@ -371,7 +379,7 @@ class LabelServiceImpl @Inject() (
       validateParams: ValidateParams
   ): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
     // TODO can this be merged with `getDataForValidatePostRequest`?
-    getLabelTypeIdToValidate(user.userId, labelCount, validateParams.labelTypeId).flatMap {
+    getLabelTypeIdToValidate(user.userId, labelCount, validateParams.viewer, validateParams.labelTypeId).flatMap {
       case Some(labelTypeId) =>
         for {
           mission: Mission <- missionService
@@ -383,8 +391,8 @@ class LabelServiceImpl @Inject() (
           labelsProgress: Int   = mission.labelsProgress.get
           labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
           labelsToRetrieve: Int = labelsToValidate - labelsProgress
-          labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId,
-            validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
+          labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, validateParams.viewer,
+            labelTypeId, validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
             validateParams.unvalidatedOnly)
           adminData <- {
             if (validateParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
@@ -414,7 +422,7 @@ class LabelServiceImpl @Inject() (
     (for {
       nextMissionLabelTypeId <- {
         if (missionProgress.exists(_.completed))
-          getLabelTypeIdToValidate(user.userId, labelsToRetrieve, validateParams.labelTypeId)
+          getLabelTypeIdToValidate(user.userId, labelsToRetrieve, validateParams.viewer, validateParams.labelTypeId)
         else Future.successful(Option.empty[Int])
       }
     } yield {
@@ -427,8 +435,8 @@ class LabelServiceImpl @Inject() (
               Some(nextMissionLabelTypeId)
             )
             labelList: Seq[LabelValidationMetadata] <- retrieveLabelListForValidation(user.userId, labelsToRetrieve,
-              nextMissionLabelTypeId, validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
-              validateParams.unvalidatedOnly)
+              validateParams.viewer, nextMissionLabelTypeId, validateParams.userIds.map(_.toSet),
+              validateParams.neighborhoodIds.map(_.toSet), validateParams.unvalidatedOnly)
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
               else Future.successful(Seq.empty[AdminValidationData])

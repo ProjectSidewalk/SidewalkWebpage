@@ -93,7 +93,7 @@ class MapillaryViewer extends PanoViewer {
             // TODO qualityScore is interesting: A number between zero and one determining the quality of the image. Blurriness, .......
             let panoDataParams = {
                 panoId: this.currImage.id,
-                source: 'mapillary',
+                source: this.getViewerType(),
                 captureDate: moment(this.currImage.capturedAt),
                 width: this.currImage.width,
                 height: this.currImage.height,

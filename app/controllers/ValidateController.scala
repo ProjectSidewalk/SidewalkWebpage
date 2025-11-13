@@ -10,6 +10,7 @@ import formats.json.MissionFormats._
 import formats.json.ValidateFormats.{EnvironmentSubmission, LabelMapValidationSubmission, SkipLabelSubmission, ValidationTaskSubmission}
 import models.auth.WithAdmin
 import models.label.{LabelTypeEnum, Tag}
+import models.pano.PanoSource
 import models.user._
 import models.validation.{LabelValidation, ValidationTaskComment, ValidationTaskEnvironment, ValidationTaskInteraction}
 import play.api.Configuration
@@ -244,23 +245,23 @@ class ValidateController @Inject() (
       // Return a BadRequest if anything is wrong, or the ValidateParams if everything looks good.
       if (parsedLabelTypeId.isDefined && parsedLabelTypeId.get.isEmpty) {
         (
-          ValidateParams(adminVersion),
+          ValidateParams(adminVersion, PanoSource.Gsv),
           BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeEnum.primaryLabelTypes.mkString(", ")}. Or you can use their IDs: ${LabelTypeEnum.primaryLabelTypeIds.mkString(", ")}.")
         )
       } else if (userIds.isDefined && userIds.get.length != userIds.get.flatten.length) {
         (
-          ValidateParams(adminVersion),
+          ValidateParams(adminVersion, PanoSource.Gsv),
           BadRequest(s"One or more of the users provided were not found; please double check your list of users! You can use either their usernames or user IDs. You provided: ${users.get}")
         )
       } else if (regionIds.isDefined && regionIds.get.length != regionIds.get.flatten.length) {
         (
-          ValidateParams(adminVersion),
+          ValidateParams(adminVersion, PanoSource.Gsv),
           BadRequest(s"One or more of the neighborhoods provided were not found; please double check your list of neighborhoods! You can use either their names or IDs. You provided: ${neighborhoods.get}")
         )
       } else {
         (
           ValidateParams(
-            adminVersion, parsedLabelTypeId.flatten, userIds.map(_.flatten), regionIds.map(_.flatten),
+            adminVersion, PanoSource.Gsv, parsedLabelTypeId.flatten, userIds.map(_.flatten), regionIds.map(_.flatten),
             unvalidatedOnly.getOrElse(false)
           ),
           Ok("")
@@ -505,28 +506,29 @@ class ValidateController @Inject() (
    * Gets the metadata for a single random label in the database. Excludes labels that were originally placed by the
    * user, labels that have already appeared on the interface, and the label that was just skipped.
    *
-   * @param labelTypeId    Label Type Id this label should have
+   * @param viewer    The type of pano viewer the labels must have been added on (GSV, Mapillary, etc)
+   * @param labelTypeId    Label Type ID this label should have
    * @param skippedLabelId Label ID of the label that was just skipped
    * @return Label metadata containing pano metadata and label type
    */
-  def getRandomLabelData(labelTypeId: Int, skippedLabelId: Int) = cc.securityService.SecuredAction(parse.json) {
-    implicit request =>
+  def getRandomLabelData(viewer: String, labelTypeId: Int, skippedLabelId: Int) =
+    cc.securityService.SecuredAction(parse.json) { implicit request =>
       val submission = request.body.validate[SkipLabelSubmission]
       submission.fold(
         errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
         submission => {
           val validateParams: ValidateParams =
             if (submission.validateParams.adminVersion && isAdmin(request.identity)) submission.validateParams
-            else ValidateParams(adminVersion = false)
+            else ValidateParams(adminVersion = false, PanoSource.withName(viewer))
           val userId: String = request.identity.userId
 
           // Get metadata for one new label to replace the skipped one.
           // TODO should really exclude all remaining labels in the mission, not just the skipped one. Not bothering now
           //      because it isn't a heavily used feature, and it's a rare edge case.
           labelService
-            .retrieveLabelListForValidation(userId, n = 1, labelTypeId, validateParams.userIds.map(_.toSet),
-              validateParams.neighborhoodIds.map(_.toSet), validateParams.unvalidatedOnly,
-              skippedLabelId = Some(skippedLabelId))
+            .retrieveLabelListForValidation(userId, n = 1, validateParams.viewer, labelTypeId,
+              validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
+              validateParams.unvalidatedOnly, skippedLabelId = Some(skippedLabelId))
             .flatMap { labelMetadata =>
               if (validateParams.adminVersion) {
                 labelService
@@ -540,5 +542,5 @@ class ValidateController @Inject() (
             }
         }
       )
-  }
+    }
 }

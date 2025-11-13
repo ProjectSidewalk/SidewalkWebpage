@@ -67,6 +67,7 @@ function Form(url, beaconUrl) {
 
         data.validate_params = {
             admin_version: svv.adminVersion,
+            viewer_type: svv.validateParams.viewerType,
             label_type_id: svv.validateParams.labelTypeId,
             user_ids: svv.validateParams.userIds,
             neighborhood_ids: svv.validateParams.regionIds,

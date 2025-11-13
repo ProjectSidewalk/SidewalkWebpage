@@ -123,7 +123,7 @@ POST    /labelmap/comment                               controllers.ValidateCont
 GET     /label/tags                                     controllers.LabelController.getLabelTags
 GET     /label/resumeMission                            controllers.LabelController.getLabelsToResumeMission(regionId: Int)
 POST    /label/labels                                   controllers.GalleryController.getLabels
-POST    /label/geo/random/:labelType/:labelId           controllers.ValidateController.getRandomLabelData(labelType: Int, labelId: Int)
+POST    /label/geo/random/:labelType/:labelId           controllers.ValidateController.getRandomLabelData(viewer: String, labelType: Int, labelId: Int)
 
 # Neighborhoods
 GET     /neighborhoods                                  controllers.RegionController.listNeighborhoods(regions: Option[String] ?= None)

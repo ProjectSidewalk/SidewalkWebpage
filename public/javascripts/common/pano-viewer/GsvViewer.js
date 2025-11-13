@@ -91,7 +91,7 @@ class GsvViewer extends PanoViewer {
 
         let panoDataParams = {
             panoId: newPanoData.data.location.pano,
-            source: 'gsv',
+            source: this.getViewerType(),
             captureDate: moment(newPanoData.data.imageDate),
             width: newPanoData.data.tiles.worldSize.width,
             height: newPanoData.data.tiles.worldSize.height,

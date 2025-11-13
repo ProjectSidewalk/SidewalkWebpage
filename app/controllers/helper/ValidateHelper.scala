@@ -1,8 +1,11 @@
 package controllers.helper
 
+import models.pano.PanoSource.PanoSource
+
 object ValidateHelper {
   case class ValidateParams(
       adminVersion: Boolean,
+      viewer: PanoSource,
       labelTypeId: Option[Int] = None,
       userIds: Option[Seq[String]] = None,
       neighborhoodIds: Option[Seq[Int]] = None,

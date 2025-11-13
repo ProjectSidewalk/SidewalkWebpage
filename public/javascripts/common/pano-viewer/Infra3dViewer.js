@@ -11,7 +11,7 @@ class Infra3dViewer extends PanoViewer {
     }
 
     async initialize(canvasElem, panoOptions = {}) {
-        // svv.infra3dToken = 'eyJraWQiOiJjT2x6QzZ6RVwvZE9LS2dhNU00cGZtUGVMTlhCbWVNTHU0S0xwU3AxM0dRdz0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIyNWdtMTU3a3FxY2ZraXVwZDU3azQxOWhrciIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoicGVybWlzc2lvblwvZWRpdCBmcmFtZWdhdGVcL3V6aCBnZW9mZWF0dXJlc2VydmVyXC8qIGFkZG9uXC9hcGkgZGVmYXVsdC1tMm0tcmVzb3VyY2Utc2VydmVyLWNybXc5bFwvcmVhZCIsImF1dGhfdGltZSI6MTc2MTc3ODI0MywiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLmV1LXdlc3QtMS5hbWF6b25hd3MuY29tXC9ldS13ZXN0LTFfQXlNRWdSWngzIiwiZXhwIjoxNzYxNzgxODQzLCJpYXQiOjE3NjE3NzgyNDMsInZlcnNpb24iOjIsImp0aSI6IjNjZjRkNmZlLWJkOWYtNDQwNi05MGY2LWJlNWVjNjA3ZGI3NiIsImNsaWVudF9pZCI6IjI1Z20xNTdrcXFjZmtpdXBkNTdrNDE5aGtyIn0.ct5F2UzLVjVJP6PyRoQu6GYYuYoZifRBiaJnvIMvZ-i8AoRgQ45WvNzhnwY64ug3yyp84W3zVhZsExuFv04y6ItoMidNh_aWyFfdMk24wtPX5Kh4JWjtgKkf-tl9rjFp1Qc3bfxQTQYyqJE2L9bcYvOkczK2cSA2ukthlvtbd6sm3zJZ1PPHfRcX87qXjeZ1ngG2HwtEcU5gfa-dWGOhSZZ4ZLnRmC7WJBLG-QrmhpnGzQpjG_CPUnNGTIk78ZiObGnGAN7FTevZlizwXMU6zRSwYVjt6-XnGTY1tA5qKMW4zmV_4WfdeP4EO5Pid6hhFb-TFHaZdu-1ay9AePVl3g';
+        // svv.infra3dToken = 'eyJraWQiOiJjT2x6QzZ6RVwvZE9LS2dhNU00cGZtUGVMTlhCbWVNTHU0S0xwU3AxM0dRdz0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIyNWdtMTU3a3FxY2ZraXVwZDU3azQxOWhrciIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoicGVybWlzc2lvblwvZWRpdCBmcmFtZWdhdGVcL3V6aCBnZW9mZWF0dXJlc2VydmVyXC8qIGFkZG9uXC9hcGkgZGVmYXVsdC1tMm0tcmVzb3VyY2Utc2VydmVyLWNybXc5bFwvcmVhZCIsImF1dGhfdGltZSI6MTc2Mjk5MTM3MywiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLmV1LXdlc3QtMS5hbWF6b25hd3MuY29tXC9ldS13ZXN0LTFfQXlNRWdSWngzIiwiZXhwIjoxNzYyOTk0OTczLCJpYXQiOjE3NjI5OTEzNzMsInZlcnNpb24iOjIsImp0aSI6IjczMDc1NGMxLWFkMmItNGE0NC05OTU2LWRhYTUyZWM2OGFlNCIsImNsaWVudF9pZCI6IjI1Z20xNTdrcXFjZmtpdXBkNTdrNDE5aGtyIn0.KeM5jSpaSOKnv5D-xYqkydC74Wv5QOJdMM53048M1h7d9IGRxCxpCq5N91uwK7CcdNAPjYZhLyzTTzxEXSNn4HfWm-OZV90Vzn80hm88a3-cZGORidenK-I0ajOump1muIfAS9DjP-Y1yHgpqdHO3jLlg4efH9fKF0NcTDkefR0Ji42JQDSbA7ZkhcPw8DdSbDn29DT5K4K3oShhXTMEBN6SaG5uO3O3W2D3co4oBTRGxXmi_JstoOnnX7Go013CfB5A_PjGrYEbn-ejzuJgDGXgW9B0h9dH_77wFUoA_cY13PtrgBDpdCYIWiWEypsEQ5RocqsNdbezlDMt_avcmw';
         // const manager = await infra3dapi.init(canvasElem.id, svv.infra3dToken);
         const manager = await infra3dapi.init(canvasElem.id, svl.infra3dToken);
         const fetchedProjects = await manager.getProjects();
@@ -71,7 +71,7 @@ class Infra3dViewer extends PanoViewer {
     }
 
     getPanoId = () => {
-        return this.currPanoData.getProperty('panoId') || this.viewer.getCurrentNode().id;
+        return this.currPanoData ? this.currPanoData.getProperty('panoId') : this.viewer.getCurrentNode().id;
     }
 
     getPosition = () => {
@@ -150,7 +150,7 @@ class Infra3dViewer extends PanoViewer {
             // Now that all the data is available, we can fill the currPanoData object and say that the pano has loaded.
             let panoDataParams = {
                 panoId: node.frame.id,
-                source: 'infra3d',
+                source: this.getViewerType(),
                 captureDate: moment(mainNode.date),
                 width: 4 * node.frame.framedatameta.imagewidth, // width/height are for only one side of the cube map
                 height: 2 * node.frame.framedatameta.imageheight,

@@ -3,12 +3,20 @@
  */
 class PanoViewer {
     /**
+     * The type of panorama viewer.
+     * @type {string}
+     * @private
+     */
+    #viewerType;
+
+    /**
      * Private constructor to prevent direct instantiation.
      */
     constructor() {
-        if (new.target === PanoViewer) {
-            throw new Error('Cannot instantiate abstract class directly');
-        }
+        if (new.target === PanoViewer) throw new Error('Cannot instantiate abstract class directly');
+        else if (new.target === GsvViewer) this.#viewerType = 'gsv';
+        else if (new.target === MapillaryViewer) this.#viewerType = 'mapillary';
+        else if (new.target === Infra3dViewer) this.#viewerType = 'infra3d';
         this.initialized = false;
     }
 
@@ -32,6 +40,14 @@ class PanoViewer {
         await newViewer.initialize(canvasElem, panoOptions);
         newViewer.initialized = true;
         return newViewer;
+    }
+
+    /**
+     * Gets the current viewer type.
+     * @returns {string} The current viewer type.
+     */
+    getViewerType() {
+        return this.#viewerType;
     }
 
     /**

@@ -8,6 +8,7 @@ import models.computation.StreamingApiType
 import models.label.LabelTable._
 import models.label.LabelTypeEnum.validLabelTypes
 import models.mission.MissionTableDef
+import models.pano.PanoSource.PanoSource
 import models.pano.{PanoData, PanoDataTableDef, PanoSource}
 import models.region.RegionTableDef
 import models.route.RouteStreetTableDef
@@ -754,16 +755,19 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   /**
    * Returns how many labels this user has available to validate (& how many need validations) for each label type.
+   *
+   * @param userId User ID for the current user
+   * @param viewer The type of pano viewer the labels must have been added on (GSV, Mapillary, etc)
    */
-  def getAvailableValidationsLabelsByType(userId: String): DBIO[Seq[LabelTypeValidationsLeft]] = {
+  def getAvailableValidationsLabelsByType(userId: String, viewer: PanoSource): DBIO[Seq[LabelTypeValidationsLeft]] = {
     val labelsValidatedByUser = labelValidations.filter(_.userId === userId)
 
-    // Get labels the given user has not placed that have non-expired imagery.
+    // Get labels the given user didn't place that have non-expired imagery in the correct pano viewer.
     val labelsToValidate = for {
       _lb <- labels
-      _gd <- panoData if _gd.panoId === _lb.panoId
+      _pd <- panoData if _pd.panoId === _lb.panoId
       _us <- userStats if _lb.userId === _us.userId
-      if _us.highQuality && _gd.expired === false && _lb.userId =!= userId
+      if _us.highQuality && _pd.expired === false && _pd.source === viewer.toString && _lb.userId =!= userId
     } yield (_lb.labelId, _lb.labelTypeId, _lb.correct)
 
     // Left join with the labels that the user has already validated, then filter those out.
@@ -800,6 +804,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   def retrieveLabelListForValidationQuery(
       userId: String,
+      viewer: PanoSource,
       labelTypeId: Int,
       includeAiTags: Boolean = true,
       userIds: Option[Set[String]] = None,
@@ -814,26 +819,27 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (_lb, _at, _us) <- labelsWithAuditTasksAndUserStats
       _lt             <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp             <- labelPoints if _lb.labelId === _lp.labelId
-      _gd             <- panoData if _lb.panoId === _gd.panoId
+      _pd             <- panoData if _lb.panoId === _pd.panoId
       _ser            <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
-      if _lt.labelTypeId === labelTypeId && !_gd.expired && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
+      if _lt.labelTypeId === labelTypeId && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
+      if _pd.source === viewer.toString && !_pd.expired
       if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty                     // Filter out validated labels.
       if skippedLabelId.map(_lb.labelId =!= _).getOrElse(true: Rep[Boolean])             // Filter out skipped label.
       if regionIds.map(ids => _ser.regionId inSetBind ids).getOrElse(true: Rep[Boolean]) // Filter by region IDs.
       if userIds.map(ids => _lb.userId inSetBind ids).getOrElse(true: Rep[Boolean])      // Filter by user IDs.
-    } yield (_lb, _lp, _lt, _gd, _us, _ser, _at)
+    } yield (_lb, _lp, _lt, _pd, _us, _ser, _at)
 
     // Get AI validations.
     val _labelInfoWithAIValidation = _labelInfo
       .joinLeft(aiValidations)
       .on(_._1.labelId === _.labelId)
-      .map { case ((_lb, _lp, _lt, _gd, _us, _ser, _at), _aiv) => (_lb, _lp, _lt, _gd, _us, _ser, _at, _aiv) }
+      .map { case ((_lb, _lp, _lt, _pd, _us, _ser, _at), _aiv) => (_lb, _lp, _lt, _pd, _us, _ser, _at, _aiv) }
 
     // Get AI suggested tags.
     val _labelInfoWithAiTagSuggestions = _labelInfoWithAIValidation
       .joinLeft(labelAiAssessments)
       .on(_._1.labelId === _.labelId)
-      .map { case ((_lb, _lp, _lt, _gd, _us, _ser, _at, _aiv), _la) => (_lb, _lp, _lt, _gd, _us, _ser, _at, _aiv, _la) }
+      .map { case ((_lb, _lp, _lt, _pd, _us, _ser, _at, _aiv), _la) => (_lb, _lp, _lt, _pd, _us, _ser, _at, _aiv, _la) }
 
     // Filter out labels that have already been validated by this user.
     val _labelInfoFiltered = _labelInfoWithAiTagSuggestions
@@ -966,10 +972,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lb  <- _labelsFilteredByCorrectness if !(_lb.labelId inSetBind loadedLabelIds)
       _lt  <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp  <- labelPoints if _lb.labelId === _lp.labelId
-      _gd  <- panoData if _lb.panoId === _gd.panoId
+      _pd  <- panoData if _lb.panoId === _pd.panoId
       _us  <- userStats if _lb.userId === _us.userId
       _ser <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
-      if _gd.expired === false
+      if _pd.expired === false
       if _lp.lat.isDefined && _lp.lng.isDefined
       if _lt.labelTypeId === labelTypeId
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
@@ -977,13 +983,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if (_lb.tags @& tags.toList) || tags.isEmpty // @& is the overlap operator from postgres (&& in postgres).
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
-    } yield (_lb, _lp, _lt, _gd, _ser)
+    } yield (_lb, _lp, _lt, _pd, _ser)
 
     // Get AI validations.
     val _labelInfoWithAIValidation = _labelInfo
       .joinLeft(aiValidations)
       .on(_._1.labelId === _.labelId)
-      .map { case ((_lb, _lp, _lt, _gd, _ser), _aiv) => (_lb, _lp, _lt, _gd, _ser, _aiv) }
+      .map { case ((_lb, _lp, _lt, _pd, _ser), _aiv) => (_lb, _lp, _lt, _pd, _ser, _aiv) }
 
     // Join with user validations.
     val _userValidations       = labelValidations.filter(_.userId === userId)
@@ -1047,7 +1053,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lb <- labelsWithExcludedUsers
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
-      _gd <- panoData if _lb.panoId === _gd.panoId
+      _pd <- panoData if _lb.panoId === _pd.panoId
       _vc <- _validationsWithComments if _lb.labelId === _vc._1
       _us <- userStats if _vc._3 === _us.userId
       if _lb.userId === userId &&   // Only include the given user's labels.
@@ -1055,7 +1061,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         _vc._2 === 2 &&             // Only times when users validated as incorrect.
         _us.excluded === false &&   // Don't use validations from excluded users
         _us.highQuality === true && // For now, we only include validations from high quality users.
-        _gd.expired === false &&    // Only include those with non-expired imagery.
+        _pd.expired === false &&    // Only include those with non-expired imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
         _lt.labelType === labType                         // Only include given label types.
     } yield (
@@ -1084,14 +1090,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (_l, _at, _us) <- labelsWithAuditTasksAndUserStats
       _lType         <- labelTypes if _l.labelTypeId === _lType.labelTypeId
       _lPoint        <- labelPoints if _l.labelId === _lPoint.labelId
-      _gsv           <- panoData if _l.panoId === _gsv.panoId
+      _pano          <- panoData if _l.panoId === _pano.panoId
       _ser           <- streetEdgeRegions if _l.streetEdgeId === _ser.streetEdgeId
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
       if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
     } yield {
       val hasValidations = _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0
-      (_l.labelId, _l.auditTaskId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct, hasValidations, _gsv.expired,
-        _us.highQuality, _l.severity, _ser.streetEdgeId)
+      (_l.labelId, _l.auditTaskId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct, hasValidations,
+        _pano.expired, _us.highQuality, _l.severity, _ser.streetEdgeId)
     }
 
     // Filter for labels along the given route. Distance experimentally set to 0.0005 degrees. Would like to switch to
@@ -1697,19 +1703,19 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   def getLabelCVMetadata: StreamingDBIO[Seq[LabelCVMetadataTuple], LabelCVMetadataTuple] = {
     (for {
-      _l   <- labels
-      _lp  <- labelPoints if _l.labelId === _lp.labelId
-      _gsv <- panoData if _l.panoId === _gsv.panoId
-      if _gsv.cameraHeading.isDefined && _gsv.cameraPitch.isDefined
+      _l  <- labels
+      _lp <- labelPoints if _l.labelId === _lp.labelId
+      _pd <- panoData if _l.panoId === _pd.panoId
+      if _pd.cameraHeading.isDefined && _pd.cameraPitch.isDefined
     } yield (
       _l.labelId,
-      _gsv.panoId,
+      _pd.panoId,
       _l.labelTypeId,
       _l.agreeCount,
       _l.disagreeCount,
       _l.unsureCount,
-      _gsv.width,
-      _gsv.height,
+      _pd.width,
+      _pd.height,
       _lp.panoX,
       _lp.panoY,
       LabelPointTable.canvasWidth,
@@ -1719,8 +1725,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lp.zoom,
       _lp.heading,
       _lp.pitch,
-      _gsv.cameraHeading.asColumnOf[Float],
-      _gsv.cameraPitch.asColumnOf[Float]
+      _pd.cameraHeading.asColumnOf[Float],
+      _pd.cameraPitch.asColumnOf[Float]
     )).sortBy(_._1).result
   }
 }
