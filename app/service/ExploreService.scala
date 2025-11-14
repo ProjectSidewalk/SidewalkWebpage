@@ -17,7 +17,7 @@ import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
-import play.api.Logger
+import play.api.{Configuration, Logger}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.format.DateTimeFormatter
@@ -34,6 +34,7 @@ case class ExplorePageData(
     nextTempLabelId: Int,
     surveyData: Seq[SurveyQuestionWithOptions],
     tutorialStreetId: Int,
+    viewerType: PanoSource,
     makeCrops: Boolean
 )
 case class ExploreTaskPostReturnValue(
@@ -104,6 +105,7 @@ trait ExploreService {
 @Singleton
 class ExploreServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
+    val config: Configuration,
     configTable: ConfigTable,
     missionService: MissionService,
     regionTable: RegionTable,
@@ -244,8 +246,9 @@ class ExploreServiceImpl @Inject() (
       tutorialStreetId: Int                      <- configTable.getTutorialStreetId
       makeCrops: Boolean                         <- configTable.getMakeCrops
     } yield {
+      val viewerType = PanoSource.withName(config.get[String]("pano-viewer-type"))
       ExplorePageData(task, updatedMission, region.get, userRoute, hasCompletedAMission, nextTempLabelId, surveyData,
-        tutorialStreetId, makeCrops)
+        tutorialStreetId, viewerType, makeCrops)
     }
     db.run(getExploreDataAction.transactionally)
   }
