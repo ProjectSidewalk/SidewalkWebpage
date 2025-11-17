@@ -1,17 +1,20 @@
 package controllers
 
 import controllers.base._
+import controllers.helper.ControllerUtils.parseIntegerSeq
 import formats.json.GalleryFormats._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
 import models.gallery.{GalleryTaskEnvironment, GalleryTaskEnvironmentTable, GalleryTaskInteraction, GalleryTaskInteractionTable}
+import models.label.LabelTypeEnum
 import models.utils.MyPostgresProfile
+import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsObject, JsValue, Json}
-import play.api.mvc.{Action, Result}
+import play.api.mvc.{Action, AnyContent, Result}
 import play.silhouette.api.Silhouette
-import service.{GsvDataService, LabelService}
-
+import service.{ConfigService, GsvDataService, LabelService, RegionService}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -19,14 +22,73 @@ import scala.concurrent.{ExecutionContext, Future}
 class GalleryController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
+    val config: Configuration,
     protected val dbConfigProvider: DatabaseConfigProvider,
     implicit val ec: ExecutionContext,
+    configService: ConfigService,
     labelService: LabelService,
     gsvDataService: GsvDataService,
     galleryTaskInteractionTable: GalleryTaskInteractionTable,
-    galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable
-) extends CustomBaseController(cc)
+    galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable,
+    regionService: RegionService
+)(implicit assets: AssetsFinder)
+    extends CustomBaseController(cc)
     with HasDatabaseConfigProvider[MyPostgresProfile] {
+  implicit val implicitConfig: Configuration = config
+
+  /**
+   * Returns the Gallery page.
+   */
+  def gallery(
+      labelType: String,
+      neighborhoods: String,
+      severities: String,
+      tags: String,
+      validationOptions: String,
+      aiValidatedOnly: String
+  ): Action[AnyContent] =
+    cc.securityService.SecuredAction { implicit request =>
+      val labelTypes: Seq[(String, String)] = Seq(
+        ("Assorted", Messages("gallery.all")),
+        (LabelTypeEnum.CurbRamp.name, Messages("curb.ramp")),
+        (LabelTypeEnum.NoCurbRamp.name, Messages("missing.ramp")),
+        (LabelTypeEnum.Obstacle.name, Messages("obstacle")),
+        (LabelTypeEnum.SurfaceProblem.name, Messages("surface.problem")),
+        (LabelTypeEnum.Occlusion.name, Messages("occlusion")),
+        (LabelTypeEnum.NoSidewalk.name, Messages("no.sidewalk")),
+        (LabelTypeEnum.Crosswalk.name, Messages("crosswalk")),
+        (LabelTypeEnum.Signal.name, Messages("signal")),
+        (LabelTypeEnum.Other.name, Messages("other"))
+      )
+      val labType: String = if (labelTypes.exists(x => { x._1 == labelType })) labelType else "Assorted"
+
+      for {
+        possibleRegions: Seq[Int] <- regionService.getAllRegions.map(_.map(_.regionId))
+        possibleTags: Seq[String] <- {
+          if (labType != "Assorted") db.run(labelService.selectTagsByLabelType(labelType).map(_.map(_.tag)))
+          else Future.successful(Seq())
+        }
+        commonData <- configService.getCommonPageData(request2Messages.lang)
+      } yield {
+        // Make sure that list of region IDs, severities, and validation options are formatted correctly.
+        val regionIdsList: Seq[Int] = parseIntegerSeq(neighborhoods).filter(possibleRegions.contains)
+        val severityList: Seq[Int]  = parseIntegerSeq(severities).filter(s => s > 0 && s < 4)
+        val tagList: List[String]   = tags.split(",").filter(possibleTags.contains).toList
+        val valOptions: Seq[String] =
+          validationOptions.split(",").filter(Seq("correct", "incorrect", "unsure", "unvalidated").contains(_)).toSeq
+        val aiValOnly: Boolean = aiValidatedOnly.toBooleanOption.getOrElse(false)
+
+        // Log visit to Gallery async.
+        val activityStr: String =
+          s"Visit_Gallery_LabelType=${labType}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
+        cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
+
+        Ok(
+          views.html.apps.gallery(commonData, "Sidewalk - Gallery", request.identity, labType, labelTypes,
+            regionIdsList, severityList, tagList, valOptions, aiValOnly)
+        )
+      }
+    }
 
   /**
    * Returns labels of specified type, severities, and tags.
@@ -43,11 +105,12 @@ class GalleryController @Inject() (
         val regionIds: Set[Int]      = submission.regionIds.getOrElse(Seq()).toSet
         val severities: Set[Int]     = submission.severities.getOrElse(Seq()).toSet
         val tags: Set[String]        = submission.tags.getOrElse(Seq()).toSet
+        val aiValOnly: Boolean       = submission.aiValidatedOnly.getOrElse(false)
         val userId: String           = request.identity.userId
 
         // Get labels from LabelTable.
         labelService
-          .getGalleryLabels(n, labelTypeId, loadedLabelIds, valOptions, regionIds, severities, tags, userId)
+          .getGalleryLabels(n, labelTypeId, loadedLabelIds, valOptions, regionIds, severities, tags, aiValOnly, userId)
           .map { labels =>
             val jsonList: Seq[JsObject] = labels.map(l =>
               Json.obj(

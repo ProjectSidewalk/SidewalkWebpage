@@ -1,7 +1,10 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
-@(commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, labelType: String, labels: Seq[(String, String)], regionIds: Seq[Int], severities: Seq[Int], tags: List[String], valOptions: Seq[String])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
+@(commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, labelType: String,
+    labels: Seq[(String, String)], regionIds: Seq[Int], severities: Seq[Int], tags: List[String],
+    valOptions: Seq[String], aiValidatedOnly: Boolean
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @common.main(commonData, title, i18Namespaces = Seq("common", "gallery")) {
@@ -129,7 +132,8 @@
                 neighborhoods: @{regionIds.mkString("[", ",", "]")},
                 severities: @{severities.mkString("[", ",", "]")},
                 validationOptions: @{if (valOptions.isEmpty) "[]" else Html(valOptions.mkString("['", "','", "']"))},
-                tags: @{if (tags.isEmpty) "[]" else Html(tags.mkString("['", "','", "']"))}
+                tags: @{if (tags.isEmpty) "[]" else Html(tags.mkString("['", "','", "']"))},
+                aiValidatedOnly: @aiValidatedOnly
             }
 
             params.language = "@messages.lang.code";

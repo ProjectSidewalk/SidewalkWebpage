@@ -51,6 +51,7 @@ trait LabelService {
       regionIds: Set[Int],
       severity: Set[Int],
       tags: Set[String],
+      aiValidatedOnly: Boolean,
       userId: String
   ): Future[Seq[LabelValidationMetadata]]
   def retrieveLabelListForValidation(
@@ -179,6 +180,8 @@ class LabelServiceImpl @Inject() (
    * @param regionIds         Set of neighborhoods to get labels from. All neighborhoods if empty.
    * @param severity          Set of severities the labels grabbed can have.
    * @param tags              Set of tags the labels grabbed can have.
+   * @param aiValidatedOnly   If true, only include labels that have a corresponding validation from AI.
+   * @param userId            User ID of the user requesting the labels.
    * @return Seq[LabelValidationMetadata]
    */
   def getGalleryLabels(
@@ -189,6 +192,7 @@ class LabelServiceImpl @Inject() (
       regionIds: Set[Int],
       severity: Set[Int],
       tags: Set[String],
+      aiValidatedOnly: Boolean,
       userId: String
   ): Future[Seq[LabelValidationMetadata]] = {
 
@@ -196,7 +200,7 @@ class LabelServiceImpl @Inject() (
     if (labelTypeId.isDefined) {
       findValidLabelsForType(
         labelTable.getGalleryLabelsQuery(labelTypeId.get, loadedLabelIds, valOptions, regionIds, severity, tags,
-          userId),
+          aiValidatedOnly, userId),
         randomize = true,
         n
       )
@@ -207,7 +211,7 @@ class LabelServiceImpl @Inject() (
         .sequence(LabelTypeEnum.primaryLabelTypes.map { labelType =>
           findValidLabelsForType(
             labelTable.getGalleryLabelsQuery(LabelTypeEnum.labelTypeToId(labelType), loadedLabelIds, valOptions,
-              regionIds, severity, tags, userId),
+              regionIds, severity, tags, aiValidatedOnly, userId),
             randomize = true,
             nPerType
           )

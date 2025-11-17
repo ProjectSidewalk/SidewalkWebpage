@@ -936,6 +936,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param regionIds         Set of neighborhoods to get labels from. All neighborhoods if empty.
    * @param severity          Set of severities the labels grabbed can have.
    * @param tags              Set of tags the labels grabbed can have.
+   * @param aiValidatedOnly   If true, only include labels that have a corresponding validation from AI.
    * @param userId            User ID of the user requesting the labels.
    * @return                  Query object to get the labels.
    */
@@ -946,6 +947,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       regionIds: Set[Int],
       severity: Set[Int],
       tags: Set[String],
+      aiValidatedOnly: Boolean,
       userId: String
   ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
     // Filter labels based on correctness.
@@ -984,10 +986,17 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .on(_._1.labelId === _.labelId)
       .map { case ((_lb, _lp, _lt, _gd, _ser), _aiv) => (_lb, _lp, _lt, _gd, _ser, _aiv) }
 
+    // If aiValidatedOnly is true, filter out everything that doesn't have an AI validation.
+    val _labelsMaybeAiValidatedOnly = if (aiValidatedOnly) {
+      _labelInfoWithAIValidation.filter(_._6.isDefined)
+    } else {
+      _labelInfoWithAIValidation
+    }
+
     // Join with user validations.
     val _userValidations       = labelValidations.filter(_.userId === userId)
     val _labelInfoWithUserVals = for {
-      (l, v) <- _labelInfoWithAIValidation.joinLeft(_userValidations).on(_._1.labelId === _.labelId)
+      (l, v) <- _labelsMaybeAiValidatedOnly.joinLeft(_userValidations).on(_._1.labelId === _.labelId)
     } yield (
       l._1.labelId,
       l._3.labelType,

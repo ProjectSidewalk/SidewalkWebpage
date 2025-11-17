@@ -114,6 +114,8 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
         let currAppliedTags = currentTags.getAppliedTags().map(t => t.getTag()).join();
         let currValOptions = validationOptions.getAppliedValidationOptions().sort().join();
 
+        // TODO use new URL() and .searchParams.append() instead of tracking firstQueryParam ourselves.
+
         // For each type of filter, check if it matches the default. If it doesn't, add to URL in a query param.
         if (status.currentLabelType !== 'Assorted') {
             uiCardFilter.clearFilters.show();
@@ -137,6 +139,12 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
         if (currValOptions !== 'correct,unvalidated') {
             uiCardFilter.clearFilters.show();
             newUrl += firstQueryParam ? `?validationOptions=${currValOptions}` : `&validationOptions=${currValOptions}`;
+            firstQueryParam = false;
+        }
+        // TODO once we add a UI for filtering on AI validation, have that process mirrors other filters.
+        if (sg.aiValidatedOnly) {
+            newUrl += firstQueryParam ? `?aiValidatedOnly=true` : `&aiValidatedOnly=true`;
+            firstQueryParam = false;
         }
         return newUrl;
     }
