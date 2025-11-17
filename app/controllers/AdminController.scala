@@ -17,7 +17,6 @@ import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import service._
-
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.concurrent.ThreadPoolExecutor
@@ -120,7 +119,7 @@ class AdminController @Inject() (
   def getAllLabels = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     labelService
-      .selectLocationsAndSeveritiesOfLabels(Seq(), Seq())
+      .getLabelsForLabelMap(Seq(), Seq())
       .map { labels =>
         val features: Seq[JsObject] = labels.par.map { label =>
           Json.obj(
@@ -162,36 +161,38 @@ class AdminController @Inject() (
   /**
    * Get a list of all labels with metadata needed for /labelMap.
    */
-  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String]) = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    val regionIds: Seq[Int] = parseIntegerSeq(regions)
-    val routeIds: Seq[Int]  = parseIntegerSeq(routes)
+  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String], aiValidatedOnly: Option[String]) =
+    Action.async { implicit request =>
+      logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+      val regionIds: Seq[Int] = parseIntegerSeq(regions)
+      val routeIds: Seq[Int]  = parseIntegerSeq(routes)
+      val aiValOnly: Boolean  = aiValidatedOnly.exists(_.toBoolean)
 
-    labelService
-      .selectLocationsAndSeveritiesOfLabels(regionIds, routeIds)
-      .map { labels =>
-        val features: Seq[JsObject] = labels.par.map { label =>
-          Json.obj(
-            "type"     -> "Feature",
-            "geometry" -> Json.obj(
-              "type"        -> "Point",
-              "coordinates" -> Json.arr(label.lng.toDouble, label.lat.toDouble)
-            ),
-            "properties" -> Json.obj(
-              "label_id"          -> label.labelId,
-              "label_type"        -> label.labelType,
-              "severity"          -> label.severity,
-              "correct"           -> label.correct,
-              "has_validations"   -> label.hasValidations,
-              "expired"           -> label.expired,
-              "high_quality_user" -> label.highQualityUser
+      labelService
+        .getLabelsForLabelMap(regionIds, routeIds, aiValOnly)
+        .map { labels =>
+          val features: Seq[JsObject] = labels.par.map { label =>
+            Json.obj(
+              "type"     -> "Feature",
+              "geometry" -> Json.obj(
+                "type"        -> "Point",
+                "coordinates" -> Json.arr(label.lng.toDouble, label.lat.toDouble)
+              ),
+              "properties" -> Json.obj(
+                "label_id"          -> label.labelId,
+                "label_type"        -> label.labelType,
+                "severity"          -> label.severity,
+                "correct"           -> label.correct,
+                "has_validations"   -> label.hasValidations,
+                "expired"           -> label.expired,
+                "high_quality_user" -> label.highQualityUser
+              )
             )
-          )
-        }.seq
-        val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-        Ok(featureCollection)
-      }(cpuEc)
-  }
+          }.seq
+          val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
+          Ok(featureCollection)
+        }(cpuEc)
+    }
 
   /**
    * Get audit coverage of each neighborhood.

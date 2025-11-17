@@ -14,7 +14,6 @@ import play.api.mvc._
 import play.silhouette.api.Silhouette
 import play.silhouette.api.actions.SecuredRequest
 import service._
-
 import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
@@ -190,16 +189,20 @@ class ApplicationController @Inject() (
   /**
    * Returns the LabelMap page that contains a cool visualization.
    */
-  def labelMap(regions: Option[String], routes: Option[String]) = cc.securityService.SecuredAction { implicit request =>
-    val regionIds: Seq[Int] = parseIntegerSeq(regions)
-    val routeIds: Seq[Int]  = parseIntegerSeq(routes)
-    val activityStr: String = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
+  def labelMap(regions: Option[String], routes: Option[String], aiValidatedOnly: Option[String]) =
+    cc.securityService.SecuredAction { implicit request =>
+      val regionIds: Seq[Int]        = parseIntegerSeq(regions)
+      val routeIds: Seq[Int]         = parseIntegerSeq(routes)
+      val aiValOnly: Option[Boolean] = aiValidatedOnly.map(_.toBoolean)
+      val activityStr: String        = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
 
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
-      Ok(views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, regionIds, routeIds))
+      configService.getCommonPageData(request2Messages.lang).map { commonData =>
+        cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
+        Ok(
+          views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, regionIds, routeIds, aiValOnly)
+        )
+      }
     }
-  }
 
   /**
    * Returns the Gallery page.

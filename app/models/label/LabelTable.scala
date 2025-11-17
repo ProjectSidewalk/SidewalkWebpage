@@ -25,7 +25,6 @@ import service.TimeInterval
 import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
 import slick.sql.SqlStreamingAction
-
 import java.time.{Duration, Instant, OffsetDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
@@ -67,7 +66,7 @@ case class LabelLocation(
     hasValidations: Boolean
 )
 
-case class LabelLocationWithSeverity(
+case class LabelForLabelMap(
     labelId: Int,
     auditTaskId: Int,
     labelType: String,
@@ -1076,12 +1075,20 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Returns all the submitted labels with their severities included. If provided, filter for only given regions.
    */
-  def selectLocationsAndSeveritiesOfLabels(
+  def getLabelsForLabelMap(
       regionIds: Seq[Int],
-      routeIds: Seq[Int]
-  ): DBIO[Seq[LabelLocationWithSeverity]] = {
+      routeIds: Seq[Int],
+      aiValidatedOnly: Boolean = false
+  ): DBIO[Seq[LabelForLabelMap]] = {
+    // Filter for only labels validated with AI if aiValidatedOnly is true.
+    val _filteredLabels = if (aiValidatedOnly) {
+      labelsWithAuditTasksAndUserStats.join(aiValidations).on(_._1.labelId === _.labelId).map(_._1)
+    } else {
+      labelsWithAuditTasksAndUserStats
+    }
+
     val _labels = for {
-      (_l, _at, _us) <- labelsWithAuditTasksAndUserStats
+      (_l, _at, _us) <- _filteredLabels
       _lType         <- labelTypes if _l.labelTypeId === _lType.labelTypeId
       _lPoint        <- labelPoints if _l.labelId === _lPoint.labelId
       _gsv           <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
@@ -1111,7 +1118,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
     _labelsNearRoute.result.map(
-      _.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10))
+      _.map(l => LabelForLabelMap(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10))
     )
   }
 

@@ -14,7 +14,6 @@ import models.validation.LabelValidationTable
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
-
 import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
@@ -39,10 +38,11 @@ trait LabelService {
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]]
   def getRecentLabelMetadata(takeN: Int): Future[Seq[LabelMetadata]]
   def getExtraAdminValidateData(labelIds: Seq[Int]): Future[Seq[AdminValidationData]]
-  def selectLocationsAndSeveritiesOfLabels(
+  def getLabelsForLabelMap(
       regionIds: Seq[Int],
-      routeIds: Seq[Int]
-  ): Future[Seq[LabelLocationWithSeverity]]
+      routeIds: Seq[Int],
+      aiValidatedOnly: Boolean = false
+  ): Future[Seq[LabelForLabelMap]]
   def getGalleryLabels(
       n: Int,
       labelTypeId: Option[Int],
@@ -163,11 +163,12 @@ class LabelServiceImpl @Inject() (
   def getExtraAdminValidateData(labelIds: Seq[Int]): Future[Seq[AdminValidationData]] =
     db.run(labelTable.getExtraAdminValidateData(labelIds))
 
-  def selectLocationsAndSeveritiesOfLabels(
+  def getLabelsForLabelMap(
       regionIds: Seq[Int],
-      routeIds: Seq[Int]
-  ): Future[Seq[LabelLocationWithSeverity]] =
-    db.run(labelTable.selectLocationsAndSeveritiesOfLabels(regionIds, routeIds))
+      routeIds: Seq[Int],
+      aiValidatedOnly: Boolean = false
+  ): Future[Seq[LabelForLabelMap]] =
+    db.run(labelTable.getLabelsForLabelMap(regionIds, routeIds, aiValidatedOnly))
 
   /**
    * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
