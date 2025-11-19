@@ -173,8 +173,8 @@
             }
 
             let aiValidationOptionsParam = '@{aiValidationOptions.mkString(",")}';
-            if (aiValidatedOptionsParam) {
-                params.labelsURL.searchParams.append('aiValidationOptions', aiValidationOptions);
+            if (aiValidationOptionsParam) {
+                params.labelsURL.searchParams.append('aiValidationOptions', aiValidationOptionsParam);
             }
 
             var self = {};

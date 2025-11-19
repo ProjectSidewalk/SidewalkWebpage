@@ -8,6 +8,7 @@ import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin}
 import models.user.{RoleTable, SidewalkUserWithRole}
+import models.validation.LabelValidationTable
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.dispatch.Dispatcher
 import play.api.cache.AsyncCacheApi
@@ -184,6 +185,7 @@ class AdminController @Inject() (
                 "severity"          -> label.severity,
                 "correct"           -> label.correct,
                 "has_validations"   -> label.hasValidations,
+                "ai_validation"     -> label.aiValidation.map(LabelValidationTable.validationOptions.get),
                 "expired"           -> label.expired,
                 "high_quality_user" -> label.highQualityUser
               )

@@ -74,6 +74,7 @@ case class LabelForLabelMap(
     lng: Float,
     correct: Option[Boolean],
     hasValidations: Boolean,
+    aiValidation: Option[Int],
     expired: Boolean,
     highQualityUser: Boolean,
     severity: Option[Int]
@@ -1095,37 +1096,37 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       routeIds: Seq[Int],
       aiValOptions: Seq[String]
   ): DBIO[Seq[LabelForLabelMap]] = {
+    val _labels = for {
+      (_l, _at, _us) <- labelsWithAuditTasksAndUserStats
+      _lt            <- labelTypes if _l.labelTypeId === _lt.labelTypeId
+      _lp            <- labelPoints if _l.labelId === _lp.labelId
+      _gsv           <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
+      _ser           <- streetEdgeRegions if _l.streetEdgeId === _ser.streetEdgeId
+      if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
+      if _lp.lat.isDefined && _lp.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
+    } yield (_l, _us, _lt, _lp, _gsv, _ser)
+
     // Get AI validations.
-    val _labelInfoWithAIValidation = labelsWithAuditTasksAndUserStats
+    val _labelInfoWithAIValidation = _labels
       .joinLeft(aiValidations)
       .on(_._1.labelId === _.labelId)
-      .map { case ((_l, _at, _us), _aiv) => (_l, _at, _us, _aiv) }
+      .map { case ((_l, _us, _lt, _lp, _gsv, _ser), _aiv) => (_l, _us, _lt, _lp, _gsv, _ser, _aiv) }
 
     // Filter labels based on how the AI validated them.
     val _labelsFilteredByAiValidation = {
       var query = _labelInfoWithAIValidation
       if (!aiValOptions.contains("correct"))
-        query = query.filter(l => l._4.isEmpty || l._4.map(_.validationResult) =!= 1.asColumnOf[Option[Int]])
+        query = query.filter(l => l._7.isEmpty || l._7.map(_.validationResult) =!= 1.asColumnOf[Option[Int]])
       if (!aiValOptions.contains("incorrect"))
-        query = query.filter(l => l._4.isEmpty || l._4.map(_.validationResult) =!= 2.asColumnOf[Option[Int]])
+        query = query.filter(l => l._7.isEmpty || l._7.map(_.validationResult) =!= 2.asColumnOf[Option[Int]])
       if (!aiValOptions.contains("unsure"))
-        query = query.filter(l => l._4.isEmpty || l._4.map(_.validationResult) =!= 3.asColumnOf[Option[Int]])
-      if (!aiValOptions.contains("unvalidated")) query = query.filter(l => l._4.isDefined)
-      query
-    }
-
-    val _labels = for {
-      (_l, _at, _us, _aiv) <- _labelsFilteredByAiValidation
-      _lType               <- labelTypes if _l.labelTypeId === _lType.labelTypeId
-      _lPoint              <- labelPoints if _l.labelId === _lPoint.labelId
-      _gsv                 <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
-      _ser                 <- streetEdgeRegions if _l.streetEdgeId === _ser.streetEdgeId
-      if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
-      if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
-    } yield {
-      val hasValidations = _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0
-      (_l.labelId, _l.auditTaskId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct, hasValidations, _gsv.expired,
-        _us.highQuality, _l.severity, _ser.streetEdgeId)
+        query = query.filter(l => l._7.isEmpty || l._7.map(_.validationResult) =!= 3.asColumnOf[Option[Int]])
+      if (!aiValOptions.contains("unvalidated")) query = query.filter(l => l._7.isDefined)
+      query.map { case (_l, _us, _lt, _lp, _gsv, _ser, _aiv) =>
+        val hasValidations = _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0
+        (_l.labelId, _l.auditTaskId, _lt.labelType, _lp.lat, _lp.lng, _l.correct, hasValidations,
+          _aiv.map(_.validationResult), _gsv.expired, _us.highQuality, _l.severity, _ser.streetEdgeId)
+      }
     }
 
     // Filter for labels along the given route. Distance experimentally set to 0.0005 degrees. Would like to switch to
@@ -1134,18 +1135,18 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (for {
         _rs <- routeStreets if _rs.routeId inSetBind routeIds
         _se <- streets if _rs.streetEdgeId === _se.streetEdgeId
-        _l  <- _labels if _se.streetEdgeId === _l._11 ||
+        _l  <- _labelsFilteredByAiValidation if _se.streetEdgeId === _l._1 ||
           _se.geom.distance(makePoint(_l._5.asColumnOf[Double], _l._4.asColumnOf[Double]).setSRID(4326)) < 0.0005f
       } yield _l).distinct
     } else {
-      _labels
+      _labelsFilteredByAiValidation
     }
 
     // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
     _labelsNearRoute.result.map(
-      _.map(l => LabelForLabelMap(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10))
+      _.map(l => LabelForLabelMap(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10, l._11))
     )
   }
 
