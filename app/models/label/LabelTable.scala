@@ -987,43 +987,46 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .on(_._1.labelId === _.labelId)
       .map { case ((_lb, _lp, _lt, _gd, _ser), _aiv) => (_lb, _lp, _lt, _gd, _ser, _aiv) }
 
-    // Filter labels based on how the AI validated them.
+    // Filter labels based on how the AI validated them. If no filters provided, do no filtering here.
     val _labelsFilteredByAiValidation = {
       var query = _labelInfoWithAIValidation
-      if (!aiValOptions.contains("correct"))
-        query = query.filter(l => l._6.isEmpty || l._6.map(_.validationResult) =!= 1.asColumnOf[Option[Int]])
-      if (!aiValOptions.contains("incorrect"))
-        query = query.filter(l => l._6.isEmpty || l._6.map(_.validationResult) =!= 2.asColumnOf[Option[Int]])
-      if (!aiValOptions.contains("unsure"))
-        query = query.filter(l => l._6.isEmpty || l._6.map(_.validationResult) =!= 3.asColumnOf[Option[Int]])
-      if (!aiValOptions.contains("unvalidated")) query = query.filter(l => l._6.isDefined)
+      if (aiValOptions.nonEmpty) {
+        if (!aiValOptions.contains("correct"))
+          query = query.filter(l => l._6.isEmpty || l._6.map(_.validationResult) =!= 1.asColumnOf[Option[Int]])
+        if (!aiValOptions.contains("incorrect"))
+          query = query.filter(l => l._6.isEmpty || l._6.map(_.validationResult) =!= 2.asColumnOf[Option[Int]])
+        if (!aiValOptions.contains("unsure"))
+          query = query.filter(l => l._6.isEmpty || l._6.map(_.validationResult) =!= 3.asColumnOf[Option[Int]])
+        if (!aiValOptions.contains("unvalidated")) query = query.filter(l => l._6.isDefined)
+      }
       query
     }
 
     // Join with user validations.
     val _userValidations       = labelValidations.filter(_.userId === userId)
     val _labelInfoWithUserVals = for {
-      (l, v) <- _labelsFilteredByAiValidation.joinLeft(_userValidations).on(_._1.labelId === _.labelId)
+      ((_lb, _lp, _lt, _gd, _ser, _aiv), _uv) <-
+        _labelsFilteredByAiValidation.joinLeft(_userValidations).on(_._1.labelId === _.labelId)
     } yield (
-      l._1.labelId,
-      l._3.labelType,
-      l._1.gsvPanoramaId,
-      l._4.captureDate,
-      l._1.timeCreated,
-      l._2.lat,
-      l._2.lng,
-      (l._2.heading.asColumnOf[Double], l._2.pitch.asColumnOf[Double], l._2.zoom),
-      (l._2.canvasX, l._2.canvasY),
-      l._1.severity,
-      l._1.description,
-      l._1.streetEdgeId,
-      l._5.regionId,
-      (l._1.agreeCount, l._1.disagreeCount, l._1.unsureCount, l._1.correct),
-      v.map(_.validationResult),    // userValidation
-      l._6.map(_.validationResult), // aiValidation
-      l._1.tags,
-      l._4.lat,
-      l._4.lng,
+      _lb.labelId,
+      _lt.labelType,
+      _lb.gsvPanoramaId,
+      _gd.captureDate,
+      _lb.timeCreated,
+      _lp.lat,
+      _lp.lng,
+      (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom),
+      (_lp.canvasX, _lp.canvasY),
+      _lb.severity,
+      _lb.description,
+      _lb.streetEdgeId,
+      _ser.regionId,
+      (_lb.agreeCount, _lb.disagreeCount, _lb.unsureCount, _lb.correct),
+      _uv.map(_.validationResult),  // userValidation
+      _aiv.map(_.validationResult), // aiValidation
+      _lb.tags,
+      _gd.lat,
+      _gd.lng,
       // Placeholder for AI tags, since we don't show those on Gallery right now.
       None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]]
     )
@@ -1112,16 +1115,20 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .on(_._1.labelId === _.labelId)
       .map { case ((_l, _us, _lt, _lp, _gsv, _ser), _aiv) => (_l, _us, _lt, _lp, _gsv, _ser, _aiv) }
 
-    // Filter labels based on how the AI validated them.
+    // Filter labels based on how the AI validated them. If no filters provided, do no filtering here.
     val _labelsFilteredByAiValidation = {
       var query = _labelInfoWithAIValidation
-      if (!aiValOptions.contains("correct"))
-        query = query.filter(l => l._7.isEmpty || l._7.map(_.validationResult) =!= 1.asColumnOf[Option[Int]])
-      if (!aiValOptions.contains("incorrect"))
-        query = query.filter(l => l._7.isEmpty || l._7.map(_.validationResult) =!= 2.asColumnOf[Option[Int]])
-      if (!aiValOptions.contains("unsure"))
-        query = query.filter(l => l._7.isEmpty || l._7.map(_.validationResult) =!= 3.asColumnOf[Option[Int]])
-      if (!aiValOptions.contains("unvalidated")) query = query.filter(l => l._7.isDefined)
+      if (aiValOptions.nonEmpty) {
+        if (!aiValOptions.contains("correct"))
+          query = query.filter(l => l._7.isEmpty || l._7.map(_.validationResult) =!= 1.asColumnOf[Option[Int]])
+        if (!aiValOptions.contains("incorrect"))
+          query = query.filter(l => l._7.isEmpty || l._7.map(_.validationResult) =!= 2.asColumnOf[Option[Int]])
+        if (!aiValOptions.contains("unsure"))
+          query = query.filter(l => l._7.isEmpty || l._7.map(_.validationResult) =!= 3.asColumnOf[Option[Int]])
+        if (!aiValOptions.contains("unvalidated")) query = query.filter(l => l._7.isDefined)
+      }
+
+      // Grab the columns that we need for the LabelForLabelMap case class.
       query.map { case (_l, _us, _lt, _lp, _gsv, _ser, _aiv) =>
         val hasValidations = _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0
         (_l.labelId, _l.auditTaskId, _lt.labelType, _lp.lat, _lp.lng, _l.correct, hasValidations,
