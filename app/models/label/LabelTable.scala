@@ -99,7 +99,7 @@ case class ProjectSidewalkStats(
     nValidations: Int,
     accuracyByLabelType: Map[String, LabelAccuracy]
 )
-case class LabelTypeValidationsLeft(labelTypeId: Int, validationsAvailable: Int, validationsNeeded: Int)
+case class LabelTypeValidationsLeft(labelType: LabelTypeEnum.Base, validationsAvailable: Int, validationsNeeded: Int)
 
 case class LabelCount(count: Int, timeInterval: TimeInterval, labelType: String) {
   require((validLabelTypes ++ Seq("All")).contains(labelType))
@@ -778,7 +778,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         (labType, group.length, group.length - group.map(_._3).countDefined)
       }
       .result
-      .map(_.map(x => LabelTypeValidationsLeft(x._1, x._2, x._3)))
+      .map(_.map(x => LabelTypeValidationsLeft(LabelTypeEnum.byId(x._1), x._2, x._3)))
   }
 
   /**
@@ -930,24 +930,24 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   /**
    * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
-   * @param labelTypeId       Label type specifying what type of labels to grab.
+   * @param labelType         Label type specifying what type of labels to grab.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
    * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param regionIds         Set of neighborhoods to get labels from. All neighborhoods if empty.
    * @param severity          Set of severities the labels grabbed can have.
    * @param tags              Set of tags the labels grabbed can have.
-   * @param aiValidatedOnly   If true, only include labels that have a corresponding validation from AI.
+   * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param userId            User ID of the user requesting the labels.
    * @return                  Query object to get the labels.
    */
   def getGalleryLabelsQuery(
-      labelTypeId: Int,
+      labelType: LabelTypeEnum.Base,
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
       regionIds: Set[Int],
       severity: Set[Int],
       tags: Set[String],
-      aiValidatedOnly: Boolean,
+      aiValOptions: Set[String],
       userId: String
   ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
     // Filter labels based on correctness.
@@ -972,7 +972,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _ser <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
       if _gd.expired === false
       if _lp.lat.isDefined && _lp.lng.isDefined
-      if _lt.labelTypeId === labelTypeId
+      if _lt.labelTypeId === labelType.id
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
       if (_lb.severity inSetBind severity) || severity.isEmpty
       if (_lb.tags @& tags.toList) || tags.isEmpty // @& is the overlap operator from postgres (&& in postgres).
@@ -986,17 +986,23 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .on(_._1.labelId === _.labelId)
       .map { case ((_lb, _lp, _lt, _gd, _ser), _aiv) => (_lb, _lp, _lt, _gd, _ser, _aiv) }
 
-    // If aiValidatedOnly is true, filter out everything that doesn't have an AI validation.
-    val _labelsMaybeAiValidatedOnly = if (aiValidatedOnly) {
-      _labelInfoWithAIValidation.filter(_._6.isDefined)
-    } else {
-      _labelInfoWithAIValidation
+    // Filter labels based on how the AI validated them.
+    val _labelsFilteredByAiValidation = {
+      var query = _labelInfoWithAIValidation
+      if (!aiValOptions.contains("correct"))
+        query = query.filter(l => l._6.isEmpty || l._6.map(_.validationResult) =!= 1.asColumnOf[Option[Int]])
+      if (!aiValOptions.contains("incorrect"))
+        query = query.filter(l => l._6.isEmpty || l._6.map(_.validationResult) =!= 2.asColumnOf[Option[Int]])
+      if (!aiValOptions.contains("unsure"))
+        query = query.filter(l => l._6.isEmpty || l._6.map(_.validationResult) =!= 3.asColumnOf[Option[Int]])
+      if (!aiValOptions.contains("unvalidated")) query = query.filter(l => l._6.isDefined)
+      query
     }
 
     // Join with user validations.
     val _userValidations       = labelValidations.filter(_.userId === userId)
     val _labelInfoWithUserVals = for {
-      (l, v) <- _labelsMaybeAiValidatedOnly.joinLeft(_userValidations).on(_._1.labelId === _.labelId)
+      (l, v) <- _labelsFilteredByAiValidation.joinLeft(_userValidations).on(_._1.labelId === _.labelId)
     } yield (
       l._1.labelId,
       l._3.labelType,
@@ -1034,13 +1040,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   /**
    * Get user's labels most recently validated as incorrect.
-   * @param userId  ID of the user who made these mistakes.
-   * @param labType Label types where we are looking for mistakes.
-   * @return        Query object to get the labels.
+   * @param userId    ID of the user who made these mistakes.
+   * @param labelType Label types where we are looking for mistakes.
+   * @return          Query object to get the labels.
    */
   def getValidatedLabelsForUserQuery(
       userId: String,
-      labType: String
+      labelType: LabelTypeEnum.Base
   ): Query[LabelMetadataUserDashTupleRep, LabelMetadataUserDashTuple, Seq] = {
     // Attach comments to validations using a left join.
     val _validationsWithComments = labelValidations
@@ -1065,7 +1071,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         _us.highQuality === true && // For now, we only include validations from high quality users.
         _gd.expired === false &&    // Only include those with non-expired GSV imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
-        _lt.labelType === labType                         // Only include given label types.
+        _lt.labelType === labelType.name                  // Only include given label types.
     } yield (
       _lb.labelId,
       _lb.gsvPanoramaId,
@@ -1087,21 +1093,33 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   def getLabelsForLabelMap(
       regionIds: Seq[Int],
       routeIds: Seq[Int],
-      aiValidatedOnly: Boolean = false
+      aiValOptions: Seq[String]
   ): DBIO[Seq[LabelForLabelMap]] = {
-    // Filter for only labels validated with AI if aiValidatedOnly is true.
-    val _filteredLabels = if (aiValidatedOnly) {
-      labelsWithAuditTasksAndUserStats.join(aiValidations).on(_._1.labelId === _.labelId).map(_._1)
-    } else {
-      labelsWithAuditTasksAndUserStats
+    // Get AI validations.
+    val _labelInfoWithAIValidation = labelsWithAuditTasksAndUserStats
+      .joinLeft(aiValidations)
+      .on(_._1.labelId === _.labelId)
+      .map { case ((_l, _at, _us), _aiv) => (_l, _at, _us, _aiv) }
+
+    // Filter labels based on how the AI validated them.
+    val _labelsFilteredByAiValidation = {
+      var query = _labelInfoWithAIValidation
+      if (!aiValOptions.contains("correct"))
+        query = query.filter(l => l._4.isEmpty || l._4.map(_.validationResult) =!= 1.asColumnOf[Option[Int]])
+      if (!aiValOptions.contains("incorrect"))
+        query = query.filter(l => l._4.isEmpty || l._4.map(_.validationResult) =!= 2.asColumnOf[Option[Int]])
+      if (!aiValOptions.contains("unsure"))
+        query = query.filter(l => l._4.isEmpty || l._4.map(_.validationResult) =!= 3.asColumnOf[Option[Int]])
+      if (!aiValOptions.contains("unvalidated")) query = query.filter(l => l._4.isDefined)
+      query
     }
 
     val _labels = for {
-      (_l, _at, _us) <- _filteredLabels
-      _lType         <- labelTypes if _l.labelTypeId === _lType.labelTypeId
-      _lPoint        <- labelPoints if _l.labelId === _lPoint.labelId
-      _gsv           <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
-      _ser           <- streetEdgeRegions if _l.streetEdgeId === _ser.streetEdgeId
+      (_l, _at, _us, _aiv) <- _labelsFilteredByAiValidation
+      _lType               <- labelTypes if _l.labelTypeId === _lType.labelTypeId
+      _lPoint              <- labelPoints if _l.labelId === _lPoint.labelId
+      _gsv                 <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
+      _ser                 <- streetEdgeRegions if _l.streetEdgeId === _ser.streetEdgeId
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
       if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
     } yield {

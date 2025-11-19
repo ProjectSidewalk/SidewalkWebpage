@@ -3,7 +3,7 @@
 @import service.CommonPageData
 @(commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, labelType: String,
     labels: Seq[(String, String)], regionIds: Seq[Int], severities: Seq[Int], tags: List[String],
-    valOptions: Seq[String], aiValidatedOnly: Boolean
+    valOptions: Seq[String], aiValOptions: Seq[String]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
@@ -133,7 +133,7 @@
                 severities: @{severities.mkString("[", ",", "]")},
                 validationOptions: @{if (valOptions.isEmpty) "[]" else Html(valOptions.mkString("['", "','", "']"))},
                 tags: @{if (tags.isEmpty) "[]" else Html(tags.mkString("['", "','", "']"))},
-                aiValidatedOnly: @aiValidatedOnly
+                aiValidationOptions: @{if (aiValOptions.isEmpty) "[]" else Html(aiValOptions.mkString("['", "','", "']"))}
             }
 
             params.language = "@messages.lang.code";

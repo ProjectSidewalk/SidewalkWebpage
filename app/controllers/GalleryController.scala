@@ -45,7 +45,7 @@ class GalleryController @Inject() (
       severities: String,
       tags: String,
       validationOptions: String,
-      aiValidatedOnly: String
+      aiValidationOptions: String
   ): Action[AnyContent] =
     cc.securityService.SecuredAction { implicit request =>
       val labelTypes: Seq[(String, String)] = Seq(
@@ -76,7 +76,8 @@ class GalleryController @Inject() (
         val tagList: List[String]   = tags.split(",").filter(possibleTags.contains).toList
         val valOptions: Seq[String] =
           validationOptions.split(",").filter(Seq("correct", "incorrect", "unsure", "unvalidated").contains(_)).toSeq
-        val aiValOnly: Boolean = aiValidatedOnly.toBooleanOption.getOrElse(false)
+        val aiValOptions: Seq[String] =
+          aiValidationOptions.split(",").filter(Seq("correct", "incorrect", "unsure", "unvalidated").contains(_)).toSeq
 
         // Log visit to Gallery async.
         val activityStr: String =
@@ -85,7 +86,7 @@ class GalleryController @Inject() (
 
         Ok(
           views.html.apps.gallery(commonData, "Sidewalk - Gallery", request.identity, labType, labelTypes,
-            regionIdsList, severityList, tagList, valOptions, aiValOnly)
+            regionIdsList, severityList, tagList, valOptions, aiValOptions)
         )
       }
     }
@@ -98,19 +99,19 @@ class GalleryController @Inject() (
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        val n: Int                   = submission.n
-        val labelTypeId: Option[Int] = submission.labelTypeId
-        val loadedLabelIds: Set[Int] = submission.loadedLabels.toSet
-        val valOptions: Set[String]  = submission.validationOptions.getOrElse(Seq()).toSet
-        val regionIds: Set[Int]      = submission.regionIds.getOrElse(Seq()).toSet
-        val severities: Set[Int]     = submission.severities.getOrElse(Seq()).toSet
-        val tags: Set[String]        = submission.tags.getOrElse(Seq()).toSet
-        val aiValOnly: Boolean       = submission.aiValidatedOnly.getOrElse(false)
-        val userId: String           = request.identity.userId
+        val n: Int                                = submission.n
+        val labelType: Option[LabelTypeEnum.Base] = submission.labelTypeId.flatMap(l => LabelTypeEnum.byId.get(l))
+        val loadedLabels: Set[Int]                = submission.loadedLabels.toSet
+        val valOptions: Set[String]               = submission.validationOptions.getOrElse(Seq()).toSet
+        val regionIds: Set[Int]                   = submission.regionIds.getOrElse(Seq()).toSet
+        val severities: Set[Int]                  = submission.severities.getOrElse(Seq()).toSet
+        val tags: Set[String]                     = submission.tags.getOrElse(Seq()).toSet
+        val aiValOptions: Set[String]             = submission.aiValidationOptions.getOrElse(Seq()).toSet
+        val userId: String                        = request.identity.userId
 
         // Get labels from LabelTable.
         labelService
-          .getGalleryLabels(n, labelTypeId, loadedLabelIds, valOptions, regionIds, severities, tags, aiValOnly, userId)
+          .getGalleryLabels(n, labelType, loadedLabels, valOptions, regionIds, severities, tags, aiValOptions, userId)
           .map { labels =>
             val jsonList: Seq[JsObject] = labels.map(l =>
               Json.obj(

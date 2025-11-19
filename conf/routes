@@ -4,9 +4,9 @@ GET     /home                                           controllers.ApplicationC
 GET     /api                                            controllers.ApiDocsController.index
 GET     /developer                                      controllers.ApiDocsController.index
 GET     /terms                                          controllers.ApplicationController.terms
-GET     /labelMap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidatedOnly: Option[String] ?= None)
-GET     /labelmap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidatedOnly: Option[String] ?= None)
-GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", neighborhoods: String ?= "", severities: String ?= "", tags: String ?= "", validationOptions: String ?= "correct,unvalidated", aiValidatedOnly: String ?= "")
+GET     /labelMap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
+GET     /labelmap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
+GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", neighborhoods: String ?= "", severities: String ?= "", tags: String ?= "", validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "")
 GET     /help                                           controllers.ApplicationController.help
 GET     /labelingGuide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                  controllers.ApplicationController.labelingGuide
@@ -85,7 +85,7 @@ PUT     /adminapi/updateTeamVisibility/:teamId          controllers.AdminControl
 GET     /adminapi/checkGsvImagery                       controllers.AdminController.checkGsvImagery()
 GET     /adminapi/threadPoolStats                       controllers.AdminController.getThreadPoolStats
 
-GET     /labels/all                                     controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidatedOnly: Option[String] ?= None)
+GET     /labels/all                                     controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
 GET     /label/id/:labelId                              controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks

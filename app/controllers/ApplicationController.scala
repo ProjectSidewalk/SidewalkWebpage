@@ -187,17 +187,17 @@ class ApplicationController @Inject() (
   /**
    * Returns the LabelMap page that contains a cool visualization.
    */
-  def labelMap(regions: Option[String], routes: Option[String], aiValidatedOnly: Option[String]) =
+  def labelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
     cc.securityService.SecuredAction { implicit request =>
-      val regionIds: Seq[Int]        = parseIntegerSeq(regions)
-      val routeIds: Seq[Int]         = parseIntegerSeq(routes)
-      val aiValOnly: Option[Boolean] = aiValidatedOnly.map(_.toBoolean)
-      val activityStr: String        = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
+      val regionIds: Seq[Int]    = parseIntegerSeq(regions)
+      val routeIds: Seq[Int]     = parseIntegerSeq(routes)
+      val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
+      val activityStr: String    = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
 
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
         Ok(
-          views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, regionIds, routeIds, aiValOnly)
+          views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, regionIds, routeIds, aiValOpts)
         )
       }
     }

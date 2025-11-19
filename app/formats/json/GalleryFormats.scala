@@ -34,7 +34,7 @@ object GalleryFormats {
       regionIds: Option[Seq[Int]],
       severities: Option[Seq[Int]],
       tags: Option[Seq[String]],
-      aiValidatedOnly: Option[Boolean],
+      aiValidationOptions: Option[Seq[String]],
       loadedLabels: Seq[Int]
   )
 
@@ -70,7 +70,7 @@ object GalleryFormats {
       (JsPath \ "neighborhoods").readNullable[Seq[Int]] and
       (JsPath \ "severities").readNullable[Seq[Int]] and
       (JsPath \ "tags").readNullable[Seq[String]] and
-      (JsPath \ "ai_validated_only").readNullable[Boolean] and
+      (JsPath \ "ai_validation_options").readNullable[Seq[String]] and
       (JsPath \ "loaded_labels").read[Seq[Int]]
   )(GalleryLabelsRequest.apply _)
 }

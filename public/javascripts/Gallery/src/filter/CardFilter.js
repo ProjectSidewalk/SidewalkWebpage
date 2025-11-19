@@ -142,8 +142,8 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
             firstQueryParam = false;
         }
         // TODO once we add a UI for filtering on AI validation, have that process mirrors other filters.
-        if (sg.aiValidatedOnly) {
-            newUrl += firstQueryParam ? `?aiValidatedOnly=true` : `&aiValidatedOnly=true`;
+        if (sg.aiValidationOptions.length > 0) {
+            newUrl += firstQueryParam ? `?aiValidationOptions=${sg.aiValidationOptions}` : `&aiValidationOptions=${sg.aiValidationOptions}`;
             firstQueryParam = false;
         }
         return newUrl;

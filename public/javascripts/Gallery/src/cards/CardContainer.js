@@ -37,8 +37,8 @@ function CardContainer(uiCardContainer, initialFilters) {
 
     // Current label type of cards being shown.
     let currentLabelType = initialFilters.labelType;
-    sg.neighborhoodIds = initialFilters.neighborhoods; // TODO remove this when we add a UI for filtering neighborhoods.
-    sg.aiValidatedOnly = initialFilters.aiValidatedOnly; // TODO remove this when we UI for filtering on AI validations.
+    sg.neighborhoodIds = initialFilters.neighborhoods; // TODO remove when we add a UI for filtering neighborhoods.
+    sg.aiValidationOptions = initialFilters.aiValidationOptions; // TODO remove when we add UI for filtering on AI vals.
     let currentPage = 1;
     let lastPage = false;
     let pageNumberDisplay = null;
@@ -83,7 +83,7 @@ function CardContainer(uiCardContainer, initialFilters) {
         cardsByType[currentLabelType] = new CardBucket();
 
         // Grab first batch of labels to show.
-        fetchLabels(labelTypeIds[currentLabelType], initialLoad, initialFilters.validationOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, initialFilters.severities, initialFilters.tags, initialFilters.aiValidatedOnly, function() {
+        fetchLabels(labelTypeIds[currentLabelType], initialLoad, initialFilters.validationOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, initialFilters.severities, initialFilters.tags, initialFilters.aiValidationOptions, function() {
             currentCards = cardsByType[currentLabelType].copy();
             lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
             render();
@@ -192,10 +192,10 @@ function CardContainer(uiCardContainer, initialFilters) {
      * @param {*} neighborhoods Region IDs the labels to be grabbed can be from (Set to undefined if N/A).
      * @param {*} severities Severities the labels to be grabbed can have (Set to undefined if N/A).
      * @param {*} tags Tags the labels to be grabbed can have (Set to undefined if N/A).
-     * @param aiValidatedOnly {boolean} If true, only include labels that have a corresponding validation from AI.
+     * @param aiValidationOptions List of AI validation options for labels: correct, incorrect, and/or unvalidated.
      * @param {*} callback Function to be called when labels arrive.
      */
-    function fetchLabels(labelTypeId, n, validationOptions, loadedLabels, neighborhoods, severities, tags, aiValidatedOnly, callback) {
+    function fetchLabels(labelTypeId, n, validationOptions, loadedLabels, neighborhoods, severities, tags, aiValidationOptions, callback) {
         var url = "/label/labels";
         let data = {
             label_type_id: labelTypeId,
@@ -204,7 +204,7 @@ function CardContainer(uiCardContainer, initialFilters) {
             ...(neighborhoods !== undefined && { neighborhoods: neighborhoods }),
             ...(severities !== undefined && { severities: severities }),
             ...(tags !== undefined && { tags: tags }),
-            ...(aiValidatedOnly !== undefined && { ai_validated_only: aiValidatedOnly }),
+            ...(aiValidationOptions !== undefined && { ai_validation_options: aiValidationOptions }),
             loaded_labels: loadedLabels
         }
         $.ajax({
@@ -276,7 +276,7 @@ function CardContainer(uiCardContainer, initialFilters) {
 
         if (currentCards.getSize() < cardsPerPage * currentPage + 1) {
             // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
-            fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, appliedValOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, appliedSeverities, appliedTags, initialFilters.aiValidatedOnly, function() {
+            fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, appliedValOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, appliedSeverities, appliedTags, initialFilters.aiValidationOptions, function() {
                 currentCards = cardsByType[currentLabelType].copy();
                 currentCards.filterOnTags(appliedTags);
                 currentCards.filterOnSeverities(appliedSeverities);

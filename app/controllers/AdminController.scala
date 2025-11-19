@@ -119,7 +119,7 @@ class AdminController @Inject() (
   def getAllLabels = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     labelService
-      .getLabelsForLabelMap(Seq(), Seq())
+      .getLabelsForLabelMap(Seq(), Seq(), Seq())
       .map { labels =>
         val features: Seq[JsObject] = labels.par.map { label =>
           Json.obj(
@@ -161,15 +161,15 @@ class AdminController @Inject() (
   /**
    * Get a list of all labels with metadata needed for /labelMap.
    */
-  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String], aiValidatedOnly: Option[String]) =
+  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
     Action.async { implicit request =>
       logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-      val regionIds: Seq[Int] = parseIntegerSeq(regions)
-      val routeIds: Seq[Int]  = parseIntegerSeq(routes)
-      val aiValOnly: Boolean  = aiValidatedOnly.exists(_.toBoolean)
+      val regionIds: Seq[Int]    = parseIntegerSeq(regions)
+      val routeIds: Seq[Int]     = parseIntegerSeq(routes)
+      val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
 
       labelService
-        .getLabelsForLabelMap(regionIds, routeIds, aiValOnly)
+        .getLabelsForLabelMap(regionIds, routeIds, aiValOpts)
         .map { labels =>
           val features: Seq[JsObject] = labels.par.map { label =>
             Json.obj(

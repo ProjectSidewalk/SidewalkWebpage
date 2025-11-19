@@ -2,7 +2,7 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, regionIds: Seq[Int], routeIds: Seq[Int],
-    aiValidatedOnly: Option[Boolean]
+    aiValidationOptions: Seq[String]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -172,9 +172,9 @@
                 params.labelsURL.searchParams.append('routes', routesParam);
             }
 
-            // If aiValidatedOnly param was passed, include that in labelsURl.
-            @if(aiValidatedOnly.isDefined) {
-                params.labelsURL.searchParams.append('aiValidatedOnly', @{aiValidatedOnly.get});
+            let aiValidationOptionsParam = '@{aiValidationOptions.mkString(",")}';
+            if (aiValidatedOptionsParam) {
+                params.labelsURL.searchParams.append('aiValidationOptions', aiValidationOptions);
             }
 
             var self = {};
