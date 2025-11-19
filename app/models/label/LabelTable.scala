@@ -25,7 +25,6 @@ import service.TimeInterval
 import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
 import slick.sql.SqlStreamingAction
-
 import java.time.{Duration, Instant, OffsetDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
@@ -67,7 +66,7 @@ case class LabelLocation(
     hasValidations: Boolean
 )
 
-case class LabelLocationWithSeverity(
+case class LabelForLabelMap(
     labelId: Int,
     auditTaskId: Int,
     labelType: String,
@@ -75,6 +74,7 @@ case class LabelLocationWithSeverity(
     lng: Float,
     correct: Option[Boolean],
     hasValidations: Boolean,
+    aiValidation: Option[Int],
     expired: Boolean,
     highQualityUser: Boolean,
     severity: Option[Int]
@@ -100,7 +100,7 @@ case class ProjectSidewalkStats(
     nValidations: Int,
     accuracyByLabelType: Map[String, LabelAccuracy]
 )
-case class LabelTypeValidationsLeft(labelTypeId: Int, validationsAvailable: Int, validationsNeeded: Int)
+case class LabelTypeValidationsLeft(labelType: LabelTypeEnum.Base, validationsAvailable: Int, validationsNeeded: Int)
 
 case class LabelCount(count: Int, timeInterval: TimeInterval, labelType: String) {
   require((validLabelTypes ++ Seq("All")).contains(labelType))
@@ -779,7 +779,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         (labType, group.length, group.length - group.map(_._3).countDefined)
       }
       .result
-      .map(_.map(x => LabelTypeValidationsLeft(x._1, x._2, x._3)))
+      .map(_.map(x => LabelTypeValidationsLeft(LabelTypeEnum.byId(x._1), x._2, x._3)))
   }
 
   /**
@@ -931,22 +931,24 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   /**
    * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
-   * @param labelTypeId       Label type specifying what type of labels to grab.
+   * @param labelType         Label type specifying what type of labels to grab.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
    * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param regionIds         Set of neighborhoods to get labels from. All neighborhoods if empty.
    * @param severity          Set of severities the labels grabbed can have.
    * @param tags              Set of tags the labels grabbed can have.
+   * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param userId            User ID of the user requesting the labels.
    * @return                  Query object to get the labels.
    */
   def getGalleryLabelsQuery(
-      labelTypeId: Int,
+      labelType: LabelTypeEnum.Base,
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
       regionIds: Set[Int],
       severity: Set[Int],
       tags: Set[String],
+      aiValOptions: Set[String],
       userId: String
   ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
     // Filter labels based on correctness.
@@ -971,7 +973,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _ser <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
       if _gd.expired === false
       if _lp.lat.isDefined && _lp.lng.isDefined
-      if _lt.labelTypeId === labelTypeId
+      if _lt.labelTypeId === labelType.id
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
       if (_lb.severity inSetBind severity) || severity.isEmpty
       if (_lb.tags @& tags.toList) || tags.isEmpty // @& is the overlap operator from postgres (&& in postgres).
@@ -985,30 +987,46 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .on(_._1.labelId === _.labelId)
       .map { case ((_lb, _lp, _lt, _gd, _ser), _aiv) => (_lb, _lp, _lt, _gd, _ser, _aiv) }
 
+    // Filter labels based on how the AI validated them. If no filters provided, do no filtering here.
+    val _labelsFilteredByAiValidation = {
+      var query = _labelInfoWithAIValidation
+      if (aiValOptions.nonEmpty) {
+        if (!aiValOptions.contains("correct"))
+          query = query.filter(l => l._6.isEmpty || l._6.map(_.validationResult) =!= 1.asColumnOf[Option[Int]])
+        if (!aiValOptions.contains("incorrect"))
+          query = query.filter(l => l._6.isEmpty || l._6.map(_.validationResult) =!= 2.asColumnOf[Option[Int]])
+        if (!aiValOptions.contains("unsure"))
+          query = query.filter(l => l._6.isEmpty || l._6.map(_.validationResult) =!= 3.asColumnOf[Option[Int]])
+        if (!aiValOptions.contains("unvalidated")) query = query.filter(l => l._6.isDefined)
+      }
+      query
+    }
+
     // Join with user validations.
     val _userValidations       = labelValidations.filter(_.userId === userId)
     val _labelInfoWithUserVals = for {
-      (l, v) <- _labelInfoWithAIValidation.joinLeft(_userValidations).on(_._1.labelId === _.labelId)
+      ((_lb, _lp, _lt, _gd, _ser, _aiv), _uv) <-
+        _labelsFilteredByAiValidation.joinLeft(_userValidations).on(_._1.labelId === _.labelId)
     } yield (
-      l._1.labelId,
-      l._3.labelType,
-      l._1.gsvPanoramaId,
-      l._4.captureDate,
-      l._1.timeCreated,
-      l._2.lat,
-      l._2.lng,
-      (l._2.heading.asColumnOf[Double], l._2.pitch.asColumnOf[Double], l._2.zoom),
-      (l._2.canvasX, l._2.canvasY),
-      l._1.severity,
-      l._1.description,
-      l._1.streetEdgeId,
-      l._5.regionId,
-      (l._1.agreeCount, l._1.disagreeCount, l._1.unsureCount, l._1.correct),
-      v.map(_.validationResult),    // userValidation
-      l._6.map(_.validationResult), // aiValidation
-      l._1.tags,
-      l._4.lat,
-      l._4.lng,
+      _lb.labelId,
+      _lt.labelType,
+      _lb.gsvPanoramaId,
+      _gd.captureDate,
+      _lb.timeCreated,
+      _lp.lat,
+      _lp.lng,
+      (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom),
+      (_lp.canvasX, _lp.canvasY),
+      _lb.severity,
+      _lb.description,
+      _lb.streetEdgeId,
+      _ser.regionId,
+      (_lb.agreeCount, _lb.disagreeCount, _lb.unsureCount, _lb.correct),
+      _uv.map(_.validationResult),  // userValidation
+      _aiv.map(_.validationResult), // aiValidation
+      _lb.tags,
+      _gd.lat,
+      _gd.lng,
       // Placeholder for AI tags, since we don't show those on Gallery right now.
       None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]]
     )
@@ -1026,13 +1044,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   /**
    * Get user's labels most recently validated as incorrect.
-   * @param userId  ID of the user who made these mistakes.
-   * @param labType Label types where we are looking for mistakes.
-   * @return        Query object to get the labels.
+   * @param userId    ID of the user who made these mistakes.
+   * @param labelType Label types where we are looking for mistakes.
+   * @return          Query object to get the labels.
    */
   def getValidatedLabelsForUserQuery(
       userId: String,
-      labType: String
+      labelType: LabelTypeEnum.Base
   ): Query[LabelMetadataUserDashTupleRep, LabelMetadataUserDashTuple, Seq] = {
     // Attach comments to validations using a left join.
     val _validationsWithComments = labelValidations
@@ -1057,7 +1075,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         _us.highQuality === true && // For now, we only include validations from high quality users.
         _gd.expired === false &&    // Only include those with non-expired GSV imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
-        _lt.labelType === labType                         // Only include given label types.
+        _lt.labelType === labelType.name                  // Only include given label types.
     } yield (
       _lb.labelId,
       _lb.gsvPanoramaId,
@@ -1076,22 +1094,46 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Returns all the submitted labels with their severities included. If provided, filter for only given regions.
    */
-  def selectLocationsAndSeveritiesOfLabels(
+  def getLabelsForLabelMap(
       regionIds: Seq[Int],
-      routeIds: Seq[Int]
-  ): DBIO[Seq[LabelLocationWithSeverity]] = {
+      routeIds: Seq[Int],
+      aiValOptions: Seq[String]
+  ): DBIO[Seq[LabelForLabelMap]] = {
     val _labels = for {
       (_l, _at, _us) <- labelsWithAuditTasksAndUserStats
-      _lType         <- labelTypes if _l.labelTypeId === _lType.labelTypeId
-      _lPoint        <- labelPoints if _l.labelId === _lPoint.labelId
+      _lt            <- labelTypes if _l.labelTypeId === _lt.labelTypeId
+      _lp            <- labelPoints if _l.labelId === _lp.labelId
       _gsv           <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
       _ser           <- streetEdgeRegions if _l.streetEdgeId === _ser.streetEdgeId
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
-      if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
-    } yield {
-      val hasValidations = _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0
-      (_l.labelId, _l.auditTaskId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct, hasValidations, _gsv.expired,
-        _us.highQuality, _l.severity, _ser.streetEdgeId)
+      if _lp.lat.isDefined && _lp.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
+    } yield (_l, _us, _lt, _lp, _gsv, _ser)
+
+    // Get AI validations.
+    val _labelInfoWithAIValidation = _labels
+      .joinLeft(aiValidations)
+      .on(_._1.labelId === _.labelId)
+      .map { case ((_l, _us, _lt, _lp, _gsv, _ser), _aiv) => (_l, _us, _lt, _lp, _gsv, _ser, _aiv) }
+
+    // Filter labels based on how the AI validated them. If no filters provided, do no filtering here.
+    val _labelsFilteredByAiValidation = {
+      var query = _labelInfoWithAIValidation
+      if (aiValOptions.nonEmpty) {
+        if (!aiValOptions.contains("correct"))
+          query = query.filter(l => l._7.isEmpty || l._7.map(_.validationResult) =!= 1.asColumnOf[Option[Int]])
+        if (!aiValOptions.contains("incorrect"))
+          query = query.filter(l => l._7.isEmpty || l._7.map(_.validationResult) =!= 2.asColumnOf[Option[Int]])
+        if (!aiValOptions.contains("unsure"))
+          query = query.filter(l => l._7.isEmpty || l._7.map(_.validationResult) =!= 3.asColumnOf[Option[Int]])
+        if (!aiValOptions.contains("unvalidated")) query = query.filter(l => l._7.isDefined)
+      }
+
+      // Grab the columns that we need for the LabelForLabelMap case class.
+      query.map { case (_l, _us, _lt, _lp, _gsv, _ser, _aiv) =>
+        val hasValidations = _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0
+        (_l.labelId, _l.auditTaskId, _lt.labelType, _lp.lat, _lp.lng, _l.correct, hasValidations,
+          _aiv.map(_.validationResult), _gsv.expired, _us.highQuality, _l.severity, _ser.streetEdgeId)
+      }
     }
 
     // Filter for labels along the given route. Distance experimentally set to 0.0005 degrees. Would like to switch to
@@ -1100,18 +1142,18 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (for {
         _rs <- routeStreets if _rs.routeId inSetBind routeIds
         _se <- streets if _rs.streetEdgeId === _se.streetEdgeId
-        _l  <- _labels if _se.streetEdgeId === _l._11 ||
+        _l  <- _labelsFilteredByAiValidation if _se.streetEdgeId === _l._1 ||
           _se.geom.distance(makePoint(_l._5.asColumnOf[Double], _l._4.asColumnOf[Double]).setSRID(4326)) < 0.0005f
       } yield _l).distinct
     } else {
-      _labels
+      _labelsFilteredByAiValidation
     }
 
     // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
     _labelsNearRoute.result.map(
-      _.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10))
+      _.map(l => LabelForLabelMap(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10, l._11))
     )
   }
 

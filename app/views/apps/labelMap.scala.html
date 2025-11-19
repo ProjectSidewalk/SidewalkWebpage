@@ -1,7 +1,8 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, regionIds: Seq[Int], routeIds: Seq[Int]
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, regionIds: Seq[Int], routeIds: Seq[Int],
+    aiValidationOptions: Seq[String]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -169,6 +170,11 @@
             if (routesParam) {
                 params.streetsURL.searchParams.append('routes', routesParam);
                 params.labelsURL.searchParams.append('routes', routesParam);
+            }
+
+            let aiValidationOptionsParam = '@{aiValidationOptions.mkString(",")}';
+            if (aiValidationOptionsParam) {
+                params.labelsURL.searchParams.append('aiValidationOptions', aiValidationOptionsParam);
             }
 
             var self = {};

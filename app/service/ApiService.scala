@@ -19,7 +19,6 @@ import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
 import slick.sql.SqlStreamingAction
-
 import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
@@ -208,8 +207,8 @@ class ApiServiceImpl @Inject() (
       LabelTypeForApi(
         id = labelType.id, name = labelType.name, description = description, iconUrl = labelType.iconPath,
         smallIconUrl = labelType.smallIconPath, tinyIconUrl = labelType.tinyIconPath, color = labelType.color,
-        isPrimary = LabelTypeEnum.primaryLabelTypes.contains(labelType.name),
-        isPrimaryValidate = LabelTypeEnum.primaryValidateLabelTypes.contains(labelType.name)
+        isPrimary = LabelTypeEnum.primaryLabelTypes.contains(labelType),
+        isPrimaryValidate = LabelTypeEnum.primaryValidateLabelTypes.contains(labelType)
       )
     }
   }
@@ -289,7 +288,7 @@ class ApiServiceImpl @Inject() (
       clusterObjs: Seq[Cluster] =
         clusters.zip(streetIds).map { case (cluster, streetId) =>
           val labelTypeId: Int = LabelTypeEnum.labelTypeToId(cluster.labelType)
-          val geom = gf.createPoint(new Coordinate(cluster.lng, cluster.lat))
+          val geom             = gf.createPoint(new Coordinate(cluster.lng, cluster.lat))
           Cluster(0, sessionId, labelTypeId, streetId, geom, cluster.severity)
         }
 

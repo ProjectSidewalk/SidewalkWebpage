@@ -2,7 +2,6 @@ package formats.json
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{JsPath, Reads}
-
 import java.time.OffsetDateTime
 
 object GalleryFormats {
@@ -35,6 +34,7 @@ object GalleryFormats {
       regionIds: Option[Seq[Int]],
       severities: Option[Seq[Int]],
       tags: Option[Seq[String]],
+      aiValidationOptions: Option[Seq[String]],
       loadedLabels: Seq[Int]
   )
 
@@ -70,6 +70,7 @@ object GalleryFormats {
       (JsPath \ "neighborhoods").readNullable[Seq[Int]] and
       (JsPath \ "severities").readNullable[Seq[Int]] and
       (JsPath \ "tags").readNullable[Seq[String]] and
+      (JsPath \ "ai_validation_options").readNullable[Seq[String]] and
       (JsPath \ "loaded_labels").read[Seq[Int]]
   )(GalleryLabelsRequest.apply _)
 }

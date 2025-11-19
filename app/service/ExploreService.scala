@@ -18,7 +18,6 @@ import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
@@ -39,7 +38,7 @@ case class ExploreTaskPostReturnValue(
     auditTaskId: Int,
     mission: Option[Mission],
     // newLabels is a sequence of tuples containing (label_id, temporary_label_id, label_type, time_created).
-    newLabels: Seq[(Int, Int, String, OffsetDateTime)],
+    newLabels: Seq[(Int, Int, LabelTypeEnum.Base, OffsetDateTime)],
     updatedStreets: Option[UpdatedStreets],
     refreshPage: Boolean
 )
@@ -390,7 +389,7 @@ class ExploreServiceImpl @Inject() (
       auditTaskId: Int,
       taskStreetId: Int,
       missionId: Int
-  ): DBIO[(Int, Int, String, OffsetDateTime)] = {
+  ): DBIO[(Int, Int, LabelTypeEnum.Base, OffsetDateTime)] = {
     // Get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp.
     val timeCreated: OffsetDateTime = label.timeCreated match {
       case Some(time) => time
@@ -444,7 +443,7 @@ class ExploreServiceImpl @Inject() (
           point.zoom, point.lat, point.lng, pointGeom, point.computationMethod)
       )
     } yield {
-      (newLabelId, label.temporaryLabelId, label.labelType, timeCreated)
+      (newLabelId, label.temporaryLabelId, LabelTypeEnum.byName(label.labelType), timeCreated)
     }
   }
 
@@ -615,7 +614,7 @@ class ExploreServiceImpl @Inject() (
       } else DBIO.successful(0)
 
       // Insert any labels.
-      val labelSubmitActions: Seq[DBIO[Option[(Int, Int, String, OffsetDateTime)]]] = data.labels.map {
+      val labelSubmitActions: Seq[DBIO[Option[(Int, Int, LabelTypeEnum.Base, OffsetDateTime)]]] = data.labels.map {
         label: LabelSubmission =>
           val labelTypeId: Int = LabelTypeEnum.labelTypeToId(label.labelType)
           labelTable.find(label.temporaryLabelId, userId).flatMap {
