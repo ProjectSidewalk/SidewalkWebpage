@@ -17,8 +17,8 @@ import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
-import play.api.{Configuration, Logger}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.{Configuration, Logger}
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
@@ -51,6 +51,7 @@ case class UpdatedStreets(lastPriorityUpdateTime: OffsetDateTime, updatedStreetP
 trait ExploreService {
   def getDataForExplorePage(
       userId: String,
+      viewerType: Option[PanoSource],
       retakingTutorial: Boolean,
       newRegion: Boolean,
       routeId: Option[Int],
@@ -144,6 +145,7 @@ class ExploreServiceImpl @Inject() (
 
   def getDataForExplorePage(
       userId: String,
+      viewerType: Option[PanoSource],
       retakingTutorial: Boolean,
       newRegion: Boolean,
       routeId: Option[Int],
@@ -246,9 +248,10 @@ class ExploreServiceImpl @Inject() (
       tutorialStreetId: Int                      <- configTable.getTutorialStreetId
       makeCrops: Boolean                         <- configTable.getMakeCrops
     } yield {
-      val viewerType = PanoSource.withName(config.get[String]("pano-viewer-type"))
+      // Use passed in viewer type, or default to viewer in configs.
+      val viewer = viewerType.getOrElse(PanoSource.withName(config.get[String]("pano-viewer-type")))
       ExplorePageData(task, updatedMission, region.get, userRoute, hasCompletedAMission, nextTempLabelId, surveyData,
-        tutorialStreetId, viewerType, makeCrops)
+        tutorialStreetId, viewer, makeCrops)
     }
     db.run(getExploreDataAction.transactionally)
   }

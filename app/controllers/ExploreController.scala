@@ -9,6 +9,7 @@ import models.audit._
 import models.auth.DefaultEnv
 import models.label.LabelTypeEnum
 import models.pano.PanoSource
+import models.pano.PanoSource.PanoSource
 import models.street.StreetEdgeIssue
 import models.user._
 import play.api.libs.json._
@@ -20,7 +21,7 @@ import service.ExploreTaskPostReturnValue
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 @Singleton
 class ExploreController @Inject() (
@@ -42,6 +43,7 @@ class ExploreController @Inject() (
    * Returns an explore page.
    */
   def explore(
+      viewerType: Option[String],
       newRegion: Boolean,
       retakeTutorial: Option[Boolean],
       routeId: Option[Int],
@@ -55,21 +57,24 @@ class ExploreController @Inject() (
     val user: SidewalkUserWithRole = request.identity
     val pageTitle: String          = "Sidewalk - Explore"
 
+    // Parse the viewer type (gsv, mapillary, etc).
+    val viewer: Option[PanoSource] = viewerType.flatMap { vType => Try(PanoSource.withName(vType)).toOption }
+
     // NOTE: streetEdgeId takes precedence over routeId, which takes precedence over regionId.
     for {
       exploreData <- (routeId, streetEdgeId, regionId) match {
         case (Some(routeId), _, _) =>
-          exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
+          exploreService.getDataForExplorePage(user.userId, viewer, retakeTutorial.getOrElse(false), newRegion = false,
             Some(routeId), resumeRoute, regionId = None, streetEdgeId = None)
         case (_, Some(streetEdgeId), _) =>
-          exploreService.getDataForExplorePage(user.userId, retakingTutorial = false, newRegion = false, routeId = None,
-            resumeRoute = false, regionId = None, Some(streetEdgeId))
+          exploreService.getDataForExplorePage(user.userId, viewer, retakingTutorial = false, newRegion = false,
+            routeId = None, resumeRoute = false, regionId = None, Some(streetEdgeId))
         case (_, _, Some(regionId)) =>
-          exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
+          exploreService.getDataForExplorePage(user.userId, viewer, retakeTutorial.getOrElse(false), newRegion = false,
             routeId = None, resumeRoute = resumeRoute, Some(regionId), streetEdgeId = None)
         case (_, _, _) =>
-          exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion, routeId = None,
-            resumeRoute, regionId = None, streetEdgeId = None)
+          exploreService.getDataForExplorePage(user.userId, viewer, retakeTutorial.getOrElse(false), newRegion,
+            routeId = None, resumeRoute, regionId = None, streetEdgeId = None)
       }
       commonData           <- configService.getCommonPageData(request2Messages.lang)
       infra3dToken: String <- panoDataService.getInfra3dToken
@@ -90,7 +95,8 @@ class ExploreController @Inject() (
         case (Some(s), true, Some(p), _, _) =>
           Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, mapillaryToken, infra3dToken, None, None, Some(p)))
         case (Some(s), true, _, Some(lt), Some(lg)) =>
-          Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, mapillaryToken, infra3dToken, Some(lt), Some(lg)))
+          Ok(
+            views.html.apps.explore(commonData, pageTitle, user, exploreData, mapillaryToken, infra3dToken, Some(lt), Some(lg)))
         case _ => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, mapillaryToken, infra3dToken))
       }
     }
