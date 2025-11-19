@@ -188,7 +188,8 @@ class GsvViewer extends PanoViewer {
                     getTileUrl: function(pano, zoom, tileX, tileY) {
                         return `${svl.rootDirectory}img/onboarding/tiles/tutorial/${zoom}-${tileX}-${tileY}.jpg`;
                     }
-                }
+                },
+                time: []
             };
         } else if (pano === 'afterWalkTutorial') {
             return {
@@ -208,7 +209,8 @@ class GsvViewer extends PanoViewer {
                     getTileUrl: function(pano, zoom, tileX, tileY) {
                         return `${svl.rootDirectory}img/onboarding/tiles/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`;
                     }
-                }
+                },
+                time: []
             };
         }
     }
