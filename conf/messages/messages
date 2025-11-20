@@ -46,6 +46,7 @@ city.name.chandigarh-india = Chandigarh
 city.name.rancagua-chile = Rancagua
 city.name.vancouver-wa = Vancouver
 city.name.santiago-chile = Santiago
+city.name.tucson-az = Tucson
 
 state.name.oregon = Oregon
 state.name.washington = Washington
@@ -59,6 +60,7 @@ state.name.south-carolina = South Carolina
 state.name.michigan = Michigan
 state.name.wisconsin = Wisconsin
 state.name.new-york = New York
+state.name.arizona = Arizona
 
 country.name.usa = USA
 country.name.mexico = Mexico
