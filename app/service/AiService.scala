@@ -11,7 +11,6 @@ import play.api.libs.json.{JsObject, JsValue}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
-
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
@@ -84,7 +83,7 @@ class AiServiceImpl @Inject() (
       db.run(labelTable.getLabelsToValidateWithAi(n)).flatMap { labelDataSeq =>
         labelDataSeq.foldLeft(Future.successful(List.empty[Option[LabelAiAssessment]])) { (accFuture, labelData) =>
           for {
-            acc <- accFuture
+            acc    <- accFuture
             result <- callAiApiAndSubmitData(labelData)
           } yield acc :+ result
         }
@@ -111,17 +110,21 @@ class AiServiceImpl @Inject() (
       case Some((aiResults, labelData)) =>
         logger.debug(aiResults.toString)
 
-        // If AI validations are enabled and confidence is above the threshold, submit a validation.
+        // If AI validations are enabled, submit a validation.
         val validationId: DBIO[Option[Int]] =
-          if (AI_VALIDATIONS_ON && aiResults.validationAccuracy >= AI_VALIDATION_MIN_ACCURACY) {
+          if (AI_VALIDATIONS_ON) {
             val labelPoint = labelData.labelPoint
+
+            // If confidence is below the threshold, submit an Unsure validation instead.
+            val aiValResult: Int =
+              if (aiResults.validationAccuracy >= AI_VALIDATION_MIN_ACCURACY) aiResults.validationResult else 3
 
             // Get the AI's mission_id and the label's current info, then create and submit the validation.
             for {
               aiMissionId: Int <- getAiValidateMissionId(labelData.labelTypeId)
               label: Label     <- labelTable.find(labelId).map(_.get) // If we got this far, we know label exists.
               validation: LabelValidation = LabelValidation(
-                0, labelId, aiResults.validationResult, label.severity, label.severity, label.tags, label.tags,
+                0, labelId, aiValResult, label.severity, label.severity, label.tags, label.tags,
                 SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX), Some(labelPoint.canvasY),
                 labelPoint.heading, labelPoint.pitch, labelPoint.zoom.toFloat, LabelPointTable.canvasWidth,
                 LabelPointTable.canvasHeight, startTime, aiResults.timestamp, "SidewalkAI"
