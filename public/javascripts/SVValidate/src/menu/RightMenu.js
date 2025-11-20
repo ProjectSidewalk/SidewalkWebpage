@@ -161,7 +161,7 @@ function RightMenu(menuUI) {
                 const $reasonButton = $(reasonButton);
                 const buttonInfo = svv.reasonButtonInfo[labelType][$reasonButton.attr('id')];
                 if (buttonInfo) {
-                    $reasonButton.text(buttonInfo.buttonText);
+                    $reasonButton.html(buttonInfo.buttonText);
 
                     // Remove any old tooltip (from a previous label type) and add a new tooltip.
                     $reasonButton.tooltip('destroy');
@@ -495,14 +495,14 @@ function RightMenu(menuUI) {
             if (disagreeReason === 'other') {
                 comment = currLabel.getProperty('disagreeReasonTextBox');
             } else {
-                comment = menuUI.disagreeReasonOptions.find(`#${disagreeReason}`).text();
+                comment = menuUI.disagreeReasonOptions.find(`#${disagreeReason}`).html().replace('<br>', ' ');
             }
         } else if (action === 'Unsure') {
             let unsureReason = currLabel.getProperty('unsureOption');
             if (unsureReason === 'other') {
                 comment = currLabel.getProperty('unsureReasonTextBox');
             } else {
-                comment = menuUI.unsureReasonOptions.find(`#${unsureReason}`).text();
+                comment = menuUI.unsureReasonOptions.find(`#${unsureReason}`).html().replace('<br>', ' ');
             }
         }
         currLabel.setProperty('comment', comment);
