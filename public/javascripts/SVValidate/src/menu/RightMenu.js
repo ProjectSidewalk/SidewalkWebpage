@@ -37,7 +37,7 @@ function RightMenu(menuUI) {
             const oldSeverity = currLabel.getProperty('newSeverity');
             const newSeverity = $(e.target).closest('.severity-level').data('severity');
             const labelType = currLabel.getAuditProperty('labelType')
-            if (oldSeverity !== newSeverity && labelType !== 'Signal') {
+            if (oldSeverity !== newSeverity && !['NoSidewalk', 'Signal'].includes(labelType)) {
                 svv.tracker.push(`Click=Severity_Old=${oldSeverity}_New=${newSeverity}`);
                 currLabel.setProperty('newSeverity', newSeverity);
                 _renderSeverity();
@@ -223,8 +223,9 @@ function RightMenu(menuUI) {
         _renderTags();
         menuUI.tagsMenu.css('display', 'block');
         let currLabelType = svv.panorama.getCurrentLabel().getAuditProperty('labelType');
-        if (currLabelType !== 'Signal') {
-            // Pedestrian Signal label type doesn't have severity ratings.
+
+        // Pedestrian Signal and No Sidewalk label types don't have severity ratings.
+        if (!['Signal', 'NoSidewalk'].includes(currLabelType)) {
             _renderSeverity();
             menuUI.severityMenu.css('display', 'block');
         }

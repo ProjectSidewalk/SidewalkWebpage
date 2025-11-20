@@ -1,7 +1,8 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, regionIds: Seq[Int], routeIds: Seq[Int]
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, regionIds: Seq[Int], routeIds: Seq[Int],
+    aiValidationOptions: Seq[String]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -54,8 +55,6 @@
                         <td id="map-legend-no-sidewalk" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                         <td>@Messages("no.sidewalk")</td>
                         <td><input type="checkbox" id="NoSidewalk-checkbox" checked="true" data-filter-type="label-type" disabled></td>
-                        <td align="left"><div id = "NoSidewalk-slider" style="margin-top:3px"></div></td>
-                        <td align="center"><span id="NoSidewalk-severity-label">@Messages("not.applicable.abbr") - 3</span></td>
                     </tr>
                     <tr>
                         <td id="map-legend-crosswalk" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
@@ -129,9 +128,9 @@
     <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
     <script>updateTimestamps("@messages.lang.code");</script>
 
-    <script src='@assets.path("javascripts/lib/mapbox-gl-3.15.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.16.0.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("javascripts/lib/mapbox-gl-3.15.0.css")' rel="stylesheet"/>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.16.0.css")' rel="stylesheet"/>
     <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
     <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
     <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
@@ -171,6 +170,11 @@
             if (routesParam) {
                 params.streetsURL.searchParams.append('routes', routesParam);
                 params.labelsURL.searchParams.append('routes', routesParam);
+            }
+
+            let aiValidationOptionsParam = '@{aiValidationOptions.mkString(",")}';
+            if (aiValidationOptionsParam) {
+                params.labelsURL.searchParams.append('aiValidationOptions', aiValidationOptionsParam);
             }
 
             var self = {};

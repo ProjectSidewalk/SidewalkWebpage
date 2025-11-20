@@ -15,7 +15,6 @@ import play.api.mvc.Result
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import service.ExploreTaskPostReturnValue
-
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}

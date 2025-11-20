@@ -4,7 +4,6 @@ import controllers.base._
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.auth.{DefaultEnv, WithSignedIn}
-import models.label.LabelTypeEnum
 import models.user.SidewalkUserWithRole
 import models.utils.MyPostgresProfile
 import play.api.Configuration
@@ -14,7 +13,6 @@ import play.api.mvc._
 import play.silhouette.api.Silhouette
 import play.silhouette.api.actions.SecuredRequest
 import service._
-
 import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
@@ -29,8 +27,7 @@ class ApplicationController @Inject() (
     userService: UserService,
     streetService: StreetService,
     labelService: LabelService,
-    validationService: ValidationService,
-    regionService: RegionService
+    validationService: ValidationService
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc)
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -190,59 +187,17 @@ class ApplicationController @Inject() (
   /**
    * Returns the LabelMap page that contains a cool visualization.
    */
-  def labelMap(regions: Option[String], routes: Option[String]) = cc.securityService.SecuredAction { implicit request =>
-    val regionIds: Seq[Int] = parseIntegerSeq(regions)
-    val routeIds: Seq[Int]  = parseIntegerSeq(routes)
-    val activityStr: String = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
-
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
-      Ok(views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, regionIds, routeIds))
-    }
-  }
-
-  /**
-   * Returns the Gallery page.
-   */
-  def gallery(labelType: String, neighborhoods: String, severities: String, tags: String, validationOptions: String) =
+  def labelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
     cc.securityService.SecuredAction { implicit request =>
-      val labelTypes: Seq[(String, String)] = Seq(
-        ("Assorted", Messages("gallery.all")),
-        (LabelTypeEnum.CurbRamp.name, Messages("curb.ramp")),
-        (LabelTypeEnum.NoCurbRamp.name, Messages("missing.ramp")),
-        (LabelTypeEnum.Obstacle.name, Messages("obstacle")),
-        (LabelTypeEnum.SurfaceProblem.name, Messages("surface.problem")),
-        (LabelTypeEnum.Occlusion.name, Messages("occlusion")),
-        (LabelTypeEnum.NoSidewalk.name, Messages("no.sidewalk")),
-        (LabelTypeEnum.Crosswalk.name, Messages("crosswalk")),
-        (LabelTypeEnum.Signal.name, Messages("signal")),
-        (LabelTypeEnum.Other.name, Messages("other"))
-      )
-      val labType: String = if (labelTypes.exists(x => { x._1 == labelType })) labelType else "Assorted"
+      val regionIds: Seq[Int]    = parseIntegerSeq(regions)
+      val routeIds: Seq[Int]     = parseIntegerSeq(routes)
+      val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
+      val activityStr: String    = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
 
-      for {
-        possibleRegions: Seq[Int] <- regionService.getAllRegions.map(_.map(_.regionId))
-        possibleTags: Seq[String] <- {
-          if (labType != "Assorted") db.run(labelService.selectTagsByLabelType(labelType).map(_.map(_.tag)))
-          else Future.successful(Seq())
-        }
-        commonData <- configService.getCommonPageData(request2Messages.lang)
-      } yield {
-        // Make sure that list of region IDs, severities, and validation options are formatted correctly.
-        val regionIdsList: Seq[Int] = parseIntegerSeq(neighborhoods).filter(possibleRegions.contains)
-        val severityList: Seq[Int]  = parseIntegerSeq(severities).filter(s => s > 0 && s < 4)
-        val tagList: List[String]   = tags.split(",").filter(possibleTags.contains).toList
-        val valOptions: Seq[String] =
-          validationOptions.split(",").filter(Seq("correct", "incorrect", "unsure", "unvalidated").contains(_)).toSeq
-
-        // Log visit to Gallery async.
-        val activityStr: String =
-          s"Visit_Gallery_LabelType=${labType}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
+      configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
-
         Ok(
-          views.html.apps.gallery(commonData, "Sidewalk - Gallery", request.identity, labType, labelTypes,
-            regionIdsList, severityList, tagList, valOptions)
+          views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, regionIds, routeIds, aiValOpts)
         )
       }
     }

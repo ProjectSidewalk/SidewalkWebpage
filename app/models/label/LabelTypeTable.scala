@@ -4,7 +4,6 @@ import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-
 import javax.inject.{Inject, Singleton}
 
 /**
@@ -76,20 +75,18 @@ object LabelTypeEnum {
   lazy val validLabelTypeIds: Set[Int]  = validLabelTypes.map(labelTypeToId)
 
   // Set of primary label types used for main categorization.
-  lazy val primaryLabelTypes: Set[String] = Set(
-    CurbRamp.name, NoCurbRamp.name, Obstacle.name, SurfaceProblem.name, NoSidewalk.name, Crosswalk.name, Signal.name
-  )
-  lazy val primaryLabelTypeIds: Set[Int] = primaryLabelTypes.map(labelTypeToId)
+  lazy val primaryLabelTypes: Set[Base] =
+    Set(CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, NoSidewalk, Crosswalk, Signal)
+  lazy val primaryLabelTypeNames: Set[String] = primaryLabelTypes.map(_.name)
+  lazy val primaryLabelTypeIds: Set[Int]      = primaryLabelTypes.map(_.id)
 
   // Set of label types that require primary validation. NoSidewalk is only validated once all others have been.
-  lazy val primaryValidateLabelTypes: Set[String] = primaryLabelTypes - NoSidewalk.name
-  lazy val primaryValidateLabelTypeIds: Set[Int]  = primaryValidateLabelTypes.map(labelTypeToId)
+  lazy val primaryValidateLabelTypes: Set[Base]  = primaryLabelTypes - NoSidewalk
+  lazy val primaryValidateLabelTypeIds: Set[Int] = primaryValidateLabelTypes.map(_.id)
 
   // Set of label types are accepted for validation using the Sidewalk AI API.
-  lazy val aiLabelTypes: Set[String] = Set(
-    CurbRamp.name, NoCurbRamp.name, Obstacle.name, SurfaceProblem.name, Crosswalk.name
-  )
-  lazy val aiLabelTypeIds: Set[Int] = aiLabelTypes.map(labelTypeToId)
+  lazy val aiLabelTypes: Set[Base]  = Set(CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk)
+  lazy val aiLabelTypeIds: Set[Int] = aiLabelTypes.map(_.id)
 }
 
 /**

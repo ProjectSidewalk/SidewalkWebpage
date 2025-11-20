@@ -54,7 +54,7 @@ class GetAiValidationsActor @Inject() (aiService: AiService)(implicit
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled AI validating started at: $currentTimeStart")
     // Try to validate up to 100 labels that haven't yet been validated by AI.
-    val n = if (config.get[String]("environment-type") == "prod") 100 else 10
+    val n: Int = if (config.get[String]("environment-type") == "prod") 800 else 10
     aiService.validateLabelsWithAiDaily(n).onComplete {
       case Success(results) =>
         logger.info(s"Attempted ${results.length} AI validations, ${results.flatten.length} successful.")
