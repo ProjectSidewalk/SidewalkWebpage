@@ -460,7 +460,7 @@
                                         <label id="map-legend-title">@Messages("legend")</label>
                                         <button id="map-legend-minimize-button" class="close" onclick="toggleLegend()">-</button>
                                     </div>
-                                    <table class="table filter" id="legend-table">
+                                    <table class="table filter" id="legend-table" data-not-applicable-label='@Messages("not.applicable.abbr")'>
                                         <tr>
                                             <td></td>
                                             <td colspan="2" align="left" style="font-weight:bold">@Messages("label.type")</td>
@@ -988,12 +988,10 @@
 
             // Kick off all the API requests to get data to fill in the Admin page.
             window.admin = Admin(_, $, '@commonData.mapboxApiKey');
-
             // Initialize the sliders in the legend. We add the "change" functionality after the map loads.
-            $( "*[id*='slider']" ).each(function() {
-                $(this).slider({ range: true, min : 0, max : 5, step: 1, values: [0,3], disabled: true });
+            $("*[id*='slider']").each(function() {
+                $(this).slider({ range: true, min : 0, max : 3, step: 1, values: [0,3], disabled: true });
             });
-
             console.log("To add data from users marked as 'low quality'', use the following commands. You can run them again with 'false' to remove.");
             console.log("admin.mapData.lowQualityUsers = true;");
             console.log("filterLabelLayers('', admin.map, admin.mapData);");
