@@ -6,7 +6,7 @@
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, title) {
+@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap")) {
     @common.navbar(commonData, Some(user))
     <div class="container">
         <h1>Label Search</h1>
