@@ -13,7 +13,7 @@ INSERT INTO label_validation (label_id, validation_result, user_id, mission_id, 
     LEFT JOIN label_validation ON label_ai_assessment.label_id = label_validation.label_id
     WHERE label_validation.label_validation_id IS NULL;
 
--- Link these validations back to the label_ai_assessment table. It's foreign key no longer needs to be nullable.
+-- Link these validations back to the label_ai_assessment table.
 UPDATE label_ai_assessment
 SET label_validation_id = (
     SELECT label_validation_id
@@ -22,8 +22,6 @@ SET label_validation_id = (
     LIMIT 1
 )
 WHERE label_validation_id IS NULL;
-
-ALTER TABLE label_ai_assessment ALTER COLUMN label_validation_id SET NOT NULL;
 
 -- Recalculate validation counts now that we've added a bunch of validations.
 UPDATE label
@@ -50,9 +48,7 @@ WHERE label.label_id = validation_count.label_id;
 
 
 # --- !Downs
--- Remove the links to the Unsure validations that are in label_ai_assessment. The column needs to be nullable again.
-ALTER TABLE label_ai_assessment ALTER COLUMN label_validation_id DROP NOT NULL;
-
+-- Remove the links to the Unsure validations that are in label_ai_assessment.
 UPDATE label_ai_assessment
 SET label_validation_id = NULL
 FROM label_validation
