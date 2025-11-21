@@ -1,7 +1,8 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, regionIds: Seq[Int], routeIds: Seq[Int]
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, regionIds: Seq[Int], routeIds: Seq[Int],
+    aiValidationOptions: Seq[String]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -127,9 +128,9 @@
     <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
     <script>updateTimestamps("@messages.lang.code");</script>
 
-    <script src='@assets.path("javascripts/lib/mapbox-gl-3.15.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.16.0.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("javascripts/lib/mapbox-gl-3.15.0.css")' rel="stylesheet"/>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.16.0.css")' rel="stylesheet"/>
     <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
     <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
     <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
@@ -169,6 +170,11 @@
             if (routesParam) {
                 params.streetsURL.searchParams.append('routes', routesParam);
                 params.labelsURL.searchParams.append('routes', routesParam);
+            }
+
+            let aiValidationOptionsParam = '@{aiValidationOptions.mkString(",")}';
+            if (aiValidationOptionsParam) {
+                params.labelsURL.searchParams.append('aiValidationOptions', aiValidationOptionsParam);
             }
 
             var self = {};
@@ -213,16 +219,20 @@
                 });
 
                 // Add listeners on the sliders.
-                let sliderStepText = ["N/A", 1, 2, 3];
+                const sliderNotApplicableText = '@Messages("not.applicable.abbr")';
+                const formatSeverityValue = (value) => value === 0 ? sliderNotApplicableText : value;
                 $( "*[id*='slider']" ).each(function() {
                     $(this).slider('option', {
                         // Change the text next to the slider as it's moved.
                         slide: function(event, ui) {
                             let sliderTextEl = this.parentElement.nextElementSibling.firstElementChild;
-                            if(sliderStepText[ui.values[0]] === sliderStepText[ui.values[1]]) {
-                                sliderTextEl.textContent = sliderStepText[ui.values[0]];
+                            const low = formatSeverityValue(ui.values[0]);
+                            const high = formatSeverityValue(ui.values[1]);
+
+                            if (low === high) {
+                                sliderTextEl.textContent = low;
                             } else {
-                                sliderTextEl.textContent = `${ui.values[0]} - ${ui.values[1]}`;
+                                sliderTextEl.textContent = `${low} - ${high}`;
                             }
                         },
                         // When the slider is released, update the map.

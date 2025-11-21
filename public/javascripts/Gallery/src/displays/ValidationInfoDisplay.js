@@ -56,7 +56,7 @@ function ValidationInfoDisplay(container, agreeCount, disagreeCount, aiValidatio
         if (['Agree', 'Disagree'].includes(aiValidation)) {
             let aiIcon = isExpandedView ? new Image() : document.createElement('img')
             aiIcon.className = 'ai-icon';
-            aiIcon.src = 'assets/images/icons/ai-icon-transparent-small.png';
+            aiIcon.src = '/assets/images/icons/ai-icon-transparent-small.png';
             aiIcon.alt = 'AI indicator';
 
             aiIcon.setAttribute('data-toggle', 'tooltip');

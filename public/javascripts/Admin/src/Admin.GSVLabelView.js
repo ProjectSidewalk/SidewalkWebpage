@@ -380,17 +380,17 @@ function AdminGSVLabelView(admin, source) {
 
     /**
      * Creates the AI validation row text, adds the AI icon, and sets the tooltip.
-     * @param aiValidation The AI validation result, either "Agree", "Disagree", or null.
+     * @param aiValidation The AI validation result, either "Agree", "Disagree", "Unsure", or null.
      * @private
      */
     function _setAiValidationRow(aiValidation) {
-        if (aiValidation === 'Agree' || aiValidation === 'Disagree') {
+        if (aiValidation) {
             self.modalAiValidation.html(i18next.t('labelmap:ai-val-included', { aiVal: aiValidation.toLowerCase() }));
 
             // Create the AI icon.
             let aiIcon = document.createElement('img')
             aiIcon.className = 'label-view-ai-icon';
-            aiIcon.src = 'assets/images/icons/ai-icon-transparent-small.png';
+            aiIcon.src = '/assets/images/icons/ai-icon-transparent-small.png';
             aiIcon.alt = 'AI indicator';
             self.modalAiValidationHeader.append(aiIcon);
 

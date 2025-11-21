@@ -1,5 +1,7 @@
 function Admin(_, $, mapboxApiKey) {
     var self = {};
+    var legendTable = document.getElementById('legend-table');
+    var sliderNotApplicableText = (legendTable && legendTable.dataset.notApplicableLabel) || "N/A";
     var mapLoaded = false;
     var graphsLoaded = false;
     var labelsLoaded = false;
@@ -224,16 +226,18 @@ function Admin(_, $, mapboxApiKey) {
                 });
 
                 // Add listeners on the sliders.
-                let sliderStepText = ["N/A", 1, 2, 3];
+                const formatSeverityValue = (value) => value === 0 ? sliderNotApplicableText : value;
                 $( "*[id*='slider']" ).each(function() {
                     $(this).slider('option', {
                         // Change the text next to the slider as it's moved.
                         slide: function(event, ui) {
                             let sliderTextEl = this.parentElement.nextElementSibling.firstElementChild;
-                            if(sliderStepText[ui.values[0]] === sliderStepText[ui.values[1]]) {
-                                sliderTextEl.textContent = sliderStepText[ui.values[0]];
+                            const low = formatSeverityValue(ui.values[0]);
+                            const high = formatSeverityValue(ui.values[1]);
+                            if (low === high) {
+                                sliderTextEl.textContent = low;
                             } else {
-                                sliderTextEl.textContent = `${ui.values[0]} - ${ui.values[1]}`;
+                                sliderTextEl.textContent = `${low} - ${high}`;
                             }
                         },
                         // When the slider is released, update the map.

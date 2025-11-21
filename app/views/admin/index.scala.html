@@ -460,7 +460,7 @@
                                         <label id="map-legend-title">@Messages("legend")</label>
                                         <button id="map-legend-minimize-button" class="close" onclick="toggleLegend()">-</button>
                                     </div>
-                                    <table class="table filter" id="legend-table">
+                                    <table class="table filter" id="legend-table" data-not-applicable-label='@Messages("not.applicable.abbr")'>
                                         <tr>
                                             <td></td>
                                             <td colspan="2" align="left" style="font-weight:bold">@Messages("label.type")</td>
@@ -743,7 +743,7 @@
                                 <h1>Validations Per Label Type</h1>
                                 <p>
                                     Breaks down validations by label type, yes/no/unsure, and whether the validation
-                                    came from a human (H) or AI (AI) or either.
+                                    came from a human (H), AI (AI), or either.
                                 </p>
                                 <table class="table table-striped table-condensed">
                                     <tr>
@@ -754,7 +754,9 @@
                                         <th>No</th>
                                         <th>No (H)</th>
                                         <th>No (AI)</th>
-                                        <th>Unsure (H)<sup>*</sup></th>
+                                        <th>Unsure</th>
+                                        <th>Unsure (H)</th>
+                                        <th>Unsure (AI)</th>
                                         <th>Count</th>
                                         <th>Count (H)</th>
                                         <th>Count (AI)</th>
@@ -767,7 +769,9 @@
                                         <td id="val-count-All-Disagree-Both"></td>
                                         <td id="val-count-All-Disagree-Human"></td>
                                         <td id="val-count-All-Disagree-AI"></td>
+                                        <td id="val-count-All-Unsure-Both"></td>
                                         <td id="val-count-All-Unsure-Human"></td>
+                                        <td id="val-count-All-Unsure-AI"></td>
                                         <td id="val-count-All-All-Both"></td>
                                         <td id="val-count-All-All-Human"></td>
                                         <td id="val-count-All-All-AI"></td>
@@ -780,7 +784,9 @@
                                         <td id="val-count-CurbRamp-Disagree-Both"></td>
                                         <td id="val-count-CurbRamp-Disagree-Human"></td>
                                         <td id="val-count-CurbRamp-Disagree-AI"></td>
+                                        <td id="val-count-CurbRamp-Unsure-Both"></td>
                                         <td id="val-count-CurbRamp-Unsure-Human"></td>
+                                        <td id="val-count-CurbRamp-Unsure-AI"></td>
                                         <td id="val-count-CurbRamp-All-Both"></td>
                                         <td id="val-count-CurbRamp-All-Human"></td>
                                         <td id="val-count-CurbRamp-All-AI"></td>
@@ -793,7 +799,9 @@
                                         <td id="val-count-NoCurbRamp-Disagree-Both"></td>
                                         <td id="val-count-NoCurbRamp-Disagree-Human"></td>
                                         <td id="val-count-NoCurbRamp-Disagree-AI"></td>
+                                        <td id="val-count-NoCurbRamp-Unsure-Both"></td>
                                         <td id="val-count-NoCurbRamp-Unsure-Human"></td>
+                                        <td id="val-count-NoCurbRamp-Unsure-AI"></td>
                                         <td id="val-count-NoCurbRamp-All-Both"></td>
                                         <td id="val-count-NoCurbRamp-All-Human"></td>
                                         <td id="val-count-NoCurbRamp-All-AI"></td>
@@ -806,7 +814,9 @@
                                         <td id="val-count-Obstacle-Disagree-Both"></td>
                                         <td id="val-count-Obstacle-Disagree-Human"></td>
                                         <td id="val-count-Obstacle-Disagree-AI"></td>
+                                        <td id="val-count-Obstacle-Unsure-Both"></td>
                                         <td id="val-count-Obstacle-Unsure-Human"></td>
+                                        <td id="val-count-Obstacle-Unsure-AI"></td>
                                         <td id="val-count-Obstacle-All-Both"></td>
                                         <td id="val-count-Obstacle-All-Human"></td>
                                         <td id="val-count-Obstacle-All-AI"></td>
@@ -819,7 +829,9 @@
                                         <td id="val-count-SurfaceProblem-Disagree-Both"></td>
                                         <td id="val-count-SurfaceProblem-Disagree-Human"></td>
                                         <td id="val-count-SurfaceProblem-Disagree-AI"></td>
+                                        <td id="val-count-SurfaceProblem-Unsure-Both"></td>
                                         <td id="val-count-SurfaceProblem-Unsure-Human"></td>
+                                        <td id="val-count-SurfaceProblem-Unsure-AI"></td>
                                         <td id="val-count-SurfaceProblem-All-Both"></td>
                                         <td id="val-count-SurfaceProblem-All-Human"></td>
                                         <td id="val-count-SurfaceProblem-All-AI"></td>
@@ -832,7 +844,9 @@
                                         <td id="val-count-NoSidewalk-Disagree-Both"></td>
                                         <td id="val-count-NoSidewalk-Disagree-Human"></td>
                                         <td id="val-count-NoSidewalk-Disagree-AI"></td>
+                                        <td id="val-count-NoSidewalk-Unsure-Both"></td>
                                         <td id="val-count-NoSidewalk-Unsure-Human"></td>
+                                        <td id="val-count-NoSidewalk-Unsure-AI"></td>
                                         <td id="val-count-NoSidewalk-All-Both"></td>
                                         <td id="val-count-NoSidewalk-All-Human"></td>
                                         <td id="val-count-NoSidewalk-All-AI"></td>
@@ -845,7 +859,9 @@
                                         <td id="val-count-Crosswalk-Disagree-Both"></td>
                                         <td id="val-count-Crosswalk-Disagree-Human"></td>
                                         <td id="val-count-Crosswalk-Disagree-AI"></td>
+                                        <td id="val-count-Crosswalk-Unsure-Both"></td>
                                         <td id="val-count-Crosswalk-Unsure-Human"></td>
+                                        <td id="val-count-Crosswalk-Unsure-AI"></td>
                                         <td id="val-count-Crosswalk-All-Both"></td>
                                         <td id="val-count-Crosswalk-All-Human"></td>
                                         <td id="val-count-Crosswalk-All-AI"></td>
@@ -858,19 +874,14 @@
                                         <td id="val-count-Signal-Disagree-Both"></td>
                                         <td id="val-count-Signal-Disagree-Human"></td>
                                         <td id="val-count-Signal-Disagree-AI"></td>
+                                        <td id="val-count-Signal-Unsure-Both"></td>
                                         <td id="val-count-Signal-Unsure-Human"></td>
+                                        <td id="val-count-Signal-Unsure-AI"></td>
                                         <td id="val-count-Signal-All-Both"></td>
                                         <td id="val-count-Signal-All-Human"></td>
                                         <td id="val-count-Signal-All-AI"></td>
                                     </tr>
                                 </table>
-                                <p>
-                                    <sup>*</sup>We didn't include counts of times when the AI was unsure for the sake of speed.
-                                    The technical reason is that we don't store a "validation" if the AI is unsure right
-                                    now. Though we do have that information saved, so we could display that in this
-                                    table in the future. We could also decide to start storing "unsure" validations in
-                                    the same way that we do for human validation.
-                                </p>
                             </div>
                         </div>
                     </div>
@@ -958,7 +969,7 @@
     <script src='@assets.path("javascripts/lib/d3-3.5.6.js")'></script>
     <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
     <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
-    <script src='@assets.path("javascripts/lib/turf-7.2.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/turf-7.3.0.min.js")'></script>
     <script src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script src='@assets.path("javascripts/lib/dataTables.bootstrap.min.js")'></script>
     <script src='@assets.path("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
@@ -969,9 +980,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vega-lite/2.0.0-beta.4/vega-lite.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vega-embed/3.0.0-beta.17/vega-embed.js"></script>
 
-    <script src='@assets.path("javascripts/lib/mapbox-gl-3.15.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.16.0.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("javascripts/lib/mapbox-gl-3.15.0.css")' rel="stylesheet"/>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.16.0.css")' rel="stylesheet"/>
     <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
 
@@ -988,12 +999,10 @@
 
             // Kick off all the API requests to get data to fill in the Admin page.
             window.admin = Admin(_, $, '@commonData.mapboxApiKey');
-
             // Initialize the sliders in the legend. We add the "change" functionality after the map loads.
-            $( "*[id*='slider']" ).each(function() {
-                $(this).slider({ range: true, min : 0, max : 5, step: 1, values: [0,3], disabled: true });
+            $("*[id*='slider']").each(function() {
+                $(this).slider({ range: true, min : 0, max : 3, step: 1, values: [0,3], disabled: true });
             });
-
             console.log("To add data from users marked as 'low quality'', use the following commands. You can run them again with 'false' to remove.");
             console.log("admin.mapData.lowQualityUsers = true;");
             console.log("filterLabelLayers('', admin.map, admin.mapData);");
