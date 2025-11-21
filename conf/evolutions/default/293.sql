@@ -10,8 +10,12 @@ INSERT INTO label_validation (label_id, validation_result, user_id, mission_id, 
     INNER JOIN label_point ON label.label_id = label_point.label_id
     INNER JOIN mission ON label.label_type_id = mission.label_type_id
         AND mission.mission_type_id = 7
-    LEFT JOIN label_validation ON label_ai_assessment.label_id = label_validation.label_id
-    WHERE label_validation.label_validation_id IS NULL;
+    LEFT JOIN (
+        SELECT label_validation_id, label_id
+        FROM label_validation
+        WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4'
+    ) ai_validations ON label_ai_assessment.label_id = ai_validations.label_id
+    WHERE ai_validations.label_validation_id IS NULL;
 
 -- Link these validations back to the label_ai_assessment table.
 UPDATE label_ai_assessment
@@ -19,6 +23,7 @@ SET label_validation_id = (
     SELECT label_validation_id
     FROM label_validation
     WHERE label_ai_assessment.label_id = label_validation.label_id
+        AND label_validation.user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4'
     LIMIT 1
 )
 WHERE label_validation_id IS NULL;
