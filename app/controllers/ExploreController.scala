@@ -244,8 +244,8 @@ class ExploreController @Inject() (
             aiService
               .validateLabelsWithAi(labelsToSend.map(_._1))
               .onComplete {
-                case Success(_) => logger.info("AI validation completed successfully.")
-                case Failure(e) => logger.error("Error recalculating street priority", e)
+                case Success(_) => if (labelsToSend.nonEmpty) logger.info(s"AI validation(s) completed successfully.")
+                case Failure(e) => logger.error("Error occurred when submitting AI validations:", e)
               }
 
             // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
