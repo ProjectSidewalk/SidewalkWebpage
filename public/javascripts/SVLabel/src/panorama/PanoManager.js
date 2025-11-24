@@ -47,8 +47,10 @@ async function PanoManager (panoViewerType, params = {}) {
         if (panoViewerType === GsvViewer) {
             $('#imagery-source-logo-holder').hide();
         } else if (panoViewerType === MapillaryViewer) {
-            $('#imagery-source-logo-holder').hide();
+            $('#imagery-source-logo').attr('src', '/assets/images/logos/mapillary-logo-white.png');
+            $('#imagery-source-logo-holder').css        ('padding-left', '5px');
         } else if (panoViewerType === Infra3dViewer) {
+            $('#imagery-source-logo').attr('src', '/assets/images/logos/infra3d-logo.svg');
         }
 
         // Move to the specified starting location.
