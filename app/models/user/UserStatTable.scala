@@ -13,7 +13,6 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
-
 import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.ExecutionContext
@@ -132,7 +131,6 @@ class UserStatTable @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val userStats            = TableQuery[UserStatTableDef]
-  private val userTable            = TableQuery[SidewalkUserTableDef]
   private val userRoleTable        = TableQuery[UserRoleTableDef]
   private val auditTaskTable       = TableQuery[AuditTaskTableDef]
   private val streetEdgeTable      = TableQuery[StreetEdgeTableDef]
@@ -185,11 +183,8 @@ class UserStatTable @Inject() (
    */
   def updateAuditedDistance(cutoffTime: OffsetDateTime): DBIO[Unit] = {
     // Get the list of users who have done any auditing since the cutoff time.
-    val usersToUpdate: Query[Rep[String], String, Seq] = (for {
-      _user    <- userTable if _user.username =!= "anonymous"
-      _mission <- auditMissions if _mission.userId === _user.userId
-      if _mission.missionEnd > cutoffTime
-    } yield _user.userId).groupBy(x => x).map(_._1)
+    val usersToUpdate: Query[Rep[String], String, Seq] =
+      auditMissions.filter(_.missionEnd > cutoffTime).groupBy(_.userId).map(_._1)
 
     // Computes the audited distance in meters for each user using the audit_task and street_edge tables.
     auditTaskTable
@@ -358,13 +353,11 @@ class UserStatTable @Inject() (
    */
   def usersThatAuditedSinceCutoffTime(cutoffTime: OffsetDateTime): Query[Rep[String], String, Seq] = {
     (for {
-      _user     <- userTable
-      _userStat <- userStats if _user.userId === _userStat.userId
-      _mission  <- auditMissions if _mission.userId === _user.userId
-      if _user.username =!= "anonymous"
+      _userStat <- userStats
+      _mission  <- auditMissions if _mission.userId === _userStat.userId
       if _userStat.metersAudited > 0f
       if _mission.missionEnd > cutoffTime
-    } yield _user.userId).groupBy(x => x).map(_._1)
+    } yield _userStat.userId).groupBy(x => x).map(_._1)
   }
 
   /**
@@ -374,10 +367,8 @@ class UserStatTable @Inject() (
     (for {
       _labelVal <- labelValidationTable
       _label    <- labelTable.labels if _labelVal.labelId === _label.labelId
-      _user     <- userTable if _label.userId === _user.userId
-      if _user.username =!= "anonymous"
       if _labelVal.endTimestamp > cutoffTime
-    } yield _user.userId).groupBy(x => x).map(_._1)
+    } yield _label.userId).groupBy(x => x).map(_._1)
   }
 
   /**
@@ -586,7 +577,10 @@ class UserStatTable @Inject() (
               AND #$auditTaskTimeIntervalSql
       ) users
       INNER JOIN user_stat ON users.user_id = user_stat.user_id
-      WHERE #$highQualityOnlySql;
+      INNER JOIN user_role ON user_stat.user_id = user_role.user_id
+      INNER JOIN role ON user_role.role_id = role.role_id
+      WHERE role.role <> 'AI'
+          AND #$highQualityOnlySql;
     """.as[Int].head.map(n => UserCount(n, "combined", "all", timeInterval, taskCompletedOnly, highQualityOnly))
   }
 
@@ -613,14 +607,14 @@ class UserStatTable @Inject() (
       SELECT role.role, COALESCE(user_counts.count, 0)
       FROM role
       LEFT JOIN (
-        SELECT user_role.role_id, COUNT(DISTINCT(sidewalk_user.user_id)) AS count
+        SELECT user_role.role_id, COUNT(DISTINCT(user_role.user_id)) AS count
         FROM mission_type
         INNER JOIN mission ON mission_type.mission_type_id = mission.mission_type_id
-        INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
         LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
-        INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
+        INNER JOIN user_role ON mission.user_id = user_role.user_id
+        INNER JOIN role ON user_role.role_id = role.role_id
         WHERE mission_type.mission_type IN ('validation', 'labelmapValidation')
-            AND sidewalk_user.username <> 'anonymous'
+            AND role.role <> 'AI'
             AND #${if (labelValidated) "label_validation.end_timestamp IS NOT NULL" else "TRUE"}
             AND #$timeIntervalFilter
         GROUP BY user_role.role_id
@@ -665,9 +659,9 @@ class UserStatTable @Inject() (
       LEFT JOIN (
         SELECT user_role.role_id, COUNT(DISTINCT(audit_task.user_id)) AS count
         FROM audit_task
-        INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
-        INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-        WHERE sidewalk_user.username <> 'anonymous'
+        INNER JOIN user_role ON audit_task.user_id = user_role.user_id
+        INNER JOIN role ON user_role.role_id = role.role_id
+        WHERE role.role <> 'AI'
             AND #${if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"}
             AND #$timeIntervalFilter
         GROUP BY user_role.role_id

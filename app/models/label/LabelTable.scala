@@ -12,8 +12,7 @@ import models.mission.MissionTableDef
 import models.region.RegionTableDef
 import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
-import models.user.SidewalkUserTable.aiUserId
-import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef, UserStatTableDef}
+import models.user._
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTableDef, MyPostgresProfile}
 import models.validation.{LabelValidationTableDef, ValidationTaskCommentTableDef}
@@ -447,7 +446,10 @@ object LabelTable {
 trait LabelTableRepository {}
 
 @Singleton
-class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class LabelTable @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    sidewalkUserTable: SidewalkUserTable
+)(implicit ec: ExecutionContext)
     extends LabelTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -472,7 +474,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val routeStreets           = TableQuery[RouteStreetTableDef]
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
 
-  val aiValidations        = labelValidations.filter(_.userId === aiUserId).distinctOn(_.labelId)
+  val aiValidations =
+    labelValidations.join(sidewalkUserTable.aiUsers).on(_.userId === _.userId).map(_._1).distinctOn(_.labelId)
   val neighborhoods        = regions.filter(_.deleted === false)
   val usersWithoutExcluded = usersUnfiltered
     .join(userStats)
@@ -738,7 +741,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       LEFT JOIN (
           SELECT label_id, validation_result
           FROM label_validation
-          WHERE user_id = '#$aiUserId'
+          INNER JOIN user_role ON label_validation.user_id = user_role.user_id
+          INNER JOIN role ON user_role.role_id = role.role_id
+          WHERE role.role = 'AI'
       ) AS ai_val ON lb1.label_id = ai_val.label_id
       LEFT JOIN (
           SELECT label_id, string_agg(comment, ':') AS comments
@@ -1218,12 +1223,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Select label counts bu user.
+   * Select label counts by user.
    * @return DBIO[Seq[(user_id, role, label_count)]]
    */
   def getLabelCountsByUser: DBIO[Seq[(String, String, Int)]] = {
     val labs = for {
-      _user     <- usersUnfiltered if _user.username =!= "anonymous"
+      _user     <- usersUnfiltered
       _userRole <- userRoles if _user.userId === _userRole.userId
       _role     <- roleTable if _userRole.roleId === _role.roleId
       _label    <- labelsWithTutorial if _user.userId === _label.userId
@@ -1700,11 +1705,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   def getLabelsToValidateWithAi(n: Int): DBIO[Seq[LabelDataForAi]] = {
     val possibleLabels = labelsUnfiltered
       .filter(_.labelTypeId inSet LabelTypeEnum.aiLabelTypeIds)
-      .filter(label => label.userId =!= aiUserId) // No labels created by AI
+      .join(userRoles)
+      .on(_.userId === _.userId)
+      .join(roleTable)
+      .on(_._2.roleId === _.roleId)
+      .filter { case ((l, ur), r) => r.role =!= "AI" } // No labels created by AI
       .joinLeft(labelAiAssessments)
-      .on(_.labelId === _.labelId)
-      .filter(_._2.map(_.labelId).isEmpty) // No labels that AI has already tried to validate
-      .map(_._1)
+      .on(_._1._1.labelId === _.labelId)
+      .filter { case (((l, ur), r), laa) => laa.map(_.labelId).isEmpty } // No labels that AI's already validated
+      .map(_._1._1._1)
 
     possibleLabels
       .join(labelPoints)
