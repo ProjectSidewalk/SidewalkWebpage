@@ -4,7 +4,6 @@ import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-
 import javax.inject.{Inject, Singleton}
 
 case class Role(roleId: Int, role: String)
@@ -23,8 +22,8 @@ object RoleTable {
   val SCISTARTER_ROLES: Seq[String] = Seq("Registered", "Researcher", "Administrator", "Owner")
   val RESEARCHER_ROLES: Seq[String] = Seq("Researcher", "Administrator", "Owner")
   val ADMIN_ROLES: Seq[String]      = Seq("Administrator", "Owner")
-  val VALID_ROLES: Seq[String]      = Seq("Registered", "Turker", "Researcher", "Administrator", "Owner", "Anonymous")
-  val ROLES_RESEARCHER_COLLAPSED: Seq[String] = Seq("Registered", "Turker", "Researcher", "Anonymous")
+  val VALID_ROLES: Seq[String] = Seq("Registered", "Turker", "Researcher", "Administrator", "Owner", "Anonymous", "AI")
+  val ROLES_RESEARCHER_COLLAPSED: Seq[String] = Seq("Registered", "Turker", "Researcher", "Anonymous", "AI")
 }
 
 @ImplementedBy(classOf[RoleTable])

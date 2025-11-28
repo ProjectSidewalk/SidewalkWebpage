@@ -246,7 +246,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    */
   def selectMissionCountsPerUser: DBIO[Seq[(String, String, Int)]] = {
     val userMissions = for {
-      _user        <- users if _user.username =!= "anonymous"
+      _user        <- users
       _userRole    <- userRoles if _user.userId === _userRole.userId
       _role        <- roles if _userRole.roleId === _role.roleId
       _mission     <- missions if _user.userId === _mission.userId
