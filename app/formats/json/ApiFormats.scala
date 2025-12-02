@@ -11,7 +11,6 @@ import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-
 import java.time.OffsetDateTime
 
 object ApiFormats {
@@ -41,6 +40,13 @@ object ApiFormats {
       (__ \ "disagreed").write[Int] and
       (__ \ "accuracy").writeNullable[Float]
   )(unlift(LabelAccuracy.unapply))
+
+  implicit val aiConcurrenceWrites: Writes[AiConcurrence] = (
+    (__ \ "ai_yes_human_concurs").write[Int] and
+      (__ \ "ai_yes_human_differs").write[Int] and
+      (__ \ "ai_no_human_differs").write[Int] and
+      (__ \ "ai_no_human_concurs").write[Int]
+  )(unlift(AiConcurrence.unapply))
 
   implicit val mapParamsWrites: Writes[MapParams] = (
     (__ \ "center_lat").write[Double] and
@@ -200,6 +206,14 @@ object ApiFormats {
         Seq("total_validations" -> JsNumber(stats.nValidations.toDouble)) ++
           // Turns into { "Overall" -> { "validated" -> ###, ... }, "CurbRamp" -> { "validated" -> ###, ... }, ... }.
           stats.accuracyByLabelType.map { case (labType, accStats) => labType -> Json.toJson(accStats) }
+      ),
+      "ai_performance" -> JsObject(
+        // { "Overall" -> "human_maj_vote" -> { "ai_yes_human_concurs": ###, ... }, ... }, "CurbRamp" -> { ... }, ... }.
+        stats.aiPerformance.map { case (labelType, perfStatsMap) =>
+          labelType -> JsObject(
+            perfStatsMap.map { case (comparisonGroup, perfStats) => comparisonGroup -> Json.toJson(perfStats) }
+          )
+        }
       )
     )
   }
