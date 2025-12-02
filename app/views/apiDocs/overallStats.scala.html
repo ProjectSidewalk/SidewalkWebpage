@@ -179,6 +179,37 @@
             "accuracy": 0.85
         },
         ... // Remaining label types
+    },
+    "ai_stats": {
+        "Overall": {
+            "human_majority_vote": {
+                "ai_yes_human_concurs": 37,
+                "ai_yes_human_differs": 3,
+                "ai_no_human_differs": 2,
+                "ai_no_human_concurs": 37
+            },
+            "admin_majority_vote": {
+                "ai_yes_human_concurs": 127,
+                "ai_yes_human_differs": 54,
+                "ai_no_human_differs": 27,
+                "ai_no_human_concurs": 134
+            }
+        },
+        "CurbRamp": {
+            "human_majority_vote": {
+                "ai_yes_human_concurs": 20,
+                "ai_yes_human_differs": 0,
+                "ai_no_human_differs": 0,
+                "ai_no_human_concurs": 2
+            },
+            "admin_majority_vote": {
+                "ai_yes_human_concurs": 42,
+                "ai_yes_human_differs": 2,
+                "ai_no_human_differs": 6,
+                "ai_no_human_concurs": 48
+            }
+        },
+        ... // Remaining label types
     }
 }</code></pre>
 
@@ -218,6 +249,12 @@
                     <tr><td><code>validations.[type].agreed</code></td><td><code>integer</code></td><td>Number of labels of this type that have been validated as "correct" through majority vote.</td></tr>
                     <tr><td><code>validations.[type].disagreed</code></td><td><code>integer</code></td><td>Number of labels of this type that have been validated as "incorrect" through majority vote</td></tr>
                     <tr><td><code>validations.[type].accuracy</code></td><td><code>number | null</code></td><td>Calculated accuracy rate (agreed / validated) for this label type, or null if no validations.</td></tr>
+                    <tr><td><code>ai_stats</code></td><td><code>object</code></td><td>Statistics human agreement with AI validations.</td></tr>
+                    <tr><td><code>ai_stats.[type].[vote]</code></td><td><code>object</code></td><td>Vote can be either "human" for majority vote across all users, or "admin" for majority vote across admin users.</td></tr>
+                    <tr><td><code>ai_stats.[type].[vote].ai_yes_human_concurs</code></td><td><code>object</code></td><td>Number of labels where AI voted yes and human users voted yes more often than no.</td></tr>
+                    <tr><td><code>ai_stats.[type].[vote].ai_yes_human_differs</code></td><td><code>object</code></td><td>Number of labels where AI voted yes but human users voted no more often than yes.</td></tr>
+                    <tr><td><code>ai_stats.[type].[vote].ai_no_human_differs</code></td><td><code>object</code></td><td>Number of labels where AI voted no but human users voted yes more often than no.</td></tr>
+                    <tr><td><code>ai_stats.[type].[vote].ai_no_human_concurs</code></td><td><code>object</code></td><td>Number of labels where AI voted no and human users voted no more often than yes.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -250,6 +287,23 @@ CurbRamp Labels Validated,54321
 CurbRamp Agreed Count,48923
 CurbRamp Disagreed Count,5398
 CurbRamp Accuracy,0.90
+...
+Overall AI Yes and Human Majority Vote Concurs,37
+Overall AI Yes but Human Majority Vote Differs,3
+Overall AI No but Human Majority Vote Differs,2
+Overall AI No and Human Majority Vote Concurs,37
+Overall AI Yes and Admin Majority Vote Concurs,127
+Overall AI Yes but Admin Majority Vote Differs,54
+Overall AI No but Admin Majority Vote Differs,27
+Overall AI No and Admin Majority Vote Concurs,134
+CurbRamp AI Yes and Human Majority Vote Concurs,20
+CurbRamp AI Yes but Human Majority Vote Differs,0
+CurbRamp AI No but Human Majority Vote Differs,0
+CurbRamp AI No and Human Majority Vote Concurs,2
+CurbRamp AI Yes and Admin Majority Vote Concurs,42
+CurbRamp AI Yes but Admin Majority Vote Differs,2
+CurbRamp AI No but Admin Majority Vote Differs,6
+CurbRamp AI No and Admin Majority Vote Concurs,48
 ...</code></pre>
 
         <h5 id="csv-fields">CSV Format Description <a href="#csv-fields" class="permalink">#</a></h5>

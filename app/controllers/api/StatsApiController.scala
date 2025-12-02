@@ -107,14 +107,14 @@ class StatsApiController @Inject() (
               writer.println(s"$labType Disagreed Count,${accStats.nDisagree}")
               writer.println(s"$labType Accuracy,${accStats.accuracy.map(_.toString).getOrElse("NA")}")
             }
-            for ((labelType, performanceStatsMap) <- stats.aiPerformance) {
-              for ((voteType, performanceStats) <- performanceStatsMap) {
+            for ((labelType, aiStatsMap) <- stats.aiPerformance) {
+              for ((voteType, aiStats) <- aiStatsMap) {
                 val voteTypeText: String =
                   if (voteType == "human_majority_vote") "Human Majority Vote" else "Admin Majority Vote"
-                writer.println(s"$labelType AI Yes and $voteTypeText Concurs,${performanceStats.aiYesHumanConcurs}")
-                writer.println(s"$labelType AI Yes but $voteTypeText Differs,${performanceStats.aiYesHumanDiffers}")
-                writer.println(s"$labelType AI No but $voteTypeText Differs,${performanceStats.aiNoHumanDiffers}")
-                writer.println(s"$labelType AI No and $voteTypeText Concurs,${performanceStats.aiNoHumanConcurs}")
+                writer.println(s"$labelType AI Yes and $voteTypeText Concurs,${aiStats.aiYesHumanConcurs}")
+                writer.println(s"$labelType AI Yes but $voteTypeText Differs,${aiStats.aiYesHumanDiffers}")
+                writer.println(s"$labelType AI No but $voteTypeText Differs,${aiStats.aiNoHumanDiffers}")
+                writer.println(s"$labelType AI No and $voteTypeText Concurs,${aiStats.aiNoHumanConcurs}")
               }
             }
 

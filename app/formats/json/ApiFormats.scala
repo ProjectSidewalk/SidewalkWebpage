@@ -207,7 +207,7 @@ object ApiFormats {
           // Turns into { "Overall" -> { "validated" -> ###, ... }, "CurbRamp" -> { "validated" -> ###, ... }, ... }.
           stats.accuracyByLabelType.map { case (labType, accStats) => labType -> Json.toJson(accStats) }
       ),
-      "ai_performance" -> JsObject(
+      "ai_stats" -> JsObject(
         // { "Overall" -> "human_maj_vote" -> { "ai_yes_human_concurs": ###, ... }, ... }, "CurbRamp" -> { ... }, ... }.
         stats.aiPerformance.map { case (labelType, perfStatsMap) =>
           labelType -> JsObject(
