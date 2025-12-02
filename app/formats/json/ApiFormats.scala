@@ -29,9 +29,9 @@ object ApiFormats {
 
   implicit val labelSeverityStatsWrites: Writes[LabelSeverityStats] = (
     (__ \ "count").write[Int] and
-      (__ \ "count_with_severity").write[Int] and
-      (__ \ "severity_mean").writeNullable[Float] and
-      (__ \ "severity_sd").writeNullable[Float]
+      (__ \ "count_with_severity").write[Option[Int]] and
+      (__ \ "severity_mean").write[Option[Float]] and
+      (__ \ "severity_sd").write[Option[Float]]
   )(unlift(LabelSeverityStats.unapply))
 
   implicit val labelAccuracyWrites: Writes[LabelAccuracy] = (

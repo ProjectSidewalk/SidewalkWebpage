@@ -80,7 +80,12 @@ case class LabelForLabelMap(
 )
 
 case class TagCount(labelType: String, tag: String, count: Int)
-case class LabelSeverityStats(n: Int, nWithSeverity: Int, severityMean: Option[Float], severitySD: Option[Float])
+case class LabelSeverityStats(
+    n: Int,
+    nWithSeverity: Option[Int],
+    severityMean: Option[Float],
+    severitySD: Option[Float]
+)
 case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float])
 case class AiConcurrence(aiYesHumanConcurs: Int, aiYesHumanDiffers: Int, aiNoHumanDiffers: Int, aiNoHumanConcurs: Int)
 case class ProjectSidewalkStats(
@@ -564,23 +569,23 @@ class LabelTable @Inject() (
       r.nextInt(),
       Map(
         LabelTypeEnum.CurbRamp.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.NoCurbRamp.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.Obstacle.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.SurfaceProblem.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.NoSidewalk.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.Crosswalk.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.Signal.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.Occlusion.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.Other.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption())
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption())
       ),
       r.nextInt(),
       Map(
