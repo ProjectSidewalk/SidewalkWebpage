@@ -93,7 +93,9 @@ class StatsApiController @Inject() (
             writer.println(s"Anonymous User Count,${stats.nAnon}")
             writer.println(s"Turker User Count,${stats.nTurker}")
             writer.println(s"Researcher User Count,${stats.nResearcher}")
-            writer.println(s"Total Label Count,${stats.nResearcher}")
+            writer.println(s"Total Label Count,${stats.nLabels}")
+            writer.println(s"Total Label Count With Severity,${stats.nLabelsWithSeverity}")
+            writer.println(s"Average Age of Image When Labeled,${stats.avgImageAgeByLabel.toDays} Days")
             for ((labType, sevStats) <- stats.severityByLabelType) {
               writer.println(s"$labType Count,${sevStats.n}")
               writer.println(s"$labType Count With Severity,${sevStats.nWithSeverity.getOrElse("NA")}")

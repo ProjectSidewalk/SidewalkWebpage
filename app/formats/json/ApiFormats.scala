@@ -199,7 +199,11 @@ object ApiFormats {
         "researcher" -> stats.nResearcher
       ),
       "labels" -> JsObject(
-        Seq(("label_count", JsNumber(stats.nLabels.toDouble))) ++
+        Seq(
+          ("label_count", JsNumber(stats.nLabels.toDouble)),
+          ("label_count_with_severity", JsNumber(stats.nLabelsWithSeverity.toDouble)),
+          ("avg_age_of_image_when_labeled", JsString(s"${stats.avgImageAgeByLabel.toDays} days"))
+        ) ++
           // Turns into { "CurbRamp" -> { "count" -> ###, ... }, ... }.
           stats.severityByLabelType.map { case (labType, sevStats) => labType -> Json.toJson(sevStats) }
       ),

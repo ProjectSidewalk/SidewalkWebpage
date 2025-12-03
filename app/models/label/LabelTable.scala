@@ -101,6 +101,8 @@ case class ProjectSidewalkStats(
     nTurker: Int,
     nResearcher: Int,
     nLabels: Int,
+    nLabelsWithSeverity: Int,
+    avgImageAgeByLabel: Duration,
     severityByLabelType: Map[String, LabelSeverityStats],
     nValidations: Int,
     accuracyByLabelType: Map[String, LabelAccuracy],
@@ -567,6 +569,8 @@ class LabelTable @Inject() (
       r.nextInt(),
       r.nextInt(),
       r.nextInt(),
+      r.nextInt(),
+      r.<<[Duration],
       Map(
         CurbRamp.name   -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         NoCurbRamp.name -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
@@ -1504,6 +1508,8 @@ class LabelTable @Inject() (
              users.turker_users,
              users.researcher_users,
              label_counts_and_severity.label_count,
+             label_counts_and_severity.n_with_sev,
+             label_counts_and_severity.avg_age_when_labeled,
              label_counts_and_severity.n_ramp,
              label_counts_and_severity.n_ramp_with_sev,
              label_counts_and_severity.ramp_sev_mean,
@@ -1679,6 +1685,13 @@ class LabelTable @Inject() (
           ) users
       ) AS users, (
           SELECT COUNT(*) AS label_count,
+                 COUNT(CASE WHEN severity IS NOT NULL THEN 1 END) AS n_with_sev,
+                 AVG(
+                     CASE
+                         WHEN gsv_data.capture_date IS NOT NULL
+                         THEN time_created - TO_TIMESTAMP(EXTRACT(epoch from CAST(gsv_data.capture_date || '-01' AS DATE)))
+                     END
+                 ) AS avg_age_when_labeled,
                  COUNT(CASE WHEN label_type.label_type = 'CurbRamp' THEN 1 END) AS n_ramp,
                  COUNT(CASE WHEN label_type.label_type = 'CurbRamp' AND severity IS NOT NULL THEN 1 END) AS n_ramp_with_sev,
                  avg(CASE WHEN label_type.label_type = 'CurbRamp' THEN severity END) AS ramp_sev_mean,
@@ -1710,6 +1723,7 @@ class LabelTable @Inject() (
           INNER JOIN user_stat ON label.user_id = user_stat.user_id
           INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
           INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+          LEFT JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
           WHERE #$userFilter
               AND deleted = FALSE
               AND tutorial = FALSE
