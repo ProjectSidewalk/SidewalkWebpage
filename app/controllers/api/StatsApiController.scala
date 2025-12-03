@@ -1,6 +1,7 @@
 package controllers.api
 
 import controllers.base.CustomControllerComponents
+import controllers.helper.ControllerUtils.labelTypeOrdering
 import formats.json.ApiFormats._
 import models.label.ProjectSidewalkStats
 import models.user.UserStatApi
@@ -96,21 +97,21 @@ class StatsApiController @Inject() (
             writer.println(s"Total Label Count,${stats.nLabels}")
             writer.println(s"Total Label Count With Severity,${stats.nLabelsWithSeverity}")
             writer.println(s"Average Age of Image When Labeled,${stats.avgImageAgeByLabel.toDays} Days")
-            for ((labType, sevStats) <- stats.severityByLabelType) {
+            for ((labType, sevStats) <- stats.severityByLabelType.toSeq.sorted(labelTypeOrdering)) {
               writer.println(s"$labType Count,${sevStats.n}")
               writer.println(s"$labType Count With Severity,${sevStats.nWithSeverity.getOrElse("NA")}")
               writer.println(s"$labType Severity Mean,${sevStats.severityMean.map(_.toString).getOrElse("NA")}")
               writer.println(s"$labType Severity SD,${sevStats.severitySD.map(_.toString).getOrElse("NA")}")
             }
             writer.println(s"Total Validations,${stats.nValidations}")
-            for ((labType, accStats) <- stats.accuracyByLabelType) {
+            for ((labType, accStats) <- stats.accuracyByLabelType.toSeq.sorted(labelTypeOrdering)) {
               writer.println(s"$labType Labels Validated,${accStats.n}")
               writer.println(s"$labType Agreed Count,${accStats.nAgree}")
               writer.println(s"$labType Disagreed Count,${accStats.nDisagree}")
               writer.println(s"$labType Accuracy,${accStats.accuracy.map(_.toString).getOrElse("NA")}")
               writer.println(s"$labType Labels With a Validation,${accStats.nWithValidation}")
             }
-            for ((labelType, aiStatsMap) <- stats.aiPerformance) {
+            for ((labelType, aiStatsMap) <- stats.aiPerformance.toSeq.sorted(labelTypeOrdering)) {
               for ((voteType, aiStats) <- aiStatsMap) {
                 val voteTypeText: String =
                   if (voteType == "human_majority_vote") "Human Majority Vote" else "Admin Majority Vote"
