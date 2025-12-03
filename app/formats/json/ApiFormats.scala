@@ -38,7 +38,8 @@ object ApiFormats {
     (__ \ "validated").write[Int] and
       (__ \ "agreed").write[Int] and
       (__ \ "disagreed").write[Int] and
-      (__ \ "accuracy").writeNullable[Float]
+      (__ \ "accuracy").writeNullable[Float] and
+      (__ \ "has_a_validation").write[Int]
   )(unlift(LabelAccuracy.unapply))
 
   implicit val aiConcurrenceWrites: Writes[AiConcurrence] = (
