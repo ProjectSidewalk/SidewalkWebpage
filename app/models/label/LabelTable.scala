@@ -80,8 +80,14 @@ case class LabelForLabelMap(
 )
 
 case class TagCount(labelType: String, tag: String, count: Int)
-case class LabelSeverityStats(n: Int, nWithSeverity: Int, severityMean: Option[Float], severitySD: Option[Float])
+case class LabelSeverityStats(
+    n: Int,
+    nWithSeverity: Option[Int],
+    severityMean: Option[Float],
+    severitySD: Option[Float]
+)
 case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float])
+case class AiConcurrence(aiYesHumanConcurs: Int, aiYesHumanDiffers: Int, aiNoHumanDiffers: Int, aiNoHumanConcurs: Int)
 case class ProjectSidewalkStats(
     launchDate: String,
     avgTimestampLast100Labels: String,
@@ -97,7 +103,8 @@ case class ProjectSidewalkStats(
     nLabels: Int,
     severityByLabelType: Map[String, LabelSeverityStats],
     nValidations: Int,
-    accuracyByLabelType: Map[String, LabelAccuracy]
+    accuracyByLabelType: Map[String, LabelAccuracy],
+    aiPerformance: Map[String, Map[String, AiConcurrence]]
 )
 case class LabelTypeValidationsLeft(labelType: LabelTypeEnum.Base, validationsAvailable: Int, validationsNeeded: Int)
 
@@ -562,23 +569,23 @@ class LabelTable @Inject() (
       r.nextInt(),
       Map(
         LabelTypeEnum.CurbRamp.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.NoCurbRamp.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.Obstacle.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.SurfaceProblem.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.NoSidewalk.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.Crosswalk.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.Signal.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.Occlusion.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         LabelTypeEnum.Other.name ->
-          LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption())
+          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption())
       ),
       r.nextInt(),
       Map(
@@ -592,6 +599,32 @@ class LabelTable @Inject() (
         LabelTypeEnum.Signal.name         -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
         LabelTypeEnum.Occlusion.name      -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
         LabelTypeEnum.Other.name          -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption())
+      ),
+      Map(
+        "Overall" -> Map(
+          "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+          "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
+        ),
+        LabelTypeEnum.CurbRamp.name -> Map(
+          "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+          "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
+        ),
+        LabelTypeEnum.NoCurbRamp.name -> Map(
+          "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+          "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
+        ),
+        LabelTypeEnum.Obstacle.name -> Map(
+          "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+          "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
+        ),
+        LabelTypeEnum.SurfaceProblem.name -> Map(
+          "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+          "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
+        ),
+        LabelTypeEnum.Crosswalk.name -> Map(
+          "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+          "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
+        )
       )
     )
   )
@@ -1496,7 +1529,7 @@ class LabelTable @Inject() (
              label_counts_and_severity.surf_sev_mean,
              label_counts_and_severity.surf_sev_sd,
              label_counts_and_severity.n_nosidewalk,
-             0 AS nosidewalk_with_sev,
+             NULL AS nosidewalk_with_sev,
              NULL AS nosidewalk_sev_mean,
              NULL AS nosidewalk_sev_sd,
              label_counts_and_severity.n_crswlk,
@@ -1504,11 +1537,11 @@ class LabelTable @Inject() (
              label_counts_and_severity.crswlk_sev_mean,
              label_counts_and_severity.crswlk_sev_sd,
              label_counts_and_severity.n_signal,
-             0 AS signal_with_sev,
+             NULL AS signal_with_sev,
              NULL AS signal_sev_mean,
              NULL AS signal_sev_sd,
              label_counts_and_severity.n_occlusion,
-             0 AS occlusion_with_sev,
+             NULL AS occlusion_with_sev,
              NULL AS occlusion_sev_mean,
              NULL AS occlusion_sev_sd,
              label_counts_and_severity.n_other,
@@ -1555,7 +1588,55 @@ class LabelTable @Inject() (
              val_counts.n_other_total,
              val_counts.n_other_agree,
              val_counts.n_other_disagree,
-             1.0 * val_counts.n_other_agree / NULLIF(val_counts.n_other_total, 0) AS other_accuracy
+             1.0 * val_counts.n_other_agree / NULLIF(val_counts.n_other_total, 0) AS other_accuracy,
+             ai_stats.ai_yes_mv_yes,
+             ai_stats.ai_yes_mv_no,
+             ai_stats.ai_no_mv_yes,
+             ai_stats.ai_no_mv_no,
+             ai_stats.ai_yes_admin_yes,
+             ai_stats.ai_yes_admin_no,
+             ai_stats.ai_no_admin_yes,
+             ai_stats.ai_no_admin_no,
+             ai_stats.ramp_ai_yes_mv_yes,
+             ai_stats.ramp_ai_yes_mv_no,
+             ai_stats.ramp_ai_no_mv_yes,
+             ai_stats.ramp_ai_no_mv_no,
+             ai_stats.ramp_ai_yes_admin_yes,
+             ai_stats.ramp_ai_yes_admin_no,
+             ai_stats.ramp_ai_no_admin_yes,
+             ai_stats.ramp_ai_no_admin_no,
+             ai_stats.noramp_ai_yes_mv_yes,
+             ai_stats.noramp_ai_yes_mv_no,
+             ai_stats.noramp_ai_no_mv_yes,
+             ai_stats.noramp_ai_no_mv_no,
+             ai_stats.noramp_ai_yes_admin_yes,
+             ai_stats.noramp_ai_yes_admin_no,
+             ai_stats.noramp_ai_no_admin_yes,
+             ai_stats.noramp_ai_no_admin_no,
+             ai_stats.obs_ai_yes_mv_yes,
+             ai_stats.obs_ai_yes_mv_no,
+             ai_stats.obs_ai_no_mv_yes,
+             ai_stats.obs_ai_no_mv_no,
+             ai_stats.obs_ai_yes_admin_yes,
+             ai_stats.obs_ai_yes_admin_no,
+             ai_stats.obs_ai_no_admin_yes,
+             ai_stats.obs_ai_no_admin_no,
+             ai_stats.surf_ai_yes_mv_yes,
+             ai_stats.surf_ai_yes_mv_no,
+             ai_stats.surf_ai_no_mv_yes,
+             ai_stats.surf_ai_no_mv_no,
+             ai_stats.surf_ai_yes_admin_yes,
+             ai_stats.surf_ai_yes_admin_no,
+             ai_stats.surf_ai_no_admin_yes,
+             ai_stats.surf_ai_no_admin_no,
+             ai_stats.crswlk_ai_yes_mv_yes,
+             ai_stats.crswlk_ai_yes_mv_no,
+             ai_stats.crswlk_ai_no_mv_yes,
+             ai_stats.crswlk_ai_no_mv_no,
+             ai_stats.crswlk_ai_yes_admin_yes,
+             ai_stats.crswlk_ai_yes_admin_no,
+             ai_stats.crswlk_ai_no_admin_yes,
+             ai_stats.crswlk_ai_no_admin_no
       FROM (
           SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited
           FROM street_edge
@@ -1677,7 +1758,91 @@ class LabelTable @Inject() (
               AND tutorial = FALSE
               AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
               AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-      ) AS val_counts;""".as[ProjectSidewalkStats].head
+      ) AS val_counts, (
+          SELECT COUNT(CASE WHEN ai_mv = 1 AND human_mv = 1 THEN 1 END) AS ai_yes_mv_yes,
+                 COUNT(CASE WHEN ai_mv = 1 AND human_mv = 2 THEN 1 END) AS ai_yes_mv_no,
+                 COUNT(CASE WHEN ai_mv = 2 AND human_mv = 1 THEN 1 END) AS ai_no_mv_yes,
+                 COUNT(CASE WHEN ai_mv = 2 AND human_mv = 2 THEN 1 END) AS ai_no_mv_no,
+                 COUNT(CASE WHEN ai_mv = 1 AND admin_mv = 1 THEN 1 END) AS ai_yes_admin_yes,
+                 COUNT(CASE WHEN ai_mv = 1 AND admin_mv = 2 THEN 1 END) AS ai_yes_admin_no,
+                 COUNT(CASE WHEN ai_mv = 2 AND admin_mv = 1 THEN 1 END) AS ai_no_admin_yes,
+                 COUNT(CASE WHEN ai_mv = 2 AND admin_mv = 2 THEN 1 END) AS ai_no_admin_no,
+                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 1 AND human_mv = 1 THEN 1 END) AS ramp_ai_yes_mv_yes,
+                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 1 AND human_mv = 2 THEN 1 END) AS ramp_ai_yes_mv_no,
+                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 2 AND human_mv = 1 THEN 1 END) AS ramp_ai_no_mv_yes,
+                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 2 AND human_mv = 2 THEN 1 END) AS ramp_ai_no_mv_no,
+                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 1 AND admin_mv = 1 THEN 1 END) AS ramp_ai_yes_admin_yes,
+                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 1 AND admin_mv = 2 THEN 1 END) AS ramp_ai_yes_admin_no,
+                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 2 AND admin_mv = 1 THEN 1 END) AS ramp_ai_no_admin_yes,
+                 COUNT(CASE WHEN label_type = 'CurbRamp' AND ai_mv = 2 AND admin_mv = 2 THEN 1 END) AS ramp_ai_no_admin_no,
+                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 1 AND human_mv = 1 THEN 1 END) AS noramp_ai_yes_mv_yes,
+                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 1 AND human_mv = 2 THEN 1 END) AS noramp_ai_yes_mv_no,
+                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 2 AND human_mv = 1 THEN 1 END) AS noramp_ai_no_mv_yes,
+                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 2 AND human_mv = 2 THEN 1 END) AS noramp_ai_no_mv_no,
+                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 1 AND admin_mv = 1 THEN 1 END) AS noramp_ai_yes_admin_yes,
+                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 1 AND admin_mv = 2 THEN 1 END) AS noramp_ai_yes_admin_no,
+                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 2 AND admin_mv = 1 THEN 1 END) AS noramp_ai_no_admin_yes,
+                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND ai_mv = 2 AND admin_mv = 2 THEN 1 END) AS noramp_ai_no_admin_no,
+                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 1 AND human_mv = 1 THEN 1 END) AS obs_ai_yes_mv_yes,
+                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 1 AND human_mv = 2 THEN 1 END) AS obs_ai_yes_mv_no,
+                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 2 AND human_mv = 1 THEN 1 END) AS obs_ai_no_mv_yes,
+                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 2 AND human_mv = 2 THEN 1 END) AS obs_ai_no_mv_no,
+                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 1 AND admin_mv = 1 THEN 1 END) AS obs_ai_yes_admin_yes,
+                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 1 AND admin_mv = 2 THEN 1 END) AS obs_ai_yes_admin_no,
+                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 2 AND admin_mv = 1 THEN 1 END) AS obs_ai_no_admin_yes,
+                 COUNT(CASE WHEN label_type = 'Obstacle' AND ai_mv = 2 AND admin_mv = 2 THEN 1 END) AS obs_ai_no_admin_no,
+                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 1 AND human_mv = 1 THEN 1 END) AS surf_ai_yes_mv_yes,
+                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 1 AND human_mv = 2 THEN 1 END) AS surf_ai_yes_mv_no,
+                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 2 AND human_mv = 1 THEN 1 END) AS surf_ai_no_mv_yes,
+                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 2 AND human_mv = 2 THEN 1 END) AS surf_ai_no_mv_no,
+                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 1 AND admin_mv = 1 THEN 1 END) AS surf_ai_yes_admin_yes,
+                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 1 AND admin_mv = 2 THEN 1 END) AS surf_ai_yes_admin_no,
+                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 2 AND admin_mv = 1 THEN 1 END) AS surf_ai_no_admin_yes,
+                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND ai_mv = 2 AND admin_mv = 2 THEN 1 END) AS surf_ai_no_admin_no,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 1 AND human_mv = 1 THEN 1 END) AS crswlk_ai_yes_mv_yes,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 1 AND human_mv = 2 THEN 1 END) AS crswlk_ai_yes_mv_no,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 2 AND human_mv = 1 THEN 1 END) AS crswlk_ai_no_mv_yes,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 2 AND human_mv = 2 THEN 1 END) AS crswlk_ai_no_mv_no,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 1 AND admin_mv = 1 THEN 1 END) AS crswlk_ai_yes_admin_yes,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 1 AND admin_mv = 2 THEN 1 END) AS crswlk_ai_yes_admin_no,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 2 AND admin_mv = 1 THEN 1 END) AS crswlk_ai_no_admin_yes,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 2 AND admin_mv = 2 THEN 1 END) AS crswlk_ai_no_admin_no
+          FROM (
+              SELECT label.label_id, label_type.label_type,
+                     -- Note that we're doing majority vote with AI for simplicity. Should only be one vote from AI.
+                     CASE
+                         WHEN COUNT(CASE WHEN role = 'AI' AND validation_result = 1 THEN 1 END)
+                             > COUNT(CASE WHEN role = 'AI' AND validation_result = 2 THEN 1 END) THEN 1
+                         WHEN COUNT(CASE WHEN role = 'AI' AND validation_result = 2 THEN 1 END)
+                             > COUNT(CASE WHEN role = 'AI' AND validation_result = 1 THEN 1 END) THEN 2
+                         ELSE 3
+                         END AS ai_mv,
+                     CASE
+                         WHEN COUNT(CASE WHEN role <> 'AI' AND validation_result = 1 THEN 1 END)
+                             > COUNT(CASE WHEN role <> 'AI' AND validation_result = 2 THEN 1 END) THEN 1
+                         WHEN COUNT(CASE WHEN role <> 'AI' AND validation_result = 2 THEN 1 END)
+                             > COUNT(CASE WHEN role <> 'AI' AND validation_result = 1 THEN 1 END) THEN 2
+                         ELSE 3
+                         END AS human_mv,
+                     CASE
+                         WHEN COUNT(CASE WHEN role IN ('Administrator', 'Owner') AND validation_result = 1 THEN 1 END)
+                             > COUNT(CASE WHEN role IN ('Administrator', 'Owner') AND validation_result = 2 THEN 1 END) THEN 1
+                         WHEN COUNT(CASE WHEN role IN ('Administrator', 'Owner') AND validation_result = 2 THEN 1 END)
+                             > COUNT(CASE WHEN role IN ('Administrator', 'Owner') AND validation_result = 1 THEN 1 END) THEN 2
+                         ELSE 3
+                         END AS admin_mv
+              FROM label
+              INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+              INNER JOIN label_validation ON label.label_id = label_validation.label_id
+              INNER JOIN user_stat ON label_validation.user_id = user_stat.user_id
+              INNER JOIN user_role ON user_stat.user_id = user_role.user_id
+              INNER JOIN role ON user_role.role_id = role.role_id
+              WHERE user_stat.excluded = FALSE
+                  AND label.user_id <> label_validation.user_id -- Excluding times when user validated their own label.
+              GROUP BY label.label_id, label_type.label_type
+              HAVING COUNT(CASE WHEN role = 'AI' THEN 1 END) > 0
+          ) AS majority_votes
+      ) AS ai_stats;""".as[ProjectSidewalkStats].head
   }
 
   /**

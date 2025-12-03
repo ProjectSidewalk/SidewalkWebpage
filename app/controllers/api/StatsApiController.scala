@@ -8,7 +8,6 @@ import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.silhouette.api.Silhouette
 import service.{AggregateStats, ApiService, ConfigService}
-
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
@@ -97,7 +96,7 @@ class StatsApiController @Inject() (
             writer.println(s"Total Label Count,${stats.nResearcher}")
             for ((labType, sevStats) <- stats.severityByLabelType) {
               writer.println(s"$labType Count,${sevStats.n}")
-              writer.println(s"$labType Count With Severity,${sevStats.nWithSeverity}")
+              writer.println(s"$labType Count With Severity,${sevStats.nWithSeverity.getOrElse("NA")}")
               writer.println(s"$labType Severity Mean,${sevStats.severityMean.map(_.toString).getOrElse("NA")}")
               writer.println(s"$labType Severity SD,${sevStats.severitySD.map(_.toString).getOrElse("NA")}")
             }
@@ -107,6 +106,16 @@ class StatsApiController @Inject() (
               writer.println(s"$labType Agreed Count,${accStats.nAgree}")
               writer.println(s"$labType Disagreed Count,${accStats.nDisagree}")
               writer.println(s"$labType Accuracy,${accStats.accuracy.map(_.toString).getOrElse("NA")}")
+            }
+            for ((labelType, aiStatsMap) <- stats.aiPerformance) {
+              for ((voteType, aiStats) <- aiStatsMap) {
+                val voteTypeText: String =
+                  if (voteType == "human_majority_vote") "Human Majority Vote" else "Admin Majority Vote"
+                writer.println(s"$labelType AI Yes and $voteTypeText Concurs,${aiStats.aiYesHumanConcurs}")
+                writer.println(s"$labelType AI Yes but $voteTypeText Differs,${aiStats.aiYesHumanDiffers}")
+                writer.println(s"$labelType AI No but $voteTypeText Differs,${aiStats.aiNoHumanDiffers}")
+                writer.println(s"$labelType AI No and $voteTypeText Concurs,${aiStats.aiNoHumanConcurs}")
+              }
             }
 
             writer.close()

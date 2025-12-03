@@ -122,130 +122,94 @@
         <h4 id="response-json">JSON Format (Default) <a href="#response-json" class="permalink">#</a></h4>
         <p>Returns a JSON object with comprehensive project statistics:</p>
         <pre><code class="language-json">{
-    "launchDate": "2021-06-15T00:00:00Z",
-    "avgTimestampLast100Labels": "2023-09-25T14:32:47Z",
-    "kmExplored": 1834.26,
-    "kmExploreNoOverlap": 1523.75,
-    "nUsers": 4287,
-    "nExplorers": 3892,
-    "nValidators": 895,
-    "nRegistered": 3456,
-    "nAnon": 831,
-    "nTurker": 214,
-    "nResearcher": 42,
-    "totalLabels": 183427,
-    "severityByLabelType": {
+    "launch_date": "2021-06-15T00:00:00Z",
+    "avg_timestamp_last_100_labels": "2023-09-25T14:32:47Z",
+    "km_explored": 1834.26,
+    "km_explored_no_overlap": 1523.75,
+    "user_counts": {
+        "all_users": 4287,
+        "labelers": 3892,
+        "validators": 895,
+        "registered": 3456,
+        "anonymous": 831,
+        "turker": 214,
+        "researcher": 42
+    },
+    "labels": {
+        "label_count": 183427,
         "CurbRamp": {
-            "n": 72964,
-            "nWithSeverity": 61837,
-            "severityMean": 1.2,
-            "severitySD": 0.5
+            "count": 72964,
+            "count_with_severity": 61837,
+            "severity_mean": 1.2,
+            "severity_sd": 0.5
         },
         "NoCurbRamp": {
-            "n": 35682,
-            "nWithSeverity": 31245,
-            "severityMean": 3.8,
-            "severitySD": 0.9
+            "count": 35682,
+            "count_with_severity": 31245,
+            "severity_mean": 3.8,
+            "severity_sd": 0.9
         },
-        "Obstacle": {
-            "n": 14256,
-            "nWithSeverity": 12589,
-            "severityMean": 2.7,
-            "severitySD": 1.1
-        },
-        "SurfaceProblem": {
-            "n": 22784,
-            "nWithSeverity": 19873,
-            "severityMean": 2.4,
-            "severitySD": 1.2
-        },
+        // Some label types like NoSidewalk and Signal don't have severity ratings, so severity fields are null.
         "NoSidewalk": {
-            "n": 15682,
-            "nWithSeverity": 0,
-            "severityMean": null,
-            "severitySD": null
+            "count": 61837,
+            "count_with_severity": null,
+            "severity_mean": null,
+            "severity_sd": null
         },
-        "Crosswalk": {
-            "n": 9427,
-            "nWithSeverity": 0,
-            "severityMean": null,
-            "severitySD": null
-        },
-        "Signal": {
-            "n": 7851,
-            "nWithSeverity": 0,
-            "severityMean": null,
-            "severitySD": null
-        },
-        "Occlusion": {
-            "n": 3475,
-            "nWithSeverity": 0,
-            "severityMean": null,
-            "severitySD": null
-        },
-        "Other": {
-            "n": 1306,
-            "nWithSeverity": 582,
-            "severityMean": 2.9,
-            "severitySD": 1.4
-        }
+        ... // Remaining label types
     },
-    "nValidations": 125834,
-    "accuracyByLabelType": {
+    "validations": {
+        "total_validations": 125834,
+        "Overall": {
+            "validated": 151196,
+            "agreed": 127564,
+            "disagreed": 23632,
+            "accuracy": 0.84
+        },
         "CurbRamp": {
-            "n": 54321,
-            "nAgree": 48923,
-            "nDisagree": 5398,
+            "validated": 54321,
+            "agreed": 48923,
+            "disagreed": 5398,
             "accuracy": 0.90
         },
         "NoCurbRamp": {
-            "n": 21456,
-            "nAgree": 18237,
-            "nDisagree": 3219,
+            "validated": 21456,
+            "agreed": 18237,
+            "disagreed": 3219,
             "accuracy": 0.85
         },
-        "Obstacle": {
-            "n": 8932,
-            "nAgree": 7324,
-            "nDisagree": 1608,
-            "accuracy": 0.82
+        ... // Remaining label types
+    },
+    "ai_stats": {
+        "Overall": {
+            "human_majority_vote": {
+                "ai_yes_human_concurs": 37,
+                "ai_yes_human_differs": 3,
+                "ai_no_human_differs": 2,
+                "ai_no_human_concurs": 37
+            },
+            "admin_majority_vote": {
+                "ai_yes_human_concurs": 127,
+                "ai_yes_human_differs": 54,
+                "ai_no_human_differs": 27,
+                "ai_no_human_concurs": 134
+            }
         },
-        "SurfaceProblem": {
-            "n": 12879,
-            "nAgree": 10561,
-            "nDisagree": 2318,
-            "accuracy": 0.82
+        "CurbRamp": {
+            "human_majority_vote": {
+                "ai_yes_human_concurs": 20,
+                "ai_yes_human_differs": 0,
+                "ai_no_human_differs": 0,
+                "ai_no_human_concurs": 2
+            },
+            "admin_majority_vote": {
+                "ai_yes_human_concurs": 42,
+                "ai_yes_human_differs": 2,
+                "ai_no_human_differs": 6,
+                "ai_no_human_concurs": 48
+            }
         },
-        "NoSidewalk": {
-            "n": 9871,
-            "nAgree": 8765,
-            "nDisagree": 1106,
-            "accuracy": 0.89
-        },
-        "Crosswalk": {
-            "n": 6543,
-            "nAgree": 5982,
-            "nDisagree": 561,
-            "accuracy": 0.91
-        },
-        "Signal": {
-            "n": 5432,
-            "nAgree": 4812,
-            "nDisagree": 620,
-            "accuracy": 0.89
-        },
-        "Occlusion": {
-            "n": 2154,
-            "nAgree": 1723,
-            "nDisagree": 431,
-            "accuracy": 0.80
-        },
-        "Other": {
-            "n": 743,
-            "nAgree": 521,
-            "nDisagree": 222,
-            "accuracy": 0.70
-        }
+        ... // Remaining label types
     }
 }</code></pre>
 
@@ -262,29 +226,35 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td><code>launchDate</code></td><td><code>string</code></td><td>ISO 8601 formatted date when Project Sidewalk was launched in this city.</td></tr>
-                    <tr><td><code>avgTimestampLast100Labels</code></td><td><code>string</code></td><td>ISO 8601 formatted average timestamp of the 100 most recent labels, indicating data recency.</td></tr>
-                    <tr><td><code>kmExplored</code></td><td><code>number</code></td><td>Total kilometers of streets explored by all users, including overlapping segments.</td></tr>
-                    <tr><td><code>kmExploreNoOverlap</code></td><td><code>number</code></td><td>Total kilometers of unique streets explored, excluding overlapping segments.</td></tr>
-                    <tr><td><code>nUsers</code></td><td><code>integer</code></td><td>Total number of users who have contributed to Project Sidewalk.</td></tr>
-                    <tr><td><code>nExplorers</code></td><td><code>integer</code></td><td>Number of users who have participated in exploration/labeling tasks.</td></tr>
-                    <tr><td><code>nValidators</code></td><td><code>integer</code></td><td>Number of users who have participated in validation tasks.</td></tr>
-                    <tr><td><code>nRegistered</code></td><td><code>integer</code></td><td>Number of registered users with accounts.</td></tr>
-                    <tr><td><code>nAnon</code></td><td><code>integer</code></td><td>Number of anonymous users.</td></tr>
-                    <tr><td><code>nTurker</code></td><td><code>integer</code></td><td>Number of users from crowdsourcing platforms.</td></tr>
-                    <tr><td><code>nResearcher</code></td><td><code>integer</code></td><td>Number of users with researcher role.</td></tr>
-                    <tr><td><code>totalLabels</code></td><td><code>integer</code></td><td>Total number of accessibility labels placed by all users.</td></tr>
-                    <tr><td><code>severityByLabelType</code></td><td><code>object</code></td><td>Statistics about severity ratings by label type.</td></tr>
-                    <tr><td><code>severityByLabelType.[type].n</code></td><td><code>integer</code></td><td>Total number of labels of this type.</td></tr>
-                    <tr><td><code>severityByLabelType.[type].nWithSeverity</code></td><td><code>integer</code></td><td>Number of labels of this type that have severity ratings.</td></tr>
-                    <tr><td><code>severityByLabelType.[type].severityMean</code></td><td><code>number | null</code></td><td>Mean severity rating for this label type, or null if no severity ratings exist.</td></tr>
-                    <tr><td><code>severityByLabelType.[type].severitySD</code></td><td><code>number | null</code></td><td>Standard deviation of severity ratings for this label type, or null if insufficient data.</td></tr>
-                    <tr><td><code>nValidations</code></td><td><code>integer</code></td><td>Total number of validation judgments made across all labels.</td></tr>
-                    <tr><td><code>accuracyByLabelType</code></td><td><code>object</code></td><td>Statistics about validation accuracy by label type.</td></tr>
-                    <tr><td><code>accuracyByLabelType.[type].n</code></td><td><code>integer</code></td><td>Number of labels of this type that have been validated.</td></tr>
-                    <tr><td><code>accuracyByLabelType.[type].nAgree</code></td><td><code>integer</code></td><td>Number of validations agreeing with the label placement.</td></tr>
-                    <tr><td><code>accuracyByLabelType.[type].nDisagree</code></td><td><code>integer</code></td><td>Number of validations disagreeing with the label placement.</td></tr>
-                    <tr><td><code>accuracyByLabelType.[type].accuracy</code></td><td><code>number | null</code></td><td>Calculated accuracy rate (nAgree / n) for this label type, or null if no validations.</td></tr>
+                    <tr><td><code>launch_date</code></td><td><code>string</code></td><td>ISO 8601 formatted date when Project Sidewalk was launched in this city.</td></tr>
+                    <tr><td><code>avg_timestamp_last_100_labels</code></td><td><code>string</code></td><td>ISO 8601 formatted average timestamp of the 100 most recent labels, indicating data recency.</td></tr>
+                    <tr><td><code>km_explored</code></td><td><code>number</code></td><td>Total kilometers of streets explored by all users, including overlapping streets.</td></tr>
+                    <tr><td><code>km_explored_no_overlap</code></td><td><code>number</code></td><td>Total kilometers of unique streets explored, excluding overlapping streets.</td></tr>
+                    <tr><td><code>user_counts.all_users</code></td><td><code>integer</code></td><td>Total number of users who have contributed to Project Sidewalk.</td></tr>
+                    <tr><td><code>user_counts.labelers</code></td><td><code>integer</code></td><td>Number of users who have participated in explore/labeling tasks.</td></tr>
+                    <tr><td><code>user_counts.validators</code></td><td><code>integer</code></td><td>Number of users who have participated in validation tasks.</td></tr>
+                    <tr><td><code>user_counts.registered</code></td><td><code>integer</code></td><td>Number of users who have created accounts on Project Sidewalk.</td></tr>
+                    <tr><td><code>user_counts.anonymous</code></td><td><code>integer</code></td><td>Number of anonymous users.</td></tr>
+                    <tr><td><code>user_counts.turker</code></td><td><code>integer</code></td><td>Number of users from crowdsourcing platforms.</td></tr>
+                    <tr><td><code>user_counts.researcher</code></td><td><code>integer</code></td><td>Number of users with the researcher role (includes all Admins).</td></tr>
+                    <tr><td><code>labels</code></td><td><code>object</code></td><td>Statistics about label counts and severity ratings by label type.</td></tr>
+                    <tr><td><code>labels.label_count</code></td><td><code>integer</code></td><td>Total number of accessibility labels placed by all users.</td></tr>
+                    <tr><td><code>labels.[type].count</code></td><td><code>integer</code></td><td>Total number of labels of this type.</td></tr>
+                    <tr><td><code>labels.[type].count_with_severity</code></td><td><code>integer | null</code></td><td>Number of labels of this type that have severity ratings, or null if no severity ratings exist.</td></tr>
+                    <tr><td><code>labels.[type].severity_mean</code></td><td><code>number | null</code></td><td>Mean severity rating for this label type, or null if no severity ratings exist.</td></tr>
+                    <tr><td><code>labels.[type].severity_sd</code></td><td><code>number | null</code></td><td>Standard deviation of severity ratings for this label type, or null if insufficient data.</td></tr>
+                    <tr><td><code>validations</code></td><td><code>object</code></td><td>Statistics about validation accuracy by label type.</td></tr>
+                    <tr><td><code>validations.total_validations</code></td><td><code>integer</code></td><td>Total number of validation judgments made across all labels.</td></tr>
+                    <tr><td><code>validations.[type].validated</code></td><td><code>integer</code></td><td>Number of labels of this type that have been validated as either "correct" or "incorrect" through majority vote; a label is not included if the number of agree and disagree votes are equal.</td></tr>
+                    <tr><td><code>validations.[type].agreed</code></td><td><code>integer</code></td><td>Number of labels of this type that have been validated as "correct" through majority vote.</td></tr>
+                    <tr><td><code>validations.[type].disagreed</code></td><td><code>integer</code></td><td>Number of labels of this type that have been validated as "incorrect" through majority vote</td></tr>
+                    <tr><td><code>validations.[type].accuracy</code></td><td><code>number | null</code></td><td>Calculated accuracy rate (agreed / validated) for this label type, or null if no validations.</td></tr>
+                    <tr><td><code>ai_stats</code></td><td><code>object</code></td><td>Statistics human agreement with AI validations.</td></tr>
+                    <tr><td><code>ai_stats.[type].[vote]</code></td><td><code>object</code></td><td>Vote can be either "human" for majority vote across all users, or "admin" for majority vote across admin users.</td></tr>
+                    <tr><td><code>ai_stats.[type].[vote].ai_yes_human_concurs</code></td><td><code>object</code></td><td>Number of labels where AI voted yes and human users voted yes more often than no.</td></tr>
+                    <tr><td><code>ai_stats.[type].[vote].ai_yes_human_differs</code></td><td><code>object</code></td><td>Number of labels where AI voted yes but human users voted no more often than yes.</td></tr>
+                    <tr><td><code>ai_stats.[type].[vote].ai_no_human_differs</code></td><td><code>object</code></td><td>Number of labels where AI voted no but human users voted yes more often than no.</td></tr>
+                    <tr><td><code>ai_stats.[type].[vote].ai_no_human_concurs</code></td><td><code>object</code></td><td>Number of labels where AI voted no and human users voted no more often than yes.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -307,25 +277,42 @@ CurbRamp Count,72964
 CurbRamp Count With Severity,61837
 CurbRamp Severity Mean,1.2
 CurbRamp Severity SD,0.5
-NoCurbRamp Count,35682
-NoCurbRamp Count With Severity,31245
-NoCurbRamp Severity Mean,3.8
-NoCurbRamp Severity SD,0.9
 ...
 Total Validations,125834
+Overall Labels Validated,151196
+Overall Agreed Count,127564
+Overall Disagreed Count,23632
+Overall Accuracy,0.84
 CurbRamp Labels Validated,54321
 CurbRamp Agreed Count,48923
 CurbRamp Disagreed Count,5398
 CurbRamp Accuracy,0.90
+...
+Overall AI Yes and Human Majority Vote Concurs,37
+Overall AI Yes but Human Majority Vote Differs,3
+Overall AI No but Human Majority Vote Differs,2
+Overall AI No and Human Majority Vote Concurs,37
+Overall AI Yes and Admin Majority Vote Concurs,127
+Overall AI Yes but Admin Majority Vote Differs,54
+Overall AI No but Admin Majority Vote Differs,27
+Overall AI No and Admin Majority Vote Concurs,134
+CurbRamp AI Yes and Human Majority Vote Concurs,20
+CurbRamp AI Yes but Human Majority Vote Differs,0
+CurbRamp AI No but Human Majority Vote Differs,0
+CurbRamp AI No and Human Majority Vote Concurs,2
+CurbRamp AI Yes and Admin Majority Vote Concurs,42
+CurbRamp AI Yes but Admin Majority Vote Differs,2
+CurbRamp AI No but Admin Majority Vote Differs,6
+CurbRamp AI No and Admin Majority Vote Concurs,48
 ...</code></pre>
 
         <h5 id="csv-fields">CSV Format Description <a href="#csv-fields" class="permalink">#</a></h5>
         <p>In CSV format, each row represents a specific metric in a key-value format:</p>
         <ul>
             <li>Top-level statistics are represented directly as named rows (e.g., "KM Explored,1834.26")</li>
-            <li>Nested statistics like <code>severityByLabelType</code> and <code>accuracyByLabelType</code> are flattened into multiple rows with descriptive names</li>
-            <li>For each label type, severity stats are presented as four rows: Count, Count With Severity, Severity Mean, and Severity SD</li>
-            <li>For each label type, accuracy stats are presented as four rows: Labels Validated, Agreed Count, Disagreed Count, and Accuracy</li>
+            <li>Nested statistics like <code>user_counts</code> and <code>labels</code> are flattened into multiple rows with descriptive names</li>
+            <li>For each label type, label severity stats are presented as four rows: Count, Count With Severity, Severity Mean, and Severity SD</li>
+            <li>For each label type, validation stats are presented as four rows: Labels Validated, Agreed Count, Disagreed Count, and Accuracy</li>
             <li>This flat structure makes the data easy to parse and analyze in spreadsheet applications</li>
         </ul>
 
@@ -357,8 +344,8 @@ CurbRamp Accuracy,0.90
         <ul>
             <li><strong>Consider using filterLowQuality=true</strong> for more reliable analysis, especially when examining severity ratings</li>
             <li><strong>Compare accuracy rates across label types</strong> to identify which accessibility issues might be more ambiguous or difficult to detect</li>
-            <li><strong>Use kmExplored vs. kmExploreNoOverlap</strong> to understand the level of redundancy in data collection</li>
-            <li><strong>Look at avgTimestampLast100Labels</strong> to gauge how recently the data has been updated</li>
+            <li><strong>Use km_explored vs. km_explored_no_overlap</strong> to understand the level of redundancy in data collection</li>
+            <li><strong>Look at avg_timestamp_last_100_labels</strong> to gauge how recently the data has been updated</li>
             <li><strong>Analyze the ratio of validators to explorers</strong> to understand community participation patterns</li>
         </ul>
 
