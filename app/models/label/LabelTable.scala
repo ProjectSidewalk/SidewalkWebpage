@@ -7,7 +7,7 @@ import models.audit.AuditTaskTableDef
 import models.computation.StreamingApiType
 import models.gsv.{GsvData, GsvDataTableDef}
 import models.label.LabelTable._
-import models.label.LabelTypeEnum.validLabelTypes
+import models.label.LabelTypeEnum._
 import models.mission.MissionTableDef
 import models.region.RegionTableDef
 import models.route.RouteStreetTableDef
@@ -86,7 +86,7 @@ case class LabelSeverityStats(
     severityMean: Option[Float],
     severitySD: Option[Float]
 )
-case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float])
+case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float], nWithValidation: Int)
 case class AiConcurrence(aiYesHumanConcurs: Int, aiYesHumanDiffers: Int, aiNoHumanDiffers: Int, aiNoHumanConcurs: Int)
 case class ProjectSidewalkStats(
     launchDate: String,
@@ -568,60 +568,52 @@ class LabelTable @Inject() (
       r.nextInt(),
       r.nextInt(),
       Map(
-        LabelTypeEnum.CurbRamp.name ->
+        CurbRamp.name   -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
+        NoCurbRamp.name -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
+        Obstacle.name   -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
+        SurfaceProblem.name ->
           LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        LabelTypeEnum.NoCurbRamp.name ->
-          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        LabelTypeEnum.Obstacle.name ->
-          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        LabelTypeEnum.SurfaceProblem.name ->
-          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        LabelTypeEnum.NoSidewalk.name ->
-          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        LabelTypeEnum.Crosswalk.name ->
-          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        LabelTypeEnum.Signal.name ->
-          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        LabelTypeEnum.Occlusion.name ->
-          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        LabelTypeEnum.Other.name ->
-          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption())
+        NoSidewalk.name -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
+        Crosswalk.name  -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
+        Signal.name     -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
+        Occlusion.name  -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
+        Other.name      -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption())
       ),
       r.nextInt(),
       Map(
-        "Overall"                         -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-        LabelTypeEnum.CurbRamp.name       -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-        LabelTypeEnum.NoCurbRamp.name     -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-        LabelTypeEnum.Obstacle.name       -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-        LabelTypeEnum.SurfaceProblem.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-        LabelTypeEnum.NoSidewalk.name     -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-        LabelTypeEnum.Crosswalk.name      -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-        LabelTypeEnum.Signal.name         -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-        LabelTypeEnum.Occlusion.name      -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-        LabelTypeEnum.Other.name          -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption())
+        "Overall"           -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
+        CurbRamp.name       -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
+        NoCurbRamp.name     -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
+        Obstacle.name       -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
+        SurfaceProblem.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
+        NoSidewalk.name     -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
+        Crosswalk.name      -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
+        Signal.name         -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
+        Occlusion.name      -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
+        Other.name          -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt())
       ),
       Map(
         "Overall" -> Map(
           "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
           "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
         ),
-        LabelTypeEnum.CurbRamp.name -> Map(
+        CurbRamp.name -> Map(
           "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
           "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
         ),
-        LabelTypeEnum.NoCurbRamp.name -> Map(
+        NoCurbRamp.name -> Map(
           "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
           "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
         ),
-        LabelTypeEnum.Obstacle.name -> Map(
+        Obstacle.name -> Map(
           "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
           "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
         ),
-        LabelTypeEnum.SurfaceProblem.name -> Map(
+        SurfaceProblem.name -> Map(
           "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
           "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
         ),
-        LabelTypeEnum.Crosswalk.name -> Map(
+        Crosswalk.name -> Map(
           "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
           "admin_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
         )
@@ -1553,42 +1545,52 @@ class LabelTable @Inject() (
              val_counts.n_agree,
              val_counts.n_disagree,
              1.0 * val_counts.n_agree / NULLIF(val_counts.n_validated, 0) AS overall_accuracy,
+             n_with_validation,
              val_counts.n_ramp_total,
              val_counts.n_ramp_agree,
              val_counts.n_ramp_disagree,
              1.0 * val_counts.n_ramp_agree / NULLIF(val_counts.n_ramp_total, 0) AS ramp_accuracy,
+             n_ramp_with_validation,
              val_counts.n_noramp_total,
              val_counts.n_noramp_agree,
              val_counts.n_noramp_disagree,
              1.0 * val_counts.n_noramp_agree / NULLIF(val_counts.n_noramp_total, 0) AS noramp_accuracy,
+             n_noramp_with_validation,
              val_counts.n_obs_total,
              val_counts.n_obs_agree,
              val_counts.n_obs_disagree,
              1.0 * val_counts.n_obs_agree / NULLIF(val_counts.n_obs_total, 0) AS obs_accuracy,
+             n_obs_with_validation,
              val_counts.n_surf_total,
              val_counts.n_surf_agree,
              val_counts.n_surf_disagree,
              1.0 * val_counts.n_surf_agree / NULLIF(val_counts.n_surf_total, 0) AS surf_accuracy,
+             n_surf_with_validation,
              val_counts.n_nosidewalk_total,
              val_counts.n_nosidewalk_agree,
              val_counts.n_nosidewalk_disagree,
              1.0 * val_counts.n_nosidewalk_agree / NULLIF(val_counts.n_nosidewalk_total, 0) AS nosidewalk_accuracy,
+             n_nosidewalk_with_validation,
              val_counts.n_crswlk_total,
              val_counts.n_crswlk_agree,
              val_counts.n_crswlk_disagree,
              1.0 * val_counts.n_crswlk_agree / NULLIF(val_counts.n_crswlk_total, 0) AS crswlk_accuracy,
+             n_crswlk_with_validation,
              val_counts.n_signal_total,
              val_counts.n_signal_agree,
              val_counts.n_signal_disagree,
              1.0 * val_counts.n_signal_agree / NULLIF(val_counts.n_signal_total, 0) AS signal_accuracy,
+             n_signal_with_validation,
              val_counts.n_occlusion_total,
              val_counts.n_occlusion_agree,
              val_counts.n_occlusion_disagree,
              1.0 * val_counts.n_occlusion_agree / NULLIF(val_counts.n_occlusion_total, 0) AS occlusion_accuracy,
+             n_occlusion_with_validation,
              val_counts.n_other_total,
              val_counts.n_other_agree,
              val_counts.n_other_disagree,
              1.0 * val_counts.n_other_agree / NULLIF(val_counts.n_other_total, 0) AS other_accuracy,
+             n_other_with_validation,
              ai_stats.ai_yes_mv_yes,
              ai_stats.ai_yes_mv_no,
              ai_stats.ai_no_mv_yes,
@@ -1722,33 +1724,43 @@ class LabelTable @Inject() (
           SELECT COUNT(CASE WHEN correct THEN 1 END) AS n_agree,
                  COUNT(CASE WHEN NOT correct THEN 1 END) AS n_disagree,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS n_validated,
+                 COUNT(CASE WHEN agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_with_validation,
                  COUNT(CASE WHEN label_type = 'CurbRamp' AND correct THEN 1 END) AS n_ramp_agree,
                  COUNT(CASE WHEN label_type = 'CurbRamp' AND NOT correct THEN 1 END) AS n_ramp_disagree,
                  COUNT(CASE WHEN label_type = 'CurbRamp' AND correct IS NOT NULL THEN 1 END) AS n_ramp_total,
+                 COUNT(CASE WHEN label_type = 'CurbRamp' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_ramp_with_validation,
                  COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct THEN 1 END) AS n_noramp_agree,
                  COUNT(CASE WHEN label_type = 'NoCurbRamp' AND NOT correct THEN 1 END) AS n_noramp_disagree,
                  COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct IS NOT NULL THEN 1 END) AS n_noramp_total,
+                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_noramp_with_validation,
                  COUNT(CASE WHEN label_type = 'Obstacle' AND correct THEN 1 END) AS n_obs_agree,
                  COUNT(CASE WHEN label_type = 'Obstacle' AND NOT correct THEN 1 END) AS n_obs_disagree,
                  COUNT(CASE WHEN label_type = 'Obstacle' AND correct IS NOT NULL THEN 1 END) AS n_obs_total,
+                 COUNT(CASE WHEN label_type = 'Obstacle' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_obs_with_validation,
                  COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct THEN 1 END) AS n_surf_agree,
                  COUNT(CASE WHEN label_type = 'SurfaceProblem' AND NOT correct THEN 1 END) AS n_surf_disagree,
                  COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct IS NOT NULL THEN 1 END) AS n_surf_total,
+                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_surf_with_validation,
                  COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct THEN 1 END) AS n_nosidewalk_agree,
                  COUNT(CASE WHEN label_type = 'NoSidewalk' AND NOT correct THEN 1 END) AS n_nosidewalk_disagree,
                  COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct IS NOT NULL THEN 1 END) AS n_nosidewalk_total,
+                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_nosidewalk_with_validation,
                  COUNT(CASE WHEN label_type = 'Crosswalk' AND correct THEN 1 END) AS n_crswlk_agree,
                  COUNT(CASE WHEN label_type = 'Crosswalk' AND NOT correct THEN 1 END) AS n_crswlk_disagree,
                  COUNT(CASE WHEN label_type = 'Crosswalk' AND correct IS NOT NULL THEN 1 END) AS n_crswlk_total,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_crswlk_with_validation,
                  COUNT(CASE WHEN label_type = 'Signal' AND correct THEN 1 END) AS n_signal_agree,
                  COUNT(CASE WHEN label_type = 'Signal' AND NOT correct THEN 1 END) AS n_signal_disagree,
                  COUNT(CASE WHEN label_type = 'Signal' AND correct IS NOT NULL THEN 1 END) AS n_signal_total,
+                 COUNT(CASE WHEN label_type = 'Signal' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_signal_with_validation,
                  COUNT(CASE WHEN label_type = 'Occlusion' AND correct THEN 1 END) AS n_occlusion_agree,
                  COUNT(CASE WHEN label_type = 'Occlusion' AND NOT correct THEN 1 END) AS n_occlusion_disagree,
                  COUNT(CASE WHEN label_type = 'Occlusion' AND correct IS NOT NULL THEN 1 END) AS n_occlusion_total,
+                 COUNT(CASE WHEN label_type = 'Occlusion' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_occlusion_with_validation,
                  COUNT(CASE WHEN label_type = 'Other' AND correct THEN 1 END) AS n_other_agree,
                  COUNT(CASE WHEN label_type = 'Other' AND NOT correct THEN 1 END) AS n_other_disagree,
-                 COUNT(CASE WHEN label_type = 'Other' AND correct IS NOT NULL THEN 1 END) AS n_other_total
+                 COUNT(CASE WHEN label_type = 'Other' AND correct IS NOT NULL THEN 1 END) AS n_other_total,
+                 COUNT(CASE WHEN label_type = 'Other' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_other_with_validation
           FROM label
           INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
           INNER JOIN user_stat ON label.user_id = user_stat.user_id

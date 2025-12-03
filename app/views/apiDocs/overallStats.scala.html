@@ -164,19 +164,22 @@
             "validated": 151196,
             "agreed": 127564,
             "disagreed": 23632,
-            "accuracy": 0.84
+            "accuracy": 0.84,
+            "has_a_validation": 162974
         },
         "CurbRamp": {
             "validated": 54321,
             "agreed": 48923,
             "disagreed": 5398,
-            "accuracy": 0.90
+            "accuracy": 0.90,
+            "has_a_validation": 59422
         },
         "NoCurbRamp": {
             "validated": 21456,
             "agreed": 18237,
             "disagreed": 3219,
-            "accuracy": 0.85
+            "accuracy": 0.85,
+            "has_a_validation": 26100
         },
         ... // Remaining label types
     },
@@ -249,6 +252,7 @@
                     <tr><td><code>validations.[type].agreed</code></td><td><code>integer</code></td><td>Number of labels of this type that have been validated as "correct" through majority vote.</td></tr>
                     <tr><td><code>validations.[type].disagreed</code></td><td><code>integer</code></td><td>Number of labels of this type that have been validated as "incorrect" through majority vote</td></tr>
                     <tr><td><code>validations.[type].accuracy</code></td><td><code>number | null</code></td><td>Calculated accuracy rate (agreed / validated) for this label type, or null if no validations.</td></tr>
+                    <tr><td><code>validations.[type].validated</code></td><td><code>integer</code></td><td>Number of labels of this type that have received any validation votes.</td></tr>
                     <tr><td><code>ai_stats</code></td><td><code>object</code></td><td>Statistics human agreement with AI validations.</td></tr>
                     <tr><td><code>ai_stats.[type].[vote]</code></td><td><code>object</code></td><td>Vote can be either "human" for majority vote across all users, or "admin" for majority vote across admin users.</td></tr>
                     <tr><td><code>ai_stats.[type].[vote].ai_yes_human_concurs</code></td><td><code>object</code></td><td>Number of labels where AI voted yes and human users voted yes more often than no.</td></tr>
@@ -283,10 +287,12 @@ Overall Labels Validated,151196
 Overall Agreed Count,127564
 Overall Disagreed Count,23632
 Overall Accuracy,0.84
+Overall Labels With a Validation,162974
 CurbRamp Labels Validated,54321
 CurbRamp Agreed Count,48923
 CurbRamp Disagreed Count,5398
 CurbRamp Accuracy,0.90
+CurbRamp Labels With a Validation,59422
 ...
 Overall AI Yes and Human Majority Vote Concurs,37
 Overall AI Yes but Human Majority Vote Differs,3

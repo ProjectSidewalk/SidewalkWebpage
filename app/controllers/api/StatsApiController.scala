@@ -106,6 +106,7 @@ class StatsApiController @Inject() (
               writer.println(s"$labType Agreed Count,${accStats.nAgree}")
               writer.println(s"$labType Disagreed Count,${accStats.nDisagree}")
               writer.println(s"$labType Accuracy,${accStats.accuracy.map(_.toString).getOrElse("NA")}")
+              writer.println(s"$labType Labels With a Validation,${accStats.nWithValidation}")
             }
             for ((labelType, aiStatsMap) <- stats.aiPerformance) {
               for ((voteType, aiStats) <- aiStatsMap) {
