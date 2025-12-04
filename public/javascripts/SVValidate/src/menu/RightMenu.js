@@ -494,15 +494,19 @@ function RightMenu(menuUI) {
             let disagreeReason = currLabel.getProperty('disagreeOption');
             if (disagreeReason === 'other') {
                 comment = currLabel.getProperty('disagreeReasonTextBox');
-            } else {
+            } else if (disagreeReason) {
                 comment = menuUI.disagreeReasonOptions.find(`#${disagreeReason}`).html().replace('<br>', ' ');
+            } else {
+                comment = '';
             }
         } else if (action === 'Unsure') {
             let unsureReason = currLabel.getProperty('unsureOption');
             if (unsureReason === 'other') {
                 comment = currLabel.getProperty('unsureReasonTextBox');
-            } else {
+            } else if (unsureReason) {
                 comment = menuUI.unsureReasonOptions.find(`#${unsureReason}`).html().replace('<br>', ' ');
+            } else {
+                comment = '';
             }
         }
         currLabel.setProperty('comment', comment);
