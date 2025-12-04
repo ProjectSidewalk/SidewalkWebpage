@@ -138,6 +138,7 @@
     "labels": {
         "label_count": 183427,
         "label_count_with_severity": 162320,
+        "avg_label_timestamp": "2021-05-10T20:20:25.147504Z",
         "avg_age_of_image_when_labeled": "672 days",
         "CurbRamp": {
             "count": 72964,
@@ -244,7 +245,8 @@
                     <tr><td><code>user_counts.researcher</code></td><td><code>integer</code></td><td>Number of users with the researcher role (includes all Admins).</td></tr>
                     <tr><td><code>labels</code></td><td><code>object</code></td><td>Statistics about label counts and severity ratings by label type.</td></tr>
                     <tr><td><code>labels.label_count</code></td><td><code>integer</code></td><td>Total number of accessibility labels placed by all users.</td></tr>
-                    <tr><td><code>labels.label_count</code></td><td><code>integer</code></td><td>Total number of accessibility labels placed by all users that have an associated severity rating.</td></tr>
+                    <tr><td><code>labels.label_count_with_severity</code></td><td><code>integer</code></td><td>Total number of labels placed by all users with an associated severity rating.</td></tr>
+                    <tr><td><code>avg_label_timestamp</code></td><td><code>string</code></td><td>ISO 8601 formatted average timestamp when labels were created.</td></tr>
                     <tr><td><code>labels.avg_age_of_image_when_labeled</code></td><td><code>string</code></td><td>The average, across all labels, of the age of the image when the label was placed (in days).</td></tr>
                     <tr><td><code>labels.[type].count</code></td><td><code>integer</code></td><td>Total number of labels of this type.</td></tr>
                     <tr><td><code>labels.[type].count_with_severity</code></td><td><code>integer | null</code></td><td>Number of labels of this type that have severity ratings, or null if no severity ratings exist.</td></tr>
@@ -282,6 +284,7 @@ Turker User Count,214
 Researcher User Count,42
 Total Label Count,183427
 Total Label Count With Severity,162320
+Average Label Timestamp,2021-05-10T20:20:25.147504Z
 Average Age of Image When Labeled,672 days
 CurbRamp Count,72964
 CurbRamp Count With Severity,61837

@@ -187,7 +187,7 @@ object ApiFormats {
   def projectSidewalkStatsToJson(stats: ProjectSidewalkStats): JsObject = {
     Json.obj(
       "launch_date"                   -> stats.launchDate,
-      "avg_timestamp_last_100_labels" -> stats.avgTimestampLast100Labels,
+      "avg_timestamp_last_100_labels" -> stats.avgTimestampLast100Labels.toString,
       "km_explored"                   -> stats.kmExplored,
       "km_explored_no_overlap"        -> stats.kmExploreNoOverlap,
       "user_counts"                   -> Json.obj(
@@ -203,6 +203,7 @@ object ApiFormats {
         Seq(
           ("label_count", JsNumber(stats.nLabels.toDouble)),
           ("label_count_with_severity", JsNumber(stats.nLabelsWithSeverity.toDouble)),
+          ("avg_label_timestamp", JsString(stats.avgLabelTimestamp.toString)),
           ("avg_age_of_image_when_labeled", JsString(s"${stats.avgImageAgeByLabel.toDays} days"))
         ) ++
           // Turns into { "CurbRamp" -> { "count" -> ###, ... }, ... }.

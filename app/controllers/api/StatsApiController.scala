@@ -96,6 +96,7 @@ class StatsApiController @Inject() (
             writer.println(s"Researcher User Count,${stats.nResearcher}")
             writer.println(s"Total Label Count,${stats.nLabels}")
             writer.println(s"Total Label Count With Severity,${stats.nLabelsWithSeverity}")
+            writer.println(s"Average Label Timestamp,${stats.avgLabelTimestamp}")
             writer.println(s"Average Age of Image When Labeled,${stats.avgImageAgeByLabel.toDays} Days")
             for ((labType, sevStats) <- stats.severityByLabelType.toSeq.sorted(labelTypeOrdering)) {
               writer.println(s"$labType Count,${sevStats.n}")

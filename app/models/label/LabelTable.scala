@@ -90,7 +90,7 @@ case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[F
 case class AiConcurrence(aiYesHumanConcurs: Int, aiYesHumanDiffers: Int, aiNoHumanDiffers: Int, aiNoHumanConcurs: Int)
 case class ProjectSidewalkStats(
     launchDate: String,
-    avgTimestampLast100Labels: String,
+    avgTimestampLast100Labels: OffsetDateTime,
     kmExplored: Float,
     kmExploreNoOverlap: Float,
     nUsers: Int,
@@ -102,6 +102,7 @@ case class ProjectSidewalkStats(
     nResearcher: Int,
     nLabels: Int,
     nLabelsWithSeverity: Int,
+    avgLabelTimestamp: OffsetDateTime,
     avgImageAgeByLabel: Duration,
     severityByLabelType: Map[String, LabelSeverityStats],
     nValidations: Int,
@@ -558,7 +559,7 @@ class LabelTable @Inject() (
   implicit val projectSidewalkStatsConverter: GetResult[ProjectSidewalkStats] = GetResult[ProjectSidewalkStats](r =>
     ProjectSidewalkStats(
       r.nextString(),
-      r.nextString(),
+      r.nextOffsetDateTime(),
       r.nextFloat(),
       r.nextFloat(),
       r.nextInt(),
@@ -570,7 +571,8 @@ class LabelTable @Inject() (
       r.nextInt(),
       r.nextInt(),
       r.nextInt(),
-      r.<<[Duration],
+      r.nextOffsetDateTime(),
+      r.nextDuration(),
       Map(
         CurbRamp.name   -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         NoCurbRamp.name -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
@@ -1477,7 +1479,7 @@ class LabelTable @Inject() (
   def recentLabelsAvgLabelDate(n: Int): DBIO[Option[OffsetDateTime]] = {
     labels.sortBy(_.timeCreated.desc).take(n).map(_.timeCreated).result.map { dates =>
       if (dates.nonEmpty) {
-        val avgDate = dates.map(_.toInstant.toEpochMilli).sum / dates.length
+        val avgDate: Long = dates.map(_.toInstant.toEpochMilli).sum / dates.length
         Some(Instant.ofEpochMilli(avgDate).atOffset(ZoneOffset.UTC))
       } else {
         None
@@ -1509,6 +1511,7 @@ class LabelTable @Inject() (
              users.researcher_users,
              label_counts_and_severity.label_count,
              label_counts_and_severity.n_with_sev,
+             label_counts_and_severity.avg_label_timestamp,
              label_counts_and_severity.avg_age_when_labeled,
              label_counts_and_severity.n_ramp,
              label_counts_and_severity.n_ramp_with_sev,
@@ -1686,6 +1689,7 @@ class LabelTable @Inject() (
       ) AS users, (
           SELECT COUNT(*) AS label_count,
                  COUNT(CASE WHEN severity IS NOT NULL THEN 1 END) AS n_with_sev,
+                 to_timestamp(AVG(EXTRACT(EPOCH FROM time_created))) AS avg_label_timestamp,
                  AVG(
                      CASE
                          WHEN gsv_data.capture_date IS NOT NULL
