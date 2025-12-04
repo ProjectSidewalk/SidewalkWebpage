@@ -36,7 +36,8 @@ trait MyPostgresProfile
       with PostGISPlainImplicits
       with PostGISAssistants
       with ArrayImplicits
-      with Date2DateTimeImplicitsDuration
+      with Date2DateTimePlainImplicits    // Plain for raw queries
+      with Date2DateTimeImplicitsDuration // For compiled queries
       with JsonImplicits
       with NetImplicits
       with LTreeImplicits

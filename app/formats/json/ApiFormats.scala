@@ -1,5 +1,6 @@
 package formats.json
 
+import controllers.helper.ControllerUtils.labelTypeOrdering
 import models.cluster.ClusterForApi
 import models.computation.{RegionScore, StreetScore}
 import models.gsv.GsvDataSlim
@@ -186,7 +187,7 @@ object ApiFormats {
   def projectSidewalkStatsToJson(stats: ProjectSidewalkStats): JsObject = {
     Json.obj(
       "launch_date"                   -> stats.launchDate,
-      "avg_timestamp_last_100_labels" -> stats.avgTimestampLast100Labels,
+      "avg_timestamp_last_100_labels" -> stats.avgTimestampLast100Labels.toString,
       "km_explored"                   -> stats.kmExplored,
       "km_explored_no_overlap"        -> stats.kmExploreNoOverlap,
       "user_counts"                   -> Json.obj(
@@ -199,21 +200,24 @@ object ApiFormats {
         "researcher" -> stats.nResearcher
       ),
       "labels" -> JsObject(
-        Seq(("label_count", JsNumber(stats.nLabels.toDouble))) ++
+        Seq(
+          ("label_count", JsNumber(stats.nLabels.toDouble)),
+          ("label_count_with_severity", JsNumber(stats.nLabelsWithSeverity.toDouble)),
+          ("avg_label_timestamp", JsString(stats.avgLabelTimestamp.toString)),
+          ("avg_age_of_image_when_labeled", JsString(s"${stats.avgImageAgeByLabel.toDays} days"))
+        ) ++
           // Turns into { "CurbRamp" -> { "count" -> ###, ... }, ... }.
-          stats.severityByLabelType.map { case (labType, sevStats) => labType -> Json.toJson(sevStats) }
+          stats.severityByLabelType.toSeq.sorted(labelTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2))
       ),
       "validations" -> JsObject(
         Seq("total_validations" -> JsNumber(stats.nValidations.toDouble)) ++
           // Turns into { "Overall" -> { "validated" -> ###, ... }, "CurbRamp" -> { "validated" -> ###, ... }, ... }.
-          stats.accuracyByLabelType.map { case (labType, accStats) => labType -> Json.toJson(accStats) }
+          stats.accuracyByLabelType.toSeq.sorted(labelTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2))
       ),
       "ai_stats" -> JsObject(
         // { "Overall" -> "human_maj_vote" -> { "ai_yes_human_concurs": ###, ... }, ... }, "CurbRamp" -> { ... }, ... }.
-        stats.aiPerformance.map { case (labelType, perfStatsMap) =>
-          labelType -> JsObject(
-            perfStatsMap.map { case (comparisonGroup, perfStats) => comparisonGroup -> Json.toJson(perfStats) }
-          )
+        stats.aiPerformance.map { case (lType, statsMap) =>
+          lType -> JsObject(statsMap.toSeq.sorted(labelTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2)))
         }
       )
     )
