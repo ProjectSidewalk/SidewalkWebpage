@@ -46,6 +46,8 @@ city.name.chandigarh-india = Chandigarh
 city.name.rancagua-chile = Rancagua
 city.name.vancouver-wa = Vancouver
 city.name.santiago-chile = Santiago
+city.name.tucson-az = Tucson
+city.name.paterson-nj = Paterson
 city.name.staging = Zurich Infra3d
 
 state.name.oregon = Oregon
@@ -60,6 +62,7 @@ state.name.south-carolina = South Carolina
 state.name.michigan = Michigan
 state.name.wisconsin = Wisconsin
 state.name.new-york = New York
+state.name.arizona = Arizona
 
 country.name.usa = USA
 country.name.mexico = Mexico

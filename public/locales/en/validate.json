@@ -161,8 +161,8 @@
                 "unsure-button-3-tooltip": "It may be unclear whether pedestrians should be able to cross at an intersection with a busier road"
             },
             "obstacle": {
-                "unsure-button-3": "Not sure if sidewalk is wide enough to avoid the obstacle",
-                "unsure-button-3-tooltip": "The width of the sidewalk may be difficult to judge from an image"
+                "unsure-button-3": "There might be enough space<br>to avoid the object",
+                "unsure-button-3-tooltip": "The width of the sidewalk may be difficult to judge from a picture"
             },
             "surface-problem": {
                 "unsure-button-3": "Might be too minor to label",

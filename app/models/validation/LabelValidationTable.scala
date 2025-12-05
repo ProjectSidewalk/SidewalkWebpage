@@ -4,15 +4,13 @@ import com.google.inject.ImplementedBy
 import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi}
 import models.label.LabelTypeEnum.{labelTypeIdToLabelType, validLabelTypeIds, validLabelTypes}
 import models.label._
-import models.user.SidewalkUserTable.aiUserId
-import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
+import models.user._
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTable.validationOptions
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
-
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
@@ -108,6 +106,7 @@ trait LabelValidationTableRepository {}
 class LabelValidationTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     labelTable: LabelTable,
+    sidewalkUserTable: SidewalkUserTable,
     implicit val ec: ExecutionContext
 ) extends LabelValidationTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -118,7 +117,7 @@ class LabelValidationTable @Inject() (
   val roleTable            = TableQuery[RoleTableDef]
   val labelsUnfiltered     = TableQuery[LabelTableDef]
   val labelTypeTable       = TableQuery[LabelTypeTableDef]
-  val humanValidations     = validations.filter(_.userId =!= aiUserId)
+  val humanValidations     = validations.join(sidewalkUserTable.humanUsers).on(_.userId === _.userId).map(_._1)
   val labelsWithoutDeleted = labelsUnfiltered.filter(_.deleted === false)
 
   /**
@@ -187,8 +186,8 @@ class LabelValidationTable @Inject() (
    */
   def getValidationCountsByUser: DBIO[Seq[(String, (String, Int, Int))]] = {
     val _labels = for {
-      _label <- labelTable.labelsWithExcludedUsers
-      _user  <- users if _user.username =!= "anonymous" && _user.userId === _label.userId // User who placed the label.
+      _label    <- labelTable.labelsWithExcludedUsers
+      _user     <- users if _user.userId === _label.userId // User who placed the label.
       _userRole <- userRoles if _user.userId === _userRole.userId
       _role     <- roleTable if _userRole.roleId === _role.roleId
       if _label.correct.isDefined // Filter for labels marked as either correct or incorrect.
@@ -260,7 +259,9 @@ class LabelValidationTable @Inject() (
     validationsInTimeInterval
       .join(labelsWithoutDeleted)
       .on(_.labelId === _.labelId)
-      .groupBy { case (v, l) => (l.labelTypeId, v.validationResult, v.userId === aiUserId) }
+      .join(sidewalkUserTable.sidewalkUserToRoleJoin)
+      .on(_._1.userId === _._1.userId)
+      .groupBy { case ((v, l), (u, ur, r)) => (l.labelTypeId, v.validationResult, r.role === "AI") }
       .map { case ((labelTypeId, valResult, isAi), group) => (labelTypeId, valResult, isAi, group.length) }
       .result
       .map { valCounts =>
@@ -309,15 +310,18 @@ class LabelValidationTable @Inject() (
    * @param filters The filters to apply to the validation data.
    * @return A query for retrieving filtered validation data as tuples.
    */
-  def getValidationsForApi(filters: ValidationFiltersForApi): Query[_, (LabelValidation, Label, LabelType), Seq] = {
+  def getValidationsForApi(
+      filters: ValidationFiltersForApi
+  ): Query[_, (LabelValidation, Label, LabelType, Role), Seq] = {
     for {
-      validation <- validations
-      label      <- labelsUnfiltered if validation.labelId === label.labelId
-      labelType  <- labelTypeTable if label.labelTypeId === labelType.labelTypeId
+      validation             <- validations
+      label                  <- labelsUnfiltered if validation.labelId === label.labelId
+      labelType              <- labelTypeTable if label.labelTypeId === labelType.labelTypeId
+      (user, userRole, role) <- sidewalkUserTable.sidewalkUserToRoleJoin if validation.userId === user.userId
 
       // Apply filters.
       if filters.labelId.map(validation.labelId === _).getOrElse(true: Rep[Boolean]) &&
-        filters.userId.map(validation.userId === _).getOrElse(true: Rep[Boolean]) &&
+        filters.userId.map(user.userId === _).getOrElse(true: Rep[Boolean]) &&
         filters.validationResult.map(validation.validationResult === _).getOrElse(true: Rep[Boolean]) &&
         filters.labelTypeId.map(label.labelTypeId === _).getOrElse(true: Rep[Boolean]) &&
         filters.validationTimestamp.map(validation.startTimestamp >= _).getOrElse(true: Rep[Boolean])
@@ -337,7 +341,7 @@ class LabelValidationTable @Inject() (
         }
         .getOrElse(true: Rep[Boolean])
 
-    } yield (validation, label, labelType)
+    } yield (validation, label, labelType, role)
   }
 
   /**
@@ -346,9 +350,9 @@ class LabelValidationTable @Inject() (
    * TODO try doing something like TupleConverter in LabelTable.scala. Need a more general solution.
    */
   def tupleToValidationDataForApi(
-      tuple: (LabelValidation, models.label.Label, models.label.LabelType)
+      tuple: (LabelValidation, Label, LabelType, Role)
   ): ValidationDataForApi = {
-    val (validation, label, labelType) = tuple
+    val (validation, label, labelType, role) = tuple
     ValidationDataForApi(
       labelValidationId = validation.labelValidationId,
       labelId = validation.labelId,
@@ -362,7 +366,7 @@ class LabelValidationTable @Inject() (
       oldTags = validation.oldTags,
       newTags = validation.newTags,
       userId = validation.userId,
-      validatorType = if (validation.userId == aiUserId) "AI" else "Human",
+      validatorType = if (role.role == "AI") "AI" else "Human",
       missionId = validation.missionId,
       canvasXY = validation.canvasX.flatMap(x => validation.canvasY.map(y => LocationXY(x, y))),
       heading = validation.heading,
@@ -383,7 +387,9 @@ class LabelValidationTable @Inject() (
    */
   def getValidationResultTypes: DBIO[Seq[ValidationResultTypeForApi]] = {
     validations
-      .groupBy { v => (v.validationResult, v.userId === aiUserId) }
+      .join(sidewalkUserTable.sidewalkUserToRoleJoin)
+      .on(_.userId === _._1.userId)
+      .groupBy { case (v, (u, ur, r)) => (v.validationResult, r.role === "AI") }
       .map { case ((valResult, isAi), group) => (valResult, isAi, group.length) }
       .result
       .map { results: Seq[(Int, Boolean, Int)] =>

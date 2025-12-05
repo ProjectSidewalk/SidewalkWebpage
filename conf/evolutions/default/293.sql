@@ -1,92 +1,87 @@
 # --- !Ups
--- Change specific references to GSV in table/column names to a more generic "pano".
-ALTER TABLE gsv_data RENAME TO pano_data;
-ALTER TABLE gsv_link RENAME TO pano_link;
+-- Add an official Unsure validations for all past AI validations where we didn't add one.
+INSERT INTO label_validation (label_id, validation_result, user_id, mission_id, canvas_x, canvas_y, heading, pitch, zoom, canvas_width, canvas_height, start_timestamp, end_timestamp, source, old_severity, new_severity, old_tags, new_tags)
+    SELECT label.label_id, 3, '51b0b927-3c8a-45b2-93de-bd878d1e5cf4', mission.mission_id, label_point.canvas_x,
+           label_point.canvas_y, label_point.heading, label_point.pitch, label_point.zoom, 720, 480,
+           label_ai_assessment.timestamp, label_ai_assessment.timestamp, 'SidewalkAI', label.severity, label.severity,
+           label.tags, label.tags
+    FROM label_ai_assessment
+    INNER JOIN label USING (label_id)
+    INNER JOIN label_point ON label.label_id = label_point.label_id
+    INNER JOIN mission ON label.label_type_id = mission.label_type_id
+        AND mission.mission_type_id = 7
+    LEFT JOIN (
+        SELECT label_validation_id, label_id
+        FROM label_validation
+        WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4'
+    ) ai_validations ON label_ai_assessment.label_id = ai_validations.label_id
+    WHERE ai_validations.label_validation_id IS NULL;
 
-ALTER TABLE audit_task_comment RENAME COLUMN gsv_panorama_id TO pano_id;
-ALTER TABLE audit_task_interaction RENAME COLUMN gsv_panorama_id TO pano_id;
-ALTER TABLE audit_task_interaction_small RENAME COLUMN gsv_panorama_id TO pano_id;
-ALTER TABLE label RENAME COLUMN gsv_panorama_id TO pano_id;
-ALTER TABLE pano_data RENAME COLUMN gsv_panorama_id TO pano_id;
-ALTER TABLE pano_link RENAME COLUMN gsv_panorama_id TO pano_id;
-ALTER TABLE pano_link RENAME COLUMN target_panorama_id TO target_pano_id;
-ALTER TABLE validation_task_comment RENAME COLUMN gsv_panorama_id TO pano_id;
-ALTER TABLE validation_task_interaction RENAME COLUMN gsv_panorama_id TO pano_id;
+-- Link these validations back to the label_ai_assessment table.
+UPDATE label_ai_assessment
+SET label_validation_id = (
+    SELECT label_validation_id
+    FROM label_validation
+    WHERE label_ai_assessment.label_id = label_validation.label_id
+        AND label_validation.user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4'
+    LIMIT 1
+)
+WHERE label_validation_id IS NULL;
 
--- User-provided imagery might not have copyright info, so let's let the column be nullable.
-ALTER TABLE pano_data ALTER COLUMN copyright DROP NOT NULL;
-UPDATE pano_data SET copyright = NULL WHERE copyright = '';
+-- Recalculate validation counts now that we've added a bunch of validations.
+UPDATE label
+SET (agree_count, disagree_count, unsure_count, correct) = (n_agree, n_disagree, n_unsure, is_correct)
+FROM (
+    SELECT label.label_id,
+           COUNT(CASE WHEN validation_result = 1 AND user_stat.user_id IS NOT NULL THEN 1 END) AS n_agree,
+           COUNT(CASE WHEN validation_result = 2 AND user_stat.user_id IS NOT NULL THEN 1 END) AS n_disagree,
+           COUNT(CASE WHEN validation_result = 3 AND user_stat.user_id IS NOT NULL THEN 1 END) AS n_unsure,
+           CASE
+               WHEN COUNT(CASE WHEN validation_result = 1 AND user_stat.user_id IS NOT NULL THEN 1 END)
+                   > COUNT(CASE WHEN validation_result = 2 AND user_stat.user_id IS NOT NULL THEN 1 END) THEN TRUE
+               WHEN COUNT(CASE WHEN validation_result = 2 AND user_stat.user_id IS NOT NULL THEN 1 END)
+                   > COUNT(CASE WHEN validation_result = 1 AND user_stat.user_id IS NOT NULL THEN 1 END) THEN FALSE
+               ELSE NULL
+               END AS is_correct
+    FROM label
+        LEFT JOIN mission ON mission.mission_id = label.mission_id
+        LEFT JOIN label_validation ON label.label_id = label_validation.label_id AND mission.user_id <> label_validation.user_id
+        LEFT JOIN user_stat ON label_validation.user_id = user_stat.user_id AND user_stat.excluded = FALSE
+    GROUP BY label.label_id
+) AS validation_count
+WHERE label.label_id = validation_count.label_id;
 
--- Similarly, non-GSV imagery might not have a "description" field for the links.
-ALTER TABLE pano_link ALTER COLUMN description DROP NOT NULL;
-UPDATE pano_link SET description = NULL WHERE description = '';
-
--- Some dbs have a pano id that's an empty string. I fixed the front-end code that can create that, so I'm removing any
--- possible references to it here. I didn't find any instances it was being referenced outside of pano_data, but adding
--- these delete statements to be safe.
-DELETE FROM pano_data CASCADE WHERE pano_id = '';
-DELETE FROM audit_task_comment CASCADE WHERE pano_id = '';
-DELETE FROM audit_task_interaction CASCADE WHERE pano_id = '';
-DELETE FROM audit_task_interaction_small CASCADE WHERE pano_id = '';
-DELETE FROM gallery_task_interaction CASCADE WHERE pano_id = '';
-DELETE FROM pano_link CASCADE WHERE pano_id = '';
-DELETE FROM label CASCADE WHERE pano_id = '';
-DELETE FROM pano_history CASCADE WHERE location_curr_pano_id = '';
-DELETE FROM validation_task_comment CASCADE WHERE pano_id = '';
-DELETE FROM validation_task_interaction CASCADE WHERE pano_id = '';
-
--- Add a new `source` column to the pano_data table to differentiate between different image sources.
-ALTER TABLE pano_data ADD COLUMN source TEXT DEFAULT 'gsv';
-ALTER TABLE pano_data ALTER COLUMN source DROP DEFAULT;
-
--- Fix the nullable columns in audit_task_comment that aren't ever actually null. Adding delete statement for safety.
-DELETE FROM audit_task_comment WHERE heading IS NULL OR pitch IS NULL OR zoom IS NULL OR pano_id IS NULL;
-ALTER TABLE audit_task_comment
-    ALTER COLUMN heading SET NOT NULL,
-    ALTER COLUMN pitch SET NOT NULL,
-    ALTER COLUMN zoom SET NOT NULL,
-    ALTER COLUMN pano_id SET NOT NULL;
-
--- Make it so that zoom columns are all Doubles instead of Ints.
-ALTER TABLE audit_task_interaction ALTER COLUMN zoom TYPE DOUBLE PRECISION;
-ALTER TABLE audit_task_interaction_small ALTER COLUMN zoom TYPE DOUBLE PRECISION;
-ALTER TABLE audit_task_comment ALTER COLUMN zoom TYPE DOUBLE PRECISION;
-ALTER TABLE label_point ALTER COLUMN zoom TYPE DOUBLE PRECISION;
-ALTER TABLE validation_task_comment ALTER COLUMN zoom TYPE DOUBLE PRECISION;
 
 # --- !Downs
--- Set zoom back to an integer where it was before.
-ALTER TABLE validation_task_comment ALTER COLUMN zoom TYPE INTEGER USING round(zoom)::integer;
-ALTER TABLE label_point ALTER COLUMN zoom TYPE INTEGER USING round(zoom)::integer;
-ALTER TABLE audit_task_comment ALTER COLUMN zoom TYPE INTEGER USING round(zoom)::integer;
-ALTER TABLE audit_task_interaction_small ALTER COLUMN zoom TYPE INTEGER USING round(zoom)::integer;
-ALTER TABLE audit_task_interaction ALTER COLUMN zoom TYPE INTEGER USING round(zoom)::integer;
+-- Remove the links to the Unsure validations that are in label_ai_assessment.
+UPDATE label_ai_assessment
+SET label_validation_id = NULL
+FROM label_validation
+WHERE label_ai_assessment.label_validation_id = label_validation.label_validation_id
+    AND label_validation.validation_result = 3;
 
--- Make columns nullable again in audit_task_comment.
-ALTER TABLE audit_task_comment
-    ALTER COLUMN pano_id DROP NOT NULL,
-    ALTER COLUMN zoom DROP NOT NULL,
-    ALTER COLUMN pitch DROP NOT NULL,
-    ALTER COLUMN heading DROP NOT NULL;
+-- Remove those validations.
+DELETE FROM label_validation CASCADE WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4' AND validation_result = 3;
 
-ALTER TABLE pano_data DROP COLUMN source;
-
-UPDATE pano_link SET description = '' WHERE description IS NULL;
-ALTER TABLE pano_link ALTER COLUMN description SET NOT NULL;
-
-UPDATE pano_data SET copyright = '' WHERE copyright IS NULL;
-ALTER TABLE pano_data ALTER COLUMN copyright SET NOT NULL;
-
--- Revert changes to from the more generic "pano" back to "gsv".
-ALTER TABLE validation_task_interaction RENAME COLUMN pano_id TO gsv_panorama_id;
-ALTER TABLE validation_task_comment RENAME COLUMN pano_id TO gsv_panorama_id;
-ALTER TABLE pano_link RENAME COLUMN target_pano_id TO target_panorama_id;
-ALTER TABLE pano_link RENAME COLUMN pano_id TO gsv_panorama_id;
-ALTER TABLE pano_data RENAME COLUMN pano_id TO gsv_panorama_id;
-ALTER TABLE label RENAME COLUMN pano_id TO gsv_panorama_id;
-ALTER TABLE audit_task_interaction_small RENAME COLUMN pano_id TO gsv_panorama_id;
-ALTER TABLE audit_task_interaction RENAME COLUMN pano_id TO gsv_panorama_id;
-ALTER TABLE audit_task_comment RENAME COLUMN pano_id TO gsv_panorama_id;
-
-ALTER TABLE pano_link RENAME TO gsv_link;
-ALTER TABLE pano_data RENAME TO gsv_data;
+-- Recalculate validation counts now that we've removed a bunch of validations.
+UPDATE label
+SET (agree_count, disagree_count, unsure_count, correct) = (n_agree, n_disagree, n_unsure, is_correct)
+FROM (
+    SELECT label.label_id,
+           COUNT(CASE WHEN validation_result = 1 AND user_stat.user_id IS NOT NULL THEN 1 END) AS n_agree,
+           COUNT(CASE WHEN validation_result = 2 AND user_stat.user_id IS NOT NULL THEN 1 END) AS n_disagree,
+           COUNT(CASE WHEN validation_result = 3 AND user_stat.user_id IS NOT NULL THEN 1 END) AS n_unsure,
+           CASE
+               WHEN COUNT(CASE WHEN validation_result = 1 AND user_stat.user_id IS NOT NULL THEN 1 END)
+                   > COUNT(CASE WHEN validation_result = 2 AND user_stat.user_id IS NOT NULL THEN 1 END) THEN TRUE
+               WHEN COUNT(CASE WHEN validation_result = 2 AND user_stat.user_id IS NOT NULL THEN 1 END)
+                   > COUNT(CASE WHEN validation_result = 1 AND user_stat.user_id IS NOT NULL THEN 1 END) THEN FALSE
+               ELSE NULL
+               END AS is_correct
+    FROM label
+        LEFT JOIN mission ON mission.mission_id = label.mission_id
+        LEFT JOIN label_validation ON label.label_id = label_validation.label_id AND mission.user_id <> label_validation.user_id
+        LEFT JOIN user_stat ON label_validation.user_id = user_stat.user_id AND user_stat.excluded = FALSE
+    GROUP BY label.label_id
+) AS validation_count
+WHERE label.label_id = validation_count.label_id;

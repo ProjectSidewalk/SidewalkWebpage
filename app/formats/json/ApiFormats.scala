@@ -1,5 +1,6 @@
 package formats.json
 
+import controllers.helper.ControllerUtils.labelTypeOrdering
 import models.cluster.ClusterForApi
 import models.computation.{RegionScore, StreetScore}
 import models.pano.PanoDataSlim
@@ -11,7 +12,6 @@ import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-
 import java.time.OffsetDateTime
 
 object ApiFormats {
@@ -30,17 +30,25 @@ object ApiFormats {
 
   implicit val labelSeverityStatsWrites: Writes[LabelSeverityStats] = (
     (__ \ "count").write[Int] and
-      (__ \ "count_with_severity").write[Int] and
-      (__ \ "severity_mean").writeNullable[Float] and
-      (__ \ "severity_sd").writeNullable[Float]
+      (__ \ "count_with_severity").write[Option[Int]] and
+      (__ \ "severity_mean").write[Option[Float]] and
+      (__ \ "severity_sd").write[Option[Float]]
   )(unlift(LabelSeverityStats.unapply))
 
   implicit val labelAccuracyWrites: Writes[LabelAccuracy] = (
     (__ \ "validated").write[Int] and
       (__ \ "agreed").write[Int] and
       (__ \ "disagreed").write[Int] and
-      (__ \ "accuracy").writeNullable[Float]
+      (__ \ "accuracy").writeNullable[Float] and
+      (__ \ "has_a_validation").write[Int]
   )(unlift(LabelAccuracy.unapply))
+
+  implicit val aiConcurrenceWrites: Writes[AiConcurrence] = (
+    (__ \ "ai_yes_human_concurs").write[Int] and
+      (__ \ "ai_yes_human_differs").write[Int] and
+      (__ \ "ai_no_human_differs").write[Int] and
+      (__ \ "ai_no_human_concurs").write[Int]
+  )(unlift(AiConcurrence.unapply))
 
   implicit val mapParamsWrites: Writes[MapParams] = (
     (__ \ "center_lat").write[Double] and
@@ -179,7 +187,7 @@ object ApiFormats {
   def projectSidewalkStatsToJson(stats: ProjectSidewalkStats): JsObject = {
     Json.obj(
       "launch_date"                   -> stats.launchDate,
-      "avg_timestamp_last_100_labels" -> stats.avgTimestampLast100Labels,
+      "avg_timestamp_last_100_labels" -> stats.avgTimestampLast100Labels.toString,
       "km_explored"                   -> stats.kmExplored,
       "km_explored_no_overlap"        -> stats.kmExploreNoOverlap,
       "user_counts"                   -> Json.obj(
@@ -192,14 +200,25 @@ object ApiFormats {
         "researcher" -> stats.nResearcher
       ),
       "labels" -> JsObject(
-        Seq(("label_count", JsNumber(stats.nLabels.toDouble))) ++
+        Seq(
+          ("label_count", JsNumber(stats.nLabels.toDouble)),
+          ("label_count_with_severity", JsNumber(stats.nLabelsWithSeverity.toDouble)),
+          ("avg_label_timestamp", JsString(stats.avgLabelTimestamp.toString)),
+          ("avg_age_of_image_when_labeled", JsString(s"${stats.avgImageAgeByLabel.toDays} days"))
+        ) ++
           // Turns into { "CurbRamp" -> { "count" -> ###, ... }, ... }.
-          stats.severityByLabelType.map { case (labType, sevStats) => labType -> Json.toJson(sevStats) }
+          stats.severityByLabelType.toSeq.sorted(labelTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2))
       ),
       "validations" -> JsObject(
         Seq("total_validations" -> JsNumber(stats.nValidations.toDouble)) ++
           // Turns into { "Overall" -> { "validated" -> ###, ... }, "CurbRamp" -> { "validated" -> ###, ... }, ... }.
-          stats.accuracyByLabelType.map { case (labType, accStats) => labType -> Json.toJson(accStats) }
+          stats.accuracyByLabelType.toSeq.sorted(labelTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2))
+      ),
+      "ai_stats" -> JsObject(
+        // { "Overall" -> "human_maj_vote" -> { "ai_yes_human_concurs": ###, ... }, ... }, "CurbRamp" -> { ... }, ... }.
+        stats.aiPerformance.map { case (lType, statsMap) =>
+          lType -> JsObject(statsMap.toSeq.sorted(labelTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2)))
+        }
       )
     )
   }

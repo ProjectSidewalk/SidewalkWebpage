@@ -102,6 +102,8 @@ city.name.chandigarh-india = 昌迪加爾
 city.name.rancagua-chile = 蘭卡瓜
 city.name.vancouver-wa = 溫哥華
 city.name.santiago-chile = 聖地牙哥
+city.name.tucson-az = 圖森
+city.name.paterson-nj = 帕特森
 
 state.name.oregon = 奧勒岡州
 state.name.washington = 華盛頓州
@@ -115,6 +117,7 @@ state.name.south-carolina = 南卡羅來納州
 state.name.michigan = 密西根州
 state.name.wisconsin = 威斯康辛州
 state.name.new-york = 紐約
+state.name.arizona = 亞利桑那
 
 country.name.usa = 美國
 country.name.mexico = 墨西哥

@@ -19,7 +19,6 @@ import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.{Configuration, Logger}
-
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
@@ -41,7 +40,7 @@ case class ExploreTaskPostReturnValue(
     auditTaskId: Int,
     mission: Option[Mission],
     // A sequence of tuples containing (label_id, temporary_label_id, label_type, pano_source, time_created).
-    newLabels: Seq[(Int, Int, String, PanoSource, OffsetDateTime)],
+    newLabels: Seq[(Int, Int, LabelTypeEnum.Base, PanoSource, OffsetDateTime)],
     updatedStreets: Option[UpdatedStreets],
     refreshPage: Boolean
 )
@@ -397,7 +396,7 @@ class ExploreServiceImpl @Inject() (
       auditTaskId: Int,
       taskStreetId: Int,
       missionId: Int
-  ): DBIO[(Int, Int, String, PanoSource, OffsetDateTime)] = {
+  ): DBIO[(Int, Int, LabelTypeEnum.Base, PanoSource, OffsetDateTime)] = {
     // Get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp.
     val timeCreated: OffsetDateTime = label.timeCreated match {
       case Some(time) => time
@@ -451,7 +450,7 @@ class ExploreServiceImpl @Inject() (
           point.zoom, point.lat, point.lng, pointGeom, point.computationMethod)
       )
     } yield {
-      (newLabelId, label.temporaryLabelId, label.labelType, label.panoSource, timeCreated)
+      (newLabelId, label.temporaryLabelId, LabelTypeEnum.byName(label.labelType), label.panoSource, timeCreated)
     }
   }
 
@@ -619,7 +618,7 @@ class ExploreServiceImpl @Inject() (
       } else DBIO.successful(0)
 
       // Insert any labels.
-      val labelSubmitActions: Seq[DBIO[Option[(Int, Int, String, PanoSource, OffsetDateTime)]]] = data.labels.map {
+      val labelSubmitActions: Seq[DBIO[Option[(Int, Int, LabelTypeEnum.Base, PanoSource, OffsetDateTime)]]] = data.labels.map {
         label: LabelSubmission =>
           val labelTypeId: Int = LabelTypeEnum.labelTypeToId(label.labelType)
           labelTable.find(label.temporaryLabelId, userId).flatMap {

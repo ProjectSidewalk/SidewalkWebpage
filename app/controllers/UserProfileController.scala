@@ -15,7 +15,6 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.impl.exceptions.IdentityNotFoundException
-
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -146,10 +145,10 @@ class UserProfileController @Inject() (
       logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
       authenticationService.findByUserId(userId).flatMap {
         case Some(user) =>
-          val labelTypes: Set[String] = LabelTypeEnum.primaryValidateLabelTypes
+          val labelTypes: Set[LabelTypeEnum.Base] = LabelTypeEnum.primaryValidateLabelTypes
           labelService.getRecentValidatedLabelsForUser(userId, labelTypes, n).map { validations =>
             val validationJson = Json.toJson(labelTypes.map { labelType =>
-              labelType -> validations(labelType).map { l =>
+              labelType.name -> validations(labelType).map { l =>
                 val imageUrl: String =
                   panoDataService.getImageUrl(l.panoId, l.pov.heading, l.pov.pitch, l.pov.zoom)
                 labelMetadataUserDashToJson(l, imageUrl)

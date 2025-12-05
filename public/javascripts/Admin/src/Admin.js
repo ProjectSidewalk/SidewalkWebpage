@@ -1,5 +1,7 @@
 function Admin(_, $, mapboxApiKey) {
     var self = {};
+    var legendTable = document.getElementById('legend-table');
+    var sliderNotApplicableText = (legendTable && legendTable.dataset.notApplicableLabel) || "N/A";
     var mapLoaded = false;
     var graphsLoaded = false;
     var labelsLoaded = false;
@@ -224,16 +226,18 @@ function Admin(_, $, mapboxApiKey) {
                 });
 
                 // Add listeners on the sliders.
-                let sliderStepText = ["N/A", 1, 2, 3];
+                const formatSeverityValue = (value) => value === 0 ? sliderNotApplicableText : value;
                 $( "*[id*='slider']" ).each(function() {
                     $(this).slider('option', {
                         // Change the text next to the slider as it's moved.
                         slide: function(event, ui) {
                             let sliderTextEl = this.parentElement.nextElementSibling.firstElementChild;
-                            if(sliderStepText[ui.values[0]] === sliderStepText[ui.values[1]]) {
-                                sliderTextEl.textContent = sliderStepText[ui.values[0]];
+                            const low = formatSeverityValue(ui.values[0]);
+                            const high = formatSeverityValue(ui.values[1]);
+                            if (low === high) {
+                                sliderTextEl.textContent = low;
                             } else {
-                                sliderTextEl.textContent = `${ui.values[0]} - ${ui.values[1]}`;
+                                sliderTextEl.textContent = `${low} - ${high}`;
                             }
                         },
                         // When the slider is released, update the map.
@@ -601,27 +605,16 @@ function Admin(_, $, mapboxApiKey) {
 
             });
             $.getJSON('/adminapi/validationCounts', function (data) {
-                var filteredData = data.map(function(x) {
-                    return {
-                        role: x.role,
-                        total: x.count,
-                        agreed: x.agreed,
-                    }
-                });
+                // Must have 50+ labels validated. Also removing AI user.
+                var filteredData = data.filter(function(x) { return x.count >= 50 && x.role !== 'AI'; })
 
-                var pcts = filteredData.filter(function(x) { // Must have 10+ labels validated
-                    return x.total >= 10;
-                }).map(function (x) { // Convert to percentages
-                    return {
-                        count: (x.agreed / x.total) * 100,
-                        role: x.role
-                    };
-                });
+                // Convert to percentages.
+                var pcts = filteredData.map(function (x) { return { count: (x.agreed / x.count) * 100 }; });
 
                 var stats = getSummaryStats(pcts, "count");
                 $("#validation-agreed-std").html((stats.std).toFixed(2) + " %");
 
-                var histOpts = {xAxisTitle:"Validations Placed Agreed With (%)", xDomain:[0, 100], binStep:5};
+                var histOpts = { xAxisTitle:"User Accuracy (%)", xDomain:[0, 100], binStep:5 };
                 var coverageRateHist = getVegaLiteHistogram(pcts, stats.mean, stats.median, histOpts);
                 vega.embed("#validation-agreed", coverageRateHist, opt, function(error, results) {});
 
@@ -753,7 +746,7 @@ function Admin(_, $, mapboxApiKey) {
                         }
                     }
                 };
-                vega.embed("#label-count-chart", chart, opt, function(error, results) {});
+                vega.embed("#label-count-chart", chart, opt, function(error, results) { });
             });
             $.getJSON("/userapi/validationCounts/all", function (data) {
                 var stats = getSummaryStats(data, "count");
@@ -819,7 +812,8 @@ function Admin(_, $, mapboxApiKey) {
                 };
                 vega.embed("#validation-count-chart", chart, opt, function(error, results) {});
             });
-            $.getJSON("/adminapi/userMissionCounts", function (allData) {
+            $.getJSON("/adminapi/userMissionCounts", function (data) {
+                var allData = data.filter(user => user.role !== 'AI');
                 var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
                 var anonData = allData.filter(user => user.role === 'Anonymous');
                 var turkerData = allData.filter(user => user.role === 'Turker');
@@ -884,8 +878,7 @@ function Admin(_, $, mapboxApiKey) {
                     }
                 });
 
-                vega.embed("#mission-count-chart", combinedChartFiltered, opt, function (error, results) {
-                });
+                vega.embed("#mission-count-chart", combinedChartFiltered, opt, function (error, results) { });
 
                 var checkbox = document.getElementById("mission-count-include-researchers-checkbox").addEventListener("click", function (cb) {
                     if (cb.srcElement.checked) {
@@ -901,15 +894,16 @@ function Admin(_, $, mapboxApiKey) {
                     }
                 });
             });
-            $.getJSON("/adminapi/labelCounts", function (allData) {
+            $.getJSON("/adminapi/labelCounts", function (data) {
+                var allData = data.filter(user => user.role !== 'AI');
                 var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
                 var turkerData = allData.filter(user => user.role === 'Turker');
                 var anonData = allData.filter(user => user.role === 'Anonymous');
 
                 var allStats = getSummaryStats(allData, "count");
-                var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers: true});
+                var allFilteredStats = getSummaryStats(allData, "count", { excludeResearchers: true });
                 var regStats = getSummaryStats(regData, "count");
-                var regFilteredStats = getSummaryStats(regData, "count", {excludeResearchers: true});
+                var regFilteredStats = getSummaryStats(regData, "count", { excludeResearchers: true });
                 var turkerStats = getSummaryStats(turkerData, "count");
                 var anonStats = getSummaryStats(anonData, "count");
 
@@ -966,8 +960,7 @@ function Admin(_, $, mapboxApiKey) {
                     }
                 });
 
-                vega.embed("#label-count-hist", combinedChartFiltered, opt, function (error, results) {
-                });
+                vega.embed("#label-count-hist", combinedChartFiltered, opt, function (error, results) { });
 
                 var checkbox = document.getElementById("label-count-include-researchers-checkbox").addEventListener("click", function (cb) {
                     if (cb.srcElement.checked) {
@@ -983,7 +976,8 @@ function Admin(_, $, mapboxApiKey) {
                     }
                 });
             });
-            $.getJSON("/adminapi/validationCounts", function (allData) {
+            $.getJSON("/adminapi/validationCounts", function (data) {
+                var allData = data.filter(user => user.role !== 'AI');
                 var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
                 var turkerData = allData.filter(user => user.role === 'Turker');
                 var anonData = allData.filter(user => user.role === 'Anonymous');
@@ -1048,8 +1042,7 @@ function Admin(_, $, mapboxApiKey) {
                     }
                 });
 
-                vega.embed("#validation-count-hist", combinedChartFiltered, opt, function (error, results) {
-                });
+                vega.embed("#validation-count-hist", combinedChartFiltered, opt, function (error, results) { });
 
                 var checkbox = document.getElementById("validation-count-include-researchers-checkbox").addEventListener("click", function (cb) {
                     if (cb.srcElement.checked) {

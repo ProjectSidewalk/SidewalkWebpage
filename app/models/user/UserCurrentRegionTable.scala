@@ -28,7 +28,7 @@ class UserCurrentRegionTable @Inject() (protected val dbConfigProvider: Database
 ) extends UserCurrentRegionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  val userCurrentRegions    = TableQuery[UserCurrentRegionTableDef]
+  val userCurrRegions    = TableQuery[UserCurrentRegionTableDef]
   val regions               = TableQuery[RegionTableDef]
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
 
@@ -36,7 +36,7 @@ class UserCurrentRegionTable @Inject() (protected val dbConfigProvider: Database
    * Returns the region id that is currently assigned to the given user.
    */
   def getCurrentRegionId(userId: String): DBIO[Option[Int]] = {
-    userCurrentRegions.filter(_.userId === userId).map(_.regionId).result.headOption
+    userCurrRegions.filter(_.userId === userId).map(_.regionId).result.headOption
   }
 
   /**
@@ -45,7 +45,7 @@ class UserCurrentRegionTable @Inject() (protected val dbConfigProvider: Database
   def getCurrentRegion(userId: String): DBIO[Option[Region]] = {
     (for {
       _region         <- regionsWithoutDeleted
-      _userCurrRegion <- userCurrentRegions if _region.regionId === _userCurrRegion.regionId
+      _userCurrRegion <- userCurrRegions if _region.regionId === _userCurrRegion.regionId
       if _userCurrRegion.userId === userId
     } yield _region).result.headOption
   }
@@ -54,7 +54,7 @@ class UserCurrentRegionTable @Inject() (protected val dbConfigProvider: Database
    * Update the current region.
    */
   def update(userId: String, regionId: Int): DBIO[Int] = {
-    userCurrentRegions.filter(_.userId === userId).map(_.regionId).update(regionId)
+    userCurrRegions.filter(_.userId === userId).map(_.regionId).update(regionId)
   }
 
   /**
@@ -62,12 +62,11 @@ class UserCurrentRegionTable @Inject() (protected val dbConfigProvider: Database
    * @return regionId
    */
   def insertOrUpdate(userId: String, regionId: Int): DBIO[Int] = {
-    update(userId, regionId).map { rowsUpdated: Int =>
+    update(userId, regionId).flatMap { rowsUpdated: Int =>
       if (rowsUpdated == 0)
-        (userCurrentRegions returning userCurrentRegions
-          .map(_.userCurrentRegionId)) += UserCurrentRegion(0, userId, regionId)
+        (userCurrRegions returning userCurrRegions.map(_.regionId)) += UserCurrentRegion(0, userId, regionId)
       else DBIO.successful(regionId)
-    }.flatten
+    }
   }
 
   /**
@@ -75,6 +74,6 @@ class UserCurrentRegionTable @Inject() (protected val dbConfigProvider: Database
    * @param userId user ID
    */
   def delete(userId: String): DBIO[Int] = {
-    userCurrentRegions.filter(_.userId === userId).delete
+    userCurrRegions.filter(_.userId === userId).delete
   }
 }
