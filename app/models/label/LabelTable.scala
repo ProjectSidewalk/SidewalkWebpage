@@ -1692,7 +1692,7 @@ class LabelTable @Inject() (
                  to_timestamp(AVG(EXTRACT(EPOCH FROM time_created))) AS avg_label_timestamp,
                  AVG(
                      CASE
-                         WHEN gsv_data.capture_date IS NOT NULL
+                         WHEN gsv_data.capture_date IS NOT NULL AND pano_data.capture_date <> ''
                          THEN time_created - TO_TIMESTAMP(EXTRACT(epoch from CAST(gsv_data.capture_date || '-01' AS DATE)))
                      END
                  ) AS avg_age_when_labeled,
