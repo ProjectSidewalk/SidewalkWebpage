@@ -1881,7 +1881,7 @@ class LabelTable @Inject() (
    * @return A LabelDataForAi object containing label, label_point, and gsv_data information if they exist
    */
   def getLabelDataForAi(labelId: Int): DBIO[Option[LabelDataForAi]] = {
-    labelsUnfiltered
+    labels
       .join(labelPoints)
       .on(_.labelId === _.labelId)
       .join(gsvData)
