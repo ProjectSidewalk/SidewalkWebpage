@@ -1245,7 +1245,7 @@ class LabelTable @Inject() (
    * Returns a count of the number of labels placed on each day there were labels placed.
    */
   def getLabelCountsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {
-    labelsWithTutorialAndExcludedUsers
+    labelsWithTutorial
       .map(_.timeCreated.trunc("day"))
       .groupBy(x => x)
       .map(x => (x._1, x._2.length))
