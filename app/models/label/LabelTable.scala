@@ -1898,7 +1898,7 @@ class LabelTable @Inject() (
    * @return A sequence of LabelDataForAi objects to feed to the SidewalkAI API for validation
    */
   def getLabelsToValidateWithAi(n: Int): DBIO[Seq[LabelDataForAi]] = {
-    val possibleLabels = labelsUnfiltered
+    val possibleLabels = labels
       .filter(_.labelTypeId inSet LabelTypeEnum.aiLabelTypeIds)
       .join(userRoles)
       .on(_.userId === _.userId)
