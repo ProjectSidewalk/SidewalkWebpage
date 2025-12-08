@@ -397,6 +397,7 @@ function RightMenu(menuUI) {
 
                 // Add onclick to the tag to add or remove it if the user clicks to accept the AI suggestion.
                 template.on('click', e => {
+                    template.tooltip('destroy'); // Fix for the tooltip showing up on later labels, #4071.
                     if (tag.action === 'add') {
                         _addTag(tag.tag_name, true);
                     } else {
