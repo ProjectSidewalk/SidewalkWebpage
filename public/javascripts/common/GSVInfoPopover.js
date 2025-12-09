@@ -173,7 +173,6 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
                 `${i18next.t(`common:gsv-info.pano-date`)}: ${currPanoDate}\n`;
             if (currLabelId) clipboardText += `${i18next.t(`common:gsv-info.label-id`)}: ${currLabelId}\n`;
             if (currLabelDate) clipboardText += `${i18next.t(`common:gsv-info.label-date`)}: ${currLabelDate}\n`;
-            if (currPanoAddress) clipboardText += `${i18next.t(`common:gsv-info.pano-address`)}: ${currPanoAddress}\n`;
             clipboardText += `GSV URL: ${gsvLink.attr('href')}`;
             navigator.clipboard.writeText(clipboardText);
 
