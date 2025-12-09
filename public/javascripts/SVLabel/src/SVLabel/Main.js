@@ -162,6 +162,7 @@ function Main (params) {
         svl.infoPopover = new GSVInfoPopover(svl.ui.dateHolder, svl.panorama, svl.map.getPosition, svl.map.getPanoId,
             svl.taskContainer.getCurrentTaskStreetEdgeId, svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId,
             function() { return moment(svl.panoramaContainer.getPanorama(svl.map.getPanoId()).data().imageDate); },
+            function() { return svl.panoramaContainer.getPanorama(svl.map.getPanoId()).data().location.shortDescription; },
             svl.map.getPov, svl.cityName, true, function() { svl.tracker.push('GSVInfoButton_Click'); },
             function() { svl.tracker.push('GSVInfoCopyToClipboard_Click'); },
             function() { svl.tracker.push('GSVInfoViewInGSV_Click'); }

@@ -8,6 +8,7 @@
  * @param {function} streetEdgeId Function that returns current Street Edge ID
  * @param {function} regionId Function that returns current Region ID
  * @param {function} panoDate Function that returns current pano's capture date as a moment object
+ * @param {function} panoAddress Function that returns current pano's address according to GSV
  * @param {function} pov Function that returns current POV
  * @param {String} cityName Name of the current city
  * @param {Boolean} whiteIcon Set to true if using white icon, false if using blue icon.
@@ -18,7 +19,7 @@
  * @param {function} [labelDate] Optional function that returns the Label's date as a moment object.
  * @returns {GSVInfoPopover} Popover object, holding popover title, content, info button HTML, and update values method.
  */
-function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regionId, panoDate, pov, cityName, whiteIcon, infoLogging, clipboardLogging, viewGSVLogging, labelId, labelDate) {
+function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, cityName, whiteIcon, infoLogging, clipboardLogging, viewGSVLogging, labelId, labelDate) {
     let self = this;
 
     function _init() {
@@ -119,6 +120,7 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
         const currStreetEdgeId = streetEdgeId ? streetEdgeId() : null;
         const currRegionId = regionId ? regionId() : null;
         const currPanoDate = panoDate ? panoDate().format('MMM YYYY') : null;
+        const currPanoAddress = panoAddress ? panoAddress() : null;
         const currPov = pov ? pov() : {heading: 0, pitch: 0};
         const currLabelId = labelId ? labelId() : null;
         const currLabelDate = labelDate ? labelDate().format('LL, LT') : null;
@@ -161,15 +163,17 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
             // Log the click on the copy to keyboard button.
             clipboardLogging();
 
-            let clipboardText = `${i18next.t(`common:gsv-info.city`)}: ${cityName}\n` +
+            let clipboardText = `${i18next.t(`common:gsv-info.pano-address`)}: ${currPanoAddress}\n` +
+                `${i18next.t(`common:gsv-info.city`)}: ${cityName}\n` +
                 `${i18next.t(`common:gsv-info.latitude`)}: ${currCoords.lat}°\n` +
                 `${i18next.t(`common:gsv-info.longitude`)}: ${currCoords.lng}°\n` +
                 `${i18next.t(`common:gsv-info.panorama-id`)}: ${currPanoId}\n` +
                 `${i18next.t(`common:gsv-info.street-id`)}: ${currStreetEdgeId}\n` +
-                `${i18next.t(`common:gsv-info.region-id`)}: ${currRegionId}\n`;
+                `${i18next.t(`common:gsv-info.region-id`)}: ${currRegionId}\n` +
+                `${i18next.t(`common:gsv-info.pano-date`)}: ${currPanoDate}\n`;
             if (currLabelId) clipboardText += `${i18next.t(`common:gsv-info.label-id`)}: ${currLabelId}\n`;
             if (currLabelDate) clipboardText += `${i18next.t(`common:gsv-info.label-date`)}: ${currLabelDate}\n`;
-            if (currPanoDate) clipboardText += `${i18next.t(`common:gsv-info.pano-date`)}: ${currPanoDate}\n`;
+            if (currPanoAddress) clipboardText += `${i18next.t(`common:gsv-info.pano-address`)}: ${currPanoAddress}\n`;
             clipboardText += `GSV URL: ${gsvLink.attr('href')}`;
             navigator.clipboard.writeText(clipboardText);
 

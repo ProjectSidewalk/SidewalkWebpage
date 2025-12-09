@@ -207,6 +207,7 @@ function Main (param) {
             function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('streetEdgeId'); },
             function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('regionId'); },
             function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('imageCaptureDate'); },
+            function() { return svv.panorama.getPanorama().location.shortDescription; },
             svv.panorama.getPov, svv.cityName, true, function() { svv.tracker.push('GSVInfoButton_Click'); },
             function() { svv.tracker.push('GSVInfoCopyToClipboard_Click'); },
             function() { svv.tracker.push('GSVInfoViewInGSV_Click'); },

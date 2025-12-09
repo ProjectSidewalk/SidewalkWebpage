@@ -146,6 +146,7 @@
         "label-id": "Etiket-ID",
         "label-date": "$t(common:labeled)",
         "pano-date": "$t(common:image-capture-date)",
+        "pano-address": "Adres",
         "view-in-gsv": "Bekijken in Google Streetview",
         "city": "Stad",
         "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"

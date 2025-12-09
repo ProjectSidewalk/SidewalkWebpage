@@ -147,6 +147,7 @@
         "label-id": "標籤編號",
         "label-date": "$t(common:labeled)",
         "pano-date": "$t(common:image-capture-date)",
+        "pano-address": "地址",
         "view-in-gsv": "在Google街景圖裡查看",
         "city": "城市",
         "copied-to-clipboard": "資訊已複製於您的剪貼簿！"

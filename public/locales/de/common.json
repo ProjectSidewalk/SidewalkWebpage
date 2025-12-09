@@ -147,6 +147,7 @@
         "label-id": "Beschriftung ID",
         "label-date": "$t(common:labeled)",
         "pano-date": "$t(common:image-capture-date)",
+        "pano-address": "Adresse",
         "view-in-gsv": "Ansicht in Google Street View",
         "city": "Stadt",
         "copied-to-clipboard": "Daten wurden in Zwischenablage kopiert"

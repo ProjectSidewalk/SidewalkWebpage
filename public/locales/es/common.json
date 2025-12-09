@@ -147,6 +147,7 @@
         "label-id": "ID de etiqueta",
         "label-date": "$t(common:labeled)",
         "pano-date": "$t(common:image-capture-date)",
+        "pano-address": "Dirección",
         "view-in-gsv": "Ver en Google Street View",
         "city": "Ciudad",
         "copied-to-clipboard": "¡Datos copiados a su portapapeles!"
