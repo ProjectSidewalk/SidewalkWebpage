@@ -13,6 +13,19 @@ ALTER TABLE pano_link RENAME COLUMN target_panorama_id TO target_pano_id;
 ALTER TABLE validation_task_comment RENAME COLUMN gsv_panorama_id TO pano_id;
 ALTER TABLE validation_task_interaction RENAME COLUMN gsv_panorama_id TO pano_id;
 
+-- Add a few missing indices.
+CREATE INDEX label_pano_id_idx ON label (pano_id);
+CREATE INDEX validation_task_comment_pano_id_idx ON validation_task_comment (pano_id);
+
+-- Update any index names (fixing some that have gotten out of sync in the past as well).
+ALTER INDEX idx_cluster_geom RENAME TO cluster_geom_idx;
+ALTER INDEX audit_task_comment_gsv_panorama_id_idx RENAME TO audit_task_comment_pano_id_idx;
+DROP INDEX index_audit_task_incomplete_id; -- This one is redundant with primary key.
+ALTER INDEX gsv_link_gsv_panorama_id_idx RENAME TO pano_link_pano_id_idx;
+ALTER INDEX gsv_link_target_panorama_id_idx RENAME TO pano_link_target_pano_id_idx;
+ALTER INDEX idx_region_geom RENAME TO region_geom_idx;
+ALTER INDEX idx_street_edge_geom RENAME TO street_edge_geom_idx;
+
 -- User-provided imagery might not have copyright info, so let's let the column be nullable.
 ALTER TABLE pano_data ALTER COLUMN copyright DROP NOT NULL;
 UPDATE pano_data SET copyright = NULL WHERE copyright = '';
@@ -78,6 +91,17 @@ UPDATE pano_data SET copyright = '' WHERE copyright IS NULL;
 ALTER TABLE pano_data ALTER COLUMN copyright SET NOT NULL;
 
 -- Revert changes to from the more generic "pano" back to "gsv".
+ALTER INDEX street_edge_geom_idx RENAME TO idx_street_edge_geom;
+ALTER INDEX region_geom_idx RENAME TO idx_region_geom;
+ALTER INDEX pano_link_target_pano_id_idx RENAME TO gsv_link_target_panorama_id_idx;
+ALTER INDEX pano_link_pano_id_idx RENAME TO gsv_link_gsv_panorama_id_idx;
+CREATE INDEX index_audit_task_incomplete_id ON audit_task_incomplete (audit_task_incomplete_id);
+ALTER INDEX audit_task_comment_pano_id_idx RENAME TO audit_task_comment_gsv_panorama_id_idx;
+ALTER INDEX cluster_geom_idx RENAME TO idx_cluster_geom;
+
+DROP INDEX validation_task_comment_pano_id_idx;
+DROP INDEX label_pano_id_idx;
+
 ALTER TABLE validation_task_interaction RENAME COLUMN pano_id TO gsv_panorama_id;
 ALTER TABLE validation_task_comment RENAME COLUMN pano_id TO gsv_panorama_id;
 ALTER TABLE pano_link RENAME COLUMN target_pano_id TO target_panorama_id;
