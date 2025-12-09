@@ -2,14 +2,12 @@ package models.region
 
 import com.google.inject.ImplementedBy
 import models.audit.AuditTaskTableDef
-import models.label.LabelTableDef
+import models.label.LabelTable
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
-import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile.api._
 import models.utils.{LatLngBBox, MyPostgresProfile}
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-
 import javax.inject._
 import scala.concurrent.ExecutionContext
 
@@ -31,7 +29,8 @@ trait RegionTableRepository {}
 @Singleton
 class RegionTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
-    streetEdgeRegionTable: StreetEdgeRegionTable
+    streetEdgeRegionTable: StreetEdgeRegionTable,
+    labelTable: LabelTable
 )(implicit val ec: ExecutionContext)
     extends RegionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -39,8 +38,6 @@ class RegionTable @Inject() (
   val regions               = TableQuery[RegionTableDef]
   val auditTasks            = TableQuery[AuditTaskTableDef]
   val streetEdgePriorities  = TableQuery[StreetEdgePriorityTableDef]
-  val labelTable            = TableQuery[LabelTableDef]
-  val userStatTable         = TableQuery[UserStatTableDef]
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
 
   def getAllRegions: DBIO[Seq[Region]] = regionsWithoutDeleted.result
@@ -122,11 +119,7 @@ class RegionTable @Inject() (
    * @return DBIO action containing the region with the most labels
    */
   def getRegionWithMostLabels: DBIO[Option[Region]] = {
-    labelTable
-      .filterNot(l => l.deleted || l.tutorial) // Exclude deleted and tutorial labels.
-      .join(userStatTable)
-      .on(_.userId === _.userId) // Join with user stats to get user info.
-      .filterNot(_._2.excluded)  // Exclude labels from "excluded" users.
+    labelTable.labelsWithAuditTasksAndUserStats
       .join(streetEdgeRegionTable.streetEdgeRegionTable)
       .on(_._1.streetEdgeId === _.streetEdgeId)
       .groupBy(_._2.regionId) // Group by region_id

@@ -159,7 +159,10 @@ function Main (params) {
 
         svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, svl.panoViewer, svl.panoViewer.getPosition,
             svl.panoViewer.getPanoId, svl.taskContainer.getCurrentTaskStreetEdgeId,
-            svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId, svl.panoViewer.getPov, svl.cityName, true,
+            svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId,
+            function() { return svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('captureDate'); },
+            function() { return svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('address'); },
+            svl.panoViewer.getPov, svl.cityName, true,
             function() { svl.tracker.push('PanoInfoButton_Click'); },
             function() { svl.tracker.push('PanoInfoCopyToClipboard_Click'); },
             function() { svl.tracker.push('PanoInfoViewInPano_Click'); }

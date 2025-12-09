@@ -7,6 +7,8 @@
  * @param {function} panoId Function that returns current panorama ID
  * @param {function} streetEdgeId Function that returns current Street Edge ID
  * @param {function} regionId Function that returns current Region ID
+ * @param {function} panoDate Function that returns current pano's capture date as a moment object
+ * @param {function} panoAddress Function that returns current pano's address according to GSV, could return null
  * @param {function} pov Function that returns current POV
  * @param {String} cityName Name of the current city
  * @param {Boolean} whiteIcon Set to true if using white icon, false if using blue icon.
@@ -14,10 +16,10 @@
  * @param {function} clipboardLogging Function that adds the copy to clipboard click to the appropriate logs.
  * @param {function} viewPanoLogging Function that adds the View in GSV click to the appropriate logs.
  * @param {function} [labelId] Optional function that returns the Label ID.
- * @returns {PanoInfoPopover} Popover object, which holds the popover title html, content html, info button html, and
- * update values method
+ * @param {function} [labelDate] Optional function that returns the Label's date as a moment object.
+ * @returns {PanoInfoPopover} Popover object, holding popover title, content, info button HTML, and update values method
  */
-function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, regionId, pov, cityName, whiteIcon, infoLogging, clipboardLogging, viewPanoLogging, labelId) {
+function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, cityName, whiteIcon, infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate) {
     let self = this;
 
     function _init() {
@@ -50,6 +52,7 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
         addListElement('street-id', dataList);
         addListElement('region-id', dataList);
         if (labelId) addListElement('label-id', dataList);
+        if (labelDate) addListElement('label-date', dataList);
 
         self.popoverContent.appendChild(dataList);
 
@@ -116,8 +119,11 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
         const currPanoId = panoId ? panoId() : null;
         const currStreetEdgeId = streetEdgeId ? streetEdgeId() : null;
         const currRegionId = regionId ? regionId() : null;
+        const currPanoDate = panoDate ? panoDate().format('MMM YYYY') : null;
+        const currPanoAddress = panoAddress();
         const currPov = pov ? pov() : {heading: 0, pitch: 0};
         const currLabelId = labelId ? labelId() : null;
+        const currLabelDate = labelDate ? labelDate().format('LL, LT') : null;
 
         function changeVals(key, val) {
             if (!val) {
@@ -134,6 +140,7 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
         changeVals('street-id', currStreetEdgeId);
         changeVals('region-id', currRegionId);
         if (currLabelId) changeVals('label-id', currLabelId);
+        if (currLabelDate) changeVals('label-date', currLabelDate);
 
         // Create pano link and log the click.
         let panoLink = $('#pano-link');
@@ -156,13 +163,16 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
             // Log the click on the copy to keyboard button.
             clipboardLogging();
 
-            let clipboardText = `${i18next.t(`common:gsv-info.city`)}: ${cityName}\n` +
+            let clipboardText = currPanoAddress ? `${i18next.t(`common:gsv-info.pano-address`)}: ${currPanoAddress}\n` : '';
+            clipboardText += `${i18next.t(`common:gsv-info.city`)}: ${cityName}\n` +
                 `${i18next.t(`common:gsv-info.latitude`)}: ${currCoords.lat}°\n` +
                 `${i18next.t(`common:gsv-info.longitude`)}: ${currCoords.lng}°\n` +
                 `${i18next.t(`common:gsv-info.panorama-id`)}: ${currPanoId}\n` +
                 `${i18next.t(`common:gsv-info.street-id`)}: ${currStreetEdgeId}\n` +
-                `${i18next.t(`common:gsv-info.region-id`)}: ${currRegionId}\n`;
+                `${i18next.t(`common:gsv-info.region-id`)}: ${currRegionId}\n` +
+                `${i18next.t(`common:gsv-info.pano-date`)}: ${currPanoDate}\n`;
             if (currLabelId) clipboardText += `${i18next.t(`common:gsv-info.label-id`)}: ${currLabelId}\n`;
+            if (currLabelDate) clipboardText += `${i18next.t(`common:gsv-info.label-date`)}: ${currLabelDate}\n`;
             clipboardText += `Pano URL: ${panoLink.attr('href')}`;
             navigator.clipboard.writeText(clipboardText);
 

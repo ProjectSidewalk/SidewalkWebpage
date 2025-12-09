@@ -12,6 +12,7 @@
  * @param {number} [params.tileWidth] Width of the tiles that make up the image in pixels
  * @param {number} [params.tileHeight] Height of hte tiles that make up the image in pixels
  * @param {moment} params.captureDate Time when the picture was taken, only using up to month/year granularity
+ * @param {string} [params.address] Optional address for the current location
  * @param {string} [params.copyright] Optional associated copyright info for the image
  * @param {array<{panoId: string, heading: number}>} params.linkedPanos List of nearby panos linked to with nav arrows
  * @param {array<{panoId: string, captureDate: Date}>} params.history List of panos at this pano's location over time
@@ -64,6 +65,7 @@ function PanoData(params) {
             // If tileWidth/tileHeight not provided, assume that there is no tiling and just use full width/height.
             tileWidth: params.tileWidth || params.width,
             tileHeight: params.tileHeight || params.height,
+            address: params.address || null,
             copyright: params.copyright || null,
             captureDate: params.captureDate,
             linkedPanos: params.linkedPanos || [],

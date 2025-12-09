@@ -1255,7 +1255,7 @@ class LabelTable @Inject() (
    * Returns a count of the number of labels placed on each day there were labels placed.
    */
   def getLabelCountsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {
-    labelsWithTutorialAndExcludedUsers
+    labelsWithTutorial
       .map(_.timeCreated.trunc("day"))
       .groupBy(x => x)
       .map(x => (x._1, x._2.length))
@@ -1891,7 +1891,7 @@ class LabelTable @Inject() (
    * @return A LabelDataForAi object containing label, label_point, and pano_data information if they exist
    */
   def getLabelDataForAi(labelId: Int): DBIO[Option[LabelDataForAi]] = {
-    labelsUnfiltered
+    labels
       .join(labelPoints)
       .on(_.labelId === _.labelId)
       .join(panoData)
@@ -1908,7 +1908,7 @@ class LabelTable @Inject() (
    * @return A sequence of LabelDataForAi objects to feed to the SidewalkAI API for validation
    */
   def getLabelsToValidateWithAi(n: Int): DBIO[Seq[LabelDataForAi]] = {
-    val possibleLabels = labelsUnfiltered
+    val possibleLabels = labels
       .filter(_.labelTypeId inSet LabelTypeEnum.aiLabelTypeIds)
       .join(userRoles)
       .on(_.userId === _.userId)

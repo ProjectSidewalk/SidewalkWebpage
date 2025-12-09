@@ -67,7 +67,7 @@ class AiServiceImpl @Inject() (
               case Some(labelData) => callAiApiAndSubmitData(labelData)
               case None            =>
                 logger.warn(s"Info for label with ID $labelId not found.")
-                Future.failed(new Exception(s"Label with ID $labelId not found."))
+                Future.failed(new Exception(s"Label with ID $labelId not found or user was marked as excluded."))
             }
         }
       }
