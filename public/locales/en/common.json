@@ -145,6 +145,9 @@
         "google-street-view": "Google Street View",
         "region-id": "Region ID",
         "label-id": "Label ID",
+        "label-date": "$t(common:labeled)",
+        "pano-date": "$t(common:image-capture-date)",
+        "pano-address": "Address",
         "view-in-gsv": "View in Google Street View",
         "city": "City",
         "copied-to-clipboard": "Data copied to your clipboard!"
