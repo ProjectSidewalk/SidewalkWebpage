@@ -87,7 +87,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             uiOnboarding.messageHolder.css('z-index', 2);
         });
         svl.ui.contextMenu.holder.on('mouseout', function() {
-            uiOnboarding.messageHolder.css('z-index', 3);
+            uiOnboarding.messageHolder.css('z-index', 1100);
         });
 
         _visit(getState("initialize"));
