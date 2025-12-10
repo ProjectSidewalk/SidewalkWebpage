@@ -82,8 +82,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
             svl.panoManager.hideNavArrows();
             uiStreetview.modeSwitchWalk.css('opacity', 0.5);
             status.disableWalking = true;
-            // Disable forward and backwards keys
-            svl.keyboard.setStatus("disableMovement", true);
         }
         return this;
     }
@@ -98,8 +96,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
             svl.panoManager.showNavArrows();
             uiStreetview.modeSwitchWalk.css('opacity', 1);
             status.disableWalking = false;
-            // Enable forward and backward keys
-            svl.keyboard.setStatus("disableMovement", false);
         }
         return this;
     }

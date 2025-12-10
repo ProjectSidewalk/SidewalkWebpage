@@ -71,6 +71,7 @@ function Main (params) {
 
         svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
+
         svl.navigationService = new NavigationService(svl.neighborhoodModel, svl.ui.streetview);
 
         svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl.streetViewService, svl, svl.tracker);
@@ -338,12 +339,21 @@ function Main (params) {
             if(!svl.taskContainer.hasMaxPriorityTask()) {
                 svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
             }
-            // Check if the user has completed the onboarding tutorial.
-            var mission = svl.missionContainer.getCurrentMission();
+
+            // Set up a few initial views now that everything has loaded.
+            svl.minimap.setMinimapLocation(svl.panoViewer.getPosition());
+            svl.observedArea.panoChanged();
+            svl.observedArea.update();
+            svl.compass.update();
+            svl.compass.enableCompassClick();
+
+            // Remove the loading cover page and make the tool visible.
             $("#page-loading").css({"visibility": "hidden"});
             $(".tool-ui").css({"visibility": "visible"});
             $(".visible").css({"visibility": "visible"});
 
+            // Check if the user has completed the onboarding tutorial.
+            var mission = svl.missionContainer.getCurrentMission();
             if (mission.getProperty("missionType") === "auditOnboarding") {
                 svl.ui.footer.css("visibility", "hidden");
                 startOnboarding();

@@ -23,8 +23,7 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
     var status = {
         focusOnTextField: false,
         isOnboarding: false,
-        disableKeyboard: false,
-        disableMovement: false
+        disableKeyboard: false
     };
 
     this.disableKeyboard = function (){
@@ -79,10 +78,10 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
                         self._rotatePovByDegree(2);
                         break;
                     case "ArrowUp":
-                        if (!status.disableMovement) { navigationService.moveToLinkedPano(0); }
+                        navigationService.moveToLinkedPano(0);
                         break;
                     case "ArrowDown":
-                        if (!status.disableMovement) { navigationService.moveToLinkedPano(180); }
+                        navigationService.moveToLinkedPano(180);
                         break;
                 }
             }
