@@ -191,18 +191,18 @@ async function PanoManager (panoViewerType, params = {}) {
     }
 
     /**
-     * Create an svg navigation arrow.
-     * TODO move this to icons.scala.html once we've settled on a design, or get one from FontAwesome/NounProject.
+     * Create svg navigation arrow, setting its width.
      * @returns {SVGPathElement}
      * @private
      */
     function _createArrow() {
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', 'M15 0 L25 10 L20 10 L20 20 L10 20 L10 10 L5 10 Z');
-        path.setAttribute('fill', 'white');
-        path.setAttribute('stroke', 'black');
-        path.setAttribute('stroke-width', '2');
-        return path;
+        const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/assets/images/icons/arrow-forward.svg');
+        image.setAttribute('width', '20');
+        image.setAttribute('height', '20');
+        image.setAttribute('x', '5');  // ((areaWidth / 2)  - iconWidth) / 2 = ((60 / 2 - 20) / 2 = 5
+
+        return image;
     }
 
     function updateCanvas() {

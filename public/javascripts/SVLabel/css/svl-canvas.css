@@ -19,11 +19,18 @@
 
 #nav-arrows-container {
     position: absolute;
-    top: 60%;
-    left: calc(50% - 30px);
-    width: 60px;
-    height: 60px;
+    top: 45%;
+    left: calc(50% - 90px);
+    width: 180px;
+    height: 180px;
+    perspective: 200px;
 }
+
+/* Used to make it look like there's a 3D perspective for the arrows. */
+#nav-arrows-container svg {
+     transform: rotateX(45deg);
+     transform-style: preserve-3d;
+ }
 
 #delete-icon-holder {
     cursor: pointer;
