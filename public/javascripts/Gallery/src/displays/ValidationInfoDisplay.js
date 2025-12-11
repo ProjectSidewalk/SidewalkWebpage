@@ -61,7 +61,7 @@ function ValidationInfoDisplay(container, agreeCount, disagreeCount, aiValidatio
 
             aiIcon.setAttribute('data-toggle', 'tooltip');
             aiIcon.setAttribute('data-placement', 'top');
-            aiIcon.setAttribute('title', i18next.t('common:ai-disclaimer', { aiVal: aiValidation }));
+            aiIcon.setAttribute('title', i18next.t('common:ai-generated-label-tooltip'));
             $(aiIcon).tooltip({
                 // Custom template uses defaults, just adds ai-tooltip class to enforce a wider tooltip. Starting with
                 // Bootstrap 4, we can use `customClass` instead of `template`.

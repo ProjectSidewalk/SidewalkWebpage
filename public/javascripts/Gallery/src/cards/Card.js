@@ -36,7 +36,8 @@ function Card (params, imageUrl, expandedView) {
         correctness: undefined,
         user_validation: undefined,
         ai_validation: undefined,
-        tags: []
+        tags: [],
+        ai_generated: false
     };
 
     // Paths to label icon images.
@@ -76,6 +77,9 @@ function Card (params, imageUrl, expandedView) {
                 properties[attrName] = param[attrName];
             }
         }
+        if ("ai_generated" in param) {
+            properties.ai_generated = Boolean(param.ai_generated);
+        }
         properties.original_canvas_x = param.canvas_x;
         properties.original_canvas_y = param.canvas_y;
         properties.val_counts = {
@@ -91,8 +95,6 @@ function Card (params, imageUrl, expandedView) {
         // Place label icon.
         labelIcon.src = iconImagePaths[getLabelType()];
         labelIcon.classList.add("label-icon", "label-icon-gallery");
-        labelIcon.style.left = `calc(${100 * properties.original_canvas_x / (util.EXPLORE_CANVAS_WIDTH)}% - var(--iconWidth) / 2)`;
-        labelIcon.style.top = `calc(${100 * properties.original_canvas_y / (util.EXPLORE_CANVAS_HEIGHT)}% - var(--iconWidth) / 2)`;
 
         // Create an element for the image in the card.
         imageId = "label_id_" + properties.label_id;
@@ -132,7 +134,7 @@ function Card (params, imageUrl, expandedView) {
         let cardValidationInfo = document.createElement('div');
         cardValidationInfo.className = 'card-validation-info';
         self.validationInfoDisplay = new ValidationInfoDisplay(
-            cardValidationInfo, properties.val_counts['Agree'], properties.val_counts['Disagree'], properties.ai_validation
+            cardValidationInfo, properties.val_counts['Agree'], properties.val_counts['Disagree'], properties.ai_validation, false
         );
         cardData.appendChild(cardValidationInfo);
 
@@ -145,7 +147,24 @@ function Card (params, imageUrl, expandedView) {
         cardData.appendChild(cardTags);
 
         // Append the overlays for label information on top of the image.
-        imageHolder.appendChild(labelIcon);
+        const markerLeftPercent = 100 * properties.original_canvas_x / (util.EXPLORE_CANVAS_WIDTH);
+        const markerTopPercent = 100 * properties.original_canvas_y / (util.EXPLORE_CANVAS_HEIGHT);
+        const markerWrapper = document.createElement('div');
+        markerWrapper.className = 'gallery-marker-wrapper';
+        markerWrapper.style.left = `calc(${markerLeftPercent}% - var(--gallery-marker-size) / 2)`;
+        markerWrapper.style.top = `calc(${markerTopPercent}% - var(--gallery-marker-size) / 2)`;
+        markerWrapper.appendChild(labelIcon);
+        if (properties.ai_generated) {
+            const aiIndicator = AiLabelIndicator(['ai-icon-marker', 'ai-icon-marker-card']);
+            markerWrapper.appendChild(aiIndicator);
+            $(aiIndicator)
+                .tooltip({
+                    template: '<div class="tooltip ai-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
+                    container: 'body'
+                })
+                .tooltip('hide');
+        }
+        imageHolder.appendChild(markerWrapper);
         imageHolder.appendChild(panoImage);
         card.appendChild(cardInfo);
         validationMenu = new ValidationMenu(self, $(imageHolder), properties, expandedView, false);

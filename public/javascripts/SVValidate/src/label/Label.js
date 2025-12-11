@@ -28,7 +28,8 @@ function Label(params) {
         regionId: undefined,
         tags: undefined,
         aiTags: undefined,
-        isMobile: undefined
+        isMobile: undefined,
+        aiGenerated: false
     };
 
     // These properties are set through validating labels. In this object, canvas properties and
@@ -129,6 +130,7 @@ function Label(params) {
                 setProperty("newTags", [...params.tags]); // Copy tags to newTags.
             }
             if ("ai_tags" in params) setAuditProperty("aiTags", params.ai_tags);
+            if ("ai_generated" in params) setAuditProperty("aiGenerated", Boolean(params.ai_generated));
             // Properties only used on the Admin version of Validate.
             if ("admin_data" in params && params.admin_data !== null) {
                 if ("username" in params.admin_data) adminProperties.username = params.admin_data.username;

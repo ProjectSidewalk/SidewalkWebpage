@@ -112,3 +112,29 @@ We should allow the pointer events to pass through and behave the same way as th
 .facial-feature {
     fill: #2D2A3F;
 }
+
+.ai-icon-marker {
+    position: absolute;
+    width: clamp(16px, 0.9vw, 22px);
+    z-index: 3;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+
+.ai-icon-marker-card {
+    top: -8px;
+    right: -10px;
+}
+
+.ai-icon-marker-expanded {
+    top: -7px;
+    right: -9px;
+}
+
+.ai-icon-header {
+    width: 22px;
+    margin-left: 8px;
+    position: relative;
+    top: -2px;
+}

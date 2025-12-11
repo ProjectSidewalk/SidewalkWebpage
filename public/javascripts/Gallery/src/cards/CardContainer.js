@@ -91,7 +91,7 @@ function CardContainer(uiCardContainer, initialFilters) {
         // Creates the ExpandedView object in the DOM element currently present.
         expandedView = new ExpandedView($('.gallery-expanded-view'));
         // Add the click event for opening the ExpandedView when a card is clicked.
-        sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count', (event) => {
+        sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count, .ai-icon-marker-card', (event) => {
             $('.gallery-expanded-view').css('display', 'flex');
             $('.grid-container').css("grid-template-columns", "1fr 5fr");
             // If the user clicks on the image body in the card, just use the provided id.
@@ -99,8 +99,17 @@ function CardContainer(uiCardContainer, initialFilters) {
             // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
             // the correct form).
             let clickedImage = event.target.classList.contains("static-gallery-image")
-            let cardId = clickedImage ? event.target.id :
-                "label_id_" + event.target.closest(".card-tags").id;
+                || event.target.classList.contains("ai-icon-marker-card");
+            let cardId;
+            if (event.target.classList.contains("ai-icon-marker-card")) {
+                let parentImage = event.target.parentElement.querySelector(".static-gallery-image");
+                cardId = parentImage ? parentImage.id : null;
+            } else if (clickedImage) {
+                cardId = event.target.id;
+            } else {
+                cardId = "label_id_" + event.target.closest(".card-tags").id;
+            }
+            if (!cardId) return;
             // Sets/Updates the label being displayed in the expanded view.
             expandedView.updateCardIndex(findCardIndex(cardId));
         });

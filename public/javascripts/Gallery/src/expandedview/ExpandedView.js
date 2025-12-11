@@ -54,7 +54,8 @@ function ExpandedView(uiModal) {
         correctness: undefined,
         user_validation: undefined,
         ai_validation: undefined,
-        tags: []
+        tags: [],
+        ai_generated: false
     };
 
     /**
@@ -188,7 +189,11 @@ function ExpandedView(uiModal) {
         populateExpandedViewDescriptionFields();
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
-        self.header.text(i18next.t(util.camelToKebab(properties.label_type)));
+        self.header.empty();
+        const headerLabel = document.createElement('span');
+        headerLabel.className = 'gallery-expanded-view-header-label';
+        headerLabel.textContent = i18next.t(util.camelToKebab(properties.label_type));
+        self.header.append(headerLabel);
 
         // Highlight selected card thumbnail.
         highlightThumbnail(document.getElementById("gallery_card_" + properties.label_id));
@@ -249,7 +254,8 @@ function ExpandedView(uiModal) {
         }
         self.label = new GalleryPanoramaLabel(
             properties.label_id, properties.label_type, properties.original_canvas_x, properties.original_canvas_y,
-            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, properties.heading, properties.pitch, properties.zoom
+            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, properties.heading, properties.pitch, properties.zoom,
+            properties.ai_generated
         );
 
         self.validationMenu.updateCardProperties(properties);

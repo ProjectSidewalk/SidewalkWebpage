@@ -56,6 +56,7 @@
     "yes": "Ja",
     "no": "Nee",
     "ai-disclaimer": "AI heeft dit label geanalyseerd en gestemd op \"$t({{aiVal}})\". AI kan echter fouten maken. Maak uw eigen beoordeling.",
+    "ai-generated-label-tooltip": "Dit label is door AI gemaakt. AI kan fouten maken, dus maak uw eigen beoordeling.",
     "tag": {
         "narrow": "smal",
         "points into traffic": "punten in het kruisende verkeer",

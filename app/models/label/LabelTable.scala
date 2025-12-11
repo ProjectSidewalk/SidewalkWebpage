@@ -76,7 +76,8 @@ case class LabelForLabelMap(
     aiValidation: Option[Int],
     expired: Boolean,
     highQualityUser: Boolean,
-    severity: Option[Int]
+    severity: Option[Int],
+    aiGenerated: Boolean
 )
 
 case class TagCount(labelType: String, tag: String, count: Int)
@@ -144,7 +145,8 @@ case class LabelMetadata(
     validations: Map[String, Int],
     tags: List[String],
     lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean),
-    comments: Option[Seq[String]]
+    comments: Option[Seq[String]],
+    aiGenerated: Boolean
 )
 
 // Extra data to include with validations for Admin Validate. Includes usernames and previous validators.
@@ -226,7 +228,8 @@ case class LabelValidationMetadata(
     tags: Seq[String],
     cameraLat: Option[Float],
     cameraLng: Option[Float],
-    aiTags: Option[Seq[String]]
+    aiTags: Option[Seq[String]],
+    aiGenerated: Boolean
 ) extends BasicLabelMetadata
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
@@ -321,7 +324,8 @@ object LabelTable {
       List[String],                     // tags
       Option[Float],                    // cameraLat
       Option[Float],                    // cameraLng
-      Option[List[String]]              // aiTags
+      Option[List[String]],             // aiTags
+      Boolean                           // aiGenerated
   )
   type LabelValidationMetadataTupleRep = (
       Rep[Int],                                             // labelId
@@ -343,7 +347,8 @@ object LabelTable {
       Rep[List[String]],                                    // tags
       Rep[Option[Float]],                                   // cameraLat
       Rep[Option[Float]],                                   // cameraLng
-      Rep[Option[List[String]]]                             // aiTags
+      Rep[Option[List[String]]],                            // aiTags
+      Rep[Boolean]                                          // aiGenerated
   )
 
   // Define an implicit conversion from the tuple representation to the case class.
@@ -351,7 +356,7 @@ object LabelTable {
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
       def fromTuple(t: LabelValidationMetadataTuple): LabelValidationMetadata = LabelValidationMetadata(
         t._1, t._2, t._3, t._4, t._5, t._6.get, t._7.get, POV.tupled(t._8), LocationXY.tupled(t._9), t._10, t._11,
-        t._12, t._13, LabelValidationInfo.tupled(t._14), t._15, t._16, t._17, t._18, t._19, t._20
+        t._12, t._13, LabelValidationInfo.tupled(t._14), t._15, t._16, t._17, t._18, t._19, t._20, t._21
       )
     }
 
@@ -486,8 +491,11 @@ class LabelTable @Inject() (
 
   val aiValidations =
     labelValidations.join(sidewalkUserTable.aiUsers).on(_.userId === _.userId).map(_._1).distinctOn(_.labelId)
-  val neighborhoods        = regions.filter(_.deleted === false)
-  val usersWithoutExcluded = usersUnfiltered
+  private val aiUsersWithRole =
+    userRoles.join(roleTable).on(_.roleId === _.roleId).filter(_._2.role === "AI").map(_._1.userId)
+  private def isAiUser(userId: Rep[String]): Rep[Boolean] = aiUsersWithRole.filter(_ === userId).exists
+  val neighborhoods                                       = regions.filter(_.deleted === false)
+  val usersWithoutExcluded                                = usersUnfiltered
     .join(userStats)
     .on(_.userId === _.userId)
     .filterNot(_._2.excluded) // Exclude users with excluded = true
@@ -552,7 +560,8 @@ class LabelTable @Inject() (
       r.nextString().split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextString().split(",").filter(_.nonEmpty).toList,
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
-      r.nextStringOption().filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toSeq)
+      r.nextStringOption().filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toSeq),
+      r.nextBoolean()
     )
   }
 
@@ -743,7 +752,13 @@ class LabelTable @Inject() (
              at.low_quality,
              at.incomplete,
              at.stale,
-             comment.comments
+             comment.comments,
+             EXISTS (
+                 SELECT 1
+                 FROM user_role ur
+                 INNER JOIN role r ON ur.role_id = r.role_id
+                 WHERE ur.user_id = lb1.user_id AND r.role = 'AI'
+             ) AS ai_generated
       FROM label AS lb1
       INNER JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
       INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
@@ -930,7 +945,8 @@ class LabelTable @Inject() (
           gd.lng,
           // Include AI tags if requested.
           if (includeAiTags) la.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
-          else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]]
+          else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
+          isAiUser(l.userId)
         )
       }
 
@@ -1040,32 +1056,35 @@ class LabelTable @Inject() (
 
     // Join with user validations.
     val _userValidations       = labelValidations.filter(_.userId === userId)
-    val _labelInfoWithUserVals = for {
-      ((_lb, _lp, _lt, _gd, _ser, _aiv), _uv) <-
-        _labelsFilteredByAiValidation.joinLeft(_userValidations).on(_._1.labelId === _.labelId)
-    } yield (
-      _lb.labelId,
-      _lt.labelType,
-      _lb.gsvPanoramaId,
-      _gd.captureDate,
-      _lb.timeCreated,
-      _lp.lat,
-      _lp.lng,
-      (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom),
-      (_lp.canvasX, _lp.canvasY),
-      _lb.severity,
-      _lb.description,
-      _lb.streetEdgeId,
-      _ser.regionId,
-      (_lb.agreeCount, _lb.disagreeCount, _lb.unsureCount, _lb.correct),
-      _uv.map(_.validationResult),  // userValidation
-      _aiv.map(_.validationResult), // aiValidation
-      _lb.tags,
-      _gd.lat,
-      _gd.lng,
-      // Placeholder for AI tags, since we don't show those on Gallery right now.
-      None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]]
-    )
+    val _labelInfoWithUserVals = _labelsFilteredByAiValidation
+      .joinLeft(_userValidations)
+      .on(_._1.labelId === _.labelId)
+      .map { case ((_lb, _lp, _lt, _gd, _ser, _aiv), _uv) =>
+        (
+          _lb.labelId,
+          _lt.labelType,
+          _lb.gsvPanoramaId,
+          _gd.captureDate,
+          _lb.timeCreated,
+          _lp.lat,
+          _lp.lng,
+          (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom),
+          (_lp.canvasX, _lp.canvasY),
+          _lb.severity,
+          _lb.description,
+          _lb.streetEdgeId,
+          _ser.regionId,
+          (_lb.agreeCount, _lb.disagreeCount, _lb.unsureCount, _lb.correct),
+          _uv.map(_.validationResult),  // userValidation
+          _aiv.map(_.validationResult), // aiValidation
+          _lb.tags,
+          _gd.lat,
+          _gd.lng,
+          // Placeholder for AI tags, since we don't show those on Gallery right now.
+          None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
+          isAiUser(_lb.userId)
+        )
+      }
 
     // Remove duplicates if needed and randomize.
     val rand          = SimpleFunction.nullary[Double]("random")
@@ -1168,7 +1187,8 @@ class LabelTable @Inject() (
       query.map { case (_l, _us, _lt, _lp, _gsv, _ser, _aiv) =>
         val hasValidations = _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0
         (_l.labelId, _l.auditTaskId, _lt.labelType, _lp.lat, _lp.lng, _l.correct, hasValidations,
-          _aiv.map(_.validationResult), _gsv.expired, _us.highQuality, _l.severity, _ser.streetEdgeId)
+          _aiv.map(_.validationResult), _gsv.expired, _us.highQuality, _l.severity, _ser.streetEdgeId,
+          isAiUser(_l.userId))
       }
     }
 
@@ -1189,7 +1209,7 @@ class LabelTable @Inject() (
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
     _labelsNearRoute.result.map(
-      _.map(l => LabelForLabelMap(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10, l._11))
+      _.map(l => LabelForLabelMap(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10, l._11, l._13))
     )
   }
 

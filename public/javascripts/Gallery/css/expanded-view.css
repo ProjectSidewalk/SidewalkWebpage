@@ -58,6 +58,13 @@
     font-family: 'raleway-bold', sans-serif;
     font-size: 1.5vw;
     color: #2d2a3f;
+    display: flex;
+    align-items: center;
+    column-gap: 10px;
+}
+
+.gallery-expanded-view-header-label {
+    flex: 0 1 auto;
 }
 
 .gallery-expanded-view-pano {

@@ -387,18 +387,10 @@ function AdminGSVLabelView(admin, source) {
         if (aiValidation) {
             self.modalAiValidation.html(i18next.t('labelmap:ai-val-included', { aiVal: aiValidation.toLowerCase() }));
 
-            // Create the AI icon.
-            let aiIcon = document.createElement('img')
-            aiIcon.className = 'label-view-ai-icon';
-            aiIcon.src = '/assets/images/icons/ai-icon-transparent-small.png';
-            aiIcon.alt = 'AI indicator';
+            // Create the AI icon with the shared tooltip text.
+            const aiIcon = AiLabelIndicator(['label-view-ai-icon'], 'top');
             self.modalAiValidationHeader.append(aiIcon);
-
-            // Create the AI validation tooltip that we show in the header.
-            aiIcon.setAttribute('data-toggle', 'tooltip');
-            aiIcon.setAttribute('data-placement', 'top');
-            aiIcon.setAttribute('title', i18next.t('common:ai-disclaimer', { aiVal: aiValidation.toLowerCase() }));
-            $(aiIcon).tooltip('hide');
+            ensureAiTooltip(aiIcon);
         } else {
             self.modalAiValidation.html(i18next.t('common:none'));
         }
@@ -565,10 +557,11 @@ function AdminGSVLabelView(admin, source) {
         self.panorama.setPano(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
             labelMetadata['pitch'], labelMetadata['zoom'], panoCallback);
 
+        const isAiGenerated = Boolean(labelMetadata['ai_generated']);
         var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type'],
             labelMetadata['canvas_x'], labelMetadata['canvas_y'], util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
             labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id'],
-            labelMetadata['severity'], labelMetadata['tags']);
+            labelMetadata['severity'], labelMetadata['tags'], isAiGenerated);
         self.panorama.setLabel(adminPanoramaLabel);
 
         self.validationCounts['Agree'] = labelMetadata['num_agree'];
@@ -587,6 +580,12 @@ function AdminGSVLabelView(admin, source) {
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
         // Change modal title
         self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + camelToKebab(labelMetadata['label_type']))}`);
+        self.modalTitle.find('.admin-ai-icon-header').remove();
+        if (isAiGenerated) {
+            // Header icon should not show tooltip; tooltip only for map marker.
+            const aiIndicator = AiLabelIndicator(['admin-ai-icon-header'], 'top', false);
+            self.modalTitle.append(aiIndicator);
+        }
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         // Create a list of translated tags that's parsable by i18next.
         var translatedTags = labelMetadata['tags'].map(tag => i18next.t(`common:tag.${tag.replace(/:/g, '-')}`));

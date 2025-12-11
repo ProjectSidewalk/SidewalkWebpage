@@ -135,7 +135,8 @@ class AdminController @Inject() (
               "label_type"        -> label.labelType,
               "severity"          -> label.severity,
               "correct"           -> label.correct,
-              "high_quality_user" -> label.highQualityUser
+              "high_quality_user" -> label.highQualityUser,
+              "ai_generated"      -> label.aiGenerated
             )
           )
         }.seq
@@ -187,7 +188,8 @@ class AdminController @Inject() (
                 "has_validations"   -> label.hasValidations,
                 "ai_validation"     -> label.aiValidation.map(LabelValidationTable.validationOptions.get),
                 "expired"           -> label.expired,
-                "high_quality_user" -> label.highQualityUser
+                "high_quality_user" -> label.highQualityUser,
+                "ai_generated"      -> label.aiGenerated
               )
             )
           }.seq

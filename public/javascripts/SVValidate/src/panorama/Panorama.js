@@ -282,6 +282,8 @@ function Panorama (label) {
             self.labelMarker.setIcon(url);
         }
 
+        updateMarkerAiIndicator(true);
+
         return this;
     }
 
@@ -298,6 +300,33 @@ function Panorama (label) {
         panorama.setPano(panoId);
         setProperty("prevSetPanoTimestamp", new Date());
         return this;
+    }
+
+    function updateMarkerAiIndicator(showIndicator, retryCount = 0) {
+        if (!self.labelMarker) return;
+
+        if (!self.labelMarker.marker_) {
+            if (showIndicator && retryCount < 5) {
+                setTimeout(() => updateMarkerAiIndicator(showIndicator, retryCount + 1), 100);
+            }
+            return;
+        }
+
+        const markerEl = self.labelMarker.marker_;
+        let existingIndicator = markerEl.querySelector('.ai-icon-marker-validate');
+
+        if (showIndicator) {
+            if (!existingIndicator) {
+                existingIndicator = AiLabelIndicator(['ai-icon-marker-validate'], 'top');
+                markerEl.appendChild(existingIndicator);
+                const $indicator = ensureAiTooltip(existingIndicator);
+                $(markerEl).on('mouseenter', () => $indicator.tooltip('show'));
+                $(markerEl).on('mouseleave', () => $indicator.tooltip('hide'));
+            }
+        } else if (existingIndicator) {
+            $(existingIndicator).tooltip('dispose');
+            existingIndicator.remove();
+        }
     }
 
     /**

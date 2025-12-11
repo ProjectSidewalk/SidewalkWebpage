@@ -190,6 +190,7 @@
 
         // Make our newly set panomarker visible.
         self.labelMarker.marker.setVisible(true);
+        updateMarkerAiIndicator(label.aiGenerated);
 
         return this;
     }
@@ -245,6 +246,39 @@
             heading: h * 180.0 / PI,
             pitch: p * 180.0 / PI
         };
+    }
+
+    function updateMarkerAiIndicator(showIndicator, retryCount = 0) {
+        if (!self.labelMarker || !self.labelMarker.marker) return;
+
+        if (!self.labelMarker.marker.marker_) {
+            if (showIndicator && retryCount < 5) {
+                setTimeout(() => updateMarkerAiIndicator(showIndicator, retryCount + 1), 100);
+            }
+            return;
+        }
+
+        const markerEl = self.labelMarker.marker.marker_;
+        let existingIndicator = markerEl.querySelector('.ai-icon-marker-expanded');
+
+        if (showIndicator) {
+            if (!existingIndicator) {
+                existingIndicator = AiLabelIndicator(['ai-icon-marker', 'ai-icon-marker-expanded']);
+                markerEl.appendChild(existingIndicator);
+                const $indicator = $(existingIndicator)
+                    .tooltip({
+                        template: '<div class="tooltip ai-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
+                        container: 'body'
+                    })
+                    .tooltip('hide');
+                $(markerEl).on('mouseenter', () => $indicator.tooltip('show'));
+                $(markerEl).on('mouseleave', () => $indicator.tooltip('hide'));
+            }
+        } else if (existingIndicator) {
+            $(existingIndicator).tooltip('dispose');
+            existingIndicator.remove();
+            existingIndicator = null;
+        }
     }
 
     /**

@@ -47,6 +47,7 @@ module.exports = function(grunt) {
             },
             dist_admin: {
                 src: [
+                    'public/javascripts/Admin/src/util/*.js',
                     'public/javascripts/Admin/src/*.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/Panomarker.js',

@@ -16,7 +16,7 @@
  * @constructor
  */
 function AdminPanoramaLabel(labelId, labelType, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight,
-                            heading, pitch, zoom, streetEdgeId, severity, tags) {
+                            heading, pitch, zoom, streetEdgeId, severity, tags, aiGenerated = false) {
     var self = { className: "AdminPanoramaLabel" };
 
     /**
@@ -37,6 +37,7 @@ function AdminPanoramaLabel(labelId, labelType, canvasX, canvasY, originalCanvas
         self.newSeverity = severity;
         self.oldTags = tags;
         self.newTags = tags;
+        self.aiGenerated = aiGenerated;
         return this;
     }
 
