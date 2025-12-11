@@ -140,10 +140,10 @@ function ExpandedView(uiModal) {
         // Add timestamp data for when label was placed and when pano was created.
         self.labelTimestampData = document.createElement('div');
         self.labelTimestampData.className = 'label-timestamp';
-        self.labelTimestampData.innerHTML = `<div>${i18next.t('labeled')}: ${moment(new Date(properties.label_timestamp)).format('LL, LT')}</div>`;
+        self.labelTimestampData.innerHTML = `<div>${i18next.t('labeled')}: ${properties.label_timestamp.format('LL, LT')}</div>`;
         let panoTimestampData = document.createElement('div');
         panoTimestampData.className = 'pano-timestamp';
-        panoTimestampData.innerHTML = `<div>${i18next.t('image-capture-date')}: ${moment(properties.image_capture_date).format('MMM YYYY')}</div>`;
+        panoTimestampData.innerHTML = `<div>${i18next.t('image-capture-date')}: ${properties.image_capture_date.format('MMM YYYY')}</div>`;
         self.timestamps.append(self.labelTimestampData);
         self.timestamps.append(panoTimestampData);
 
@@ -152,11 +152,12 @@ function ExpandedView(uiModal) {
         self.infoPopover = new GSVInfoPopover(self.labelTimestampData, sg.expandedView().pano.panorama,
             sg.expandedView().pano.getPosition, getPanoId,
             function() { return properties['street_edge_id']; }, function() { return properties['region_id']; },
-            sg.expandedView().pano.getPov, sg.cityName, false,
-            function() { sg.tracker.push('GSVInfoButton_Click', { panoId: getPanoId() }); },
+            function() { return properties['image_capture_date']; },
+            function() { return self.pano.panorama.location.shortDescription; }, sg.expandedView().pano.getPov,
+            sg.cityName, false, function() { sg.tracker.push('GSVInfoButton_Click', { panoId: getPanoId() }); },
             function() { sg.tracker.push('GSVInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
             function() { sg.tracker.push('GSVInfoViewInGSV_Click', { panoId: getPanoId() }); },
-            function() { return properties['label_id']; }
+            function() { return properties['label_id']; }, function() { return properties['label_timestamp']; }
         );
 
         // Add severity, validation info, and tag display to the expanded view.
@@ -239,7 +240,10 @@ function ExpandedView(uiModal) {
      */
     function updateProperties(newProps) {
         for (const attrName in newProps) {
-            if (newProps.hasOwnProperty(attrName) && properties.hasOwnProperty(attrName)) {
+            // Add all the properties. Format the timestamps using the moment library.
+            if (attrName === 'label_timestamp' || attrName === 'image_capture_date') {
+                properties[attrName] = moment(newProps[attrName]);
+            } else if (newProps.hasOwnProperty(attrName) && properties.hasOwnProperty(attrName)) {
                 properties[attrName] = newProps[attrName];
             }
         }

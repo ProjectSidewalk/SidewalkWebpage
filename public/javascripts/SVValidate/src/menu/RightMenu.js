@@ -397,6 +397,7 @@ function RightMenu(menuUI) {
 
                 // Add onclick to the tag to add or remove it if the user clicks to accept the AI suggestion.
                 template.on('click', e => {
+                    template.tooltip('destroy'); // Fix for the tooltip showing up on later labels, #4071.
                     if (tag.action === 'add') {
                         _addTag(tag.tag_name, true);
                     } else {
@@ -494,15 +495,19 @@ function RightMenu(menuUI) {
             let disagreeReason = currLabel.getProperty('disagreeOption');
             if (disagreeReason === 'other') {
                 comment = currLabel.getProperty('disagreeReasonTextBox');
-            } else {
+            } else if (disagreeReason) {
                 comment = menuUI.disagreeReasonOptions.find(`#${disagreeReason}`).html().replace('<br>', ' ');
+            } else {
+                comment = '';
             }
         } else if (action === 'Unsure') {
             let unsureReason = currLabel.getProperty('unsureOption');
             if (unsureReason === 'other') {
                 comment = currLabel.getProperty('unsureReasonTextBox');
-            } else {
+            } else if (unsureReason) {
                 comment = menuUI.unsureReasonOptions.find(`#${unsureReason}`).html().replace('<br>', ' ');
+            } else {
+                comment = '';
             }
         }
         currLabel.setProperty('comment', comment);

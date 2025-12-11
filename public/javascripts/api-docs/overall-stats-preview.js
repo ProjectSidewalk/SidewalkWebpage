@@ -252,7 +252,7 @@
             container.appendChild(canvas);
 
             // Get label types and counts from data.
-            const labelTypes = Object.keys(data.labels).filter(key => key !== 'label_count');
+            const labelTypes = Object.keys(data.labels).filter(key => util.misc.VALID_LABEL_TYPES.includes(key));
 
             // Sort label types by count (descending).
             labelTypes.sort((a, b) => data.labels[b].count - data.labels[a].count);
