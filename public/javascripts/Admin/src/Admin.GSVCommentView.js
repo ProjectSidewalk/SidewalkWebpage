@@ -1,13 +1,13 @@
-function AdminGSVCommentView(admin) {
+async function AdminGSVCommentView(admin) {
     var self = {};
     self.admin = admin;
 
-    var _init = function() {
+    var _init = async function() {
         self.panoProp = new PanoProperties();
-        _resetModal();
+        await _resetModal();
     };
 
-    function _resetModal() {
+    async function _resetModal() {
         var modalText =
             '<div class="modal fade" id="label-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">' +
                 '<div class="modal-dialog" role="document" style="width: 840px">' +
@@ -26,11 +26,11 @@ function AdminGSVCommentView(admin) {
             '</div>';
 
         self.modal = $(modalText);
-        self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#button-holder"), admin);
+        self.panorama = await AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#button-holder"), admin);
     }
 
-    function showCommentGSV(panoId, heading, pitch, zoom, labelId) {
-        _resetModal();
+    async function showCommentGSV(panoId, heading, pitch, zoom, labelId) {
+        await _resetModal();
         self.modal.modal({
             'show': true
         });
@@ -51,7 +51,7 @@ function AdminGSVCommentView(admin) {
         self.panorama.setLabel(adminPanoramaLabel);
     }
 
-    _init();
+    await _init();
     self.showCommentGSV = showCommentGSV;
     return self;
 }

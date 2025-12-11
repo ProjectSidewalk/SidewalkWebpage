@@ -1,6 +1,6 @@
-function AdminLabelSearch(isAdmin, source) {
-    function _init() {
-        self.adminGSVLabelView = AdminGSVLabelView(isAdmin, source);
+async function AdminLabelSearch(isAdmin, source) {
+    async function _init() {
+        self.adminGSVLabelView = await AdminGSVLabelView(isAdmin, source);
     }
 
     // Prevents the page from refreshing when the enter key is pressed.
@@ -15,12 +15,12 @@ function AdminLabelSearch(isAdmin, source) {
     /**
      * Pull information from the Label information box when the submit button is clicked.
      */
-    $('#submit').on('click', function(e) {
+    $('#submit').on('click', async function(e) {
         var labelId = $('#form-control-input').val();
-        self.adminGSVLabelView.showLabel(labelId);
+        await self.adminGSVLabelView.showLabel(labelId);
     });
 
-    _init();
-    
+    await _init();
+
     return self;
 }

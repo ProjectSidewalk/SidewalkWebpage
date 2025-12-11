@@ -30,7 +30,7 @@ function AdminTask(params) {
         const userMarkerEl = document.createElement('div');
         userMarkerEl.className = 'user-marker';
         let userMarker;
-        
+
         // Plays/Pauses the stream.
         $('#control-btn').on('click', function() {
             if (document.getElementById('control-btn').innerHTML === 'Play') {
@@ -40,7 +40,7 @@ function AdminTask(params) {
             }
         });
 
-        
+
         // Adds input listeners and pauses playback whenever fields are changed.
         const elements = document.getElementsByTagName('input');
         for (let i = 0; i < elements.length; ++i) {
@@ -51,7 +51,7 @@ function AdminTask(params) {
 
         function _init() {
             // Get the audit task data.
-            $.getJSON('/adminapi/auditpath/' + self.auditTaskId, function (data) {
+            $.getJSON('/adminapi/auditpath/' + self.auditTaskId, async function (data) {
                 if (data.features.length === 0) {
                     alert('No data for this audit task.');
                     return;
@@ -61,7 +61,7 @@ function AdminTask(params) {
                 currentTimestamp = featuresData[0].properties.timestamp;
 
                 // Initialize the pano.
-                if (!self.panorama) self.panorama = AdminPanorama($('#svholder')[0]);
+                if (!self.panorama) self.panorama = await AdminPanorama($('#svholder')[0]);
                 self.panorama.setPano(featuresData[0].properties.panoId, featuresData[0].properties.heading, featuresData[0].properties.pitch, featuresData[0].properties.zoom);
 
                 // Once the map has loaded, add the user marker and layer for the labels.
@@ -92,7 +92,7 @@ function AdminTask(params) {
                 });
             });
         }
-        
+
         // The animation is played again by recalculating the stream again from where it stopped.
         function playAnimation() {
             paused = false;

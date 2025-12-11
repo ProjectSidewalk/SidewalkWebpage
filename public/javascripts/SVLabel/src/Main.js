@@ -67,7 +67,7 @@ function Main (params) {
         const viewerType = svl.isOnboarding() ? GsvViewer : viewerClass;
         // TODO when we set up passing in a starting pano, could pass in tutorial when appropriate too. Then remove checks from PanoManager.js.
         svl.panoManager = await PanoManager(viewerType, { startLat: startLat, startLng: startLng });
-        svl.minimap = new Minimap();
+        svl.minimap = await Minimap();
 
         svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
@@ -110,7 +110,7 @@ function Main (params) {
         svl.neighborhoodContainer.add(neighborhood);
         svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
 
-        svl.observedArea = new ObservedArea(svl.ui.minimap);
+        svl.observedArea = await ObservedArea(svl.ui.minimap);
 
         // Mission
         svl.missionContainer = new MissionContainer(svl.statusFieldMission, svl.missionModel);
@@ -178,10 +178,6 @@ function Main (params) {
         svl.zoomControl = new ZoomControl(svl.canvas, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.navigationService, svl.ribbon, svl.zoomControl);
         loadData(svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
-        var task = svl.taskContainer.getCurrentTask();
-        if (!svl.isOnboarding() && task && typeof google != "undefined") {
-          google.maps.event.addDomListener(window, 'load', task.render);
-        }
 
         $("#navbar-retake-tutorial-btn").on('click', function () {
             window.location.replace('/explore?retakeTutorial=true');

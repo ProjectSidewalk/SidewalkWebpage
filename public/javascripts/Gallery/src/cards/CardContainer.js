@@ -6,7 +6,7 @@
  * @returns {CardContainer}
  * @constructor
  */
-function CardContainer(uiCardContainer, initialFilters) {
+async function CardContainer(uiCardContainer, initialFilters) {
     let self = this;
 
     // The number of labels to grab from database on initial page load.
@@ -63,7 +63,7 @@ function CardContainer(uiCardContainer, initialFilters) {
     // Current labels being displayed of current type based off filters.
     let currentCards = new CardBucket();
 
-    function _init() {
+    async function _init() {
         // Bind click actions to the forward/backward paging buttons.
         if (uiCardContainer) {
             uiCardContainer.nextPage.bind({
@@ -89,7 +89,7 @@ function CardContainer(uiCardContainer, initialFilters) {
             render();
         });
         // Creates the ExpandedView object in the DOM element currently present.
-        expandedView = new ExpandedView($('.gallery-expanded-view'));
+        expandedView = await ExpandedView($('.gallery-expanded-view'));
         // Add the click event for opening the ExpandedView when a card is clicked.
         sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count', (event) => {
             $('.gallery-expanded-view').css('display', 'flex');
@@ -467,6 +467,6 @@ function CardContainer(uiCardContainer, initialFilters) {
     self.getCurrentPageCards = getCurrentPageCards;
     self.getExpandedView = getExpandedView;
 
-    _init();
+    await _init();
     return this;
 }

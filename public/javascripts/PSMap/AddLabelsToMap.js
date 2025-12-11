@@ -60,8 +60,8 @@ function AddLabelsToMap(map, labelData, params) {
 
     // Set up the label hover and popup functionality.
     if (params.popupLabelViewer) {
-        map.on('click', Object.values(mapData.layerNames).flat(), (event) => {
-            params.popupLabelViewer.showLabel(event.features[0].properties.label_id);
+        map.on('click', Object.values(mapData.layerNames).flat(), async (event) => {
+            await params.popupLabelViewer.showLabel(event.features[0].properties.label_id);
         });
 
         let hoveredLab = null;

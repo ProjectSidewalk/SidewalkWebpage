@@ -115,7 +115,7 @@
 
     <script>
         // Get translations and such set up, then begin initializing the Gallery app.
-        window.appManager.ready(function() {
+        window.appManager.ready(async function() {
             var sg = sg || {};
             let params = {};
 
@@ -140,7 +140,7 @@
             params.cityId = "@currentCity.cityId";
             params.cityName = "@currentCity.cityNameFormatted";
 
-            sg.main = new Main(params);
+            sg.main = Main(params);
         });
     </script>
 

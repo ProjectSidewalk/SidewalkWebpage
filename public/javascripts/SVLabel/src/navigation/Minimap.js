@@ -2,21 +2,24 @@
  * Handles the Google Maps minimap in the bottom-right corner of the UI.
  * @constructor
  */
-function Minimap () {
+async function Minimap () {
     let self = this;
 
     let minimapPaneBlinkInterval;
     let map;
 
-    function _init() {
+    async function _init() {
+
+        const { LatLng } = await google.maps.importLibrary('core');
+        const { Map } = await google.maps.importLibrary('maps');
 
         // Map UI setting
         // http://www.w3schools.com/googleAPI/google_maps_controls.asp
         // TODO should we pass in a starting lat/lng here instead so that we can initialize before the pano is loaded?
         const startingLatLng = svl.panoViewer.getPosition();
         const mapOptions = {
-            center: new google.maps.LatLng(startingLatLng.lat, startingLatLng.lng),
-            mapTypeControl:false,
+            center: new LatLng(startingLatLng.lat, startingLatLng.lng),
+            mapTypeControl: false,
             mapTypeId: typeof google != "undefined" ? google.maps.MapTypeId.ROADMAP : null,
             maxZoom : 20,
             minZoom : 14,
@@ -32,10 +35,7 @@ function Minimap () {
             disableDefaultUI: true
         };
 
-        // TODO switch to new way of importing Google library components only when needed:
-        // https://developers.google.com/maps/documentation/javascript/add-google-map
-        const mapCanvas = document.getElementById("minimap");
-        map = typeof google != "undefined" ? new google.maps.Map(mapCanvas, mapOptions) : null;
+        map = new Map(document.getElementById('minimap'), mapOptions);
 
         // Styling google map.
         // http://stackoverflow.com/questions/8406636/how-to-remove-all-from-google-map
@@ -61,7 +61,7 @@ function Minimap () {
             }
         ];
 
-        if (map) map.setOptions({styles: mapStyleOptions});
+        map.setOptions({ styles: mapStyleOptions });
 
         // Connect the map view and panorama view (adds peg at pano's location).
         // TODO need to do something different for non-GSV pano viewers.
@@ -69,6 +69,16 @@ function Minimap () {
 
         // Add listener to the PanoViewer to update observed area on the minimap when zoom changes.
         svl.panoViewer.addListener('zoom_changed', handlerZoomChange);
+
+        // Return a promise that resolves once the map is idle (and therefore fully initialized).
+        return new Promise((resolve) => {
+            // TODO is it possible that the map could already be idle and we just never resolve this?
+            const listener = google.maps.event.addListener(map, 'idle', () => {
+                console.log('map is now idle!');
+                google.maps.event.removeListener(listener);
+                resolve();
+            });
+        });
     }
 
     /**
@@ -113,6 +123,6 @@ function Minimap () {
     self.setMinimapLocation = setMinimapLocation;
     self.getMap = getMap;
 
-    _init();
+    await _init();
     return self;
 }

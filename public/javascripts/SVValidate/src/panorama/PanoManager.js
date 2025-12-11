@@ -13,6 +13,8 @@ async function PanoManager (panoViewerType) {
     let bottomLinksClickable = false;
     let linksListener = null;
 
+    let PanoMarker;
+
     let self = this;
 
     /**
@@ -47,6 +49,8 @@ async function PanoManager (panoViewerType) {
         if (panoViewerType === GsvViewer && !isMobile()) {
             linksListener = svv.panoViewer.panorama.addListener('links_changed', _makeLinksClickable);
         }
+
+        PanoMarker = await getPanoMarkerClass();
 
         // TODO instead of renderCurrentLabel, maybe we just pass in a panoId to start? Or that's just passed to the panoViewer?
         // await renderCurrentLabel(currentLabel);

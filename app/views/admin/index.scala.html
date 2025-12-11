@@ -990,12 +990,12 @@
 
     <script>
         // Gets all translations before loading the choropleths.
-        window.appManager.ready(function () {
+        window.appManager.ready(async function () {
             // Sets up sorting in DataTables on timestamps.
             $.fn.dataTable.ext.type.order['date-pre'] = function(data) { return new Date(data).getTime(); };
 
             // Kick off all the API requests to get data to fill in the Admin page.
-            window.admin = Admin(_, $, '@commonData.mapboxApiKey');
+            window.admin = await Admin(_, $, '@commonData.mapboxApiKey');
             // Initialize the sliders in the legend. We add the "change" functionality after the map loads.
             $("*[id*='slider']").each(function() {
                 $(this).slider({ range: true, min : 0, max : 3, step: 1, values: [0,3], disabled: true });

@@ -4,7 +4,7 @@
  * @constructor
  * @memberof svl
  */
-function ObservedArea(uiMinimap) {
+async function ObservedArea(uiMinimap) {
     let angle = null;  // User's angle.
     let leftAngle = null;  // Left-most angle of the user's FOV.
     let rightAngle = null;  // Right-most angle of the user's FOV.
@@ -19,7 +19,9 @@ function ObservedArea(uiMinimap) {
     const fovCtx = uiMinimap.fov[0].getContext('2d');
     const progressCircleCtx = uiMinimap.progressCircle[0].getContext('2d');
 
-    this.initialize = function() {
+    let PanoMarker = null;
+
+    async function initialize() {
         // Set up some ctx stuff that never changes here so that we don't do it repeatedly.
         uiMinimap.percentObserved.css('color', '#404040')
         fogOfWarCtx.fillStyle = '#888888';
@@ -28,7 +30,10 @@ function ObservedArea(uiMinimap) {
         progressCircleCtx.fillStyle = '#8080ff';
         progressCircleCtx.lineCap = 'round';
         progressCircleCtx.lineWidth = 2;
-    };
+
+        // TODO we're only using this for the static get3dFov() method, so maybe that could live elsewhere.
+        PanoMarker = await getPanoMarkerClass();
+    }
 
     /**
      * Resets the user's angle and adds user's new pano to 'observedAreas'. Called when the user takes a step.
@@ -144,7 +149,7 @@ function ObservedArea(uiMinimap) {
      * Updates everything relevant to the user's observed area.
      */
     this.update = function() {
-        if (observedAreas.length > 0 && svl.minimap.getMap().getProjection()) {
+        if (observedAreas.length > 0) {
             updateAngles();
             renderFogOfWar();
             renderFov();
@@ -158,5 +163,6 @@ function ObservedArea(uiMinimap) {
         }
     }
 
-    this.initialize();
+    await initialize();
+    return this;
 }

@@ -218,12 +218,15 @@ async function PanoManager (panoViewerType, params = {}) {
      * Callback for pov update.
      */
     function _handlerPovChange() {
+
+        // TODO I don't like checking if things are initialized yet.
+
         // povChange["status"] = true;
-        updateCanvas();
+        if (svl.canvas) updateCanvas();
         // povChange["status"] = false;
 
-        svl.compass.update();
-        svl.observedArea.update();
+        if (svl.compass) svl.compass.update();
+        if (svl.observedArea) svl.observedArea.update();
 
         const arrowGroup = document.getElementById('arrow-group');
         const heading = svl.panoViewer.getPov().heading;

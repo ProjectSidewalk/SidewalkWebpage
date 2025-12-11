@@ -7,7 +7,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function AdminPanorama(svHolder, buttonHolder, admin) {
+async function AdminPanorama(svHolder, buttonHolder, admin) {
     var self = {
         className: "AdminPanorama",
         label: undefined,
@@ -29,6 +29,8 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         Signal : '/assets/images/icons/AdminTool_Signal.png'
     };
 
+    let PanoMarker;
+
     // Determined experimentally; varies w/ Panorama size
     var zoomLevel = {
         1: 1,
@@ -39,7 +41,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
     /**
      * This function initializes the Panorama
      */
-    function _init () {
+    async function _init() {
         self.buttonHolder = $(buttonHolder);
         self.svHolder = $(svHolder);
         self.svHolder.addClass("admin-panorama");
@@ -76,7 +78,11 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         self.svHolder.append($(self.panoNotAvailableDetails));
         self.svHolder.append($(self.panoNotAvailableAuditSuggestion));
 
-        self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { }) : null;
+        const { StreetViewPanorama } = await google.maps.importLibrary('streetView');
+        self.panorama = new StreetViewPanorama(self.panoCanvas, { });
+
+        PanoMarker = await getPanoMarkerClass();
+
         self.panorama.addListener('pano_changed', function() {
             // Show the correct set of labels for the given pano.
             var currentPano = self.panorama.getPano();
@@ -383,7 +389,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         return pov;
     }
 
-    _init();
+    await _init();
 
     self.setPov = setPov;
     self.setPano = setPano;

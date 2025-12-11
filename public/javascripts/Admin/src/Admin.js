@@ -1,4 +1,4 @@
-function Admin(_, $, mapboxApiKey) {
+async function Admin(_, $, mapboxApiKey) {
     var self = {};
     var legendTable = document.getElementById('legend-table');
     var sliderNotApplicableText = (legendTable && legendTable.dataset.notApplicableLabel) || "N/A";
@@ -34,7 +34,7 @@ function Admin(_, $, mapboxApiKey) {
         neighborhoodTooltip: 'none',
         differentiateUnauditedStreets: true,
         interactiveStreets: true,
-        popupLabelViewer: AdminGSVLabelView(true, "AdminMapTab"),
+        popupLabelViewer: await AdminGSVLabelView(true, "AdminMapTab"),
         differentiateExpiredLabels: true,
         logClicks: false
     };
@@ -49,33 +49,33 @@ function Admin(_, $, mapboxApiKey) {
         });
     }
 
-    function initializeAdminGSVLabelView() {
-        self.adminGSVLabelView = AdminGSVLabelView(true, "AdminContributionsTab");
+    async function initializeAdminGSVLabelView() {
+        self.adminGSVLabelView = await AdminGSVLabelView(true, "AdminContributionsTab");
     }
 
-    function initializeAdminGSVCommentView(){
-        self.adminGSVCommentView = AdminGSVCommentView(true);
+    async function initializeAdminGSVCommentView(){
+        self.adminGSVCommentView = await AdminGSVCommentView(true);
     }
 
     function initializeAdminGSVCommentWindow(){
-        $('#comments-table').on('click', '.show-comment-location', function(e) {
+        $('#comments-table').on('click', '.show-comment-location', async function(e) {
             e.preventDefault();
             var heading = parseFloat($(this).data('heading'));
             var pitch = parseFloat($(this).data('pitch'));
             var zoom = Number($(this).data('zoom'));
             var labelId = parseInt($(this).data('labelId'));
-            self.adminGSVCommentView.showCommentGSV(this.innerHTML, heading, pitch, zoom, labelId);
+            await self.adminGSVCommentView.showCommentGSV(this.innerHTML, heading, pitch, zoom, labelId);
         });
     }
 
-    function initializeAdminLabelSearch() {
-        self.adminLabelSearch = AdminLabelSearch(true, 'AdminLabelSearchTab');
+    async function initializeAdminLabelSearch() {
+        self.adminLabelSearch = await AdminLabelSearch(true, 'AdminLabelSearchTab');
     }
 
     function initializeLabelTable() {
-        $('#label-table').on('click', '.labelView', function(e) {
+        $('#label-table').on('click', '.labelView', async function(e) {
             e.preventDefault();
-            self.adminGSVLabelView.showLabel($(this).data('labelId'));
+            await self.adminGSVLabelView.showLabel($(this).data('labelId'));
         });
     }
 
@@ -1578,9 +1578,9 @@ function Admin(_, $, mapboxApiKey) {
 
 
     initializeLabelTable();
-    initializeAdminGSVLabelView();
-    initializeAdminLabelSearch();
-    initializeAdminGSVCommentView();
+    await initializeAdminGSVLabelView();
+    await initializeAdminLabelSearch();
+    await initializeAdminGSVCommentView();
     initializeAdminGSVCommentWindow();
 
     self.clearPlayCache = clearPlayCache;

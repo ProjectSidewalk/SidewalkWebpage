@@ -8,7 +8,7 @@ var sg = sg || {};
  * @returns {Main}
  * @constructor
  */
-function Main (params) {
+async function Main (params) {
     let self = this;
 
     sg.scrollStatus = {
@@ -65,7 +65,7 @@ function Main (params) {
             sg.ui.cardFilter.wrapper.offset().top - (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight());
     }
 
-    function _init() {
+    async function _init() {
         sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
         sg.cityId = params.cityId;
         sg.cityName = params.cityName;
@@ -76,7 +76,7 @@ function Main (params) {
 
         // sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
         sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu, params.initialFilters);
-        sg.cardContainer = new CardContainer(sg.ui.cardContainer, params.initialFilters);
+        sg.cardContainer = await CardContainer(sg.ui.cardContainer, params.initialFilters);
         sg.expandedView = sg.cardContainer.getExpandedView;
 
         // Initialize Keyboard to activate keyboard shortcuts.
@@ -149,7 +149,7 @@ function Main (params) {
     }
 
     _initUI();
-    _init();
+    await _init();
 
     return self;
 }

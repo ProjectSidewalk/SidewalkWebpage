@@ -1,9 +1,9 @@
-function AdminGSVLabelView(admin, source) {
+async function AdminGSVLabelView(admin, source) {
     var self = {};
     self.admin = admin;
     self.source = source;
 
-    var _init = function() {
+    var _init = async function() {
         self.panoProp = new PanoProperties();
         self.resultOptions = {
             "Agree": 1,
@@ -11,10 +11,10 @@ function AdminGSVLabelView(admin, source) {
             "Unsure": 3
         };
 
-        _resetModal();
+        await _resetModal();
     };
 
-    function _resetModal() {
+    async function _resetModal() {
         var modalText =
             '<div class="modal fade" id="labelModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">' +
                 '<div class="modal-dialog" role="document" style="width: 570px">' +
@@ -151,7 +151,7 @@ function AdminGSVLabelView(admin, source) {
 
         self.modal = $(modalText);
 
-        self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-input-holder"), admin);
+        self.panorama = await AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-input-holder"), admin);
 
         self.agreeButton = self.modal.find("#validation-agree-button");
         self.modalComments = self.modal.find("#validator-comments");
@@ -526,10 +526,10 @@ function AdminGSVLabelView(admin, source) {
         }
     }
 
-    function showLabel(labelId) {
+    async function showLabel(labelId) {
         // Reset modal when gsv panorama is not found.
         if (self.panorama.panorama.getStatus() === "ZERO_RESULTS") {
-            _resetModal();
+            await _resetModal();
         }
         _resetButtonStates();
         self.panorama.clearLabels();
@@ -626,7 +626,7 @@ function AdminGSVLabelView(admin, source) {
         if (labelMetadata['user_validation']) _resetButtonColors(labelMetadata['user_validation']);
     }
 
-    _init();
+    await _init();
 
     self.showLabel = showLabel;
 

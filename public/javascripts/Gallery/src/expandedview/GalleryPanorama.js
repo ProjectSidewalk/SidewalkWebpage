@@ -4,7 +4,7 @@
  * @param {HTMLElement} svHolder The DOM element that the pano will be placed in.
  * @returns {GalleryPanorama} The gallery panorama that was generated.
  */
- function GalleryPanorama(svHolder) {
+ async function GalleryPanorama(svHolder) {
     let self = {
         className: "GalleryPanorama",
         labelMarker: undefined,
@@ -31,10 +31,12 @@
         3: 2.95
     };
 
+    let PanoMarker;
+
     /**
      * This function initializes the Panorama.
      */
-    function _init () {
+    async function _init() {
         self.svHolder = $(svHolder);
         self.svHolder.addClass("admin-panorama");
 
@@ -78,7 +80,8 @@
             zoomControl: false,
             keyboardShortcuts: false
         };
-        self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, panoOptions) : null;
+        const { StreetViewPanorama } = await google.maps.importLibrary('streetView');
+        self.panorama = typeof google != "undefined" ? new StreetViewPanorama(self.panoCanvas, panoOptions) : null;
         self.panorama.addListener('pano_changed', function() {
             // We always want to update panoId when pano changes (as it is possible the pano changes
             // for a reason OTHER THAN a user clicking on a card - for example, using clickToGo on the pano).
@@ -93,6 +96,8 @@
                 }
             }
         });
+
+        PanoMarker = await getPanoMarkerClass();
 
         return this;
     }
@@ -303,7 +308,7 @@
         return self.panoId;
     }
 
-    _init();
+    await _init();
 
     self.setPov = setPov;
     self.setPano = setPano;

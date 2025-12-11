@@ -5,7 +5,7 @@
  * @param {HTMLElement} uiModal The container for the ExpandedView in the DOM
  * @returns
  */
-function ExpandedView(uiModal) {
+async function ExpandedView(uiModal) {
 
     let self = this;
 
@@ -62,7 +62,7 @@ function ExpandedView(uiModal) {
      * variables for future access when populating the fields. It also instantiates the panorama in the specified
      * location of the ExpandedView.
      */
-    function _init() {
+    async function _init() {
         self.open = false;
         self.panoHolder = $('.actual-pano');
         self.tags = $('.gallery-expanded-view-info-tags');
@@ -71,7 +71,7 @@ function ExpandedView(uiModal) {
         self.validation_info = $('.gallery-expanded-view-info-validation');
         self.description = $('.gallery-expanded-view-info-description');
         self.header = $('.gallery-expanded-view-header');
-        self.pano = new GalleryPanorama(self.panoHolder);
+        self.pano = await GalleryPanorama(self.panoHolder);
         self.closeButton = $('.gallery-expanded-view-close');
         self.leftArrow = $('#prev-label');
         self.leftArrowDisabled = false;
@@ -418,7 +418,7 @@ function ExpandedView(uiModal) {
         });
     }
 
-    _init();
+    await _init();
 
     self.closeExpandedView = closeExpandedView;
     self.updateCardIndex = updateCardIndex;

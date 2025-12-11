@@ -10,13 +10,13 @@ class GsvViewer extends PanoViewer {
         this.currPanoData = undefined;
     }
 
-    // TODO maybe do `new google.maps.Map(mapCanvas, mapOptions)` here? But maybe we do that for infra3d too..?
     async initialize(canvasElem, panoOptions = {}) { // lat, lng
+        const { LatLng } = await google.maps.importLibrary('core');
+        const { StreetViewService, StreetViewPanorama } = await google.maps.importLibrary('streetView');
         const STREETVIEW_MAX_DISTANCE = 40; // TODO use this?
-        this.streetViewService = await new google.maps.StreetViewService();
+        this.streetViewService = await new StreetViewService();
 
         // Set GSV panorama options.
-        // const startingLatLng = new google.maps.LatLng(lat, lng);
         const defaults = {
             // position: undefined,
             // pov: properties.panoramaPov, // TODO required or optional parameter? -- optional, but do I want to include here?
@@ -43,7 +43,7 @@ class GsvViewer extends PanoViewer {
             navigationControl: false,
         };
         const panoOpts = { ...defaults, ...panoOptions };
-        this.panorama = await new google.maps.StreetViewPanorama(canvasElem, panoOpts);
+        this.panorama = await new StreetViewPanorama(canvasElem, panoOpts);
 
         // Add support for the tutorial panos that we have supplied locally.
         this.panorama.registerPanoProvider((pano) => {
@@ -149,7 +149,8 @@ class GsvViewer extends PanoViewer {
     }
 
     setLocation = async (latLng) => {
-        const gLatLng = new google.maps.LatLng(latLng.lat, latLng.lng);
+        const { LatLng } = await google.maps.importLibrary('core');
+        const gLatLng = new LatLng(latLng.lat, latLng.lng);
         return this.streetViewService.getPanorama(
             { location: gLatLng, radius: svl.STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR }
         ).then(this._getPanoramaCallback);
