@@ -580,12 +580,8 @@ function AdminGSVLabelView(admin, source) {
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
         // Change modal title
         self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + camelToKebab(labelMetadata['label_type']))}`);
+        // Remove any previously injected AI header icon and do not add a new one.
         self.modalTitle.find('.admin-ai-icon-header').remove();
-        if (isAiGenerated) {
-            // Header icon should not show tooltip; tooltip only for map marker.
-            const aiIndicator = AiLabelIndicator(['admin-ai-icon-header'], 'top', false);
-            self.modalTitle.append(aiIndicator);
-        }
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         // Create a list of translated tags that's parsable by i18next.
         var translatedTags = labelMetadata['tags'].map(tag => i18next.t(`common:tag.${tag.replace(/:/g, '-')}`));

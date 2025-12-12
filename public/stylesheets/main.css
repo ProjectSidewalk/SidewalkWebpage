@@ -875,7 +875,7 @@ kbd {
 
 .ai-icon-marker {
     position: absolute;
-    width: 22px;
+    width: 12px;
     pointer-events: auto;
     cursor: pointer;
     z-index: 3;
@@ -883,19 +883,19 @@ kbd {
 
 .admin-ai-icon-marker {
     position: absolute;
-    width: 22px;
-    top: -15px;
-    right: -15px;
+    width: 12px;
+    top: -6px;
+    left: -6px;
     pointer-events: auto;
     cursor: pointer;
     z-index: 3;
 }
 
 .admin-ai-icon-header {
-    width: 22px;
+    width: 16px;
     margin-left: 8px;
     position: relative;
-    top: -2px;
+    top: -1px;
     z-index: 3;
 }
 

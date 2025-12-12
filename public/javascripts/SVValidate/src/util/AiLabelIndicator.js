@@ -43,7 +43,7 @@ function ensureAiTooltip(icon) {
 
 function AiLabelIndicator(extraClasses = [], tooltipPlacement = 'top') {
     const icon = document.createElement('img');
-    icon.src = 'assets/images/icons/ai-icon-small.png';
+    icon.src = 'assets/images/icons/ai-icon-black-filled-white-circle.png';
     icon.alt = 'AI indicator';
     icon.classList.add('ai-icon-marker');
     extraClasses.forEach(cls => icon.classList.add(cls));

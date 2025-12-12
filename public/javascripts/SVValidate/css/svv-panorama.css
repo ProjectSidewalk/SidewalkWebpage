@@ -162,15 +162,15 @@
 }
 .ai-icon-marker {
     position: absolute;
-    width: 22px;
+    width: 12px;
     pointer-events: auto;
     cursor: pointer;
     z-index: 3;
 }
 
 .ai-icon-marker-validate {
-    top: -15px;
-    left: -15px;
+    top: -6px;
+    left: -6px;
 }
 
 .ai-tooltip .tooltip-inner {
