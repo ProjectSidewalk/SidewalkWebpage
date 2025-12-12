@@ -115,21 +115,21 @@ We should allow the pointer events to pass through and behave the same way as th
 
 .ai-icon-marker {
     position: absolute;
-    width: clamp(12px, 0.9vw, 16px);
+    width: clamp(12px, 0.75vw, 16px);
+    height: clamp(12px, 0.75vw, 16px);
     z-index: 3;
     pointer-events: auto;
     cursor: pointer;
 }
 
-
 .ai-icon-marker-card {
-    top: -8px;
-    right: -3px;
+    top: -6px;
+    left: -5px;
 }
 
 .ai-icon-marker-expanded {
-    top: -8px;
-    right: -3px;
+    top: -6px;
+    left: -4px;
 }
 
 .ai-icon-header {

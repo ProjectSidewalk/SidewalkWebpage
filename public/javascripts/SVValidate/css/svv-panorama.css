@@ -160,19 +160,3 @@
     display: block;
     margin-bottom: -7px;
 }
-.ai-icon-marker {
-    position: absolute;
-    width: 12px;
-    pointer-events: auto;
-    cursor: pointer;
-    z-index: 3;
-}
-
-.ai-icon-marker-validate {
-    top: -6px;
-    left: -6px;
-}
-
-.ai-tooltip .tooltip-inner {
-    max-width: 220px;
-}
