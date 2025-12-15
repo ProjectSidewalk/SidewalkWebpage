@@ -33,7 +33,14 @@
 }
 
 #arrow-group image {
-    filter: drop-shadow(0 0 0.05rem black) drop-shadow(0 0 0.05rem black);
+    cursor: pointer;
+    filter: drop-shadow(0 0 0.05rem black) drop-shadow(0 0 0.05rem black); /* Adds black outline. */
+}
+
+#arrow-group image:hover {
+    filter:
+        drop-shadow(0 0 0.05rem black) drop-shadow(0 0 0.05rem black) /* Adds black outline. */
+        sepia(1) saturate(2) hue-rotate(315deg); /* Adds yellow highlight on hover. */
 }
 
 #delete-icon-holder {
