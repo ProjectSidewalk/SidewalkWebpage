@@ -108,7 +108,6 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     function resetBeforeJump() {
         cancelTimer();
         removeLabelBeforeJumpMessage();
-        navigationService.resetBeforeJumpLocationAndListener();
     }
 
     function _jumpToTheNewTask() {
@@ -251,7 +250,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
      * Update the compass message.
      */
     function update () {
-        if (!navigationService.getLabelBeforeJumpListenerStatus() && !svl.isOnboarding()) {
+        if (!navigationService.getLabelBeforeJumpState() && !svl.isOnboarding()) {
             if (_checkEnRoute()) {
                 self.stopBlinking();
                 self.setTurnMessage();

@@ -13,8 +13,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         status = {
             disableWalking : false,
             lockDisableWalking : false,
-            labelBeforeJumpListenerSet: false,
-            jumpMsgShown: false,
+            labelBeforeJumpState: false,
             contextMenuWasOpen: false
         },
         missionJump = undefined,
@@ -57,15 +56,15 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     /*
      * Get the status of the labelBeforeJump listener.
      */
-    function getLabelBeforeJumpListenerStatus() {
-        return status.labelBeforeJumpListenerSet;
+    function getLabelBeforeJumpState() {
+        return status.labelBeforeJumpState;
     }
 
     /*
      * Set the status of the labelBeforeJump listener.
      */
-    function setLabelBeforeJumpListenerStatus(statusToSet) {
-        status.labelBeforeJumpListenerSet = statusToSet;
+    function setLabelBeforeJumpState(statusToSet) {
+        status.labelBeforeJumpState = statusToSet;
     }
 
     /**
@@ -166,7 +165,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
      * @private
      */
     function _endTheCurrentTask(task, mission) {
-        if (!status.labelBeforeJumpListenerSet) {
+        if (!status.labelBeforeJumpState) {
             missionJump = mission;
             var nextTask = svl.taskContainer.nextTask(task);
 
@@ -175,6 +174,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
                 svl.neighborhoodModel.setComplete();
             }
 
+            // TODO rename this? And shouldn't it happen on page load too, not just after a move?
             // Check if the user will jump to another discontinuous location or if this is the last street in their
             // route/neighborhood. If either is the case, let the user know to label the location before proceeding.
             if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete() || !task.isConnectedTo(nextTask)) {
@@ -183,10 +183,12 @@ function NavigationService (neighborhoodModel, uiStreetview) {
                     nextTask.eraseFromMinimap(); // TODO why are we erasing here..?
                     svl.taskContainer.setBeforeJumpNewTask(nextTask);
                 }
-                status.labelBeforeJumpListenerSet = true;
 
-                // TODO rename this? And shouldn't it happen on page load too, not just after a move?
-                trackBeforeJumpActions();
+                // Show message to the user instructing them to label the current location.
+                svl.tracker.push('LabelBeforeJump_ShowMsg');
+                svl.compass.showLabelBeforeJumpMessage();
+
+                status.labelBeforeJumpState = true;
             } else {
                 finishCurrentTaskBeforeJumping(missionJump, nextTask);
 
@@ -196,33 +198,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
                     moveForward();
                 }
             }
-        } else {
-            trackBeforeJumpActions();
         }
-    }
-
-    /**
-     * Callback to track when user moves away from their current location.
-     */
-    function trackBeforeJumpActions() {
-        if (status.labelBeforeJumpListenerSet) {
-            if (!status.jumpMsgShown) {
-                // Show message to the user instructing them to label the current location.
-                svl.tracker.push('LabelBeforeJump_ShowMsg');
-                svl.compass.showLabelBeforeJumpMessage();
-                status.jumpMsgShown = true;
-            }
-            // TODO we used to have code here that would force the user back onto the route if they continued to walk
-            //      off the path pretty far. Not sure if we should reinstate that or not...
-        }
-    }
-
-    /**
-     * Reset before JumpLocation and Jump Task listener
-     * TODO rename and/or remove this
-     */
-    function resetBeforeJumpLocationAndListener () {
-        status.jumpMsgShown = false;
     }
 
     // Todo. Wrote this ad-hoc. Clean up and test later.
@@ -534,7 +510,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     self.disableWalking = disableWalking;
     self.enableWalking = enableWalking;
     self.finishCurrentTaskBeforeJumping = finishCurrentTaskBeforeJumping;
-    self.getLabelBeforeJumpListenerStatus = getLabelBeforeJumpListenerStatus;
+    self.getLabelBeforeJumpState = getLabelBeforeJumpState;
     self.getProperty = getProperty;
     self.getStatus = getStatus;
     self.bindPositionUpdate = bindPositionUpdate;
@@ -542,8 +518,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     self.lockDisableWalking = lockDisableWalking;
     self.switchToLabelingMode = switchToLabelingMode;
     self.switchToExploreMode = switchToExploreMode;
-    self.resetBeforeJumpLocationAndListener = resetBeforeJumpLocationAndListener;
-    self.setLabelBeforeJumpListenerStatus = setLabelBeforeJumpListenerStatus;
+    self.setLabelBeforeJumpState = setLabelBeforeJumpState;
     self.moveForward = moveForward;
     self.moveToPano = moveToPano;
     self.moveToLinkedPano = moveToLinkedPano;

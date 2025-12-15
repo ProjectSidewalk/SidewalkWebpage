@@ -200,9 +200,8 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
         self.skipSubmit(data, task);
 
         // If the jump was clicked in the middle of the beforeJumpTask, reset the beforeJump tracking parameters.
-        var jumpListenerStatus = navigationService.getLabelBeforeJumpListenerStatus();
-        if (jumpListenerStatus) {
-            navigationService.setLabelBeforeJumpListenerStatus(false);
+        if (navigationService.getLabelBeforeJumpState()) {
+            navigationService.setLabelBeforeJumpState(false);
             compass.resetBeforeJump();
             navigationService.finishCurrentTaskBeforeJumping();
         }

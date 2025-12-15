@@ -465,9 +465,8 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
         if (tracker) tracker.push('TaskStart');
 
         if ('compass' in svl) {
-            svl.compass.setTurnMessage();
             svl.compass.showMessage();
-            if (!svl.navigationService.getLabelBeforeJumpListenerStatus()) svl.compass.update();
+            svl.compass.update();
         }
 
         if ('form' in svl){
