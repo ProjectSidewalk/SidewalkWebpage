@@ -17,10 +17,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
             jumpMsgShown: false,
             contextMenuWasOpen: false
         },
-        listeners = {
-            beforeJumpListenerHandle: undefined
-        },
-        jumpLocation = undefined,
         missionJump = undefined,
         _stuckPanos = [];
     let positionUpdateCallbacks = [];
@@ -184,21 +180,13 @@ function NavigationService (neighborhoodModel, uiStreetview) {
             if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete() || !task.isConnectedTo(nextTask)) {
                 // If jumping to a new place, set the newTask before jumping.
                 if (nextTask && !task.isConnectedTo(nextTask)) {
-                    nextTask.eraseFromMinimap();
+                    nextTask.eraseFromMinimap(); // TODO why are we erasing here..?
                     svl.taskContainer.setBeforeJumpNewTask(nextTask);
                 }
                 status.labelBeforeJumpListenerSet = true;
 
-                // Store before jump location for tracking pre-jump actions when the user leaves their location.
-                setBeforeJumpLocation();
-
-                // Listener activated for tracking before-jump actions.
-                try {
-                    // TODO this is never being removed, right?
-                    listeners.beforeJumpListenerHandle = google.maps.event.addListener(
-                        svl.panoViewer.panorama, "pano_changed", trackBeforeJumpActions
-                    );
-                } catch (err) {}
+                // TODO rename this? And shouldn't it happen on page load too, not just after a move?
+                trackBeforeJumpActions();
             } else {
                 finishCurrentTaskBeforeJumping(missionJump, nextTask);
 
@@ -208,6 +196,8 @@ function NavigationService (neighborhoodModel, uiStreetview) {
                     moveForward();
                 }
             }
+        } else {
+            trackBeforeJumpActions();
         }
     }
 
@@ -216,52 +206,23 @@ function NavigationService (neighborhoodModel, uiStreetview) {
      */
     function trackBeforeJumpActions() {
         if (status.labelBeforeJumpListenerSet) {
-            var currentLatLng = svl.panoViewer.getPosition(),
-                currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
-                jumpPosition = turf.point([jumpLocation.lng, jumpLocation.lat]),
-                distance = turf.distance(jumpPosition, currentPosition, {units: 'kilometers'});
-
-            if (!status.jumpMsgShown && distance >= 0.01) {
+            if (!status.jumpMsgShown) {
                 // Show message to the user instructing them to label the current location.
                 svl.tracker.push('LabelBeforeJump_ShowMsg');
                 svl.compass.showLabelBeforeJumpMessage();
-                status.jumpMsgShown = true
-
-            } else if (distance > 0.07 && !svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
-                // Jump to the new location if it's really far away from their location.
-                svl.tracker.push('LabelBeforeJump_AutoJump');
-
-                // Finish the current task
-                finishCurrentTaskBeforeJumping();
-
-                // Reset jump parameters before jumping
-                svl.compass.resetBeforeJump();
-
-                // Jump to the new task
-                var newTask = svl.taskContainer.getAfterJumpNewTask();
-                svl.taskContainer.setCurrentTask(newTask);
-                moveForward();
-                // moveToTheTaskLocation(newTask, false);
-                svl.jumpModel.triggerTooFarFromJumpLocation();
+                status.jumpMsgShown = true;
             }
+            // TODO we used to have code here that would force the user back onto the route if they continued to walk
+            //      off the path pretty far. Not sure if we should reinstate that or not...
         }
     }
 
     /**
      * Reset before JumpLocation and Jump Task listener
+     * TODO rename and/or remove this
      */
     function resetBeforeJumpLocationAndListener () {
-        jumpLocation = undefined;
         status.jumpMsgShown = false;
-        google.maps.event.removeListener(listeners.beforeJumpListenerHandle);
-    }
-
-    /**
-     * Sets before JumpLocation
-     */
-    function setBeforeJumpLocation () {
-        // Set user's current location
-        jumpLocation = svl.panoViewer.getPosition();
     }
 
     // Todo. Wrote this ad-hoc. Clean up and test later.
@@ -582,7 +543,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     self.switchToLabelingMode = switchToLabelingMode;
     self.switchToExploreMode = switchToExploreMode;
     self.resetBeforeJumpLocationAndListener = resetBeforeJumpLocationAndListener;
-    self.setBeforeJumpLocation = setBeforeJumpLocation;
     self.setLabelBeforeJumpListenerStatus = setLabelBeforeJumpListenerStatus;
     self.moveForward = moveForward;
     self.moveToPano = moveToPano;
