@@ -491,9 +491,7 @@ class LabelTable @Inject() (
 
   val aiValidations =
     labelValidations.join(sidewalkUserTable.aiUsers).on(_.userId === _.userId).map(_._1).distinctOn(_.labelId)
-  private val aiUsersWithRole =
-    userRoles.join(roleTable).on(_.roleId === _.roleId).filter(_._2.role === "AI").map(_._1.userId)
-  private def isAiUser(userId: Rep[String]): Rep[Boolean] = aiUsersWithRole.filter(_ === userId).exists
+  private val aiRoles = userRoles.join(roleTable).on(_.roleId === _.roleId).filter(_._2.role === "AI")
   val neighborhoods                                       = regions.filter(_.deleted === false)
   val usersWithoutExcluded                                = usersUnfiltered
     .join(userStats)
@@ -874,17 +872,27 @@ class LabelTable @Inject() (
       if userIds.map(ids => _lb.userId inSetBind ids).getOrElse(true: Rep[Boolean])      // Filter by user IDs.
     } yield (_lb, _lp, _lt, _gd, _us, _ser, _at)
 
+    // Attach AI role info via left join to avoid per-row subqueries.
+    val _labelInfoWithAiRole = _labelInfo
+      .joinLeft(aiRoles)
+      .on { case ((lb, _, _, _, _, _, _), aiRole) => lb.userId === aiRole._1.userId }
+      .map { case ((lb, lp, lt, gd, us, ser, at), aiRole) => (lb, lp, lt, gd, us, ser, at, aiRole) }
+
     // Get AI validations.
-    val _labelInfoWithAIValidation = _labelInfo
+    val _labelInfoWithAIValidation = _labelInfoWithAiRole
       .joinLeft(aiValidations)
       .on(_._1.labelId === _.labelId)
-      .map { case ((_lb, _lp, _lt, _gd, _us, _ser, _at), _aiv) => (_lb, _lp, _lt, _gd, _us, _ser, _at, _aiv) }
+      .map { case ((_lb, _lp, _lt, _gd, _us, _ser, _at, _aiRole), _aiv) =>
+        (_lb, _lp, _lt, _gd, _us, _ser, _at, _aiRole, _aiv)
+      }
 
     // Get AI suggested tags.
     val _labelInfoWithAiTagSuggestions = _labelInfoWithAIValidation
       .joinLeft(labelAiAssessments)
       .on(_._1.labelId === _.labelId)
-      .map { case ((_lb, _lp, _lt, _gd, _us, _ser, _at, _aiv), _la) => (_lb, _lp, _lt, _gd, _us, _ser, _at, _aiv, _la) }
+      .map { case ((_lb, _lp, _lt, _gd, _us, _ser, _at, _aiRole, _aiv), _la) =>
+        (_lb, _lp, _lt, _gd, _us, _ser, _at, _aiRole, _aiv, _la)
+      }
 
     // Filter out labels that have already been validated by this user.
     val _labelInfoFiltered = _labelInfoWithAiTagSuggestions
@@ -896,7 +904,7 @@ class LabelTable @Inject() (
     // Priority ordering algorithm is described in the method comment, max score is 276.
     val _labelInfoSorted = _labelInfoFiltered
       .sortBy {
-        case (l, lp, lt, gd, us, ser, at, aiv, la) => {
+        case (l, lp, lt, gd, us, ser, at, aiRole, aiv, la) => {
           // A label gets 150 if the labeler as < 50 of their labels validated (and this label needs a validation).
           val needsValidationScore =
             Case.If(us.ownLabelsValidated < 50 && l.correct.isEmpty && !at.lowQuality && !at.stale).Then(150d).Else(0d)
@@ -922,7 +930,7 @@ class LabelTable @Inject() (
         }
       }
       // Select only the columns needed for the LabelValidationMetadata class.
-      .map { case (l, lp, lt, gd, us, ser, at, aiv, la) =>
+      .map { case (l, lp, lt, gd, us, ser, at, aiRole, aiv, la) =>
         (
           l.labelId,
           lt.labelType,
@@ -946,7 +954,7 @@ class LabelTable @Inject() (
           // Include AI tags if requested.
           if (includeAiTags) la.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
           else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
-          isAiUser(l.userId)
+          aiRole.isDefined
         )
       }
 
@@ -1031,25 +1039,32 @@ class LabelTable @Inject() (
       if (_lb.tags @& tags.toList) || tags.isEmpty // @& is the overlap operator from postgres (&& in postgres).
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
-    } yield (_lb, _lp, _lt, _gd, _ser)
+    } yield (_lb, _lp, _lt, _gd, _ser, _us)
+
+    val _labelInfoWithAiRole = _labelInfo
+      .joinLeft(aiRoles)
+      .on { case ((lb, _, _, _, _, _), aiRole) => lb.userId === aiRole._1.userId }
+      .map { case ((lb, lp, lt, gd, ser, us), aiRole) => (lb, lp, lt, gd, ser, us, aiRole) }
 
     // Get AI validations.
-    val _labelInfoWithAIValidation = _labelInfo
+    val _labelInfoWithAIValidation = _labelInfoWithAiRole
       .joinLeft(aiValidations)
       .on(_._1.labelId === _.labelId)
-      .map { case ((_lb, _lp, _lt, _gd, _ser), _aiv) => (_lb, _lp, _lt, _gd, _ser, _aiv) }
+      .map { case ((_lb, _lp, _lt, _gd, _ser, _us, _aiRole), _aiv) =>
+        (_lb, _lp, _lt, _gd, _ser, _us, _aiRole, _aiv)
+      }
 
     // Filter labels based on how the AI validated them. If no filters provided, do no filtering here.
     val _labelsFilteredByAiValidation = {
       var query = _labelInfoWithAIValidation
       if (aiValOptions.nonEmpty) {
         if (!aiValOptions.contains("correct"))
-          query = query.filter(l => l._6.isEmpty || l._6.map(_.validationResult) =!= 1.asColumnOf[Option[Int]])
+          query = query.filter(l => l._8.isEmpty || l._8.map(_.validationResult) =!= 1.asColumnOf[Option[Int]])
         if (!aiValOptions.contains("incorrect"))
-          query = query.filter(l => l._6.isEmpty || l._6.map(_.validationResult) =!= 2.asColumnOf[Option[Int]])
+          query = query.filter(l => l._8.isEmpty || l._8.map(_.validationResult) =!= 2.asColumnOf[Option[Int]])
         if (!aiValOptions.contains("unsure"))
-          query = query.filter(l => l._6.isEmpty || l._6.map(_.validationResult) =!= 3.asColumnOf[Option[Int]])
-        if (!aiValOptions.contains("unvalidated")) query = query.filter(l => l._6.isDefined)
+          query = query.filter(l => l._8.isEmpty || l._8.map(_.validationResult) =!= 3.asColumnOf[Option[Int]])
+        if (!aiValOptions.contains("unvalidated")) query = query.filter(l => l._8.isDefined)
       }
       query
     }
@@ -1059,7 +1074,7 @@ class LabelTable @Inject() (
     val _labelInfoWithUserVals = _labelsFilteredByAiValidation
       .joinLeft(_userValidations)
       .on(_._1.labelId === _.labelId)
-      .map { case ((_lb, _lp, _lt, _gd, _ser, _aiv), _uv) =>
+      .map { case ((_lb, _lp, _lt, _gd, _ser, _us, _aiRole, _aiv), _uv) =>
         (
           _lb.labelId,
           _lt.labelType,
@@ -1082,7 +1097,7 @@ class LabelTable @Inject() (
           _gd.lng,
           // Placeholder for AI tags, since we don't show those on Gallery right now.
           None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
-          isAiUser(_lb.userId)
+          _aiRole.isDefined
         )
       }
 
@@ -1164,31 +1179,38 @@ class LabelTable @Inject() (
       if _lp.lat.isDefined && _lp.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
     } yield (_l, _us, _lt, _lp, _gsv, _ser)
 
+    val _labelsWithAiRole = _labels
+      .joinLeft(aiRoles)
+      .on { case ((_l, _, _, _, _, _), _aiRole) => _l.userId === _aiRole._1.userId }
+      .map { case ((_l, _us, _lt, _lp, _gsv, _ser), _aiRole) => (_l, _us, _lt, _lp, _gsv, _ser, _aiRole) }
+
     // Get AI validations.
-    val _labelInfoWithAIValidation = _labels
+    val _labelInfoWithAIValidation = _labelsWithAiRole
       .joinLeft(aiValidations)
       .on(_._1.labelId === _.labelId)
-      .map { case ((_l, _us, _lt, _lp, _gsv, _ser), _aiv) => (_l, _us, _lt, _lp, _gsv, _ser, _aiv) }
+      .map { case ((_l, _us, _lt, _lp, _gsv, _ser, _aiRole), _aiv) =>
+        (_l, _us, _lt, _lp, _gsv, _ser, _aiRole, _aiv)
+      }
 
     // Filter labels based on how the AI validated them. If no filters provided, do no filtering here.
     val _labelsFilteredByAiValidation = {
       var query = _labelInfoWithAIValidation
       if (aiValOptions.nonEmpty) {
         if (!aiValOptions.contains("correct"))
-          query = query.filter(l => l._7.isEmpty || l._7.map(_.validationResult) =!= 1.asColumnOf[Option[Int]])
+          query = query.filter(l => l._8.isEmpty || l._8.map(_.validationResult) =!= 1.asColumnOf[Option[Int]])
         if (!aiValOptions.contains("incorrect"))
-          query = query.filter(l => l._7.isEmpty || l._7.map(_.validationResult) =!= 2.asColumnOf[Option[Int]])
+          query = query.filter(l => l._8.isEmpty || l._8.map(_.validationResult) =!= 2.asColumnOf[Option[Int]])
         if (!aiValOptions.contains("unsure"))
-          query = query.filter(l => l._7.isEmpty || l._7.map(_.validationResult) =!= 3.asColumnOf[Option[Int]])
-        if (!aiValOptions.contains("unvalidated")) query = query.filter(l => l._7.isDefined)
+          query = query.filter(l => l._8.isEmpty || l._8.map(_.validationResult) =!= 3.asColumnOf[Option[Int]])
+        if (!aiValOptions.contains("unvalidated")) query = query.filter(l => l._8.isDefined)
       }
 
       // Grab the columns that we need for the LabelForLabelMap case class.
-      query.map { case (_l, _us, _lt, _lp, _gsv, _ser, _aiv) =>
+      query.map { case (_l, _us, _lt, _lp, _gsv, _ser, _aiRole, _aiv) =>
         val hasValidations = _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0
         (_l.labelId, _l.auditTaskId, _lt.labelType, _lp.lat, _lp.lng, _l.correct, hasValidations,
           _aiv.map(_.validationResult), _gsv.expired, _us.highQuality, _l.severity, _ser.streetEdgeId,
-          isAiUser(_l.userId))
+          _aiRole.isDefined)
       }
     }
 

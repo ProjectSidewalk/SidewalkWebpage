@@ -263,7 +263,7 @@
 
         if (showIndicator) {
             if (!existingIndicator) {
-                existingIndicator = AiLabelIndicator(['ai-icon-marker', 'ai-icon-marker-expanded']);
+                existingIndicator = AiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-expanded']);
                 markerEl.appendChild(existingIndicator);
                 const $indicator = $(existingIndicator)
                     .tooltip({

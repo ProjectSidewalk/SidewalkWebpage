@@ -3,6 +3,7 @@
  *
  * @param {Array<String>} extraClasses Additional CSS classes to apply.
  * @param {String} tooltipPlacement Bootstrap tooltip placement.
+ * @param {Boolean} enableTooltip Whether to attach tooltip behavior.
  * @returns {HTMLElement} Configured AI indicator element.
  */
 const aiTooltipTemplate = [
@@ -11,10 +12,22 @@ const aiTooltipTemplate = [
     '<div class="tooltip-inner"></div>',
     '</div>'
 ].join('');
+
 const aiTooltipOptions = {
     template: aiTooltipTemplate,
-    container: 'body'
+    container: 'body',
+    trigger: 'hover'
 };
+
+const aiHoverSelectors = [
+    '.ai-icon',
+    '.ai-icon-marker',
+    '.ai-icon-marker-card',
+    '.ai-icon-marker-expanded',
+    '.ai-icon-marker-validate',
+    '.admin-ai-icon-marker',
+    '.label-view-ai-icon'
+].join(', ');
 
 /**
  * Ensures the provided icon has a tooltip initialized with shared options.
@@ -22,6 +35,8 @@ const aiTooltipOptions = {
  * @returns {JQuery} tooltip-enabled icon
  */
 function ensureAiTooltip(icon) {
+    if (icon.dataset && icon.dataset.disableTooltip === 'true') return $(icon);
+
     const $icon = $(icon);
     if (!$icon.attr('title') && !$icon.attr('data-original-title')) {
         $icon.attr('title', i18next.t('common:ai-generated-label-tooltip'));
@@ -41,30 +56,42 @@ function ensureAiTooltip(icon) {
     return $icon;
 }
 
-function AiLabelIndicator(extraClasses = [], tooltipPlacement = 'top') {
+function AiLabelIndicator(extraClasses = [], tooltipPlacement = 'top', enableTooltip = true) {
     const icon = document.createElement('img');
-    icon.src = 'assets/images/icons/ai-icon-black-filled-white-circle.png';
+    icon.src = '/assets/images/icons/ai-icon-black-filled-white-circle.png';
     icon.alt = 'AI indicator';
     icon.classList.add('ai-icon-marker');
     extraClasses.forEach(cls => icon.classList.add(cls));
 
     const tooltipText = i18next.t('common:ai-generated-label-tooltip');
-    icon.setAttribute('data-toggle', 'tooltip');
-    icon.setAttribute('data-placement', tooltipPlacement);
-    icon.setAttribute('title', tooltipText);
 
-    ensureAiTooltip(icon);
+    if (enableTooltip) {
+        icon.setAttribute('data-toggle', 'tooltip');
+        icon.setAttribute('data-placement', tooltipPlacement);
+        icon.setAttribute('title', tooltipText);
 
-    icon.addEventListener('mouseenter', () => ensureAiTooltip(icon).tooltip('show'));
-    icon.addEventListener('mouseleave', () => ensureAiTooltip(icon).tooltip('hide'));
+        ensureAiTooltip(icon);
+
+        icon.addEventListener('mouseenter', () => ensureAiTooltip(icon).tooltip('show'));
+        icon.addEventListener('mouseleave', () => ensureAiTooltip(icon).tooltip('hide'));
+    } else {
+        icon.dataset.disableTooltip = 'true';
+    }
 
     return icon;
 }
 
-// Delegate hover handling for dynamically inserted indicators (validate panoramas).
-$(document).on('mouseenter', '.ai-icon-marker, .ai-icon-marker-validate', function () {
+function initializeExistingAiTooltips() {
+    document.querySelectorAll(aiHoverSelectors).forEach(el => ensureAiTooltip(el));
+}
+
+// Delegate hover handling for dynamically inserted indicators.
+$(document).on('mouseenter', aiHoverSelectors, function () {
     ensureAiTooltip(this).tooltip('show');
 });
-$(document).on('mouseleave', '.ai-icon-marker, .ai-icon-marker-validate', function () {
+$(document).on('mouseleave', aiHoverSelectors, function () {
     ensureAiTooltip(this).tooltip('hide');
 });
+
+// Initialize any AI icons already in the DOM on load (covers server-rendered cases).
+$(initializeExistingAiTooltips);
