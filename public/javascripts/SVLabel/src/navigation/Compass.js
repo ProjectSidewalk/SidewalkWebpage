@@ -40,23 +40,23 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     }
 
     /**
-     * Get the angle to the next goal.
+     * Get the angle necessary to move further down the street (using 10 meters further along street as target point).
      * @returns {number}
      */
     function getTargetAngle() {
-        var task = taskContainer.getCurrentTask();
-        var latlng = svl.panoViewer.getPosition();
-        var geometry = task.getGeometry();  // get the street geometry of the current task
-        var coordinates = geometry.coordinates;  // get the latlng coordinates of the streets
-        var distArray = coordinates.map(function(o) {
-            return Math.sqrt(_norm(latlng.lat, latlng.lng, o[1], o[0]));
-        });
-        var minimum = Math.min.apply(Math, distArray);
-        var argmin = distArray.indexOf(minimum);
-        var argTarget;
-        argTarget = (argmin < (coordinates.length - 1)) ? argmin + 1 : geometry.coordinates.length - 1;
+        const task = taskContainer.getCurrentTask();
+        const geometry = task.getFeature();
+        const latlng = svl.panoViewer.getPosition();
+        const startLatLng = turf.point(task.getFurthestPointReached().geometry.coordinates);
+        const streetEnd = turf.point([task.getLastCoordinate().lng, task.getLastCoordinate().lat]);
+        const remainder = turf.cleanCoords(turf.lineSlice(startLatLng, streetEnd, geometry));
 
-        return ((util.math.toDegrees(Math.atan2(coordinates[argTarget][0] - latlng.lng, coordinates[argTarget][1] - latlng.lat)) + 360) % 360);
+        // Get the point representing 10 meters further along the street (or the endpoint if there's fewer than 10m).
+        const distIncrement = Math.min(0.01, turf.length(remainder));
+        const goalLoc = turf.along(remainder, distIncrement).geometry.coordinates;
+
+        // Compute the angle from the current location to the goal location, with respect to true north.
+        return ((util.math.toDegrees(Math.atan2(goalLoc[0] - latlng.lng, goalLoc[1] - latlng.lat)) + 360) % 360);
     }
 
     /**
@@ -131,7 +131,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         } else {
             jumpMessageOnclick = _jumpToTheNewTask
         }
-        uiCompass.messageHolder.on('click', jumpMessageOnclick);
+        uiCompass.messageHolder.off('click', _jumpToTheNewTask).on('click', jumpMessageOnclick);
         uiCompass.messageHolder.css('cursor', 'pointer');
     }
 
@@ -162,9 +162,9 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
      * Get the compass angle
      * @returns {number}
      */
-    function _getCompassAngle () {
-        var heading = svl.panoViewer.getPov().heading;
-        var targetAngle = getTargetAngle();
+    function _getCompassAngle() {
+        const heading = svl.panoViewer.getPov().heading;
+        const targetAngle = getTargetAngle();
         return ((heading - targetAngle + 360) % 360);
     }
 
@@ -249,7 +249,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     /**
      * Update the compass message.
      */
-    function update () {
+    function update() {
         if (!navigationService.getLabelBeforeJumpState() && !svl.isOnboarding()) {
             if (_checkEnRoute()) {
                 self.stopBlinking();
@@ -309,20 +309,11 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         }
     }
 
-
     /**
      * Return the sum of square of lat and lng diffs
      * */
     function _norm(lat1, lng1, lat2, lng2) {
         return Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2);
-    }
-
-    /**
-     * Update the message
-     * @param streetName
-     */
-    function updateMessage(streetName) {
-        self.setTurnMessage(streetName);
     }
 
     // Performs the action written in the compass message for the user (turning, moving ahead, jumping).
@@ -364,7 +355,6 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     self.showLabelBeforeJumpMessage = showLabelBeforeJumpMessage;
     self.removeLabelBeforeJumpMessage = removeLabelBeforeJumpMessage;
     self.update = update;
-    self.updateMessage = updateMessage;
 
     return self;
 }
