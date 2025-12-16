@@ -76,7 +76,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
 
     function enableCompassClick() {
         if (!status.lockDisableCompassClick) {
-            uiCompass.messageHolder.on('click', _handleCompassClick);
+            uiCompass.messageHolder.off('click', _handleCompassClick).on('click', _handleCompassClick);
             uiCompass.messageHolder.css('cursor', 'pointer');
         }
     }
@@ -148,7 +148,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         }, 15000);
         self.disableCompassClick();
         _makeTheLabelBeforeJumpMessageBoxClickable();
-        self.setLabelBeforeJumpMessage();
+        _setLabelBeforeJumpMessage();
     }
 
     function removeLabelBeforeJumpMessage() {
@@ -202,7 +202,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     /**
      * Set the compass message.
      */
-    function setTurnMessage () {
+    function setTurnMessage() {
         var image,
             message,
             angle = _getCompassAngle(),
@@ -214,7 +214,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         uiCompass.message.html(message);
     }
 
-    function setLabelBeforeJumpMessage() {
+    function _setLabelBeforeJumpMessage() {
         if (svl.neighborhoodModel.isRouteComplete) {
             uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-route')}</div>`);
         } else if (svl.neighborhoodModel.isNeighborhoodComplete) {
@@ -359,7 +359,6 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     self.disableCompassClick = disableCompassClick;
     self.lockDisableCompassClick = lockDisableCompassClick;
     self.unlockDisableCompassClick = unlockDisableCompassClick;
-    self.setLabelBeforeJumpMessage = setLabelBeforeJumpMessage;
     self.stopBlinking = stopBlinking;
     self.showMessage = showMessage;
     self.showLabelBeforeJumpMessage = showLabelBeforeJumpMessage;

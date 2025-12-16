@@ -361,14 +361,14 @@ function NavigationService (neighborhoodModel, uiStreetview) {
             if (_stuckPanos.includes(newPanoId)) {
                 // If there is room to move forward then try again, recursively calling getPanorama with this callback.
                 console.log(remainder);
-                // TODO have to deal with remainder lengths that are less than DIST_INCREMENT.
                 if (turf.length(remainder) > 0.001) {
                     // Save the current pano ID as one that doesn't work.
                     _stuckPanos.push(newPanoId);
 
-                    // Try `DIST_INCREMENT` further down the street, using `lineSliceAlong` to find the remaining
+                    // Try up to `DIST_INCREMENT` further down the street, using `lineSliceAlong` to find the remaining
                     // subsection of the street to check.
-                    remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, DIST_INCREMENT, streetEndpoint));
+                    let distIncrement = Math.min(DIST_INCREMENT, turf.length(remainder));
+                    remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, distIncrement, streetEndpoint));
                     currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
                     return svl.panoManager.setLocation(currLoc).then(successCallback, failureCallback);
                 } else {
