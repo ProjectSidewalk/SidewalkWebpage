@@ -7,11 +7,11 @@
  * @constructor
  */
 function Compass (svl, navigationService, taskContainer, uiCompass) {
-    var self = {className: 'Compass'};
-    var blinkInterval;
-    var blinkTimer;
+    let self = {className: 'Compass'};
+    let blinkInterval;
+    let blinkTimer;
 
-    var imageDirectories = {
+    const imageDirectories = {
         leftTurn: svl.rootDirectory + 'img/icons/ArrowLeftTurn.png',
         rightTurn: svl.rootDirectory + 'img/icons/ArrowRightTurn.png',
         slightLeft: svl.rootDirectory + 'img/icons/ArrowSlightLeft.png',
@@ -29,7 +29,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
      */
     function blink() {
         self.stopBlinking();
-        blinkInterval = window.setInterval(function () {
+        blinkInterval = window.setInterval(function() {
             uiCompass.messageHolder.toggleClass("white-background-75");
             uiCompass.messageHolder.toggleClass("highlight-50");
         }, 500);
@@ -64,11 +64,11 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
      * @returns {boolean}
      */
     function _checkEnRoute() {
-        var task = taskContainer.getCurrentTask();
+        const task = taskContainer.getCurrentTask();
         if (task) {
-            var line = task.getGeoJSON();
-            var latlng = svl.panoViewer.getPosition();
-            var currentPoint = turf.point([latlng.lng, latlng.lat]);
+            const line = task.getGeoJSON();
+            const latlng = svl.panoViewer.getPosition();
+            const currentPoint = turf.point([latlng.lng, latlng.lat]);
             return turf.pointToLineDistance(currentPoint, line) < svl.CLOSE_TO_ROUTE_THRESHOLD;
         }
         return true;
@@ -114,11 +114,12 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         svl.tracker.push('LabelBeforeJump_Jump');
         // Finish the current task
         navigationService.finishCurrentTaskBeforeJumping();
+        navigationService.setLabelBeforeJumpState(false);
 
-        // Finish clean up tasks before jumping
+        // Finish clean up tasks before jumping.
         resetBeforeJump();
 
-        var task = taskContainer.getAfterJumpNewTask();
+        const task = taskContainer.getAfterJumpNewTask();
         taskContainer.setCurrentTask(task);
         navigationService.moveForward();
         svl.jumpModel.triggerUserClickJumpMessage();
@@ -135,14 +136,14 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         uiCompass.messageHolder.css('cursor', 'pointer');
     }
 
-    function _makeTheLabelBeforeJumpMessageBoxUnclickable () {
+    function _makeTheLabelBeforeJumpMessageBoxUnclickable() {
         uiCompass.messageHolder.off('click', _jumpToTheNewTask);
         uiCompass.messageHolder.css('cursor', 'default');
     }
 
     function showLabelBeforeJumpMessage() {
         // Start blinking after 15 seconds.
-        blinkTimer = window.setTimeout(function () {
+        blinkTimer = window.setTimeout(function() {
             svl.tracker.push('LabelBeforeJump_Blink');
             self.blink();
         }, 15000);
@@ -194,7 +195,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     /**
      * Hide a message
      */
-    function hideMessage () {
+    function hideMessage() {
         uiCompass.messageHolder.removeClass("fadeInUp").addClass("fadeOutDown");
         uiCompass.messageHolder.css('pointer-events', 'none');
     }
@@ -203,14 +204,13 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
      * Set the compass message.
      */
     function setTurnMessage() {
-        var image,
-            message,
-            angle = _getCompassAngle(),
-            direction = _angleToDirection(angle);
+        const angle = _getCompassAngle();
+        const direction = _angleToDirection(angle);
 
-        image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
-        message =  "<span class='compass-message-small'>" + i18next.t('center-ui.compass.unlabeled-problems') + "</span><br/>" +
-            image + "<span class='bold'>" + _directionToDirectionMessage(direction) + "</span>";
+        const image = `<img src="${directionToImagePath(direction)}" class="compass-turn-images" alt="Turn icon"/>`;
+        const message =
+            `<span class="compass-message-small">${i18next.t('center-ui.compass.unlabeled-problems')}</span>` +
+            `<br/>${image}<span class="bold">${_directionToDirectionMessage(direction)}</span>`;
         uiCompass.message.html(message);
     }
 
@@ -231,7 +231,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     /**
      * Show a message
      */
-    function showMessage () {
+    function showMessage() {
         uiCompass.messageHolder.removeClass("fadeOutDown").addClass("fadeInUp");
         uiCompass.messageHolder.css('pointer-events', 'auto');
     }
@@ -239,7 +239,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     /**
      * Stop blinking the compass message.
      */
-    function stopBlinking () {
+    function stopBlinking() {
         window.clearInterval(blinkInterval);
         blinkInterval = null;
         uiCompass.messageHolder.addClass("white-background-75");
@@ -309,20 +309,13 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         }
     }
 
-    /**
-     * Return the sum of square of lat and lng diffs
-     * */
-    function _norm(lat1, lng1, lat2, lng2) {
-        return Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2);
-    }
-
     // Performs the action written in the compass message for the user (turning, moving ahead, jumping).
     function _handleCompassClick() {
         if (_checkEnRoute()) {
             svl.stuckAlert.compassOrStuckClicked();
 
-            var angle = _getCompassAngle();
-            var direction = _angleToDirection(angle);
+            const angle = _getCompassAngle();
+            const direction = _angleToDirection(angle);
             svl.tracker.push(`Click_Compass_Direction=${direction}`);
 
             if (direction === 'straight') {

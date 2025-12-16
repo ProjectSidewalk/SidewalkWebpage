@@ -132,6 +132,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         //     "to move you to another place in the " + currentNeighborhoodName + " neighborhood. Keep up the good work!";
         // svl.popUpMessage.notify(title, message, callback);
 
+        // TODO do we need to call setLabelBeforeJumpState(false)?
         finishCurrentTaskBeforeJumping(currentMission);
 
         // Get a new task and jump to the new task location.
@@ -165,7 +166,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
      * @private
      */
     function _endTheCurrentTask(task, mission) {
-        if (!status.labelBeforeJumpState) {
+        if (!getLabelBeforeJumpState()) {
             missionJump = mission;
             var nextTask = svl.taskContainer.nextTask(task);
 
@@ -188,7 +189,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
                 svl.tracker.push('LabelBeforeJump_ShowMsg');
                 svl.compass.showLabelBeforeJumpMessage();
 
-                status.labelBeforeJumpState = true;
+                setLabelBeforeJumpState(true);
             } else {
                 finishCurrentTaskBeforeJumping(missionJump, nextTask);
 
@@ -360,7 +361,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
             const newPanoId = svl.panoViewer.getPanoId();
             if (_stuckPanos.includes(newPanoId)) {
                 // If there is room to move forward then try again, recursively calling getPanorama with this callback.
-                console.log(remainder);
                 if (turf.length(remainder) > 0.001) {
                     // Save the current pano ID as one that doesn't work.
                     _stuckPanos.push(newPanoId);
