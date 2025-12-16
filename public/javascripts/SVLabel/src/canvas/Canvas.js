@@ -119,6 +119,9 @@ function Canvas(ribbon) {
             case 'ClosedHand':
                 svl.ui.streetview.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/closedhand.cur) 4 4, move");
                 break;
+            case 'Pointer':
+                svl.ui.streetview.viewControlLayer.css("cursor", "pointer");
+                break;
             default:
                 svl.ui.streetview.viewControlLayer.css("cursor", "default");
         }
@@ -143,12 +146,12 @@ function Canvas(ribbon) {
         const currMousePosition = util.mouseposition(e, this);
         mouseStatus.isLeftDown = false;
         svl.tracker.push('ViewControl_MouseUp', currMousePosition);
-        _setViewControlLayerCursor('OpenHand');
         const currTime = new Date();
 
-        const selectedLabel = svl.canvas.onLabel(currMousePosition.x, currMousePosition.y);
+        const selectedLabel = onLabel(currMousePosition.x, currMousePosition.y);
         if (selectedLabel && selectedLabel.className === "Label") {
-            svl.canvas.setCurrentLabel(selectedLabel);
+            setCurrentLabel(selectedLabel);
+            _setViewControlLayerCursor('Pointer');
 
             if ('contextMenu' in svl) {
                 if (status.contextMenuWasOpen) {
@@ -158,12 +161,14 @@ function Canvas(ribbon) {
                 }
                 status.contextMenuWasOpen = false;
             }
-        } else if (currTime - mouseStatus.prevMouseUpTime < 300) {
-            // Continue logging double click. We don't have any features for it now, but it's good to know how
-            // frequently people are trying to double-click. They might be trying to zoom?
-            svl.tracker.push('ViewControl_DoubleClick');
+        } else {
+            _setViewControlLayerCursor('OpenHand');
+            if (currTime - mouseStatus.prevMouseUpTime < 300) {
+                // Continue logging double click. We don't have any features for it now, but it's good to know how
+                // frequently people are trying to double-click. They might be trying to zoom?
+                svl.tracker.push('ViewControl_DoubleClick');
+            }
         }
-        _setViewControlLayerCursor('OpenHand');
         mouseStatus.prevMouseUpTime = currTime;
     }
 
@@ -178,13 +183,7 @@ function Canvas(ribbon) {
     function _handlerViewControlLayerMouseMove(e) {
         const currMousePosition = util.mouseposition(e, this);
 
-        // Show/hide navigation arrows.
-        if (!status.disableWalking) {
-            svl.panoManager.showNavArrows();
-        } else {
-            svl.panoManager.hideNavArrows();
-        }
-
+        var item = onLabel(currMousePosition.x, currMousePosition.y);
         if (mouseStatus.isLeftDown && svl.panoManager.getStatus('disablePanning') === false) {
             // If a mouse is being dragged on the control layer, move the pano.
             const pov = svl.panoViewer.getPov();
@@ -192,18 +191,18 @@ function Canvas(ribbon) {
             const dx = (currMousePosition.x - mouseStatus.prevX) / zoomScaling;
             const dy = (currMousePosition.y - mouseStatus.prevY) / zoomScaling;
             svl.panoManager.updatePov(dx, dy);
-        }
-
-        // Show label delete menu.
-        var item = svl.canvas.onLabel(currMousePosition.x, currMousePosition.y);
-        if (item && item.className === "Label") {
+            _setViewControlLayerCursor('ClosedHand');
+        } else if (item && item.className === "Label") {
+            // Show label delete menu and update cursor when hovering over a label.
+            _setViewControlLayerCursor('Pointer');
             var selectedLabel = item;
-            svl.canvas.setCurrentLabel(selectedLabel);
-            svl.canvas.showLabelHoverInfo(selectedLabel);
-            svl.canvas.clear().render();
+            setCurrentLabel(selectedLabel);
+            showLabelHoverInfo(selectedLabel);
+            self.clear().render();
         } else {
-            svl.canvas.showLabelHoverInfo(undefined);
-            svl.canvas.setCurrentLabel(undefined);
+            _setViewControlLayerCursor('OpenHand');
+            showLabelHoverInfo(undefined);
+            setCurrentLabel(undefined);
         }
 
         mouseStatus.prevX = currMousePosition.x;
