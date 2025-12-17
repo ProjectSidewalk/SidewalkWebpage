@@ -157,11 +157,11 @@ async function PanoManager (panoViewerType, params = {}) {
     }
 
     function hideNavArrows() {
-        $('#nav-arrows').hide();
+        $('#nav-arrows-container').hide();
     }
 
     function showNavArrows() {
-        $('#nav-arrows').show();
+        $('#nav-arrows-container').show();
     }
 
     /**

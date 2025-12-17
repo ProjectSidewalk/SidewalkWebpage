@@ -27,11 +27,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     function _init() {
         self.properties = properties; // Make properties public.
         properties.browser = util.getBrowser();
-
-        // Add listeners to the SV panorama.
-        // https://developers.google.com/maps/documentation/javascript/streetview#StreetViewEvents
-        // svl.panoViewer.addListener('pano_changed', handlerPositionUpdate);
-        svl.panoViewer.addListener('pano_changed', switchToExploreMode); // TODO This was addListenerOnce before...
     }
 
     /**
@@ -253,6 +248,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         // Update the canvas to show the correct labels on screen the pano.
         svl.panoManager.updateCanvas();
 
+        switchToExploreMode();
         svl.panoManager.enablePanning();
         svl.canvas.enableLabeling();
 
