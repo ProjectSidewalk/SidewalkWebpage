@@ -95,14 +95,15 @@ function CardContainer(uiCardContainer, initialFilters) {
             $('.gallery-expanded-view').css('display', 'flex');
             $('.grid-container').css("grid-template-columns", "1fr 5fr");
             // If the user clicks on the image body in the card, just use the provided id.
+            // If they click the AI icon, use the image id from the same card.
             // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
             // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
             // the correct form).
-            let clickedImage = event.target.classList.contains("static-gallery-image")
-                || event.target.classList.contains("ai-icon-marker-card");
+            let clickedImage = event.target.classList.contains("static-gallery-image");
             let cardId;
             if (event.target.classList.contains("ai-icon-marker-card")) {
-                let parentImage = event.target.parentElement.querySelector(".static-gallery-image");
+                let imageHolder = event.target.closest(".image-holder");
+                let parentImage = imageHolder ? imageHolder.querySelector(".static-gallery-image") : null;
                 cardId = parentImage ? parentImage.id : null;
             } else if (clickedImage) {
                 cardId = event.target.id;

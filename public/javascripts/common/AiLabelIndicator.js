@@ -1,11 +1,3 @@
-/**
- * Creates the reusable AI indicator icon with tooltip text.
- *
- * @param {Array<String>} extraClasses Additional CSS classes to apply.
- * @param {String} tooltipPlacement Bootstrap tooltip placement.
- * @param {Boolean} enableTooltip Whether to attach tooltip behavior.
- * @returns {HTMLElement} Configured AI indicator element.
- */
 const aiTooltipTemplate = [
     '<div class="tooltip ai-tooltip" role="tooltip">',
     '<div class="tooltip-arrow"></div>',
@@ -28,6 +20,38 @@ const aiHoverSelectors = [
     '.admin-ai-icon-marker',
     '.label-view-ai-icon'
 ].join(', ');
+
+/**
+ * Creates the reusable AI indicator icon with optional tooltip behavior.
+ * @param {Array<String>} extraClasses Additional CSS classes to apply.
+ * @param {String} tooltipPlacement Bootstrap tooltip placement.
+ * @param {Boolean} enableTooltip Whether to attach tooltip behavior.
+ * @returns {HTMLElement} Configured AI indicator element.
+ */
+function AiLabelIndicator(extraClasses = [], tooltipPlacement = 'top', enableTooltip = true) {
+    const icon = document.createElement('img');
+    icon.src = '/assets/images/icons/ai-icon-black-filled-white-circle.png';
+    icon.alt = 'AI indicator';
+    icon.classList.add('ai-icon-marker');
+    extraClasses.forEach(cls => icon.classList.add(cls));
+
+    const tooltipText = i18next.t('common:ai-generated-label-tooltip');
+
+    if (enableTooltip) {
+        icon.setAttribute('data-toggle', 'tooltip');
+        icon.setAttribute('data-placement', tooltipPlacement);
+        icon.setAttribute('title', tooltipText);
+
+        ensureAiTooltip(icon);
+
+        icon.addEventListener('mouseenter', () => ensureAiTooltip(icon).tooltip('show'));
+        icon.addEventListener('mouseleave', () => ensureAiTooltip(icon).tooltip('hide'));
+    } else {
+        icon.dataset.disableTooltip = 'true';
+    }
+
+    return icon;
+}
 
 /**
  * Ensures the provided icon has a tooltip initialized with shared options.
@@ -54,31 +78,6 @@ function ensureAiTooltip(icon) {
         return $icon.tooltip(aiTooltipOptions).tooltip('hide');
     }
     return $icon;
-}
-
-function AiLabelIndicator(extraClasses = [], tooltipPlacement = 'top', enableTooltip = true) {
-    const icon = document.createElement('img');
-    icon.src = '/assets/images/icons/ai-icon-black-filled-white-circle.png';
-    icon.alt = 'AI indicator';
-    icon.classList.add('ai-icon-marker');
-    extraClasses.forEach(cls => icon.classList.add(cls));
-
-    const tooltipText = i18next.t('common:ai-generated-label-tooltip');
-
-    if (enableTooltip) {
-        icon.setAttribute('data-toggle', 'tooltip');
-        icon.setAttribute('data-placement', tooltipPlacement);
-        icon.setAttribute('title', tooltipText);
-
-        ensureAiTooltip(icon);
-
-        icon.addEventListener('mouseenter', () => ensureAiTooltip(icon).tooltip('show'));
-        icon.addEventListener('mouseleave', () => ensureAiTooltip(icon).tooltip('hide'));
-    } else {
-        icon.dataset.disableTooltip = 'true';
-    }
-
-    return icon;
 }
 
 function initializeExistingAiTooltips() {

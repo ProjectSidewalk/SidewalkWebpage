@@ -248,6 +248,11 @@
         };
     }
 
+    /**
+     * Adds or removes the AI badge on the marker, retrying briefly until the DOM element exists.
+     * @param showIndicator  True to show the AI badge, false to remove it.
+     * @param retryCount     Number of times the DOM update has been retried.
+     */
     function updateMarkerAiIndicator(showIndicator, retryCount = 0) {
         if (!self.labelMarker || !self.labelMarker.marker) return;
 

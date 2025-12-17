@@ -384,13 +384,23 @@ function AdminGSVLabelView(admin, source) {
      * @private
      */
     function _setAiValidationRow(aiValidation) {
-        if (aiValidation) {
-            self.modalAiValidation.html(i18next.t('labelmap:ai-val-included', { aiVal: aiValidation.toLowerCase() }));
+        // Remove any existing AI icon before adding a new one.
+        self.modalAiValidationHeader.find('.label-view-ai-icon').remove();
 
-            // Create the AI icon with the shared tooltip text.
-            const aiIcon = AiLabelIndicator(['label-view-ai-icon'], 'top');
-            self.modalAiValidationHeader.append(aiIcon);
+        if (aiValidation) {
+            const normalizedAiVal = aiValidation.toLowerCase();
+            self.modalAiValidation.html(i18next.t('labelmap:ai-val-included', { aiVal: normalizedAiVal }));
+
+            // Create the AI validation icon with the correct tooltip text.
+            const aiIcon = new Image();
+            aiIcon.src = '/assets/images/icons/ai-icon-transparent-small.png';
+            aiIcon.alt = 'AI indicator';
+            aiIcon.classList.add('label-view-ai-icon');
+            aiIcon.setAttribute('data-toggle', 'tooltip');
+            aiIcon.setAttribute('data-placement', 'top');
+            aiIcon.setAttribute('title', i18next.t('common:ai-disclaimer', { aiVal: normalizedAiVal }));
             ensureAiTooltip(aiIcon);
+            self.modalAiValidationHeader.append(aiIcon);
         } else {
             self.modalAiValidation.html(i18next.t('common:none'));
         }

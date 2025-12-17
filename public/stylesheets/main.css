@@ -901,5 +901,6 @@ kbd {
 }
 
 .tooltip.ai-tooltip {
-    z-index: 9999;
+    /* Keep AI tooltips above map/canvas overlays without unnecessarily high stacking */
+    z-index: 1160;
 }

@@ -189,11 +189,7 @@ function ExpandedView(uiModal) {
         populateExpandedViewDescriptionFields();
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
-        self.header.empty();
-        const headerLabel = document.createElement('span');
-        headerLabel.className = 'gallery-expanded-view-header-label';
-        headerLabel.textContent = i18next.t(util.camelToKebab(properties.label_type));
-        self.header.append(headerLabel);
+        self.header.text(i18next.t(util.camelToKebab(properties.label_type)));
 
         // Highlight selected card thumbnail.
         highlightThumbnail(document.getElementById("gallery_card_" + properties.label_id));

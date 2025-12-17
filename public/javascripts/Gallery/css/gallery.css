@@ -131,10 +131,3 @@ We should allow the pointer events to pass through and behave the same way as th
     top: -6px;
     left: -4px;
 }
-
-.ai-icon-header {
-    width: 14px;
-    margin-left: 8px;
-    position: relative;
-    top: -1px;
-}

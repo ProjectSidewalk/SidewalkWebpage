@@ -302,6 +302,11 @@ function Panorama (label) {
         return this;
     }
 
+    /**
+     * Adds or removes the AI badge on the validation marker, retrying until the marker DOM is ready.
+     * @param showIndicator  True to show the AI badge, false to remove it.
+     * @param retryCount     Number of times the DOM update has been retried.
+     */
     function updateMarkerAiIndicator(showIndicator, retryCount = 0) {
         if (!self.labelMarker) return;
 

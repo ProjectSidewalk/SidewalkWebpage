@@ -45,7 +45,7 @@ function AdminGSVCommentView(admin) {
     }
 
     function setLabel(labelMetadata) {
-        const isAiGenerated = Boolean(labelMetadata['ai_generated']);
+        const isAiGenerated = labelMetadata['ai_generated'] === true;
         var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type'],
             labelMetadata['canvas_x'], labelMetadata['canvas_y'], util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
             labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id'],
