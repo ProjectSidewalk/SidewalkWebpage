@@ -26,7 +26,7 @@ function Main (params) {
     svl.TUTORIAL_PANO_SCALE_FACTOR = 3.25;
     svl.STREETVIEW_MAX_DISTANCE = 40; // 40 meters.
     svl.CLOSE_TO_ROUTE_THRESHOLD = 0.05; // 50 meters.
-    svl.CONNECTED_TASK_THRESHOLD = 0.025. // 25 meters.
+    svl.CONNECTED_TASK_THRESHOLD = 0.025; // 25 meters.
 
     async function _init (params) {
         params = params || {};

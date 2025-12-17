@@ -9,12 +9,11 @@
  * @param tracker
  */
 function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
-    var self = this;
+    let self = this;
 
-    var previousTasks = [];
-    var currentTask = null;
-    var afterJumpNewTask = null;
-    var tasksFinishedLoading = false;
+    let currentTask = null;
+    let afterJumpNewTask = null;
+    let tasksFinishedLoading = false;
 
     self._tasks = [];
 
@@ -22,8 +21,8 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
         return tasksFinishedLoading;
     }
 
-    self.getFinishedAndInitNextTask = async function (finished) {
-        var newTask = self.nextTask(finished);
+    self.getFinishedAndInitNextTask = async function(finished) {
+        const newTask = self.nextTask(finished);
         if (!newTask) {
             svl.neighborhoodModel.setComplete();
         } else {
@@ -32,7 +31,7 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
         return newTask;
     };
 
-    self.initNextTask = async function (nextTaskIn) {
+    self.initNextTask = async function(nextTaskIn) {
         svl.navigationService.disableWalking();
         const geometry = nextTaskIn.getGeometry();
         const latLng = { lat: geometry.coordinates[0][1], lng: geometry.coordinates[0][0] };
@@ -58,8 +57,8 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
     function endTask(task, nextTask) {
         if (tracker) tracker.push("TaskEnd");
         task.complete();
-        // Go through the tasks and mark the completed task as isComplete=true
-        for (var i = 0, len = self._tasks.length;  i < len; i++) {
+        // Go through the tasks and mark the completed task as isComplete=true.
+        for (let i = 0, len = self._tasks.length;  i < len; i++) {
             if (task.getStreetEdgeId() === self._tasks[i].getStreetEdgeId()) {
                 // Check if the reference passed in from the method parameter and the array are the same.
                 // This is needed because otherwise we could update a reference to the same task twice.
@@ -72,21 +71,19 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
         // Update the audited distance in the right sidebar.
         updateAuditedDistance();
 
-        if (svl.user.getProperty('role') === "Anonymous" &&
-            getCompletedTaskDistance({units: 'kilometers'}) > 0.15 &&
-            !svl.popUpMessage.haveAskedToSignIn()) {
+        if (svl.user.getProperty('role') === "Anonymous"
+            && getCompletedTaskDistance({units: 'kilometers'}) > 0.15
+            && !svl.popUpMessage.haveAskedToSignIn()) {
             svl.popUpMessage.promptSignIn();
         }
 
         // Submit the data.
         svl.form.submitData(task);
 
-        pushATask(task); // Push the data into previousTasks.
-
         // Updates the segments that the user has already explored.
         self.updateCurrentTask();
         // Renders the next street that the user will explore.
-        if(nextTask) nextTask.render();
+        if (nextTask) nextTask.render();
 
         return task;
     }
@@ -94,25 +91,24 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
     /**
      * Request the server to populate tasks
      * TODO Move this to somewhere else. TaskModel?
+     * TODO return a Promise instead of using a callback function
      * @param callback A callback function
-     * @param async {boolean}
      */
-    self.fetchTasks = function (callback, async) {
-        if (typeof async == "undefined") async = true;
-        var currMission = svl.missionContainer.getCurrentMission();
-        var currMissionId = currMission.getProperty('missionId');
-        var url;
+    self.fetchTasks = function(callback) {
+        const currMission = svl.missionContainer.getCurrentMission();
+        const currMissionId = currMission.getProperty('missionId');
+        let url;
         if (svl.neighborhoodModel.isRoute) url = `/routeTasks?userRouteId=${svl.userRouteId}`;
         else url = `/tasks?regionId=${svl.neighborhoodModel.currentNeighborhood().getRegionId()}`;
 
         $.ajax({
             url: url,
-            async: async,
+            async: true,
             method: 'GET',
             success: function (result) {
-                var task;
-                var currStreetId = getCurrentTaskStreetEdgeId();
-                for (var i = 0; i < result.features.length; i++) {
+                let task;
+                const currStreetId = getCurrentTaskStreetEdgeId();
+                for (let i = 0; i < result.features.length; i++) {
                     // Skip the task that we were given to start with so that we don't add a duplicate.
                     if (result.features[i].properties.street_edge_id !== currStreetId) {
                         task = new Task(result.features[i], false);
@@ -136,8 +132,8 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
     };
 
     /**
-     * Updates the task priorities for the given set of streets. These should be updates from other users' audits.
-     * @param updatedPriorities
+     * Updates the task priorities for the given set of streets. These should be updated from other users' audits.
+     * @param {{street_edge_id: number, priority: number}} updatedPriorities Any streets with a new priority value
     */
     function updateTaskPriorities(updatedPriorities) {
         // Loop through all updatedPriorities and update self._tasks with the new priorities.
@@ -177,18 +173,18 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
     };
 
     /**
-     * Get the total distance of completed segments
-     * @params {unit} String can be degrees, radians, miles, or kilometers
+     * Get the total distance of completed segments.
+     * @params {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
      * @returns {number} distance in unit.
      */
     function getCompletedTaskDistance(unit) {
         if (!unit) unit = { units: i18next.t('common:unit-distance') };
-        var completedTasks = getCompletedTasks(),
-            feature,
-            distance = 0;
+        const completedTasks = getCompletedTasks()
+        let feature;
+        let distance = 0;
 
         if (completedTasks) {
-            for (var i = 0, len = completedTasks.length; i < len; i++) {
+            for (let i = 0, len = completedTasks.length; i < len; i++) {
                 feature = completedTasks[i].getGeoJSON();
                 distance += turf.length(feature, unit);
             }
@@ -204,13 +200,13 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
      * @returns {number} distance in unit.
      */
     function getCompletedTaskDistanceAcrossAllUsersUsingPriority() {
-        var unit = { units: i18next.t('common:unit-distance') };
-        var tasks = self.getTasks().filter(function(t) { return t.getStreetPriority() < 1; });
-        var feature;
-        var distance = 0;
+        const unit = { units: i18next.t('common:unit-distance') };
+        const tasks = self.getTasks().filter(function(t) { return t.getStreetPriority() < 1; });
+        let feature;
+        let distance = 0;
 
         if (tasks) {
-            for (var i = 0; i < tasks.length; i++) {
+            for (let i = 0; i < tasks.length; i++) {
                 feature = tasks[i].getGeoJSON();
                 distance += turf.length(feature, unit);
             }
@@ -220,14 +216,14 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
 
     /**
      *
-     * @param unit {string} Distance unit
-     * @returns {*}
+     * @param {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
+     * @returns {number}
      */
     function getCurrentTaskDistance(unit) {
         if (!unit) unit = {units: 'kilometers'};
 
         if (currentTask) {
-            var currentLatLng = svl.panoViewer.getPosition();
+            const currentLatLng = svl.panoViewer.getPosition();
             currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
             return currentTask.getAuditedDistance(unit);
         }
@@ -236,7 +232,7 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
 
     /**
      * This method returns the completed tasks.
-     * @returns {Array}
+     * @returns {Task[]}
      */
     function getCompletedTasks() {
         return self._tasks.filter(function (task) { return task.isComplete(); });
@@ -244,7 +240,7 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
 
     /**
      * Return list of tasks completed by any user.
-     * @returns {Array of tasks}
+     * @returns {Task[]}
      */
     function getCompletedTasksAllUsersUsingPriority() {
         return self._tasks.filter(function (task) { return task.getStreetPriority() < 1; });
@@ -259,8 +255,16 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
     }
 
     /**
-     * Get the before jump task
-     * @returns {*}
+     * Store the task to jump to once the current intersection is complete.
+     * @param {Task} task
+     */
+    this.setBeforeJumpNewTask = function(task) {
+        afterJumpNewTask = task;
+    };
+
+    /**
+     * Get the task to jump to once the current intersection is complete.
+     * @returns {Task}
      */
     function getAfterJumpNewTask() {
         return afterJumpNewTask;
@@ -269,17 +273,17 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
     /**
      * Find incomplete tasks by the user.
      */
-    self.getIncompleteTasks = function () {
+    self.getIncompleteTasks = function() {
         return self._tasks.filter(function (task) { return !task.isComplete(); });
     };
 
     /**
      * Find incomplete tasks across all users.
      */
-    self.getIncompleteTasksAcrossAllUsersUsingPriority = function () {
-        var incompleteTasksByUser = self._tasks.filter(function (task) { return !task.isComplete(); });
+    self.getIncompleteTasksAcrossAllUsersUsingPriority = function() {
+        const incompleteTasksByUser = self._tasks.filter(function (task) { return !task.isComplete(); });
 
-        var incompleteTasksAcrossAllUsers = [];
+        let incompleteTasksAcrossAllUsers = [];
         if (incompleteTasksByUser.length > 0) {
             incompleteTasksAcrossAllUsers = incompleteTasksByUser.filter(function (t) {
                 return t.getStreetPriority() === 1;
@@ -289,35 +293,19 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
         return incompleteTasksAcrossAllUsers;
     };
 
-    this.getTasks = function () {
+    this.getTasks = function() {
         return self._tasks;
     };
 
     /**
-     * Check if the current task is the first task in this session
-     * @returns {boolean}
-     */
-    function isFirstTask () {
-        return length() === 0;
-    }
-
-    /**
-     * Get the length of the previous tasks
-     * @returns {*|Number}
-     */
-    function length () {
-        return previousTasks.length;
-    }
-
-    /**
      * Checks if finishedTask makes the neighborhood complete across all users; if so, it displays the relevant overlay.
      *
-     * @param finishedTask
+     * @param {Task} finishedTask
      */
     function updateNeighborhoodCompleteAcrossAllUsersStatus(finishedTask) {
         // Only run this code if the neighborhood was set as incomplete and user is not on a designated route.
         if (!neighborhoodModel.isRoute && !neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers()) {
-            var candidateTasks = self.getIncompleteTasksAcrossAllUsersUsingPriority().filter(function (t) {
+            const candidateTasks = self.getIncompleteTasksAcrossAllUsersUsingPriority().filter(function (t) {
                 return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null));
             });
             // Indicates neighborhood is complete.
@@ -331,8 +319,8 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
 
                 neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
                 svl.ui.areaComplete.overlay.show();
-                var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-                var currentNeighborhoodId = currentNeighborhood.getRegionId();
+                const currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
+                const currentNeighborhoodId = currentNeighborhood.getRegionId();
 
                 console.log('neighborhood: ' + currentNeighborhoodId + ": " + currentNeighborhood);
 
@@ -432,31 +420,13 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
     };
 
     /**
-     * Push a task to previousTasks
-     * @param task
-     */
-    function pushATask (task) {
-        if (previousTasks.indexOf(task) < 0) {
-            previousTasks.push(task);
-        }
-    }
-
-    /**
-     * Pop a task at the end of previousTasks
-     * @returns {*}
-     */
-    function pop () {
-        return previousTasks.pop();
-    }
-
-    /**
      * Set the current task
-     * @param task
+     * @param {Task} task
      */
-    this.setCurrentTask = function (task) {
+    this.setCurrentTask = function(task) {
         currentTask = task;
         if ('missionContainer' in svl) {
-            var currMissionId = svl.missionContainer.getCurrentMission().getProperty('missionId');
+            const currMissionId = svl.missionContainer.getCurrentMission().getProperty('missionId');
             currentTask.setProperty('currentMissionId', currMissionId);
         }
         if (tracker) tracker.push('TaskStart');
@@ -482,23 +452,15 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
     }
 
     /**
-     * Store the before jump new task
-     * @param task
-     */
-    this.setBeforeJumpNewTask = function (task) {
-        afterJumpNewTask = task;
-    };
-
-    /**
      *
-     * @param unit {string} Distance unit
+     * @param {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
      */
     function totalLineDistanceInNeighborhood(unit) {
-        if (!unit) unit = {units: 'kilometers'};
-        var tasks = self.getTasks();
+        if (!unit) unit = { units: 'kilometers' };
+        const tasks = self.getTasks();
 
         if (tasks) {
-            var distanceArray = tasks.map(function (t) { return t.lineDistance(unit); });
+            const distanceArray = tasks.map(function (t) { return t.lineDistance(unit); });
             return distanceArray.sum();
         } else {
             return null;
@@ -511,7 +473,7 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
      * TODO This should be done somewhere else.
      */
     function updateCurrentTask() {
-        var currentLatLng = svl.panoViewer.getPosition();
+        const currentLatLng = svl.panoViewer.getPosition();
         currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
         currentTask.render();
     }
@@ -521,8 +483,8 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
      * @returns {updateAuditedDistance}
      */
     function updateAuditedDistance() {
-        var distance = 0;
-        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+        let distance = 0;
+        const neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
 
         if (neighborhood) {
             distance = getCompletedTaskDistance({ units: i18next.t('common:unit-distance') });
@@ -558,9 +520,6 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
     self.getCompletedTaskDistanceAcrossAllUsersUsingPriority = getCompletedTaskDistanceAcrossAllUsersUsingPriority;
     self.getCurrentTask = getCurrentTask;
     self.getAfterJumpNewTask = getAfterJumpNewTask;
-    self.isFirstTask = isFirstTask;
-    self.length = length;
-    self.push = pushATask;
     self.renderAllTasks = renderAllTasks;
     self.hasMaxPriorityTask = hasMaxPriorityTask;
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
