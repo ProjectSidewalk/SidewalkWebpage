@@ -150,38 +150,30 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
     /**
      * Find incomplete tasks (i.e., street edges) that are connected to the given task.
      *
-     * @param taskIn {object} Task
-     * @param acrossAllUsers
-     * @param threshold {number} Distance threshold
-     * @param unit {object} Distance unit
-     * @returns {Array}
+     * @param {object} taskIn Task to check whether any available tasks are connected
+     * @param {number} threshold Distance threshold in km, unless specified in unit parameter
+     * @param {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
+     * @returns {Task[]} Array of tasks that are connected to the given task
      * @private
      */
-    self._findConnectedTasks = function (taskIn, acrossAllUsers, threshold, unit) {
-        var tasks = self.getTasks();
+    self._findConnectedTasks = function(taskIn, threshold, unit) {
+        if (!unit) unit = { units: 'kilometers' };
+        let tasks = self.getTasks();
 
-        if (acrossAllUsers) {
-            tasks = tasks.filter(function (t) { return t.streetCompletedByAnyUser(); });
-        }
-
+        let connectedTasks = [];
         if (taskIn && tasks) {
-            var connectedTasks = [];
-            if (!threshold) threshold = 0.01;  // 0.01 km.
-            if (!unit) unit = { units: 'kilometers' };
-
             tasks = tasks.filter(function (t) {
                 return !t.isComplete() && t.getStreetEdgeId() !== taskIn.getStreetEdgeId();
             });
 
-            for (var i = 0, len = tasks.length; i < len; i++) {
+            for (let i = 0, len = tasks.length; i < len; i++) {
                 if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
                     connectedTasks.push(tasks[i]);
                 }
             }
-            return connectedTasks;
-        } else {
-            return [];
         }
+
+        return connectedTasks;
     };
 
     /**
@@ -352,22 +344,24 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
     /**
      * Get the next task.
      *
+     * TODO It's not immediately obvious how much this function handles. Some things should likely be separated.
+     *
      * Procedure:
      * Get the list of the highest priority streets that this user has not audited
      * - If the street you just audited connects to any of those, pick the highest priority one
      * - O/w jump to the highest priority street
      *
-     * @param finishedTask The task that has been finished.
-     * @returns {*} Next task
+     * @param {Task} finishedTask The task that has been finished
+     * @returns {Task} Next task
      */
-    this.nextTask = function (finishedTask) {
-        var newTask;
+    this.nextTask = function(finishedTask) {
+        let newTask;
 
         // Check if this task finishes the neighborhood across all users, if so, shows neighborhood complete overlay.
         updateNeighborhoodCompleteAcrossAllUsersStatus(finishedTask);
 
         // Check if user has audited entire region or route.
-        var tasksNotCompletedByUser = self.getTasks().filter(function (t) {
+        let tasksNotCompletedByUser = self.getTasks().filter(function (t) {
             return !t.isComplete() && t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null);
         });
         if (tasksNotCompletedByUser.length === 0) {
@@ -384,15 +378,18 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
             // priority task that isn't connected.
 
             // Find the highest priority task not audited by the user.
-            var highestPriorityTask = tasksNotCompletedByUser.sort(function(t1, t2) {
+            const highestPriorityTask = tasksNotCompletedByUser.sort(function(t1, t2) {
                     return t2.getStreetPriority() - t1.getStreetPriority();
                 })[0];
-            var highestPriorityDiscretized = highestPriorityTask.getStreetPriorityDiscretized();
+            const highestPriorityDiscretized = highestPriorityTask.getStreetPriorityDiscretized();
 
-            // Get list of connected streets. If empty, try again with a larger radius.
-            var connectedTasks = self._findConnectedTasks(finishedTask, false, 0.0075, { units: 'kilometers' });
+            // Get list of connected streets. If empty, try with a progressively wider radius 5m, 10m, 25m.
+            let connectedTasks = self._findConnectedTasks(finishedTask, 0.005);
             if (connectedTasks.length === 0) {
-                connectedTasks = self._findConnectedTasks(finishedTask, false, 0.15, { units: 'kilometers' });
+                connectedTasks = self._findConnectedTasks(finishedTask, 0.010);
+            }
+            if (connectedTasks.length === 0) {
+                connectedTasks = self._findConnectedTasks(finishedTask, svl.CONNECTED_TASK_THRESHOLD);
             }
 
             // If any of the connected tasks has max discretized priority, pick the highest priority connected street,
@@ -402,7 +399,7 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
             }).sort(function (t1, t2) {
                 return t2.getStreetPriority() - t1.getStreetPriority();
             });
-            var connectedTask;
+            let connectedTask;
             if (connectedTasks.length > 0) {
                 newTask = connectedTasks[0];
                 connectedTask = true;
@@ -411,20 +408,20 @@ function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
                 connectedTask = false;
             }
 
-            // Set the start point of the new task. If it's connected to the current task or is generally nearby, use the
-            // current task's endpoint to avoid accidentally marking the user as being at the end of the street. Otherwise
-            // (street not connected, user will need to jump), if the default endpoint of the new task is not connected to
-            // any streets, try reversing its direction to encourage contiguous routes.
+            // Set the start point of the new task. If it's connected to the current task or is nearby, use the current
+            // task's endpoint to avoid accidentally marking the user as being at the end of the street. Otherwise
+            // (street not connected, user will need to jump), if the default endpoint of the new task is not connected
+            // to any streets, try reversing its direction to encourage contiguous routes.
             // TODO take into account street priority when checking for connected tasks here.
             if (finishedTask) {
-                var startPoint;
-                var line = newTask.getGeoJSON();
-                var endPoint = turf.point([finishedTask.getLastCoordinate().lng, finishedTask.getLastCoordinate().lat]);
-                var taskNearby = turf.pointToLineDistance(endPoint, line) < svl.CLOSE_TO_ROUTE_THRESHOLD * 1.5;
+                let startPoint;
+                const line = newTask.getGeoJSON();
+                const endPoint = turf.point([finishedTask.getLastCoordinate().lng, finishedTask.getLastCoordinate().lat]);
+                const taskNearby = turf.pointToLineDistance(endPoint, line) < svl.CLOSE_TO_ROUTE_THRESHOLD * 1.5;
                 if (connectedTask || taskNearby) {
                     startPoint = finishedTask.getLastCoordinate();
                     newTask.setStreetEdgeDirection(startPoint.lat, startPoint.lng);
-                } else if (self._findConnectedTasks(newTask, false, null, null).length === 0) {
+                } else if (self._findConnectedTasks(newTask, svl.CONNECTED_TASK_THRESHOLD).length === 0) {
                     newTask.reverseStreetDirection();
                 }
             }

@@ -171,11 +171,12 @@ function NavigationService (neighborhoodModel, uiStreetview) {
             }
 
             // TODO rename this? And shouldn't it happen on page load too, not just after a move?
+            // TODO could `nextTask` ever be null/undefined?
             // Check if the user will jump to another discontinuous location or if this is the last street in their
             // route/neighborhood. If either is the case, let the user know to label the location before proceeding.
-            if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete() || !task.isConnectedTo(nextTask)) {
+            if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete() || !task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, 'kilometers', true)) {
                 // If jumping to a new place, set the newTask before jumping.
-                if (nextTask && !task.isConnectedTo(nextTask)) {
+                if (nextTask && !task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD)) {
                     nextTask.eraseFromMinimap(); // TODO why are we erasing here..?
                     svl.taskContainer.setBeforeJumpNewTask(nextTask);
                 }

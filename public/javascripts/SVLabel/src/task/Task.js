@@ -261,10 +261,6 @@ function Task (geojson, tutorialTask, currentLat, currentLng) {
         return _geojson.properties.street_edge_id;
     };
 
-    this.streetCompletedByAnyUser = function () {
-        return properties.completedByAnyUser;
-    };
-
     this.getStreetPriority = function () {
         return properties.priority;
     };
@@ -340,22 +336,22 @@ function Task (geojson, tutorialTask, currentLat, currentLng) {
     };
 
     /**
-     * Checks if the current task is connected to the given task
-     * @param task
-     * @param threshold
-     * @param unit
-     * @returns {boolean}
+     * Checks if the current task is connected to the given task.
+     * @param {Task} task The task to check if this task is close to
+     * @param {number} threshold Distance threshold in km, unless specified in unit parameter
+     * @param {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
+     * @returns {boolean} true this task's endpoint is within threshold distance of either endpoint of given task
      */
-    this.isConnectedTo = function (task, threshold, unit) {
-        if (!threshold) threshold = 0.01;
+    this.isConnectedTo = function(task, threshold, unit) {
         if (!unit) unit = { units: 'kilometers' };
 
-        var lastCoordinate = self.getLastCoordinate(),
-            targetCoordinate1 = task.getStartCoordinate(),
-            targetCoordinate2 = task.getLastCoordinate(),
-            p = turf.point([lastCoordinate.lng, lastCoordinate.lat]),
-            p1 = turf.point([targetCoordinate1.lng, targetCoordinate1.lat]),
-            p2 = turf.point([targetCoordinate2.lng, targetCoordinate2.lat]);
+        const lastCoordinate = self.getLastCoordinate()
+        const targetCoordinate1 = task.getStartCoordinate();
+        const targetCoordinate2 = task.getLastCoordinate();
+        const p = turf.point([lastCoordinate.lng, lastCoordinate.lat]);
+        const p1 = turf.point([targetCoordinate1.lng, targetCoordinate1.lat]);
+        const p2 = turf.point([targetCoordinate2.lng, targetCoordinate2.lat]);
+
         return turf.distance(p, p1, unit) < threshold || turf.distance(p, p2, unit) < threshold;
     };
 
