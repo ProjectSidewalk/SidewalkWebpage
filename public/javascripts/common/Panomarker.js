@@ -6,7 +6,7 @@
  * Version 1.1
  *
  * @author kaktus621@gmail.com (Martin Matysiak)
- *         michaelssaugstad@gmail.com (Mikey Saugstad) - Updated Dec 2025 to use Google's newer library import methods.
+ *         michaelssaugstad@gmail.com (Mikey Saugstad) - Updated Dec 2025 to use generic Panorama viewer (not just GSV).
  * @fileoverview A marker that can be placed inside custom StreetView panoramas.
  * Regular markers inside StreetViewPanoramas can only be shown vertically centered and aligned to LatLng coordinates.
  *
@@ -34,75 +34,44 @@
 /**
  * PanoMarkerOptions
  *
- * {google.maps.Point} anchor The point (in pixels) to which objects will snap.
- * {string} className The class name which will be assigned to the
- *    created div node.
- * {HTMLDivElement} container The container holding the panorama.
- * {string} icon URL to an image file that shall be used.
- * {string} id A unique identifier that will be assigned to the
- *    created div-node.
- * {google.maps.StreetViewPanorama} pano Panorama in which to display marker.
- * {google.maps.StreetViewPov} position Marker position.
- * {google.maps.Size} size The size of the marker in pixels.
- * {string} title Rollover text.
- * {boolean} visible If true, the marker is visible.
- * {number} zIndex The marker's z-index.
  */
 
 let PanoMarker = null;
+// TODO does this no longer need to be an async function since we're not waiting for the Google library anymore?
 window.getPanoMarkerClass = async function() {
     if (window.PanoMarker) return window.PanoMarker;
 
-    const { OverlayView } = await google.maps.importLibrary('maps');
-
-    window.PanoMarker = class extends OverlayView {
+    window.PanoMarker = class {
         /**
          * Creates a PanoMarker with the options specified. If a panorama is specified, the marker is added to the map
          * upon construction. Note that the position must be set for the marker to display.
          *
          * @constructor
-         * @param {PanoMarkerOptions} opts A set of parameters to customize the marker.
-         * @extends google.maps.OverlayView
+         * @param {Object} opts A set of parameters to customize the marker.
+         * @param {PanoViewer} opts.panoViewer Panorama viewer on which to display marker.
+         * @param {HTMLDivElement} opts.markerContainer The container holding the markers.
+         * @param {string} [opts.className] The class name which will be assigned to the created div node.
+         * @param {string} [opts.icon] URL to an image file that shall be used.
+         * @param {string} [opts.id] A unique identifier that will be assigned to the created div-node.
+         * @param {{heading: number, pitch: number}} [opts.position] Marker position on the panorama.
+         * @param {{width: number, height: number}} [opts.size] The size of the marker in pixels.
+         * @param {string} [opts.title] Hover tooltip.
+         * @param {boolean} [opts.visible=true] If true, the marker is visible.
+         * @param {number} [opts.zIndex=1] The marker's z-index.
          */
         constructor(opts) {
-            super();
-
             // In case no options have been given at all, fallback to {} so that the following won't throw errors.
             opts = opts || {};
 
-            // panorama.getContainer has been deprecated in the Google Maps API. The user now explicitly needs to pass
-            // in the container for the panorama.
-            if (!opts.container) {
-                throw 'A panorama container needs to be defined.';
-            }
+            if (!opts.panoViewer) throw 'A panorama viewer needs to be defined.';
+            if (!opts.markerContainer) throw 'A panorama markerContainer needs to be defined.';
 
             /** @private @type {HTMLDivElement} */
-            this.container_ = opts.container;
+            this.markerContainer_ = opts.markerContainer;
 
-            /**
-             * Currently only Chrome is rendering panoramas in a 3D sphere. The other browsers are just showing the raw
-             * panorama tiles and pan them around.
-             *
-             * @private
-             * @type {function(StreetViewPov, StreetViewPov, number, Element): Object}
-             */
-
-            // Original code:
-            // this.povToPixel_ = (!!window.chrome || isMobile()) ? window.PanoMarker.povToPixel3d :
-            //     window.PanoMarker.povToPixel2d;
-
-            // New code (April 17, 2019) -- modified by Aileen
-            // Source: https://github.com/marmat/google-maps-api-addons/issues/36#issuecomment-342774699
-            this.povToPixel_ = window.PanoMarker.povToPixel2d;
-            let pixelCanvas = document.createElement("canvas");
-
-            if (pixelCanvas && (pixelCanvas.getContext("experimental-webgl") || pixelCanvas.getContext("webgl"))) {
-                this.povToPixel_ = window.PanoMarker.povToPixel3d;
-            }
-
-            /** @private @type {google.maps.Point} */
-            // TODO Let's simplify/clarify what this is for.
-            this.anchor_ = opts.anchor || new google.maps.Point(16, 16);
+            // TODO this is set using setPanoViewer at the end. But I don't think we want to do it that way anyway.
+            /** @private @type {PanoViewer} */
+            this.panoViewer_ = null;
 
             /** @private @type {?string} */
             this.className_ = opts.className || null;
@@ -119,13 +88,10 @@ window.getPanoMarkerClass = async function() {
             /** @private @ŧype {?HTMLDivElement} */
             this.marker_ = null;
 
-            /** @private @type {?PanoViewer} */
-            this.panoViewer_ = null;
+            /** @private @type {?Object} */
+            this.position_ = opts.position || { heading: 0, pitch: 0 };
 
-            /** @private @type {google.maps.StreetViewPov} */
-            this.position_ = opts.position || {heading: 0, pitch: 0};
-
-            /** @private @type {Object} */
+            /** @private @type {?Object} */
             this.povListener_ = null;
 
             /** @private @type {Object} */
@@ -143,15 +109,23 @@ window.getPanoMarkerClass = async function() {
             /** @private @type {number} */
             this.zIndex_ = opts.zIndex || 1;
 
-            /** @private @type {Object} */
-            // TODO now a required field!
-            this.markerContainer_ = opts.markerContainer;
-
             /** @private @type {boolean} */
             this.toggleDescription_ = false;
 
-            // At last, call some methods which use the initialized parameters
-            this.setPanoViewer(opts.panoViewer || null, opts.container);
+            /**
+             * New code (April 17, 2019) -- modified by Aileen
+             * Source: https://github.com/marmat/google-maps-api-addons/issues/36#issuecomment-342774699
+             * @private
+             * @type {function({heading: number, pitch: number, zoom: number}, {heading: number, pitch: number, zoom: number}, number, Element): Object}
+             */
+            this.povToPixel_ = window.PanoMarker.povToPixel2d;
+            let pixelCanvas = document.createElement("canvas");
+            if (pixelCanvas && (pixelCanvas.getContext("experimental-webgl") || pixelCanvas.getContext("webgl"))) {
+                this.povToPixel_ = window.PanoMarker.povToPixel3d;
+            }
+
+            // At last, call some methods which use the initialized parameters.
+            this.setPanoViewer(opts.panoViewer || null, opts.markerContainer);
         }
 
         // Static helper methods for the position calculation //
@@ -189,13 +163,13 @@ window.getPanoMarkerClass = async function() {
          * My own approach to explain what is being done here (including figures!) can be found at
          * http://martinmatysiak.de/blog/view/panomarker
          *
-         * @param {StreetViewPov} targetPov The point-of-view whose coordinates are requested.
-         * @param {StreetViewPov} currentPov POV of the viewport center.
-         * @param {Element} viewport The current viewport containing the panorama.
+         * @param {{heading: number, pitch: number, zoom: number}} targetPov The POV whose coordinates are requested.
+         * @param {{heading: number, pitch: number, zoom: number}} currentPov POV of the viewport center.
+         * @param {HTMLDivElement} viewport The current viewport containing the panorama.
          * @return {Object} Top and Left offsets for the given viewport that point to the desired point-of-view.
          */
         static povToPixel3d = function(targetPov, currentPov, viewport) {
-            // Gather required variables and convert to radians where necessary
+            // Gather required variables and convert to radians where necessary.
             const width = viewport.offsetWidth;
             const height = viewport.offsetHeight;
 
@@ -300,7 +274,7 @@ window.getPanoMarkerClass = async function() {
             // We shift to the range [0,360) because of the way JS behaves for modulos of negative numbers.
             heading = (heading + 180) % 360;
 
-            // Determine if we have to wrap around
+            // Determine if we have to wrap around.
             if (heading < 0) {
                 heading += 360;
             }
@@ -310,12 +284,12 @@ window.getPanoMarkerClass = async function() {
 
 
         /**
-         * A simpler version of povToPixel2d which does not have to do the spherical projection because the raw
+         * A simpler version of povToPixel3d which does not have to do the spherical projection because the raw
          * StreetView tiles are just panned around when the user changes the viewport position.
          *
-         * @param {StreetViewPov} targetPov The point-of-view whose coordinates are requested.
-         * @param {StreetViewPov} currentPov POV of the viewport center.
-         * @param {Element} viewport The current viewport containing the panorama.
+         * @param {{heading: number, pitch: number, zoom: number}} targetPov The POV whose coordinates are requested.
+         * @param {{heading: number, pitch: number, zoom: number}} currentPov POV of the viewport center.
+         * @param {HTMLDivElement} viewport The current viewport containing the panorama.
          * @return {Object} Top and Left offsets for the given viewport that point to the desired point-of-view.
          */
         static povToPixel2d = function(targetPov, currentPov, viewport) {
@@ -339,9 +313,9 @@ window.getPanoMarkerClass = async function() {
             return target;
         };
 
-        // Implementations for abstract methods inherited from g.m.OverlayView //
-
-        /** @override */
+        /**
+         * Sets up a marker and then calls draw().
+         */
         onAdd = function() {
             if (!!this.marker_) {
                 // Sometimes the maps API does trigger onAdd correctly. We have to prevent duplicate execution of the
@@ -360,14 +334,13 @@ window.getPanoMarkerClass = async function() {
             marker.style.display = this.visible_ ? 'block' : 'none';
             marker.style.zIndex = this.zIndex_;
 
-            // Set other css attributes based on the given parameters.
+            // Set other CSS attributes based on the given parameters.
             if (this.id_) { marker.id = this.id_; }
             if (this.className_) { marker.className = this.className_; }
             if (this.title_) { marker.title = this.title_; }
             if (this.icon_) { marker.style.backgroundImage = 'url(' + this.icon_ + ')'; }
 
-            // If neither icon, class nor id is specified, assign the basic google maps marker image to the marker
-            // (otherwise it will be invisible).
+            // If neither icon, class nor id is specified, assign the basic Google Maps marker image to the marker.
             if (!(this.id_ || this.className_ || this.icon_)) {
                 marker.style.backgroundImage = 'url(https://www.google.com/intl/en_us/mapfiles/ms/micons/red-dot.png)';
             }
@@ -376,15 +349,12 @@ window.getPanoMarkerClass = async function() {
             this.markerContainer_.appendChild(marker);
 
             // Attach to some global events.
-            // TODO These events are how we change on panning.
             window.addEventListener('resize', this.draw.bind(this));
             this.panoViewer_.addListener('pov_changed', this.draw.bind(this));
-            // this.povListener_ = google.maps.event.addListener(this.getMap(), 'pov_changed', this.draw.bind(this));
-            // this.zoomListener_ = google.maps.event.addListener(this.getMap(), 'zoom_changed', this.draw.bind(this));
 
-            let eventName = 'click';
 
             // Make clicks possible.
+            let eventName = 'click';
             if (window.PointerEvent) {
                 eventName = 'pointerdown';
             } else if (window.MSPointerEvent) {
@@ -425,10 +395,12 @@ window.getPanoMarkerClass = async function() {
 
             // Fire 'add' event once the marker has been created.
             // TODO We don't use these events anywhere. Should probably remove this and use Promises instead.
-            google.maps.event.trigger(this, 'add', this.marker_);
+            // google.maps.event.trigger(this, 'add', this.marker_);
         };
 
-        /** @override */
+        /**
+         * Draws the marker on the canvas.
+         */
         draw = function() {
             if (!this.panoViewer_) {
                 return;
@@ -443,11 +415,11 @@ window.getPanoMarkerClass = async function() {
 
             // Calculate the position according to the viewport. Even though the marker doesn't sit directly underneath
             // the panorama container, we pass it on as the viewport because it has the actual viewport dimensions.
-            const offset = this.povToPixel_(this.position_, this.panoViewer_.getPov(), this.container_);
+            const offset = this.povToPixel_(this.position_, this.panoViewer_.getPov(), this.markerContainer_);
             if (this.marker_) {
                 if (offset !== null) {
-                    this.marker_.style.left = (offset.left - this.anchor_.x) + 'px';
-                    this.marker_.style.top = (offset.top - this.anchor_.y) + 'px';
+                    this.marker_.style.left = (offset.left - this.size_.width / 2) + 'px';
+                    this.marker_.style.top = (offset.top - this.size_.height / 2) + 'px';
                 } else {
                     // If offset is null, marker is "behind" the camera, so we position the marker outside the viewport.
                     this.marker_.style.left = -(9999 + this.size_.width) + 'px';
@@ -468,7 +440,9 @@ window.getPanoMarkerClass = async function() {
             if (event.stopPropagation) { event.stopPropagation(); }
         };
 
-        /** @override */
+        /**
+         * Removes the marker and its listeners.
+         */
         onRemove = function() {
             if (!this.marker_) {
                 // Similar to onAdd, we have to prevent duplicate onRemoves as well.
@@ -488,9 +462,6 @@ window.getPanoMarkerClass = async function() {
 
 
         // Getter to be roughly equivalent to the regular google.maps.Marker //
-
-        /** @return {google.maps.Point} The marker's anchor. */
-        getAnchor = function() { return this.anchor_; };
 
         /** @return {string} The className or null if not set upon marker creation. */
         getClassName = function() { return this.className_; };
@@ -524,12 +495,6 @@ window.getPanoMarkerClass = async function() {
 
 
         // Setter for the properties mentioned above //
-
-        /** @param {google.maps.Point} anchor The marker's new anchor. */
-        setAnchor = function(anchor) {
-            this.anchor_ = anchor;
-            this.draw();
-        };
 
         /** @param {string} className The new className. */
         setClassName = function(className) {
@@ -566,16 +531,16 @@ window.getPanoMarkerClass = async function() {
          * TODO we probably don't need to do a whole remove and add, do we? Can we just set the viewer and call draw?
          *
          * @param {PanoViewer} panoViewer The panorama in which to show the marker.
-         * @param {HTMLDivElement} container The container holding the panorama.
+         * @param {HTMLDivElement} markerContainer The container holding the markers.
          */
-        setPanoViewer = function(panoViewer, container) {
+        setPanoViewer = function(panoViewer, markerContainer) {
             // Remove the marker if it previously was on a panorama.
             if (!!this.panoViewer_) {
                 this.onRemove();
             }
 
             this.panoViewer_ = panoViewer;
-            this.container_ = container;
+            this.markerContainer_ = markerContainer;
 
             if (!!panoViewer) {
                 this.onAdd();

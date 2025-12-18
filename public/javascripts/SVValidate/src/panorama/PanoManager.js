@@ -155,20 +155,15 @@ async function PanoManager (panoViewerType) {
             self.labelMarker = new PanoMarker({
                 id: "validate-pano-marker",
                 markerContainer: controlLayer,
-                container: panoCanvas,
                 panoViewer: svv.panoViewer,
                 position: { heading: pov.heading, pitch: pov.pitch },
                 icon: url,
                 size: { width: currentLabel.getRadius() * 2 + 2, height: currentLabel.getRadius() * 2 + 2 },
-                anchor: new google.maps.Point(currentLabel.getRadius(), currentLabel.getRadius()),
                 zIndex: 2
             });
         } else {
             self.labelMarker.setPanoViewer(svv.panoViewer, panoCanvas);
-            self.labelMarker.setPosition({
-                heading: pov.heading,
-                pitch: pov.pitch
-            });
+            self.labelMarker.setPosition({ heading: pov.heading, pitch: pov.pitch });
             self.labelMarker.setIcon(url);
         }
 
