@@ -60,9 +60,6 @@ window.getPanoMarkerClass = async function() {
          * Creates a PanoMarker with the options specified. If a panorama is specified, the marker is added to the map
          * upon construction. Note that the position must be set for the marker to display.
          *
-         * Important: do not use the inherited method <code>setMap()</code> to change the panorama, but use
-         * <code>setPano()</code> instead, otherwise a proper functionality is not guaranteed.
-         *
          * @constructor
          * @param {PanoMarkerOptions} opts A set of parameters to customize the marker.
          * @extends google.maps.OverlayView
@@ -97,13 +94,14 @@ window.getPanoMarkerClass = async function() {
             // New code (April 17, 2019) -- modified by Aileen
             // Source: https://github.com/marmat/google-maps-api-addons/issues/36#issuecomment-342774699
             this.povToPixel_ = window.PanoMarker.povToPixel2d;
-            var pixelCanvas = document.createElement("canvas");
+            let pixelCanvas = document.createElement("canvas");
 
             if (pixelCanvas && (pixelCanvas.getContext("experimental-webgl") || pixelCanvas.getContext("webgl"))) {
                 this.povToPixel_ = window.PanoMarker.povToPixel3d;
             }
 
             /** @private @type {google.maps.Point} */
+            // TODO Let's simplify/clarify what this is for.
             this.anchor_ = opts.anchor || new google.maps.Point(16, 16);
 
             /** @private @type {?string} */
@@ -121,11 +119,8 @@ window.getPanoMarkerClass = async function() {
             /** @private @ŧype {?HTMLDivElement} */
             this.marker_ = null;
 
-            /** @private @type {?google.maps.StreetViewPanorama} */
-            this.pano_ = null;
-
-            /** @private @type {number} */
-            this.pollId_ = -1;
+            /** @private @type {?PanoViewer} */
+            this.panoViewer_ = null;
 
             /** @private @type {google.maps.StreetViewPov} */
             this.position_ = opts.position || {heading: 0, pitch: 0};
@@ -136,8 +131,8 @@ window.getPanoMarkerClass = async function() {
             /** @private @type {Object} */
             this.zoomListener_ = null;
 
-            /** @private @type {google.maps.Size} */
-            this.size_ = opts.size || new google.maps.Size(32, 32);
+            /** @private @type {Object} */
+            this.size_ = opts.size || { width: 32, height: 32 };
 
             /** @private @type {string} */
             this.title_ = opts.title || '';
@@ -149,13 +144,14 @@ window.getPanoMarkerClass = async function() {
             this.zIndex_ = opts.zIndex || 1;
 
             /** @private @type {Object} */
-            this.markerContainer_ = opts.markerContainer || null;
+            // TODO now a required field!
+            this.markerContainer_ = opts.markerContainer;
 
             /** @private @type {boolean} */
             this.toggleDescription_ = false;
 
             // At last, call some methods which use the initialized parameters
-            this.setPano(opts.pano || null, opts.container);
+            this.setPanoViewer(opts.panoViewer || null, opts.container);
         }
 
         // Static helper methods for the position calculation //
@@ -377,18 +373,14 @@ window.getPanoMarkerClass = async function() {
             }
 
             this.marker_ = marker;
-
-            // Add marker to viewControlLayer if on validate page.
-            if (this.markerContainer_ == null) {
-                this.markerContainer_ = this.getPanes().overlayMouseTarget;
-            }
-
             this.markerContainer_.appendChild(marker);
 
             // Attach to some global events.
+            // TODO These events are how we change on panning.
             window.addEventListener('resize', this.draw.bind(this));
-            this.povListener_ = google.maps.event.addListener(this.getMap(), 'pov_changed', this.draw.bind(this));
-            this.zoomListener_ = google.maps.event.addListener(this.getMap(), 'zoom_changed', this.draw.bind(this));
+            this.panoViewer_.addListener('pov_changed', this.draw.bind(this));
+            // this.povListener_ = google.maps.event.addListener(this.getMap(), 'pov_changed', this.draw.bind(this));
+            // this.zoomListener_ = google.maps.event.addListener(this.getMap(), 'zoom_changed', this.draw.bind(this));
 
             let eventName = 'click';
 
@@ -432,12 +424,13 @@ window.getPanoMarkerClass = async function() {
             this.draw();
 
             // Fire 'add' event once the marker has been created.
+            // TODO We don't use these events anywhere. Should probably remove this and use Promises instead.
             google.maps.event.trigger(this, 'add', this.marker_);
         };
 
         /** @override */
         draw = function() {
-            if (!this.pano_) {
+            if (!this.panoViewer_) {
                 return;
             }
 
@@ -450,9 +443,7 @@ window.getPanoMarkerClass = async function() {
 
             // Calculate the position according to the viewport. Even though the marker doesn't sit directly underneath
             // the panorama container, we pass it on as the viewport because it has the actual viewport dimensions.
-            const offset = this.povToPixel_(this.position_,
-                this.pano_.getPov(),
-                this.container_);
+            const offset = this.povToPixel_(this.position_, this.panoViewer_.getPov(), this.container_);
             if (this.marker_) {
                 if (offset !== null) {
                     this.marker_.style.left = (offset.left - this.anchor_.x) + 'px';
@@ -468,6 +459,7 @@ window.getPanoMarkerClass = async function() {
         /** @param {Object} event The event object. */
         onClick = function(event) {
             if (this.clickable_) {
+                // TODO We don't use these events anywhere. Should probably remove this and use Promises instead.
                 google.maps.event.trigger(this, 'click');
             }
 
@@ -483,12 +475,14 @@ window.getPanoMarkerClass = async function() {
                 return;
             }
 
+            // TODO these should use PanoViewer.removeListener().
             google.maps.event.removeListener(this.povListener_);
             google.maps.event.removeListener(this.zoomListener_);
             this.marker_.parentNode.removeChild(this.marker_);
             this.marker_ = null;
 
             // Fire 'remove' event once the marker has been destroyed.
+            // TODO We don't use these events anywhere. Should probably remove this and use Promises instead.
             google.maps.event.trigger(this, 'remove');
         }
 
@@ -510,13 +504,13 @@ window.getPanoMarkerClass = async function() {
         /** @return {string} The identifier or null if not set upon marker creation. */
         getId = function() { return this.id_; };
 
-        /** @return {google.maps.StreetViewPanorama} The current panorama. */
-        getPano = function() { return this.pano_; };
+        /** @return {PanoViewer} The current PanoViewer. */
+        getPanoViewer = function() { return this.panoViewer_; };
 
-        /** @return {google.maps.StreetViewPov} The marker's current position. */
+        /** @return {{heading: number, pitch: number}} The marker's location on the panorama. */
         getPosition = function() { return this.position_; };
 
-        /** @return {google.maps.Size} The marker's size. */
+        /** {{width: number, height: number}} size The new size of the marker in pixels. */
         getSize = function() { return this.size_; };
 
         /** @return {string} The marker's rollover text. */
@@ -567,61 +561,34 @@ window.getPanoMarkerClass = async function() {
         };
 
         /**
-         * It turns out OverlayViews can be used with StreetViewPanoramas as well. However, we have to fire onAdd and
-         * onRemove calls manually as they are not triggered automatically for some reason if the object given to setMap
-         * is a StreetViewPanorama.
+         * Remove the marker, update the viewer and container, and then add the marker.
          *
-         * @param {google.maps.StreetViewPanorama} pano The panorama in which to show the marker.
+         * TODO we probably don't need to do a whole remove and add, do we? Can we just set the viewer and call draw?
+         *
+         * @param {PanoViewer} panoViewer The panorama in which to show the marker.
          * @param {HTMLDivElement} container The container holding the panorama.
          */
-        setPano = function(pano, container) {
-            // In contrast to regular OverlayViews, we are disallowing the usage on regular maps.
-            if (!!pano && !(pano instanceof google.maps.StreetViewPanorama)) {
-                throw 'PanoMarker only works inside a StreetViewPanorama.';
-            }
-
+        setPanoViewer = function(panoViewer, container) {
             // Remove the marker if it previously was on a panorama.
-            if (!!this.pano_) {
+            if (!!this.panoViewer_) {
                 this.onRemove();
             }
 
-            // Call method from superclass.
-            this.setMap(pano);
-            this.pano_ = pano;
+            this.panoViewer_ = panoViewer;
             this.container_ = container;
 
-            // Fire the onAdd Event manually as soon as the pano is ready.
-            if (!!pano) {
-                let promiseFn = function(resolve) {
-                    // Poll for panes to become available
-                    let pollCallback = function() {
-                        if (!!this.getPanes()) {
-                            window.clearInterval(this.pollId_);
-                            this.onAdd();
-                            if (resolve) { resolve(this); }
-                        }
-                    };
-
-                    this.pollId_ = window.setInterval(pollCallback.bind(this), 10);
-                };
-
-                // Best case, the promiseFn can be wrapped in a Promise so the consumer knows when the pano is set,
-                // otherwise just call the function immediately
-                if (typeof Promise !== 'undefined') {
-                    return new Promise(promiseFn.bind(this));
-                } else {
-                    promiseFn.call(this);
-                }
+            if (!!panoViewer) {
+                this.onAdd();
             }
         };
 
-        /** @param {google.maps.StreetViewPov} position The desired position. */
+        /** @param {{heading: number, pitch: number}} position The desired location for the marker on the pano. */
         setPosition = function(position) {
             this.position_ = position;
             this.draw();
         };
 
-        /** @param {google.maps.Size} size The new size. */
+        /** @param {{width: number, height: number}} size The new size of the marker in pixels. */
         setSize = function(size) {
             this.size_ = size;
             if (!!this.marker_) {

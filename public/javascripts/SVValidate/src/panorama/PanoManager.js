@@ -150,24 +150,21 @@ async function PanoManager (panoViewerType) {
             });
         }
 
-        // TODO PanoMarker only supported on GSV. Need to visualize the labels somehow.
-        if (!svv.panoViewer.panorama) return this;
-
         if (!self.labelMarker) {
             let controlLayer = isMobile() ? document.getElementById("view-control-layer-mobile") : document.getElementById("view-control-layer");
             self.labelMarker = new PanoMarker({
                 id: "validate-pano-marker",
                 markerContainer: controlLayer,
                 container: panoCanvas,
-                pano: svv.panoViewer.panorama,
+                panoViewer: svv.panoViewer,
                 position: { heading: pov.heading, pitch: pov.pitch },
                 icon: url,
-                size: new google.maps.Size(currentLabel.getRadius() * 2 + 2, currentLabel.getRadius() * 2 + 2),
+                size: { width: currentLabel.getRadius() * 2 + 2, height: currentLabel.getRadius() * 2 + 2 },
                 anchor: new google.maps.Point(currentLabel.getRadius(), currentLabel.getRadius()),
                 zIndex: 2
             });
         } else {
-            self.labelMarker.setPano(svv.panoViewer.panorama, panoCanvas);
+            self.labelMarker.setPanoViewer(svv.panoViewer, panoCanvas);
             self.labelMarker.setPosition({
                 heading: pov.heading,
                 pitch: pov.pitch
