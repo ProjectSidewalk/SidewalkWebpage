@@ -29,8 +29,6 @@ async function AdminPanorama(svHolder, buttonHolder, admin) {
         Signal : '/assets/images/icons/AdminTool_Signal.png'
     };
 
-    let PanoMarker;
-
     // Determined experimentally; varies w/ Panorama size
     var zoomLevel = {
         1: 1,
@@ -80,8 +78,6 @@ async function AdminPanorama(svHolder, buttonHolder, admin) {
 
         const { StreetViewPanorama } = await google.maps.importLibrary('streetView');
         self.panorama = new StreetViewPanorama(self.panoCanvas, { });
-
-        PanoMarker = await getPanoMarkerClass();
 
         self.panorama.addListener('pano_changed', function() {
             // Show the correct set of labels for the given pano.
@@ -219,6 +215,7 @@ async function AdminPanorama(svHolder, buttonHolder, admin) {
             panoId: self.panorama.getPano(),
             marker: new PanoMarker({
                 container: self.panoCanvas,
+                // TODO need to start using PanoViewer.
                 pano: self.panorama,
                 position: {heading: pos.heading, pitch: pos.pitch},
                 icon: url,

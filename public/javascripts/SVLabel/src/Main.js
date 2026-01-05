@@ -111,7 +111,7 @@ function Main (params) {
         svl.neighborhoodContainer.add(neighborhood);
         svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
 
-        svl.observedArea = await ObservedArea(svl.ui.minimap);
+        svl.observedArea = ObservedArea(svl.ui.minimap);
 
         // Mission
         svl.missionContainer = new MissionContainer(svl.statusFieldMission, svl.missionModel);

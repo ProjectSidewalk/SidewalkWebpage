@@ -31,8 +31,6 @@
         3: 2.95
     };
 
-    let PanoMarker;
-
     /**
      * This function initializes the Panorama.
      */
@@ -97,8 +95,6 @@
             }
         });
 
-        PanoMarker = await getPanoMarkerClass();
-
         return this;
     }
 
@@ -159,8 +155,8 @@
     }
 
     /**
-     * Renders a Panomarker (label) onto Google Streetview Panorama.
-     * @param label: instance of AdminPanoramaLabel
+     * Renders a PanoMarker (label) onto Google Streetview Panorama.
+     * @param {AdminPanoramaLabel} label
      * @returns {renderLabel}
      */
     function renderLabel (label) {
@@ -175,6 +171,7 @@
                 panoId: self.panoId,
                 marker: new PanoMarker({
                     container: self.panoCanvas,
+                    panoViewer: sg.panoViewer, // TODO need to switch to new PanoViewer code
                     pano: self.panorama,
                     position: {heading: pos.heading, pitch: pos.pitch},
                     icon: url,
@@ -185,11 +182,7 @@
         } else {
             // Adjust the existing panomarker.
             self.labelMarker.panoId = self.panoId;
-            self.labelMarker.marker.setPano(self.panorama, self.panoCanvas);
-            self.labelMarker.marker.setPosition({
-                heading: pos.heading,
-                pitch: pos.pitch
-            });
+            self.labelMarker.marker.setPosition({ heading: pos.heading, pitch: pos.pitch });
             self.labelMarker.marker.setIcon(url);
         }
 

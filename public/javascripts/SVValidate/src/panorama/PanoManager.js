@@ -13,8 +13,6 @@ async function PanoManager (panoViewerType) {
     let bottomLinksClickable = false;
     let linksListener = null;
 
-    let PanoMarker;
-
     let self = this;
 
     /**
@@ -49,8 +47,6 @@ async function PanoManager (panoViewerType) {
         if (panoViewerType === GsvViewer && !isMobile()) {
             linksListener = svv.panoViewer.panorama.addListener('links_changed', _makeLinksClickable);
         }
-
-        PanoMarker = await getPanoMarkerClass();
 
         // TODO instead of renderCurrentLabel, maybe we just pass in a panoId to start? Or that's just passed to the panoViewer?
         // await renderCurrentLabel(currentLabel);
@@ -151,10 +147,10 @@ async function PanoManager (panoViewerType) {
         }
 
         if (!self.labelMarker) {
-            let controlLayer = isMobile() ? document.getElementById("view-control-layer-mobile") : document.getElementById("view-control-layer");
+            let markerLayer = isMobile() ? document.getElementById('view-control-layer-mobile') : document.getElementById('view-control-layer');
             self.labelMarker = new PanoMarker({
                 id: "validate-pano-marker",
-                markerContainer: controlLayer,
+                markerContainer: markerLayer,
                 panoViewer: svv.panoViewer,
                 position: { heading: pov.heading, pitch: pov.pitch },
                 icon: url,
@@ -162,7 +158,6 @@ async function PanoManager (panoViewerType) {
                 zIndex: 2
             });
         } else {
-            self.labelMarker.setPanoViewer(svv.panoViewer, panoCanvas);
             self.labelMarker.setPosition({ heading: pov.heading, pitch: pov.pitch });
             self.labelMarker.setIcon(url);
         }

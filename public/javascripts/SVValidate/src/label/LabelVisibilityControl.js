@@ -43,10 +43,7 @@ function LabelVisibilityControl () {
         let htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="${buttonClass}" alt="Hide Label">
                           <br /><span>${buttonUiVisibilityControlHide}</span>`;
         labelVisibilityControlButton.html(htmlString);
-        // If we are unhiding because the user is moving on to their next label, then Panomarker.js adds the outline.
-        if (!newLabel) {
-            panomarker.marker_.classList.add('icon-outline');
-        }
+        panomarker.marker_.classList.add('icon-outline');
     }
 
     /**
