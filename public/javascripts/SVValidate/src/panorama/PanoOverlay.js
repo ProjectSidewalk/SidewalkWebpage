@@ -37,7 +37,7 @@ function PanoOverlay () {
      * A callback function that is fired with the mouse down event on the view control layer (when panning).
      * @param e
      */
-    function handlerViewControlLayerMouseDown (e) {
+    function handlerViewControlLayerMouseDown(e) {
         mouseStatus.isLeftDown = true;
         mouseStatus.leftDownX = mouseposition(e, this).x;
         mouseStatus.leftDownY = mouseposition(e, this).y;
@@ -52,7 +52,7 @@ function PanoOverlay () {
      * This is a callback function that is called with mouse up event on the view control layer (when panning).
      * @param e
      */
-    function handlerViewControlLayerMouseUp (e) {
+    function handlerViewControlLayerMouseUp(e) {
         viewControlLayer.css("cursor", "url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move");
         mouseStatus.isLeftDown = false;
         mouseStatus.leftUpX = mouseposition(e, this).x;
@@ -63,7 +63,7 @@ function PanoOverlay () {
      * Handles mouse leaving control view.
      * @param e
      */
-    function handlerViewControlLayerMouseLeave (e) {
+    function handlerViewControlLayerMouseLeave(e) {
         viewControlLayer.css("cursor", "url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move");
         mouseStatus.isLeftDown = false;
     }
@@ -71,7 +71,7 @@ function PanoOverlay () {
     /**
      * Callback function that is fired when a user moves a mouse on the view control layer where you change the pov.
      */
-    function handlerViewControlLayerMouseMove (e) {
+    function handlerViewControlLayerMouseMove(e) {
         mouseStatus.currX = mouseposition(e, this).x;
         mouseStatus.currY = mouseposition(e, this).y;
 
@@ -98,16 +98,13 @@ function PanoOverlay () {
      * @param dx
      * @param dy
      */
-    function updatePov (dx, dy) {
-        let panoViewer = svv.panoViewer;
-        if (panoViewer) {
-            let pov = panoViewer.getPov();
-            pov.heading -= dx;
-            pov.pitch += dy;
-            panoViewer.setPov(pov);
-        } else {
-            throw self.className + ' updatePov(): panorama not defined!';
-        }
+    function updatePov(dx, dy) {
+        let pov = svv.panoViewer.getPov();
+        // TODO not sure why Infra3d viewer pans so slowly, or doesn't pan at all if we dx/dy is small.
+        const viewerScaling = svv.panoViewer instanceof Infra3dViewer ? 3 : 0.5;
+        pov.heading -= dx * viewerScaling;
+        pov.pitch += dy * viewerScaling;
+        svv.panoViewer.setPov(pov);
     }
 
     viewControlLayer.bind('mousemove', handlerViewControlLayerMouseMove);
