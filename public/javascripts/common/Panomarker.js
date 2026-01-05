@@ -76,9 +76,6 @@ window.getPanoMarkerClass = async function() {
             /** @private @type {?string} */
             this.className_ = opts.className || null;
 
-            /** @private @type {boolean} */
-            this.clickable_ = opts.clickable || true;
-
             /** @private @type {?string} */
             this.icon_ = opts.icon || null;
 
@@ -352,17 +349,6 @@ window.getPanoMarkerClass = async function() {
             window.addEventListener('resize', this.draw.bind(this));
             this.panoViewer_.addListener('pov_changed', this.draw.bind(this));
 
-
-            // Make clicks possible.
-            let eventName = 'click';
-            if (window.PointerEvent) {
-                eventName = 'pointerdown';
-            } else if (window.MSPointerEvent) {
-                eventName = 'MSPointerDown';
-            }
-
-            marker.addEventListener(eventName, this.onClick.bind(this), false);
-
             // If this is a validation label, we want to add mouse-hovering event for popped up hide/show label.
             if (this.id_ === "validate-pano-marker") {
                 if (isMobile()) {
@@ -428,18 +414,6 @@ window.getPanoMarkerClass = async function() {
             }
         };
 
-        /** @param {Object} event The event object. */
-        onClick = function(event) {
-            if (this.clickable_) {
-                // TODO We don't use these events anywhere. Should probably remove this and use Promises instead.
-                google.maps.event.trigger(this, 'click');
-            }
-
-            // Don't let the event bubble up.
-            event.cancelBubble = true;
-            if (event.stopPropagation) { event.stopPropagation(); }
-        };
-
         /**
          * Removes the marker and its listeners.
          */
@@ -465,9 +439,6 @@ window.getPanoMarkerClass = async function() {
 
         /** @return {string} The className or null if not set upon marker creation. */
         getClassName = function() { return this.className_; };
-
-        /** @return {boolean} Whether the marker is clickable. */
-        getClickable = function() { return this.clickable_; };
 
         /** @return {string} The current icon, if any. */
         getIcon = function() { return this.icon_; };
@@ -502,11 +473,6 @@ window.getPanoMarkerClass = async function() {
             if (!!this.marker_) {
                 this.marker_.className = className;
             }
-        };
-
-        /** @param {boolean} clickable Whether the marker shall be clickable. */
-        setClickable = function(clickable) {
-            this.clickable_ = clickable;
         };
 
         /** @param {?string} icon URL to a new icon, or null in order to remove it. */
