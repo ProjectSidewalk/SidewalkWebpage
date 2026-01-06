@@ -71,7 +71,7 @@ async function ExpandedView(uiModal) {
         self.validation_info = $('.gallery-expanded-view-info-validation');
         self.description = $('.gallery-expanded-view-info-description');
         self.header = $('.gallery-expanded-view-header');
-        self.pano = await GalleryPanorama(self.panoHolder);
+        self.panoManager = await PanoManager(self.panoHolder);
         self.closeButton = $('.gallery-expanded-view-close');
         self.leftArrow = $('#prev-label');
         self.leftArrowDisabled = false;
@@ -148,13 +148,14 @@ async function ExpandedView(uiModal) {
         self.timestamps.append(panoTimestampData);
 
         // Add info button to the right of the label timestamp.
-        let getPanoId = sg.expandedView().pano.getPanoId;
-        self.infoPopover = new PanoInfoPopover(self.labelTimestampData, sg.expandedView().pano.panorama,
-            sg.expandedView().pano.getPosition, getPanoId,
+        let getPanoId = sg.panoViewer.getPanoId;
+        self.infoPopover = new PanoInfoPopover(
+            self.labelTimestampData, sg.panoViewer, sg.panoViewer.getPosition, getPanoId,
             function() { return properties['street_edge_id']; }, function() { return properties['region_id']; },
             function() { return properties['image_capture_date']; },
-            function() { return self.pano.panorama.location.shortDescription; }, sg.expandedView().pano.getPov,
-            sg.cityName, false, function() { sg.tracker.push('PanoInfoButton_Click', { panoId: getPanoId() }); },
+            function() { return sg.panoStore.getPanoData(getPanoId()).getProperty('address'); },
+            sg.panoViewer.getPov, sg.cityName, false,
+            function() { sg.tracker.push('PanoInfoButton_Click', { panoId: getPanoId() }); },
             function() { sg.tracker.push('PanoInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
             function() { sg.tracker.push('PanoInfoViewInPano_Click', { panoId: getPanoId() }); },
             function() { return properties['label_id']; }, function() { return properties['label_timestamp']; }
@@ -183,15 +184,19 @@ async function ExpandedView(uiModal) {
      * Performs the actions needed to open the expanded view.
      */
     function openExpandedView() {
+        // Load the pano and then render the label.
+        self.panoManager.setPano(properties.pano_id, properties.pov)
+            .then(() => { self.panoManager.renderLabel(self.label) });
+
+        // Update the text various fields shown below the pano.
         resetExpandedView();
-        self.open = true;
         populateExpandedViewDescriptionFields();
-        self.pano.setPano(properties.pano_id, properties.heading, properties.pitch, properties.zoom);
-        self.pano.renderLabel(self.label);
         self.header.text(i18next.t(util.camelToKebab(properties.label_type)));
 
         // Highlight selected card thumbnail.
         highlightThumbnail(document.getElementById("gallery_card_" + properties.label_id));
+
+        self.open = true;
     }
 
     function highlightThumbnail(galleryCard) {
@@ -234,7 +239,7 @@ async function ExpandedView(uiModal) {
     }
 
     /**
-     * Updates the local variables to the properties of a new label and creates a new GalleryPanoramaLabel object.
+     * Updates the local variables to the properties of a new label and creates a new ExpandedLabel object.
      *
      * @param newProps The new properties to push into the ExpandedView
      */
@@ -247,9 +252,10 @@ async function ExpandedView(uiModal) {
                 properties[attrName] = newProps[attrName];
             }
         }
-        self.label = new GalleryPanoramaLabel(
+        properties.pov = { heading: newProps.heading, pitch: newProps.pitch, zoom: newProps.zoom };
+        self.label = new ExpandedLabel(
             properties.label_id, properties.label_type, properties.original_canvas_x, properties.original_canvas_y,
-            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, properties.heading, properties.pitch, properties.zoom
+            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, properties.pov
         );
 
         self.validationMenu.updateCardProperties(properties);
@@ -350,32 +356,6 @@ async function ExpandedView(uiModal) {
         }
     }
 
-    // Increment zoom by 1 or to the maximum zoom level (3).
-    function zoomIn() {
-        if (self.open) {
-            sg.tracker.push("KeyboardShortcutZoomIn");
-            const panorama = self.pano.panorama;
-            if (panorama) {
-                const currentZoom = panorama.getZoom();
-                const newZoom = Math.min(3, currentZoom + 1);
-                panorama.setZoom(newZoom);
-            }
-        }
-    }
-
-    // Decrement zoom level by 1 or to the minimum zoom level (1).
-    function zoomOut() {
-        if (self.open) {
-            sg.tracker.push("KeyboardShortcutZoomOut");
-            const panorama = self.pano.panorama;
-            if (panorama) {
-                const currentZoom = panorama.getZoom();
-                const newZoom = Math.max(1, currentZoom - 1);
-                panorama.setZoom(newZoom);
-            }
-        }
-    }
-
     /**
      * Attach any specific event handlers for expanded view contents.
       */
@@ -425,8 +405,6 @@ async function ExpandedView(uiModal) {
     self.getProperty = getProperty;
     self.nextLabel = nextLabel;
     self.previousLabel = previousLabel;
-    self.zoomIn = zoomIn;
-    self.zoomOut = zoomOut;
     self.closeExpandedViewAndRemoveCardTransparency = closeExpandedViewAndRemoveCardTransparency;
 
 

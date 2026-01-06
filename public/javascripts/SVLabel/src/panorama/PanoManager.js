@@ -310,7 +310,7 @@ async function PanoManager (panoViewerType, params = {}) {
 
     /**
      * Changes the image pov. If a transition duration is given, smoothly updates the pov over that time.
-     * @param pov Target pov
+     * @param {{heading: number, pitch: number, zoom: number}} pov Target pov
      * @param durationMs Transition duration in milliseconds
      * @param callback Callback function executed after updating pov.
      * @returns {setPov}

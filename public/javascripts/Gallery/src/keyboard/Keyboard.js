@@ -57,9 +57,9 @@ function Keyboard(expandedView) {
                 case "Z":
                     if (expandedView.open) {
                         if (e.shiftKey) {
-                            expandedView.zoomOut();
+                            expandedView.panoManager.zoomOut();
                         } else {
-                            expandedView.zoomIn();
+                            expandedView.panoManager.zoomIn();
                         }
                     }
                     break;

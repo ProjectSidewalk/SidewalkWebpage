@@ -234,14 +234,14 @@ function ValidationMenu(refCard, gsvImage, cardProperties, expandedView, onExpan
             data.canvas_x = Math.round(labelIcon.offsetLeft + labelIcon.getBoundingClientRect().width / 2);
             data.canvas_y = Math.round(labelIcon.offsetTop + labelIcon.getBoundingClientRect().height / 2);
         } else {
-            let currPov = expandedView.pano.panorama.getPov();
+            let currPov = expandedView.panoManager.getPov();
             data.heading = currPov.heading;
             data.pitch = currPov.pitch;
             data.zoom = currPov.zoom;
 
             // For some reason, the usual povToPixel_ route for finding the canvas_x/y isn't working in Gallery, so we
             // are using the actual left/top values for the HTML element instead.
-            let labelIcon = $(expandedView.pano.labelMarker.marker.marker_);
+            let labelIcon = $(expandedView.panoManager.labelMarker.marker.marker_);
             let labelIconRadius = labelIcon.outerWidth() / 2;
             let labelCanvasX = labelIcon.position().left + labelIconRadius;
             let labelCanvasY = labelIcon.position().top + labelIconRadius;

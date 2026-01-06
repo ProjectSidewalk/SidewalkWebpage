@@ -89,6 +89,7 @@ async function CardContainer(uiCardContainer, initialFilters) {
             render();
         });
         // Creates the ExpandedView object in the DOM element currently present.
+        sg.panoStore = new PanoStore();
         expandedView = await ExpandedView($('.gallery-expanded-view'));
         // Add the click event for opening the ExpandedView when a card is clicked.
         sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count', (event) => {

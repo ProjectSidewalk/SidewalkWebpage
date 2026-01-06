@@ -8,6 +8,10 @@
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @common.main(commonData, title, i18Namespaces = Seq("common", "gallery")) {
+    <script src='@assets.path("javascripts/common/pano-viewer/PanoData.js")'></script>
+    <script src='@assets.path("javascripts/common/pano-viewer/PanoStore.js")'></script>
+    <script src='@assets.path("javascripts/common/pano-viewer/PanoViewer.js")'></script>
+    <script src='@assets.path("javascripts/common/pano-viewer/GsvViewer.js")'></script>
     <script src='@assets.path("javascripts/Gallery/build/Gallery.js")'></script>
     <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>

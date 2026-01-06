@@ -26,7 +26,7 @@ async function PanoManager (panoViewerType) {
             mapillaryToken: svv.mapillaryToken,
             linksControl: false,
             // zoomControl: false
-        }
+        };
 
         svv.panoViewer = await panoViewerType.create(panoCanvas, panoOptions);
         if (panoViewerType === GsvViewer) {
@@ -178,12 +178,11 @@ async function PanoManager (panoViewerType) {
         });
     }
 
-
     /**
      * Sets the zoom level for this panorama.
      * @param zoom  Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
      */
-    function setZoom (zoom) {
+    function setZoom(zoom) {
         const currPov = svv.panoViewer.getPov();
         currPov.zoom = zoom;
         svv.panoViewer.setPov(currPov);
