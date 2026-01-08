@@ -118,11 +118,14 @@ function ValidationMenu(referenceCard, gsvImage, expandedView, onExpandedView) {
                 let validationOption = classToValidationOption[newValKey];
 
                 // Submit the new validation.
-                return _validateLabel(validationOption, thumbsClick, keyboardShortcut).then(
-                    // Change the look of the card/expanded view to match the new validation.
-                    () => refCard.updateUserValidation(validationOption)
-                    // TODO show some feedback if the validation fails to upload.
-                );
+                // TODO show some feedback if the validation fails to upload.
+                const labelValidatedPromise = _validateLabel(validationOption, thumbsClick, keyboardShortcut);
+
+                // Change the look of the card/expanded view to match the new validation.
+                // NOTE We're doing this after calling _validateLabel(), bc it uses info that changes in the call below.
+                refCard.updateUserValidation(validationOption);
+
+                return labelValidatedPromise;
             }
         }
     }
