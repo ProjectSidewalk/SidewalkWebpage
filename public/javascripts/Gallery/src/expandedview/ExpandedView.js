@@ -34,29 +34,6 @@ async function ExpandedView(uiModal) {
         }
     });
 
-    // Properties of the label in the card.
-    let properties = {
-        label_id: undefined,
-        label_type: undefined,
-        pano_id: undefined,
-        image_capture_date: undefined,
-        label_timestamp: undefined,
-        heading: undefined,
-        pitch: undefined,
-        zoom: undefined,
-        original_canvas_x: undefined,
-        original_canvas_y: undefined,
-        severity: undefined,
-        description: undefined,
-        street_edge_id: undefined,
-        region_id: undefined,
-        val_counts: undefined,
-        correctness: undefined,
-        user_validation: undefined,
-        ai_validation: undefined,
-        tags: []
-    };
-
     /**
      * Initialization function for the ExpandedView. Serves to bind the DOM elements of the ExpandedView to class
      * variables for future access when populating the fields. It also instantiates the panorama in the specified
@@ -82,7 +59,8 @@ async function ExpandedView(uiModal) {
         self.rightArrow.click(function() { nextLabel(false); });
         self.leftArrow.click(function() { previousLabel(false); });
         self.cardIndex = -1;
-        self.validationMenu = new ValidationMenu(null, self.panoHolder, null, self, true);
+        self.refCard = null;
+        self.validationMenu = new ValidationMenu(null, self.panoHolder, self, true);
 
         attachEventHandlers();
     }
@@ -137,13 +115,17 @@ async function ExpandedView(uiModal) {
      * Populates the information in the expanded view.
      */
     function populateExpandedViewDescriptionFields() {
+        const labelProps = self.refCard.getProperties();
+
         // Add timestamp data for when label was placed and when pano was created.
         self.labelTimestampData = document.createElement('div');
         self.labelTimestampData.className = 'label-timestamp';
-        self.labelTimestampData.innerHTML = `<div>${i18next.t('labeled')}: ${properties.label_timestamp.format('LL, LT')}</div>`;
+        self.labelTimestampData.innerHTML =
+            `<div>${i18next.t('labeled')}: ${labelProps.label_timestamp.format('LL, LT')}</div>`;
         let panoTimestampData = document.createElement('div');
         panoTimestampData.className = 'pano-timestamp';
-        panoTimestampData.innerHTML = `<div>${i18next.t('image-capture-date')}: ${properties.image_capture_date.format('MMM YYYY')}</div>`;
+        panoTimestampData.innerHTML =
+            `<div>${i18next.t('image-capture-date')}: ${labelProps.image_capture_date.format('MMM YYYY')}</div>`;
         self.timestamps.append(self.labelTimestampData);
         self.timestamps.append(panoTimestampData);
 
@@ -151,22 +133,22 @@ async function ExpandedView(uiModal) {
         let getPanoId = sg.panoViewer.getPanoId;
         self.infoPopover = new PanoInfoPopover(
             self.labelTimestampData, sg.panoViewer, sg.panoViewer.getPosition, getPanoId,
-            function() { return properties['street_edge_id']; }, function() { return properties['region_id']; },
-            function() { return properties['image_capture_date']; },
+            function() { return labelProps.street_edge_id; }, function() { return labelProps.region_id; },
+            function() { return labelProps.image_capture_date; },
             function() { return sg.panoStore.getPanoData(getPanoId()).getProperty('address'); },
             sg.panoViewer.getPov, sg.cityName, false,
             function() { sg.tracker.push('PanoInfoButton_Click', { panoId: getPanoId() }); },
             function() { sg.tracker.push('PanoInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
             function() { sg.tracker.push('PanoInfoViewInPano_Click', { panoId: getPanoId() }); },
-            function() { return properties['label_id']; }, function() { return properties['label_timestamp']; }
+            function() { return labelProps.label_id; }, function() { return labelProps.label_timestamp; }
         );
 
         // Add severity, validation info, and tag display to the expanded view.
-        new SeverityDisplay(self.severity, properties.severity, properties.label_type, true);
+        new SeverityDisplay(self.severity, labelProps.severity, labelProps.label_type, true);
         self.validationInfoDisplay = new ValidationInfoDisplay(
-            self.validation_info, properties.val_counts['Agree'], properties.val_counts['Disagree'], properties.ai_validation, true
+            self.validation_info, labelProps.val_counts.Agree, labelProps.val_counts.Disagree, labelProps.ai_validation, true
         );
-        new TagDisplay(self.tags, properties.tags, true);
+        new TagDisplay(self.tags, labelProps.tags, true);
         self.validationMenu.addExpandedViewValInfoOnClicks(self.validationInfoDisplay);
 
         // Add the information about the description of the label to the expanded view.
@@ -175,7 +157,7 @@ async function ExpandedView(uiModal) {
         descriptionHeader.innerHTML = i18next.t("description");
         let descriptionBody = document.createElement('div');
         descriptionBody.className = 'expanded-view-description-body';
-        descriptionBody.textContent = properties.description === null ? i18next.t('no-description') : properties.description;
+        descriptionBody.textContent = labelProps.description === null ? i18next.t('no-description') : labelProps.description;
         self.description.append(descriptionHeader);
         self.description.append(descriptionBody);
     }
@@ -185,16 +167,16 @@ async function ExpandedView(uiModal) {
      */
     function openExpandedView() {
         // Load the pano and then render the label.
-        self.panoManager.setPano(properties.pano_id, properties.pov)
+        self.panoManager.setPano(self.refCard.getProperty('pano_id'), self.refCard.getProperty('pov'))
             .then(() => { self.panoManager.renderLabel(self.label) });
 
         // Update the text various fields shown below the pano.
         resetExpandedView();
         populateExpandedViewDescriptionFields();
-        self.header.text(i18next.t(util.camelToKebab(properties.label_type)));
+        self.header.text(i18next.t(util.camelToKebab(self.refCard.getLabelType())));
 
         // Highlight selected card thumbnail.
-        highlightThumbnail(document.getElementById("gallery_card_" + properties.label_id));
+        highlightThumbnail(document.getElementById("gallery_card_" + self.refCard.getLabelId()));
 
         self.open = true;
     }
@@ -229,7 +211,7 @@ async function ExpandedView(uiModal) {
         let currentPageCards = sg.cardContainer.getCurrentPageCards();
         for (let card of currentPageCards) {
             let cardLabelId = card.getLabelId();
-            if (cardLabelId !== properties.label_id) {
+            if (cardLabelId !== self.refCard.getLabelId()) {
                 let cardDomEl = document.getElementById("gallery_card_" + cardLabelId);
                 if (!cardDomEl.classList.contains(unselectedCardClassName)) {
                     cardDomEl.classList.add(unselectedCardClassName);
@@ -238,32 +220,8 @@ async function ExpandedView(uiModal) {
         }
     }
 
-    /**
-     * Updates the local variables to the properties of a new label and creates a new ExpandedLabel object.
-     *
-     * @param newProps The new properties to push into the ExpandedView
-     */
-    function updateProperties(newProps) {
-        for (const attrName in newProps) {
-            // Add all the properties. Format the timestamps using the moment library.
-            if (attrName === 'label_timestamp' || attrName === 'image_capture_date') {
-                properties[attrName] = moment(newProps[attrName]);
-            } else if (newProps.hasOwnProperty(attrName) && properties.hasOwnProperty(attrName)) {
-                properties[attrName] = newProps[attrName];
-            }
-        }
-        properties.pov = { heading: newProps.heading, pitch: newProps.pitch, zoom: newProps.zoom };
-        self.label = new ExpandedLabel(
-            properties.label_id, properties.label_type, properties.original_canvas_x, properties.original_canvas_y,
-            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, properties.pov
-        );
-
-        self.validationMenu.updateCardProperties(properties);
-        self.validationMenu.updateReferenceCard(sg.cardContainer.getCardByIndex(self.cardIndex));
-    }
-
-    function getProperty(key) {
-        return properties[key];
+    function getReferenceCard() {
+        return self.refCard;
     }
 
     /**
@@ -286,7 +244,14 @@ async function ExpandedView(uiModal) {
         self.rightArrow.prop('disabled', false);
         self.rightArrowDisabled = false;
         self.cardIndex = index;
-        updateProperties(sg.cardContainer.getCardByIndex(index).getProperties());
+        self.refCard = sg.cardContainer.getCardByIndex(self.cardIndex);
+        self.validationMenu.updateReferenceCard(self.refCard);
+        const labelProps = self.refCard.getProperties();
+        self.label = new ExpandedLabel(
+            labelProps.label_id, labelProps.label_type, labelProps.original_canvas_x, labelProps.original_canvas_y,
+            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, labelProps.pov
+        );
+
         openExpandedView();
         if (self.cardIndex === 0) {
             self.leftArrow.prop('disabled', true);
@@ -402,7 +367,7 @@ async function ExpandedView(uiModal) {
 
     self.closeExpandedView = closeExpandedView;
     self.updateCardIndex = updateCardIndex;
-    self.getProperty = getProperty;
+    self.getReferenceCard = getReferenceCard;
     self.nextLabel = nextLabel;
     self.previousLabel = previousLabel;
     self.closeExpandedViewAndRemoveCardTransparency = closeExpandedViewAndRemoveCardTransparency;
