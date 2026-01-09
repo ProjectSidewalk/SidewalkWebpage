@@ -61,8 +61,12 @@ function AdminTask(params) {
                 currentTimestamp = featuresData[0].properties.timestamp;
 
                 // Initialize the pano.
-                if (!self.panorama) self.panorama = await AdminPanorama($('#svholder')[0]);
-                self.panorama.setPano(featuresData[0].properties.panoId, featuresData[0].properties.heading, featuresData[0].properties.pitch, featuresData[0].properties.zoom);
+                if (!self.panoManager) self.panoManager = await AdminPanorama($('#svholder')[0]);
+                self.panoManager.setPano(featuresData[0].properties.panoId, {
+                    heading: featuresData[0].properties.heading,
+                    pitch: featuresData[0].properties.pitch,
+                    zoom: featuresData[0].properties.zoom
+                });
 
                 // Once the map has loaded, add the user marker and layer for the labels.
                 map.on('load', function() {
@@ -127,9 +131,13 @@ function AdminTask(params) {
                 // Update the pano POV.
                 if (currPano === null || currPano !== action.properties.panoId) {
                     currPano = action.properties.panoId;
-                    self.panorama.setPano(action.properties.panoId, action.properties.heading, action.properties.pitch, action.properties.zoom);
+                    self.panoManager.setPano(action.properties.panoId, action.properties.heading, action.properties.pitch, action.properties.zoom);
                 } else {
-                    self.panorama.setPov(action.properties.heading, action.properties.pitch, action.properties.zoom);
+                    self.panoManager.panoViewer.setPov({
+                        heading: action.properties.heading,
+                        pitch: action.properties.pitch,
+                        zoom: action.properties.zoom
+                    });
                 }
 
                 // Update the location of the map.
@@ -150,7 +158,7 @@ function AdminTask(params) {
                         util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
                         action.properties.heading, action.properties.pitch, action.properties.zoom
                     );
-                    self.panorama.renderLabel(adminPanoramaLabel);
+                    self.panoManager.renderLabel(adminPanoramaLabel);
                 }
 
                 // Update the UI for time elapsed.

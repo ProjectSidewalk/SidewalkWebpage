@@ -26,18 +26,25 @@ async function AdminGSVCommentView(admin) {
             '</div>';
 
         self.modal = $(modalText);
-        self.panorama = await AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#button-holder"), admin);
+        self.panoManager = await AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#button-holder"), admin);
     }
 
-    async function showCommentGSV(panoId, heading, pitch, zoom, labelId) {
+    /**
+     * Shows the popup showing the GSV location where a user added a comment, along with a label if there is one.
+     * @param {string} panoId
+     * @param {{heading: number, pitch: number, zoom: number}} pov
+     * @param {number} [labelId]
+     * @returns {Promise<void>}
+     */
+    async function showCommentGSV(panoId, pov, labelId) {
         await _resetModal();
         self.modal.modal({
             'show': true
         });
-        self.panorama.setPano(panoId, heading, pitch, zoom);
+        self.panoManager.setPano(panoId, pov);
 
-        if(labelId) {
-            var adminLabelUrl = admin ? "/adminapi/label/id/" + labelId : "/label/id/" + labelId;
+        if (labelId) {
+            const adminLabelUrl = admin ? '/adminapi/label/id/' + labelId : '/label/id/' + labelId;
             $.getJSON(adminLabelUrl, function (data) {
                 setLabel(data);
             });
@@ -45,10 +52,15 @@ async function AdminGSVCommentView(admin) {
     }
 
     function setLabel(labelMetadata) {
-        var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type'],
-            labelMetadata['canvas_x'], labelMetadata['canvas_y'], util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
-            labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom']);
-        self.panorama.setLabel(adminPanoramaLabel);
+        const labelPov = {
+            heading: labelMetadata.heading,
+            pitch: labelMetadata.pitch,
+            zoom: labelMetadata.zoom
+        }
+        const adminPanoramaLabel = AdminPanoramaLabel(labelMetadata.label_id, labelMetadata.label_type,
+            labelMetadata.canvas_x, labelMetadata.canvas_y, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
+            labelPov);
+        self.panoManager.setLabel(adminPanoramaLabel);
     }
 
     await _init();

@@ -62,6 +62,7 @@
         const panoOptions = {
             // infra3dToken: sg.infra3dToken,
             // mapillaryToken: sg.mapillaryToken,
+            scrollwheel: true,
             clickToGo: true
         };
 
@@ -96,7 +97,6 @@
             self.svHolder.css('visibility', 'visible');
         });
     }
-
 
     /**
      * Refreshes all views for the new pano and saves historic pano metadata.
@@ -139,9 +139,9 @@
      */
     function renderLabel(label) {
         // Get the PanoMarker icon url.
-        const url = icons[label['label_type']];
-        const pos = getPosition(label['canvasX'], label['canvasY'], label['originalCanvasWidth'],
-            label['originalCanvasHeight'], label['pov']);
+        const url = icons[label.label_type];
+        const pos = getPosition(label.canvasX, label.canvasY, label.originalCanvasWidth,
+            label.originalCanvasHeight, label.pov);
         const panoId = sg.panoViewer.getPanoId();
 
         if (!self.labelMarker) {

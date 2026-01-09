@@ -75,7 +75,7 @@ function Main (params) {
 
         svl.navigationService = new NavigationService(svl.neighborhoodModel, svl.ui.streetview);
 
-        svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl.streetViewService, svl, svl.tracker);
+        svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl, svl.tracker);
         svl.taskModel._taskContainer = svl.taskContainer;
         const isTutorialTask = params.task.properties.street_edge_id === params.tutorialStreetId;
         const newTask = new Task(params.task, isTutorialTask, startLat, startLng);

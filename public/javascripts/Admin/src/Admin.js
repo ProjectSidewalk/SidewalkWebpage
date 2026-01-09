@@ -60,11 +60,13 @@ async function Admin(_, $, mapboxApiKey) {
     function initializeAdminGSVCommentWindow(){
         $('#comments-table').on('click', '.show-comment-location', async function(e) {
             e.preventDefault();
-            var heading = parseFloat($(this).data('heading'));
-            var pitch = parseFloat($(this).data('pitch'));
-            var zoom = Number($(this).data('zoom'));
-            var labelId = parseInt($(this).data('labelId'));
-            await self.adminGSVCommentView.showCommentGSV(this.innerHTML, heading, pitch, zoom, labelId);
+            const pov = {
+                heading: parseFloat($(this).data('heading')),
+                pitch: parseFloat($(this).data('pitch')),
+                zoom: Number($(this).data('zoom'))
+            };
+            const labelId = parseInt($(this).data('labelId'));
+            await self.adminGSVCommentView.showCommentGSV(this.innerHTML, pov, labelId);
         });
     }
 

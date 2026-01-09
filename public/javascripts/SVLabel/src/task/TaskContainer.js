@@ -4,11 +4,10 @@
  * TODO This module needs to be cleaned up.
  * TODO Split the responsibilities. Storing tasks should remain here, but other things like fetching data from the server (should go to TaskModel) and rendering segments on a map.
  * @param neighborhoodModel
- * @param streetViewService
  * @param svl
  * @param tracker
  */
-function TaskContainer (neighborhoodModel, streetViewService, svl, tracker) {
+function TaskContainer (neighborhoodModel, svl, tracker) {
     let self = this;
 
     let currentTask = null;
