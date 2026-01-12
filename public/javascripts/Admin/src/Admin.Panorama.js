@@ -183,8 +183,7 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
                 panoViewer: self.panoViewer,
                 position: { heading: pos.heading, pitch: pos.pitch },
                 icon: icons[label['label_type']],
-                size: new google.maps.Size(20, 20),
-                anchor: new google.maps.Point(10, 10)
+                size: { width: 20, height: 20 }
             })
         });
     }

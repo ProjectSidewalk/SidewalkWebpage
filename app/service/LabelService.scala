@@ -48,7 +48,6 @@ trait LabelService {
   ): Future[Seq[LabelForLabelMap]]
   def getGalleryLabels(
       n: Int,
-      viewer: PanoSource,
       labelType: Option[LabelTypeEnum.Base],
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
@@ -180,7 +179,6 @@ class LabelServiceImpl @Inject() (
   /**
    * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
    * @param n Number of labels to grab.
-   * @param viewer            The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param labelType         Label type specifying what type of labels to grab. None will give a mix.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
    * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
@@ -193,7 +191,6 @@ class LabelServiceImpl @Inject() (
    */
   def getGalleryLabels(
       n: Int,
-      viewer: PanoSource,
       labelType: Option[LabelTypeEnum.Base],
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
@@ -203,6 +200,7 @@ class LabelServiceImpl @Inject() (
       aiValOptions: Set[String],
       userId: String
   ): Future[Seq[LabelValidationMetadata]] = {
+    val viewer: PanoSource = PanoSource.withName(config.get[String]("pano-viewer-type"))
 
     // If a label type is specified, get labels for that type. Otherwise, get labels for all types.
     if (labelType.isDefined) {

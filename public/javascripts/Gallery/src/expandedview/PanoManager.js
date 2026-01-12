@@ -154,8 +154,7 @@
                     panoViewer: sg.panoViewer,
                     position: { heading: pos.heading, pitch: pos.pitch },
                     icon: url,
-                    size: new google.maps.Size(22, 22),
-                    anchor: new google.maps.Point(10, 10)
+                    size: { width: 20, height: 20 }
                 })
             };
         } else {

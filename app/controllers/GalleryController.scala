@@ -7,7 +7,6 @@ import formats.json.LabelFormats
 import models.auth.DefaultEnv
 import models.gallery.{GalleryTaskEnvironment, GalleryTaskEnvironmentTable, GalleryTaskInteraction, GalleryTaskInteractionTable}
 import models.label.LabelTypeEnum
-import models.pano.PanoSource
 import models.utils.MyPostgresProfile
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -113,8 +112,7 @@ class GalleryController @Inject() (
 
         // Get labels from LabelTable.
         labelService
-          .getGalleryLabels(n, PanoSource.Gsv, labelType, loadedLabels, valOptions, regionIds, severities, tags,
-            aiValOptions, userId)
+          .getGalleryLabels(n, labelType, loadedLabels, valOptions, regionIds, severities, tags, aiValOptions, userId)
           .map { labels =>
             val jsonList: Seq[JsObject] = labels.map(l =>
               Json.obj(
