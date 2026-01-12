@@ -1,4 +1,4 @@
-async function Admin(_, $, mapboxApiKey) {
+async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
     var self = {};
     var legendTable = document.getElementById('legend-table');
     var sliderNotApplicableText = (legendTable && legendTable.dataset.notApplicableLabel) || "N/A";
@@ -34,7 +34,7 @@ async function Admin(_, $, mapboxApiKey) {
         neighborhoodTooltip: 'none',
         differentiateUnauditedStreets: true,
         interactiveStreets: true,
-        popupLabelViewer: await AdminGSVLabelView(true, "AdminMapTab"),
+        popupLabelViewer: await AdminGSVLabelView(true, viewerType, viewerAccessToken, "AdminMapTab"),
         differentiateExpiredLabels: true,
         logClicks: false
     };
@@ -50,11 +50,11 @@ async function Admin(_, $, mapboxApiKey) {
     }
 
     async function initializeAdminGSVLabelView() {
-        self.adminGSVLabelView = await AdminGSVLabelView(true, "AdminContributionsTab");
+        self.adminGSVLabelView = await AdminGSVLabelView(true, viewerType, viewerAccessToken, "AdminContributionsTab");
     }
 
     async function initializeAdminGSVCommentView(){
-        self.adminGSVCommentView = await AdminGSVCommentView(true);
+        self.adminGSVCommentView = await AdminGSVCommentView(true, viewerType, viewerAccessToken);
     }
 
     function initializeAdminGSVCommentWindow(){
@@ -71,7 +71,7 @@ async function Admin(_, $, mapboxApiKey) {
     }
 
     async function initializeAdminLabelSearch() {
-        self.adminLabelSearch = await AdminLabelSearch(true, 'AdminLabelSearchTab');
+        self.adminLabelSearch = await AdminLabelSearch(true, viewerType, viewerAccessToken, 'AdminLabelSearchTab');
     }
 
     function initializeLabelTable() {

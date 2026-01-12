@@ -3,6 +3,8 @@ package service
 import com.google.inject.ImplementedBy
 import com.typesafe.config.ConfigException
 import models.label.LabelTypeEnum
+import models.pano.PanoSource
+import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile.api._
 import models.utils._
 import play.api.cache.AsyncCacheApi
@@ -32,6 +34,8 @@ case class CommonPageData(
     environmentType: String,
     googleAnalyticsId: String,
     prodUrl: String,
+    imagerySource: PanoSource,
+    imageryAccessToken: String,
     gMapsApiKey: String,
     mapboxApiKey: String,
     versionId: String,
@@ -135,7 +139,8 @@ class ConfigServiceImpl @Inject() (
     cacheApi: AsyncCacheApi,
     ws: WSClient,
     configTable: ConfigTable,
-    versionTable: VersionTable
+    versionTable: VersionTable,
+    panoDataService: PanoDataService
 )(implicit val ec: ExecutionContext)
     extends ConfigService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -589,16 +594,23 @@ class ConfigServiceImpl @Inject() (
   def getCommonPageData(lang: Lang): Future[CommonPageData] = {
     for {
       version: Version <- cacheApi.getOrElseUpdate[Version]("currentVersion")(versionTable.currentVersion())
-      cityId: String             = getCityId
-      envType: String            = config.get[String]("environment-type")
-      googleAnalyticsId: String  = config.get[String](s"city-params.google-analytics-4-id.$envType.$cityId")
-      prodUrl: String            = config.get[String](s"city-params.landing-page-url.prod.$cityId")
+      cityId: String            = getCityId
+      envType: String           = config.get[String]("environment-type")
+      googleAnalyticsId: String = config.get[String](s"city-params.google-analytics-4-id.$envType.$cityId")
+      prodUrl: String           = config.get[String](s"city-params.landing-page-url.prod.$cityId")
+      gMapsApiKey: String       = config.get[String]("google-maps-api-key")
+      imagerySource: PanoSource = PanoSource.withName(config.get[String]("pano-viewer-type"))
+      imageryAccessToken: String <-
+        if (imagerySource == PanoSource.Gsv) Future.successful(gMapsApiKey)
+        else if (imagerySource == PanoSource.Infra3d) panoDataService.getInfra3dToken
+        else if (imagerySource == PanoSource.Mapillary) Future.successful(config.get[String]("mapillary-access-token"))
+        else Future.failed(new Exception("No valid imagery source specified"))
       gMapsApiKey: String        = config.get[String]("google-maps-api-key")
       mapboxApiKey: String       = config.get[String]("mapbox-api-key")
       allCityInfo: Seq[CityInfo] = getAllCityInfo(lang)
     } yield {
-      CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, gMapsApiKey, mapboxApiKey, version.versionId,
-        version.versionStartTime, allCityInfo)
+      CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imagerySource, imageryAccessToken, gMapsApiKey,
+        mapboxApiKey, version.versionId, version.versionStartTime, allCityInfo)
     }
   }
 }

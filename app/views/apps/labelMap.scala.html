@@ -1,6 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
+@import models.pano.PanoSource
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, regionIds: Seq[Int], routeIds: Seq[Int],
     aiValidationOptions: Seq[String]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
@@ -126,7 +127,15 @@
     <script src='@assets.path("javascripts/common/pano-viewer/PanoData.js")'></script>
     <script src='@assets.path("javascripts/common/pano-viewer/PanoViewer.js")'></script>
     <script src='@assets.path("javascripts/common/pano-viewer/GsvViewer.js")'></script>
-    <script src='@assets.path("javascripts/common/Panomarker.js")'></script>
+    <script src='@assets.path("javascripts/common/pano-viewer/Infra3dViewer.js")'></script>
+    <script src='@assets.path("javascripts/common/pano-viewer/MapillaryViewer.js")'></script>
+    @if(commonData.imagerySource == PanoSource.Infra3d) {
+        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("javascripts/lib/infra3dapi-1.5.0.js")'></script>
+    } else if (commonData.imagerySource == PanoSource.Mapillary) {
+        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+    }
     <script src='@assets.path("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
     <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
     <script>updateTimestamps("@messages.lang.code");</script>
@@ -140,6 +149,10 @@
     <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
 
     <script>
+        const imagerySrc = "@commonData.imagerySource.toString";
+        const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+        const accessToken = "@commonData.imageryAccessToken";
+
         // Gets all translations before loading the choropleth.
         window.appManager.ready(async function () {
             let params = {
@@ -153,7 +166,7 @@
                 neighborhoodTooltip: 'none',
                 differentiateUnauditedStreets: true,
                 interactiveStreets: true,
-                popupLabelViewer: await AdminGSVLabelView(false, "LabelMap"),
+                popupLabelViewer: await AdminGSVLabelView(false, viewerType, accessToken, "LabelMap"),
                 differentiateExpiredLabels: true
             };
             params.neighborhoodsURL = new URL('/neighborhoods', window.location.origin);

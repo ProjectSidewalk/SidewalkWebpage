@@ -25,7 +25,7 @@ class MapillaryViewer extends PanoViewer {
 
     async initialize(canvasElem, panoOptions = {}) {
         this.viewer = new mapillary.Viewer({
-            accessToken: panoOptions.mapillaryToken,
+            accessToken: panoOptions.accessToken,
             container: canvasElem.id,
             // imageId: '<your image ID for initializing the viewer>',
             component: {
@@ -140,8 +140,7 @@ class MapillaryViewer extends PanoViewer {
         ];
 
         const params = new URLSearchParams({
-            access_token: svl.mapillaryToken,
-            // access_token: svv.accessToken,
+            access_token: this.viewer._navigator._api._data._accessToken,
             fields: 'id,geometry,computed_geometry,captured_at,sequence,width,camera_type,computed_rotation,detections.value',
             is_pano: 'true',
             bbox: boundingBox,

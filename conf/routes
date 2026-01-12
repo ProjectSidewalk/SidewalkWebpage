@@ -15,7 +15,7 @@ GET     /labelingGuide/surfaceProblems                  controllers.ApplicationC
 GET     /labelingGuide/obstacles                        controllers.ApplicationController.labelingGuideObstacles
 GET     /labelingGuide/noSidewalk                       controllers.ApplicationController.labelingGuideNoSidewalk
 GET     /labelingGuide/occlusion                        controllers.ApplicationController.labelingGuideOcclusion
-GET     /mobile                                         controllers.ValidateController.mobileValidate(viewerType: Option[String] ?= None, neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
+GET     /mobile                                         controllers.ValidateController.mobileValidate(neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
 GET     /leaderboard                                    controllers.ApplicationController.leaderboard
 GET     /serviceHoursInstructions                       controllers.ApplicationController.serviceHoursInstructions
 GET     /timeCheck                                      controllers.ApplicationController.timeCheck
@@ -89,7 +89,7 @@ GET     /labels/all                                     controllers.AdminControl
 GET     /label/id/:labelId                              controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks
-GET     /explore                                        controllers.ExploreController.explore(viewerType: Option[String] ?= None, newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
+GET     /explore                                        controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
 GET     /explore/recalculateStreetPriority              controllers.AdminController.recalculateStreetPriority
 POST    /explore/comment                                controllers.ExploreController.postComment
 POST    /explore/nostreetview                           controllers.ExploreController.postNoImagery
@@ -98,13 +98,13 @@ POST    /survey                                         controllers.ExploreContr
 GET     /neighborhoodMissions                           controllers.ExploreController.getUserMissionsInRegion(regionId: Int)
 
 # Exploring task reroutes from old names.
-GET     /audit                                          controllers.ExploreController.explore(viewerType: Option[String] ?= None, newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
+GET     /audit                                          controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
 
 # Label validation tasks
-GET     /validate                                       controllers.ValidateController.validate(viewerType: Option[String] ?= None, neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
-GET     /expertValidate                                 controllers.ValidateController.expertValidate(viewerType: Option[String] ?= None, labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
-GET     /newValidateBeta                                controllers.ValidateController.expertValidate(viewerType: Option[String] ?= None, labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
-GET     /adminValidate                                  controllers.ValidateController.adminValidate(viewerType: Option[String] ?= None, labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
+GET     /validate                                       controllers.ValidateController.validate(neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
+GET     /expertValidate                                 controllers.ValidateController.expertValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
+GET     /newValidateBeta                                controllers.ValidateController.expertValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
+GET     /adminValidate                                  controllers.ValidateController.adminValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
 
 # Task API
 GET     /tasks                                          controllers.ExploreController.getTasksInARegion(regionId: Int)
@@ -123,7 +123,7 @@ POST    /labelmap/comment                               controllers.ValidateCont
 GET     /label/tags                                     controllers.LabelController.getLabelTags
 GET     /label/resumeMission                            controllers.LabelController.getLabelsToResumeMission(regionId: Int)
 POST    /label/labels                                   controllers.GalleryController.getLabels
-POST    /label/geo/random/:labelType/:labelId           controllers.ValidateController.getRandomLabelData(viewer: String, labelType: Int, labelId: Int)
+POST    /label/geo/random/:labelType/:labelId           controllers.ValidateController.getRandomLabelData(labelType: Int, labelId: Int)
 
 # Neighborhoods
 GET     /neighborhoods                                  controllers.RegionController.listNeighborhoods(regions: Option[String] ?= None)

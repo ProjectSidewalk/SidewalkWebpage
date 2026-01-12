@@ -1,10 +1,13 @@
 /**
  * Holds the list of labels to be validated, and distributes them to the panoramas that are on the page. Fetches labels
  * from the backend and converts them into Labels that can be placed onto the Panorama.
+ *
+ * @param panoViewerType The type of pano viewer to initialize
+ * @param viewerAccessToken An access token used to request images for the pano viewer
  * @returns {PanoManager}
  * @constructor
  */
-async function PanoManager (panoViewerType) {
+async function PanoManager (panoViewerType, viewerAccessToken) {
     let properties = {
         prevSetPanoTimestamp: new Date(), // TODO I think that this is just used to estimate if the pano loaded (we give it 500 ms), but we should use promises.
     };
@@ -22,10 +25,8 @@ async function PanoManager (panoViewerType) {
     async function _init() {
         // Load the pano viewer.
         const panoOptions = {
-            infra3dToken: svv.infra3dToken,
-            mapillaryToken: svv.mapillaryToken,
-            linksControl: false,
-            // zoomControl: false
+            accessToken: viewerAccessToken,
+            linksControl: false
         };
 
         svv.panoViewer = await panoViewerType.create(panoCanvas, panoOptions);

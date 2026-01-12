@@ -3,10 +3,12 @@
  *
  * @param {*} uiCardContainer UI element tied with this CardContainer.
  * @param initialFilters Object containing initial set of filters in sidebar.
+ * @param panoViewerType The type of pano viewer to initialize
+ * @param viewerAccessToken An access token used to request images for the pano viewer
  * @returns {CardContainer}
  * @constructor
  */
-async function CardContainer(uiCardContainer, initialFilters) {
+async function CardContainer(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken) {
     let self = this;
 
     // The number of labels to grab from database on initial page load.
@@ -90,7 +92,7 @@ async function CardContainer(uiCardContainer, initialFilters) {
         });
         // Creates the ExpandedView object in the DOM element currently present.
         sg.panoStore = new PanoStore();
-        expandedView = await ExpandedView($('.gallery-expanded-view'));
+        expandedView = await ExpandedView($('.gallery-expanded-view'), panoViewerType, viewerAccessToken);
         // Add the click event for opening the ExpandedView when a card is clicked.
         sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count', (event) => {
             $('.gallery-expanded-view').css('display', 'flex');

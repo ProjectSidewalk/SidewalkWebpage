@@ -4,10 +4,12 @@
  * @param svHolder One single DOM element.
  * @param buttonHolder DOM element that holds the validation buttons.
  * @param admin Boolean value that indicates if the user is an admin.
+ * @param {typeof PanoViewer} viewerType The type of pano viewer to initialize.
+ * @param {string} viewerAccessToken An access token used to request images for the pano viewer.
  * @returns {{className: string}}
  * @constructor
  */
-async function AdminPanorama(svHolder, buttonHolder, admin) {
+async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAccessToken) {
     var self = {
         className: "AdminPanorama",
         label: undefined,
@@ -71,12 +73,11 @@ async function AdminPanorama(svHolder, buttonHolder, admin) {
 
         // Load the pano viewer.
         const panoOptions = {
-            // infra3dToken: infra3dToken,
-            // mapillaryToken: mapillaryToken,
+            accessToken: viewerAccessToken,
             scrollwheel: true,
             clickToGo: !!admin // Only allow clickToGo on admin version, not on normal LabelMap.
         };
-        self.panoViewer = await GsvViewer.create(self.panoCanvas, panoOptions);
+        self.panoViewer = await viewerType.create(self.panoCanvas, panoOptions);
 
         self.panoViewer.addListener('pano_changed', function() {
             // Only show the label if we're looking at the correct pano.
@@ -127,18 +128,21 @@ async function AdminPanorama(svHolder, buttonHolder, admin) {
         $(self.panoNotAvailableDetails).css('display', 'none');
         $(self.panoNotAvailableAuditSuggestion).css('display', 'none');
         $(self.buttonHolder).css('display', 'block');
-        // self.svHolder.css('visibility', 'visible');
 
         // There is a bug that can sometimes cause Google's panos to go black when you load a new one. We can deal with
         // it by triggering a resize event after a short delay. This seems to only be an issue with the label popup, not
         // with Explore/Gallery/Validate. Probably because of how we show/hide the popup.
         return new Promise((resolve) => {
-            setTimeout(() => {
-                google.maps.event.trigger(self.panoViewer.panorama, 'resize');
-                self.panoViewer.setPov(targetPov);
-                if (self.label) renderLabel(self.label);
+            if (viewerType === GsvViewer) {
+                setTimeout(() => {
+                    google.maps.event.trigger(self.panoViewer.panorama, 'resize');
+                    self.panoViewer.setPov(targetPov);
+                    if (self.label) renderLabel(self.label);
+                    resolve();
+                }, 250);
+            } else {
                 resolve();
-            }, 250);
+            }
         });
     }
 

@@ -61,7 +61,7 @@ function AdminTask(params) {
                 currentTimestamp = featuresData[0].properties.timestamp;
 
                 // Initialize the pano.
-                if (!self.panoManager) self.panoManager = await AdminPanorama($('#svholder')[0]);
+                if (!self.panoManager) self.panoManager = await AdminPanorama($('#svholder')[0], null, true, params.viewerType, params.viewerAccessToken);
                 self.panoManager.setPano(featuresData[0].properties.panoId, {
                     heading: featuresData[0].properties.heading,
                     pitch: featuresData[0].properties.pitch,

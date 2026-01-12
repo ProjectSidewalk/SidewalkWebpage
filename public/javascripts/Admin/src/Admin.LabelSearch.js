@@ -1,6 +1,6 @@
-async function AdminLabelSearch(isAdmin, source) {
+async function AdminLabelSearch(isAdmin, viewerType, viewerAccessToken, source) {
     async function _init() {
-        self.adminGSVLabelView = await AdminGSVLabelView(isAdmin, source);
+        self.adminGSVLabelView = await AdminGSVLabelView(isAdmin, viewerType, viewerAccessToken, source);
     }
 
     // Prevents the page from refreshing when the enter key is pressed.

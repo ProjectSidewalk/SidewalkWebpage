@@ -76,7 +76,7 @@ async function Main (params) {
 
         // sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
         sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu, params.initialFilters);
-        sg.cardContainer = await CardContainer(sg.ui.cardContainer, params.initialFilters);
+        sg.cardContainer = await CardContainer(sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken);
         sg.expandedView = sg.cardContainer.getExpandedView;
 
         // Initialize Keyboard to activate keyboard shortcuts.

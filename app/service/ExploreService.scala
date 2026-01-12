@@ -19,6 +19,7 @@ import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.{Configuration, Logger}
+
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
@@ -33,7 +34,6 @@ case class ExplorePageData(
     nextTempLabelId: Int,
     surveyData: Seq[SurveyQuestionWithOptions],
     tutorialStreetId: Int,
-    viewerType: PanoSource,
     makeCrops: Boolean
 )
 case class ExploreTaskPostReturnValue(
@@ -50,7 +50,6 @@ case class UpdatedStreets(lastPriorityUpdateTime: OffsetDateTime, updatedStreetP
 trait ExploreService {
   def getDataForExplorePage(
       userId: String,
-      viewerType: Option[PanoSource],
       retakingTutorial: Boolean,
       newRegion: Boolean,
       routeId: Option[Int],
@@ -144,7 +143,6 @@ class ExploreServiceImpl @Inject() (
 
   def getDataForExplorePage(
       userId: String,
-      viewerType: Option[PanoSource],
       retakingTutorial: Boolean,
       newRegion: Boolean,
       routeId: Option[Int],
@@ -248,9 +246,8 @@ class ExploreServiceImpl @Inject() (
       makeCrops: Boolean                         <- configTable.getMakeCrops
     } yield {
       // Use passed in viewer type, or default to viewer in configs.
-      val viewer = viewerType.getOrElse(PanoSource.withName(config.get[String]("pano-viewer-type")))
       ExplorePageData(task, updatedMission, region.get, userRoute, hasCompletedAMission, nextTempLabelId, surveyData,
-        tutorialStreetId, viewer, makeCrops)
+        tutorialStreetId, makeCrops)
     }
     db.run(getExploreDataAction.transactionally)
   }
@@ -618,8 +615,8 @@ class ExploreServiceImpl @Inject() (
       } else DBIO.successful(0)
 
       // Insert any labels.
-      val labelSubmitActions: Seq[DBIO[Option[(Int, Int, LabelTypeEnum.Base, PanoSource, OffsetDateTime)]]] = data.labels.map {
-        label: LabelSubmission =>
+      val labelSubmitActions: Seq[DBIO[Option[(Int, Int, LabelTypeEnum.Base, PanoSource, OffsetDateTime)]]] =
+        data.labels.map { label: LabelSubmission =>
           val labelTypeId: Int = LabelTypeEnum.labelTypeToId(label.labelType)
           labelTable.find(label.temporaryLabelId, userId).flatMap {
             case Some(existingLabel) =>
@@ -643,7 +640,7 @@ class ExploreServiceImpl @Inject() (
             // If there is no existing label with this temp id, insert a new one.
             case None => insertLabel(label, userId, auditTaskId, streetEdgeId, missionId).map(Some(_))
           }
-      }
+        }
 
       // Check for streets in the user's neighborhood that have been audited by other users while they were auditing.
       val updatedStreetsAction: DBIO[Option[UpdatedStreets]] =

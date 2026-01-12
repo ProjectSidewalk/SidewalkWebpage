@@ -1,4 +1,12 @@
-async function PanoManager (panoViewerType, params = {}) {
+/**
+ *
+ * @param panoViewerType The type of pano viewer to initialize
+ * @param viewerAccessToken An access token used to request images for the pano viewer
+ * @param params
+ * @returns {Promise<PanoManager>}
+ * @constructor
+ */
+async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
     let panoCanvas = document.getElementById('pano');
     let status = {
         bottomLinksClickable: false,
@@ -28,8 +36,7 @@ async function PanoManager (panoViewerType, params = {}) {
      */
     async function _init() {
         const panoOptions = {
-            infra3dToken: svl.infra3dToken,
-            mapillaryToken: svl.mapillaryToken,
+            accessToken: viewerAccessToken,
             keyboardShortcuts: true
         }
 
@@ -60,8 +67,7 @@ async function PanoManager (panoViewerType, params = {}) {
         } else if ('startPanoId' in params) {
             await setPanorama(params.startPanoId);
         } else if ('startLat' in params && 'startLng' in params) {
-            await setLocation({lat: params.startLat, lng: params.startLng });
-            // await setLocation({lat: 47.66374856411, lng: -122.28224790652 });
+            await setLocation({ lat: params.startLat, lng: params.startLng });
         }
 
         // TODO we probably need to do this for any viewer type...

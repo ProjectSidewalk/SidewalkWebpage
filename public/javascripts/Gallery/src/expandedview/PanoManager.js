@@ -2,9 +2,11 @@
  * A holder class that inserts a pano into the supplied DOM element.
  *
  * @param {HTMLElement} svHolder The DOM element that the pano will be placed in.
+ * @param panoViewerType The type of pano viewer to initialize
+ * @param viewerAccessToken An access token used to request images for the pano viewer.
  * @returns {PanoManager} The gallery panorama that was generated.
  */
- async function PanoManager(svHolder) {
+ async function PanoManager(svHolder, panoViewerType, viewerAccessToken) {
     let self = {
         className: "PanoManager",
         labelMarker: undefined,
@@ -60,13 +62,12 @@
 
         // Load the pano viewer.
         const panoOptions = {
-            // infra3dToken: sg.infra3dToken,
-            // mapillaryToken: sg.mapillaryToken,
+            accessToken: viewerAccessToken,
             scrollwheel: true,
             clickToGo: true
         };
 
-        sg.panoViewer = await GsvViewer.create(self.panoCanvas, panoOptions);
+        sg.panoViewer = await panoViewerType.create(self.panoCanvas, panoOptions);
 
         sg.panoViewer.addListener('pano_changed', function() {
             // We always want to update panoId when pano changes (as it is possible the pano changes

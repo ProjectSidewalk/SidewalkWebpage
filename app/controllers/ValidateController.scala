@@ -18,6 +18,7 @@ import play.api.Configuration
 import play.api.libs.json._
 import play.api.mvc.Result
 import service.ValidationSubmission
+
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -43,27 +44,24 @@ class ValidateController @Inject() (
 
   /**
    * Returns the validation page.
-   * @param viewerType      The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    */
-  def validate(viewerType: Option[String], neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) =
+  def validate(neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) =
     cc.securityService.SecuredAction { implicit request =>
-      checkParams(adminVersion = false, viewerType, None, None, neighborhoods, unvalidatedOnly).flatMap {
+      checkParams(adminVersion = false, None, None, neighborhoods, unvalidatedOnly).flatMap {
         case (validateParams, response) =>
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
             for {
               (mission, labelList, missionProgress, hasNextMission, completedVals) <-
                 getDataForValidatePages(user, labelCount = 10, validateParams)
-              commonPageData       <- configService.getCommonPageData(request2Messages.lang)
-              infra3dToken: String <- panoDataService.getInfra3dToken
+              commonPageData <- configService.getCommonPageData(request2Messages.lang)
             } yield {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Validate")
-              val mapillaryToken = config.get[String]("mapillary-access-token")
               Ok(
                 views.html.apps.validate(commonPageData, "Sidewalk - Validate", user, validateParams, mission,
-                  labelList, missionProgress, hasNextMission, completedVals, mapillaryToken, infra3dToken)
+                  labelList, missionProgress, hasNextMission, completedVals)
               )
             }
           } else {
@@ -74,37 +72,32 @@ class ValidateController @Inject() (
 
   /**
    * Returns the new validate beta page, optionally with some admin filters.
-   * @param viewerType      The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param labelType       Label type or label type ID to validate.
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    */
   def expertValidate(
-      viewerType: Option[String],
       labelType: Option[String],
       users: Option[String],
       neighborhoods: Option[String],
       unvalidatedOnly: Option[Boolean]
   ) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-      checkParams(adminVersion = true, viewerType, labelType, users, neighborhoods, unvalidatedOnly).flatMap {
+      checkParams(adminVersion = true, labelType, users, neighborhoods, unvalidatedOnly).flatMap {
         case (validateParams, response) =>
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
             for {
               (mission, labelList, missionProgress, hasNextMission, completedVals) <-
                 getDataForValidatePages(user, labelCount = 10, validateParams)
-              commonPageData       <- configService.getCommonPageData(request2Messages.lang)
-              infra3dToken: String <- panoDataService.getInfra3dToken
-              tags: Seq[Tag]       <- labelService.getTagsForCurrentCity
+              commonPageData <- configService.getCommonPageData(request2Messages.lang)
+              tags: Seq[Tag] <- labelService.getTagsForCurrentCity
             } yield {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_ExpertValidate")
-              val mapillaryToken = config.get[String]("mapillary-access-token")
               Ok(
                 views.html.apps.expertValidate(commonPageData, "Sidewalk - Expert Validate", user, validateParams,
-                  mission, labelList, missionProgress, hasNextMission, completedVals, mapillaryToken, infra3dToken,
-                  tags)
+                  mission, labelList, missionProgress, hasNextMission, completedVals, tags)
               )
             }
           } else {
@@ -115,13 +108,12 @@ class ValidateController @Inject() (
 
   /**
    * Returns the validation page for mobile.
-   * @param viewerType      The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    */
-  def mobileValidate(viewerType: Option[String], neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) =
+  def mobileValidate(neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) =
     cc.securityService.SecuredAction { implicit request =>
-      checkParams(adminVersion = false, viewerType, None, None, neighborhoods, unvalidatedOnly).flatMap {
+      checkParams(adminVersion = false, None, None, neighborhoods, unvalidatedOnly).flatMap {
         case (validateParams, response) =>
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
@@ -131,18 +123,16 @@ class ValidateController @Inject() (
                 labelCount = 10,
                 validateParams
               )
-              commonPageData       <- configService.getCommonPageData(request2Messages.lang)
-              infra3dToken: String <- panoDataService.getInfra3dToken
+              commonPageData <- configService.getCommonPageData(request2Messages.lang)
             } yield {
               if (!isMobile(request)) {
                 cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate_RedirectHome")
                 Redirect("/")
               } else {
-                val mapillaryToken = config.get[String]("mapillary-access-token")
                 cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
                 Ok(
                   views.html.apps.mobileValidate(commonPageData, "Sidewalk - Validate", user, validateParams, mission,
-                    labelList, missionProgress, hasNextMission, completedVals, mapillaryToken, infra3dToken)
+                    labelList, missionProgress, hasNextMission, completedVals)
                 )
               }
             }
@@ -154,35 +144,31 @@ class ValidateController @Inject() (
 
   /**
    * Returns an admin version of the validation page.
-   * @param viewerType      The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param labelType       Label type or label type ID to validate.
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    */
   def adminValidate(
-      viewerType: Option[String],
       labelType: Option[String],
       users: Option[String],
       neighborhoods: Option[String],
       unvalidatedOnly: Option[Boolean]
   ) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-      checkParams(adminVersion = true, viewerType, labelType, users, neighborhoods, unvalidatedOnly).flatMap {
+      checkParams(adminVersion = true, labelType, users, neighborhoods, unvalidatedOnly).flatMap {
         case (validateParams, response) =>
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
             for {
               (mission, labelList, missionProgress, hasNextMission, completedVals) <-
                 getDataForValidatePages(user, labelCount = 10, validateParams)
-              commonPageData       <- configService.getCommonPageData(request2Messages.lang)
-              infra3dToken: String <- panoDataService.getInfra3dToken
+              commonPageData <- configService.getCommonPageData(request2Messages.lang)
             } yield {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_AdminValidate")
-              val mapillaryToken = config.get[String]("mapillary-access-token")
               Ok(
                 views.html.apps.validate(commonPageData, "Sidewalk - AdminValidate", user, validateParams, mission,
-                  labelList, missionProgress, hasNextMission, completedVals, mapillaryToken, infra3dToken)
+                  labelList, missionProgress, hasNextMission, completedVals)
               )
             }
           } else {
@@ -194,7 +180,6 @@ class ValidateController @Inject() (
   /**
    * Checks filtering parameters passed into the validate endpoints, and returns an error message if any are invalid.
    * @param adminVersion    Boolean indicating whether the admin version of the page is being shown.
-   * @param viewerType      The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param labelType       Label type or label type ID to validate.
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
@@ -202,7 +187,6 @@ class ValidateController @Inject() (
    */
   def checkParams(
       adminVersion: Boolean,
-      viewerType: Option[String],
       labelType: Option[String],
       users: Option[String],
       neighborhoods: Option[String],
@@ -211,9 +195,6 @@ class ValidateController @Inject() (
     // If any inputs are invalid, send back error message. For each input, we check if the input is an integer
     // representing a valid ID (label_type_id, user_id, or region_id) or a String representing a valid name for that
     // parameter (label_type, username, or region_name).
-    val parsedViewerType: Option[Option[PanoSource]] = viewerType.map { vType =>
-      Try(PanoSource.withName(vType)).toOption
-    }
     val parsedLabelType: Option[Option[LabelTypeEnum.Base]] = labelType.map { lType =>
       val lTypeFromId: Option[LabelTypeEnum.Base]   = lType.toIntOption.flatMap(LabelTypeEnum.byId.get)
       val lTypeFromName: Option[LabelTypeEnum.Base] = LabelTypeEnum.byName.get(lType)
@@ -262,34 +243,26 @@ class ValidateController @Inject() (
         case None            => Future.successful(None)
       }
     } yield {
-      // If a pano viewer type was passed in correctly then use it, otherwise default to Gsv.
-      val viewer: PanoSource = parsedViewerType.flatten.getOrElse(PanoSource.Gsv)
-
       // Return a BadRequest if anything is wrong, or the ValidateParams if everything looks good.
-      if (parsedViewerType.isDefined && parsedViewerType.get.isEmpty) {
+      if (parsedLabelType.isDefined && parsedLabelType.get.isEmpty) {
         (
-          ValidateParams(adminVersion, viewer),
-          BadRequest(s"Invalid viewer type provided: ${viewerType.get}. Valid viewer types are: ${PanoSource.values.mkString(", ")}.")
-        )
-      } else if (parsedLabelType.isDefined && parsedLabelType.get.isEmpty) {
-        (
-          ValidateParams(adminVersion, viewer),
+          ValidateParams(adminVersion),
           BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeEnum.primaryLabelTypeNames.mkString(", ")}. Or you can use their IDs: ${LabelTypeEnum.primaryLabelTypeIds.mkString(", ")}.")
         )
       } else if (userIds.isDefined && userIds.get.length != userIds.get.flatten.length) {
         (
-          ValidateParams(adminVersion, viewer),
+          ValidateParams(adminVersion),
           BadRequest(s"One or more of the users provided were not found; please double check your list of users! You can use either their usernames or user IDs. You provided: ${users.get}")
         )
       } else if (regionIds.isDefined && regionIds.get.length != regionIds.get.flatten.length) {
         (
-          ValidateParams(adminVersion, viewer),
+          ValidateParams(adminVersion),
           BadRequest(s"One or more of the neighborhoods provided were not found; please double check your list of neighborhoods! You can use either their names or IDs. You provided: ${neighborhoods.get}")
         )
       } else {
         (
           ValidateParams(
-            adminVersion, viewer, parsedLabelType.flatten, userIds.map(_.flatten), regionIds.map(_.flatten),
+            adminVersion, parsedLabelType.flatten, userIds.map(_.flatten), regionIds.map(_.flatten),
             unvalidatedOnly.getOrElse(false)
           ),
           Ok("")
@@ -534,12 +507,11 @@ class ValidateController @Inject() (
    * Gets the metadata for a single random label in the database. Excludes labels that were originally placed by the
    * user, labels that have already appeared on the interface, and the label that was just skipped.
    *
-   * @param viewer    The type of pano viewer the labels must have been added on (GSV, Mapillary, etc)
    * @param labelTypeId    Label Type ID this label should have
    * @param skippedLabelId Label ID of the label that was just skipped
    * @return Label metadata containing pano metadata and label type
    */
-  def getRandomLabelData(viewer: String, labelTypeId: Int, skippedLabelId: Int) =
+  def getRandomLabelData(labelTypeId: Int, skippedLabelId: Int) =
     cc.securityService.SecuredAction(parse.json) { implicit request =>
       val submission = request.body.validate[SkipLabelSubmission]
       submission.fold(
@@ -547,16 +519,17 @@ class ValidateController @Inject() (
         submission => {
           val validateParams: ValidateParams =
             if (submission.validateParams.adminVersion && isAdmin(request.identity)) submission.validateParams
-            else ValidateParams(adminVersion = false, PanoSource.withName(viewer))
-          val userId: String = request.identity.userId
+            else ValidateParams(adminVersion = false)
+          val userId: String         = request.identity.userId
+          val viewerType: PanoSource = PanoSource.withName(config.get[String]("pano-viewer-type"))
 
           // Get metadata for one new label to replace the skipped one.
           // TODO should really exclude all remaining labels in the mission, not just the skipped one. Not bothering now
           //      because it isn't a heavily used feature, and it's a rare edge case.
           labelService
-            .retrieveLabelListForValidation(userId, n = 1, validateParams.viewer, labelTypeId,
-              validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
-              validateParams.unvalidatedOnly, skippedLabelId = Some(skippedLabelId))
+            .retrieveLabelListForValidation(userId, n = 1, viewerType, labelTypeId, validateParams.userIds.map(_.toSet),
+              validateParams.neighborhoodIds.map(_.toSet), validateParams.unvalidatedOnly,
+              skippedLabelId = Some(skippedLabelId))
             .flatMap { labelMetadata =>
               if (validateParams.adminVersion) {
                 labelService

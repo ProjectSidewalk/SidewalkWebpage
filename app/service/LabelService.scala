@@ -13,8 +13,8 @@ import models.user.SidewalkUserWithRole
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ExcludedTag, MyPostgresProfile}
 import models.validation.LabelValidationTable
-import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
 
 import java.time.OffsetDateTime
@@ -97,6 +97,7 @@ trait LabelService {
 @Singleton
 class LabelServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
+    config: Configuration,
     configService: ConfigService,
     panoDataService: PanoDataService,
     labelTable: LabelTable,
@@ -395,7 +396,8 @@ class LabelServiceImpl @Inject() (
       validateParams: ValidateParams
   ): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
     // TODO can this be merged with `getDataForValidatePostRequest`?
-    getLabelTypeIdToValidate(user.userId, labelCount, validateParams.viewer, validateParams.labelType).flatMap {
+    val viewerType: PanoSource = PanoSource.withName(config.get[String]("pano-viewer-type"))
+    getLabelTypeIdToValidate(user.userId, labelCount, viewerType, validateParams.labelType).flatMap {
       case Some(labelTypeId) =>
         for {
           mission: Mission <- missionService
@@ -407,8 +409,8 @@ class LabelServiceImpl @Inject() (
           labelsProgress: Int   = mission.labelsProgress.get
           labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
           labelsToRetrieve: Int = labelsToValidate - labelsProgress
-          labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, validateParams.viewer,
-            labelTypeId, validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
+          labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, viewerType, labelTypeId,
+            validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
             validateParams.unvalidatedOnly)
           adminData <- {
             if (validateParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
@@ -434,11 +436,12 @@ class LabelServiceImpl @Inject() (
       validateParams: ValidateParams
   ): Future[ValidationTaskPostReturnValue] = {
     // TODO can this be merged with `getDataForValidationPages`?
-    val labelsToRetrieve: Int = MissionTable.validationMissionLabelsToRetrieve
+    val viewerType: PanoSource = PanoSource.withName(config.get[String]("pano-viewer-type"))
+    val labelsToRetrieve: Int  = MissionTable.validationMissionLabelsToRetrieve
     (for {
       nextMissionLabelTypeId <- {
         if (missionProgress.exists(_.completed))
-          getLabelTypeIdToValidate(user.userId, labelsToRetrieve, validateParams.viewer, validateParams.labelType)
+          getLabelTypeIdToValidate(user.userId, labelsToRetrieve, viewerType, validateParams.labelType)
         else Future.successful(Option.empty[Int])
       }
     } yield {
@@ -451,7 +454,7 @@ class LabelServiceImpl @Inject() (
               Some(nextMissionLabelTypeId)
             )
             labelList: Seq[LabelValidationMetadata] <- retrieveLabelListForValidation(user.userId, labelsToRetrieve,
-              validateParams.viewer, nextMissionLabelTypeId, validateParams.userIds.map(_.toSet),
+              viewerType, nextMissionLabelTypeId, validateParams.userIds.map(_.toSet),
               validateParams.neighborhoodIds.map(_.toSet), validateParams.unvalidatedOnly)
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))

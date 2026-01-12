@@ -1,4 +1,4 @@
-async function AdminGSVCommentView(admin) {
+async function AdminGSVCommentView(admin, viewerType, viewerAccessToken) {
     var self = {};
     self.admin = admin;
 
@@ -26,7 +26,7 @@ async function AdminGSVCommentView(admin) {
             '</div>';
 
         self.modal = $(modalText);
-        self.panoManager = await AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#button-holder"), admin);
+        self.panoManager = await AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#button-holder"), admin, viewerType, viewerAccessToken);
     }
 
     /**

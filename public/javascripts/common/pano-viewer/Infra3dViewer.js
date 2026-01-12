@@ -11,7 +11,7 @@ class Infra3dViewer extends PanoViewer {
     }
 
     async initialize(canvasElem, panoOptions = {}) {
-        const manager = await infra3dapi.init(canvasElem.id, panoOptions.infra3dToken);
+        const manager = await infra3dapi.init(canvasElem.id, panoOptions.accessToken);
         const fetchedProjects = await manager.getProjects();
         console.log(fetchedProjects);
         const projectUID = fetchedProjects[0].uid;

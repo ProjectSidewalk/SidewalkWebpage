@@ -11,9 +11,7 @@ function Main (param) {
     svv.expertValidate = param.expertValidate;
     svv.adminVersion = param.validateParams.adminVersion;
     svv.validateParams = param.validateParams;
-    svv.viewerType = param.validateParams.viewerType;
-    svv.mapillaryToken = param.mapillaryToken;
-    svv.infra3dToken = param.infra3dToken;
+    svv.viewerType = param.viewerType;
     svv.missionLength = param.mission?.labels_validated ?? 0;
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
@@ -178,8 +176,7 @@ function Main (param) {
         svv.labelDescriptionBox = new LabelDescriptionBox();
 
         svv.panoStore = new PanoStore();
-        const viewerClass = svv.viewerType === 'mapillary' ? MapillaryViewer : svv.viewerType === 'infra3d' ? Infra3dViewer : GsvViewer;
-        svv.panoManager = await PanoManager(viewerClass);
+        svv.panoManager = await PanoManager(svv.viewerType, param.viewerAccessToken);
         svv.labelContainer = await LabelContainer(param.labelList);
 
         // There are certain features that will only make sense on desktop.

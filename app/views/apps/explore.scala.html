@@ -4,10 +4,10 @@
 @import play.api.Configuration
 @import play.api.libs.json.Json
 @import service.{CommonPageData, ExplorePageData}
+@import models.pano.PanoSource
 @(
     commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, data: ExplorePageData,
-    mapillaryToken: String, infra3dToken: String, lat: Option[Double] = None, lng: Option[Double] = None,
-    panoId: Option[String] = None
+    lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -684,20 +684,23 @@
             </div>
         </div>
     </template>
-    <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
-    <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
     <script src='@assets.path("javascripts/common/pano-viewer/PanoData.js")'></script>
     <script src='@assets.path("javascripts/common/pano-viewer/PanoStore.js")'></script>
     <script src='@assets.path("javascripts/common/pano-viewer/PanoViewer.js")'></script>
     <script src='@assets.path("javascripts/common/pano-viewer/GsvViewer.js")'></script>
-    <script src='@assets.path("javascripts/common/pano-viewer/MapillaryViewer.js")'></script>
     <script src='@assets.path("javascripts/common/pano-viewer/Infra3dViewer.js")'></script>
+    <script src='@assets.path("javascripts/common/pano-viewer/MapillaryViewer.js")'></script>
+    @if(commonData.imagerySource == PanoSource.Infra3d) {
+        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("javascripts/lib/infra3dapi-1.5.0.js")'></script>
+    } else if (commonData.imagerySource == PanoSource.Mapillary) {
+        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+    }
     <script src='@assets.path("javascripts/SVLabel/build/SVLabel.js")'></script>
     <script src='@assets.path("javascripts/lib/kinetic-v4.4.3.min.js")'></script>
     <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
     <script src='@assets.path("javascripts/lib/d3-3.5.6.js")'></script>
-    <script src='@assets.path("javascripts/lib/infra3dapi-1.5.0.js")'></script>
 
     <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
@@ -804,9 +807,10 @@
         mainParam.cityNameShort = "@currentCity.cityNameShort";
         mainParam.mapboxApiKey = "@commonData.mapboxApiKey";
         mainParam.makeCrops = @data.makeCrops;
-        mainParam.viewerType = "@data.viewerType.toString";
-        mainParam.infra3dToken = '@infra3dToken';
-        mainParam.mapillaryToken = '@mapillaryToken';
+        const imagerySrc = "@commonData.imagerySource.toString";
+        mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+        mainParam.viewerAccessToken = "@commonData.imageryAccessToken";
+        console.log(mainParam.viewerAccessToken);
 
         window.appManager.ready(function () {
             new Main(mainParam);

@@ -1,6 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
+@import models.pano.PanoSource
 @(commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, labelType: String,
     labels: Seq[(String, String)], regionIds: Seq[Int], severities: Seq[Int], tags: List[String],
     valOptions: Seq[String], aiValOptions: Seq[String]
@@ -12,6 +13,15 @@
     <script src='@assets.path("javascripts/common/pano-viewer/PanoStore.js")'></script>
     <script src='@assets.path("javascripts/common/pano-viewer/PanoViewer.js")'></script>
     <script src='@assets.path("javascripts/common/pano-viewer/GsvViewer.js")'></script>
+    <script src='@assets.path("javascripts/common/pano-viewer/Infra3dViewer.js")'></script>
+    <script src='@assets.path("javascripts/common/pano-viewer/MapillaryViewer.js")'></script>
+    @if(commonData.imagerySource == PanoSource.Infra3d) {
+        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("javascripts/lib/infra3dapi-1.5.0.js")'></script>
+    } else if (commonData.imagerySource == PanoSource.Mapillary) {
+        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+    }
     <script src='@assets.path("javascripts/Gallery/build/Gallery.js")'></script>
     <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
@@ -143,7 +153,9 @@
             params.language = "@messages.lang.code";
             params.cityId = "@currentCity.cityId";
             params.cityName = "@currentCity.cityNameFormatted";
-
+            const imagerySrc = "@commonData.imagerySource.toString";
+            params.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+            params.viewerAccessToken = "@commonData.imageryAccessToken";
             sg.main = Main(params);
         });
     </script>

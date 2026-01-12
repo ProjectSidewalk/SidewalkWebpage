@@ -40,9 +40,6 @@ function Main (params) {
         svl.cityName = params.cityName;
         svl.cityNameShort = params.cityNameShort;
         svl.makeCrops = params.makeCrops;
-        svl.viewerType = params.viewerType;
-        svl.mapillaryToken = params.mapillaryToken;
-        svl.infra3dToken = params.infra3dToken;
 
         svl.storage = new TemporaryStorage(JSON);
         svl.tracker = new Tracker();
@@ -64,10 +61,9 @@ function Main (params) {
         const startLat = params.task.properties.current_lat;
         const startLng = params.task.properties.current_lng;
         svl.panoStore = new PanoStore();
-        const viewerClass = svl.viewerType === 'mapillary' ? MapillaryViewer : svl.viewerType === 'infra3d' ? Infra3dViewer : GsvViewer;
-        const viewerType = svl.isOnboarding() ? GsvViewer : viewerClass;
+        svl.viewerType = svl.isOnboarding() ? GsvViewer : params.viewerType;
         // TODO when we set up passing in a starting pano, could pass in tutorial when appropriate too. Then remove checks from PanoManager.js.
-        svl.panoManager = await PanoManager(viewerType, { startLat: startLat, startLng: startLng });
+        svl.panoManager = await PanoManager(svl.viewerType, params.viewerAccessToken, { startLat: startLat, startLng: startLng });
         svl.minimap = await Minimap();
 
         svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);

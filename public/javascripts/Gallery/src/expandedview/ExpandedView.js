@@ -3,9 +3,11 @@
  * to aid the user in contextualizing the location of labels.
  *
  * @param {HTMLElement} uiModal The container for the ExpandedView in the DOM
+ * @param panoViewerType The type of pano viewer to initialize
+ * @param viewerAccessToken An access token used to request images for the pano viewer
  * @returns
  */
-async function ExpandedView(uiModal) {
+async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
 
     let self = this;
 
@@ -48,7 +50,7 @@ async function ExpandedView(uiModal) {
         self.validation_info = $('.gallery-expanded-view-info-validation');
         self.description = $('.gallery-expanded-view-info-description');
         self.header = $('.gallery-expanded-view-header');
-        self.panoManager = await PanoManager(self.panoHolder);
+        self.panoManager = await PanoManager(self.panoHolder, panoViewerType, viewerAccessToken);
         self.closeButton = $('.gallery-expanded-view-close');
         self.leftArrow = $('#prev-label');
         self.leftArrowDisabled = false;

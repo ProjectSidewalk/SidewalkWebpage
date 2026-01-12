@@ -9,7 +9,6 @@ import models.audit._
 import models.auth.DefaultEnv
 import models.label.LabelTypeEnum
 import models.pano.PanoSource
-import models.pano.PanoSource.PanoSource
 import models.street.StreetEdgeIssue
 import models.user._
 import play.api.libs.json._
@@ -17,10 +16,11 @@ import play.api.mvc.Result
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import service.ExploreTaskPostReturnValue
+
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 @Singleton
 class ExploreController @Inject() (
@@ -30,8 +30,7 @@ class ExploreController @Inject() (
     configService: service.ConfigService,
     exploreService: service.ExploreService,
     missionService: service.MissionService,
-    aiService: service.AiService,
-    panoDataService: service.PanoDataService
+    aiService: service.AiService
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
 
@@ -42,7 +41,6 @@ class ExploreController @Inject() (
    * Returns an explore page.
    */
   def explore(
-      viewerType: Option[String],
       newRegion: Boolean,
       retakeTutorial: Option[Boolean],
       routeId: Option[Int],
@@ -56,27 +54,23 @@ class ExploreController @Inject() (
     val user: SidewalkUserWithRole = request.identity
     val pageTitle: String          = "Sidewalk - Explore"
 
-    // Parse the viewer type (gsv, mapillary, etc).
-    val viewer: Option[PanoSource] = viewerType.flatMap { vType => Try(PanoSource.withName(vType)).toOption }
-
     // NOTE: streetEdgeId takes precedence over routeId, which takes precedence over regionId.
     for {
       exploreData <- (routeId, streetEdgeId, regionId) match {
         case (Some(routeId), _, _) =>
-          exploreService.getDataForExplorePage(user.userId, viewer, retakeTutorial.getOrElse(false), newRegion = false,
+          exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
             Some(routeId), resumeRoute, regionId = None, streetEdgeId = None)
         case (_, Some(streetEdgeId), _) =>
-          exploreService.getDataForExplorePage(user.userId, viewer, retakingTutorial = false, newRegion = false,
-            routeId = None, resumeRoute = false, regionId = None, Some(streetEdgeId))
+          exploreService.getDataForExplorePage(user.userId, retakingTutorial = false, newRegion = false, routeId = None,
+            resumeRoute = false, regionId = None, Some(streetEdgeId))
         case (_, _, Some(regionId)) =>
-          exploreService.getDataForExplorePage(user.userId, viewer, retakeTutorial.getOrElse(false), newRegion = false,
+          exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
             routeId = None, resumeRoute = resumeRoute, Some(regionId), streetEdgeId = None)
         case (_, _, _) =>
-          exploreService.getDataForExplorePage(user.userId, viewer, retakeTutorial.getOrElse(false), newRegion,
-            routeId = None, resumeRoute, regionId = None, streetEdgeId = None)
+          exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion, routeId = None,
+            resumeRoute, regionId = None, streetEdgeId = None)
       }
-      commonData           <- configService.getCommonPageData(request2Messages.lang)
-      infra3dToken: String <- panoDataService.getInfra3dToken
+      commonData <- configService.getCommonPageData(request2Messages.lang)
     } yield {
       // Log visit to the Explore page.
       val activityStr: String =
@@ -89,14 +83,12 @@ class ExploreController @Inject() (
 
       // Load the Explore page. The match statement below just passes along any extra params when using `streetEdgeId`.
       // If user is an admin and a panoId or lat/lng are supplied, send to that location, o/w send to street.
-      val mapillaryToken = config.get[String]("mapillary-access-token")
       (streetEdgeId, isAdmin(user), panoId, lat, lng) match {
         case (Some(s), true, Some(p), _, _) =>
-          Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, mapillaryToken, infra3dToken, None, None, Some(p)))
+          Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, None, None, Some(p)))
         case (Some(s), true, _, Some(lt), Some(lg)) =>
-          Ok(
-            views.html.apps.explore(commonData, pageTitle, user, exploreData, mapillaryToken, infra3dToken, Some(lt), Some(lg)))
-        case _ => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, mapillaryToken, infra3dToken))
+          Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg)))
+        case _ => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData))
       }
     }
   }

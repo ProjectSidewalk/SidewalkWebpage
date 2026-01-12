@@ -1,4 +1,4 @@
-async function AdminGSVLabelView(admin, source) {
+async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
     var self = {};
     self.admin = admin;
     self.source = source;
@@ -151,7 +151,7 @@ async function AdminGSVLabelView(admin, source) {
 
         self.modal = $(modalText);
 
-        self.panoManager = await AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-input-holder"), admin);
+        self.panoManager = await AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-input-holder"), admin, viewerType, viewerAccessToken);
 
         self.agreeButton = self.modal.find("#validation-agree-button");
         self.modalComments = self.modal.find("#validator-comments");
