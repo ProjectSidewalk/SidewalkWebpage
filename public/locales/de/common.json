@@ -38,7 +38,6 @@
     "errors": {
         "title": "Ups, unser Fehler! Für diese Beschriftung sind keine Bilder mehr verfügbar.",
         "explanation": "Wir verwenden die “Google Maps API”, um die Bilder der Gehwege anzuzeigen. Manchmal entfernt Google diese Bilder und wir können nicht mehr darauf zugreifen. Wir bitten um Entschuldigung!",
-        "google-connect-error": "Wir haben Probleme mit dem Verbinden von “Google Street View”. Versuchen Sie es später erneut!",
         "explore-street": "Strasse nochmals erkunden</a>, um die neuen Aufnahmen von Google zu verwenden!"
     },
     "severity": "Schweregrad",

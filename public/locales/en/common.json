@@ -38,7 +38,6 @@
     "errors": {
         "title": "Oops, our fault but there is no longer imagery available for this label.",
         "explanation": "We use the Google Maps API to show the sidewalk images and sometimes Google removes these images so we can no longer access them. Sorry about that.",
-        "google-connect-error": "We had trouble connecting to Google Street View, please try again later!",
         "explore-street": "Explore the street</a> again to use Google's newer images!"
     },
     "severity": "Severity",

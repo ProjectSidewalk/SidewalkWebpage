@@ -38,7 +38,6 @@
     "errors": {
         "title": "Vaya, es culpa nuestra, pero ya no hay imágenes disponibles para esta etiqueta.",
         "explanation": "Usamos la API de Google Maps para mostrar las imágenes de la acera y, a veces, Google elimina estas imágenes para que ya no podamos acceder a ellas. Lo lamento.",
-        "google-connect-error": "Tuvimos problemas para conectarnos a Google Street View, inténtalo de nuevo más tarde.",
         "explore-street": "Explora la calle</a> de nuevo para usar las imágenes más nuevas de Google!"
     },
     "severity": "Calificación ",
