@@ -437,7 +437,7 @@ function Canvas(ribbon) {
         }
 
         // Save a high-res version of the image to the label object. Uploaded after label is saved to the db.
-        const newCrop = $('.widget-scene-canvas')[0].toDataURL('image/jpeg', 1);
+        const newCrop = $(`.${svl.panoViewer.getCanvasClass()}`)[0].toDataURL('image/jpeg', 1);
         label.setProperty('crop', newCrop);
     }
 

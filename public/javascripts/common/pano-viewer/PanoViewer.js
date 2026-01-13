@@ -5,18 +5,32 @@ class PanoViewer {
     /**
      * The type of panorama viewer.
      * @type {string}
-     * @private
      */
-    #viewerType;
+    viewerType;
+
+    /**
+     * The class name for the canvas that shows the image. Used for taking screenshots.
+     * @type {string}
+     */
+    canvasClass;
 
     /**
      * Private constructor to prevent direct instantiation.
      */
     constructor() {
         if (new.target === PanoViewer) throw new Error('Cannot instantiate abstract class directly');
-        else if (new.target === GsvViewer) this.#viewerType = 'gsv';
-        else if (new.target === MapillaryViewer) this.#viewerType = 'mapillary';
-        else if (new.target === Infra3dViewer) this.#viewerType = 'infra3d';
+        else if (new.target === GsvViewer) {
+            this.viewerType = 'gsv';
+            this.canvasClass = 'widget-scene-canvas';
+        }
+        else if (new.target === MapillaryViewer) {
+            this.viewerType = 'mapillary';
+            this.canvasClass = 'mapillary-canvas';
+        }
+        else if (new.target === Infra3dViewer) {
+            this.viewerType = 'infra3d';
+            this.canvasClass = 'infra3dsdk-canvas';
+        }
         this.initialized = false;
     }
 
@@ -47,7 +61,15 @@ class PanoViewer {
      * @returns {string} The current viewer type.
      */
     getViewerType() {
-        return this.#viewerType;
+        return this.viewerType;
+    }
+
+    /**
+     * Gets the CSS class for the canvas that shows the image. Used for taking screenshots.
+     * @returns {string} The CSS class for the canvas that shows the image.
+     */
+    getCanvasClass() {
+        return this.canvasClass;
     }
 
     /**
