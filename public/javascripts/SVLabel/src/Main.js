@@ -334,6 +334,7 @@ function Main (params) {
             }
 
             // Set up a few initial views now that everything has loaded.
+            svl.panoManager.setPovToRouteDirection();
             svl.minimap.setMinimapLocation(svl.panoViewer.getPosition());
             svl.observedArea.panoChanged();
             svl.observedArea.update();

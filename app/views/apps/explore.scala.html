@@ -810,7 +810,6 @@
         const imagerySrc = "@commonData.imagerySource.toString";
         mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
         mainParam.viewerAccessToken = "@commonData.imageryAccessToken";
-        console.log(mainParam.viewerAccessToken);
 
         window.appManager.ready(function () {
             new Main(mainParam);
