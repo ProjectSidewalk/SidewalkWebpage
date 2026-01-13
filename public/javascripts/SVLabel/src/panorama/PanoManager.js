@@ -105,6 +105,7 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
 
         // Updates peg location on minimap to match current panorama location.
         if (svl.minimap) svl.minimap.setMinimapLocation(panoLatLng);
+        if (svl.peg) svl.peg.setLocation(panoLatLng);
 
         // povChange["status"] = true;
         if (svl.canvas) { // TODO this if statement is new, need to decide when each thing is initialized.
@@ -352,6 +353,7 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
                     currentPov.pitch += pitchIncrement;
                     currentPov.heading = (currentPov.heading + 360) % 360;
                     svl.panoViewer.setPov(currentPov);
+                    svl.peg.setHeading(currentPov.heading);
                 } else {
                     // Set the pov to adjust zoom level, then clear the interval. Invoke a callback if there is one.
                     if (!pov.zoom) {
@@ -359,6 +361,7 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
                     }
 
                     svl.panoViewer.setPov(pov);
+                    svl.peg.setHeading(currentPov.heading);
                     window.clearInterval(interval);
                     if (callback) {
                         callback();
@@ -367,6 +370,7 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
             }, timeSegment);
         } else {
             svl.panoViewer.setPov(pov);
+            svl.peg.setHeading(currentPov.heading);
         }
         return this;
     }

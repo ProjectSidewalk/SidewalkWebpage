@@ -11,61 +11,62 @@ async function Minimap () {
     async function _init() {
 
         const { LatLng } = await google.maps.importLibrary('core');
-        const { Map } = await google.maps.importLibrary('maps');
+        const { Map, MapTypeId, RenderingType } = await google.maps.importLibrary('maps');
 
         // Map UI setting
         // http://www.w3schools.com/googleAPI/google_maps_controls.asp
         // TODO should we pass in a starting lat/lng here instead so that we can initialize before the pano is loaded?
         const startingLatLng = svl.panoViewer.getPosition();
         const mapOptions = {
-            center: new LatLng(startingLatLng.lat, startingLatLng.lng),
-            mapTypeControl: false,
-            mapTypeId: typeof google != "undefined" ? google.maps.MapTypeId.ROADMAP : null,
-            maxZoom : 20,
-            minZoom : 14,
-            overviewMapControl:false,
-            panControl:false,
-            rotateControl:false,
-            scaleControl:false,
-            streetViewControl:true,
+            backgroundColor: 'none',
             cameraControl: false,
-            zoomControl:false,
-            zoom: 18,
-            backgroundColor: "none",
-            disableDefaultUI: true
+            center: new LatLng(startingLatLng.lat, startingLatLng.lng),
+            clickableIcons: false,
+            disableDefaultUi: true,
+            fullscreenControl: false,
+            gestureHandling: 'none',
+            keyboardShortcuts: false,
+            mapId: 'DEMO_MAP_ID', // TODO use cloud-based map styling, to replace old way to style maps.
+            mapTypeControl: false,
+            mapTypeId: MapTypeId.ROADMAP, // HYBRID is another option
+            renderingType: RenderingType.RASTER,
+            // streetViewControl: true,
+            zoom: 18
         };
 
         map = new Map(document.getElementById('minimap'), mapOptions);
 
+        // TODO use cloud-based map styling, to replace old way to style maps.
+        // https://developers.google.com/maps/documentation/javascript/cloud-customization
         // Styling google map.
         // http://stackoverflow.com/questions/8406636/how-to-remove-all-from-google-map
         // http://gmaps-samples-v3.googlecode.com/svn/trunk/styledmaps/wizard/index.html
-        const mapStyleOptions = [
-            {
-                featureType: "all",
-                stylers: [
-                    { visibility: "off" }
-                ]
-            },
-            {
-                featureType: "road",
-                stylers: [
-                    { visibility: "on" }
-                ]
-            },
-            {
-                "elementType": "labels",
-                "stylers": [
-                    { "visibility": "off" }
-                ]
-            }
-        ];
+        // const mapStyleOptions = [
+        //     {
+        //         featureType: "all",
+        //         stylers: [
+        //             { visibility: "off" }
+        //         ]
+        //     },
+        //     {
+        //         featureType: "road",
+        //         stylers: [
+        //             { visibility: "on" }
+        //         ]
+        //     },
+        //     {
+        //         "elementType": "labels",
+        //         "stylers": [
+        //             { "visibility": "off" }
+        //         ]
+        //     }
+        // ];
+        //
+        // map.setOptions({ styles: mapStyleOptions });
 
-        map.setOptions({ styles: mapStyleOptions });
-
-        // Connect the map view and panorama view (adds peg at pano's location).
-        // TODO need to do something different for non-GSV pano viewers.
-        map.setStreetView(svl.panoViewer.panorama);
+        // Create a peg to mimic Google Map's peg.
+        // map.setStreetView(svl.panoViewer.panorama);
+        svl.peg = await createPeg(map, startingLatLng);
 
         // Add listener to the PanoViewer to update observed area on the minimap when zoom changes.
         svl.panoViewer.addListener('zoom_changed', handlerZoomChange);
