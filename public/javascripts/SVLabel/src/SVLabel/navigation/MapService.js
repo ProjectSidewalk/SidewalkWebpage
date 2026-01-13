@@ -663,8 +663,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @private
      */
     function _endTheCurrentTask(task, mission) {
-
-        if (!status.labelBeforeJumpListenerSet) {
+        if (!status.labelBeforeJumpListenerSet) { 
             missionJump = mission;
             var nextTask = svl.taskContainer.nextTask(task);
 
@@ -675,7 +674,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
             // Check if the user will jump to another discontinuous location or if this is the last street in their
             // route/neighborhood. If either is the case, let the user know to label the location before proceeding.
-            if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete() || !task.isConnectedTo(nextTask)) {
+            if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete() || (!task.isConnectedTo(nextTask) 
+                    && !svl.taskContainer.isLastIncompleteTaskInNeighborhood(task))) {
                 // If jumping to a new place, set the newTask before jumping.
                 if (nextTask && !task.isConnectedTo(nextTask)) {
                     nextTask.eraseFromMinimap();
@@ -692,6 +692,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                         "pano_changed", trackBeforeJumpActions);
                 } catch (err) {}
             } else {
+                // As soon as we jump to the next task, we'll show the neighborhood complete overlay
+                if (svl.taskContainer.isLastIncompleteTaskInNeighborhood(task)) {
+                    svl.taskContainer.setShowNeighborhoodCompleteOverlayStatus(true);
+                }
+
                 finishCurrentTaskBeforeJumping(missionJump, nextTask);
 
                 // Move to the new task if the route/neighborhood has not finished.
@@ -796,7 +801,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 svl.compass.update();
             }
             if (!isOnboarding && "taskContainer" in svl && svl.taskContainer.tasksLoaded()) {
-
+                svl.taskContainer.showNeighborhoodCompleteOverlayIfRequired();
                 // End of the task if the user is close enough to the end point and we aren't in the tutorial.
                 var task = svl.taskContainer.getCurrentTask();
                 if (!isOnboarding && task && task.isAtEnd(position.lat(), position.lng(), END_OF_STREET_THRESHOLD)) {
@@ -1499,7 +1504,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.restrictViewPort = restrictViewPort;
     self.setBeforeJumpLocation = setBeforeJumpLocation;
     self.setHeadingRange = setHeadingRange;
-    self.setLabelBeforeJumpListenerStatus = setLabelBeforeJumpListenerStatus;
+    self.setLabelBeforeJumpListenerStatus = setLabelBeforeJumpListenerStatus; 
     self.setPano = setPano;
     self.setPosition = setPosition;
     self.setPositionByIdAndLatLng = setPositionByIdAndLatLng;
