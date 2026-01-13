@@ -81,7 +81,7 @@ async function LabelContainer(labelList) {
     /**
      * Skips the current label and fetches a new label for validation.
      */
-    async function skipLabel () {
+    async function skipLabel() {
         labels[currLabelIndex] = await _fetchNewLabel(currLabel.getAuditProperty('labelId'));
         currLabel = labels[currLabelIndex];
         svv.missionContainer.updateAMissionSkip();
@@ -100,7 +100,7 @@ async function LabelContainer(labelList) {
         } else {
             await renderCurrentLabel(currLabel);
             if (svv.labelVisibilityControl && !svv.labelVisibilityControl.isVisible()) {
-                svv.labelVisibilityControl.unhideLabel(true);
+                svv.labelVisibilityControl.unhideLabel();
             }
 
             // Update zoom availability on desktop.

@@ -5,7 +5,7 @@
  * @returns {LabelVisibilityControl}
  * @constructor
  */
-function LabelVisibilityControl () {
+function LabelVisibilityControl() {
     let self = this;
     let visible = true;
     let labelVisibilityControlButton = $("#label-visibility-control-button");
@@ -17,21 +17,20 @@ function LabelVisibilityControl () {
     /**
      * Logs interaction when the hide label button is clicked.
      */
-    function clickAdjustLabel () {
+    function clickAdjustLabel() {
         if (visible) {
             svv.tracker.push("Click_HideLabel");
             hideLabel();
         } else {
             svv.tracker.push("Click_UnhideLabel");
-            unhideLabel(false);
+            unhideLabel();
         }
     }
 
     /**
      * Unhides label in the panorama depending on current state.
-     * @param {boolean} newLabel Indicates whether we unhide due to showing a new label vs. clicking the unhide button.
      */
-    function unhideLabel(newLabel) {
+    function unhideLabel() {
         let panomarker = svv.panoManager.getPanomarker();
         if (!panomarker) return; // TODO panomarker only works on GSV right now.
         let label = svv.labelContainer.getCurrentLabel();
@@ -49,7 +48,7 @@ function LabelVisibilityControl () {
     /**
      * Hides label in the panorama.
      */
-    function hideLabel () {
+    function hideLabel() {
         let panomarker = svv.panoManager.getPanomarker();
         panomarker.setIcon("assets/javascripts/SVLabel/img/icons/Label_Outline.svg");
         panomarker.draw();
@@ -65,7 +64,7 @@ function LabelVisibilityControl () {
     /**
      * Refreshes label visual state
      */
-    function refreshLabel () {
+    function refreshLabel() {
         let htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="upper-menu-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
         labelVisibilityControlButton.html(htmlString);
@@ -77,14 +76,14 @@ function LabelVisibilityControl () {
     /**
      * Returns true if label is currently not hidden, false otherwise.
      */
-    function isVisible () {
+    function isVisible() {
         return visible;
     }
 
     /**
      * Shows the 'Show/Hide Label' button and the description box on panorama.
      */
-    function showTagsAndDeleteButton () {
+    function showTagsAndDeleteButton() {
         svv.tracker.push("MouseOver_Label");
 
         let button = document.getElementById("label-visibility-button-on-pano");
@@ -107,7 +106,7 @@ function LabelVisibilityControl () {
     /**
      * Hides the 'Show/Hide Label' button and the description box on pano.
      */
-    function hideTagsAndDeleteButton () {
+    function hideTagsAndDeleteButton() {
         labelVisibilityButtonOnPano[0].style.visibility = 'hidden';
         labelDescriptionBox[0].style.visibility = 'hidden';
     }
@@ -128,7 +127,7 @@ function LabelVisibilityControl () {
     self.hideTagsAndDeleteButton = hideTagsAndDeleteButton;
 
     // Call unhideLabel() to start the page with showing the 'hide label' button.
-    self.unhideLabel(true);
+    self.unhideLabel();
     return this;
 }
 
