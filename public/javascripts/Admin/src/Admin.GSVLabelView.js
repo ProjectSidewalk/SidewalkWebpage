@@ -567,7 +567,7 @@ function AdminGSVLabelView(admin, source) {
         self.panorama.setPano(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
             labelMetadata['pitch'], labelMetadata['zoom'], panoCallback);
 
-        const isAiGenerated = Boolean(labelMetadata['ai_generated']);
+        const isAiGenerated = labelMetadata['ai_generated'];
         var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type'],
             labelMetadata['canvas_x'], labelMetadata['canvas_y'], util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
             labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id'],

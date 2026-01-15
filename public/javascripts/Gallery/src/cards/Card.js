@@ -78,7 +78,7 @@ function Card (params, imageUrl, expandedView) {
             }
         }
         if ("ai_generated" in param) {
-            properties.ai_generated = Boolean(param.ai_generated);
+            properties.ai_generated = param.ai_generated;
         }
         properties.original_canvas_x = param.canvas_x;
         properties.original_canvas_y = param.canvas_y;
