@@ -183,8 +183,8 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
         };
     };
 
-    this.skip = function (task, skipReasonLabel) {
-        var data = self._prepareSkipData(skipReasonLabel);
+    this.skip = async function (task, skipReasonLabel) {
+        const data = self._prepareSkipData(skipReasonLabel);
 
         if (skipReasonLabel === "PanoNotAvailable") {
             taskContainer.endTask(task);
@@ -192,11 +192,12 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
             util.misc.reportNoImagery(task.getStreetEdgeId());
         } else {
             // Set the tasksMissionsOffset so that the mission progress bar remains the same after the jump.
-            var currTaskDist = util.math.kmsToMeters(taskContainer.getCurrentTaskDistance());
-            var oldOffset = missionContainer.getTasksMissionsOffset();
+            const currTaskDist = util.math.kmsToMeters(taskContainer.getCurrentTaskDistance());
+            const oldOffset = missionContainer.getTasksMissionsOffset();
             missionContainer.setTasksMissionsOffset(oldOffset + currTaskDist);
         }
 
+        // TODO this is async, but we don't need to wait for it I believe.
         self.skipSubmit(data, task);
 
         // If the jump was clicked in the middle of the beforeJumpTask, reset the beforeJump tracking parameters.
@@ -206,8 +207,7 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
             navigationService.finishCurrentTaskBeforeJumping();
         }
 
-        // TODO This returns a Promise now.
-        taskContainer.getFinishedAndInitNextTask(task);
+        await taskContainer.getFinishedAndInitNextTask(task);
 
         if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
             svl.neighborhoodModel.trigger("Neighborhood:wrapUpRouteOrNeighborhood");

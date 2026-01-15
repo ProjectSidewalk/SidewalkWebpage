@@ -40,6 +40,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
                 let beforeJumpTask = currentTask;
                 self.setCurrentTask(nextTaskIn);
                 beforeJumpTask.render();
+                nextTaskIn.render();
                 svl.navigationService.preparePovReset();
                 Promise.resolve();
             }, (error) => {

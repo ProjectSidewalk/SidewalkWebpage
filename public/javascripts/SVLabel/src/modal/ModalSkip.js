@@ -47,11 +47,11 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
      * This method handles a click Continue Neighborhood event.
      * @param e
      */
-    this._handleClickContinueNeighborhood = (e) => {
+    this._handleClickContinueNeighborhood = async (e) => {
         tracker.push("ModalSkip_ClickContinueNeighborhood");
         uiModalSkip.box.hide();
-        var task = taskContainer.getCurrentTask();
-        form.skip(task, "IWantToExplore");
+        const currTask = taskContainer.getCurrentTask();
+        await form.skip(currTask, "IWantToExplore");
 
         ribbonMenu.backToWalk();
         self.hideSkipMenu();
