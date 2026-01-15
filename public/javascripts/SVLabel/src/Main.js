@@ -64,7 +64,9 @@ function Main (params) {
         svl.viewerType = svl.isOnboarding() ? GsvViewer : params.viewerType;
         // TODO when we set up passing in a starting pano, could pass in tutorial when appropriate too. Then remove checks from PanoManager.js.
         svl.panoManager = await PanoManager(svl.viewerType, params.viewerAccessToken, { startLat: startLat, startLng: startLng });
-        svl.minimap = await Minimap();
+        const currLatLng = svl.panoViewer.getPosition();
+        svl.minimap = await Minimap.create(currLatLng);
+        svl.peg = await Peg.create(svl.minimap.getMap(), currLatLng);
 
         svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
@@ -74,7 +76,7 @@ function Main (params) {
         svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl, svl.tracker);
         svl.taskModel._taskContainer = svl.taskContainer;
         const isTutorialTask = params.task.properties.street_edge_id === params.tutorialStreetId;
-        const newTask = new Task(params.task, isTutorialTask, startLat, startLng);
+        const newTask = new Task(params.task, isTutorialTask, currLatLng.lat, currLatLng.lng);
         svl.taskContainer._tasks.push(newTask);
         svl.taskContainer.setCurrentTask(newTask);
         svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);

@@ -73,8 +73,12 @@ class Infra3dViewer extends PanoViewer {
     }
 
     getPosition = () => {
-        const currNode = this.viewer.getCurrentNode();
-        return { lat: currNode.lat, lng: currNode.lon };
+        if (this.currNode) {
+            return { lat: this.currNode.frame.latitude, lng: this.currNode.frame.longitude };
+        } else {
+            const currNode = this.viewer.getCurrentNode();
+            return { lat: currNode.lat, lng: currNode.lon };
+        }
     }
 
     setLocation = async (latLng) => {
@@ -143,6 +147,7 @@ class Infra3dViewer extends PanoViewer {
                 }
             });
         }).then((node) => {
+            // TODO this node has the wrong lat/lng. Does it have the right date, omega, and phi?
             const mainNode = this.viewer.getCurrentNode();
 
             // Now that all the data is available, we can fill the currPanoData object and say that the pano has loaded.
@@ -154,8 +159,8 @@ class Infra3dViewer extends PanoViewer {
                 height: 2 * node.frame.framedatameta.imageheight,
                 tileWidth: node.frame.framedatameta.tilesize,
                 tileHeight: node.frame.framedatameta.tilesize,
-                lat: mainNode.lat,
-                lng: mainNode.lon,
+                lat: node.frame.latitude,
+                lng: node.frame.longitude,
                 cameraHeading: this._getHeading(mainNode.omega, mainNode.phi),
                 cameraPitch: this._getPitch(mainNode.omega, mainNode.phi),
                 copyright: null, // TODO should probably fill in infra3d here?

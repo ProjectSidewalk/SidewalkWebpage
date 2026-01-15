@@ -1,26 +1,28 @@
 /**
  * Handles the Google Maps minimap in the bottom-right corner of the UI.
- * @constructor
  */
-async function Minimap () {
-    let self = this;
+class Minimap {
 
-    let minimapPaneBlinkInterval;
-    let map;
+    /** @type {google.maps.Map} */
+    #map;
 
-    async function _init() {
+    /** @type {number} */
+    #minimapPaneBlinkInterval;
 
+    /**
+     * Imports necessary libraries and creates the map. Resolves once the map has finished loading.
+     * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
+     * @returns {Promise<google.maps.Map>}
+     */
+    async #init(initialLocation) {
         const { LatLng } = await google.maps.importLibrary('core');
         const { Map, MapTypeId, RenderingType } = await google.maps.importLibrary('maps');
 
-        // Map UI setting
-        // http://www.w3schools.com/googleAPI/google_maps_controls.asp
-        // TODO should we pass in a starting lat/lng here instead so that we can initialize before the pano is loaded?
-        const startingLatLng = svl.panoViewer.getPosition();
+        // Create the minimap.
         const mapOptions = {
             backgroundColor: 'none',
             cameraControl: false,
-            center: new LatLng(startingLatLng.lat, startingLatLng.lng),
+            center: new LatLng(initialLocation.lat, initialLocation.lng),
             clickableIcons: false,
             disableDefaultUi: true,
             fullscreenControl: false,
@@ -33,8 +35,7 @@ async function Minimap () {
             // streetViewControl: true,
             zoom: 18
         };
-
-        map = new Map(document.getElementById('minimap'), mapOptions);
+        this.#map = new Map(document.getElementById('minimap'), mapOptions);
 
         // TODO use cloud-based map styling, to replace old way to style maps.
         // https://developers.google.com/maps/documentation/javascript/cloud-customization
@@ -64,66 +65,72 @@ async function Minimap () {
         //
         // map.setOptions({ styles: mapStyleOptions });
 
-        // Create a peg to mimic Google Map's peg.
-        // map.setStreetView(svl.panoViewer.panorama);
-        svl.peg = await createPeg(map, startingLatLng);
-
         // Add listener to the PanoViewer to update observed area on the minimap when zoom changes.
-        svl.panoViewer.addListener('zoom_changed', handlerZoomChange);
+        svl.panoViewer.addListener('zoom_changed', this.handlerZoomChange);
 
         // Return a promise that resolves once the map is idle (and therefore fully initialized).
         return new Promise((resolve) => {
             // TODO is it possible that the map could already be idle and we just never resolve this?
-            const listener = google.maps.event.addListener(map, 'idle', () => {
+            const listener = google.maps.event.addListener(this.#map, 'idle', async () => {
                 console.log('map is now idle!');
                 google.maps.event.removeListener(listener);
-                resolve();
+                resolve(this.#map);
             });
         });
     }
 
     /**
-     * Blink google maps pane.
+     * Makes the minimap start to blink; used in the tutorial.
      */
-    function blinkMinimap() {
-        stopBlinkingMinimap();
-        minimapPaneBlinkInterval = window.setInterval(function () {
+    blinkMinimap() {
+        this.stopBlinkingMinimap();
+        this.#minimapPaneBlinkInterval = window.setInterval(function () {
             svl.ui.minimap.overlay.toggleClass("highlight-50");
         }, 500);
     }
 
     /**
-     * Get the Google map.
-     * @returns {null}
+     * Stops the minimap from blinking; used in the tutorial.
      */
-    function getMap() {
-        return map;
+    stopBlinkingMinimap() {
+        window.clearInterval(this.#minimapPaneBlinkInterval);
+        svl.ui.minimap.overlay.removeClass("highlight-50");
     }
 
     /**
-     * Callback for zoom update.
+     * Get the Google map.
+     * @returns {google.maps.Map}
      */
-     function handlerZoomChange () {
+    getMap() {
+        return this.#map;
+    }
+
+    /**
+     * Callback for zoom update; updates the observed area view.
+     */
+     handlerZoomChange () {
         if ("observedArea" in svl) { svl.observedArea.update(); }
 
         // TODO it makes more sense for this to be tracked from PanoManager (when we setPov), but might need this if we enable scroll zoom.
         svl.tracker.push("Zoom_Changed");
     }
 
-    function setMinimapLocation(latLng) {
-        map.setCenter(new google.maps.LatLng(latLng.lat, latLng.lng));
+    /**
+     * Sets the center of the minimap to the given lat/lng.
+     * @param {{lat: number, lng: number}} latLng
+     */
+    setMinimapLocation(latLng) {
+        this.#map.setCenter(new google.maps.LatLng(latLng.lat, latLng.lng));
     }
 
-    function stopBlinkingMinimap() {
-        window.clearInterval(minimapPaneBlinkInterval);
-        svl.ui.minimap.overlay.removeClass("highlight-50");
+    /**
+     * Factory function that creates a Google Maps minimap in the bottom-right of the UI.
+     * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
+     * @returns {Promise<Minimap>} The minimap instance.
+     */
+    static async create(initialLocation) {
+        const newMinimap = new Minimap();
+        await newMinimap.#init(initialLocation);
+        return newMinimap;
     }
-
-    self.blinkMinimap = blinkMinimap;
-    self.stopBlinkingMinimap = stopBlinkingMinimap;
-    self.setMinimapLocation = setMinimapLocation;
-    self.getMap = getMap;
-
-    await _init();
-    return self;
 }

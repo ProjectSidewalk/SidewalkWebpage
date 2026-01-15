@@ -26,7 +26,6 @@ class Peg {
         this.imgElement.style.height = '52px';
         this._updateSprite();
 
-        // const initialLatLng = new this.LatLng(initialLocation.lat, initialLocation.lng);
         this.marker = new AdvancedMarkerElement({
             map,
             position: new this.LatLng(initialLocation.lat, initialLocation.lng),
@@ -75,8 +74,6 @@ class Peg {
 
     /**
      * Moves the peg to a new location.
-     * TODO There seems to be a delay after setting the minimap location (or minimap is being set to prev pano...).
-     * Test by walking back and forth.
      * @param {{lat: number, lng: number}} location - New location.
      */
     setLocation(location) {
@@ -90,16 +87,16 @@ class Peg {
     remove() {
         this.marker.map = null;
     }
-}
 
-/**
- * Factory function that creates a rotating peg after loading required libraries.
- * @param {google.maps.Map} map - The Google Map instance.
- * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
- * @returns {Promise<Peg>} The peg instance.
- */
-async function createPeg(map, initialLocation) {
-    const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
-    const { LatLng } = await google.maps.importLibrary('core');
-    return new Peg(map, initialLocation, AdvancedMarkerElement, LatLng);
+    /**
+     * Factory function that creates a rotating peg after loading required libraries.
+     * @param {google.maps.Map} map - The Google Map instance.
+     * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
+     * @returns {Promise<Peg>} The peg instance.
+     */
+    static async create(map, initialLocation) {
+        const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+        const { LatLng } = await google.maps.importLibrary('core');
+        return new Peg(map, initialLocation, AdvancedMarkerElement, LatLng);
+    }
 }
