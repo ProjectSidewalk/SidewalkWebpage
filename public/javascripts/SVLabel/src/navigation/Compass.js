@@ -110,7 +110,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         removeLabelBeforeJumpMessage();
     }
 
-    function _jumpToTheNewTask() {
+    async function _jumpToTheNewTask() {
         svl.tracker.push('LabelBeforeJump_Jump');
         // Finish the current task
         navigationService.finishCurrentTaskBeforeJumping();
@@ -119,9 +119,9 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         // Finish clean up tasks before jumping.
         resetBeforeJump();
 
-        const task = taskContainer.getAfterJumpNewTask();
+        const task = taskContainer.getNextTaskAfterJump();
         taskContainer.setCurrentTask(task);
-        navigationService.moveForward();
+        await navigationService.moveForward();
         svl.jumpModel.triggerUserClickJumpMessage();
     }
 
@@ -310,7 +310,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     }
 
     // Performs the action written in the compass message for the user (turning, moving ahead, jumping).
-    function _handleCompassClick() {
+    async function _handleCompassClick() {
         if (_checkEnRoute()) {
             svl.stuckAlert.compassOrStuckClicked();
 
@@ -319,14 +319,16 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
             svl.tracker.push(`Click_Compass_Direction=${direction}`);
 
             if (direction === 'straight') {
-                navigationService.moveForward('CompassMove_Success', 'CompassMove_PanoNotAvailable', null);
+                await navigationService.moveForward()
+                    .then(() => svl.tracker.push('CompassMove_Success'))
+                    .catch(() => svl.tracker.push('CompassMove_PanoNotAvailable'));
             } else {
                 svl.panoManager.setPovToRouteDirection(250);
             }
         } else {
             svl.tracker.push('Click_Compass_FarFromRoute');
             navigationService.preparePovReset();
-            navigationService.moveForward();
+            await navigationService.moveForward();
             svl.panoManager.setPovToRouteDirection();
         }
     }

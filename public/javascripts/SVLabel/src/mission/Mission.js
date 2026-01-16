@@ -145,9 +145,7 @@ function Mission(parameters) {
      * @param task
      */
     function pushATaskToTheRoute(task) {
-        var streetEdgeIds = _tasksForTheMission.map(function (task) {
-            return task.getStreetEdgeId();
-        });
+        const streetEdgeIds = _tasksForTheMission.map((task) => task.getStreetEdgeId());
         if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) {
             _tasksForTheMission.push(task);
         }

@@ -6,18 +6,23 @@
  * @constructor
  */
 function NavigationService (neighborhoodModel, uiStreetview) {
-    let self = { className: 'Map' },
-        properties = {
-            browser : 'unknown'
-        },
-        status = {
-            disableWalking : false,
-            lockDisableWalking : false,
-            labelBeforeJumpState: false,
-            contextMenuWasOpen: false
-        },
-        missionJump = undefined,
-        _stuckPanos = [];
+    let self = {className: 'Map'};
+    let properties = {
+        browser: 'unknown'
+    };
+    let status = {
+        disableWalking: false,
+        lockDisableWalking: false,
+        labelBeforeJumpState: false,
+        contextMenuWasOpen: false
+    };
+
+    /**
+     * Used to track which mission a task should be linked to when shown on mission complete modal (I think).
+     * @type {Mission | undefined}
+     */
+    let missionJump = undefined;
+    let _stuckPanos = [];
     let positionUpdateCallbacks = [];
 
     let initialPositionUpdate = true;
@@ -143,9 +148,8 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     }
 
     function finishCurrentTaskBeforeJumping(mission, nextTask) {
-        if (mission === undefined) {
-            mission = missionJump;
-        }
+        mission = mission || missionJump;
+
         // Finish the current task.
         const currentTask = svl.taskContainer.getCurrentTask();
         svl.taskContainer.endTask(currentTask, nextTask);
@@ -155,45 +159,40 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     /**
      * Get a new task and check if it's disconnected from the current task. If yes, then finish the current task after
      * the user has finished labeling the current location.
-     * TODO this is probably being called too frequently and is causing issues when finishing a street and jumping.
-     * @param task
-     * @param mission
+     * TODO this is probably being called too frequently and is causing issues when finishing a street and jumping -- idk if this is still accurate.
+     * TODO rename this? And shouldn't it happen on page load too, not just after a move? -- idk if this is still accurate
+     * @param {Task} task The task that the user has neared the end of
+     * @param {Mission} mission The mission that the task should be associated with
      * @private
      */
     function _endTheCurrentTask(task, mission) {
         if (!getLabelBeforeJumpState()) {
             missionJump = mission;
-            var nextTask = svl.taskContainer.nextTask(task);
+            let nextTask = svl.taskContainer.nextTask(task);
 
-            // If we are out of streets, set the route/neighborhood as complete.
-            if (!nextTask) {
-                svl.neighborhoodModel.setComplete();
-            }
-
-            // TODO rename this? And shouldn't it happen on page load too, not just after a move?
-            // TODO could `nextTask` ever be null/undefined?
             // Check if the user will jump to another discontinuous location or if this is the last street in their
             // route/neighborhood. If either is the case, let the user know to label the location before proceeding.
-            if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete() || !task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, 'kilometers', true)) {
-                // If jumping to a new place, set the newTask before jumping.
-                if (nextTask && !task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD)) {
-                    nextTask.eraseFromMinimap(); // TODO why are we erasing here..?
-                    svl.taskContainer.setBeforeJumpNewTask(nextTask);
+            if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()
+                || !nextTask
+                || !task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, 'kilometers', true)) {
+
+                // If we are out of streets, set the route/neighborhood as complete.
+                if (!nextTask) {
+                    svl.neighborhoodModel.setComplete();
+                } else if (!task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD)) {
+                    // If jumping to a new place, record what the next task will be.
+                    svl.taskContainer.setNextTaskAfterJump(nextTask);
                 }
 
                 // Show message to the user instructing them to label the current location.
                 svl.tracker.push('LabelBeforeJump_ShowMsg');
                 svl.compass.showLabelBeforeJumpMessage();
-
                 setLabelBeforeJumpState(true);
             } else {
-                finishCurrentTaskBeforeJumping(missionJump, nextTask);
-
-                // Move to the new task if the route/neighborhood has not finished.
-                if (nextTask) {
-                    svl.taskContainer.setCurrentTask(nextTask);
-                    moveForward();
-                }
+                // If there is another contiguous task, end the current one and show the next one.
+                svl.taskContainer.endTask(task, nextTask);
+                mission.pushATaskToTheRoute(task);
+                svl.taskContainer.setCurrentTask(nextTask);
             }
         }
     }
@@ -261,6 +260,8 @@ function NavigationService (neighborhoodModel, uiStreetview) {
             // End of the task if the user is close enough to the end point, and we aren't in the tutorial.
             // TODO I wonder if ending a task should happen elsewhere? Bc some types of moves might never cause an end task?
             // - that might be because the task was already ended before we moved them, for example...
+            // TODO I hardly understand the todo above, and idk why we would end the task in the middle of updating the
+            //      UI after a move... especially when _endTheCurrentTask() can result in another move...
             const task = svl.taskContainer.getCurrentTask();
             if (!isOnboarding && task && task.isAtEnd(newLatLng.lat, newLatLng.lng, END_OF_STREET_THRESHOLD)) {
                 _endTheCurrentTask(task, currentMission);
@@ -320,13 +321,8 @@ function NavigationService (neighborhoodModel, uiStreetview) {
 
     /**
      * Attempts to move the user forward by incrementally checking for imagery every few meters along the route.
-     * TODO could the log messages just be done in callbacks to this async function rather than passing them as params.
-     *
-     * @param successLogMessage String internal logging when imagery is found; different for stuck button v compass.
-     * @param failLogMessage String internal logging when imagery is not found; different for stuck button v compass.
-     * @param alertFunc Function An optional function that would alert the user upon successfully finding imagery.
      */
-    async function moveForward(successLogMessage, failLogMessage, alertFunc) {
+    async function moveForward() {
         if (status.disableWalking) return;
 
         _updateUiBeforeMove();
@@ -373,17 +369,13 @@ function NavigationService (neighborhoodModel, uiStreetview) {
                     return handleImageryNotFound();
 
                     // If all else fails, jump to a new street.
-                    // svl.tracker.push(failLogMessage);
                     // svl.form.skip(currentTask, "PanoNotAvailable");
                     // svl.stuckAlert.stuckSkippedStreet();
                 }
             } else {
                 // Save current pano ID as one that doesn't work in case they try to move before clicking 'stuck' again.
                 _stuckPanos.push(newPanoId);
-                // Move them to the new pano we found.
                 _updateUiAfterMove();
-                svl.tracker.push(successLogMessage);
-                if (alertFunc !== null) alertFunc();
                 return Promise.resolve(newPanoId);
             }
         }
@@ -408,7 +400,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
                 return handleImageryNotFound();
 
                 // If all else fails, jump to a new street.
-                // svl.tracker.push(failLogMessage);
                 // svl.form.skip(currentTask, "PanoNotAvailable");
                 // svl.stuckAlert.stuckSkippedStreet();
             }

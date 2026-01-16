@@ -11,7 +11,8 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
     let self = this;
 
     let currentTask = null;
-    let afterJumpNewTask = null;
+    /* Used to keep track of the task we've decided to jump to while the user finishes labeling the current location. */
+    let nextTaskAfterJump = null;
     let tasksFinishedLoading = false;
 
     self._tasks = [];
@@ -72,7 +73,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
         updateAuditedDistance();
 
         if (svl.user.getProperty('role') === "Anonymous"
-            && getCompletedTaskDistance({units: 'kilometers'}) > 0.15
+            && getCompletedTaskDistance({ units: 'kilometers' }) > 0.15
             && !svl.popUpMessage.haveAskedToSignIn()) {
             svl.popUpMessage.promptSignIn();
         }
@@ -258,16 +259,16 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
      * Store the task to jump to once the current intersection is complete.
      * @param {Task} task
      */
-    this.setBeforeJumpNewTask = function(task) {
-        afterJumpNewTask = task;
+    this.setNextTaskAfterJump = function(task) {
+        nextTaskAfterJump = task;
     };
 
     /**
      * Get the task to jump to once the current intersection is complete.
      * @returns {Task}
      */
-    function getAfterJumpNewTask() {
-        return afterJumpNewTask;
+    function getNextTaskAfterJump() {
+        return nextTaskAfterJump;
     }
 
     /**
@@ -401,7 +402,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
             // (street not connected, user will need to jump), if the default endpoint of the new task is not connected
             // to any streets, try reversing its direction to encourage contiguous routes.
             // TODO take into account street priority when checking for connected tasks here.
-            if (finishedTask) {
+            if (newTask && finishedTask) {
                 let startPoint;
                 const line = newTask.getGeoJSON();
                 const endPoint = turf.point([finishedTask.getLastCoordinate().lng, finishedTask.getLastCoordinate().lat]);
@@ -519,7 +520,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCompletedTaskDistanceAcrossAllUsersUsingPriority = getCompletedTaskDistanceAcrossAllUsersUsingPriority;
     self.getCurrentTask = getCurrentTask;
-    self.getAfterJumpNewTask = getAfterJumpNewTask;
+    self.getNextTaskAfterJump = getNextTaskAfterJump;
     self.renderAllTasks = renderAllTasks;
     self.hasMaxPriorityTask = hasMaxPriorityTask;
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;

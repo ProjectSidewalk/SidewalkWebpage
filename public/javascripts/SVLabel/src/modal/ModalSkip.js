@@ -39,7 +39,12 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
         e.preventDefault();
         svl.stuckAlert.compassOrStuckClicked();
         tracker.push('ModalStuck_ClickStuck');
-        svl.navigationService.moveForward('ModalStuck_Unstuck', 'ModalStuck_PanoNotAvailable', svl.stuckAlert.stuckClicked);
+        svl.navigationService.moveForward()
+            .then(() => {
+                svl.tracker.push('ModalStuck_Unstuck');
+                svl.stuckAlert.stuckClicked();
+            })
+            .catch(() => svl.tracker.push('ModalStuck_PanoNotAvailable'));
     }
 
 
