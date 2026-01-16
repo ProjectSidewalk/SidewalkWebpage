@@ -45,10 +45,17 @@ function AdminGSVCommentView(admin) {
     }
 
     function setLabel(labelMetadata) {
+        const isAiGenerated = labelMetadata['ai_generated'] === true;
         var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type'],
             labelMetadata['canvas_x'], labelMetadata['canvas_y'], util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
-            labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom']);
+            labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id'],
+            labelMetadata['severity'], labelMetadata['tags'], isAiGenerated);
         self.panorama.setLabel(adminPanoramaLabel);
+        if (isAiGenerated && self.panorama && self.panorama.labelMarkers && self.panorama.labelMarkers.length) {
+            const lastMarker = self.panorama.labelMarkers[self.panorama.labelMarkers.length - 1];
+            const indicator = lastMarker.marker.querySelector('.admin-ai-icon-marker');
+            ensureAiTooltip(indicator);
+        }
     }
 
     _init();

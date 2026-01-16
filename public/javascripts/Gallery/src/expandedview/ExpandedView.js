@@ -54,7 +54,8 @@ function ExpandedView(uiModal) {
         correctness: undefined,
         user_validation: undefined,
         ai_validation: undefined,
-        tags: []
+        tags: [],
+        ai_generated: false
     };
 
     /**
@@ -249,7 +250,8 @@ function ExpandedView(uiModal) {
         }
         self.label = new GalleryPanoramaLabel(
             properties.label_id, properties.label_type, properties.original_canvas_x, properties.original_canvas_y,
-            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, properties.heading, properties.pitch, properties.zoom
+            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, properties.heading, properties.pitch, properties.zoom,
+            properties.ai_generated
         );
 
         self.validationMenu.updateCardProperties(properties);

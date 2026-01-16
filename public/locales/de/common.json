@@ -57,6 +57,7 @@
     "yes": "Ja",
     "no": "Nein",
     "ai-disclaimer": "Die KI hat dieses Label analysiert und mit „$t({{aiVal}})“ bewertet. KI kann jedoch Fehler machen. Bitte bilden Sie sich Ihre eigene Meinung.",
+    "ai-generated-label-tooltip": "Dieses Label wurde von der KI erstellt. KI kann Fehler machen, prüfen Sie es daher selbst.",
     "tag": {
         "narrow": "schmal",
         "points into traffic": "auf Querverkehr ausgerichtet",

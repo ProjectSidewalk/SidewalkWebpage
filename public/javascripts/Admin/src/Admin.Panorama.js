@@ -209,17 +209,19 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         var url = icons[label['label_type']];
         var pos = getPosition(label['canvasX'], label['canvasY'], label['originalCanvasWidth'],
             label['originalCanvasHeight'], label['zoom'], label['heading'], label['pitch']);
+        const panoMarker = new PanoMarker({
+            container: self.panoCanvas,
+            pano: self.panorama,
+            position: {heading: pos.heading, pitch: pos.pitch},
+            icon: url,
+            size: new google.maps.Size(20, 20),
+            anchor: new google.maps.Point(10, 10)
+        });
         self.labelMarkers.push({
             panoId: self.panorama.getPano(),
-            marker: new PanoMarker({
-                container: self.panoCanvas,
-                pano: self.panorama,
-                position: {heading: pos.heading, pitch: pos.pitch},
-                icon: url,
-                size: new google.maps.Size(20, 20),
-                anchor: new google.maps.Point(10, 10)
-            })
+            marker: panoMarker
         });
+        attachAiIndicatorToMarker(panoMarker, label.aiGenerated);
         return this;
     }
 
@@ -273,6 +275,26 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
             heading: h * 180.0 / PI,
             pitch: p * 180.0 / PI
         };
+    }
+
+    function attachAiIndicatorToMarker(panoMarker, showIndicator, retryCount = 0) {
+        if (!showIndicator) return;
+
+        if (!panoMarker.marker_) {
+            if (retryCount < 5) {
+                setTimeout(() => attachAiIndicatorToMarker(panoMarker, showIndicator, retryCount + 1), 100);
+            }
+            return;
+        }
+
+        if (!panoMarker.marker_.querySelector('.admin-ai-icon-marker')) {
+            const indicator = AiLabelIndicator(['admin-ai-icon-marker'], 'top', true);
+            panoMarker.marker_.appendChild(indicator);
+            const $indicator = ensureAiTooltip(indicator);
+            // Fall back to parent events in case Google marker swallows child events.
+            $(panoMarker.marker_).on('mouseenter', () => $indicator.tooltip('show'));
+            $(panoMarker.marker_).on('mouseleave', () => $indicator.tooltip('hide'));
+        }
     }
 
     /**

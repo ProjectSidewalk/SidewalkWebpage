@@ -12,11 +12,12 @@
  * @param {Number} heading The heading of the GSV pano when the label was added in audit.
  * @param {Number} pitch The pitch of the GSV pano when the label was added in audit.
  * @param {Number} zoom The zoom of the GSV pano when the label was added in audit.
+ * @param {Boolean} aiGenerated Whether the label was created by AI.
  * @returns {GalleryPanoramaLabel}
  * @constructor
  */
  function GalleryPanoramaLabel(labelId, labelType, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight,
-    heading, pitch, zoom) {
+    heading, pitch, zoom, aiGenerated = false) {
     let self = { className: "GalleryPanoramaLabel" };
 
     /**
@@ -32,6 +33,7 @@
         self.heading = heading;
         self.pitch = pitch;
         self.zoom = zoom;
+        self.aiGenerated = aiGenerated;
     }
 
     _init();

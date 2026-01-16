@@ -47,6 +47,7 @@ module.exports = function(grunt) {
             },
             dist_admin: {
                 src: [
+                    'public/javascripts/common/AiLabelIndicator.js',
                     'public/javascripts/Admin/src/*.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/Panomarker.js',
@@ -62,6 +63,7 @@ module.exports = function(grunt) {
             },
             dist_validate: {
                 src: [
+                    'public/javascripts/common/AiLabelIndicator.js',
                     'public/javascripts/SVValidate/src/*.js',
                     'public/javascripts/SVValidate/src/data/*.js',
                     'public/javascripts/SVValidate/src/keyboard/*.js',
@@ -84,6 +86,7 @@ module.exports = function(grunt) {
             },
             dist_gallery: {
                 src: [
+                    'public/javascripts/common/AiLabelIndicator.js',
                     'public/javascripts/Gallery/src/cards/*.js',
                     'public/javascripts/Gallery/src/data/*.js',
                     'public/javascripts/Gallery/src/filter/*.js',
