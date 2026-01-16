@@ -31,7 +31,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    --gallery-marker-size: clamp(18px, 1.15vw, 26px);
+    --gallery-marker-size: clamp(16px, 1.1vw, 22px);
 }
 
 .gallery-card:hover:after {
