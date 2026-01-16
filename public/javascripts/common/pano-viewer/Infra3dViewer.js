@@ -6,6 +6,7 @@ class Infra3dViewer extends PanoViewer {
     constructor() {
         super();
         this.viewer = undefined;
+        // TODO may be able to remove this now, unless I need to use it's data over getCurrentNode(), waiting on email.
         this.currNode = null;
         this.currPanoData = undefined;
     }
@@ -59,13 +60,6 @@ class Infra3dViewer extends PanoViewer {
         if (panoOpts.zoomControl === false) {
             this._disableUserZoom();
         }
-
-        // Set up listener for pano changes to track the current navigation arrows.
-        const panoChangedListener = (node) => {
-            this.currNode = node;
-            this.removeListener('pano_changed', panoChangedListener);
-        }
-        this.addListener("pano_changed", panoChangedListener);
     }
 
     getPanoId = () => {
@@ -87,12 +81,11 @@ class Infra3dViewer extends PanoViewer {
         const wgs84 = 'EPSG:4326';
         const webMercator = 'EPSG:3857';
         const [easting, northing] = proj4(wgs84, webMercator, [latLng.lng, latLng.lat]);
+        const newPosition = { easting: easting, northing: northing };
 
-        // Undefined params are height (deprecated) and distance (in meters). Distance is the max distance to move from
-        // current position, so we don't really have a use for it.
+        // Using the internal function that returns a node, since the usual one in the API does not.
         // TODO We'll have to do the radius check GSV does ourselves.
-        return this.viewer.moveToPosition(easting, northing, undefined, undefined, 3857)
-            .then(this._finishRecordingMetadata);
+        return this.viewer._sdk_viewer.movePosition(newPosition, 3857).then(this._finishRecordingMetadata);
     }
 
     setPano = async (panoId) => {
@@ -103,66 +96,47 @@ class Infra3dViewer extends PanoViewer {
     /**
      * Ensures that all image metadata has been saved before letting setPano or setLocation resolve.
      *
-     * Due to quirks with the Infra3d APIs, there are inconsistencies on when data that we need are available. Data
-     * loads in a different order for the first pano, and data loads in a different order when using moveToKey() vs
-     * moveToPosition(). We handle all edges cases below so that all necessary data is available when this resolves.
      * @param node {Object | undefined} Infra3d's internal node object; moveToKey sends it but moteToPosition does not
      * @returns {Promise<Object>} TODO need to define a class for this
      * @private
      */
     _finishRecordingMetadata = async (node) => {
-        // First, make sure that this.currNode has been set.
+        this.currNode = node;
+        // Make sure that the node has the linked panos initialized (in node.spatialEdges.edges).
         return new Promise((resolve) => {
-            if (this.currNode) {
-                // When first pano loads, 'pano_changed' event is fired before moveToPosition() resolves, and since
-                // moveToPosition() doesn't return the node, we had to save the node using a listener in initialize().
-                resolve(this.currNode);
-            } else if (node) {
-                // If _sdk_viewer.moveToKey() was used, it returns the node that we need.
-                this.currNode = node;
+            // Links should be initialized always, except for the first pano. So we can just use them.
+            if (node.spatialEdges.cached) {
                 resolve(node);
             } else {
-                // If moveToPosition() was used, it doesn't return a node, and we have to get it from an event.
-                const panoChangedListener = (node) => {
-                    this.removeListener('pano_changed', panoChangedListener);
-                    this.currNode = node;
-                    resolve(node);
-                };
-                this.addListener('pano_changed', panoChangedListener);
+                // Listen for the event that fires when the links are updated. Only needed when loading first image.
+                const linksListener = node.spatialEdges$.subscribe((spatialEdges) => {
+                    if (spatialEdges.cached) {
+                        linksListener.unsubscribe(); // We no longer need the listener at this point.
+                        resolve(node);
+                    }
+                });
             }
         }).then((node) => {
-            // Next, make sure that the node has the linked panos initialized (in node.spatialEdges.edges).
-            return new Promise((resolve) => {
-                // Links should be initialized always, except for the first pano. So we can just use them.
-                if (node.spatialEdges.cached) {
-                    resolve(node);
-                } else {
-                    // Listen for the event that fires when the links are updated. Only needed when loading first image.
-                    const linksListener = node.spatialEdges$.subscribe((spatialEdges) => {
-                        if (spatialEdges.cached) {
-                            linksListener.unsubscribe(); // We no longer need the listener at this point.
-                            resolve(node);
-                        }
-                    });
-                }
-            });
-        }).then((node) => {
             // TODO this node has the wrong lat/lng. Does it have the right date, omega, and phi?
-            const mainNode = this.viewer.getCurrentNode();
+            // TODO Looks like it's a no! Find other places where we use getCurrentNode() and maybe replace them...
+            // const mainNode = this.viewer.getCurrentNode();
 
             // Now that all the data is available, we can fill the currPanoData object and say that the pano has loaded.
             let panoDataParams = {
                 panoId: node.frame.id,
                 source: this.getViewerType(),
-                captureDate: moment(mainNode.date),
+                // captureDate: moment(mainNode.date),
+                captureDate: moment(node.frame.timestamp),
                 width: 4 * node.frame.framedatameta.imagewidth, // width/height are for only one side of the cube map
                 height: 2 * node.frame.framedatameta.imageheight,
                 tileWidth: node.frame.framedatameta.tilesize,
                 tileHeight: node.frame.framedatameta.tilesize,
                 lat: node.frame.latitude,
                 lng: node.frame.longitude,
-                cameraHeading: this._getHeading(mainNode.omega, mainNode.phi),
-                cameraPitch: this._getPitch(mainNode.omega, mainNode.phi),
+                // cameraHeading: this._getHeading(mainNode.omega, mainNode.phi),
+                // cameraPitch: this._getPitch(mainNode.omega, mainNode.phi),
+                cameraHeading: this._getHeading(node.frame.omega, node.frame.phi),
+                cameraPitch: this._getPitch(node.frame.omega, node.frame.phi),
                 copyright: null, // TODO should probably fill in infra3d here?
                 history: [] // TODO I don't think we have a history to pull from?
             }
