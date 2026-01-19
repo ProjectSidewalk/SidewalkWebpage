@@ -648,7 +648,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         }
 
         navigationService.unlockDisableWalking().enableWalking().lockDisableWalking();
-        $('#arrow-group').off('click').on('click', callback);
+        $('#arrow-group').off('click').on('click', clickToNextPano);
         svl.ui.compass.messageHolder.on('click', clickToNextPano);
         svl.ui.compass.messageHolder.css('cursor', 'pointer');
 

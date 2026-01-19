@@ -43,6 +43,13 @@
         sepia(1) saturate(2) hue-rotate(315deg); /* Adds yellow highlight on hover. */
 }
 
+/* Used to highlight/blink the nav arrows in the tutorial. */
+#arrow-group image.highlight {
+    filter:
+        drop-shadow(0 0 0.05rem black) drop-shadow(0 0 0.05rem black) /* Adds black outline. */
+        sepia(1) saturate(5) hue-rotate(315deg); /* Adds yellow highlight. */
+}
+
 #delete-icon-holder {
     cursor: pointer;
     visibility: hidden;

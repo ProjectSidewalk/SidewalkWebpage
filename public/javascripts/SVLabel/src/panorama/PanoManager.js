@@ -456,18 +456,16 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
         return this;
     }
 
-    /**
-     * Make navigation arrows blink.
-     * TODO needs to be updated to work with new arrow implementation.
-     */
+    /* Make navigation arrows blink. Used in the tutorial. */
     function blinkNavigationArrows() {
         setTimeout(() => {
-            const arrows = document.querySelector("div.gmnoprint.SLHIdE-sv-links-control").querySelector("svg").querySelectorAll("path[fill-opacity='1']");
+            const arrows = document.querySelectorAll('#arrow-group image');
             // Obtain interval id to allow for the interval to be cleaned up after the arrow leaves document context.
             const intervalId = window.setInterval(function () {
                 // Blink logic.
                 arrows.forEach((arrow) => {
-                    arrow.setAttribute("fill", (arrow.getAttribute("fill") === "white" ? "yellow" : "white"));
+                    if (arrow.classList.contains('highlight')) arrow.classList.remove('highlight')
+                    else arrow.classList.add('highlight');
 
                     // Once the arrow is removed from the document, stop the interval for all arrows.
                     if (!document.body.contains(arrow)) window.clearInterval(intervalId);
