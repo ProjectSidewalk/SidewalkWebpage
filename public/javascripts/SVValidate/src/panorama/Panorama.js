@@ -329,7 +329,7 @@ function Panorama (label) {
                 $(markerEl).on('mouseleave', () => $indicator.tooltip('hide'));
             }
         } else if (existingIndicator) {
-            $(existingIndicator).tooltip('dispose');
+            $(existingIndicator).tooltip('destroy');
             existingIndicator.remove();
         }
     }
