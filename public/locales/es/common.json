@@ -56,6 +56,7 @@
     "yes": "Sí",
     "no": "No",
     "ai-disclaimer": "La IA analizó esta etiqueta y votó \"$t({{aiVal}})\"; sin embargo, la IA puede cometer errores. Por favor, haga su propia evaluación.",
+    "ai-generated-label-tooltip": "Esta etiqueta fue generada por IA. La IA puede cometer errores, así que haga su propia evaluación.",
     "tag": {
         "narrow": "muy angosta",
         "points into traffic": "orientado hacia el tráfico transversal",

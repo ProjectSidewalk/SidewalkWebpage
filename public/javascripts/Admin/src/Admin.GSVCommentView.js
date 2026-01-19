@@ -38,10 +38,8 @@ async function AdminGSVCommentView(admin, viewerType, viewerAccessToken) {
      */
     async function showCommentGSV(panoId, pov, labelId) {
         await _resetModal();
-        self.modal.modal({
-            'show': true
-        });
-        self.panoManager.setPano(panoId, pov);
+        self.modal.modal({ 'show': true });
+        await self.panoManager.setPano(panoId, pov);
 
         if (labelId) {
             const adminLabelUrl = admin ? '/adminapi/label/id/' + labelId : '/label/id/' + labelId;
@@ -52,6 +50,7 @@ async function AdminGSVCommentView(admin, viewerType, viewerAccessToken) {
     }
 
     function setLabel(labelMetadata) {
+        const isAiGenerated = labelMetadata['ai_generated'] === true;
         const labelPov = {
             heading: labelMetadata.heading,
             pitch: labelMetadata.pitch,
@@ -59,8 +58,9 @@ async function AdminGSVCommentView(admin, viewerType, viewerAccessToken) {
         }
         const adminPanoramaLabel = AdminPanoramaLabel(labelMetadata.label_id, labelMetadata.label_type,
             labelMetadata.canvas_x, labelMetadata.canvas_y, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
-            labelPov);
+            labelPov, labelMetadata.street_edge_id, labelMetadata.severity, labelMetadata.tags, isAiGenerated);
         self.panoManager.setLabel(adminPanoramaLabel);
+        self.panoManager.renderLabel(adminPanoramaLabel);
     }
 
     await _init();

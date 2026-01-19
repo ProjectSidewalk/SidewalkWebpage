@@ -83,7 +83,8 @@ object LabelFormats {
       (__ \ "validations").write[Map[String, Int]] and
       (__ \ "tags").write[List[String]] and
       (__ \ "low_quality_incomplete_stale_flags").write[(Boolean, Boolean, Boolean)] and
-      (__ \ "comments").write[Option[Seq[String]]]
+      (__ \ "comments").write[Option[Seq[String]]] and
+      (__ \ "ai_generated").write[Boolean]
   )(unlift(LabelMetadata.unapply))
 
   def validationLabelMetadataToJson(
@@ -117,6 +118,7 @@ object LabelFormats {
       "ai_validation"      -> labelMetadata.aiValidation.map(LabelValidationTable.validationOptions.get),
       "tags"               -> labelMetadata.tags,
       "ai_tags"            -> labelMetadata.aiTags,
+      "ai_generated"       -> labelMetadata.aiGenerated,
       "admin_data"         -> adminData.map(ad =>
         Json.obj(
           "username"             -> ad.username,
@@ -155,7 +157,8 @@ object LabelFormats {
       "num_disagree"       -> labelMetadata.validations("disagree"),
       "num_unsure"         -> labelMetadata.validations("unsure"),
       "comments"           -> labelMetadata.comments,
-      "tags"               -> labelMetadata.tags
+      "tags"               -> labelMetadata.tags,
+      "ai_generated"       -> labelMetadata.aiGenerated
     )
   }
 

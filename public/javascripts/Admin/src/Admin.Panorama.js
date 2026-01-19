@@ -176,16 +176,18 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
     function renderLabel(label) {
         const pos = getPosition(label.canvasX, label.canvasY, label.originalCanvasWidth,
             label.originalCanvasHeight, label.pov);
+        const panoMarker = new PanoMarker({
+            markerContainer: self.panoCanvas,
+            panoViewer: self.panoViewer,
+            position: { heading: pos.heading, pitch: pos.pitch },
+            icon: icons[label['label_type']],
+            size: { width: 20, height: 20 }
+        });
         self.labelMarkers.push({
             panoId: self.panoViewer.getPanoId(),
-            marker: new PanoMarker({
-                markerContainer: self.panoCanvas,
-                panoViewer: self.panoViewer,
-                position: { heading: pos.heading, pitch: pos.pitch },
-                icon: icons[label['label_type']],
-                size: { width: 20, height: 20 }
-            })
+            marker: panoMarker
         });
+        attachAiIndicatorToMarker(panoMarker, label.aiGenerated);
     }
 
     /**
@@ -236,6 +238,23 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
             heading: h * 180.0 / PI,
             pitch: p * 180.0 / PI
         };
+    }
+
+    function attachAiIndicatorToMarker(panoMarker, showIndicator, retryCount = 0) {
+        if (!showIndicator) return;
+
+        if (!panoMarker.marker_) {
+            if (retryCount < 5) {
+                setTimeout(() => attachAiIndicatorToMarker(panoMarker, showIndicator, retryCount + 1), 100);
+            }
+            return;
+        }
+
+        if (!panoMarker.marker_.querySelector('.admin-ai-icon-marker')) {
+            const indicator = AiLabelIndicator(['admin-ai-icon-marker'], 'top', true);
+            panoMarker.marker_.appendChild(indicator);
+            const $indicator = ensureAiTooltip(indicator);
+        }
     }
 
     /**

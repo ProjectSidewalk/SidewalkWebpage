@@ -251,7 +251,7 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
         const labelProps = self.refCard.getProperties();
         self.label = new ExpandedLabel(
             labelProps.label_id, labelProps.label_type, labelProps.original_canvas_x, labelProps.original_canvas_y,
-            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, labelProps.pov
+            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, labelProps.pov, labelProps.ai_generated
         );
 
         openExpandedView();

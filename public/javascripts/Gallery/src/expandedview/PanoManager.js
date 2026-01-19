@@ -166,6 +166,7 @@
 
         // Make our newly set PanoMarker visible.
         self.labelMarker.marker.setVisible(true);
+        updateMarkerAiIndicator(label.aiGenerated);
     }
 
     /**
@@ -228,6 +229,44 @@
         return zoom <= 2 ?
             126.5 - zoom * 36.75 :  // linear descent.
             195.93 / Math.pow(1.92, zoom); // parameters determined experimentally.
+    }
+
+    /**
+     * Adds or removes the AI badge on the marker, retrying briefly until the DOM element exists.
+     * @param showIndicator  True to show the AI badge, false to remove it.
+     * @param retryCount     Number of times the DOM update has been retried.
+     */
+    function updateMarkerAiIndicator(showIndicator, retryCount = 0) {
+        if (!self.labelMarker || !self.labelMarker.marker) return;
+
+        if (!self.labelMarker.marker.marker_) {
+            if (showIndicator && retryCount < 5) {
+                setTimeout(() => updateMarkerAiIndicator(showIndicator, retryCount + 1), 100);
+            }
+            return;
+        }
+
+        const markerEl = self.labelMarker.marker.marker_;
+        let existingIndicator = markerEl.querySelector('.ai-icon-marker-expanded');
+
+        if (showIndicator) {
+            if (!existingIndicator) {
+                existingIndicator = AiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-expanded']);
+                markerEl.appendChild(existingIndicator);
+                const $indicator = $(existingIndicator)
+                    .tooltip({
+                        template: '<div class="tooltip ai-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
+                        container: 'body'
+                    })
+                    .tooltip('hide');
+                $(markerEl).on('mouseenter', () => $indicator.tooltip('show'));
+                $(markerEl).on('mouseleave', () => $indicator.tooltip('hide'));
+            }
+        } else if (existingIndicator) {
+            $(existingIndicator).tooltip('destroy');
+            existingIndicator.remove();
+            existingIndicator = null;
+        }
     }
 
     /**

@@ -380,21 +380,23 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
      * @private
      */
     function _setAiValidationRow(aiValidation) {
-        if (aiValidation) {
-            self.modalAiValidation.html(i18next.t('labelmap:ai-val-included', { aiVal: aiValidation.toLowerCase() }));
+        // Remove any existing AI icon before adding a new one.
+        self.modalAiValidationHeader.find('.label-view-ai-icon').remove();
 
-            // Create the AI icon.
-            let aiIcon = document.createElement('img')
-            aiIcon.className = 'label-view-ai-icon';
+        if (aiValidation) {
+            const normalizedAiVal = aiValidation.toLowerCase();
+            self.modalAiValidation.html(i18next.t('labelmap:ai-val-included', { aiVal: normalizedAiVal }));
+
+            // Create the AI validation icon with the correct tooltip text.
+            const aiIcon = new Image();
             aiIcon.src = '/assets/images/icons/ai-icon-transparent-small.png';
             aiIcon.alt = 'AI indicator';
-            self.modalAiValidationHeader.append(aiIcon);
-
-            // Create the AI validation tooltip that we show in the header.
+            aiIcon.classList.add('label-view-ai-icon');
             aiIcon.setAttribute('data-toggle', 'tooltip');
             aiIcon.setAttribute('data-placement', 'top');
-            aiIcon.setAttribute('title', i18next.t('common:ai-disclaimer', { aiVal: aiValidation.toLowerCase() }));
-            $(aiIcon).tooltip('hide');
+            aiIcon.setAttribute('title', i18next.t('common:ai-disclaimer', { aiVal: normalizedAiVal }));
+            ensureAiTooltip(aiIcon);
+            self.modalAiValidationHeader.append(aiIcon);
         } else {
             self.modalAiValidation.html(i18next.t('common:none'));
         }
@@ -549,7 +551,8 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
 
         const adminPanoramaLabel = AdminPanoramaLabel(labelMetadata.label_id, labelMetadata.label_type,
             labelMetadata.canvas_x, labelMetadata.canvas_y, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
-            labelPov, labelMetadata.street_edge_id, labelMetadata.severity, labelMetadata.tags);
+            labelPov, labelMetadata.street_edge_id, labelMetadata.severity, labelMetadata.tags,
+            labelMetadata.ai_generated);
         self.panoManager.setLabel(adminPanoramaLabel);
 
         // Pass a callback function that fills in the pano lat/lng.
