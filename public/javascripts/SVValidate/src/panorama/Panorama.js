@@ -282,7 +282,7 @@ function Panorama (label) {
             self.labelMarker.setIcon(url);
         }
 
-        updateMarkerAiIndicator(true);
+        updateMarkerAiIndicator(currentLabel.getAuditProperty('aiGenerated'));
 
         return this;
     }
