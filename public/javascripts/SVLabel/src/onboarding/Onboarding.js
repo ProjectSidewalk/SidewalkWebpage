@@ -309,7 +309,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
                     fill: annotation.fill,
                     lineCap: 'round',
                     arrowWidth: 6,
-                    strokeStyle: 'rgba(96, 96, 96, 1)'
+                    strokeStyle: 'rgba(0, 0, 0, 1)'
                 };
 
                 if (annotation.fill == null || annotation.fill === "white") {
