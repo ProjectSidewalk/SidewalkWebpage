@@ -11,7 +11,8 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
     let status = {
         bottomLinksClickable: false,
         disablePanning: false,
-        lockDisablePanning: false
+        lockDisablePanning: false,
+        lockShowingNavArrows: false
     };
     let properties = {
         maxPitch: 0,
@@ -168,7 +169,18 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
     }
 
     function showNavArrows() {
-        $('#nav-arrows-container').show();
+        if (!status.lockShowingNavArrows) $('#nav-arrows-container').show();
+    }
+
+    /* Prevents showNavArrows() from showing the arrows. Used to keep arrows hidden in the tutorial. */
+    function lockShowingNavArrows() {
+        hideNavArrows();
+        status.lockShowingNavArrows = true;
+    }
+
+    /* Allows showNavArrows() to show the arrows. Used to keep arrows hidden in the tutorial. */
+    function unlockShowingNavArrows() {
+        status.lockShowingNavArrows = false;
     }
 
     /**
@@ -474,6 +486,8 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
     self.updateCanvas = updateCanvas;
     self.hideNavArrows = hideNavArrows;
     self.showNavArrows = showNavArrows;
+    self.lockShowingNavArrows = lockShowingNavArrows;
+    self.unlockShowingNavArrows = unlockShowingNavArrows;
     self.resetNavArrows = resetNavArrows;
     self.setPanorama = setPanorama;
     self.setLocation = setLocation;

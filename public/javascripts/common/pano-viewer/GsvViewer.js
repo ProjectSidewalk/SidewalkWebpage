@@ -161,7 +161,7 @@ class GsvViewer extends PanoViewer {
             // For locally stored tutorial panos, skip the getPanorama step and continue w/ our saved data.
             return this._getPanoramaCallback({ data: this._getCustomPanoData(panoId) });
         } else {
-            return this.streetViewService.getPanorama({pano: panoId}).then(this._getPanoramaCallback);
+            return this.streetViewService.getPanorama({ pano: panoId }).then(this._getPanoramaCallback);
         }
     }
 
@@ -178,7 +178,11 @@ class GsvViewer extends PanoViewer {
                     pano: 'tutorial',
                     latLng: new google.maps.LatLng(38.94042608, -77.06766133)
                 },
-                links: [],
+                links: [{
+                    description: 'afterWalkTutorial',
+                    heading: 340,
+                    pano: 'afterWalkTutorial'
+                }],
                 imageDate: '2014-05',
                 copyright: 'Imagery (c) 2010 Google',
                 tiles: {

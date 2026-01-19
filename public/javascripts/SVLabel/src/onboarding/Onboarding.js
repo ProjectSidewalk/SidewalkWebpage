@@ -52,6 +52,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         if (canvasUI) ctx = canvasUI.getContext('2d');
         uiOnboarding.holder.css("visibility", "visible");
 
+        svl.panoManager.lockShowingNavArrows();
+
         canvas.unlockDisableLabelDelete();
         canvas.disableLabelDelete();
         canvas.lockDisableLabelDelete();
@@ -626,27 +628,27 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         const nextPanoId = 'afterWalkTutorial';
 
         // Add a link to the second pano so that the user can click on it.
-        svl.panoViewer.panorama.setLinks([{
-            description: nextPanoId,
-            heading: 340,
-            pano: nextPanoId
-        }]);
-        svl.panoManager.resetNavArrows();
+        svl.panoManager.unlockShowingNavArrows();
+        svl.panoManager.showNavArrows();
 
         // A callback to disable walking after user has moved to 2nd pano, then moves to next state.
         const callback = function () {
             navigationService.unlockDisableWalking().disableWalking().lockDisableWalking();
             svl.ui.compass.messageHolder.off('click', clickToNextPano);
             svl.ui.compass.messageHolder.css('cursor', 'default');
+            svl.panoManager.lockShowingNavArrows();
+            $('#arrow-group').off('click', callback);
             if (listener) google.maps.event.removeListener(listener);
             next(state.transition);
         };
 
-        // Replace default behavior when clicking on the navigation message to move to the next pano.
+        // Replace default behavior when clicking on the navigation message/arrows to move to the next pano.
         const clickToNextPano = function() {
             navigationService.moveToPano(nextPanoId, true).then(callback);
         }
+
         navigationService.unlockDisableWalking().enableWalking().lockDisableWalking();
+        $('#arrow-group').off('click').on('click', callback);
         svl.ui.compass.messageHolder.on('click', clickToNextPano);
         svl.ui.compass.messageHolder.css('cursor', 'pointer');
 
