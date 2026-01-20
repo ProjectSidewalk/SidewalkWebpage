@@ -37,8 +37,8 @@
     },
     "errors": {
         "title": "Ups, unser Fehler! Für diese Beschriftung sind keine Bilder mehr verfügbar.",
-        "explanation": "Wir verwenden die “Google Maps API”, um die Bilder der Gehwege anzuzeigen. Manchmal entfernt Google diese Bilder und wir können nicht mehr darauf zugreifen. Wir bitten um Entschuldigung!",
-        "explore-street": "Strasse nochmals erkunden</a>, um die neuen Aufnahmen von Google zu verwenden!"
+        "explanation": "Entweder haben wir Probleme beim Zugriff auf die Webseite, die dieses Bild bereitstellt, oder das Bild wurde entfernt.",
+        "explore-street": "Erkunden Sie die Straße</a>  erneut, um neuere Bilder zu verwenden!"
     },
     "severity": "Schweregrad",
     "severity-example-tooltip-1": "Beispiel mit geringem Schweregrad",

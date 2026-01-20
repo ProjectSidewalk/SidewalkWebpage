@@ -36,8 +36,8 @@
     },
     "errors": {
         "title": "Oeps, onze fout, maar er zijn geen afbeeldingen meer beschikbaar voor dit label.",
-        "explanation": "We gebruiken de Google Maps API om de stoepafbeeldingen weer te geven en soms verwijdert Google deze afbeeldingen zodat we er niet meer bij kunnen. Sorry daarvoor.",
-        "explore-street": "Verken de straat</a> opnieuw om de nieuwere afbeeldingen van Google te gebruiken!"
+        "explanation": "We ondervinden problemen met de toegang tot de website die deze afbeelding aanbiedt, of de afbeelding is verwijderd.",
+        "explore-street": "Verken de straat</a> opnieuw om nieuwere afbeeldingen te gebruiken!"
     },
     "severity": "Ernst",
     "severity-example-tooltip-1": "Voorbeeld van lage ernst",

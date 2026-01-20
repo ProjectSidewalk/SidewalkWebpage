@@ -36,9 +36,9 @@
         "private-deployment": "Private Deployment"
     },
     "errors": {
-        "title": "Oops, our fault but there is no longer imagery available for this label.",
-        "explanation": "We use the Google Maps API to show the sidewalk images and sometimes Google removes these images so we can no longer access them. Sorry about that.",
-        "explore-street": "Explore the street</a> again to use Google's newer images!"
+        "title": "Oops, there is no longer imagery available for this label.",
+        "explanation": "We are either having trouble accessing the site that provides this image, or the image has been taken down.",
+        "explore-street": "Explore the street</a> again to use newer images!"
     },
     "severity": "Severity",
     "severity-example-tooltip-1": "Low severity example",

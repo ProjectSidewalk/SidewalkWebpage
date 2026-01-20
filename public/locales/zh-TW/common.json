@@ -37,8 +37,8 @@
     },
     "errors": {
         "title": "啊糟糕！我們現在沒有與此標記相關的圖片可供參考。",
-        "explanation": "我們使用 Google 地圖應用程式介面來顯示人行道的圖像，有時候 Google 會移除這些圖片，因此我們無法再讀取它們。抱歉啦！",
-        "explore-street": "請再次探索此街道</a> 以使用較新的Google圖片！"
+        "explanation": "我們可能無法存取提供此圖片的網站，或該圖片已被刪除。",
+        "explore-street": "請再次探索此街道</a> 使用更新的圖片！"
     },
     "severity": "嚴重度評分",
     "severity-example-tooltip-1": "低嚴重性範例",

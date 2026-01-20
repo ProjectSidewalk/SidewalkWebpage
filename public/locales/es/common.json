@@ -37,8 +37,8 @@
     },
     "errors": {
         "title": "Vaya, es culpa nuestra, pero ya no hay imágenes disponibles para esta etiqueta.",
-        "explanation": "Usamos la API de Google Maps para mostrar las imágenes de la acera y, a veces, Google elimina estas imágenes para que ya no podamos acceder a ellas. Lo lamento.",
-        "explore-street": "Explora la calle</a> de nuevo para usar las imágenes más nuevas de Google!"
+        "explanation": "Estamos teniendo problemas para acceder al sitio que proporciona esta imagen, o la imagen ha sido eliminada.",
+        "explore-street": "¡Explora la calle</a> nuevamente para usar imágenes más nuevas!"
     },
     "severity": "Calificación ",
     "severity-example-tooltip-1": "Ejemplo de baja gravedad",

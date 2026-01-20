@@ -181,7 +181,7 @@ audit.tutorial.examples.curb.ramp = Las <span style="color:limegreen">rampas pea
 audit.tutorial.examples.missing.ramp = Las personas usuarias de sillas de ruedas no pueden circular por las banquetas cuando <span style="color:#ff0066">faltan las rampas.</span>
 audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Los obstáculos</span> en la banqueta bloquean el camino de las personas usuarias de sillas de ruedas.
 audit.tutorial.examples.surface.problem = Las banquetas con <span style="color:orange">problemas en la superficie</span> pueden no ser transitables.
-audit.tutorial.end.1 = ¡Excelente! ¡Has aprendido a usar la interfaz! Ahora, sigue adelante y <b>etiqueta los siguientes atributos de accesibilidad, en Google Street View</b>, que afectan significativamente la forma en que las personas usuarias de sillas de ruedas se mueven por la ciudad:
+audit.tutorial.end.1 = ¡Excelente! ¡Has aprendido a usar la interfaz! Ahora, sigue adelante y <span class="bold">Etiquetar los siguientes atributos de accesibilidad en imágenes de Street View</span>, que afectan significativamente la forma en que las personas usuarias de sillas de ruedas se mueven por la ciudad:
 audit.tutorial.end.2 = Nuevamente, ¡gracias por <b>hacer que el mundo sea más accesible para todas!</b>
 audit.tutorial.examples = Ejemplos de atributos de accesibilidad: rampas peatonales, rampas peatonales ausentes, obstáculos en la banqueta, y problemas en superficie.
 

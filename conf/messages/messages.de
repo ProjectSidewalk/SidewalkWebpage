@@ -173,7 +173,7 @@ audit.tutorial.examples.curb.ramp = <span style="color:limegreen">Trottoirabsenk
 audit.tutorial.examples.missing.ramp = Rollstuhlnutzende können Gehwege nicht befahren, wenn <span style="color:#ff0066">Trottoirabsenkungen fehlen</span>
 audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Hindernisse</span> versperren den Weg für Rollstuhlfahrende
 audit.tutorial.examples.surface.problem = Trottoirs mit <span style="color:orange">Oberflächenprobleme</span> sind möglicherweise nicht befahrbar
-audit.tutorial.end.1 = Gut! Sie haben nun gelernt, die Benutzeroberfläche zu bedienen! Beginnen Sie nun mit dem <span class="bold">Beschriften der folgenden Zugänglichkeitsmerkmalen in ''Google Street View''</span>, die das Fortbewegen von Rollstuhlfahrenden in der Stadt erheblich beeinflussen:
+audit.tutorial.end.1 = Gut! Sie haben nun gelernt, die Benutzeroberfläche zu bedienen! Beginnen Sie nun mit dem <span class="bold">Beschriften Sie die folgenden Zugänglichkeitsattribute in Street-View-Bildern.</span>, die das Fortbewegen von Rollstuhlfahrenden in der Stadt erheblich beeinflussen:
 audit.tutorial.end.2 = Herzlichen Dank, dass Sie dabei helfen, <span class="bold">die Welt für alle zugänglicher machen!</span>
 audit.tutorial.examples = Beispiele von Zugänglichkeitsmerkmalen: Trottoirabsenkungen, fehlende Trottoirabsenkungen, Hindernisse im Weg und Oberflächenprobleme.
 
