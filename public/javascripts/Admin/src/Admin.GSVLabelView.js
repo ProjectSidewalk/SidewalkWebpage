@@ -560,12 +560,17 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
         const panoCallback = function () {
             const lat = self.panoManager.panoViewer.getPosition().lat;
             const lng = self.panoManager.panoViewer.getPosition().lng;
-            const href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelPov.pano_id}&heading=${labelPov.heading}&pitch=${labelPov.pitch}`;
-
-            self.modalPanoLink.html(`<a target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
-            self.modalPanoLink.children(":first").attr('href', href)
             self.modalLat.html(lat.toFixed(8) + '°');
             self.modalLng.html(lng.toFixed(8) + '°');
+
+            // Fill in the View in GSV link if we're using GSV, otherwise hide it for now.
+            if (self.panoManager.panoViewer.getViewerType() === 'gsv') {
+                const href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelPov.pano_id}&heading=${labelPov.heading}&pitch=${labelPov.pitch}`;
+                self.modalPanoLink.html(`<a target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
+                self.modalPanoLink.children(":first").attr('href', href);
+            } else {
+                self.modalPanoLink.parent().hide();
+            }
         };
         self.panoManager.setPano(labelMetadata.pano_id, labelPov).then(panoCallback);
 

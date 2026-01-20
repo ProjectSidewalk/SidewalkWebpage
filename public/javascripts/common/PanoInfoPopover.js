@@ -56,12 +56,14 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
 
         self.popoverContent.appendChild(dataList);
 
-        // Create element for a link to the pano in a separate tab.
-        let linkPano = document.createElement('a');
-        linkPano.classList.add('popover-element');
-        linkPano.id = 'pano-link'
-        linkPano.textContent = i18next.t('common:gsv-info.view-in-gsv');
-        self.popoverContent.appendChild(linkPano);
+        // Create element for a link to the pano in a separate tab. Only implemented for GSV right now.
+        if (panoViewer.getViewerType() === 'gsv') {
+            let linkPano = document.createElement('a');
+            linkPano.classList.add('popover-element');
+            linkPano.id = 'pano-link'
+            linkPano.textContent = i18next.t('common:gsv-info.view-in-gsv');
+            self.popoverContent.appendChild(linkPano);
+        }
 
         // Create info button and add popover attributes.
         self.infoButton = document.createElement('img');
