@@ -5,10 +5,13 @@ import formats.json.CommentSubmissionFormats.ValidationCommentSubmission
 import formats.json.LabelFormats.labelTypeReads
 import formats.json.PanoFormats._
 import models.label.LabelTypeEnum
+import models.utils.CommonUtils.UiSource
+import models.utils.CommonUtils.UiSource.UiSource
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{JsPath, Reads}
+import play.api.libs.json.{JsError, JsPath, JsSuccess, Reads}
 
 import java.time.OffsetDateTime
+import scala.util.{Failure, Success, Try}
 
 object ValidateFormats {
   case class EnvironmentSubmission(
@@ -55,7 +58,7 @@ object ValidateFormats {
       canvasWidth: Int,
       startTimestamp: OffsetDateTime,
       endTimestamp: OffsetDateTime,
-      source: String,
+      source: UiSource,
       undone: Boolean,
       redone: Boolean
   )
@@ -76,7 +79,7 @@ object ValidateFormats {
       missionProgress: Option[ValidationMissionProgress],
       validateParams: ValidateParams,
       panoHistories: Seq[PanoHistorySubmission],
-      source: String,
+      source: UiSource,
       timestamp: OffsetDateTime
   )
   case class LabelMapValidationSubmission(
@@ -96,10 +99,20 @@ object ValidateFormats {
       canvasWidth: Int,
       startTimestamp: OffsetDateTime,
       endTimestamp: OffsetDateTime,
-      source: String,
+      source: UiSource,
       undone: Boolean,
       redone: Boolean
   )
+
+  implicit val uiSourceReads: Reads[UiSource.Value] = Reads { json =>
+    json.validate[String].flatMap { uiSource =>
+      Try(UiSource.withName(uiSource)) match {
+        case Success(source) => JsSuccess(source)
+        case Failure(_)      =>
+          JsError(s"Invalid viewer type: $uiSource. Valid types are: ${UiSource.values.mkString(", ")}.")
+      }
+    }
+  }
 
   implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
     (JsPath \ "mission_id").readNullable[Int] and
@@ -147,7 +160,7 @@ object ValidateFormats {
       (JsPath \ "canvas_width").read[Int] and
       (JsPath \ "start_timestamp").read[OffsetDateTime] and
       (JsPath \ "end_timestamp").read[OffsetDateTime] and
-      (JsPath \ "source").read[String] and
+      (JsPath \ "source").read[UiSource.Value] and
       (JsPath \ "undone").read[Boolean] and
       (JsPath \ "redone").read[Boolean]
   )(LabelValidationSubmission.apply _)
@@ -177,7 +190,7 @@ object ValidateFormats {
       (JsPath \ "mission_progress").readNullable[ValidationMissionProgress] and
       (JsPath \ "validate_params").read[ValidateParams] and
       (JsPath \ "pano_histories").read[Seq[PanoHistorySubmission]] and
-      (JsPath \ "source").read[String] and
+      (JsPath \ "source").read[UiSource.Value] and
       (JsPath \ "timestamp").read[OffsetDateTime]
   )(ValidationTaskSubmission.apply _)
 
@@ -198,7 +211,7 @@ object ValidateFormats {
       (JsPath \ "canvas_width").read[Int] and
       (JsPath \ "start_timestamp").read[OffsetDateTime] and
       (JsPath \ "end_timestamp").read[OffsetDateTime] and
-      (JsPath \ "source").read[String] and
+      (JsPath \ "source").read[UiSource.Value] and
       (JsPath \ "undone").read[Boolean] and
       (JsPath \ "redone").read[Boolean]
   )(LabelMapValidationSubmission.apply _)

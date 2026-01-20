@@ -10,6 +10,7 @@ import models.mission.{Mission, MissionTable}
 import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
 import models.user.SidewalkUserWithRole
+import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ExcludedTag, MyPostgresProfile}
 import models.validation.LabelValidationTable
@@ -524,12 +525,12 @@ class LabelServiceImpl @Inject() (
   def insertLabel(label: Label): DBIO[Int] = {
     for {
       cleanTags: Seq[String] <- cleanTagList(label.tags, label.labelTypeId)
-      cleanL: Label = label.copy(tags = cleanTags.toList)
-      labelId: Int <- (labelTable.labelsUnfiltered returning labelTable.labelsUnfiltered.map(_.labelId)) += cleanL
+      clean: Label = label.copy(tags = cleanTags.toList)
+      labelId: Int <- (labelTable.labelsUnfiltered returning labelTable.labelsUnfiltered.map(_.labelId)) += clean
 
       // Add a corresponding entry to the label_history table.
       _ <- labelHistoryTable.insert(
-        LabelHistory(0, labelId, cleanL.severity, cleanL.tags, cleanL.userId, cleanL.timeCreated, "Explore", None)
+        LabelHistory(0, labelId, clean.severity, clean.tags, clean.userId, clean.timeCreated, UiSource.Explore, None)
       )
     } yield {
       labelId
@@ -566,8 +567,8 @@ class LabelServiceImpl @Inject() (
           labelHistoryTable.labelHistory.filter(_.labelId === labelId).length.result.flatMap {
             case labelHistoryCount if labelHistoryCount > 1 =>
               labelHistoryTable.insert(
-                LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, OffsetDateTime.now, "Explore",
-                  None)
+                LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, OffsetDateTime.now,
+                  UiSource.Explore, None)
               )
             case _ =>
               labelHistoryTable.labelHistory

@@ -3,6 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import models.label._
 import models.user.SidewalkUserTable
+import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile.api._
 import models.utils._
 import models.validation.LabelValidation
@@ -11,6 +12,7 @@ import play.api.libs.json.{JsObject, JsValue}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
+
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
@@ -127,7 +129,7 @@ class AiServiceImpl @Inject() (
                 0, labelId, aiValResult, label.severity, label.severity, label.tags, label.tags,
                 SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX), Some(labelPoint.canvasY),
                 labelPoint.heading, labelPoint.pitch, labelPoint.zoom, LabelPointTable.canvasWidth,
-                LabelPointTable.canvasHeight, startTime, aiResults.timestamp, "SidewalkAI"
+                LabelPointTable.canvasHeight, startTime, aiResults.timestamp, UiSource.SidewalkAI
               )
               valId: Option[Int] <- validationService
                 .submitValidationsDbio(

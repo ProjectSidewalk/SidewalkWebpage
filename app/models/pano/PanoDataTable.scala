@@ -30,6 +30,7 @@ case class PanoData(
     source: PanoSource
 )
 
+// NOTE need to update pano_source enum in postgres as well if changing this Enumeration.
 object PanoSource extends Enumeration {
   type PanoSource = Value
   val Gsv       = Value("gsv")

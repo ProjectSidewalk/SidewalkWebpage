@@ -1,6 +1,7 @@
 package models.validation
 
 import com.google.inject.ImplementedBy
+import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -20,14 +21,8 @@ case class ValidationTaskInteraction(
     zoom: Option[Float],
     note: Option[String],
     timestamp: OffsetDateTime,
-    source: String
-) {
-  require(
-    Seq("Validate", "AdminValidate", "ExpertValidate", "ValidateMobile")
-      .contains(source),
-    "Invalid source for validation_task_interaction table."
-  )
-}
+    source: UiSource
+)
 
 class ValidationTaskInteractionTableDef(tag: slick.lifted.Tag)
     extends Table[ValidationTaskInteraction](tag, "validation_task_interaction") {
@@ -42,7 +37,7 @@ class ValidationTaskInteractionTableDef(tag: slick.lifted.Tag)
   def zoom: Rep[Option[Float]]              = column[Option[Float]]("zoom")
   def note: Rep[Option[String]]             = column[Option[String]]("note")
   def timestamp: Rep[OffsetDateTime]        = column[OffsetDateTime]("timestamp")
-  def source: Rep[String]                   = column[String]("source")
+  def source: Rep[UiSource]                 = column[UiSource]("source")
 
   def * = (validationTaskInteractionId, missionId, action, panoId, lat, lng, heading, pitch, zoom, note, timestamp,
     source) <> ((ValidationTaskInteraction.apply _).tupled, ValidationTaskInteraction.unapply)

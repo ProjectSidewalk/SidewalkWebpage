@@ -53,6 +53,22 @@ CREATE TYPE pano_source AS ENUM ('gsv', 'mapillary', 'infra3d');
 ALTER TABLE pano_data ADD COLUMN source pano_source DEFAULT 'gsv';
 ALTER TABLE pano_data ALTER COLUMN source DROP DEFAULT;
 
+-- Make the same fix as in 279.sql that was missed in the label_history table.
+UPDATE label_history SET source = 'Validate' WHERE source = 'ValidateDesktop';
+UPDATE label_history SET source = 'AdminValidate' WHERE source = 'ValidateDesktopAdmin';
+UPDATE label_history SET source = 'ExpertValidate' WHERE source = 'ValidateDesktopNew';
+
+-- Turn some other columns that should be enums into enums.
+CREATE TYPE ui_source AS ENUM (
+    'Explore', 'Validate', 'ExpertValidate', 'ValidateMobile', 'AdminValidate', 'LabelMap', 'GalleryImage',
+    'GalleryExpandedImage', 'GalleryThumbs', 'GalleryExpandedThumbs', 'UserMap', 'LabelSearchPage',
+    'AdminUserDashboard', 'AdminMapTab', 'AdminContributionsTab', 'AdminLabelSearchTab', 'SidewalkAI',
+    'ExternalTagValidationASSETS2024', 'Old data, unknown source'
+);
+ALTER TABLE label_history ALTER COLUMN source TYPE ui_source USING source::ui_source;
+ALTER TABLE label_validation ALTER COLUMN source TYPE ui_source USING source::ui_source;
+ALTER TABLE validation_task_interaction ALTER COLUMN source TYPE ui_source USING source::ui_source;
+
 -- Fix the nullable columns in audit_task_comment that aren't ever actually null. Adding delete statement for safety.
 DELETE FROM audit_task_comment WHERE heading IS NULL OR pitch IS NULL OR zoom IS NULL OR pano_id IS NULL;
 ALTER TABLE audit_task_comment
@@ -85,6 +101,15 @@ ALTER TABLE audit_task_comment
 
 ALTER TABLE pano_data DROP COLUMN source;
 DROP TYPE pano_source;
+
+ALTER TABLE label_history ALTER COLUMN source TYPE TEXT USING source::TEXT;
+ALTER TABLE label_validation ALTER COLUMN source TYPE TEXT USING source::TEXT;
+ALTER TABLE validation_task_interaction ALTER COLUMN source TYPE TEXT USING source::TEXT;
+DROP TYPE ui_source;
+
+UPDATE label_history SET source = 'ValidateDesktopNew' WHERE source = 'ExpertValidate';
+UPDATE label_history SET source = 'ValidateDesktopAdmin' WHERE source = 'AdminValidate';
+UPDATE label_history SET source = 'ValidateDesktop' WHERE source = 'Validate';
 
 UPDATE pano_link SET description = '' WHERE description IS NULL;
 ALTER TABLE pano_link ALTER COLUMN description SET NOT NULL;

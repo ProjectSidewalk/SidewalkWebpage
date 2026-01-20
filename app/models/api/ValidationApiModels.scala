@@ -8,6 +8,7 @@ package models.api
 import models.api.ApiModelUtils.escapeCsvField
 import models.computation.StreamingApiType
 import models.label.LocationXY
+import models.utils.CommonUtils.UiSource.UiSource
 import play.api.libs.json.{JsObject, Json, OFormat}
 
 import java.time.OffsetDateTime
@@ -84,7 +85,7 @@ case class ValidationDataForApi(
     canvasWidth: Int,
     startTimestamp: OffsetDateTime,
     endTimestamp: OffsetDateTime,
-    source: String
+    source: UiSource
 ) extends StreamingApiType {
 
   /**
@@ -153,7 +154,7 @@ case class ValidationDataForApi(
       canvasWidth.toString,
       startTimestamp.toString,
       endTimestamp.toString,
-      escapeCsvField(source)
+      escapeCsvField(source.toString)
     )
     fields.mkString(",")
   }

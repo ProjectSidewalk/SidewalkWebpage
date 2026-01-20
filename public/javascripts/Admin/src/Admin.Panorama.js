@@ -273,7 +273,7 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
      * @returns {{heading: float, pitch: float, zoom: float}}
      */
     function getPov() {
-        let pov = self.panorama.getPov();
+        let pov = self.panoViewer.getPov();
 
         // Adjust heading to be between 0 and 360.
         while (pov.heading < 0) pov.heading += 360;

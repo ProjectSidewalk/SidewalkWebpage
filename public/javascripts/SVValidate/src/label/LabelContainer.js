@@ -231,7 +231,7 @@ async function LabelContainer(labelList) {
             new_tags: labelMetadata.newTags,
             comment: commentData,
             zoom: labelMetadata.zoom,
-            source: labelMetadata.isMobile ? "ValidateMobile" : (svv.expertValidate ? "ExpertValidate" : "Validate"),
+            source: svv.form.getSource(),
             undone: false,
             redone: redone
         };

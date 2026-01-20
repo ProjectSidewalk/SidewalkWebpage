@@ -4,7 +4,7 @@ function Form(url, beaconUrl) {
         beaconDataStoreUrl : beaconUrl
     };
 
-    function _getSource() {
+    function getSource() {
         if (isMobile()) {
             return "ValidateMobile";
         } else if (svv.expertValidate) {
@@ -22,7 +22,7 @@ function Form(url, beaconUrl) {
      * @param {boolean} missionComplete Whether or not the mission is complete. To ensure we only send once per mission.
      */
     function compileSubmissionData(missionComplete) {
-        let data = { timestamp: new Date(), source: _getSource() };
+        let data = { timestamp: new Date(), source: getSource() };
         let missionContainer = svv.missionContainer;
         let mission = missionContainer ? missionContainer.getCurrentMission() : null;
 
@@ -159,6 +159,7 @@ function Form(url, beaconUrl) {
         navigator.sendBeacon(properties.beaconDataStoreUrl, jsonData);
     });
 
+    self.getSource = getSource;
     self.compileSubmissionData = compileSubmissionData;
     self.submit = submit;
 

@@ -3,6 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import models.label._
 import models.user.UserStatTable
+import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation._
@@ -231,7 +232,7 @@ class ValidationServiceImpl @Inject() (
       severity: Option[Int],
       tags: List[String],
       userId: String,
-      source: String,
+      source: UiSource.Value,
       labelValidationId: Int
   ): DBIO[Int] = {
     val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
