@@ -3,8 +3,8 @@ package formats.json
 import controllers.helper.ControllerUtils.labelTypeOrdering
 import models.cluster.ClusterForApi
 import models.computation.{RegionScore, StreetScore}
-import models.pano.PanoDataSlim
 import models.label._
+import models.pano.{PanoDataSlim, PanoSource}
 import models.region.Region
 import models.user.{LabelTypeStat, UserStatApi}
 import models.utils.MapParams
@@ -12,6 +12,7 @@ import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+
 import java.time.OffsetDateTime
 
 object ApiFormats {
@@ -318,6 +319,6 @@ object ApiFormats {
       (__ \ "lng").writeNullable[Float] and
       (__ \ "camera_heading").writeNullable[Float] and
       (__ \ "camera_pitch").writeNullable[Float] and
-      (__ \ "source").write[String]
+      (__ \ "source").write[PanoSource.Value]
   )(unlift(PanoDataSlim.unapply))
 }

@@ -3,6 +3,7 @@ package models.utils
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
+import models.pano.PanoSource
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
 import org.n52.jackson.datatype.jts.JtsModule
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
@@ -14,6 +15,7 @@ trait MyPostgresProfile
     with PgDate2Support
     with PgPostGISExtensions
     with PgPlayJsonSupport
+    with PgEnumSupport
     with PgNetSupport
     with PgLTreeSupport
     with PgRangeSupport
@@ -78,6 +80,15 @@ trait MyPostgresProfile
         pgjson,
         s => if (s == null) List.empty[ClusteringThreshold] else Json.parse(s).as[Seq[ClusteringThreshold]],
         v => Json.stringify(Json.toJson(v))
+      )
+
+    // Mapper for pano_source enum type.
+    implicit val panoSourceMapper: BaseColumnType[PanoSource.Value] =
+      createEnumJdbcType[PanoSource.Value](
+        sqlEnumTypeName = "pano_source", // Must match Postgres ENUM type name
+        enumToString = _.toString,
+        stringToEnum = PanoSource.withName,
+        quoteName = false
       )
   }
 }

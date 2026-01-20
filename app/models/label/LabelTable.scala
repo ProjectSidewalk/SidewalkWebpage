@@ -813,7 +813,7 @@ class LabelTable @Inject() (
       _lb <- labels
       _pd <- panoData if _pd.panoId === _lb.panoId
       _us <- userStats if _lb.userId === _us.userId
-      if _us.highQuality && _pd.expired === false && _pd.source === viewer.toString && _lb.userId =!= userId
+      if _us.highQuality && _pd.expired === false && _pd.source === viewer && _lb.userId =!= userId
     } yield (_lb.labelId, _lb.labelTypeId, _lb.correct)
 
     // Left join with the labels that the user has already validated, then filter those out.
@@ -868,7 +868,7 @@ class LabelTable @Inject() (
       _ur             <- userRoles if _us.userId === _ur.userId
       _r              <- roleTable if _ur.roleId === _r.roleId
       if _lt.labelTypeId === labelTypeId && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
-      if _pd.source === viewer.toString && !_pd.expired
+      if _pd.source === viewer && !_pd.expired
       if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty                     // Filter out validated labels.
       if skippedLabelId.map(_lb.labelId =!= _).getOrElse(true: Rep[Boolean])             // Filter out skipped label.
       if regionIds.map(ids => _ser.regionId inSetBind ids).getOrElse(true: Rep[Boolean]) // Filter by region IDs.
@@ -1033,7 +1033,7 @@ class LabelTable @Inject() (
       _ur  <- userRoles if _us.userId === _ur.userId
       _r   <- roleTable if _ur.roleId === _r.roleId
       if _pd.expired === false
-      if _pd.source === viewer.toString
+      if _pd.source === viewer
       if _lp.lat.isDefined && _lp.lng.isDefined
       if _lt.labelTypeId === labelType.id
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
@@ -1956,7 +1956,7 @@ class LabelTable @Inject() (
       .join(panoData)
       .on { case ((label, point), pd) => label.panoId === pd.panoId }
       .filter { case ((label, point), pd) =>
-        !pd.expired && pd.width.isDefined && pd.height.isDefined && pd.source === PanoSource.Gsv.toString
+        !pd.expired && pd.width.isDefined && pd.height.isDefined && pd.source === PanoSource.Gsv
       }
       .sortBy { case ((label, point), pd) =>
         (

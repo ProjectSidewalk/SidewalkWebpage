@@ -465,7 +465,7 @@ class ExploreServiceImpl @Inject() (
             panoDataTable.insert(
               PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
                 pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, expired = false, currTime,
-                Some(currTime), currTime, pano.source.toString)
+                Some(currTime), currTime, pano.source)
             )
           }
       } yield {

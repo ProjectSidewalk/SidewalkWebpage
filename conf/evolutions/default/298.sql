@@ -49,7 +49,8 @@ DELETE FROM validation_task_comment CASCADE WHERE pano_id = '';
 DELETE FROM validation_task_interaction CASCADE WHERE pano_id = '';
 
 -- Add a new `source` column to the pano_data table to differentiate between different image sources.
-ALTER TABLE pano_data ADD COLUMN source TEXT DEFAULT 'gsv';
+CREATE TYPE pano_source AS ENUM ('gsv', 'mapillary', 'infra3d');
+ALTER TABLE pano_data ADD COLUMN source pano_source DEFAULT 'gsv';
 ALTER TABLE pano_data ALTER COLUMN source DROP DEFAULT;
 
 -- Fix the nullable columns in audit_task_comment that aren't ever actually null. Adding delete statement for safety.
@@ -83,6 +84,7 @@ ALTER TABLE audit_task_comment
     ALTER COLUMN heading DROP NOT NULL;
 
 ALTER TABLE pano_data DROP COLUMN source;
+DROP TYPE pano_source;
 
 UPDATE pano_link SET description = '' WHERE description IS NULL;
 ALTER TABLE pano_link ALTER COLUMN description SET NOT NULL;

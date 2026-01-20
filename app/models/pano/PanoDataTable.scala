@@ -2,6 +2,7 @@ package models.pano
 
 import com.google.inject.ImplementedBy
 import models.label.LabelTableDef
+import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -26,7 +27,7 @@ case class PanoData(
     lastViewed: OffsetDateTime,
     panoHistorySaved: Option[OffsetDateTime],
     lastChecked: OffsetDateTime,
-    source: String // TODO actually make this PanoSource type at some point.
+    source: PanoSource
 )
 
 object PanoSource extends Enumeration {
@@ -45,7 +46,7 @@ case class PanoDataSlim(
     lng: Option[Float],
     cameraHeading: Option[Float],
     cameraPitch: Option[Float],
-    source: String // TODO actually make this PanoSource type at some point.
+    source: PanoSource
 )
 
 class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
@@ -64,7 +65,7 @@ class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
   def lastViewed: Rep[OffsetDateTime]               = column[OffsetDateTime]("last_viewed")
   def panoHistorySaved: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("pano_history_saved")
   def lastChecked: Rep[OffsetDateTime]              = column[OffsetDateTime]("last_checked")
-  def source: Rep[String]                           = column[String]("source")
+  def source: Rep[PanoSource]                       = column[PanoSource]("source")
 
   def * = (panoId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng, cameraHeading, cameraPitch,
     expired, lastViewed, panoHistorySaved, lastChecked, source) <>
@@ -105,7 +106,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
     labelTable
       .join(panoDataRecords)
       .on(_.panoId === _.panoId)
-      .filter(_._2.source === PanoSource.Gsv.toString)
+      .filter(_._2.source === PanoSource.Gsv)
       .map(_._2.panoId)
       .countDistinct
       .result
@@ -143,7 +144,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
       .join(labelTable)
       .on(_.panoId === _.panoId)
       .filter(gsv =>
-        gsv._1.source === PanoSource.Gsv.toString
+        gsv._1.source === PanoSource.Gsv
           && gsv._1.expired === expired
           && gsv._1.lastChecked < OffsetDateTime.now().minusMonths(3)
       )
