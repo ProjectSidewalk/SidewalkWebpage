@@ -181,26 +181,16 @@ async function PanoManager (panoViewerType, viewerAccessToken) {
     }
 
     /**
-     * Adds or removes the AI badge on the validation marker, retrying until the marker DOM is ready.
+     * Adds or removes the AI badge on the validation marker.
      * @param showIndicator  True to show the AI badge, false to remove it.
-     * @param retryCount     Number of times the DOM update has been retried.
      */
-    function updateMarkerAiIndicator(showIndicator, retryCount = 0) {
-        if (!self.labelMarker) return;
-
-        if (!self.labelMarker.marker_) {
-            if (showIndicator && retryCount < 5) {
-                setTimeout(() => updateMarkerAiIndicator(showIndicator, retryCount + 1), 100);
-            }
-            return;
-        }
-
+    function updateMarkerAiIndicator(showIndicator) {
         const markerEl = self.labelMarker.marker_;
         let existingIndicator = markerEl.querySelector('.ai-icon-marker-validate');
 
         if (showIndicator) {
             if (!existingIndicator) {
-                existingIndicator = AiLabelIndicator(['ai-icon-marker-validate'], 'top');
+                existingIndicator = AiLabelIndicator(['ai-icon-marker-validate']);
                 markerEl.appendChild(existingIndicator);
                 const $indicator = ensureAiTooltip(existingIndicator);
                 $(markerEl).on('mouseenter', () => $indicator.tooltip('show'));

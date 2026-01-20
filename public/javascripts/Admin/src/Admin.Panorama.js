@@ -187,7 +187,7 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
             panoId: self.panoViewer.getPanoId(),
             marker: panoMarker
         });
-        attachAiIndicatorToMarker(panoMarker, label.aiGenerated);
+        if (label.aiGenerated) attachAiIndicatorToMarker(panoMarker);
     }
 
     /**
@@ -240,18 +240,9 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
         };
     }
 
-    function attachAiIndicatorToMarker(panoMarker, showIndicator, retryCount = 0) {
-        if (!showIndicator) return;
-
-        if (!panoMarker.marker_) {
-            if (retryCount < 5) {
-                setTimeout(() => attachAiIndicatorToMarker(panoMarker, showIndicator, retryCount + 1), 100);
-            }
-            return;
-        }
-
+    function attachAiIndicatorToMarker(panoMarker) {
         if (!panoMarker.marker_.querySelector('.admin-ai-icon-marker')) {
-            const indicator = AiLabelIndicator(['admin-ai-icon-marker'], 'top', true);
+            const indicator = AiLabelIndicator(['admin-ai-icon-marker']);
             panoMarker.marker_.appendChild(indicator);
             const $indicator = ensureAiTooltip(indicator);
         }

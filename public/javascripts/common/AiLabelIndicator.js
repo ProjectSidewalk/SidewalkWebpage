@@ -24,11 +24,9 @@ const aiHoverSelectors = [
 /**
  * Creates the reusable AI indicator icon with optional tooltip behavior.
  * @param {Array<String>} extraClasses Additional CSS classes to apply.
- * @param {String} tooltipPlacement Bootstrap tooltip placement.
- * @param {Boolean} enableTooltip Whether to attach tooltip behavior.
  * @returns {HTMLElement} Configured AI indicator element.
  */
-function AiLabelIndicator(extraClasses = [], tooltipPlacement = 'top', enableTooltip = true) {
+function AiLabelIndicator(extraClasses = []) {
     const icon = document.createElement('img');
     icon.src = '/assets/images/icons/ai-icon-black-filled-white-circle.png';
     icon.alt = 'AI indicator';
@@ -37,18 +35,14 @@ function AiLabelIndicator(extraClasses = [], tooltipPlacement = 'top', enableToo
 
     const tooltipText = i18next.t('common:ai-generated-label-tooltip');
 
-    if (enableTooltip) {
-        icon.setAttribute('data-toggle', 'tooltip');
-        icon.setAttribute('data-placement', tooltipPlacement);
-        icon.setAttribute('title', tooltipText);
+    icon.setAttribute('data-toggle', 'tooltip');
+    icon.setAttribute('data-placement', 'top');
+    icon.setAttribute('title', tooltipText);
 
-        ensureAiTooltip(icon);
+    ensureAiTooltip(icon);
 
-        icon.addEventListener('mouseenter', () => ensureAiTooltip(icon).tooltip('show'));
-        icon.addEventListener('mouseleave', () => ensureAiTooltip(icon).tooltip('hide'));
-    } else {
-        icon.dataset.disableTooltip = 'true';
-    }
+    icon.addEventListener('mouseenter', () => ensureAiTooltip(icon).tooltip('show'));
+    icon.addEventListener('mouseleave', () => ensureAiTooltip(icon).tooltip('hide'));
 
     return icon;
 }
@@ -59,8 +53,6 @@ function AiLabelIndicator(extraClasses = [], tooltipPlacement = 'top', enableToo
  * @returns {JQuery} tooltip-enabled icon
  */
 function ensureAiTooltip(icon) {
-    if (icon.dataset && icon.dataset.disableTooltip === 'true') return $(icon);
-
     const $icon = $(icon);
     if (!$icon.attr('title') && !$icon.attr('data-original-title')) {
         $icon.attr('title', i18next.t('common:ai-generated-label-tooltip'));

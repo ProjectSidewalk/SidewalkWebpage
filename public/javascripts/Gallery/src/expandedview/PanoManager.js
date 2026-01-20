@@ -232,20 +232,10 @@
     }
 
     /**
-     * Adds or removes the AI badge on the marker, retrying briefly until the DOM element exists.
+     * Adds or removes the AI badge on the marker.
      * @param showIndicator  True to show the AI badge, false to remove it.
-     * @param retryCount     Number of times the DOM update has been retried.
      */
-    function updateMarkerAiIndicator(showIndicator, retryCount = 0) {
-        if (!self.labelMarker || !self.labelMarker.marker) return;
-
-        if (!self.labelMarker.marker.marker_) {
-            if (showIndicator && retryCount < 5) {
-                setTimeout(() => updateMarkerAiIndicator(showIndicator, retryCount + 1), 100);
-            }
-            return;
-        }
-
+    function updateMarkerAiIndicator(showIndicator) {
         const markerEl = self.labelMarker.marker.marker_;
         let existingIndicator = markerEl.querySelector('.ai-icon-marker-expanded');
 
