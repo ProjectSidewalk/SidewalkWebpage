@@ -75,9 +75,7 @@ function PanoOverlay () {
         mouseStatus.currX = mouseposition(e, this).x;
         mouseStatus.currY = mouseposition(e, this).y;
 
-        let timestamp = new Date();  // Waits till the pano is fully loaded.
-        if ((timestamp - svv.panoManager.getProperty("prevSetPanoTimestamp") > 500)
-            && mouseStatus.isLeftDown && panningDisabled === false) {
+        if ((svv.panoManager.getProperty('panoLoaded')) && mouseStatus.isLeftDown && panningDisabled === false) {
             // If a mouse is being dragged on the control layer, move the pano.
             let dx = mouseStatus.currX - mouseStatus.prevX;
             let dy = mouseStatus.currY - mouseStatus.prevY;

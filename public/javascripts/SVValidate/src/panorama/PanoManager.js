@@ -1,35 +1,33 @@
 /**
- * Holds the list of labels to be validated, and distributes them to the panoramas that are on the page. Fetches labels
- * from the backend and converts them into Labels that can be placed onto the Panorama.
- *
- * @param panoViewerType The type of pano viewer to initialize
- * @param viewerAccessToken An access token used to request images for the pano viewer
- * @returns {PanoManager}
- * @constructor
+ * Creates the PanoViewer and manages access to it, tracking metadata and drawing labels as PanoMarkers.
  */
-async function PanoManager (panoViewerType, viewerAccessToken) {
-    let properties = {
-        prevSetPanoTimestamp: new Date(), // TODO I think that this is just used to estimate if the pano loaded (we give it 500 ms), but we should use promises.
+class PanoManager {
+    /** @type {{panoLoaded: boolean}} */
+    #properties = {
+        panoLoaded: false
     };
 
-    let panoCanvas = document.getElementById('svv-panorama');
-    let bottomLinksClickable = false;
-    let linksListener = null;
+    /** @type {HTMLElement} */
+    #panoCanvas;
 
-    let self = this;
+    #bottomLinksClickable = false;
+    #linksListener = null;
 
     /**
      * Initializes panoViewer on the validate page.
-     * @private
+     * @param panoViewerType The type of pano viewer to initialize
+     * @param viewerAccessToken An access token used to request images for the pano viewer
+     * @returns
      */
-    async function _init() {
+    async #init(panoViewerType, viewerAccessToken) {
         // Load the pano viewer.
         const panoOptions = {
             accessToken: viewerAccessToken,
             linksControl: false
         };
 
-        svv.panoViewer = await panoViewerType.create(panoCanvas, panoOptions);
+        this.#panoCanvas = document.getElementById('svv-panorama');
+        svv.panoViewer = await panoViewerType.create(this.#panoCanvas, panoOptions);
         if (panoViewerType === GsvViewer) {
             $('#imagery-source-logo-holder').hide();
         } else if (panoViewerType === MapillaryViewer) {
@@ -41,44 +39,39 @@ async function PanoManager (panoViewerType, viewerAccessToken) {
 
         svv.panoViewer.addListener('pov_changed', () => svv.tracker.push('POV_Changed'));
         if (isMobile()) {
-            _sizePano();
+            this.#sizePano();
         }
 
         // TODO we probably need to do this for any viewer type...
         if (panoViewerType === GsvViewer && !isMobile()) {
-            linksListener = svv.panoViewer.panorama.addListener('links_changed', _makeLinksClickable);
+            this.#linksListener = svv.panoViewer.panorama.addListener('links_changed', this.#makeLinksClickable.bind(this));
         }
-
-        // TODO instead of renderCurrentLabel, maybe we just pass in a panoId to start? Or that's just passed to the panoViewer?
-        // await renderCurrentLabel(currentLabel);
     }
 
     /**
      * Gets a specific property from the PanoManager.
-     * @param key   Property name.
-     * @returns     Value associated with this property or null.
+     * @param {string} key   Property name.
+     * @returns {*} Value associated with this property or null.
      */
-    function getProperty(key) {
-        return key in properties ? properties[key] : null;
+    getProperty(key) {
+        return key in this.#properties ? this.#properties[key] : null;
     }
 
     /**
      * Sets a property for the PanoManager.
-     * @param key   Name of property
-     * @param value Value of property.
-     * @returns {setProperty}
+     * @param {string} key Name of property
+     * @param {*} value Value of property
      */
-    function setProperty(key, value) {
-        properties[key] = value;
-        return this;
+    setProperty(key, value) {
+        this.#properties[key] = value;
     }
 
     /**
      * Returns the underlying PanoMarker object.
      * @returns {PanoMarker}
      */
-    function getPanomarker() {
-        return self.labelMarker;
+    getPanoMarker() {
+        return this.labelMarker;
     }
 
     /**
@@ -86,7 +79,7 @@ async function PanoManager (panoViewerType, viewerAccessToken) {
      * @param {PanoData} panoData The PanoData extracted from the PanoViewer when loading the pano
      * @private
      */
-    function _setPanoCallback(panoData) {
+    #setPanoCallback(panoData) {
         const panoId = panoData.getProperty('panoId');
 
         // Store the returned pano metadata.
@@ -95,21 +88,6 @@ async function PanoManager (panoViewerType, viewerAccessToken) {
         if (!isMobile()) {
             // Add the capture date of the image to the bottom-right corner of the UI.
             svv.ui.viewer.date.text(panoData.getProperty('captureDate').format('MMM YYYY'));
-
-            // Remove Keyboard shortcuts link and make Terms of Use & Report a problem links clickable.
-            // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2546
-            // Uses setTimeout because it usually hasn't quite loaded yet.
-            // if (!bottomLinksClickable) {
-            //     setTimeout(function() {
-            //         try {
-            //             $('.gm-style-cc')[0].remove();
-            //             $("#view-control-layer").append($($('.gm-style-cc')[0]).parent().parent());
-            //             bottomLinksClickable = true;
-            //         } catch (e) {
-            //             bottomLinksClickable = false;
-            //         }
-            //     }, 100);
-            // }
         }
     }
 
@@ -117,28 +95,28 @@ async function PanoManager (panoViewerType, viewerAccessToken) {
      * Moves the buttons on the bottom-right of the GSV image to the top layer so they are clickable.
      * @private
      */
-    const _makeLinksClickable = function() {
+    #makeLinksClickable() {
         let bottomLinks = $('.gm-style-cc');
-        if (!bottomLinksClickable && bottomLinks.length > 3) {
-            bottomLinksClickable = true;
+        if (!this.#bottomLinksClickable && bottomLinks.length > 3) {
+            this.#bottomLinksClickable = true;
             bottomLinks[0].remove(); // Remove GSV keyboard shortcuts link.
-            $("#view-control-layer").append($(bottomLinks[1]).parent().parent()); // Makes remaining links clickable.
+            $('#view-control-layer').append($(bottomLinks[1]).parent().parent()); // Makes remaining links clickable.
         }
 
-        google.maps.event.removeListener(linksListener);
+        google.maps.event.removeListener(this.#linksListener);
     }
 
     /**
-     * Renders a label onto the screen using a Panomarker.
+     * Renders a label onto the screen using a PanoMarker.
      * @returns {renderPanoMarker}
      */
-    function renderPanoMarker(currentLabel) {
+    renderPanoMarker(currentLabel) {
         let url = currentLabel.getIconUrl();
-        let pov = currentLabel.getOriginalPov();
+        let labelPov = currentLabel.getOriginalPov();
 
         // Set to user's POV when labeling if on desktop. If on mobile, center the label on the screen.
         if (isMobile()) {
-            svv.panoViewer.setPov(pov);
+            svv.panoViewer.setPov(labelPov);
         } else {
             svv.panoViewer.setPov({
                 heading: currentLabel.getAuditProperty('heading'),
@@ -147,35 +125,32 @@ async function PanoManager (panoViewerType, viewerAccessToken) {
             });
         }
 
-        if (!self.labelMarker) {
+        if (!this.labelMarker) {
             let markerLayer = isMobile() ? document.getElementById('view-control-layer-mobile') : document.getElementById('view-control-layer');
-            self.labelMarker = new PanoMarker({
-                id: "validate-pano-marker",
+            this.labelMarker = new PanoMarker({
+                id: 'validate-pano-marker',
                 markerContainer: markerLayer,
                 panoViewer: svv.panoViewer,
-                position: { heading: pov.heading, pitch: pov.pitch },
+                position: { heading: labelPov.heading, pitch: labelPov.pitch },
                 icon: url,
                 size: { width: currentLabel.getRadius() * 2 + 2, height: currentLabel.getRadius() * 2 + 2 },
                 zIndex: 2
             });
         } else {
-            self.labelMarker.setPosition({ heading: pov.heading, pitch: pov.pitch });
-            self.labelMarker.setIcon(url);
+            this.labelMarker.setPosition({ heading: labelPov.heading, pitch: labelPov.pitch });
+            this.labelMarker.setIcon(url);
         }
-        updateMarkerAiIndicator(currentLabel.getAuditProperty('aiGenerated'));
-
-        return this;
+        this.#updateMarkerAiIndicator(currentLabel.getAuditProperty('aiGenerated'));
     }
 
     /**
      * Sets the panorama ID. Adds a callback function that will record pano metadata and update the date text field.
-     * @param panoId    String representation of the Panorama ID
+     * @param {string} panoId The ID for the panorama that we want to move to
      */
-    async function setPanorama(panoId) {
-        return svv.panoViewer.setPano(panoId).then(_setPanoCallback).then(() => {
-        // return svv.panoViewer.setLocation({ lat: 47.47149597503096, lng: 8.30860179865082 }).then(_setPanoCallback).then(() => {
-        // return svv.panoViewer.setPano('d039ceb9-7926-6a1f-2685-0ecc2d3cd181').then(_setPanoCallback).then(() => {
-            setProperty("prevSetPanoTimestamp", new Date());
+    async setPanorama(panoId) {
+        this.setProperty('panoLoaded', false);
+        return svv.panoViewer.setPano(panoId).then(this.#setPanoCallback).then(() => {
+            this.setProperty('panoLoaded', true);
             svv.tracker.push('PanoId_Changed');
         });
     }
@@ -184,8 +159,8 @@ async function PanoManager (panoViewerType, viewerAccessToken) {
      * Adds or removes the AI badge on the validation marker.
      * @param showIndicator  True to show the AI badge, false to remove it.
      */
-    function updateMarkerAiIndicator(showIndicator) {
-        const markerEl = self.labelMarker.marker_;
+    #updateMarkerAiIndicator(showIndicator) {
+        const markerEl = this.labelMarker.marker_;
         let existingIndicator = markerEl.querySelector('.ai-icon-marker-validate');
 
         if (showIndicator) {
@@ -206,7 +181,7 @@ async function PanoManager (panoViewerType, viewerAccessToken) {
      * Sets the zoom level for this panorama.
      * @param zoom  Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
      */
-    function setZoom(zoom) {
+    setZoom(zoom) {
         const currPov = svv.panoViewer.getPov();
         currPov.zoom = zoom;
         svv.panoViewer.setPov(currPov);
@@ -216,32 +191,35 @@ async function PanoManager (panoViewerType, viewerAccessToken) {
      * Sets the size of the panorama and panorama holder depending on the size of the mobile phone.
      * @private
      */
-    function _sizePano() {
-        let heightOffset = document.getElementById("svv-panorama-holder").getBoundingClientRect().top;
-        let h = window.innerHeight - heightOffset - 10;
-        let w = window.innerWidth - 10;
-        let outline_h = h + 10;
-        let outline_w = w + 10;
-        let left = 0;
-        document.getElementById("svv-panorama").style.height = h + "px";
-        document.getElementById("svv-panorama-holder").style.height = h + "px";
-        document.getElementById("svv-panorama-outline").style.height = outline_h + "px";
-        document.getElementById("svv-panorama").style.width = w + "px";
-        document.getElementById("svv-panorama-holder").style.width = w + "px";
-        document.getElementById("svv-panorama-outline").style.width = outline_w + "px";
-        document.getElementById("svv-panorama").style.left = left + "px";
-        document.getElementById("svv-panorama-holder").style.left = left + "px";
-        document.getElementById("svv-panorama-outline").style.left = left + "px";
+    #sizePano() {
+        let panoHolderElem = document.getElementById('svv-panorama-holder');
+        let panoOutlineElem = document.getElementById('svv-panorama-outline');
+        let heightOffset = panoHolderElem.getBoundingClientRect().top;
+        const h = window.innerHeight - heightOffset - 10;
+        const w = window.innerWidth - 10;
+        const outlineH = h + 10;
+        const outlineW = w + 10;
+        const left = 0;
+        this.#panoCanvas.style.height = h + 'px';
+        panoHolderElem.style.height = h + 'px';
+        panoOutlineElem.style.height = outlineH + 'px';
+        this.#panoCanvas.style.width = w + 'px';
+        panoHolderElem.style.width = w + 'px';
+        panoOutlineElem.style.width = outlineW + 'px';
+        this.#panoCanvas.style.left = left + 'px';
+        panoHolderElem.style.left = left + 'px';
+        panoOutlineElem.style.left = left + 'px';
     }
 
-    self.getProperty = getProperty;
-    self.setProperty = setProperty;
-    self.setPanorama = setPanorama;
-    self.getPanomarker = getPanomarker;
-    self.renderPanoMarker = renderPanoMarker;
-    self.setZoom = setZoom;
-
-    await _init();
-
-    return this;
+    /**
+     * Factory function that sets up the panorama viewer.
+     * @param panoViewerType The type of pano viewer to initialize
+     * @param viewerAccessToken An access token used to request images for the pano viewer
+     * @returns {Promise<PanoManager>} The panoManager instance.
+     */
+    static async create(panoViewerType, viewerAccessToken) {
+        const newPanoManager = new PanoManager();
+        await newPanoManager.#init(panoViewerType, viewerAccessToken);
+        return newPanoManager;
+    }
 }

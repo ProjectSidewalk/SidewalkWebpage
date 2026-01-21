@@ -176,7 +176,7 @@ function Main (param) {
         svv.labelDescriptionBox = new LabelDescriptionBox();
 
         svv.panoStore = new PanoStore();
-        svv.panoManager = await PanoManager(svv.viewerType, param.viewerAccessToken);
+        svv.panoManager = await PanoManager.create(svv.viewerType, param.viewerAccessToken);
         svv.labelContainer = await LabelContainer(param.labelList);
 
         // There are certain features that will only make sense on desktop.
@@ -188,7 +188,7 @@ function Main (param) {
                 svv.keyboard = new Keyboard(svv.ui.validation);
             }
             svv.labelVisibilityControl = new LabelVisibilityControl();
-            svv.speedLimit = new SpeedLimit(svv.panoViewer, svv.panoViewer.getPosition, () => false, svv.panoManager, labelType);
+            svv.speedLimit = new SpeedLimit(svv.panoViewer, svv.panoViewer.getPosition, () => false, svv.labelContainer, labelType);
             svv.zoomControl = new ZoomControl();
         }
         // Logs when user zoom in/out on mobile.

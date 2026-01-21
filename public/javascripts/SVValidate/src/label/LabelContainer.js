@@ -172,14 +172,14 @@ async function LabelContainer(labelList) {
      * @param callback The function that will be called.
      */
     function resetLabelListUpdateCallback(callback) {
-        labelsUpdateCallback = callback
+        labelsUpdateCallback = callback;
     }
 
     /**
      * Returns a list of labels for the current mission.
      */
     function getLabels() {
-        return labels
+        return labels;
     }
 
     /**

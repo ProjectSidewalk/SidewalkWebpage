@@ -31,7 +31,7 @@ function LabelVisibilityControl() {
      * Unhides label in the panorama depending on current state.
      */
     function unhideLabel() {
-        let panomarker = svv.panoManager.getPanomarker();
+        let panomarker = svv.panoManager.getPanoMarker();
         if (!panomarker) return; // TODO panomarker only works on GSV right now.
         let label = svv.labelContainer.getCurrentLabel();
         panomarker.setIcon(label.getIconUrl());
@@ -49,7 +49,7 @@ function LabelVisibilityControl() {
      * Hides label in the panorama.
      */
     function hideLabel() {
-        let panomarker = svv.panoManager.getPanomarker();
+        let panomarker = svv.panoManager.getPanoMarker();
         panomarker.setIcon("assets/javascripts/SVLabel/img/icons/Label_Outline.svg");
         panomarker.draw();
         visible = false;
