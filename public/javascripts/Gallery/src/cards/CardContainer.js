@@ -2,9 +2,9 @@
  * Card Container module. This is responsible for managing the Card objects that are to be rendered.
  *
  * @param {*} uiCardContainer UI element tied with this CardContainer.
- * @param initialFilters Object containing initial set of filters in sidebar.
- * @param panoViewerType The type of pano viewer to initialize
- * @param viewerAccessToken An access token used to request images for the pano viewer
+ * @param {object} initialFilters Object containing initial set of filters in sidebar.
+ * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
+ * @param {string} viewerAccessToken An access token used to request images for the pano viewer
  * @returns {CardContainer}
  * @constructor
  */

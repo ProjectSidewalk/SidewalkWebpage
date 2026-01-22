@@ -12,7 +12,7 @@ function Tracker() {
     }
 
     function _trackWindowEvents() {
-        let prefix = "LowLevelEvent_";
+        const prefix = 'LowLevelEvent_';
 
         // track all mouse related events
         $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e) {
@@ -37,27 +37,25 @@ function Tracker() {
      * @private
      */
     function _createAction(action, notes) {
-        let panoViewer = svv.panoViewer ? svv.panoViewer : null;
-        let position = panoViewer ? panoViewer.getPosition() : { lat: null, lng: null };
-        let pov = panoViewer ? panoViewer.getPov() : { heading: null, pitch: null, zoom: null };
+        const panoViewer = svv.panoViewer ? svv.panoViewer : null;
+        const position = panoViewer ? panoViewer.getPosition() : { lat: null, lng: null };
+        const pov = panoViewer ? panoViewer.getPov() : { heading: null, pitch: null, zoom: null };
 
-        let missionContainer = svv.missionContainer ? svv.missionContainer : null;
-        let currentMission = missionContainer ? missionContainer.getCurrentMission() : null;
+        const missionContainer = svv.missionContainer ? svv.missionContainer : null;
+        const currentMission = missionContainer ? missionContainer.getCurrentMission() : null;
 
-        let data = {
+        return {
             action: action,
             pano_id: panoViewer ? panoViewer.getPanoId() : null,
             lat: position.lat,
             lng: position.lng,
             heading: pov ? pov.heading : null,
-            mission_id: currentMission ? currentMission.getProperty("missionId") : null,
-            note: _notesToString(notes || {}),
             pitch: pov ? pov.pitch : null,
+            zoom: pov ? pov.zoom : null,
+            mission_id: currentMission ? currentMission.getProperty('missionId') : null,
+            note: _notesToString(notes || {}),
             timestamp: new Date(),
-            zoom: pov ? pov.zoom : null
         };
-
-        return data;
     }
 
     function getActions() {
@@ -66,12 +64,12 @@ function Tracker() {
 
     function _notesToString(notes) {
         if (!notes)
-            return "";
+            return '';
 
-        let noteString = "";
+        let noteString = '';
         for (let key in notes) {
             if (noteString.length > 0)
-                noteString += ",";
+                noteString += ',';
             noteString += key + ':' + notes[key];
         }
 
@@ -84,11 +82,11 @@ function Tracker() {
      * @param notes     (optional) Notes to be logged into the notes field database
      */
     function push(action, notes) {
-        let item = _createAction(action, notes);
-        let prevItem = actions.slice(-1)[0];
+        const item = _createAction(action, notes);
+        const prevItem = actions.slice(-1)[0];
         actions.push(item);
         if (actions.length > 200) {
-            let data = svv.form.compileSubmissionData(false);
+            const data = svv.form.compileSubmissionData(false);
             svv.form.submit(data, true);
         }
         // If there is a one-hour break between interactions (in ms), refresh the page to avoid weird bugs.
@@ -101,7 +99,7 @@ function Tracker() {
      */
     function refresh() {
         actions = [];
-        self.push("RefreshTracker");
+        self.push('RefreshTracker');
     }
 
     _init();

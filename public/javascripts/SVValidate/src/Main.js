@@ -176,7 +176,7 @@ function Main (param) {
         svv.labelDescriptionBox = new LabelDescriptionBox();
 
         svv.panoStore = new PanoStore();
-        svv.panoManager = await PanoManager.create(svv.viewerType, param.viewerAccessToken);
+        svv.panoManager = await PanoManager.create(svv.viewerType, param.viewerAccessToken, param.labelList[0].pano_id);
         svv.labelContainer = await LabelContainer(param.labelList);
 
         // There are certain features that will only make sense on desktop.

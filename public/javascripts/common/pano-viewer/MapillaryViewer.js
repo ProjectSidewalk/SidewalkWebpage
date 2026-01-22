@@ -41,6 +41,13 @@ class MapillaryViewer extends PanoViewer {
             }
         });
 
+        // Initialize pano at the desired location.
+        if (panoOptions.startPanoId) {
+            await this.setPano(panoOptions.startPanoId);
+        } else if (panoOptions.startLatLng) {
+            await this.setLocation(panoOptions.startLatLng);
+        }
+
         // Restrict to panoramas -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#setfilter
         // Can even set the width of the nav arrows? https://mapillary.github.io/mapillary-js/api/interfaces/component.DirectionConfiguration/
     }

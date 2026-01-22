@@ -3,8 +3,8 @@
  * to aid the user in contextualizing the location of labels.
  *
  * @param {HTMLElement} uiModal The container for the ExpandedView in the DOM
- * @param panoViewerType The type of pano viewer to initialize
- * @param viewerAccessToken An access token used to request images for the pano viewer
+ * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
+ * @param {string} viewerAccessToken An access token used to request images for the pano viewer
  * @returns
  */
 async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {

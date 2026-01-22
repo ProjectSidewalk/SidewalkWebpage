@@ -15,15 +15,17 @@ class PanoManager {
 
     /**
      * Initializes panoViewer on the validate page.
-     * @param panoViewerType The type of pano viewer to initialize
-     * @param viewerAccessToken An access token used to request images for the pano viewer
+     * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
+     * @param {string} viewerAccessToken An access token used to request images for the pano viewer
+     * @param {string} startPanoId The ID of the panorama to load first
      * @returns
      */
-    async #init(panoViewerType, viewerAccessToken) {
+    async #init(panoViewerType, viewerAccessToken, startPanoId) {
         // Load the pano viewer.
         const panoOptions = {
             accessToken: viewerAccessToken,
-            linksControl: false
+            startPanoId: startPanoId,
+            scrollwheel: isMobile()
         };
 
         this.#panoCanvas = document.getElementById('svv-panorama');
@@ -213,13 +215,14 @@ class PanoManager {
 
     /**
      * Factory function that sets up the panorama viewer.
-     * @param panoViewerType The type of pano viewer to initialize
-     * @param viewerAccessToken An access token used to request images for the pano viewer
+     * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
+     * @param {string} viewerAccessToken An access token used to request images for the pano viewer
+     * @param {string} startPanoId The ID of the panorama to load first
      * @returns {Promise<PanoManager>} The panoManager instance.
      */
-    static async create(panoViewerType, viewerAccessToken) {
+    static async create(panoViewerType, viewerAccessToken, startPanoId) {
         const newPanoManager = new PanoManager();
-        await newPanoManager.#init(panoViewerType, viewerAccessToken);
+        await newPanoManager.#init(panoViewerType, viewerAccessToken, startPanoId);
         return newPanoManager;
     }
 }

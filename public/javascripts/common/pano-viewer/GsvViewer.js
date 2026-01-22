@@ -7,10 +7,11 @@ class GsvViewer extends PanoViewer {
         super();
         this.streetViewService = undefined;
         this.panorama = undefined;
+        this.prevPanoData = undefined;
         this.currPanoData = undefined;
     }
 
-    async initialize(canvasElem, panoOptions = {}) { // lat, lng
+    async initialize(canvasElem, panoOptions = {}) {
         const { LatLng } = await google.maps.importLibrary('core');
         const { StreetViewService, StreetViewPanorama } = await google.maps.importLibrary('streetView');
         const STREETVIEW_MAX_DISTANCE = 40; // TODO use this?
@@ -18,29 +19,17 @@ class GsvViewer extends PanoViewer {
 
         // Set GSV panorama options.
         const defaults = {
-            // position: undefined,
-            // pov: properties.panoramaPov, // TODO required or optional parameter? -- optional, but do I want to include here?
-
             addressControl: false,
-            // cameraControl: false, // TODO this is no longer being used theoretically I think...
             clickToGo: false,
             disableDefaultUI: true,
-            // TODO keyboardShortcuts..? Looks like only available for `new google.maps.Map`?
-            linksControl: false, // TODO true on Explore, false on Validate
+            linksControl: false, // We create our own navigation arrows.
             motionTracking: false,
             motionTrackingControl: false,
-            // TODO navigationControl?
-            panControl: false,
-            scrollwheel: false, // TODO false unless mobile Validate
-            showRoadLabels: false, // TODO true on Explore, false on Validate -- but I think I'll remove from Explore too
-            zoomControl: false,
-
-            // Options for initializing with a pano loaded.
-            // pano: undefined,
-            // position: undefined,
-
-            keyboardShortcuts: false, // TODO we have these set to true in Explore, do we use them at all? just for panning?
             navigationControl: false,
+            panControl: false,
+            scrollwheel: false,
+            showRoadLabels: false,
+            zoomControl: false
         };
         const panoOpts = { ...defaults, ...panoOptions };
         this.panorama = await new StreetViewPanorama(canvasElem, panoOpts);
@@ -48,47 +37,38 @@ class GsvViewer extends PanoViewer {
         // Add support for the tutorial panos that we have supplied locally.
         this.panorama.registerPanoProvider((pano) => {
             if (pano === 'tutorial' || pano === 'afterWalkTutorial') {
-                return this._getCustomPanoData(pano);
+                return this.#getCustomPanoData(pano);
             }
             return null;
         });
 
-        // Issue: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2468
-        // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
-        // We are updating the pano POV slightly to simulate an update the gets rid of the black pano.
-        // TODO is this still needed? I wasn't able to reproduce in Chrome or Firefox in Sep 2025.
-        // $(window).on('resize', function() {
-        //     // TODO copied from Validate, but Explore instead calls `updatePov(.01,.01)` which might do something different.
-        //     let pov = this.panorama.getPov();
-        //     pov.heading -= .01;
-        //     pov.pitch -= .01;
-        //     this.panorama.setPov(pov);
-        // });
-
-        // Connect the map view and panorama view.
-        // if (map && this.panorama) map.setStreetView(this.panorama); // TODO once I get to the Explore page.
-    }
-
-    getPanoId = () => {
-        return this.panorama.getPano();
-    }
-
-    getPosition = () => {
-        const gLatLng = this.panorama.getPosition();
-        if (gLatLng) {
-            return { lat: gLatLng.lat(), lng: gLatLng.lng() };
+        // Initialize pano at the desired location.
+        if (panoOptions.startPanoId) {
+            await this.setPano(panoOptions.startPanoId);
+        } else if (panoOptions.startLatLng) {
+            await this.setLocation(panoOptions.startLatLng);
         }
     }
 
-    // We need to call getPanorama() to get the pano's data and make sure it exists. Then we can call setPano() to
-    // actually move to the image. But there's no callback to know when the pano has finished loading, so we have to
-    // listen for the position_changed event (we _should_ be able to listen to the pano_changed event instead, but
-    // this seems to be failing when loading the first pano at least). We return a promise that resolves when the
-    // pano has successfully changed, or we know that there's no pano at the requested location.
-    // Request a pano's data for the given location.
-    _getPanoramaCallback = async (newPanoData) => {
-        const prevPano = this.getPanoId();
+    getPanoId = () => {
+        return this.currPanoData ? this.currPanoData.getProperty('panoId') : this.prevPanoData.getProperty('panoId');
+    }
 
+    getPosition = () => {
+        const panoData = this.currPanoData || this.prevPanoData;
+        return { lat: panoData.getProperty('lat'), lng: panoData.getProperty('lng') };
+    }
+
+    /**
+     * A callback to getPanorama() that packages the data into a PanoData object. Resolves when pano has done loading.
+     * @param {object} newPanoData
+     * @returns {Promise<PanoData>}
+     * @private
+     */
+    #getPanoramaCallback = async (newPanoData) => {
+        const prevPano = this.prevPanoData ? this.prevPanoData.getProperty('panoId') : undefined;
+
+        // Putting the data returned from Google into the format for our generic PanoData object.
         let panoDataParams = {
             panoId: newPanoData.data.location.pano,
             source: this.getViewerType(),
@@ -106,6 +86,7 @@ class GsvViewer extends PanoViewer {
             history: []
         }
 
+        // Add the nearby (linked) panos.
         panoDataParams.linkedPanos = newPanoData.data.links.map(function(link) {
             return {
                 panoId: link.pano,
@@ -114,6 +95,7 @@ class GsvViewer extends PanoViewer {
             };
         });
 
+        // Add the list of prior images at this location (history).
         let history = [];
         for (let prevPano of newPanoData.data.time) {
             // Try to find the date since this is an internal API and the property name can change.
@@ -129,6 +111,7 @@ class GsvViewer extends PanoViewer {
         }
         panoDataParams.history = history;
 
+        // Create the new PanoData object.
         this.currPanoData = new PanoData(panoDataParams);
 
         // Now we actually set the pano and wait to resolve until it's finished loading.
@@ -151,17 +134,21 @@ class GsvViewer extends PanoViewer {
     setLocation = async (latLng) => {
         const { LatLng } = await google.maps.importLibrary('core');
         const gLatLng = new LatLng(latLng.lat, latLng.lng);
+        this.prevPanoData = this.currPanoData;
+        this.currPanoData = null;
         return this.streetViewService.getPanorama(
             { location: gLatLng, radius: svl.STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR }
-        ).then(this._getPanoramaCallback);
+        ).then(this.#getPanoramaCallback);
     }
 
     setPano = async (panoId) => {
+        this.prevPanoData = this.currPanoData;
+        this.currPanoData = null;
         if (panoId === 'tutorial' || panoId === 'afterWalkTutorial') {
             // For locally stored tutorial panos, skip the getPanorama step and continue w/ our saved data.
-            return this._getPanoramaCallback({ data: this._getCustomPanoData(panoId) });
+            return this.#getPanoramaCallback({ data: this.#getCustomPanoData(panoId) });
         } else {
-            return this.streetViewService.getPanorama({ pano: panoId }).then(this._getPanoramaCallback);
+            return this.streetViewService.getPanorama({ pano: panoId }).then(this.#getPanoramaCallback);
         }
     }
 
@@ -171,7 +158,7 @@ class GsvViewer extends PanoViewer {
      * @param pano - the pano ID/name of the wanted custom panorama.
      * @returns custom Google Street View panorama.
      */
-    _getCustomPanoData = (pano) => {
+    #getCustomPanoData = (pano) => {
         if (pano === 'tutorial') {
             return {
                 location: {
@@ -222,12 +209,12 @@ class GsvViewer extends PanoViewer {
     }
 
     getLinkedPanos = () => {
-        return this.currPanoData.getProperty('linkedPanos');
+        const panoData = this.currPanoData || this.prevPanoData;
+        return panoData.getProperty('linkedPanos');
     }
 
     getPov = () => {
         // Get POV and adjust heading to be between 0 and 360.
-        // TODO we force zoom to an integer rn in Explore with Math.round(). Might be good to change now anyway w/ other viewers.
         let pov = this.panorama.getPov();
         while (pov.heading < 0) pov.heading += 360;
         while (pov.heading > 360) pov.heading -= 360;

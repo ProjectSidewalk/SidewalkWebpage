@@ -2,8 +2,8 @@
  * A holder class that inserts a pano into the supplied DOM element.
  *
  * @param {HTMLElement} svHolder The DOM element that the pano will be placed in.
- * @param panoViewerType The type of pano viewer to initialize
- * @param viewerAccessToken An access token used to request images for the pano viewer.
+ * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
+ * @param {string} viewerAccessToken An access token used to request images for the pano viewer.
  * @returns {PanoManager} The gallery panorama that was generated.
  */
  async function PanoManager(svHolder, panoViewerType, viewerAccessToken) {

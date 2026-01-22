@@ -12,10 +12,6 @@ function PanoOverlay () {
         currY: 0,
         prevX: 0,
         prevY: 0,
-        leftDownX: 0,
-        leftDownY: 0,
-        leftUpX: 0,
-        leftUpY: 0,
         isLeftDown: false
     };
 
@@ -39,8 +35,6 @@ function PanoOverlay () {
      */
     function handlerViewControlLayerMouseDown(e) {
         mouseStatus.isLeftDown = true;
-        mouseStatus.leftDownX = mouseposition(e, this).x;
-        mouseStatus.leftDownY = mouseposition(e, this).y;
         viewControlLayer.css("cursor", "url(/assets/javascripts/SVLabel/img/cursors/closedhand.cur) 4 4, move");
 
         // This is necessary for supporting touch devices, because there is no mouse hover.
@@ -55,8 +49,6 @@ function PanoOverlay () {
     function handlerViewControlLayerMouseUp(e) {
         viewControlLayer.css("cursor", "url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move");
         mouseStatus.isLeftDown = false;
-        mouseStatus.leftUpX = mouseposition(e, this).x;
-        mouseStatus.leftUpY = mouseposition(e, this).y;
     }
 
     /**
@@ -98,7 +90,7 @@ function PanoOverlay () {
      */
     function updatePov(dx, dy) {
         let pov = svv.panoViewer.getPov();
-        // TODO not sure why Infra3d viewer pans so slowly, or doesn't pan at all if we dx/dy is small.
+        // TODO not sure why Infra3d viewer pans so slowly, or doesn't pan at all if dx/dy is small.
         const viewerScaling = svv.panoViewer instanceof Infra3dViewer ? 3 : 0.5;
         pov.heading -= dx * viewerScaling;
         pov.pitch += dy * viewerScaling;

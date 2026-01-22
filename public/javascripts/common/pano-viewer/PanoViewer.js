@@ -36,6 +36,7 @@ class PanoViewer {
 
     /**
      * Initializes the panorama viewer with the given canvas element and options.
+     * TODO note that either a startPanoId or startLatLng is required.
      * @param canvasElem
      * @param panoOptions
      * @returns {Promise<void>}

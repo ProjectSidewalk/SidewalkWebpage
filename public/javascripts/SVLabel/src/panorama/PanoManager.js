@@ -1,8 +1,11 @@
 /**
  *
- * @param panoViewerType The type of pano viewer to initialize
- * @param viewerAccessToken An access token used to request images for the pano viewer
- * @param params
+ * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
+ * @param {string} viewerAccessToken An access token used to request images for the pano viewer
+ * @param {object} params Parameters that affect the initialization of the panorama viewer.
+ * @param {string} [params.startPanoId] Optional starting pano, used over lat/lng, overridden if in the tutorial
+ * @param {number} [params.startLat] Optional starting latitude, overridden by startPanoId or if in the tutorial
+ * @param {number} [params.startLng] Optional starting longitude, overridden by startPanoId or if in the tutorial
  * @returns {Promise<PanoManager>}
  * @constructor
  */
@@ -36,9 +39,18 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
      * @private
      */
     async function _init() {
-        const panoOptions = {
-            accessToken: viewerAccessToken,
-            keyboardShortcuts: true
+        let panoOptions = {
+            accessToken: viewerAccessToken
+        };
+
+        // TODO The page totally fails to load if we fail to get imagery at the start location.
+        // Add the starting location to panoOptions.
+        if (svl.isOnboarding()) {
+            panoOptions.startPanoId = 'tutorial';
+        } else if ('startPanoId' in params) {
+            panoOptions.startPanoId = params.startPanoId
+        } else if ('startLat' in params && 'startLng' in params) {
+            panoOptions.startLatLng = { lat: params.startLat, lng: params.startLng };
         }
 
         // Load the pano viewer.
@@ -59,16 +71,6 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
             $('#imagery-source-logo-holder').css        ('padding-left', '5px');
         } else if (panoViewerType === Infra3dViewer) {
             $('#imagery-source-logo').attr('src', '/assets/images/logos/infra3d-logo.svg');
-        }
-
-        // Move to the specified starting location.
-        // TODO The page totally fails to load if we fail to get imagery at the start location.
-        if (svl.isOnboarding()) {
-            await setPanorama('tutorial');
-        } else if ('startPanoId' in params) {
-            await setPanorama(params.startPanoId);
-        } else if ('startLat' in params && 'startLng' in params) {
-            await setLocation({ lat: params.startLat, lng: params.startLng });
         }
 
         // TODO we probably need to do this for any viewer type...
