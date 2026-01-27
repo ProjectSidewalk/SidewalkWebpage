@@ -9,7 +9,7 @@ class Infra3dViewer extends PanoViewer {
         this.prevNode = null;
         this.currNode = null; // This becomes null while waiting to load subsequent panos.
         this.currPanoData = undefined; // This holds onto the data for the prior pano while we are loading the next one.
-        this.currLng  = undefined; // Records the lng that we're trying to set to, to get around smooth panning issues.
+        this.currCameraView  = undefined; // Records the lng that we're trying to set to, to get around smooth panning issues.
     }
 
     async initialize(canvasElem, panoOptions = {}) {
@@ -35,20 +35,14 @@ class Infra3dViewer extends PanoViewer {
         panoOpts = { ...panoOpts, ...panoOptions };
 
         // Initialize the viewer.
-        // TODO sometimes we fail to load and I haven't figured out how to catch the error.
-        try {
-            this.viewer = await manager.initViewer(panoOpts);
-        } catch (error) {
-            console.error('Viewer initialization failed:', error);
-
-            // Try it a second time in case it works...
-            try {
-                this.viewer = await manager.initViewer(panoOpts);
-            } catch (retryError) {
-                console.error('Viewer initialization retry failed:', retryError);
-                // TODO should do a page refresh or something here. Or show an error message.
-            }
-        }
+        // TODO sometimes initViewer() fails and I haven't figured out how to catch the error. Refresh page if viewer
+        //      init doesn't complete after 10 seconds.
+        this.viewer = await Promise.race([
+            manager.initViewer(panoOpts),
+            new Promise((_, reject) => setTimeout(() => reject('timeout'), 10000))
+        ]).catch(() => {
+            window.location.reload();
+        });
         console.log(this.viewer);
 
         // Handle a few other configs that need to be handled after initialization.
@@ -78,7 +72,7 @@ class Infra3dViewer extends PanoViewer {
     setLocation = async (latLng) => {
         this.prevNode = this.currNode;
         this.currNode = null;
-        this.currLng = null;
+        this.currCameraView = null;
 
         // Convert from WGS84 to Web Mercator (EPSG:3857), which is what Infra3D uses.
         const wgs84 = 'EPSG:4326';
@@ -94,7 +88,7 @@ class Infra3dViewer extends PanoViewer {
     setPano = async (panoId) => {
         this.prevNode = this.currNode;
         this.currNode = null;
-        this.currLng = null;
+        this.currCameraView = null;
         return this.viewer._sdk_viewer.moveToKey(panoId).then(this.#finishRecordingMetadata);
     }
 
@@ -162,7 +156,7 @@ class Infra3dViewer extends PanoViewer {
     getPov = () => {
         // TODO getCameraView() data isn't up-to-date immediately after the pano changes.
         //      This causes the pov to be wrong sometimes when switching to a new label on Validate.
-        const currentView = this.viewer.getCameraView();
+        const currentView = this.currCameraView || this.viewer.getCameraView();
         const node = this.currNode || this.prevNode;
 
         // Calculate the orientation of the camera.
@@ -170,8 +164,7 @@ class Infra3dViewer extends PanoViewer {
         const verticalOrientation = this._getPitch(node.frame.omega, node.frame.phi);
 
         // Add the orientation of the image to the camera.
-        const currLng = this.currLng || currentView.lon;
-        const horizontalAzimuth = (horizontalOrientation + currLng) % 360;
+        const horizontalAzimuth = (horizontalOrientation + currentView.lon) % 360;
         const verticalAzimuth = (verticalOrientation + currentView.lat) % 360;
 
         // Convert from vertical fov to horizontal fov, then convert to a zoom level that you'd see in GSV.
@@ -186,7 +179,6 @@ class Infra3dViewer extends PanoViewer {
     setPov = (pov) => {
         // TODO getCameraView() data isn't up-to-date immediately after the pano changes.
         //      This causes the pov to be wrong sometimes when switching to a new label on Validate.
-        const currView = this.viewer.getCameraView();
         const node = this.currNode || this.prevNode;
 
         // Calculate the base orientation from the node's position.
@@ -202,9 +194,6 @@ class Infra3dViewer extends PanoViewer {
         let viewLng = requiredLng > 180 ? requiredLng - 360 : requiredLng;
         let viewLat = requiredLat > 180 ? requiredLat - 360 : requiredLat;
 
-        // Record the lng that we're trying to set to, to get around smooth panning issues.
-        this.currLng = viewLng;
-
         // If zoom was provided, convert to a horizontal fov, and then convert to the vertical fov used by Infra3D.
         let verticalFov;
         if (pov.zoom) {
@@ -213,16 +202,19 @@ class Infra3dViewer extends PanoViewer {
                 2 * Math.atan(Math.tan(util.math.toRadians(horizontalFov / 2)) / util.EXPLORE_CANVAS_ASPECT_RATIO)
             );
         } else {
-            verticalFov = currView.fov;
+            verticalFov = this.currCameraView.fov;
         }
 
-        // Set the camera view.
-        this.viewer.setCameraView({
+        // Record the camera view that we're trying to set so that we have the intended view even during smooth panning.
+        this.currCameraView = {
             type: 'pano',
             lat: viewLat,
             lon: viewLng,
             fov: verticalFov
-        });
+        };
+
+        // Set the camera view.
+        this.viewer.setCameraView(this.currCameraView);
     }
 
     // Copied from UtilitiesPanomarker.js, converts GSV zoom level to FOV, which is what Infra3D uses.

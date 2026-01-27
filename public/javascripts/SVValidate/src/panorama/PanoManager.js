@@ -30,7 +30,7 @@ class PanoManager {
 
         this.#panoCanvas = document.getElementById('svv-panorama');
         svv.panoViewer = await panoViewerType.create(this.#panoCanvas, panoOptions);
-        if (svv.panoViewer.currPanoData) this.#setPanoCallback(svl.panoViewer.currPanoData);
+        if (svv.panoViewer.currPanoData) this.#setPanoCallback(svv.panoViewer.currPanoData);
         if (panoViewerType === GsvViewer) {
             $('#imagery-source-logo-holder').hide();
         } else if (panoViewerType === MapillaryViewer) {
