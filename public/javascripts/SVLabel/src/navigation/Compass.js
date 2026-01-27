@@ -122,6 +122,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         const task = taskContainer.getNextTaskAfterJump();
         taskContainer.setCurrentTask(task);
         await navigationService.moveForward();
+        svl.panoManager.setPovToRouteDirection();
         svl.jumpModel.triggerUserClickJumpMessage();
     }
 
