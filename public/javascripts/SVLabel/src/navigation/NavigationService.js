@@ -237,23 +237,16 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         const neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         const currentMission = svl.missionContainer.getCurrentMission();
 
-        // Update the minimap location and observed area viz.
-        svl.minimap.setMinimapLocation(newLatLng);
-        svl.observedArea.panoChanged();
-
         // Set delay until user can move again, to prevent spam running through a mission without labeling.
         timeoutWalking();
         setTimeout(resetWalking, moveDelay);
 
-        // Update the canvas to show the correct labels on screen the pano.
+        // Update the canvas to show the correct labels on the pano.
         svl.panoManager.updateCanvas();
 
         switchToExploreMode();
         svl.panoManager.enablePanning();
         svl.canvas.enableLabeling();
-
-        svl.compass.update();
-        svl.compass.enableCompassClick();
 
         if (!isOnboarding && "taskContainer" in svl && svl.taskContainer.tasksLoaded()) {
 
@@ -270,12 +263,18 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         }
         svl.missionModel.updateMissionProgress(currentMission, neighborhood);
 
+        // Update the minimap location and observed area viz.
+        svl.minimap.setMinimapLocation(newLatLng);
+        svl.peg.setHeading(svl.panoViewer.getPov().heading);
+        svl.observedArea.panoChanged();
+        svl.observedArea.update();
+
+        // Update the compass navigation messages.
+        svl.compass.update();
+        svl.compass.enableCompassClick();
+
         // Re-enable the keyboard.
         svl.keyboard.setStatus("disableKeyboard", false);
-
-        // Set the heading angle when the user is dropped to the new location.
-        // TODO actually do this when appropriate!
-        // svl.panoManager.setPovToRouteDirection();
 
         // Calling callbacks from outside NavigationService after a move (things like first mission popups).
         for (let i = 0, len = positionUpdateCallbacks.length; i < len; i++) {

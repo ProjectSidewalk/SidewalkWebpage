@@ -241,7 +241,6 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
      * Callback for pov update.
      */
     function _handlerPovChange() {
-
         // TODO I don't like checking if things are initialized yet.
 
         // povChange["status"] = true;
@@ -405,8 +404,8 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
 
     // Set the POV in the same direction as the route.
     function setPovToRouteDirection(durationMs) {
-        var pov = svl.panoViewer.getPov();
-        var newPov = {
+        const pov = svl.panoViewer.getPov();
+        const newPov = {
             heading: Math.round(svl.compass.getTargetAngle() + 360) % 360,
             pitch: pov.pitch,
             zoom: pov.zoom
