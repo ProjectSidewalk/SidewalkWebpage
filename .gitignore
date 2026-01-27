@@ -99,6 +99,7 @@ public/javascripts/Progress/build/*
 public/javascripts/SVValidate/build/*
 public/javascripts/Gallery/build/*
 public/javascripts/PSMap/build/*
+public/javascripts/common/pano-viewer/build/*
 download
 
 # Keys

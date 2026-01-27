@@ -88,6 +88,17 @@ module.exports = function(grunt) {
                     'public/javascripts/PSMap/*.js',
                 ],
                 dest: 'public/javascripts/PSMap/build/PSMap.js'
+            },
+            dist_pano_viewer: {
+                src: [
+                    'public/javascripts/common/pano-viewer/src/PanoData.js',
+                    'public/javascripts/common/pano-viewer/src/PanoStore.js',
+                    'public/javascripts/common/pano-viewer/src/PanoViewer.js',
+                    'public/javascripts/common/pano-viewer/src/GsvViewer.js',
+                    'public/javascripts/common/pano-viewer/src/MapillaryViewer.js',
+                    'public/javascripts/common/pano-viewer/src/Infra3dViewer.js',
+                ],
+                dest: 'public/javascripts/common/pano-viewer/build/pano-viewer.js'
             }
         },
         concat_css: {
