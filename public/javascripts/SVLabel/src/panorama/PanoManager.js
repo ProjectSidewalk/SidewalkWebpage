@@ -55,6 +55,8 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
 
         // Load the pano viewer.
         svl.panoViewer = await panoViewerType.create(panoCanvas, panoOptions);
+        if (svl.panoViewer.currPanoData) await _panoSuccessCallback(svl.panoViewer.currPanoData);
+        else await _panoFailureCallback();
         svl.panoViewer.addListener('pov_changed', _handlerPovChange);
 
         // Adds event listeners to the navigation arrows.
@@ -320,8 +322,9 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
      */
     function updatePov(dx, dy) {
         let pov = svl.panoViewer.getPov();
-        // TODO not sure why Infra3d viewer pans so slowly, or doesn't pan at all if we dx/dy is small.
-        const viewerScaling = panoViewerType === Infra3dViewer ? 2 : 0.375;
+        // TODO Infra3d viewer pans slowly because of their smoothing. Can remove this if they turn it off.
+        // const viewerScaling = panoViewerType === Infra3dViewer ? 2 : 0.375;
+        const viewerScaling = 0.375;
         pov.heading -= dx * viewerScaling;
         pov.pitch += dy * viewerScaling;
         pov = _restrictViewport(pov);

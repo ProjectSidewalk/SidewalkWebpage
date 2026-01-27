@@ -9,6 +9,7 @@ class Infra3dViewer extends PanoViewer {
         this.prevNode = null;
         this.currNode = null; // This becomes null while waiting to load subsequent panos.
         this.currPanoData = undefined; // This holds onto the data for the prior pano while we are loading the next one.
+        this.currLng  = undefined; // Records the lng that we're trying to set to, to get around smooth panning issues.
     }
 
     async initialize(canvasElem, panoOptions = {}) {
@@ -77,6 +78,7 @@ class Infra3dViewer extends PanoViewer {
     setLocation = async (latLng) => {
         this.prevNode = this.currNode;
         this.currNode = null;
+        this.currLng = null;
 
         // Convert from WGS84 to Web Mercator (EPSG:3857), which is what Infra3D uses.
         const wgs84 = 'EPSG:4326';
@@ -92,6 +94,7 @@ class Infra3dViewer extends PanoViewer {
     setPano = async (panoId) => {
         this.prevNode = this.currNode;
         this.currNode = null;
+        this.currLng = null;
         return this.viewer._sdk_viewer.moveToKey(panoId).then(this.#finishRecordingMetadata);
     }
 
@@ -167,7 +170,8 @@ class Infra3dViewer extends PanoViewer {
         const verticalOrientation = this._getPitch(node.frame.omega, node.frame.phi);
 
         // Add the orientation of the image to the camera.
-        const horizontalAzimuth = (horizontalOrientation + currentView.lon) % 360;
+        const currLng = this.currLng || currentView.lon;
+        const horizontalAzimuth = (horizontalOrientation + currLng) % 360;
         const verticalAzimuth = (verticalOrientation + currentView.lat) % 360;
 
         // Convert from vertical fov to horizontal fov, then convert to a zoom level that you'd see in GSV.
@@ -190,14 +194,16 @@ class Infra3dViewer extends PanoViewer {
         const basePitch = this._getPitch(node.frame.omega, node.frame.phi);
 
         // Calculate the required camera adjustment to reach target orientation.
-        // Since: target = base + cameraAdjustment
-        // Therefore: cameraAdjustment = target - base
+        // Since: target = base + cameraAdjustment, therefore: cameraAdjustment = target - base.
         const requiredLng = (pov.heading - baseHeading + 360) % 360;
         const requiredLat = (pov.pitch - basePitch + 360) % 360;
 
         // Convert to the range expected by setCameraView (typically -180 to 180).
         let viewLng = requiredLng > 180 ? requiredLng - 360 : requiredLng;
         let viewLat = requiredLat > 180 ? requiredLat - 360 : requiredLat;
+
+        // Record the lng that we're trying to set to, to get around smooth panning issues.
+        this.currLng = viewLng;
 
         // If zoom was provided, convert to a horizontal fov, and then convert to the vertical fov used by Infra3D.
         let verticalFov;

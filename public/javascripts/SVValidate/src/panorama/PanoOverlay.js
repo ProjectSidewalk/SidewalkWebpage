@@ -90,8 +90,9 @@ function PanoOverlay () {
      */
     function updatePov(dx, dy) {
         let pov = svv.panoViewer.getPov();
-        // TODO not sure why Infra3d viewer pans so slowly, or doesn't pan at all if dx/dy is small.
-        const viewerScaling = svv.panoViewer instanceof Infra3dViewer ? 3 : 0.5;
+        // TODO Infra3d viewer pans slowly because of their smoothing. Can remove this if they turn it off.
+        // const viewerScaling = svv.panoViewer instanceof Infra3dViewer ? 3 : 0.5;
+        const viewerScaling = 0.5;
         pov.heading -= dx * viewerScaling;
         pov.pitch += dy * viewerScaling;
         svv.panoViewer.setPov(pov);
