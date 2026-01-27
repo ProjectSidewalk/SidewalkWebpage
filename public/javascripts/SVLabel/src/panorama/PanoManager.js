@@ -387,7 +387,7 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
             }, timeSegment);
         } else {
             svl.panoViewer.setPov(pov);
-            svl.peg.setHeading(currentPov.heading);
+            svl.peg.setHeading(pov.heading);
         }
         return this;
     }
