@@ -56,22 +56,6 @@ function ObservedArea(uiMinimap) {
     }
 
     /**
-     * Converts a latitude and longitude to pixel xy-coordinates.
-     * @param latLng
-     * @returns {number, number}
-     */
-    function latLngToPixel(latLng) {
-        const projection = svl.minimap.getMap().getProjection();
-        const bounds = svl.minimap.getMap().getBounds();
-        const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
-        const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
-        const scale = Math.pow(2, svl.minimap.getMap().getZoom());
-        const worldPoint = projection.fromLatLngToPoint(latLng);
-        return {x: Math.floor((worldPoint.x - bottomLeft.x) * scale),
-                y: Math.floor((worldPoint.y - topRight.y) * scale)};
-    }
-
-    /**
      * Updates all the angle variables necessary to keep track of the user's observed area.
      */
     function updateAngles() {
@@ -105,12 +89,11 @@ function ObservedArea(uiMinimap) {
         fogOfWarCtx.fillRect(0, 0, width, height);
         fogOfWarCtx.globalCompositeOperation = 'destination-out';
         for (const observedArea of observedAreas) {
-            const center = latLngToPixel(observedArea.latLng);
             fogOfWarCtx.beginPath();
             if (observedArea.maxAngle - observedArea.minAngle < 360) {
-                fogOfWarCtx.moveTo(center.x, center.y);
+                fogOfWarCtx.moveTo(width / 2, height / 2);
             }
-            fogOfWarCtx.arc(center.x, center.y, radius,
+            fogOfWarCtx.arc(width / 2, height / 2, radius,
                 toRadians(observedArea.minAngle - 90), toRadians(observedArea.maxAngle - 90));
                 fogOfWarCtx.fill();
         }
@@ -121,11 +104,10 @@ function ObservedArea(uiMinimap) {
      * Renders the user's FOV.
      */
     function renderFov() {
-        const center = latLngToPixel(currArea.latLng);
         fovCtx.clearRect(0, 0, width, height);
         fovCtx.beginPath();
-        fovCtx.moveTo(center.x, center.y);
-        fovCtx.arc(center.x, center.y, radius, toRadians(leftAngle - 90), toRadians(rightAngle - 90));
+        fovCtx.moveTo(width / 2, height / 2);
+        fovCtx.arc(width / 2, height / 2, radius, toRadians(leftAngle - 90), toRadians(rightAngle - 90));
         fovCtx.fill();
     }
 

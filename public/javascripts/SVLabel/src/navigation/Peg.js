@@ -31,7 +31,7 @@ class Peg {
             position: new this.LatLng(initialLocation.lat, initialLocation.lng),
             content: this.imgElement,
             zIndex: 1000,
-            anchorTop: '-50%',
+            anchorTop: '-60%',
         });
     }
 
