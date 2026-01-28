@@ -14,8 +14,8 @@ import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ExcludedTag, MyPostgresProfile}
 import models.validation.LabelValidationTable
+import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
 
 import java.time.OffsetDateTime
@@ -97,7 +97,6 @@ trait LabelService {
 @Singleton
 class LabelServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
-    config: Configuration,
     configService: ConfigService,
     panoDataService: PanoDataService,
     labelTable: LabelTable,
@@ -201,7 +200,7 @@ class LabelServiceImpl @Inject() (
       aiValOptions: Set[String],
       userId: String
   ): Future[Seq[LabelValidationMetadata]] = {
-    val viewer: PanoSource = PanoSource.withName(config.get[String]("pano-viewer-type"))
+    val viewer: PanoSource = configService.getPanoSource
 
     // If a label type is specified, get labels for that type. Otherwise, get labels for all types.
     if (labelType.isDefined) {
@@ -395,7 +394,7 @@ class LabelServiceImpl @Inject() (
       validateParams: ValidateParams
   ): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
     // TODO can this be merged with `getDataForValidatePostRequest`?
-    val viewerType: PanoSource = PanoSource.withName(config.get[String]("pano-viewer-type"))
+    val viewerType: PanoSource = configService.getPanoSource
     getLabelTypeIdToValidate(user.userId, labelCount, viewerType, validateParams.labelType).flatMap {
       case Some(labelTypeId) =>
         for {
@@ -435,7 +434,7 @@ class LabelServiceImpl @Inject() (
       validateParams: ValidateParams
   ): Future[ValidationTaskPostReturnValue] = {
     // TODO can this be merged with `getDataForValidationPages`?
-    val viewerType: PanoSource = PanoSource.withName(config.get[String]("pano-viewer-type"))
+    val viewerType: PanoSource = configService.getPanoSource
     val labelsToRetrieve: Int  = MissionTable.validationMissionLabelsToRetrieve
     (for {
       nextMissionLabelTypeId <- {

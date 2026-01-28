@@ -126,6 +126,7 @@ trait ConfigService {
   def getCurrentCountryId: String
   def getCityName(lang: Lang): String
   def getAiTagSuggestionsEnabled: Boolean
+  def getPanoSource: PanoSource
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Float): Future[Int]
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T]
   def getCommonPageData(lang: Lang): Future[CommonPageData]
@@ -579,6 +580,8 @@ class ConfigServiceImpl @Inject() (
 
   def getAiTagSuggestionsEnabled: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$getCityId")
 
+  def getPanoSource: PanoSource = PanoSource.withName(config.get[String](s"city-params.pano-viewer-type.$getCityId"))
+
   // Uses Play's cache API to cache the result of a DBIO.
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T] = {
     DBIO.from(cacheApi.get[T](key)).flatMap {
@@ -599,7 +602,7 @@ class ConfigServiceImpl @Inject() (
       googleAnalyticsId: String = config.get[String](s"city-params.google-analytics-4-id.$envType.$cityId")
       prodUrl: String           = config.get[String](s"city-params.landing-page-url.prod.$cityId")
       gMapsApiKey: String       = config.get[String]("google-maps-api-key")
-      imagerySource: PanoSource = PanoSource.withName(config.get[String]("pano-viewer-type"))
+      imagerySource: PanoSource = PanoSource.withName(config.get[String](s"city-params.pano-viewer-type.$cityId"))
       imageryAccessToken: String <-
         if (imagerySource == PanoSource.Gsv) Future.successful(gMapsApiKey)
         else if (imagerySource == PanoSource.Infra3d) panoDataService.getInfra3dToken

@@ -10,7 +10,6 @@ import formats.json.MissionFormats._
 import formats.json.ValidateFormats.{EnvironmentSubmission, LabelMapValidationSubmission, SkipLabelSubmission, ValidationTaskSubmission}
 import models.auth.WithAdmin
 import models.label.{LabelTypeEnum, Tag}
-import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
 import models.user._
 import models.validation.{LabelValidation, ValidationTaskComment, ValidationTaskEnvironment, ValidationTaskInteraction}
@@ -521,7 +520,7 @@ class ValidateController @Inject() (
             if (submission.validateParams.adminVersion && isAdmin(request.identity)) submission.validateParams
             else ValidateParams(adminVersion = false)
           val userId: String         = request.identity.userId
-          val viewerType: PanoSource = PanoSource.withName(config.get[String]("pano-viewer-type"))
+          val viewerType: PanoSource = configService.getPanoSource
 
           // Get metadata for one new label to replace the skipped one.
           // TODO should really exclude all remaining labels in the mission, not just the skipped one. Not bothering now
