@@ -67,7 +67,7 @@ function StatusField(param) {
             let offset = statusUI.zoomInButton.outerWidth()
                 + statusUI.zoomOutButton.outerWidth()
                 + statusUI.labelVisibilityControlButton.outerWidth();
-            let width = ((svv.canvasWidth - offset) / 2) - (statusUI.upperMenuTitle.outerWidth() / 2);
+            let width = ((svv.canvasWidth() - offset) / 2) - (statusUI.upperMenuTitle.outerWidth() / 2);
             statusUI.upperMenuTitle.css("left", width + "px");
         }
     }

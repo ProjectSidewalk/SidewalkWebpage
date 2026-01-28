@@ -43,9 +43,6 @@ class PanoMarker {
      * @param {number} [opts.zIndex=1] The marker's z-index.
      */
     constructor(opts) {
-        // In case no options have been given at all, fallback to {} so that the following won't throw errors.
-        opts = opts || {};
-
         if (!opts.panoViewer) throw 'A panorama viewer needs to be defined.';
         if (!opts.markerContainer) throw 'A panorama markerContainer needs to be defined.';
 
@@ -89,200 +86,17 @@ class PanoMarker {
          * New code (April 17, 2019) -- modified by Aileen
          * Source: https://github.com/marmat/google-maps-api-addons/issues/36#issuecomment-342774699
          * @private
-         * @type {function({heading: number, pitch: number, zoom: number}, {heading: number, pitch: number, zoom: number}, HTMLDivElement): Object}
+         * @type {function({heading: number, pitch: number}, {heading: number, pitch: number, zoom: number}, number, number, number): {x: number, y: number}}
          */
-        this.povToPixel_ =PanoMarker.povToPixel2d;
+        this.povToPixel_ = util.pano.centeredPovToCanvasCoord2d;
         let pixelCanvas = document.createElement("canvas");
         if (pixelCanvas && (pixelCanvas.getContext("experimental-webgl") || pixelCanvas.getContext("webgl"))) {
-            this.povToPixel_ = PanoMarker.povToPixel3d;
+            this.povToPixel_ = util.pano.centeredPovToCanvasCoord;
         }
 
         // At last, call some methods which use the initialized parameters.
         this.createMarker();
     }
-
-    // Static helper methods for the position calculation //
-
-    /**
-     * According to the documentation (goo.gl/WT4B57), the field-of-view angle should precisely follow the curve of
-     * the form 180/2^zoom. Unfortunately, this is not the case in practice in the 3D environment. From experiments,
-     * the following FOVs seem to be more correct:
-     *
-     *        Zoom | best FOV | documented FOV
-     *       ------+----------+----------------
-     *          0  | 126.5    | 180
-     *          1  | 90       | 90
-     *          2  | 53       | 45
-     *          3  | 28       | 22.5
-     *          4  | 14.25    | 11.25
-     *          5  | 7.25     | not specified
-     *
-     * Because of this, we are doing a linear interpolation for zoom values <= 2 and then switch over to an inverse
-     * exponential. In practice, the produced values are good enough to result in stable marker positioning, even
-     * for intermediate zoom values.
-     *
-     * @return {number} The (horizontal) field of view angle for the given zoom.
-     */
-    static get3dFov = function(zoom) {
-        return zoom <= 2 ?
-            126.5 - zoom * 36.75 :  // linear descent
-            195.93 / Math.pow(1.92, zoom); // parameters determined experimentally
-    };
-
-    /**
-     * Given the current POV, this method calculates the Pixel coordinates on the given viewport for the desired
-     * POV. All credit for the math this method goes to user3146587 on StackOverflow: http://goo.gl/0GGKi6
-     *
-     * My own approach to explain what is being done here (including figures!) can be found at
-     * http://martinmatysiak.de/blog/view/panomarker
-     *
-     * @param {{heading: number, pitch: number, zoom: number}} targetPov The POV whose coordinates are requested.
-     * @param {{heading: number, pitch: number, zoom: number}} currentPov POV of the viewport center.
-     * @param {HTMLDivElement} viewport The current viewport containing the panorama.
-     * @return {Object} Top and Left offsets for the given viewport that point to the desired point-of-view.
-     */
-    static povToPixel3d = function(targetPov, currentPov, viewport) {
-        // Gather required variables and convert to radians where necessary.
-        const width = viewport.offsetWidth;
-        const height = viewport.offsetHeight;
-
-        let target = {
-            left: width / 2,
-            top: height / 2
-        };
-
-        const DEG_TO_RAD = Math.PI / 180.0;
-        const fov = PanoMarker.get3dFov(currentPov.zoom) * DEG_TO_RAD;
-        const h0 = currentPov.heading * DEG_TO_RAD;
-        const p0 = currentPov.pitch * DEG_TO_RAD;
-        const h = targetPov.heading * DEG_TO_RAD;
-        const p = targetPov.pitch * DEG_TO_RAD;
-
-        // f = focal length = distance of current POV to image plane
-        const f = (width / 2) / Math.tan(fov / 2);
-
-        // our coordinate system: camera at (0,0,0), heading = pitch = 0 at (0,f,0)
-        // calculate 3d coordinates of viewport center and target
-        const cos_p = Math.cos(p);
-        const sin_p = Math.sin(p);
-
-        const cos_h = Math.cos(h);
-        const sin_h = Math.sin(h);
-
-        const x = f * cos_p * sin_h;
-        const y = f * cos_p * cos_h;
-        const z = f * sin_p;
-
-        const cos_p0 = Math.cos(p0);
-        const sin_p0 = Math.sin(p0);
-
-        const cos_h0 = Math.cos(h0);
-        const sin_h0 = Math.sin(h0);
-
-        const x0 = f * cos_p0 * sin_h0;
-        const y0 = f * cos_p0 * cos_h0;
-        const z0 = f * sin_p0;
-
-        const nDotD = x0 * x + y0 * y + z0 * z;
-        const nDotC = x0 * x0 + y0 * y0 + z0 * z0;
-
-        // nDotD == |targetVec| * |currentVec| * cos(theta)
-        // nDotC == |currentVec| * |currentVec| * 1
-        // Note: |currentVec| == |targetVec| == f
-
-        // Sanity check: the vectors shouldn't be perpendicular because the line from camera through target would
-        // never intersect with the image plane.
-        if (Math.abs(nDotD) < 1e-6) {
-            return null;
-        }
-
-        // t is the scale to use for the target vector such that its end touches the image plane. It's equal to
-        // 1/cos(theta) == (distance from camera to image plane through target) / (distance from camera to target == f)
-        const t = nDotC / nDotD;
-
-        // Sanity check: it doesn't make sense to scale the vector in a negative direction. In fact, it should even
-        // be t >= 1.0 since the image plane is always outside the pano sphere (except at the viewport center).
-        if (t < 0.0) {
-            return null;
-        }
-
-        // (tx, ty, tz) are the coordinates of the intersection point between a line through camera and target with
-        // the image plane.
-        const tx = t * x;
-        const ty = t * y;
-        const tz = t * z;
-
-        // u and v are the basis vectors for the image plane.
-        const vx = -sin_p0 * sin_h0;
-        const vy = -sin_p0 * cos_h0;
-        const vz = cos_p0;
-
-        let ux = cos_h0;
-        let uy = -sin_h0;
-        let uz = 0;
-
-        // Normalize horiz. basis vector to obtain orthonormal basis.
-        const ul = Math.sqrt(ux * ux + uy * uy + uz * uz);
-        ux /= ul;
-        uy /= ul;
-        uz /= ul;
-
-        // Project the intersection point t onto the basis to obtain offsets in terms of actual pixels in viewport.
-        const du = tx * ux + ty * uy + tz * uz;
-        const dv = tx * vx + ty * vy + tz * vz;
-
-        // use the calculated pixel offsets
-        target.left += du;
-        target.top -= dv;
-        return target;
-    };
-
-    /**
-     * Helper function that converts the heading to be in the range [-180,180).
-     *
-     * @param {number} heading The heading to convert.
-     */
-    static wrapHeading = function(heading) {
-        // We shift to the range [0,360) because of the way JS behaves for modulos of negative numbers.
-        heading = (heading + 180) % 360;
-
-        // Determine if we have to wrap around.
-        if (heading < 0) {
-            heading += 360;
-        }
-
-        return heading - 180;
-    };
-
-    /**
-     * A simpler version of povToPixel3d which does not have to do the spherical projection because the raw
-     * StreetView tiles are just panned around when the user changes the viewport position.
-     *
-     * @param {{heading: number, pitch: number, zoom: number}} targetPov The POV whose coordinates are requested.
-     * @param {{heading: number, pitch: number, zoom: number}} currentPov POV of the viewport center.
-     * @param {HTMLDivElement} viewport The current viewport containing the panorama.
-     * @return {Object} Top and Left offsets for the given viewport that point to the desired point-of-view.
-     */
-    static povToPixel2d = function(targetPov, currentPov, viewport) {
-        // Gather required variables.
-        const width = viewport.offsetWidth;
-        const height = viewport.offsetHeight;
-
-        let target = {
-            left: width / 2,
-            top: height / 2
-        };
-
-        // In the 2D environment, the FOV follows the documented curve.
-        const hfov = 180 / Math.pow(2, currentPov.zoom);
-        const vfov = hfov * (height / width);
-        const dh = PanoMarker.wrapHeading(targetPov.heading - currentPov.heading);
-        const dv = targetPov.pitch - currentPov.pitch;
-
-        target.left += dh / hfov * width;
-        target.top -= dv / vfov * height;
-        return target;
-    };
 
     /**
      * Sets up a marker and then calls draw().
@@ -324,7 +138,7 @@ class PanoMarker {
                     let labelDescriptionBox = $("#label-description-box");
                     let desBox = labelDescriptionBox[0];
                     if (!this.toggleDescription_) {
-                        desBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - (parseFloat(marker.style.width) / 2)) + 'px';
+                        desBox.style.right = (svv.canvasWidth() - parseFloat(marker.style.left) - (parseFloat(marker.style.width) / 2)) + 'px';
                         desBox.style.top = (parseFloat(marker.style.top) + (parseFloat(marker.style.height) / 2)) + 'px';
                         desBox.style.zIndex = 2;
                         desBox.style.visibility = 'visible';
@@ -373,13 +187,16 @@ class PanoMarker {
 
         // Calculate the position according to the viewport. Even though the marker doesn't sit directly underneath
         // the panorama container, we pass it on as the viewport because it has the actual viewport dimensions.
-        const offset = this.povToPixel_(this.position_, this.panoViewer_.getPov(), this.markerContainer_);
         if (this.marker_) {
-            if (offset !== null) {
-                this.marker_.style.left = (offset.left - this.size_.width / 2) + 'px';
-                this.marker_.style.top = (offset.top - this.size_.height / 2) + 'px';
+            const coords = this.povToPixel_(
+                this.position_, this.panoViewer_.getPov(), this.markerContainer_.offsetWidth,
+                this.markerContainer_.offsetHeight, this.size_.width
+            );
+            if (coords !== null) {
+                this.marker_.style.left = (coords.x - this.size_.width / 2) + 'px';
+                this.marker_.style.top = (coords.y - this.size_.height / 2) + 'px';
             } else {
-                // If offset is null, marker is "behind" the camera, so we position the marker outside the viewport.
+                // If coords is null, marker is "behind" the camera, so we position the marker outside the viewport.
                 this.marker_.style.left = -(9999 + this.size_.width) + 'px';
                 this.marker_.style.top = '0';
             }

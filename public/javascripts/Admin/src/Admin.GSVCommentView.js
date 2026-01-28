@@ -3,7 +3,6 @@ async function AdminGSVCommentView(admin, viewerType, viewerAccessToken) {
     self.admin = admin;
 
     var _init = async function() {
-        self.panoProp = new PanoProperties();
         await _resetModal();
     };
 

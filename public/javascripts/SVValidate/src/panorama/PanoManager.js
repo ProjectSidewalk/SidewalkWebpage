@@ -136,7 +136,7 @@ class PanoManager {
                 panoViewer: svv.panoViewer,
                 position: { heading: labelPov.heading, pitch: labelPov.pitch },
                 icon: url,
-                size: { width: currentLabel.getRadius() * 2 + 2, height: currentLabel.getRadius() * 2 + 2 },
+                size: { width: svv.labelRadius * 2 + 2, height: svv.labelRadius * 2 + 2 },
                 zIndex: 2
             });
         } else {

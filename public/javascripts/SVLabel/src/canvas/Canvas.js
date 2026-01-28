@@ -56,15 +56,15 @@ function Canvas(ribbon) {
      */
     function createLabel(canvasX, canvasY) {
         // Generate some metadata for the new label.
-        var labelType = ribbon.getStatus('selectedLabelType');
-        var pov = svl.panoViewer.getPov();
-        var povOfLabel = util.panomarker.calculatePovIfCentered(
+        const labelType = ribbon.getStatus('selectedLabelType');
+        const pov = svl.panoViewer.getPov();
+        const povOfLabel = util.pano.canvasCoordToCenteredPov(
             pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT
         );
-        let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(
+        const rerenderCanvasCoord = util.pano.centeredPovToCanvasCoord(
             povOfLabel, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
         );
-        var param = {
+        const param = {
             tutorial: svl.missionContainer.getCurrentMission().getProperty("missionType") === "auditOnboarding",
             auditTaskId: svl.taskContainer.getCurrentTask().getAuditTaskId(),
             labelType: labelType,

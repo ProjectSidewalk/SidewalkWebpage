@@ -83,14 +83,13 @@ function LabelContainer ($, nextTemporaryLabelId) {
                 };
 
                 // Get the canvas coordinates for the label given the current POV.
-                let povOfLabelIfCentered = util.panomarker.calculatePovIfCentered(
+                let povOfLabelIfCentered = util.pano.canvasCoordToCenteredPov(
                     labelArr[i].originalPov, originalCanvasXY.x, originalCanvasXY.y, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT
                 );
-                let rerenderCanvasXY = util.panomarker.getCanvasCoordinate(
+                labelArr[i].currCanvasXY = util.pano.centeredPovToCanvasCoord(
                     povOfLabelIfCentered, svl.panoViewer.getPov(), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
                 );
 
-                labelArr[i].currCanvasXY = { x: rerenderCanvasXY.x, y: rerenderCanvasXY.y };
                 labelArr[i].originalCanvasXY = originalCanvasXY;
                 labelArr[i].povOfLabelIfCentered = povOfLabelIfCentered;
                 labelArr[i].panoXY = { x: labelArr[i].panoX, y: labelArr[i].panoY };

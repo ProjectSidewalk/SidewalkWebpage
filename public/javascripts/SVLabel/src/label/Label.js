@@ -91,7 +91,7 @@ function Label(params) {
             properties.cameraHeading = panoData.cameraHeading;
             properties.panoLat = panoData.lat;
             properties.panoLng = panoData.lng;
-            properties.panoXY = util.panomarker.calculatePanoXYFromPov(
+            properties.panoXY = util.pano.povToPanoCoord(
                 properties.povOfLabelIfCentered, properties.cameraHeading, properties.panoWidth, properties.panoHeight
             );
         }
@@ -168,13 +168,14 @@ function Label(params) {
      * @returns {boolean}
      */
     function isOn(x, y) {
-        var margin = svl.LABEL_ICON_RADIUS / 2 + 2;
-        return !status.deleted &&
-            status.visibility === 'visible' &&
-            x < properties.currCanvasXY.x + margin &&
-            x > properties.currCanvasXY.x - margin &&
-            y < properties.currCanvasXY.y + margin &&
-            y > properties.currCanvasXY.y - margin;
+        const margin = svl.LABEL_ICON_RADIUS / 2 + 2;
+        return !status.deleted
+            && status.visibility === 'visible'
+            && properties.currCanvasXY
+            && x < properties.currCanvasXY.x + margin
+            && x > properties.currCanvasXY.x - margin
+            && y < properties.currCanvasXY.y + margin
+            && y > properties.currCanvasXY.y - margin;
     }
 
     /**
@@ -201,13 +202,13 @@ function Label(params) {
 
             // Update the coordinates of the label on the canvas.
             if (svl.panoManager.getPovChangeStatus()) {
-                properties.currCanvasXY = util.panomarker.getCanvasCoordinate(
+                properties.currCanvasXY = util.pano.centeredPovToCanvasCoord(
                     properties.povOfLabelIfCentered, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
                 );
             }
 
             // Draw the label icon if it's in the visible part of the pano.
-            if (properties.currCanvasXY.x !== null && properties.currCanvasXY.y !== null) {
+            if (properties.currCanvasXY) {
                 Label.renderLabelIcon(ctx, properties.labelType, properties.currCanvasXY.x, properties.currCanvasXY.y);
 
                 // Only render severity warning if there's a severity option.
@@ -327,8 +328,8 @@ function Label(params) {
      * @param ctx Rendering tool for severity (2D context).
      */
     function showSeverityAlert(ctx) {
-        var x = properties.currCanvasXY.x;
-        var y = properties.currCanvasXY.y;
+        const x = properties.currCanvasXY.x;
+        const y = properties.currCanvasXY.y;
 
         // Draws circle.
         ctx.beginPath();

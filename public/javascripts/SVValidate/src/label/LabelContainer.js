@@ -214,8 +214,8 @@ async function LabelContainer(labelList) {
         }
 
         let data = {
-            canvas_height: svv.canvasHeight,
-            canvas_width: svv.canvasWidth,
+            canvas_height: svv.canvasHeight(),
+            canvas_width: svv.canvasWidth(),
             canvas_x: labelMetadata.canvasX,
             canvas_y: labelMetadata.canvasY,
             end_timestamp: labelMetadata.endTimestamp,

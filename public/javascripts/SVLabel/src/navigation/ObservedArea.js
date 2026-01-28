@@ -61,7 +61,7 @@ function ObservedArea(uiMinimap) {
     function updateAngles() {
         const pov = svl.panoViewer.getPov();
         let heading = pov.heading;
-        const fov = PanoMarker.get3dFov(pov.zoom);
+        const fov = util.pano.zoomToFov(pov.zoom);
         if (angle) {
             if (heading - angle > 180) {
                 heading -= 360;

@@ -13,8 +13,6 @@ function Main (param) {
     svv.validateParams = param.validateParams;
     svv.viewerType = param.viewerType;
     svv.missionLength = param.mission?.labels_validated ?? 0;
-    svv.canvasHeight = param.canvasHeight;
-    svv.canvasWidth = param.canvasWidth;
     svv.cityId = param.cityId;
     svv.cityName = param.cityName;
     svv.missionsCompleted = 0;
@@ -160,10 +158,13 @@ function Main (param) {
         svv.util = {};
         svv.util.properties = {};
 
+        svv.canvasWidth = () => isMobile() ? window.innerWidth : 720;
+        svv.canvasHeight = () => isMobile() ? window.innerHeight : 440;
+        svv.labelRadius = isMobile() ? 25 : 10;
+
         const labelType = svv.labelTypes[param.mission.label_type_id];
 
         if (svv.expertValidate) svv.rightMenu = new RightMenu(svv.ui.expertValidate);
-        svv.util.properties.panorama = new PanoProperties();
 
         svv.form = new Form(param.dataStoreUrl, param.beaconDataStoreUrl);
 

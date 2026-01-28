@@ -141,8 +141,9 @@
     function renderLabel(label) {
         // Get the PanoMarker icon url.
         const url = icons[label.label_type];
-        const pos = getPosition(label.canvasX, label.canvasY, label.originalCanvasWidth,
-            label.originalCanvasHeight, label.pov);
+        const pos = util.pano.canvasCoordToCenteredPov(
+            label.pov, label.canvasX, label.canvasY, label.originalCanvasWidth, label.originalCanvasHeight
+        );
         const panoId = sg.panoViewer.getPanoId();
 
         if (!self.labelMarker) {
@@ -167,68 +168,6 @@
         // Make our newly set PanoMarker visible.
         self.labelMarker.marker.setVisible(true);
         updateMarkerAiIndicator(label.aiGenerated);
-    }
-
-    /**
-     * Calculates heading and pitch for a Google Maps marker using (x, y) coordinates From PanoMarker spec.
-     * TODO this should use some shared code! I think same as UtilitiesPanoMarker.calculatePovIfCentered and PanoProperties.getPosition?
-     * @param canvas_x          X coordinate (pixel) for label.
-     * @param canvas_y          Y coordinate (pixel) for label.
-     * @param canvas_width      Original canvas width.
-     * @param canvas_height     Original canvas height.
-     * @param {{heading: number, pitch: number, zoom: number}} pov Original pov of the label
-     * @returns {{heading: number, pitch: number}}
-     */
-    function getPosition(canvas_x, canvas_y, canvas_width, canvas_height, pov) {
-        function sgn(x) {
-            return x >= 0 ? 1 : -1;
-        }
-
-        const PI = Math.PI;
-        let cos = Math.cos;
-        let sin = Math.sin;
-        let tan = Math.tan;
-        let sqrt = Math.sqrt;
-        let atan2 = Math.atan2;
-        let asin = Math.asin;
-        const fov = get3dFov(pov.zoom) * PI / 180.0;
-        const width = canvas_width;
-        const height = canvas_height;
-        const h0 = pov.heading * PI / 180.0;
-        const p0 = pov.pitch * PI / 180.0;
-        const f = 0.5 * width / tan(0.5 * fov);
-        const x0 = f * cos(p0) * sin(h0);
-        const y0 = f * cos(p0) * cos(h0);
-        const z0 = f * sin(p0);
-        const du = (canvas_x) - width / 2;
-        const dv = height / 2 - (canvas_y - 5);
-        const ux = sgn(cos(p0)) * cos(h0);
-        const uy = -sgn(cos(p0)) * sin(h0);
-        const uz = 0;
-        const vx = -sin(p0) * sin(h0);
-        const vy = -sin(p0) * cos(h0);
-        const vz = cos(p0);
-        const x = x0 + du * ux + dv * vx;
-        const y = y0 + du * uy + dv * vy;
-        const z = z0 + du * uz + dv * vz;
-        const R = sqrt(x * x + y * y + z * z);
-        const h = atan2(x, y);
-        const p = asin(z / R);
-        return {
-            heading: h * 180.0 / PI,
-            pitch: p * 180.0 / PI
-        };
-    }
-
-    /**
-     * From PanoMarker spec.
-     * @param zoom
-     * @returns {number}
-     */
-    function get3dFov(zoom) {
-        return zoom <= 2 ?
-            126.5 - zoom * 36.75 :  // linear descent.
-            195.93 / Math.pow(1.92, zoom); // parameters determined experimentally.
     }
 
     /**

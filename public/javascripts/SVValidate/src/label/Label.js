@@ -173,22 +173,16 @@ function Label(params) {
 
     /**
      * Calculate heading/pitch for drawing this Label on the pano from the POV of the user when placing the label.
-     * @returns {heading: number, pitch: number}
+     * @returns {heading: number, pitch: number, zoom: number}
      */
     function getOriginalPov() {
-        return svv.util.properties.panorama.getPosition(
-            getAuditProperty('canvasX'), getAuditProperty('canvasY'), util.EXPLORE_CANVAS_WIDTH,
-            util.EXPLORE_CANVAS_HEIGHT, getAuditProperty('zoom'), getAuditProperty('heading'),
-            getAuditProperty('pitch')
-        );
-    }
-
-    /**
-     * Gets the radius of this label.
-     * @returns {number}
-     */
-    function getRadius () {
-        return radius;
+        const origPov = {
+            heading: getAuditProperty('heading'),
+            pitch: getAuditProperty('pitch'),
+            zoom: getAuditProperty('zoom')
+        }
+        return util.pano.canvasCoordToCenteredPov(origPov, getAuditProperty('canvasX'),
+            getAuditProperty('canvasY'), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT);
     }
 
     /**
@@ -243,47 +237,25 @@ function Label(params) {
     }
 
     /**
-     * Updates validation status for Label, StatusField and logs interactions into Tracker. Occurs
-     * when a validation button is clicked.
-     *
-     * NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
+     * When a validation button is clicked, updates validation status for Label, StatusField, and logs interactions.
      *
      * @param validationResult  Must be one of the following: {Agree, Disagree, Unsure}.
      * @param comment An optional comment submitted with the validation.
      */
     function validate(validationResult, comment) {
-        // This is the POV of the PanoMarker, where the PanoMarker would be loaded at the center of the viewport.
-        let pov = getOriginalPov();
-        let panomarkerPov = {
-            heading: pov.heading,
-            pitch: pov.pitch
-        };
+        // This is the POV if the label were in the center of the viewport.
+        let centeredPov = getOriginalPov();
 
         // This is the POV of the viewport center - this is where the user is looking.
         let userPov = svv.panoViewer.getPov();
 
         // Calculates the center xy coordinates of the Label on the current viewport.
-        let pixelCoordinates = svv.util.properties.panorama.povToPixel3d(panomarkerPov, userPov, svv.canvasWidth, svv.canvasHeight);
-
-        // If the user has panned away from the label and it is no longer visible on the canvas, set canvasX/Y to null.
-        // We add/subtract the radius of the label so that we still record these values when only a fraction of the
-        // label is still visible.
-        let labelCanvasX = null;
-        let labelCanvasY = null;
-        if (pixelCoordinates
-            && pixelCoordinates.left + getRadius() > 0
-            && pixelCoordinates.left - getRadius() < svv.canvasWidth
-            && pixelCoordinates.top + getRadius() > 0
-            && pixelCoordinates.top - getRadius() < svv.canvasHeight) {
-
-            labelCanvasX = pixelCoordinates.left - getRadius();
-            labelCanvasY = pixelCoordinates.top - getRadius();
-        }
+        let pixelCoordinates =
+            util.pano.centeredPovToCanvasCoord(centeredPov, userPov, svv.canvasWidth(), svv.canvasHeight(), svv.labelRadius);
 
         setProperty("endTimestamp", new Date());
-        // TODO do we actually want to use `labelCanvasX` and `labelCanvasY` here? Or are they updated already?
-        setProperty("canvasX", Math.round(labelCanvasX));
-        setProperty("canvasY", Math.round(labelCanvasY));
+        setProperty("canvasX", pixelCoordinates ? Math.round(pixelCoordinates.x) : null);
+        setProperty("canvasY", pixelCoordinates ? Math.round(pixelCoordinates.y) : null);
         setProperty("heading", userPov.heading);
         setProperty("pitch", userPov.pitch);
         setProperty("zoom", userPov.zoom);
@@ -335,7 +307,6 @@ function Label(params) {
     self.getProperties = getProperties;
     self.setProperty = setProperty;
     self.getOriginalPov = getOriginalPov;
-    self.getRadius = getRadius;
     self.validate = validate;
 
     return this;

@@ -172,7 +172,7 @@ class Infra3dViewer extends PanoViewer {
         const horizontalFov = util.math.toDegrees(
             2 * Math.atan(Math.tan(util.math.toRadians(currentView.fov) / 2) * util.EXPLORE_CANVAS_ASPECT_RATIO)
         );
-        const zoom = this._getZoomFrom3dFov(horizontalFov);
+        const zoom = util.pano.fovToZoom(horizontalFov);
 
         return { heading: horizontalAzimuth, pitch: verticalAzimuth, zoom: zoom };
     }
@@ -198,7 +198,7 @@ class Infra3dViewer extends PanoViewer {
         // If zoom was provided, convert to a horizontal fov, and then convert to the vertical fov used by Infra3D.
         let verticalFov;
         if (pov.zoom) {
-            const horizontalFov = this._get3dFov(pov.zoom);
+            const horizontalFov = util.pano.zoomToFov(pov.zoom);
             verticalFov = util.math.toDegrees(
                 2 * Math.atan(Math.tan(util.math.toRadians(horizontalFov / 2)) / util.EXPLORE_CANVAS_ASPECT_RATIO)
             );
@@ -216,34 +216,6 @@ class Infra3dViewer extends PanoViewer {
 
         // Set the camera view.
         this.viewer.setCameraView(this.currCameraView);
-    }
-
-    // Copied from UtilitiesPanomarker.js, converts GSV zoom level to FOV, which is what Infra3D uses.
-     _get3dFov(zoom) {
-        return zoom <= 2 ?
-            126.5 - zoom * 36.75 :  // Linear descent.
-            195.93 / Math.pow(1.92, zoom); // Parameters determined experimentally.
-    }
-
-    /**
-     * Calculates the zoom level from a given 3D field of view angle. This is the inverse of get3dFov().
-     * @param {number} fov - The field of view angle in degrees.
-     * @returns {number} The corresponding zoom level.
-     */
-    _getZoomFrom3dFov(fov) {
-        // The transition point is at zoom = 2, where fov = 126.5 - 2 * 36.75 = 53
-        const transitionFov = 53;
-
-        if (fov >= transitionFov) {
-            // Reverse of: fov = 126.5 - zoom * 36.75. Solving for zoom: zoom = (126.5 - fov) / 36.75
-            return (126.5 - fov) / 36.75;
-        } else {
-            // Reverse of: fov = 195.93 / Math.pow(1.92, zoom)
-            // Solving for zoom: 1.92^zoom = 195.93 / fov
-            // Taking log: zoom * log(1.92) = log(195.93 / fov)
-            // Therefore: zoom = log(195.93 / fov) / log(1.92)
-            return Math.log(195.93 / fov) / Math.log(1.92);
-        }
     }
 
     // Called getHorizontalOrientation in the code we were sent.

@@ -204,11 +204,12 @@ class MapillaryViewer extends PanoViewer {
     _getPov = async () => {
         const povWithoutZoom = await this.viewer.getPointOfView();
         const fov = await this.viewer.getFieldOfView();
-        const zoom = this._getZoomFrom3dFov(fov);
+        const zoom = util.pano.fovToZoom(fov);
 
         return { heading: povWithoutZoom.bearing, pitch: povWithoutZoom.tilt, zoom: zoom };
     }
 
+    // TODO should this be sharing any code with util.pano.povToPanoCoord()?
     setPov = (pov) => {
         // Find x-position of requested heading on the underlying image [0,1]. To do this, we find the difference b/w
         // requested heading and the heading for the start of the image (which is cameraHeading - 180), divide by 360.
@@ -223,7 +224,7 @@ class MapillaryViewer extends PanoViewer {
 
         // Convert zoom to a horizontal fov, and then convert to the vertical fov used by Mapillary.
         pov.zoom = pov.zoom || this.currPov.zoom || 1;
-        const horizontalFov = this._get3dFov(pov.zoom);
+        const horizontalFov = util.pano.zoomToFov(pov.zoom);
         const verticalFov = util.math.toDegrees(
             2 * Math.atan(Math.tan(util.math.toRadians(horizontalFov / 2)) / util.EXPLORE_CANVAS_ASPECT_RATIO)
         );
@@ -234,36 +235,6 @@ class MapillaryViewer extends PanoViewer {
         this.viewer.setZoom(newZoom);
 
         this.currPov = {...pov};
-    }
-
-    // Copied from UtilitiesPanomarker.js, converts GSV zoom level to FOV, which is what Mapillary uses.
-    // TODO move this to a shared location.
-    _get3dFov(zoom) {
-        return zoom <= 2 ?
-            126.5 - zoom * 36.75 :  // Linear descent.
-            195.93 / Math.pow(1.92, zoom); // Parameters determined experimentally.
-    }
-
-    /**
-     * Calculates the zoom level from a given 3D field of view angle. This is the inverse of get3dFov().
-     * TODO move this to a shared location.
-     * @param {number} fov - The field of view angle in degrees.
-     * @returns {number} The corresponding zoom level.
-     */
-    _getZoomFrom3dFov(fov) {
-        // The transition point is at zoom = 2, where fov = 126.5 - 2 * 36.75 = 53
-        const transitionFov = 53;
-
-        if (fov >= transitionFov) {
-            // Reverse of: fov = 126.5 - zoom * 36.75. Solving for zoom: zoom = (126.5 - fov) / 36.75
-            return (126.5 - fov) / 36.75;
-        } else {
-            // Reverse of: fov = 195.93 / Math.pow(1.92, zoom)
-            // Solving for zoom: 1.92^zoom = 195.93 / fov
-            // Taking log: zoom * log(1.92) = log(195.93 / fov)
-            // Therefore: zoom = log(195.93 / fov) / log(1.92)
-            return Math.log(195.93 / fov) / Math.log(1.92);
-        }
     }
 
     hideNavigationArrows = () => {

@@ -10,7 +10,6 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/src/*.js',
                     'public/javascripts/SVLabel/src/*/*.js',
                     'public/javascripts/common/Panomarker.js',
-                    'public/javascripts/common/UtilitiesPanomarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/PanoInfoPopover.js',
                     'public/javascripts/common/SpeedLimit.js',
@@ -34,7 +33,6 @@ module.exports = function(grunt) {
                     'public/javascripts/Admin/src/*.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/Panomarker.js',
-                    'public/javascripts/common/UtilitiesPanomarker.js'
                 ],
                 dest: 'public/javascripts/Admin/build/Admin.js'
             },
@@ -93,10 +91,11 @@ module.exports = function(grunt) {
                 src: [
                     'public/javascripts/common/pano-viewer/src/PanoData.js',
                     'public/javascripts/common/pano-viewer/src/PanoStore.js',
+                    'public/javascripts/common/pano-viewer/src/PanoUtilities.js',
                     'public/javascripts/common/pano-viewer/src/PanoViewer.js',
                     'public/javascripts/common/pano-viewer/src/GsvViewer.js',
                     'public/javascripts/common/pano-viewer/src/MapillaryViewer.js',
-                    'public/javascripts/common/pano-viewer/src/Infra3dViewer.js',
+                    'public/javascripts/common/pano-viewer/src/Infra3dViewer.js'
                 ],
                 dest: 'public/javascripts/common/pano-viewer/build/pano-viewer.js'
             }
@@ -128,6 +127,7 @@ module.exports = function(grunt) {
                 files: [
                     'public/javascripts/common/*.js',
                     'public/javascripts/common/*/*.js',
+                    'public/javascripts/common/*/*/*.js',
                     'public/javascripts/SVLabel/src/*.js',
                     'public/javascripts/SVLabel/src/**/*.js',
                     'public/javascripts/SVLabel/css/*.css',

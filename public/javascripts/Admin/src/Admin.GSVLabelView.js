@@ -4,7 +4,6 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
     self.source = source;
 
     var _init = async function() {
-        self.panoProp = new PanoProperties();
         self.resultOptions = {
             "Agree": 1,
             "Disagree": 2,
@@ -267,24 +266,10 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
         // This is the POV of the viewport center - this is where the user is looking.
         const userPov = self.panoManager.getPov();
 
-        // Calculates the center xy coordinates of the kabel on the current viewport.
-        const pixelCoordinates = self.panoProp.povToPixel3d(panoMarkerPov, userPov, canvasWidth, canvasHeight);
-
-        // If the user has panned away from the label and it is no longer visible on the canvas, set canvasX/Y to null.
-        // We add/subtract the radius of the label so that we still record these values when only a fraction of the
-        // label is still visible.
-        let labelCanvasX = null;
-        let labelCanvasY = null;
+        // Calculates the center xy coordinates of the label on the current viewport.
         const labelRadius = 10;
-        if (pixelCoordinates
-            && pixelCoordinates.left + labelRadius > 0
-            && pixelCoordinates.left - labelRadius < canvasWidth
-            && pixelCoordinates.top + labelRadius > 0
-            && pixelCoordinates.top - labelRadius < canvasHeight) {
-
-            labelCanvasX = Math.round(pixelCoordinates.left - labelRadius);
-            labelCanvasY = Math.round(pixelCoordinates.top - labelRadius);
-        }
+        const pixelCoordinates =
+            util.pano.centeredPovToCanvasCoord(panoMarkerPov, userPov, canvasWidth, canvasHeight, labelRadius);
 
         const data = {
             label_id: self.panoManager.label.labelId,
@@ -294,8 +279,8 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
             new_severity: self.panoManager.label.newSeverity,
             old_tags: self.panoManager.label.oldTags,
             new_tags: self.panoManager.label.newTags,
-            canvas_x: labelCanvasX,
-            canvas_y: labelCanvasY,
+            canvas_x: pixelCoordinates ? Math.round(pixelCoordinates.x) : null,
+            canvas_y: pixelCoordinates ? Math.round(pixelCoordinates.y) : null,
             heading: userPov.heading,
             pitch: userPov.pitch,
             zoom: userPov.zoom,

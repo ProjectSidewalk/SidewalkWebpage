@@ -174,8 +174,9 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
      * @returns void
      */
     function renderLabel(label) {
-        const pos = getPosition(label.canvasX, label.canvasY, label.originalCanvasWidth,
-            label.originalCanvasHeight, label.pov);
+        const pos = util.pano.canvasCoordToCenteredPov(
+            label.pov, label.canvasX, label.canvasY, label.originalCanvasWidth, label.originalCanvasHeight
+        );
         const panoMarker = new PanoMarker({
             markerContainer: self.panoCanvas,
             panoViewer: self.panoViewer,
@@ -188,56 +189,6 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
             marker: panoMarker
         });
         if (label.aiGenerated) attachAiIndicatorToMarker(panoMarker);
-    }
-
-    /**
-     * Calculates heading and pitch for a Google Maps marker using (x, y) coordinates. From PanoMarker spec.
-     * @param canvas_x          X coordinate (pixel) for label
-     * @param canvas_y          Y coordinate (pixel) for label
-     * @param canvas_width      Original canvas width
-     * @param canvas_height     Original canvas height
-     * @param {{heading: number, pitch: number, zoom: number}} pov Original pov of the label
-     * @returns {{heading: number, pitch: number}}
-     */
-    function getPosition(canvas_x, canvas_y, canvas_width, canvas_height, pov) {
-        function sgn(x) {
-            return x >= 0 ? 1 : -1;
-        }
-
-        var PI = Math.PI;
-        var cos = Math.cos;
-        var sin = Math.sin;
-        var tan = Math.tan;
-        var sqrt = Math.sqrt;
-        var atan2 = Math.atan2;
-        var asin = Math.asin;
-        var fov = get3dFov(pov.zoom) * PI / 180.0;
-        var width = canvas_width;
-        var height = canvas_height;
-        var h0 = pov.heading * PI / 180.0;
-        var p0 = pov.pitch * PI / 180.0;
-        var f = 0.5 * width / tan(0.5 * fov);
-        var x0 = f * cos(p0) * sin(h0);
-        var y0 = f * cos(p0) * cos(h0);
-        var z0 = f * sin(p0);
-        var du = (canvas_x) - width / 2;
-        var dv = height / 2 - (canvas_y - 5);
-        var ux = sgn(cos(p0)) * cos(h0);
-        var uy = -sgn(cos(p0)) * sin(h0);
-        var uz = 0;
-        var vx = -sin(p0) * sin(h0);
-        var vy = -sin(p0) * cos(h0);
-        var vz = cos(p0);
-        var x = x0 + du * ux + dv * vx;
-        var y = y0 + du * uy + dv * vy;
-        var z = z0 + du * uz + dv * vz;
-        var R = sqrt(x * x + y * y + z * z);
-        var h = atan2(x, y);
-        var p = asin(z / R);
-        return {
-            heading: h * 180.0 / PI,
-            pitch: p * 180.0 / PI
-        };
     }
 
     function attachAiIndicatorToMarker(panoMarker) {
@@ -253,19 +204,8 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
      * @returns {{heading: number, pitch: number}}
      */
     function getOriginalPosition() {
-        return getPosition(self.label.canvasX, self.label.canvasY, self.label.originalCanvasWidth,
-            self.label.originalCanvasHeight, self.label.pov);
-    }
-
-    /**
-     * From PanoMarker spec.
-     * @param zoom
-     * @returns {number}
-     */
-    function get3dFov (zoom) {
-        return zoom <= 2 ?
-            126.5 - zoom * 36.75 :  // linear descent
-            195.93 / Math.pow(1.92, zoom); // parameters determined experimentally
+        return util.pano.canvasCoordToCenteredPov(self.label.pov, self.label.canvasX, self.label.canvasY,
+            self.label.originalCanvasWidth, self.label.originalCanvasHeight);
     }
 
     /**

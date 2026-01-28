@@ -98,7 +98,7 @@ function LabelVisibilityControl() {
         // Position the box to the lower left corner of the label, 10px left and
         // 10px down from center of the label.
         let desBox = labelDescriptionBox[0];
-        desBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - 10) + 'px';
+        desBox.style.right = (svv.canvasWidth() - parseFloat(marker.style.left) - 10) + 'px';
         desBox.style.top = (parseFloat(marker.style.top) + 10) + 'px';
         desBox.style.visibility = 'visible';
     }

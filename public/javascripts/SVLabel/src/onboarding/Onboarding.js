@@ -251,7 +251,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             x2,
             y1,
             y2,
-            povOfLabelIfCentered,
+            centeredPov,
             params,
             i,
             len;
@@ -276,7 +276,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         for (const annotation of currAnnotations) {
             imX = annotation.x;
             imY = annotation.y;
-            povOfLabelIfCentered = null;
+            centeredPov = null;
 
             // Setting the original POV and mapping an image coordinate to a canvas coordinate.
             if (currentPov.heading < 180) {
@@ -288,11 +288,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
                     imX += svl.TUTORIAL_PANO_WIDTH;
                 }
             }
-            povOfLabelIfCentered = util.panomarker.calculatePovFromPanoXY(
-                imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT
-            );
-            var canvasCoord = util.panomarker.getCanvasCoordinate(
-                povOfLabelIfCentered, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+            centeredPov = util.pano.panoCoordToPov(imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT);
+            const canvasCoord = util.pano.centeredPovToCanvasCoord(
+                centeredPov, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
             );
 
             if (annotation.type === "arrow") {
