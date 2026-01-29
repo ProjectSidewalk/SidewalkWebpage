@@ -101,8 +101,7 @@ function Mission(parameters) {
                 currentMissionCompletedDistance = getDistance("meters");
             } else {
                 var taskDistance = util.math.kmsToMeters(svl.taskContainer.getCompletedTaskDistance({units: 'kilometers'}));
-                var offset = svl.missionContainer.getTasksMissionsOffset();
-                offset = offset ? offset : 0;
+                const offset = svl.missionContainer.getTasksMissionsOffset() || 0;
 
                 var missionDistance = svl.missionContainer.getCompletedMissionDistance();
                 currentMissionCompletedDistance = taskDistance - missionDistance + offset;

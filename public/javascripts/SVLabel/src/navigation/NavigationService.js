@@ -156,6 +156,25 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         mission.pushATaskToTheRoute(currentTask);
     }
 
+    async function jumpToANewTask() {
+        // Finish the current task.
+        const mission = missionJump || svl.missionContainer.getCurrentMission()
+        finishCurrentTaskBeforeJumping(mission);
+        setLabelBeforeJumpState(false);
+
+        // Finish clean up tasks before jumping.
+        svl.compass.resetBeforeJump();
+
+        const currTask = svl.taskContainer.getCurrentTask();
+        const task = svl.taskContainer.getNextTaskAfterJump() || svl.taskContainer.nextTask(currTask);
+        svl.taskContainer.setCurrentTask(task);
+        svl.taskContainer.setNextTaskAfterJump(null);
+        enableWalking();
+        await moveForward();
+        svl.panoManager.setPovToRouteDirection();
+        svl.jumpModel.triggerUserClickJumpMessage();
+    }
+
     /**
      * Get a new task and check if it's disconnected from the current task. If yes, then finish the current task after
      * the user has finished labeling the current location.
@@ -497,6 +516,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     self.disableWalking = disableWalking;
     self.enableWalking = enableWalking;
     self.finishCurrentTaskBeforeJumping = finishCurrentTaskBeforeJumping;
+    self.jumpToANewTask = jumpToANewTask;
     self.getLabelBeforeJumpState = getLabelBeforeJumpState;
     self.getProperty = getProperty;
     self.getStatus = getStatus;

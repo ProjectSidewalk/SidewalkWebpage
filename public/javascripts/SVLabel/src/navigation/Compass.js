@@ -112,18 +112,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
 
     async function _jumpToTheNewTask() {
         svl.tracker.push('LabelBeforeJump_Jump');
-        // Finish the current task
-        navigationService.finishCurrentTaskBeforeJumping();
-        navigationService.setLabelBeforeJumpState(false);
-
-        // Finish clean up tasks before jumping.
-        resetBeforeJump();
-
-        const task = taskContainer.getNextTaskAfterJump();
-        taskContainer.setCurrentTask(task);
-        await navigationService.moveForward();
-        svl.panoManager.setPovToRouteDirection();
-        svl.jumpModel.triggerUserClickJumpMessage();
+        await navigationService.jumpToANewTask();
     }
 
     function _makeTheLabelBeforeJumpMessageBoxClickable() {

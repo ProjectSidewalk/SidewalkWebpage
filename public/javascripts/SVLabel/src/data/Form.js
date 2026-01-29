@@ -187,11 +187,11 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
         const data = self._prepareSkipData(skipReasonLabel);
 
         if (skipReasonLabel === "PanoNotAvailable") {
-            taskContainer.endTask(task);
-            missionContainer.getCurrentMission().pushATaskToTheRoute(task);
+            // TODO this case is never used, still need to reimplement.
             util.misc.reportNoImagery(task.getStreetEdgeId());
         } else {
             // Set the tasksMissionsOffset so that the mission progress bar remains the same after the jump.
+            // TODO it's still increasing by ~50 meters, but not too absurd of an amount.
             const currTaskDist = util.math.kmsToMeters(taskContainer.getCurrentTaskDistance());
             const oldOffset = missionContainer.getTasksMissionsOffset();
             missionContainer.setTasksMissionsOffset(oldOffset + currTaskDist);
@@ -200,15 +200,9 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
         // TODO this is async, but we don't need to wait for it I believe.
         self.skipSubmit(data, task);
 
-        // If the jump was clicked in the middle of the beforeJumpTask, reset the beforeJump tracking parameters.
-        if (navigationService.getLabelBeforeJumpState()) {
-            navigationService.setLabelBeforeJumpState(false);
-            compass.resetBeforeJump();
-            navigationService.finishCurrentTaskBeforeJumping();
-        }
+        await navigationService.jumpToANewTask();
 
-        await taskContainer.getFinishedAndInitNextTask(task);
-
+        // TODO is there anything else that might call this (or should)?
         if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
             svl.neighborhoodModel.trigger("Neighborhood:wrapUpRouteOrNeighborhood");
         }

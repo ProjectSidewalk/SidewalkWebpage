@@ -41,8 +41,7 @@ class Infra3dViewer extends PanoViewer {
         panoOpts = { ...panoOpts, ...panoOptions };
 
         // Initialize the viewer.
-        // TODO sometimes initViewer() fails and I haven't figured out how to catch the error. Refresh page if viewer
-        //      init doesn't complete after 10 seconds.
+        // TODO sometimes initViewer fails and idk how to catch the error. Refresh page if not done after 10 seconds.
         this.viewer = await Promise.race([
             manager.initViewer(panoOpts),
             new Promise((_, reject) => setTimeout(() => reject('timeout'), 10000))
