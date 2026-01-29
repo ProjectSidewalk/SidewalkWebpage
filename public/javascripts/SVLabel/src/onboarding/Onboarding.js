@@ -291,7 +291,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             centeredPov = util.pano.panoCoordToPov(imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT);
             const canvasCoord = util.pano.centeredPovToCanvasCoord(
                 centeredPov, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
-            );
+            ) || { x: null, y: null };
 
             if (annotation.type === "arrow") {
                 lineLength = annotation.length;
