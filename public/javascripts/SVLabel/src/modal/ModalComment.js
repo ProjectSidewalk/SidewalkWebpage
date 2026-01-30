@@ -172,10 +172,10 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
 
 
     self._disableClickOK();
-    _uiModalComment.ok.on("click", handleClickOK);
-    _uiModalComment.cancel.on("click", handleClickCancel);
-    _uiLeftColumn.feedback.on("click", handleClickFeedback);
-    _uiModalComment.textarea.on("focus", handleTextareaFocus);
-    _uiModalComment.textarea.on("blur", handleTextareaBlur);
-    _uiModalComment.textarea.on("input", handleTextareaChange);
+    _uiModalComment.ok.off('click').on("click", handleClickOK);
+    _uiModalComment.cancel.off('click').on("click", handleClickCancel);
+    _uiLeftColumn.feedback.off('click').on("click", handleClickFeedback);
+    _uiModalComment.textarea.off('focus').on("focus", handleTextareaFocus);
+    _uiModalComment.textarea.off('blur').on("blur", handleTextareaBlur);
+    _uiModalComment.textarea.off('input').on("input", handleTextareaChange);
 }

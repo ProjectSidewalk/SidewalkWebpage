@@ -32,12 +32,12 @@ class LeftMenu {
 
     /* Enable the stuck button. */
     enableStuckButton = () => {
-        this.uiLeftColumn.stuck.on('click', this.#handleClickStuck);
+        this.uiLeftColumn.stuck.off('click.stuck').on('click.stuck', this.#handleClickStuck);
     }
 
     /* Disable the stuck button. */
     disableStuckButton = () => {
-        this.uiLeftColumn.stuck.off('click');
+        this.uiLeftColumn.stuck.off('click.stuck');
     }
 
     /* Blink the stuck button. */
