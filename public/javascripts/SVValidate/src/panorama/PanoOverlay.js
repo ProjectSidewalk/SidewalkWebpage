@@ -4,7 +4,7 @@
 function PanoOverlay () {
     let self = this;
     let panningDisabled = false;
-    let viewControlLayer = $("#view-control-layer");
+    let viewControlLayer = isMobile() ? $("#view-control-layer-mobile") : $("#view-control-layer");
 
     // Mouse status and mouse event callback functions.
     let mouseStatus = {

@@ -196,6 +196,7 @@ class PanoManager {
      */
     #sizePano() {
         let panoHolderElem = document.getElementById('svv-panorama-holder');
+        let controlLayerElem = document.getElementById('view-control-layer-mobile');
         let panoOutlineElem = document.getElementById('svv-panorama-outline');
         let heightOffset = panoHolderElem.getBoundingClientRect().top;
         const h = window.innerHeight - heightOffset - 10;
@@ -205,12 +206,15 @@ class PanoManager {
         const left = 0;
         this.#panoCanvas.style.height = h + 'px';
         panoHolderElem.style.height = h + 'px';
+        controlLayerElem.style.height = h + 'px';
         panoOutlineElem.style.height = outlineH + 'px';
         this.#panoCanvas.style.width = w + 'px';
         panoHolderElem.style.width = w + 'px';
+        controlLayerElem.style.width = w + 'px';
         panoOutlineElem.style.width = outlineW + 'px';
         this.#panoCanvas.style.left = left + 'px';
         panoHolderElem.style.left = left + 'px';
+        controlLayerElem.style.left = left + 'px';
         panoOutlineElem.style.left = left + 'px';
     }
 
