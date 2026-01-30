@@ -9,7 +9,7 @@
  * @param navigationService
  * @param missionContainer
  * @param modalComment
- * @param modalSkip
+ * @param leftMenu
  * @param onboardingModel
  * @param onboardingStates
  * @param ribbon
@@ -26,7 +26,7 @@
  * @constructor
  */
 function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationService, missionContainer, modalComment,
-                    modalSkip, onboardingModel, onboardingStates, ribbon, statusField, tracker, canvas, uiCanvas,
+                    leftMenu, onboardingModel, onboardingStates, ribbon, statusField, tracker, canvas, uiCanvas,
                     contextMenu, uiOnboarding, uiLeft, user, zoomControl) {
     var self = this;
     var ctx;
@@ -74,7 +74,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
 
         ribbon.unlockDisableMode();
 
-        uiLeft.jump.addClass('disabled');
         uiLeft.stuck.addClass('disabled');
 
         compass.hideMessage();
@@ -238,7 +237,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         statusField.stopBlinking();
         zoomControl.stopBlinking();
         audioEffect.stopBlinking();
-        modalSkip.stopBlinking();
+        leftMenu.stopBlinkingStuckButton();
         modalComment.stopBlinking();
     }
 
@@ -494,7 +493,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
                         audioEffect.blink();
                         break;
                     case "stuck":
-                        modalSkip.blink();
+                        leftMenu.blinkStuckButton();
                         break;
                     case "feedback":
                         modalComment.blink();

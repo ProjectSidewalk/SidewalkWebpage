@@ -194,11 +194,6 @@ audit.left.ui.zoom.out = Zoom Uit
 audit.left.ui.sound = Geluid
 audit.left.ui.stuck = Vastgelopen
 audit.left.ui.stuck.tooltip = We zullen proberen u terug te brengen naar uw missie
-audit.left.ui.jump = Spring
-audit.left.ui.jump.tooltip = Begin met het verkennen van een nieuwe plek
-audit.left.ui.jump.title = Als je niet verder kunt, klik dan op de knop "Vastgelopen"!
-audit.left.ui.jump.same.neighborhood = Ga naar een nieuwe locatie in de wijk
-audit.left.ui.jump.new.neighborhood = Ga naar een nieuwe wijk
 
 audit.right.ui.overall.stats = Algemene statistieken
 audit.right.ui.current.neighborhood = Huidige Wijk

@@ -155,7 +155,7 @@ function Main (params) {
         svl.modalMissionComplete.hide();
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
-        svl.modalSkip = new ModalSkip(svl.form, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
+        svl.leftMenu = new LeftMenu(svl.ui.leftColumn, svl.tracker, svl.navigationService, svl.stuckAlert);
 
         svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, svl.panoViewer, svl.panoViewer.getPosition,
             svl.panoViewer.getPanoId, svl.taskContainer.getCurrentTaskStreetEdgeId,
@@ -274,7 +274,7 @@ function Main (params) {
 
         if (!("onboarding" in svl && svl.onboarding)) {
             svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation,
-                svl.navigationService, svl.missionContainer, svl.modalComment, svl.modalSkip, svl.onboardingModel,
+                svl.navigationService, svl.missionContainer, svl.modalComment, svl.leftMenu, svl.onboardingModel,
                 onboardingStates, svl.ribbon, svl.statusField, svl.tracker, svl.canvas, svl.ui.canvas, svl.contextMenu,
                 svl.ui.onboarding, svl.ui.leftColumn, svl.user, svl.zoomControl);
         }
@@ -493,13 +493,6 @@ function Main (params) {
         svl.ui.contextMenu.closeButton = $("#context-menu-close-button");
 
         // Modal.
-        svl.ui.modalSkip = {};
-        svl.ui.modalSkip.holder = $("#modal-skip-holder");
-        svl.ui.modalSkip.background = $("#modal-skip-background");
-        svl.ui.modalSkip.box = $("#modal-skip-box");
-        svl.ui.modalSkip.continueNeighborhood = $("#modal-skip-continue-neighborhood");
-        svl.ui.modalSkip.newNeighborhood = $("#modal-skip-new-neighborhood");
-        svl.ui.modalSkip.cancel = $("#modal-skip-cancel-button");
         svl.ui.modalComment = {};
         svl.ui.modalComment.holder = $("#modal-comment-holder");
         svl.ui.modalComment.ok = $("#modal-comment-ok-button");
@@ -553,7 +546,6 @@ function Main (params) {
         svl.ui.leftColumn.sound = $("#left-column-sound-button");
         svl.ui.leftColumn.muteIcon = $("#left-column-mute-icon");
         svl.ui.leftColumn.soundIcon = $("#left-column-sound-icon");
-        svl.ui.leftColumn.jump = $("#left-column-jump-button");
         svl.ui.leftColumn.stuck = $("#left-column-stuck-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
 

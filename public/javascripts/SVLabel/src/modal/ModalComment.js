@@ -86,7 +86,6 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
     }
 
     this.hide = function() {
-        svl.modalSkip.hideSkipMenu();
         _uiModalComment.holder.addClass('hidden');
         svl.popUpMessage.enableInteractions();
         self.hideBackground();

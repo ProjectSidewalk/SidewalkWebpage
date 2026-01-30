@@ -49,7 +49,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     function resetWalking() {
         svl.panoManager.resetNavArrows();
         svl.panoManager.showNavArrows();
-        svl.modalSkip.enableStuckButton();
+        svl.leftMenu.enableStuckButton();
         enableWalking();
     }
 
@@ -240,7 +240,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
             svl.contextMenu.hide();
         }
         svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
-        svl.modalSkip.disableStuckButton();
+        svl.leftMenu.disableStuckButton();
         svl.compass.disableCompassClick();
         svl.panoManager.disablePanning();
         svl.canvas.disableLabeling();

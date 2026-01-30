@@ -205,11 +205,6 @@ audit.left.ui.zoom.out = Alejar
 audit.left.ui.sound = Sonido
 audit.left.ui.stuck = Atorado
 audit.left.ui.stuck.tooltip = Intentaremos llevarte de regreso a tu misión
-audit.left.ui.jump = Saltar
-audit.left.ui.jump.tooltip = Empieza a explorar un lugar nuevo
-audit.left.ui.jump.title = Si no puedes avanzar, haz clic en el botón "Atorado".
-audit.left.ui.jump.same.neighborhood = Ve a una nueva ubicación en este barrio
-audit.left.ui.jump.new.neighborhood = Ir a un nuevo barrio
 
 audit.right.ui.overall.stats = Estadísticas generales
 audit.right.ui.current.neighborhood = Colonia actual

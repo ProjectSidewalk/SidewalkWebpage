@@ -69,7 +69,7 @@ function Main (param) {
         svv.ui.modal.background = $("#modal-comment-background");
 
         svv.ui.skipValidation = {};
-        svv.ui.skipValidation.skipButton = $("#left-column-jump-button");
+        svv.ui.skipValidation.skipButton = $("#left-column-skip-button");
 
         svv.ui.undoValidation = {};
         svv.ui.undoValidation.undoButton = svv.expertValidate ? $("#new-validate-beta-back-button") : $("#left-column-undo-button");
