@@ -132,7 +132,7 @@ class Infra3dViewer extends PanoViewer {
                 lng: node.frame.longitude,
                 cameraHeading: this._getHeading(node.frame.omega, node.frame.phi),
                 cameraPitch: this._getPitch(node.frame.omega, node.frame.phi),
-                copyright: null, // TODO should probably fill in infra3d here?
+                copyright: 'City of Zurich and iNovitas AG',
                 history: [] // No history to pull from for Infra3D right now.
             }
 
