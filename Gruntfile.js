@@ -9,7 +9,7 @@ module.exports = function(grunt) {
                 src: [
                     'public/javascripts/SVLabel/src/*.js',
                     'public/javascripts/SVLabel/src/*/*.js',
-                    'public/javascripts/common/Panomarker.js',
+                    'public/javascripts/common/PanoMarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/PanoInfoPopover.js',
                     'public/javascripts/common/SpeedLimit.js',
@@ -21,7 +21,7 @@ module.exports = function(grunt) {
                 src: [
                     'public/javascripts/Admin/src/*.js',
                     'public/javascripts/SVValidate/src/util/*.js',
-                    'public/javascripts/common/Panomarker.js',
+                    'public/javascripts/common/PanoMarker.js',
                     'public/javascripts/Progress/src/*.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                 ],
@@ -32,7 +32,7 @@ module.exports = function(grunt) {
                     'public/javascripts/common/AiLabelIndicator.js',
                     'public/javascripts/Admin/src/*.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/Panomarker.js',
+                    'public/javascripts/common/PanoMarker.js',
                 ],
                 dest: 'public/javascripts/Admin/build/Admin.js'
             },
@@ -57,7 +57,7 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/src/user/*.js',
                     'public/javascripts/SVValidate/src/util/*.js',
                     'public/javascripts/SVValidate/src/zoom/*.js',
-                    'public/javascripts/common/Panomarker.js',
+                    'public/javascripts/common/PanoMarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/PanoInfoPopover.js',
                     'public/javascripts/common/SpeedLimit.js',
@@ -76,7 +76,7 @@ module.exports = function(grunt) {
                     'public/javascripts/Gallery/src/displays/*.js',
                     'public/javascripts/Gallery/src/expandedview/*.js',
                     'public/javascripts/Gallery/src/*.js',
-                    'public/javascripts/common/Panomarker.js',
+                    'public/javascripts/common/PanoMarker.js',
                     'public/javascripts/common/PanoInfoPopover.js'
                 ],
                 dest: 'public/javascripts/Gallery/build/Gallery.js'
