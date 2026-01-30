@@ -231,12 +231,6 @@
                 param.mission = @Html(mission.getOrElse("\"\"").toString);
                 param.labelList = @Html(labelList.getOrElse("\"\"").toString);
                 param.progress = @Html(progress.getOrElse("\"\"").toString);
-
-                // Initializes an object of labels from label metadata.
-                // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
-                Object.keys(param.labelList).map(function (key, index) {
-                    param.labelList[key] = new Label(param.labelList[key]);
-                });
             }
             svv.main = new Main(param);
         });
