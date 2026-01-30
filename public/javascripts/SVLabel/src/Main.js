@@ -52,7 +52,6 @@ function Main (params) {
         svl.missionModel = new MissionModel();
         svl.gameEffectModel = new GameEffectModel();
         svl.statusModel = new StatusModel();
-        svl.taskModel = new TaskModel();
         svl.onboardingModel = new OnboardingModel();
 
         svl.alert = new Alert();
@@ -74,7 +73,6 @@ function Main (params) {
         svl.navigationService = new NavigationService(svl.neighborhoodModel, svl.ui.streetview);
 
         svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl, svl.tracker);
-        svl.taskModel._taskContainer = svl.taskContainer;
         const isTutorialTask = params.task.properties.street_edge_id === params.tutorialStreetId;
         const newTask = new Task(params.task, isTutorialTask, currLatLng.lat, currLatLng.lng);
         svl.taskContainer._tasks.push(newTask);

@@ -32,13 +32,11 @@ class LeftMenu {
 
     /* Enable the stuck button. */
     enableStuckButton = () => {
-        console.log('enableStuckButton');
         this.uiLeftColumn.stuck.on('click', this.#handleClickStuck);
     }
 
     /* Disable the stuck button. */
     disableStuckButton = () => {
-        console.log('disableStuckButton');
         this.uiLeftColumn.stuck.off('click');
     }
 

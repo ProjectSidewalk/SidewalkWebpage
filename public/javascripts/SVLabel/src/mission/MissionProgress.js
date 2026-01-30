@@ -1,7 +1,6 @@
 /**
  * MissionProgress module.
- * Todo. Rename this... Probably some of these features should be moved to status/StatusFieldMission.js
- * Todo. Get rid of neighborhoodContainer dependency. Instead, communicate with them through neighborhoodModel and taskModel.
+ * Todo. Rename this... Probably some of these features should be moved to status/StatusFieldMission.js.
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
