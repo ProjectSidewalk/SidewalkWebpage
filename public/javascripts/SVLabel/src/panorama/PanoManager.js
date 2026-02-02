@@ -96,7 +96,7 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
      * @private
      */
     async function _panoSuccessCallback(panoData) {
-        const panoId = panoData.getProperty('panoId');
+        const panoId = panoData.getPanoId();
         const panoLatLng = { lat: panoData.getProperty('lat'), lng: panoData.getProperty('lng') };
 
         // Store the returned pano metadata.
@@ -268,9 +268,10 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
     /**
      * Sets the panorama ID. Adds a callback function that will record pano metadata and update the date text field.
      * @param latLng An object with properties lat and lng representing the desired location.
+     * @param {Set<string>} [excludedPanos=new Set()] Set of pano IDs that are not valid images to move to.
      */
-    async function setLocation(latLng) {
-        return svl.panoViewer.setLocation(latLng).then(_panoSuccessCallback, _panoFailureCallback);
+    async function setLocation(latLng, excludedPanos = new Set()) {
+        return svl.panoViewer.setLocation(latLng, excludedPanos).then(_panoSuccessCallback);
     }
 
 

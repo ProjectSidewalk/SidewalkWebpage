@@ -107,7 +107,7 @@
      */
     async function _panoSuccessCallback(panoData) {
         // Store the returned pano metadata.
-        const panoId = panoData.getProperty('panoId');
+        const panoId = panoData.getPanoId();
         sg.panoStore.addPanoMetadata(panoId, panoData);
 
         // Show the pano, hide the error messages.

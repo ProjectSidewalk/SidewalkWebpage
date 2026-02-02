@@ -92,10 +92,11 @@ class PanoViewer {
     /**
      * Sets the panorama to the location closest to the specified latitude and longitude.
      * @param latLng An object with properties lat and lng representing the desired location.
+     * @param {Set<string>} [excludedPanos=new Set()] Set of pano IDs that are not valid images to move to.
      * @returns {Promise<Object>} The panorama data object.
      */
-    async setLocation(latLng) {
-        throw new Error('setLocation(latLng) must be implemented by subclass');
+    async setLocation(latLng, excludedPanos = new Set()) {
+        throw new Error('setLocation(latLng, excludedPanos) must be implemented by subclass');
     }
 
     /**

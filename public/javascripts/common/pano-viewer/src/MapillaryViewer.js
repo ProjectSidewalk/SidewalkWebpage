@@ -129,7 +129,7 @@ class MapillaryViewer extends PanoViewer {
         });
     }
 
-    setLocation = async (latLng) => {
+    setLocation = async (latLng, excludedPanos) => {
         // Search for images near the coordinates.
         // Docs for how to filter images: https://www.mapillary.com/developer/api-documentation#image
         const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
@@ -160,9 +160,9 @@ class MapillaryViewer extends PanoViewer {
             console.log(data);
 
             if (data.data && data.data.length > 0) {
-                // Find image that is closest to the input lat/lng.
+                // Find image that is closest to the input lat/lng that isn't in the excluded list.
                 // TODO we could take into account recency, resolution, etc here as well!
-                let closestPano = data.data[0];
+                let closestPano = data.data.filter(pano => !excludedPanos.has(pano.id))[0];
                 let currGeom = closestPano.computed_geometry ? closestPano.computed_geometry : closestPano.geometry;
                 let closestDist = turf.distance(centerPoint, turf.point(currGeom.coordinates));
                 for (let i = 1; i < data.data.length; i++) {

@@ -86,10 +86,15 @@ function PanoData(params) {
         properties[key] = value;
     }
 
+    function getPanoId() {
+        return properties.panoId;
+    }
+
     _init()
 
     self.getProperties = getProperties;
     self.getProperty = getProperty;
     self.setProperty = setProperty;
+    self.getPanoId = getPanoId;
     return self;
 }

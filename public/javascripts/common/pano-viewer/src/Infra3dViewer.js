@@ -64,17 +64,17 @@ class Infra3dViewer extends PanoViewer {
         } else if (panoOptions.startLatLng) {
             await this.setLocation(panoOptions.startLatLng);
         }
-    }
+    };
 
     getPanoId = () => {
-        return this.currPanoData.getProperty('panoId');
+        return this.currPanoData.getPanoId();
     };
 
     getPosition = () => {
         return { lat: this.currPanoData.getProperty('lat'), lng: this.currPanoData.getProperty('lng') };
     };
 
-    setLocation = async (latLng) => {
+    setLocation = async (latLng, excludedPanos = new Set()) => {
         this.prevNode = this.currNode;
         this.currNode = null;
 
@@ -86,13 +86,51 @@ class Infra3dViewer extends PanoViewer {
 
         // Using the internal function that returns a node, since the usual one in the API does not.
         // TODO We'll have to do the radius check GSV does ourselves. Though we should always have imagery now...
-        return this.viewer._sdk_viewer.movePosition(newPosition, 3857).then(this.#finishRecordingMetadata);
+        return this.viewer._sdk_viewer.movePosition(newPosition, 3857)
+            .then(this.#finishRecordingMetadata)
+            .then((panoData) => this.#filterExcludedPanos(panoData, excludedPanos));
     };
+
+    // TODO This version includes non-panoramic imagery, but does not require loading images for excluded panos. We're
+    //      waiting to hear back from Andreas on whether there's a way to do filtering. If so, use this method instead.
+    // setLocation = async (latLng, excludedPanos = new Set()) => {
+    //     // Use imagesByKNN$ to find the closest image to the lat/lng.
+    //     const closestPano = new Promise((resolve, reject) => {
+    //         this.viewer._sdk_viewer._navigator._api.imagesByKNN$(latLng.lng, latLng.lat, 4326).subscribe({
+    //             next: (data) => {
+    //                 if (excludedPanos.has(data.key)) reject(`Excluded pano: ${data.key}`);
+    //                 else resolve(data.key);
+    //                 },
+    //             error: (err) => reject(err),
+    //         });
+    //     });
+    //
+    //     // TODO We'll have to do the radius check GSV does ourselves. Though we should always have imagery now...
+    //     //      And can we get that info from the KNN data..?
+    //     return closestPano.then(this.setPano);
+    // };
 
     setPano = async (panoId) => {
         this.prevNode = this.currNode;
         this.currNode = null;
         return this.viewer._sdk_viewer.moveToKey(panoId).then(this.#finishRecordingMetadata);
+    };
+
+    /**
+     * If the new pano we arrived at is in the excluded list, go back to the previous one and throw an error.
+     * @param {PanoData} newPanoData The pano data for the new panorama
+     * @param {Set<string>} [excludedPanos=new Set()] Set of pano IDs that are not valid images to move to
+     * @returns {Promise<PanoData>} Rejects with error if new pano in excluded list; resolves with pano data otherwise
+     */
+    #filterExcludedPanos = (newPanoData, excludedPanos) => {
+        // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing.
+        if (excludedPanos.has(newPanoData.getPanoId())) {
+            return this.setPano(this.prevNode.frame.id).then(() => {
+                throw new Error(`Excluded pano: ${newPanoData.getPanoId()}`);
+            });
+        } else {
+            return new Promise((resolve) => resolve(newPanoData));
+        }
     };
 
     /**
@@ -111,6 +149,7 @@ class Infra3dViewer extends PanoViewer {
                 resolve(node);
             } else {
                 // Listen for the event that fires when the links are updated. Only needed when loading first image.
+                // NOTE the subscribe architecture is coming from RxJS.
                 const linksListener = node.spatialEdges$.subscribe((spatialEdges) => {
                     if (spatialEdges.cached) {
                         linksListener.unsubscribe(); // We no longer need the listener at this point.
@@ -233,7 +272,7 @@ class Infra3dViewer extends PanoViewer {
         }
 
         return azi;
-    }
+    };
 
     // Called getVerticalOrientation in the code we were sent.
     _getPitch(omegaDeg, phiDeg) {
@@ -244,7 +283,7 @@ class Infra3dViewer extends PanoViewer {
         const z = Math.cos(omega) * Math.cos(phi);
 
         return (Math.atan(z / Math.sqrt(x * x + y * y)) * 180) / Math.PI;
-    }
+    };
 
     #disableUserZoom = () => {
         this.viewer.setUserInteraction(true, false); // first option is panning, second is zooming
@@ -266,7 +305,7 @@ class Infra3dViewer extends PanoViewer {
                 handler(evt);
             });
         }
-    }
+    };
 
     removeListener(event, handler) {
         if (event === 'pano_changed') {
@@ -274,5 +313,5 @@ class Infra3dViewer extends PanoViewer {
         } else if (event === 'pov_changed') {
             this.viewer.off("panorotationchanged", handler);
         }
-    }
+    };
 }

@@ -22,7 +22,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
      * @type {Mission | undefined}
      */
     let missionJump = undefined;
-    let _stuckPanos = [];
+    let _stuckPanos = new Set([]);
     let positionUpdateCallbacks = [];
 
     let initialPositionUpdate = true;
@@ -359,7 +359,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
 
         // Save the current pano ID as one that you're stuck at.
         const currentPano = svl.panoViewer.getPanoId();
-        if (!_stuckPanos.includes(currentPano)) _stuckPanos.push(currentPano);
+        _stuckPanos.add(currentPano);
 
         // Set radius around each attempted point for which you'll accept imagery to 10 meters.
         let MAX_DIST = 10;
@@ -370,18 +370,15 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         // TODO we're getting forwarded through multiple panos at a time for some reason.
         let successCallback = function() {
             const newPanoId = svl.panoViewer.getPanoId();
-            if (_stuckPanos.includes(newPanoId)) {
+            if (_stuckPanos.has(newPanoId)) {
                 // If there is room to move forward then try again, recursively calling getPanorama with this callback.
                 if (turf.length(remainder) > 0.001) {
-                    // Save the current pano ID as one that doesn't work.
-                    _stuckPanos.push(newPanoId);
-
                     // Try up to `DIST_INCREMENT` further down the street, using `lineSliceAlong` to find the remaining
                     // subsection of the street to check.
                     let distIncrement = Math.min(DIST_INCREMENT, turf.length(remainder));
                     remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, distIncrement, streetEndpoint));
                     currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
-                    return svl.panoManager.setLocation(currLoc).then(successCallback, failureCallback);
+                    return svl.panoManager.setLocation(currLoc, _stuckPanos).then(successCallback, failureCallback);
                 } else {
                     // TODO do we just call handleImageryNotFound here instead? Is this different because it's assuming street partially done?
                     return handleImageryNotFound();
@@ -392,7 +389,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
                 }
             } else {
                 // Save current pano ID as one that doesn't work in case they try to move before clicking 'stuck' again.
-                _stuckPanos.push(newPanoId);
+                _stuckPanos.add(newPanoId);
                 _updateUiAfterMove();
                 return Promise.resolve(newPanoId);
             }
@@ -403,9 +400,10 @@ function NavigationService (neighborhoodModel, uiStreetview) {
             if (turf.length(remainder) > 0) {
                 // Try `DIST_INCREMENT` further down the street, using `lineSliceAlong` to find the remaining
                 // subsection of the street to check.
-                remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, DIST_INCREMENT, streetEndpoint));
+                let distIncrement = Math.min(DIST_INCREMENT, turf.length(remainder));
+                remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, distIncrement, streetEndpoint));
                 currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
-                return svl.panoManager.setLocation(currLoc).then(successCallback, failureCallback);
+                return svl.panoManager.setLocation(currLoc, _stuckPanos).then(successCallback, failureCallback);
             }
             // TODO add this functionality again later. Need to add a parameter to setLocation().
             // else if (MAX_DIST === 10) {
@@ -424,7 +422,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         }
 
         // Initial call to getPanorama with using the recursive callback function.
-        return svl.panoManager.setLocation(currLoc).then(successCallback, failureCallback);
+        return svl.panoManager.setLocation(currLoc, _stuckPanos).then(successCallback, failureCallback);
     }
 
     /**

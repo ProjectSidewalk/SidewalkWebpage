@@ -48,25 +48,28 @@ class GsvViewer extends PanoViewer {
         } else if (panoOptions.startLatLng) {
             await this.setLocation(panoOptions.startLatLng);
         }
-    }
+    };
 
     getPanoId = () => {
-        return this.currPanoData ? this.currPanoData.getProperty('panoId') : this.prevPanoData.getProperty('panoId');
-    }
+        return this.currPanoData.getPanoId();
+    };
 
     getPosition = () => {
-        const panoData = this.currPanoData || this.prevPanoData;
-        return { lat: panoData.getProperty('lat'), lng: panoData.getProperty('lng') };
-    }
+        return { lat: this.currPanoData.getProperty('lat'), lng: this.currPanoData.getProperty('lng') };
+    };
 
     /**
      * A callback to getPanorama() that packages the data into a PanoData object. Resolves when pano has done loading.
      * @param {object} newPanoData
+     * @param {Set<string>} [excludedPanos=new Set()] Set of pano IDs that are not valid images to move to.
      * @returns {Promise<PanoData>}
      * @private
      */
-    #getPanoramaCallback = async (newPanoData) => {
-        const prevPano = this.prevPanoData ? this.prevPanoData.getProperty('panoId') : undefined;
+    #getPanoramaCallback = async (newPanoData, excludedPanos = new Set()) => {
+        // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing.
+        if (excludedPanos.has(newPanoData.data.location.pano)) {
+            throw new Error(`Excluded pano: ${newPanoData.data.location.pano}`);
+        }
 
         // Putting the data returned from Google into the format for our generic PanoData object.
         let panoDataParams = {
@@ -115,9 +118,10 @@ class GsvViewer extends PanoViewer {
         this.currPanoData = new PanoData(panoDataParams);
 
         // Now we actually set the pano and wait to resolve until it's finished loading.
-        const newPano = this.currPanoData.getProperty('panoId');
+        const newPano = this.currPanoData.getPanoId();
+        const prevPano = this.prevPanoData ? this.prevPanoData.getPanoId() : undefined;
         return new Promise((resolve) => {
-            // If the pano didn't actually change, no event will be fired, so just resolve immediately.
+            // If the pano didn't actually change, nothing needs to change, so just resolve immediately.
             if (newPano === prevPano) {
                 resolve(this.currPanoData);
             } else {
@@ -129,28 +133,26 @@ class GsvViewer extends PanoViewer {
                 this.panorama.setPano(newPano);
             }
         });
-    }
+    };
 
-    setLocation = async (latLng) => {
+    setLocation = async (latLng, excludedPanos = new Set()) => {
         const { LatLng } = await google.maps.importLibrary('core');
         const gLatLng = new LatLng(latLng.lat, latLng.lng);
         this.prevPanoData = this.currPanoData;
-        this.currPanoData = null;
         return this.streetViewService.getPanorama(
             { location: gLatLng, radius: svl.STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR }
-        ).then(this.#getPanoramaCallback);
-    }
+        ).then((panoData) => this.#getPanoramaCallback(panoData, excludedPanos));
+    };
 
     setPano = async (panoId) => {
         this.prevPanoData = this.currPanoData;
-        this.currPanoData = null;
         if (panoId === 'tutorial' || panoId === 'afterWalkTutorial') {
             // For locally stored tutorial panos, skip the getPanorama step and continue w/ our saved data.
-            return this.#getPanoramaCallback({ data: this.#getCustomPanoData(panoId) });
+            return this.#getPanoramaCallback({ data: this.#getCustomPanoData(panoId) }, new Set());
         } else {
             return this.streetViewService.getPanorama({ pano: panoId }).then(this.#getPanoramaCallback);
         }
-    }
+    };
 
     /**
      * If the user is going through the tutorial, it will return the custom/stored panorama for either the initial
@@ -206,12 +208,11 @@ class GsvViewer extends PanoViewer {
                 time: []
             };
         }
-    }
+    };
 
     getLinkedPanos = () => {
-        const panoData = this.currPanoData || this.prevPanoData;
-        return panoData.getProperty('linkedPanos');
-    }
+        return this.currPanoData.getProperty('linkedPanos');
+    };
 
     getPov = () => {
         // Get POV and adjust heading to be between 0 and 360.
@@ -219,19 +220,19 @@ class GsvViewer extends PanoViewer {
         while (pov.heading < 0) pov.heading += 360;
         while (pov.heading > 360) pov.heading -= 360;
         return pov;
-    }
+    };
 
     setPov = (pov) => {
         return this.panorama.setPov(pov);
-    }
+    };
 
     hideNavigationArrows = () => {
         return this.panorama.set('linksControl', false);
-    }
+    };
 
     showNavigationArrows = () => {
         return this.panorama.set('linksControl', true);
-    }
+    };
 
     addListener(event, handler) {
         if (event === 'pano_changed') {
@@ -239,5 +240,5 @@ class GsvViewer extends PanoViewer {
         } else if (event === 'pov_changed') {
             this.panorama.addListener(event, handler);
         }
-    }
+    };
 }

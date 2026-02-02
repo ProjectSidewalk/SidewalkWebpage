@@ -160,7 +160,7 @@ class ExploreController @Inject() (
               0, streetEdgeId, "PanoNotAvailable", request.identity.userId, request.ipAddress, OffsetDateTime.now
             )
           )
-          .map(_ => Ok)
+          .map(_ => Ok(Json.obj("success" -> streetEdgeId)))
       }
     )
   }

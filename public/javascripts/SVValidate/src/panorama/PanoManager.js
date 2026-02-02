@@ -83,7 +83,7 @@ class PanoManager {
      * @private
      */
     #setPanoCallback(panoData) {
-        const panoId = panoData.getProperty('panoId');
+        const panoId = panoData.getPanoId();
 
         // Store the returned pano metadata.
         svv.panoStore.addPanoMetadata(panoId, panoData);
