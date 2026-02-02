@@ -129,7 +129,7 @@ class Infra3dViewer extends PanoViewer {
                 throw new Error(`Excluded pano: ${newPanoData.getPanoId()}`);
             });
         } else {
-            return new Promise((resolve) => resolve(newPanoData));
+            return Promise.resolve(newPanoData);
         }
     };
 

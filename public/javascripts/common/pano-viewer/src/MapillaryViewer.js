@@ -129,7 +129,7 @@ class MapillaryViewer extends PanoViewer {
         });
     }
 
-    setLocation = async (latLng, excludedPanos) => {
+    setLocation = async (latLng, excludedPanos = new Set()) => {
         // Search for images near the coordinates.
         // Docs for how to filter images: https://www.mapillary.com/developer/api-documentation#image
         const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.

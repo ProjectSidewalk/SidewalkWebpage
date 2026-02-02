@@ -366,33 +366,12 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         // Set how far to move forward along the street for each new attempt at finding imagery to 10 meters.
         const DIST_INCREMENT = 0.01;
 
-        // TODO we have repeated functionality between the success and failure callbacks. Clean up later.
-        // TODO we're getting forwarded through multiple panos at a time for some reason.
         let successCallback = function() {
+            // Save current pano ID as one that doesn't work in case they try to move before clicking 'stuck' again.
             const newPanoId = svl.panoViewer.getPanoId();
-            if (_stuckPanos.has(newPanoId)) {
-                // If there is room to move forward then try again, recursively calling getPanorama with this callback.
-                if (turf.length(remainder) > 0.001) {
-                    // Try up to `DIST_INCREMENT` further down the street, using `lineSliceAlong` to find the remaining
-                    // subsection of the street to check.
-                    let distIncrement = Math.min(DIST_INCREMENT, turf.length(remainder));
-                    remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, distIncrement, streetEndpoint));
-                    currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
-                    return svl.panoManager.setLocation(currLoc, _stuckPanos).then(successCallback, failureCallback);
-                } else {
-                    // TODO do we just call handleImageryNotFound here instead? Is this different because it's assuming street partially done?
-                    return handleImageryNotFound();
-
-                    // If all else fails, jump to a new street.
-                    // svl.form.skip(currentTask, "PanoNotAvailable");
-                    // svl.stuckAlert.stuckSkippedStreet();
-                }
-            } else {
-                // Save current pano ID as one that doesn't work in case they try to move before clicking 'stuck' again.
-                _stuckPanos.add(newPanoId);
-                _updateUiAfterMove();
-                return Promise.resolve(newPanoId);
-            }
+            _stuckPanos.add(newPanoId);
+            _updateUiAfterMove();
+            return Promise.resolve(newPanoId);
         }
 
         let failureCallback = function(error) {
