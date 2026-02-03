@@ -74,7 +74,7 @@ function Main (params) {
 
         svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl, svl.tracker);
         const isTutorialTask = params.task.properties.street_edge_id === params.tutorialStreetId;
-        const newTask = new Task(params.task, isTutorialTask, currLatLng.lat, currLatLng.lng);
+        const newTask = new Task(params.task, isTutorialTask, currLatLng);
         svl.taskContainer._tasks.push(newTask);
         svl.taskContainer.setCurrentTask(newTask);
         svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);

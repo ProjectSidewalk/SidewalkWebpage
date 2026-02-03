@@ -48,7 +48,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         const geometry = task.getFeature();
         const latlng = svl.panoViewer.getPosition();
         const startLatLng = turf.point(task.getFurthestPointReached().geometry.coordinates);
-        const streetEnd = turf.point([task.getLastCoordinate().lng, task.getLastCoordinate().lat]);
+        const streetEnd = turf.point([task.getEndCoordinate().lng, task.getEndCoordinate().lat]);
         const remainder = turf.cleanCoords(turf.lineSlice(startLatLng, streetEnd, geometry));
 
         // Get the point representing 10 meters further along the street (or the endpoint if there's fewer than 10m).

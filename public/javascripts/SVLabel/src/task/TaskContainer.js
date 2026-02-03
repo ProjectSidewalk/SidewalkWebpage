@@ -33,7 +33,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
 
     self.initNextTask = async function(nextTaskIn) {
         svl.navigationService.disableWalking();
-        const geometry = nextTaskIn.getGeometry();
+        const geometry = nextTaskIn.getFeature();
         const latLng = { lat: geometry.coordinates[0][1], lng: geometry.coordinates[0][0] };
         await svl.panoManager.setLocation(latLng)
             .then(() => {
@@ -225,7 +225,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
 
         if (currentTask) {
             const currentLatLng = svl.panoViewer.getPosition();
-            currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
+            currentTask.updateTheFurthestPointReached(currentLatLng);
             return currentTask.getAuditedDistance(unit);
         }
         return 0;
@@ -249,7 +249,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
 
     /**
      * Get the current task
-     * @returns {*}
+     * @returns {Task}
      */
     function getCurrentTask() {
         return currentTask;
@@ -265,6 +265,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
 
     /**
      * Get the task to jump to once the current intersection is complete.
+     * TODO This might make more sense in NavigationService..?
      * @returns {Task}
      */
     function getNextTaskAfterJump() {
@@ -405,11 +406,11 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
             if (newTask && finishedTask) {
                 let startPoint;
                 const line = newTask.getGeoJSON();
-                const endPoint = turf.point([finishedTask.getLastCoordinate().lng, finishedTask.getLastCoordinate().lat]);
+                const endPoint = turf.point([finishedTask.getEndCoordinate().lng, finishedTask.getEndCoordinate().lat]);
                 const taskNearby = turf.pointToLineDistance(endPoint, line) < svl.CLOSE_TO_ROUTE_THRESHOLD * 1.5;
                 if (connectedTask || taskNearby) {
-                    startPoint = finishedTask.getLastCoordinate();
-                    newTask.setStreetEdgeDirection(startPoint.lat, startPoint.lng);
+                    startPoint = finishedTask.getEndCoordinate();
+                    newTask.setStreetEdgeDirection(startPoint);
                 } else if (self._findConnectedTasks(newTask, svl.CONNECTED_TASK_THRESHOLD).length === 0) {
                     newTask.reverseStreetDirection();
                 }
@@ -475,7 +476,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
      */
     function updateCurrentTask() {
         const currentLatLng = svl.panoViewer.getPosition();
-        currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
+        currentTask.updateTheFurthestPointReached(currentLatLng);
         currentTask.render();
     }
 

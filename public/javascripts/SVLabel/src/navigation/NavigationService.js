@@ -275,7 +275,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
             // TODO I hardly understand the todo above, and idk why we would end the task in the middle of updating the
             //      UI after a move... especially when _endTheCurrentTask() can result in another move...
             const task = svl.taskContainer.getCurrentTask();
-            if (!isOnboarding && task && task.isAtEnd(newLatLng.lat, newLatLng.lng, END_OF_STREET_THRESHOLD)) {
+            if (!isOnboarding && task && task.isAtEnd(newLatLng, END_OF_STREET_THRESHOLD)) {
                 _endTheCurrentTask(task, currentMission);
             }
             svl.taskContainer.updateCurrentTask();
@@ -351,7 +351,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         const currentTask = svl.taskContainer.getCurrentTask();
         const streetEdge = currentTask.getFeature();
         const startLatLng = turf.point(currentTask.getFurthestPointReached().geometry.coordinates);
-        const streetEndpoint = turf.point([currentTask.getLastCoordinate().lng, currentTask.getLastCoordinate().lat]);
+        const streetEndpoint = turf.point([currentTask.getEndCoordinate().lng, currentTask.getEndCoordinate().lat]);
 
         // Remove the part of the street geometry that you've already passed using lineSlice.
         let remainder = turf.cleanCoords(turf.lineSlice(startLatLng, streetEndpoint, streetEdge));

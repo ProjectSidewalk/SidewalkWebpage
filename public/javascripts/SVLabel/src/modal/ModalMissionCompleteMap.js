@@ -113,14 +113,14 @@ function ModalMissionCompleteMap(uiModalMissionComplete, mapboxApiKey) {
                 var start = missionStart ? missionStart : completedTasks[i].getStartCoordinate();
                 var end;
                 if (completedTasks[i].isComplete()) {
-                    end = completedTasks[i].getLastCoordinate();
+                    end = completedTasks[i].getEndCoordinate();
                 } else {
                     var farthestPoint = completedTasks[i].getFurthestPointReached().geometry.coordinates;
                     end = { lat: farthestPoint[1], lng: farthestPoint[0] };
                 }
-                route = completedTasks[i].getSubsetOfCoordinates(start.lat, start.lng, end.lat, end.lng)
+                route = completedTasks[i].getSubsetOfCoordinates(start, end)
             } else {
-                route = completedTasks[i].getGeometry().coordinates;
+                route = completedTasks[i].getFeature().coordinates;
             }
             this._missionTasks.features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: route } });
         }
@@ -183,7 +183,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete, mapboxApiKey) {
                                                   turf.point([missionStart.lng, missionStart.lat]));
                 }
                 if (missionStart && streetStart && distFromStart > 0.003) {
-                    var route = currStreet.getSubsetOfCoordinates(streetStart.lat, streetStart.lng, missionStart.lat, missionStart.lng);
+                    var route = currStreet.getSubsetOfCoordinates(streetStart, missionStart);
                     var reversedRoute = [];
                     route.forEach(coord => reversedRoute.push([coord[1], coord[0]]));
                     this._userCompletedTasks.features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: reversedRoute } });

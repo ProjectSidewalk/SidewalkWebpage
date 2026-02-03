@@ -25,17 +25,15 @@ util.math.toRadians = toRadians;
  * This function takes two pairs of latlng positions and returns distance in meters.
  * http://rosettacode.org/wiki/Haversine_formula#JavaScript
  *
- * @param lat1
- * @param lng1
- * @param lat2
- * @param lng2
+ * @param {{lat: number, lng: number}} latLng1
+ * @param {{lat: number, lng: number}} latLng2
  * @returns {number} A distance in meters.
  */
-function haversine(lat1, lng1, lat2, lng2) {
-    lat1 = toRadians(lat1);
-    lng1 = toRadians(lng1);
-    lat2 = toRadians(lat2);
-    lng2 = toRadians(lng2);
+function haversine(latLng1, latLng2) {
+    const lat1 = toRadians(latLng1.lat);
+    const lng1 = toRadians(latLng1.lng);
+    const lat2 = toRadians(latLng2.lat);
+    const lng2 = toRadians(latLng2.lng);
     var R = 6372800; // Earth radius in m.
     var dLat = lat2 - lat1;
     var dLon = lng2 - lng1;
