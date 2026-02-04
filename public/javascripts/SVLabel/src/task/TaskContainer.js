@@ -42,7 +42,6 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
                 self.setCurrentTask(nextTaskIn);
                 beforeJumpTask.render();
                 nextTaskIn.render();
-                svl.navigationService.preparePovReset();
                 Promise.resolve();
             }, (error) => {
                 // TODO _panoFailureCallback is reporting no imagery for currentTask's streetEdgeId instead of the one we're aiming for.

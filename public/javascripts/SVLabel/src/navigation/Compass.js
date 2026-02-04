@@ -317,7 +317,6 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
             }
         } else {
             svl.tracker.push('Click_Compass_FarFromRoute');
-            navigationService.preparePovReset();
             await navigationService.moveForward();
             svl.panoManager.setPovToRouteDirection();
         }

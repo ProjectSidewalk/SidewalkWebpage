@@ -25,7 +25,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     let _stuckPanos = new Set([]);
     let positionUpdateCallbacks = [];
 
-    let initialPositionUpdate = true;
     const END_OF_STREET_THRESHOLD = 25; // Distance from the endpoint of the street when we consider it complete (meters).
     const moveDelay = 800; // Move delay prevents users from spamming through a mission.
 
@@ -109,34 +108,36 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     }
 
     /**
-     * Initiate imagery not found mechanism.
-     * TODO should this just happen when a large portion has no imagery? What happens if it's just the last little bit again?
+     * Handle no remaining imagery on current street. Log it if no imagery at all, or let them finish if near the end.
+     * @return {Promise<null>}
      */
-    async function handleImageryNotFound() {
+    async function _handleImageryNotFound() {
         const currentTask = svl.taskContainer.getCurrentTask();
         const currentMission = svl.missionContainer.getCurrentMission();
 
-        // TODO we should probably only do this if a large portion is missing imagery!! What do we do if it's just a small piece?
-        await util.misc.reportNoImagery(currentTask, currentMission.getProperty('missionId'));
-        console.error("Imagery missing for a large portion of street: " + currentTask.getStreetEdgeId());
-
-        // Move to a new location
-        self.preparePovReset();
-
-        // TODO do we need to call setLabelBeforeJumpState(false)?
-        finishCurrentTaskBeforeJumping(currentMission);
-
-        // Get a new task and jump to the new task location.
-        const newTask = svl.taskContainer.nextTask(currentTask);
-        if (newTask) {
-            svl.taskContainer.setCurrentTask(newTask);
-            svl.stuckAlert.stuckSkippedStreet();
-            return moveForward();
-        } else {
-            // Complete current neighborhood if no new task available.
-            svl.neighborhoodModel.setComplete();
-            svl.neighborhoodModel.trigger("Neighborhood:wrapUpRouteOrNeighborhood");
+        // If the user is relatively close to the end of the street, tell them to finish labeling before jumping.
+        if (currentTask.isAtEnd(svl.panoViewer.getPosition(), svl.CLOSE_TO_ROUTE_THRESHOLD) < 0.5) {
+            _endTheCurrentTask(currentTask, currentMission);
+            _updateUiAfterMove();
             return Promise.resolve(null);
+        }
+        // If they are nowhere near the end, log the street as having no imagery and move them to a new street.
+        else {
+            await util.misc.reportNoImagery(currentTask, currentMission.getProperty('missionId'));
+
+            // Get a new task and jump to the new task location.
+            finishCurrentTaskBeforeJumping(currentMission);
+            const newTask = svl.taskContainer.nextTask(currentTask);
+            if (newTask) {
+                svl.taskContainer.setCurrentTask(newTask);
+                svl.stuckAlert.stuckSkippedStreet();
+                return moveForward();
+            } else {
+                // Complete current neighborhood if no new task is available.
+                svl.neighborhoodModel.setComplete();
+                svl.neighborhoodModel.trigger("Neighborhood:wrapUpRouteOrNeighborhood");
+                return Promise.resolve(null);
+            }
         }
     }
 
@@ -171,8 +172,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     /**
      * Get a new task and check if it's disconnected from the current task. If yes, then finish the current task after
      * the user has finished labeling the current location.
-     * TODO this is probably being called too frequently and is causing issues when finishing a street and jumping -- idk if this is still accurate.
-     * TODO rename this? And shouldn't it happen on page load too, not just after a move? -- idk if this is still accurate
      * @param {Task} task The task that the user has neared the end of
      * @param {Mission} mission The mission that the task should be associated with
      * @private
@@ -384,8 +383,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
             //     svl.panoManager.setLocation(currLoc).then(successCallback, failureCallback);
             // }
             else {
-                // TODO do we just call handleImageryNotFound here instead? Is this different because it's assuming street partially done?
-                return handleImageryNotFound();
+                return _handleImageryNotFound();
             }
         }
 
@@ -410,9 +408,10 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         });
         const maxIndex = cosines.indexOf(Math.max.apply(null, cosines));
         if (cosines[maxIndex] > 0.5) {
-            return moveToPano(linkedPanos[maxIndex].panoId);
+            return moveToPano(linkedPanos[maxIndex].panoId)
+                // Should never fail to load a linked pano, but adding a page refresh as a failsafe.
+                .catch((err) => window.location.reload());
         } else {
-            // TODO could show a message to the user when there is no pano in that direction?
             return Promise.resolve(false);
         }
     }
@@ -474,11 +473,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         return this;
     }
 
-    // Set a flag that triggers the POV being reset into the route direction upon the position changing.
-    function preparePovReset() {
-        initialPositionUpdate = true;
-    }
-
     self.disableWalking = disableWalking;
     self.enableWalking = enableWalking;
     self.finishCurrentTaskBeforeJumping = finishCurrentTaskBeforeJumping;
@@ -497,7 +491,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     self.moveToLinkedPano = moveToLinkedPano;
     self.setStatus = setStatus;
     self.unlockDisableWalking = unlockDisableWalking;
-    self.preparePovReset = preparePovReset;
     self.timeoutWalking = timeoutWalking;
     self.resetWalking = resetWalking;
 
