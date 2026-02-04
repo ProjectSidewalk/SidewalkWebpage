@@ -42,8 +42,8 @@ class LeftMenu {
 
     /* Blink the stuck button. */
     blinkStuckButton = () => {
-        self.stopBlinking();
-        this.#blinkInterval = window.setInterval(function () {
+        this.stopBlinkingStuckButton();
+        this.#blinkInterval = window.setInterval(() => {
             this.uiLeftColumn.stuck.toggleClass("highlight-100");
         }, 500);
     };

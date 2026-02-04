@@ -2017,7 +2017,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
                 "message": i18next.t('tutorial.instruction-2'),
                 "fade-direction": "fadeIn",
                 "arrow": "left",
-                "top": 340,
+                "top": 265,
                 "left": 5,
                 "transform": "translateY(-50%)"
             },
