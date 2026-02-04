@@ -61,9 +61,16 @@ function Main (params) {
         const startLng = params.task.properties.current_lng;
         svl.panoStore = new PanoStore();
         svl.viewerType = svl.isOnboarding() ? GsvViewer : params.viewerType;
-        // TODO when we set up passing in a starting pano, could pass in tutorial when appropriate too. Then remove checks from PanoManager.js.
-        svl.panoManager = await PanoManager(svl.viewerType, params.viewerAccessToken, { startLat: startLat, startLng: startLng });
+
+        // Set up the PanoManager and PanoViewer.
+        const isTutorialTask = params.task.properties.street_edge_id === params.tutorialStreetId;
+        const newTask = new Task(params.task, isTutorialTask);
+        const initParams = isTutorialTask ? { startPanoId: 'tutorial' } : { startLat: startLat, startLng: startLng };
+        const errorParams = { task: newTask, missionId: params.mission.mission_id };
+        svl.panoManager = await PanoManager(svl.viewerType, params.viewerAccessToken, initParams, errorParams);
         const currLatLng = svl.panoViewer.getPosition();
+        newTask.updateTheFurthestPointReached(currLatLng);
+
         svl.minimap = await Minimap.create(currLatLng);
         svl.peg = await Peg.create(svl.minimap.getMap(), currLatLng);
 
@@ -73,8 +80,6 @@ function Main (params) {
         svl.navigationService = new NavigationService(svl.neighborhoodModel, svl.ui.streetview);
 
         svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl, svl.tracker);
-        const isTutorialTask = params.task.properties.street_edge_id === params.tutorialStreetId;
-        const newTask = new Task(params.task, isTutorialTask, currLatLng);
         svl.taskContainer._tasks.push(newTask);
         svl.taskContainer.setCurrentTask(newTask);
         svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);

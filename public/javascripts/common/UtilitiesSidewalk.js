@@ -487,17 +487,32 @@ function UtilitiesMisc (JSON) {
 
     /**
      * Sends a POST request to the server to report that there is no street view for the given street edge.
+     *
+     * TODO it makes way more sense to have this in Form.js, but Form has a dependency on PanoViewer, and we want to
+     *      call this function if PanoViewer fails to load...
      */
-    function reportNoImagery(streetEdgeId) {
-        $.ajax({
-            async: true,
-            contentType: 'application/json; charset=utf-8',
-            url: "/explore/nostreetview",
+    async function reportNoImagery(task, missionId) {
+        const reversed = task.getProperty("startPointReversed");
+        const data = {
+            audit_task: {
+                street_edge_id: task.getStreetEdgeId(),
+                task_start: task.getProperty("taskStart"),
+                audit_task_id: task.getAuditTaskId(),
+                completed: task.isComplete(),
+                current_lat: reversed ? task.getEndCoordinate().lat : task.getStartCoordinate().lat,
+                current_lng: reversed ? task.getEndCoordinate().lng : task.getStartCoordinate().lng,
+                start_point_reversed: reversed,
+                current_mission_start: null,
+                last_priority_update_time: new Date(),
+                request_updated_street_priority: false
+            },
+            mission_id: missionId
+        };
+
+        return fetch('/explore/nostreetview', {
             method: 'POST',
-            data: JSON.stringify(streetEdgeId),
-            dataType: 'json',
-            success: function (result) { console.log("Logged missing street view for street " + streetEdgeId); },
-            error: function(xhr, textStatus, error){ console.error(error); }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
         });
     }
 

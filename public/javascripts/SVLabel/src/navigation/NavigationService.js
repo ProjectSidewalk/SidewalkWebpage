@@ -115,22 +115,13 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     async function handleImageryNotFound() {
         const currentTask = svl.taskContainer.getCurrentTask();
         const currentMission = svl.missionContainer.getCurrentMission();
-        util.misc.reportNoImagery(currentTask.getStreetEdgeId());
-        console.error("Imagery missing for a large portion of street: " + currentTask.getStreetEdgeId());
 
-        // TODO want to get this tracked somewhere when it's applicable.
-        // svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoId});
+        // TODO we should probably only do this if a large portion is missing imagery!! What do we do if it's just a small piece?
+        await util.misc.reportNoImagery(currentTask, currentMission.getProperty('missionId'));
+        console.error("Imagery missing for a large portion of street: " + currentTask.getStreetEdgeId());
 
         // Move to a new location
         self.preparePovReset();
-
-        // TODO use this to notify the user after we've moved them to a new street.
-        // const currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-        // const currentNeighborhoodName = currentNeighborhood.getProperty("name");
-        // const title = "Error in Google Street View";
-        // const message = "Uh-oh, something went wrong with Google Street View. This is not your fault, but we will need " +
-        //     "to move you to another place in the " + currentNeighborhoodName + " neighborhood. Keep up the good work!";
-        // svl.popUpMessage.notify(title, message, callback);
 
         // TODO do we need to call setLabelBeforeJumpState(false)?
         finishCurrentTaskBeforeJumping(currentMission);
@@ -139,10 +130,12 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         const newTask = svl.taskContainer.nextTask(currentTask);
         if (newTask) {
             svl.taskContainer.setCurrentTask(newTask);
+            svl.stuckAlert.stuckSkippedStreet();
             return moveForward();
         } else {
             // Complete current neighborhood if no new task available.
             svl.neighborhoodModel.setComplete();
+            svl.neighborhoodModel.trigger("Neighborhood:wrapUpRouteOrNeighborhood");
             return Promise.resolve(null);
         }
     }
@@ -393,10 +386,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
             else {
                 // TODO do we just call handleImageryNotFound here instead? Is this different because it's assuming street partially done?
                 return handleImageryNotFound();
-
-                // If all else fails, jump to a new street.
-                // svl.form.skip(currentTask, "PanoNotAvailable");
-                // svl.stuckAlert.stuckSkippedStreet();
             }
         }
 

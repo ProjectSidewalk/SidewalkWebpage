@@ -77,7 +77,7 @@ object ExploreFormats {
       lastPriorityUpdateTime: OffsetDateTime,
       requestUpdatedStreetPriority: Boolean
   )
-  case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
+  case class NoStreetViewSubmission(task: TaskSubmission, missionId: Int)
   case class PanoLinkSubmission(targetPanoId: String, yawDeg: Double, description: Option[String])
   case class PanoSubmission(
       panoId: String,
@@ -109,7 +109,6 @@ object ExploreFormats {
       labels: Seq[LabelSubmission],
       interactions: Seq[InteractionSubmission],
       environment: EnvironmentSubmission,
-      incomplete: Option[IncompleteTaskSubmission],
       panos: Seq[PanoSubmission],
       userRouteId: Option[Int],
       timestamp: OffsetDateTime
@@ -208,12 +207,6 @@ object ExploreFormats {
       (JsPath \ "lng").read[Double]
   )((lat, lng) => new GeometryFactory().createPoint(new Coordinate(lat, lng)))
 
-  implicit val incompleteTaskSubmissionReads: Reads[IncompleteTaskSubmission] = (
-    (JsPath \ "issue_description").read[String] and
-      (JsPath \ "lat").read[Float] and
-      (JsPath \ "lng").read[Float]
-  )(IncompleteTaskSubmission.apply _)
-
   implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
     (JsPath \ "browser").readNullable[String] and
       (JsPath \ "browser_version").readNullable[String] and
@@ -282,6 +275,11 @@ object ExploreFormats {
       (JsPath \ "request_updated_street_priority").read[Boolean]
   )(TaskSubmission.apply _)
 
+  implicit val noStreetViewSubmissionReads: Reads[NoStreetViewSubmission] = (
+    (JsPath \ "audit_task").read[TaskSubmission] and
+      (JsPath \ "mission_id").read[Int]
+  )(NoStreetViewSubmission.apply _)
+
   implicit val panoLinkSubmissionReads: Reads[PanoLinkSubmission] = (
     (JsPath \ "target_pano_id").read[String] and
       (JsPath \ "yaw_deg").read[Double] and
@@ -320,7 +318,6 @@ object ExploreFormats {
       (JsPath \ "labels").read[Seq[LabelSubmission]] and
       (JsPath \ "interactions").read[Seq[InteractionSubmission]] and
       (JsPath \ "environment").read[EnvironmentSubmission] and
-      (JsPath \ "incomplete").readNullable[IncompleteTaskSubmission] and
       (JsPath \ "panos").read[Seq[PanoSubmission]] and
       (JsPath \ "user_route_id").readNullable[Int] and
       (JsPath \ "timestamp").read[OffsetDateTime]

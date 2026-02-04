@@ -84,7 +84,29 @@ ALTER TABLE audit_task_comment ALTER COLUMN zoom TYPE DOUBLE PRECISION;
 ALTER TABLE label_point ALTER COLUMN zoom TYPE DOUBLE PRECISION;
 ALTER TABLE validation_task_comment ALTER COLUMN zoom TYPE DOUBLE PRECISION;
 
+-- Remove the audit_task_incomplete table. Set completed=true and incomplete=true in audit_task to get same outcome.
+UPDATE audit_task
+SET completed = true, incomplete = true
+FROM audit_task_incomplete
+WHERE audit_task.audit_task_id = audit_task_incomplete.audit_task_id
+  AND audit_task.completed = FALSE
+  AND audit_task_incomplete.issue_description = 'IWantToExplore';
+DROP TABLE audit_task_incomplete;
+
 # --- !Downs
+-- Adds the audit_task_incomplete table back in. Though we don't have a way to get the data back into it.
+CREATE TABLE IF NOT EXISTS audit_task_incomplete (
+    audit_task_incomplete_id SERIAL PRIMARY KEY,
+    issue_description TEXT NOT NULL,
+    lat DOUBLE PRECISION NOT NULL,
+    lng DOUBLE PRECISION NOT NULL,
+    audit_task_id INT NOT NULL,
+    mission_id INT NOT NULL,
+    FOREIGN KEY (audit_task_id) REFERENCES audit_task (audit_task_id),
+    FOREIGN KEY (mission_id) REFERENCES mission (mission_id)
+);
+ALTER TABLE audit_task_incomplete OWNER TO sidewalk;
+
 -- Set zoom back to an integer where it was before.
 ALTER TABLE validation_task_comment ALTER COLUMN zoom TYPE INTEGER USING round(zoom)::integer;
 ALTER TABLE label_point ALTER COLUMN zoom TYPE INTEGER USING round(zoom)::integer;

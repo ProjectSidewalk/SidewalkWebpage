@@ -67,7 +67,15 @@ trait ExploreService {
    */
   def savePanoInfo(panos: Seq[PanoSubmission]): Future[Unit]
   def insertComment(comment: AuditTaskComment): Future[Int]
-  def insertNoImagery(streetIssue: StreetEdgeIssue): Future[Int]
+
+  /**
+   * Logs to the street_edge_issue table and marks the task as complete as if it were completed normally.
+   * @param taskSubmission The audit task associated to be marked as complete
+   * @param streetIssue The StreetIssue object to submit
+   * @param missionId The mission_id for the task
+   * @return The number of rows added to the street_edge_issue table (should always be 1)
+   */
+  def insertNoImagery(taskSubmission: TaskSubmission, streetIssue: StreetEdgeIssue, missionId: Int): Future[Int]
 
   /**
    * Inserts a set of AI-generated labels into the database, filling in appropriate tables with dummy data.
@@ -118,7 +126,6 @@ class ExploreServiceImpl @Inject() (
     auditTaskTable: AuditTaskTable,
     auditTaskEnvironmentTable: AuditTaskEnvironmentTable,
     auditTaskInteractionTable: AuditTaskInteractionTable,
-    auditTaskIncompleteTable: AuditTaskIncompleteTable,
     auditTaskCommentTable: AuditTaskCommentTable,
     auditTaskUserRouteTable: AuditTaskUserRouteTable,
     streetEdgePriorityTable: StreetEdgePriorityTable,
@@ -324,6 +331,7 @@ class ExploreServiceImpl @Inject() (
 
   /**
    * Insert or update the submitted audit task in the database.
+   * @return {Int} auditTaskId
    */
   private def updateAuditTaskTable(userId: String, task: TaskSubmission, missionId: Int): DBIO[Int] = {
     val timestamp: OffsetDateTime = OffsetDateTime.now
@@ -488,8 +496,13 @@ class ExploreServiceImpl @Inject() (
     db.run(auditTaskCommentTable.insert(comment))
   }
 
-  def insertNoImagery(streetIssue: StreetEdgeIssue): Future[Int] = {
-    db.run(streetEdgeIssueTable.insert(streetIssue))
+  def insertNoImagery(taskSubmission: TaskSubmission, streetIssue: StreetEdgeIssue, missionId: Int): Future[Int] = {
+    db.run(for {
+      auditTaskId                 <- updateAuditTaskTable(streetIssue.userId, taskSubmission, missionId)
+      newPriority: Option[Double] <- updateStreetPriority(streetIssue.streetEdgeId, streetIssue.userId)
+      atRowsUpdated: Int          <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
+      nIssues                     <- streetEdgeIssueTable.insert(streetIssue)
+    } yield nIssues)
   }
 
   /**
@@ -580,11 +593,9 @@ class ExploreServiceImpl @Inject() (
 
     // Update the audit_task table and get the audit_task_id. This is needed to submit all other data.
     db.run(updateAuditTaskTable(userId, data.auditTask, missionId).flatMap { auditTaskId: Int =>
-      // If task is complete or the user skipped with `PanoNotAvailable`, mark the task as complete.
+      // If task is complete, mark it in the db and update the street priority.
       val taskCompletedAction: DBIO[Int] =
-        if (
-          data.auditTask.completed.getOrElse(false) || data.incomplete.exists(_.issueDescription == "PanoNotAvailable")
-        ) {
+        if (data.auditTask.completed.getOrElse(false)) {
           for {
             newPriority: Option[Double] <- updateStreetPriority(streetEdgeId, userId)
             atRowsUpdated: Int          <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
@@ -605,14 +616,6 @@ class ExploreServiceImpl @Inject() (
       // Update the MissionTable.
       val updateMissionAction: DBIO[Option[Mission]] =
         missionService.updateMissionTableExplore(userId, data.missionProgress)
-
-      // Insert the skip information.
-      val taskIncompleteAction: DBIO[Int] = if (data.incomplete.isDefined) {
-        val incomplete: IncompleteTaskSubmission = data.incomplete.get
-        auditTaskIncompleteTable.insert(
-          AuditTaskIncomplete(0, auditTaskId, missionId, incomplete.issueDescription, incomplete.lat, incomplete.lng)
-        )
-      } else DBIO.successful(0)
 
       // Insert any labels.
       val labelSubmitActions: Seq[DBIO[Option[(Int, Int, LabelTypeEnum.Base, PanoSource, OffsetDateTime)]]] =
@@ -658,10 +661,9 @@ class ExploreServiceImpl @Inject() (
       taskCompletedAction
         .zip(userRouteAction)
         .zip(updateMissionAction)
-        .zip(taskIncompleteAction)
         .zip(DBIO.sequence(labelSubmitActions))
         .zip(updatedStreetsAction)
-        .map { case (((((_, _), possibleNewMission), _), newLabels), updatedStreets) =>
+        .map { case ((((_, _), possibleNewMission), newLabels), updatedStreets) =>
           ExploreTaskPostReturnValue(auditTaskId, possibleNewMission, newLabels.flatten, updatedStreets, refreshPage)
         }
     }.transactionally)

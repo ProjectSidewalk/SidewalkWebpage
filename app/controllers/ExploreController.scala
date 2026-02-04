@@ -150,17 +150,18 @@ class ExploreController @Inject() (
    * This method handles a POST request in which user reports missing imagery.
    */
   def postNoImagery = cc.securityService.SecuredAction(parse.json) { implicit request =>
-    val submission = request.body.validate[Int]
+    val submission = request.body.validate[NoStreetViewSubmission]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      streetEdgeId => {
+      noSv => {
         exploreService
           .insertNoImagery(
-            StreetEdgeIssue(
-              0, streetEdgeId, "PanoNotAvailable", request.identity.userId, request.ipAddress, OffsetDateTime.now
-            )
+            noSv.task,
+            StreetEdgeIssue(0, noSv.task.streetEdgeId, "PanoNotAvailable", request.identity.userId, request.ipAddress,
+              OffsetDateTime.now),
+            noSv.missionId
           )
-          .map(_ => Ok(Json.obj("success" -> streetEdgeId)))
+          .map(_ => Ok(Json.obj("success" -> noSv.task.streetEdgeId)))
       }
     )
   }

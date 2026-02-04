@@ -6,10 +6,13 @@
  * @param {string} [params.startPanoId] Optional starting pano, used over lat/lng, overridden if in the tutorial
  * @param {number} [params.startLat] Optional starting latitude, overridden by startPanoId or if in the tutorial
  * @param {number} [params.startLng] Optional starting longitude, overridden by startPanoId or if in the tutorial
+ * @param {object} errorParams Params necessary in case loading the initial location fails
+ * @param {Task} errorParams.task
+ * @param {number} errorParams.missionId
  * @returns {Promise<PanoManager>}
  * @constructor
  */
-async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
+async function PanoManager (panoViewerType, viewerAccessToken, params = {}, errorParams) {
     let panoCanvas = document.getElementById('pano');
     let status = {
         bottomLinksClickable: false,
@@ -43,20 +46,34 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
             accessToken: viewerAccessToken
         };
 
-        // TODO The page totally fails to load if we fail to get imagery at the start location.
         // Add the starting location to panoOptions.
-        if (svl.isOnboarding()) {
-            panoOptions.startPanoId = 'tutorial';
-        } else if ('startPanoId' in params) {
+        if (params.startPanoId) {
             panoOptions.startPanoId = params.startPanoId
-        } else if ('startLat' in params && 'startLng' in params) {
+        } else if (params.startLat && params.startLng) {
             panoOptions.startLatLng = { lat: params.startLat, lng: params.startLng };
+            panoOptions.backupLatLng = errorParams.task.getEndCoordinate();
         }
 
         // Load the pano viewer.
-        svl.panoViewer = await panoViewerType.create(panoCanvas, panoOptions);
-        if (svl.panoViewer.currPanoData) await _panoSuccessCallback(svl.panoViewer.currPanoData);
-        else await _panoFailureCallback();
+        svl.panoViewer = await panoViewerType.create(panoCanvas, panoOptions)
+            .catch(async (err) => {
+                // If no GSV at starting street, log it and refresh the page to get a new street.
+                await util.misc.reportNoImagery(errorParams.task, errorParams.missionId).then(() => {
+                    window.location.replace('/explore');
+                });
+            });
+
+        // If we used the backup at the end of the street (if we're closer to that point), reverse the street direction.
+        if (panoOptions.startLatLng && panoOptions.backupLatLng) {
+            const start = turf.point([params.startLng, params.startLat]);
+            const end = turf.point([errorParams.task.getEndCoordinate().lng, errorParams.task.getEndCoordinate().lat]);
+            const curr = turf.point([svl.panoViewer.getPosition().lng, svl.panoViewer.getPosition().lat]);
+            if (turf.distance(curr, end) < turf.distance(curr, start)) {
+                errorParams.task.reverseStreetDirection();
+            }
+        }
+
+        await _panoSuccessCallback(svl.panoViewer.currPanoData);
         svl.panoViewer.addListener('pov_changed', _handlerPovChange);
 
         // Adds event listeners to the navigation arrows.
@@ -136,7 +153,8 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
     }
 
     // TODO I'd like to pass the pano ID or lat/lng in to here if possible?
-    async function _panoFailureCallback(error) {
+    async function _setPanoFailureCallback(error) {
+        // svl.tracker.push('PanoId_NotFound', { 'TargetPanoId': panoId });
         console.error('failed to load pano!', error);
         // TODO is there anything that we need to log here? Or should we just remove this callback entirely?
         // - NavigationService will handle marking streets as having no imagery, etc.
@@ -262,7 +280,7 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}) {
      * @param panoId    String representation of the Panorama ID
      */
     async function setPanorama(panoId) {
-        return svl.panoViewer.setPano(panoId).then(_panoSuccessCallback, _panoFailureCallback);
+        return svl.panoViewer.setPano(panoId).then(_panoSuccessCallback, _setPanoFailureCallback);
     }
 
     /**

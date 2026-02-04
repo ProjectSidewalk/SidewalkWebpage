@@ -31,7 +31,6 @@ class PanoViewer {
             this.viewerType = 'infra3d';
             this.canvasClass = 'infra3dsdk-canvas';
         }
-        this.initialized = false;
     }
 
     /**
@@ -52,9 +51,10 @@ class PanoViewer {
      */
     static async create(canvasElem, panoOptions = {}) {
         const newViewer = new this();
-        await newViewer.initialize(canvasElem, panoOptions);
-        newViewer.initialized = true;
-        return newViewer;
+        return newViewer.initialize(canvasElem, panoOptions)
+            .then(() => {
+                return newViewer;
+            });
     }
 
     /**

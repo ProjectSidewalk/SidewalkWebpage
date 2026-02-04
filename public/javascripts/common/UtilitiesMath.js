@@ -34,11 +34,11 @@ function haversine(latLng1, latLng2) {
     const lng1 = toRadians(latLng1.lng);
     const lat2 = toRadians(latLng2.lat);
     const lng2 = toRadians(latLng2.lng);
-    var R = 6372800; // Earth radius in m.
-    var dLat = lat2 - lat1;
-    var dLon = lng2 - lng1;
-    var a = Math.sin(dLat / 2) * Math.sin(dLat /2) + Math.sin(dLon / 2) * Math.sin(dLon /2) * Math.cos(lat1) * Math.cos(lat2);
-    var c = 2 * Math.asin(Math.sqrt(a));
+    const R = 6372800; // Earth radius in m.
+    const dLat = lat2 - lat1;
+    const dLon = lng2 - lng1;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat /2) + Math.sin(dLon / 2) * Math.sin(dLon /2) * Math.cos(lat1) * Math.cos(lat2);
+    const c = 2 * Math.asin(Math.sqrt(a));
     return R * c;
 }
 util.math.haversine = haversine;

@@ -174,58 +174,6 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
         });
     };
 
-    this._prepareSkipData = function (issueDescription) {
-        var position = svl.panoViewer.getPosition();
-        return {
-            issue_description: issueDescription,
-            lat: position.lat,
-            lng: position.lng
-        };
-    };
-
-    this.skip = async function (task, skipReasonLabel) {
-        const data = self._prepareSkipData(skipReasonLabel);
-
-        if (skipReasonLabel === "PanoNotAvailable") {
-            // TODO this case is never used, still need to reimplement.
-            util.misc.reportNoImagery(task.getStreetEdgeId());
-        } else {
-            // Set the tasksMissionsOffset so that the mission progress bar remains the same after the jump.
-            // TODO it's still increasing by ~50 meters, but not too absurd of an amount.
-            const currTaskDist = util.math.kmsToMeters(taskContainer.getCurrentTaskDistance());
-            const oldOffset = missionContainer.getTasksMissionsOffset();
-            missionContainer.setTasksMissionsOffset(oldOffset + currTaskDist);
-        }
-
-        // TODO this is async, but we don't need to wait for it I believe.
-        self.skipSubmit(data, task);
-
-        await navigationService.jumpToANewTask();
-
-        // TODO is there anything else that might call this (or should)?
-        if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
-            svl.neighborhoodModel.trigger("Neighborhood:wrapUpRouteOrNeighborhood");
-        }
-    };
-
-    /**
-     * Submit the data collected so far and move to another location.
-     *
-     * @param dataIn An object that has issue_description, lat, and lng as fields.
-     * @param task
-     * @returns {boolean}
-     */
-    this.skipSubmit = function (dataIn, task) {
-        tracker.push('TaskSkip');
-
-        self._compileSubmissionData(task).then(data => {
-            data.incomplete = dataIn;
-            self._submit(data, task);
-        });
-
-        return false;
-    };
-
     /**
      * Submit the data via an AJAX post request.
      * @param data

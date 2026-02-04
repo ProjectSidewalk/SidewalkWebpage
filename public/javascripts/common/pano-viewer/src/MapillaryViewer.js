@@ -43,9 +43,12 @@ class MapillaryViewer extends PanoViewer {
 
         // Initialize pano at the desired location.
         if (panoOptions.startPanoId) {
-            await this.setPano(panoOptions.startPanoId);
+            return this.setPano(panoOptions.startPanoId);
         } else if (panoOptions.startLatLng) {
-            await this.setLocation(panoOptions.startLatLng);
+            return this.setLocation(panoOptions.startLatLng).catch(err => {
+                if (panoOptions.backupLatLng) return this.setLocation(panoOptions.backupLatLng);
+                else throw err;
+            });
         }
 
         // Restrict to panoramas -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#setfilter
