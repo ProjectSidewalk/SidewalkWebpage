@@ -88,7 +88,8 @@ class Infra3dViewer extends PanoViewer {
         const newPosition = { easting: easting, northing: northing };
 
         // Using the internal function that returns a node, since the usual one in the API does not.
-        // TODO We'll have to do the radius check GSV does ourselves. Though we should always have imagery now...
+        // TODO We should be checking if the new location is within STREETVIEW_MAX_DISTANCE. But we always have imagery
+        //      in the zurich test city, so this should never be a problem.
         return this.viewer._sdk_viewer.movePosition(newPosition, 3857)
             .then(this.#finishRecordingMetadata)
             .then((panoData) => this.#filterExcludedPanos(panoData, excludedPanos));

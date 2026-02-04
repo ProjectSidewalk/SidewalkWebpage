@@ -353,8 +353,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         const currentPano = svl.panoViewer.getPanoId();
         _stuckPanos.add(currentPano);
 
-        // Set radius around each attempted point for which you'll accept imagery to 10 meters.
-        let MAX_DIST = 10;
         // Set how far to move forward along the street for each new attempt at finding imagery to 10 meters.
         const DIST_INCREMENT = 0.01;
 
@@ -369,20 +367,12 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         let failureCallback = function(error) {
             // If there is room to move forward then try again, recursively calling getPanorama with this callback.
             if (turf.length(remainder) > 0) {
-                // Try `DIST_INCREMENT` further down the street, using `lineSliceAlong` to find the remaining
-                // subsection of the street to check.
+                // Try `DIST_INCREMENT` further down the street.
                 let distIncrement = Math.min(DIST_INCREMENT, turf.length(remainder));
                 remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, distIncrement, streetEndpoint));
                 currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
                 return svl.panoManager.setLocation(currLoc, _stuckPanos).then(successCallback, failureCallback);
-            }
-            // TODO add this functionality again later. Need to add a parameter to setLocation().
-            // else if (MAX_DIST === 10) {
-            //     // If we get to the end of the street, increase the radius a bit to try and drop them at the end.
-            //     MAX_DIST = 25;
-            //     svl.panoManager.setLocation(currLoc).then(successCallback, failureCallback);
-            // }
-            else {
+            } else {
                 return _handleImageryNotFound();
             }
         }
