@@ -364,15 +364,20 @@ function ContextMenu (uiContextMenu) {
                         $tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy");
 
                         // Add tooltip with tag example if we have an example image to show.
-                        // If on the chandigarh server, check for an India-specific image, getting default as backup.
-                        var exampleImage;
-                        var imageUrl = `/assets/images/examples/tags/${tag.tag_id}.png`;
+                        // If there's a server-specific image, try that first. Get default image as a backup.
+                        let exampleImage;
+                        let imageUrl = `/assets/images/examples/tags/${tag.tag_id}.png`;
+                        let citySpecificImageUrl;
                         if (svl.cityId === 'chandigarh-india') {
-                            var indiaImageUrl = `/assets/images/examples/tags/india/${tag.tag_id}.png`;
-                            exampleImage = util.getImage(indiaImageUrl)
-                                .catch(error => {
-                                    return getImage(imageUrl); // If primary failed, try the backup image
-                                });
+                            citySpecificImageUrl = `/assets/images/examples/tags/india/${tag.tag_id}.png`;
+                        } else if (['zurich', 'zurich-infra3d', 'staging'].includes(svl.cityId)) {
+                            citySpecificImageUrl = `/assets/images/examples/tags/zurich/${tag.tag_id}.png`;
+                        }
+
+                        // Try the server-specific image, getting normal image as a backup.
+                        if (citySpecificImageUrl) {
+                            exampleImage = util.getImage(citySpecificImageUrl)
+                                .catch((error) => { return getImage(imageUrl); });
                         } else {
                             exampleImage = util.getImage(imageUrl);
                         }

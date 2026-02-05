@@ -135,7 +135,8 @@
         "cart": "kar",
         "drainage": "drainage",
         "electrical box": "elektrische doos",
-        "too dirty/cluttered": "te vuil/rommelig"
+        "too dirty/cluttered": "te vuil/rommelig",
+        "yellow box, accessibility features not visible": "gele kader, toegankelijkheidsfuncties niet zichtbaar"
     },
     "gsv-info": {
         "details-title": "Details",

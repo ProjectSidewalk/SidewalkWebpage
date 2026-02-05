@@ -136,7 +136,8 @@
         "cart": "Warenkorb",
         "drainage": "Drainage",
         "electrical box": "Schaltkasten",
-        "too dirty/cluttered": "zu schmutzig/unordentlich"
+        "too dirty/cluttered": "zu schmutzig/unordentlich",
+        "yellow box, accessibility features not visible": "gelbe Box, Funktionen nicht sichtbar"
     },
     "gsv-info": {
         "details-title": "Details",

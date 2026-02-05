@@ -136,7 +136,8 @@
         "cart": "cart",
         "drainage": "drainage",
         "electrical box": "electrical box",
-        "too dirty/cluttered": "too dirty/cluttered"
+        "too dirty/cluttered": "too dirty/cluttered",
+        "yellow box, accessibility features not visible": "yellow box, accessibility features not visible"
     },
     "gsv-info": {
         "details-title": "Details",

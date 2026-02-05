@@ -136,7 +136,8 @@
         "cart": "carro",
         "drainage": "drenaje",
         "electrical box": "caja eléctrica",
-        "too dirty/cluttered": "demasiado sucio/desordenado"
+        "too dirty/cluttered": "demasiado sucio/desordenado",
+        "yellow box, accessibility features not visible": "Cuadro amarillo, funciones de accesibilidad no visibles"
     },
     "gsv-info": {
         "details-title": "Detalles",
