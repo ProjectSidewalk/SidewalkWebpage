@@ -95,7 +95,7 @@ function LabelContainer ($, nextTemporaryLabelId) {
                 labelArr[i].panoXY = { x: labelArr[i].panoX, y: labelArr[i].panoY };
                 let label = self.createLabel(labelArr[i], false);
 
-                // Prevent tag from being rendered initially.
+                // Prevent hover info from being rendered initially.
                 label.setHoverInfoVisibility('hidden');
             }
 

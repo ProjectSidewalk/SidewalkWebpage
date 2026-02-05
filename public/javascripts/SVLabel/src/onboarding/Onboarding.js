@@ -253,9 +253,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             len;
 
         var currentPov = svl.panoViewer.getPov();
-        var povChange = svl.panoManager.getPovChangeStatus();
-
-        povChange["status"] = true;
 
         clear();
 
@@ -329,7 +326,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
                 }
             }
         }
-        povChange["status"] = false;
 
         // Save any annotations that should be sticking around.
         savedAnnotations = currAnnotations.filter(a => a.keepUntil && a.keepUntil !== state.id);

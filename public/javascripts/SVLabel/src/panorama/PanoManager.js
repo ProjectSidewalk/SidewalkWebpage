@@ -28,13 +28,6 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
     }
     let linksListener = null;
 
-    // Used while calculation of canvas coordinates during rendering of labels
-    // TODO: Refactor it to be included in the status variable above so that we can use
-    // setStatus("povChange", true); Instead of povChange["status"] = true;
-    let povChange = {
-        status: false
-    };
-
     let self = this;
 
     /**
@@ -129,13 +122,11 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
         if (svl.minimap) svl.minimap.setMinimapLocation(panoLatLng);
         if (svl.peg) svl.peg.setLocation(panoLatLng);
 
-        // povChange["status"] = true;
         if (svl.canvas) { // TODO this if statement is new, need to decide when each thing is initialized.
             svl.canvas.clear();
             svl.canvas.setOnlyLabelsOnPanoAsVisible(panoId);
             svl.canvas.render();
         }
-        // povChange["status"] = false;
 
         svl.tracker.push("PanoId_Changed", {
             panoId: panoId,
@@ -260,11 +251,7 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
      */
     function _handlerPovChange() {
         // TODO I don't like checking if things are initialized yet.
-
-        // povChange["status"] = true;
         if (svl.canvas) updateCanvas();
-        // povChange["status"] = false;
-
         if (svl.compass) svl.compass.update();
         if (svl.observedArea) svl.observedArea.update();
 
@@ -340,13 +327,10 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
      */
     function updatePov(dx, dy) {
         let pov = svl.panoViewer.getPov();
-        // TODO Infra3d viewer pans slowly because of their smoothing. Can remove this if they turn it off.
-        // const viewerScaling = panoViewerType === Infra3dViewer ? 2 : 0.375;
         const viewerScaling = 0.375;
         pov.heading -= dx * viewerScaling;
         pov.pitch += dy * viewerScaling;
         pov = _restrictViewport(pov);
-        povChange["status"] = true;
         setPov(pov);
     }
 
@@ -432,13 +416,6 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
         setPov(newPov, durationMs);
     }
 
-    /*
-     * Gets the pov change tracking variable.
-     */
-    function getPovChangeStatus() {
-        return povChange;
-    }
-
     /**
      * Disable panning on Street View
      * @returns {disablePanning}
@@ -513,7 +490,6 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
     self.setPanorama = setPanorama;
     self.setLocation = setLocation;
     self.setZoom = setZoom;
-    self.getPovChangeStatus = getPovChangeStatus;
     self.disablePanning = disablePanning;
     self.enablePanning = enablePanning;
     self.lockDisablePanning = lockDisablePanning;

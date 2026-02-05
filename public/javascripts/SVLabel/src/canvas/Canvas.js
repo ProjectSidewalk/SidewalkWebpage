@@ -30,7 +30,7 @@ function Canvas(ribbon) {
      */
     function _init() {
         // Set up the canvas context.
-        var el = document.getElementById("label-canvas");
+        const el = document.getElementById("label-canvas");
         if (!el) {
             return false;
         }
@@ -183,7 +183,7 @@ function Canvas(ribbon) {
     function _handlerViewControlLayerMouseMove(e) {
         const currMousePosition = util.mouseposition(e, this);
 
-        var item = onLabel(currMousePosition.x, currMousePosition.y);
+        const item = onLabel(currMousePosition.x, currMousePosition.y);
         if (mouseStatus.isLeftDown && svl.panoManager.getStatus('disablePanning') === false) {
             // If a mouse is being dragged on the control layer, move the pano.
             const pov = svl.panoViewer.getPov();
@@ -195,7 +195,7 @@ function Canvas(ribbon) {
         } else if (item && item.className === "Label") {
             // Show label delete menu and update cursor when hovering over a label.
             _setViewControlLayerCursor('Pointer');
-            var selectedLabel = item;
+            const selectedLabel = item;
             setCurrentLabel(selectedLabel);
             showLabelHoverInfo(selectedLabel);
             self.clear().render();
@@ -213,8 +213,7 @@ function Canvas(ribbon) {
      */
     function _handleDrawingLayerMouseOut(e) {
         svl.tracker.push('LabelingCanvas_MouseOut');
-        if (!svl.isOnboarding())
-            ribbon.backToWalk();
+        if (!svl.isOnboarding()) ribbon.backToWalk();
     }
 
     /**
@@ -254,7 +253,6 @@ function Canvas(ribbon) {
             $(this).css('cursor', `url(${iconImagePaths[labelType].iconImagePath}) 19 19, auto`);
         }
         clear();
-        render();
     }
 
     /**
@@ -263,7 +261,7 @@ function Canvas(ribbon) {
      */
     function _labelDeleteIconClick() {
         if (!status.disableLabelDelete) {
-            var currLabel = self.getCurrentLabel();
+            const currLabel = self.getCurrentLabel();
             // If in tutorial, only delete if it's the last label that the user added to the canvas.
             if (currLabel && (!svl.onboarding || svl.onboarding.getCurrentLabelId() === currLabel.getProperty("temporaryLabelId"))) {
                 svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
@@ -326,11 +324,11 @@ function Canvas(ribbon) {
      * If a cursor is not on anything, return false.
      */
     function onLabel(x, y) {
-        var labels = svl.labelContainer.getCanvasLabels();
-        var onLabel = false;
+        const labels = svl.labelContainer.getCanvasLabels();
+        let onLabel = false;
 
         // Check labels to see if they are under the mouse cursor.
-        for (var i = 0; i < labels.length; i += 1) {
+        for (let i = 0; i < labels.length; i += 1) {
             onLabel = labels[i].isOn(x, y);
             if (onLabel) {
                 status.currentLabel = labels[i];
@@ -353,14 +351,13 @@ function Canvas(ribbon) {
         if (!ctx) {
             return this;
         }
-        var labels = svl.labelContainer.getCanvasLabels();
-        var pov = svl.panoViewer.getPov();
+        const labels = svl.labelContainer.getCanvasLabels();
+        const pov = svl.panoViewer.getPov();
 
         // Render labels.
-        for (var i = 0; i < labels.length; i += 1) {
+        for (let i = 0; i < labels.length; i += 1) {
             labels[i].render(ctx, pov);
         }
-        svl.panoManager.getPovChangeStatus()["status"] = false;
 
         // Update the opacity of Zoom In and Zoom Out buttons.
         if (svl.zoomControl) svl.zoomControl.updateOpacity();
@@ -384,26 +381,41 @@ function Canvas(ribbon) {
      * @param label
      */
     function showLabelHoverInfo(label) {
-        var labels = svl.labelContainer.getCanvasLabels();
-        for (var i = 0; i < labels.length; i += 1) {
-            labels[i].setHoverInfoVisibility('hidden');
+        let needToRerender = false;
+
+        // Hide the hover info on all the labels.
+        const labels = svl.labelContainer.getCanvasLabels();
+        let hoverVisibility;
+        for (let i = 0; i < labels.length; i += 1) {
+            hoverVisibility = labels[i].getHoverInfoVisibility();
+
+            // If this is the label being hovered, set its visibility.
+            if (label) {
+                needToRerender = true;
+                if (label === labels[i]) {
+                    labels[i].setHoverInfoVisibility('visible');
+                }
+            } else {
+                // If not hovered but was previously being hovered, hide it and rerender.
+                if (hoverVisibility === 'visible') {
+                    needToRerender = true;
+                    labels[i].setHoverInfoVisibility('hidden');
+
+                    // All labels share one delete icon that gets moved around. So if not hovering over label, hide the button.
+                    svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
+                }
+            }
         }
 
         // Show delete icon on label.
-        if (label) {
-            label.setHoverInfoVisibility('visible');
-        } else {
-            // All labels share one delete icon that gets moved around. So if not hovering over label, hide the button.
-            svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
+        if (needToRerender) {
+            self.clear().render();
         }
-
-        self.clear();
-        self.render();
     }
 
     function setVisibility(visibility) {
-        var labels = svl.labelContainer.getCanvasLabels();
-        for (var i = 0; i < labels.length; i += 1) {
+        const labels = svl.labelContainer.getCanvasLabels();
+        for (let i = 0; i < labels.length; i += 1) {
             labels[i].setVisibility(visibility);
         }
         return this;
@@ -413,8 +425,8 @@ function Canvas(ribbon) {
      * Sets labels on the given pano as visible, all others as hidden.
      */
     function setOnlyLabelsOnPanoAsVisible(panoId) {
-        var labels = svl.labelContainer.getCanvasLabels();
-        for (var i = 0; i < labels.length; i += 1) {
+        const labels = svl.labelContainer.getCanvasLabels();
+        for (let i = 0; i < labels.length; i += 1) {
             if (labels[i].getPanoId() === panoId && !labels[i].isDeleted()) {
                 labels[i].setVisibility('visible');
             } else {

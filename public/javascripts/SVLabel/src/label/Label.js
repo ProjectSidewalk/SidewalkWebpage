@@ -154,11 +154,15 @@ function Label(params) {
      * @param visibility {string} visible or hidden
      * @returns {setHoverInfoVisibility}
      */
-    function setHoverInfoVisibility (visibility) {
+    function setHoverInfoVisibility(visibility) {
         if (visibility === 'visible' || visibility === 'hidden') {
             status['hoverInfoVisibility'] = visibility;
         }
         return this;
+    }
+
+    function getHoverInfoVisibility() {
+        return status.hoverInfoVisibility;
     }
 
     /**
@@ -201,11 +205,9 @@ function Label(params) {
             }
 
             // Update the coordinates of the label on the canvas.
-            if (svl.panoManager.getPovChangeStatus()) {
-                properties.currCanvasXY = util.pano.centeredPovToCanvasCoord(
-                    properties.povOfLabelIfCentered, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
-                );
-            }
+            properties.currCanvasXY = util.pano.centeredPovToCanvasCoord(
+                properties.povOfLabelIfCentered, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+            );
 
             // Draw the label icon if it's in the visible part of the pano.
             if (properties.currCanvasXY) {
@@ -449,6 +451,7 @@ function Label(params) {
     self.setProperty = setProperty;
     self.setStatus = setStatus;
     self.setHoverInfoVisibility = setHoverInfoVisibility;
+    self.getHoverInfoVisibility = getHoverInfoVisibility;
     self.setVisibility = setVisibility;
     self.toLatLng = toLatLng;
     self.updateLabelIdAndUploadCrop = updateLabelIdAndUploadCrop;

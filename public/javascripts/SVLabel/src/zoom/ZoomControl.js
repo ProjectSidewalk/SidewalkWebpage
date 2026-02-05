@@ -175,10 +175,7 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
         }
 
         if (!status.disableZoomIn) {
-            var povChange = svl.panoManager.getPovChangeStatus();
-
             setZoom(pov.zoom + 1);
-            povChange["status"] = true;
             canvas.clear().render();
             $(document).trigger('ZoomIn');
         }
@@ -190,18 +187,14 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
     function _handleZoomOutButtonClick () {
         if (tracker) tracker.push('Click_ZoomOut');
 
-        var pov = svl.panoViewer.getPov();
-
+        const pov = svl.panoViewer.getPov();
         if (pov.zoom > properties.minZoomLevel && zoomBlink.isBlinking === false) {
           svl.zoomShortcutAlert.zoomClicked();
         }
 
         if (!status.disableZoomOut) {
-            var povChange = svl.panoManager.getPovChangeStatus();
             setZoom(pov.zoom - 1);
-            povChange["status"] = true;
-            canvas.clear();
-            canvas.render();
+            canvas.clear().render();
             $(document).trigger('ZoomOut');
         }
     }
@@ -213,12 +206,8 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
     /** Zoom in */
     function zoomIn () {
         if (!status.disableZoomIn) {
-
-            var povChange = svl.panoManager.getPovChangeStatus();
-            var pov = svl.panoViewer.getPov();
-
+            const pov = svl.panoViewer.getPov();
             setZoom(pov.zoom + 1);
-            povChange["status"] = true;
             canvas.clear().render();
             $(document).trigger('ZoomIn');
             return this;
@@ -231,12 +220,8 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
     function zoomOut () {
         // This method is called from outside this class to zoom out from a pano.
         if (!status.disableZoomOut) {
-
-            var povChange = svl.panoManager.getPovChangeStatus();
-            var pov = svl.panoViewer.getPov();
-
+            const pov = svl.panoViewer.getPov();
             setZoom(pov.zoom - 1);
-            povChange["status"] = true;
             canvas.clear().render();
             $(document).trigger('ZoomOut');
             return this;

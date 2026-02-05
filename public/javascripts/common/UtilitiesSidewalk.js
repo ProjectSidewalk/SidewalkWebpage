@@ -410,6 +410,10 @@ function UtilitiesMisc (JSON) {
                     'hard to reach buttons': {
                         keyChar: 'R',
                         text: i18next.t('center-ui.context-menu.tag.hard-to-reach-buttons')
+                    },
+                    'yellow box, accessibility features not visible': {
+                        keyChar: 'Z',
+                        text: i18next.t('center-ui.context-menu.tag.yellow-box-accessibility-features-not-visible')
                     }
                 }
             },
