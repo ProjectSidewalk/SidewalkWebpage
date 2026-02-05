@@ -14,7 +14,6 @@ class GsvViewer extends PanoViewer {
     async initialize(canvasElem, panoOptions = {}) {
         const { LatLng } = await google.maps.importLibrary('core');
         const { StreetViewService, StreetViewPanorama } = await google.maps.importLibrary('streetView');
-        const STREETVIEW_MAX_DISTANCE = 40; // TODO use this?
         this.streetViewService = await new StreetViewService();
 
         // Set GSV panorama options.

@@ -32,6 +32,7 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
 
     /**
      * Initializes panoViewer on the Explore page, sets it to the starting location, and sets up listeners.
+     * @returns {Promise<void>}
      * @private
      */
     async function _init() {
@@ -70,7 +71,7 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
         svl.panoViewer.addListener('pov_changed', _handlerPovChange);
 
         // Adds event listeners to the navigation arrows.
-        $('#arrow-group').on('click', (event) => {
+        svl.ui.streetview.navArrows.on('click', (event) => {
             event.stopPropagation();
             const targetPanoId = event.target.getAttribute('pano-id');
             if (targetPanoId) svl.navigationService.moveToPano(event.target.getAttribute('pano-id'));
@@ -103,6 +104,7 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
     /**
      * Refreshes all views for the new pano and saves historic pano metadata.
      * @param {PanoData} panoData The PanoData extracted from the PanoViewer when loading the pano
+     * @returns {Promise<void>}
      * @private
      */
     async function _panoSuccessCallback(panoData) {
@@ -122,7 +124,8 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
         if (svl.minimap) svl.minimap.setMinimapLocation(panoLatLng);
         if (svl.peg) svl.peg.setLocation(panoLatLng);
 
-        if (svl.canvas) { // TODO this if statement is new, need to decide when each thing is initialized.
+        // Rerender the canvas.
+        if (svl.canvas) {
             svl.canvas.clear();
             svl.canvas.setOnlyLabelsOnPanoAsVisible(panoId);
             svl.canvas.render();
@@ -143,13 +146,17 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
         return Promise.resolve();
     }
 
-    // TODO I'd like to pass the pano ID or lat/lng in to here if possible?
-    async function _setPanoFailureCallback(error) {
-        // svl.tracker.push('PanoId_NotFound', { 'TargetPanoId': panoId });
-        console.error('failed to load pano!', error);
-        // TODO is there anything that we need to log here? Or should we just remove this callback entirely?
-        // - NavigationService will handle marking streets as having no imagery, etc.
-        return Promise.resolve();
+    /**
+     * Log an error if the pano isn't found. This shouldn't really happen since we only go to connected panos.
+     * @param {Error} error
+     * @param {string} panoId
+     * @returns {Promise<void>}
+     * @private
+     */
+    async function _setPanoFailureCallback(error, panoId) {
+        svl.tracker.push('PanoId_NotFound', { 'TargetPanoId': panoId });
+        console.error(`failed to load pano ${panoId}!`, error);
+        throw error;
     }
 
     /**
@@ -175,7 +182,7 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
         }
 
         google.maps.event.removeListener(linksListener);
-    }
+    };
 
     function hideNavArrows() {
         $('#nav-arrows-container').hide();
@@ -200,8 +207,7 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
      * Removes old navigation arrows and creates new ones based on available links from the current pano.
      */
     function resetNavArrows() {
-        // TODO arrowGroup should be stored in svl.ui.
-        const arrowGroup = document.getElementById('arrow-group');
+        const arrowGroup = svl.ui.streetview.navArrows[0];
 
         // Clear existing arrows.
         while (arrowGroup.firstChild) {
@@ -250,29 +256,28 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
      * Callback for pov update.
      */
     function _handlerPovChange() {
-        // TODO I don't like checking if things are initialized yet.
         if (svl.canvas) updateCanvas();
         if (svl.compass) svl.compass.update();
         if (svl.observedArea) svl.observedArea.update();
 
-        const arrowGroup = document.getElementById('arrow-group');
+        const arrowGroup = svl.ui.streetview.navArrows[0];
         const heading = svl.panoViewer.getPov().heading;
         arrowGroup.setAttribute('transform', `rotate(${-heading})`);
 
-        svl.tracker.push("POV_Changed");
+        svl.tracker.push('POV_Changed');
     }
 
     /**
      * Sets the panorama ID. Adds a callback function that will record pano metadata and update the date text field.
-     * @param panoId    String representation of the Panorama ID
+     * @param {string} panoId String representation of the Panorama ID
      */
     async function setPanorama(panoId) {
-        return svl.panoViewer.setPano(panoId).then(_panoSuccessCallback, _setPanoFailureCallback);
+        return svl.panoViewer.setPano(panoId).then(_panoSuccessCallback, (err) => _setPanoFailureCallback(err, panoId));
     }
 
     /**
      * Sets the panorama ID. Adds a callback function that will record pano metadata and update the date text field.
-     * @param latLng An object with properties lat and lng representing the desired location.
+     * @param {{lat: number, lng: number}} latLng The desired location to move to.
      * @param {Set<string>} [excludedPanos=new Set()] Set of pano IDs that are not valid images to move to.
      */
     async function setLocation(latLng, excludedPanos = new Set()) {
@@ -282,7 +287,7 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
 
     /**
      * Sets the zoom level for this panorama.
-     * @param zoom  Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
+     * @param {number} zoom Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
      */
     function setZoom(zoom) {
         const currPov = svl.panoViewer.getPov();
@@ -322,8 +327,8 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
 
     /**
      * Update POV of the image as a user drags their mouse cursor.
-     * @param dx
-     * @param dy
+     * @param {number} dx
+     * @param {number} dy
      */
     function updatePov(dx, dy) {
         let pov = svl.panoViewer.getPov();
@@ -337,8 +342,8 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
     /**
      * Changes the image pov. If a transition duration is given, smoothly updates the pov over that time.
      * @param {{heading: number, pitch: number, zoom: number}} pov Target pov
-     * @param durationMs Transition duration in milliseconds
-     * @param callback Callback function executed after updating pov.
+     * @param {number} durationMs Transition duration in milliseconds
+     * @param {function} callback Callback function executed after updating pov.
      * @returns {setPov}
      */
     function setPov(pov, durationMs, callback) {
@@ -396,12 +401,12 @@ async function PanoManager (panoViewerType, viewerAccessToken, params = {}, erro
 
     /**
      * Set the minimum and maximum heading angle that users can adjust the Street View camera.
-     * @param range
+     * @param {{min: number, max: number}} range The acceptable heading range
      * @returns {setHeadingRange}
      */
     function setHeadingRange(range) {
-        properties.minHeading = range[0];
-        properties.maxHeading = range[1];
+        properties.minHeading = range.min;
+        properties.maxHeading = range.max;
         return this;
     }
 

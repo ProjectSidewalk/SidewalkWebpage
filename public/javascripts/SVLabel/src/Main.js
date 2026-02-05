@@ -435,6 +435,7 @@ function Main (params) {
         svl.ui.streetview.pano = $("div#pano");
         svl.ui.streetview.viewControlLayer = $("div#view-control-layer");
         svl.ui.streetview.modeSwitchWalk = $("#mode-switch-button-walk");
+        svl.ui.streetview.navArrows = $("#arrow-group");
         svl.ui.streetview.dateHolder = $("#svl-panorama-date-holder");
         svl.ui.streetview.date = $("#svl-panorama-date");
 

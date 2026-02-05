@@ -35,9 +35,10 @@ class PanoViewer {
 
     /**
      * Initializes the panorama viewer with the given canvas element and options.
-     * TODO note that either a startPanoId or startLatLng is required.
-     * @param canvasElem
-     * @param panoOptions
+     * @param {Element} canvasElem
+     * @param {object} panoOptions Object containing initialization options
+     * @param {string} [panoOptions.startPanoId] Pano to start at; either this or startLatLng is required
+     * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Location to start at; either this or startLatLng is required
      * @returns {Promise<void>}
      */
     async initialize(canvasElem, panoOptions = {}) {
@@ -83,7 +84,7 @@ class PanoViewer {
 
     /**
      * Gets the lat/lng location of the current panorama.
-     * @returns {Object} The current location with lat and lng properties.
+     * @returns {{lat: number, lng: number}} The current location with lat and lng properties.
      */
     getPosition() {
         throw new Error('getPov() must be implemented by subclass');
@@ -91,7 +92,7 @@ class PanoViewer {
 
     /**
      * Sets the panorama to the location closest to the specified lat/lng.
-     * @param latLng An object with properties lat and lng representing the desired location.
+     * @param {{lat: number, lng: number}} latLng The desired location to move to.
      * @param {Set<string>} [excludedPanos=new Set()] Set of pano IDs that are not valid images to move to.
      * @returns {Promise<Object>} The panorama data object. Rejects if closest image is in excludedPanos or none found.
      */
@@ -118,7 +119,7 @@ class PanoViewer {
 
     /**
      * Gets the current point of view (POV) of the panorama.
-     * @returns {Object} The current POV with heading, pitch, and zoom properties.
+     * @returns {{heading: number, pitch: number, zoom: number}} The current POV.
      */
     getPov() {
         throw new Error('getPov() must be implemented by subclass');

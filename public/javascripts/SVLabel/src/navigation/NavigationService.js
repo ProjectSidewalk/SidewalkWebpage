@@ -35,7 +35,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
 
     /**
      * Disable walking thoroughly and indicate that user is moving.
-     * TODO should we be hiding the arrows for the full delay or no? Don't want users to click on them, but don't want it all to feel slow to load
      */
     function timeoutWalking() {
         svl.panoManager.hideNavArrows();
@@ -96,7 +95,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
 
     /**
      * This method returns a value of a specified property.
-     * @param prop
+     * @param {string} prop The property you want to get
      * @returns {*}
      */
     function getProperty(prop) {
@@ -141,6 +140,10 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         }
     }
 
+    /**
+     *
+     * @param {Mission} mission The mission to associate the current task to.
+     */
     function finishCurrentTaskBeforeJumping(mission) {
         mission = mission || missionJump;
 
@@ -209,15 +212,22 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         }
     }
 
-    // Todo. Wrote this ad-hoc. Clean up and test later.
+    /**
+     * Adds a callback that is called whenever a successful move occurs.
+     * @param {function} callback
+     */
     function bindPositionUpdate(callback) {
         if (typeof callback == 'function') {
             positionUpdateCallbacks.push(callback);
         }
     }
 
+    /**
+     * Remove the given callback function from the list of callbacks that are used on a successful move.
+     * @param {function} callback
+     */
     function unbindPositionUpdate(callback) {
-        var callbackIndex = positionUpdateCallbacks.indexOf(callback);
+        const callbackIndex = positionUpdateCallbacks.indexOf(callback);
         if (callbackIndex >= 0) {
             positionUpdateCallbacks.splice(callbackIndex, 1);
         }
@@ -384,7 +394,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
 
     /**
      * Move to the linked pano closest to the given heading angle.
-     * @param heading The user's heading in degrees
+     * @param {number} heading The user's heading in degrees
      * @returns {Promise<Awaited<boolean>>}
      */
     async function moveToLinkedPano(heading) {
@@ -409,8 +419,8 @@ function NavigationService (neighborhoodModel, uiStreetview) {
 
     /**
      * Move to a specific pano ID.
-     * @param panoId
-     * @param force
+     * @param {string} panoId The string ID of the pano that we want to move to.
+     * @param {boolean} [force] If true, force a move to the pano despite walking being disabled. Used in tutorial.
      * @returns {Promise<Awaited<boolean>>}
      */
     async function moveToPano(panoId, force) {
@@ -418,24 +428,16 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         if (status.disableWalking && !force) return Promise.resolve(false);
 
         _updateUiBeforeMove();
-
         await svl.panoManager.setPanorama(panoId);
-
         _updateUiAfterMove();
-
-        // TODO I need to double check what this is about... We shouldn't need something like this.
-        // Additional check to hide arrows after the fact. Pop-up may become visible during timeout period.
-        if (svl.popUpMessage.getStatus('isVisible')){
-            svl.panoManager.hideNavArrows();
-        }
 
         return Promise.resolve(true);
     }
 
     /**
      * This function sets the current status of the instantiated object.
-     * @param key
-     * @param value
+     * @param {string} key That status that needs to be set
+     * @param {*} value The value to set that status to
      * @returns {*}
      */
     function setStatus(key, value) {

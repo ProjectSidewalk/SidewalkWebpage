@@ -555,7 +555,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
 
             if (state.properties.constructor === Array) {
                 // Restrict panning.
-                svl.panoManager.setHeadingRange([state.properties[0].minHeading, state.properties[0].maxHeading]);
+                svl.panoManager.setHeadingRange({ min: state.properties[0].minHeading, max: state.properties[0].maxHeading });
 
                 // Ideally we need a for loop that goes through every element of the property array and calls the
                 // corresponding action's handler. Not just the label accessibility attribute's handler.
@@ -565,7 +565,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             }
             else {
                 // Restrict panning.
-                svl.panoManager.setHeadingRange([state.properties.minHeading, state.properties.maxHeading]);
+                svl.panoManager.setHeadingRange({ min: state.properties.minHeading, max: state.properties.maxHeading });
                 if (state.properties.action === "Introduction") {
                     _visitIntroduction(state, annotationListener);
                 } else if (state.properties.action === "SelectLabelType" || state.properties.action === "RedoSelectLabelType") {
@@ -627,7 +627,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             svl.ui.compass.messageHolder.off('click', clickToNextPano);
             svl.ui.compass.messageHolder.css('cursor', 'default');
             svl.panoManager.lockShowingNavArrows();
-            $('#arrow-group').off('click', callback);
+            svl.ui.streetview.navArrows.off('click', callback);
             if (listener) google.maps.event.removeListener(listener);
             next(state.transition);
         };
@@ -638,7 +638,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         }
 
         navigationService.unlockDisableWalking().enableWalking().lockDisableWalking();
-        $('#arrow-group').off('click').on('click', clickToNextPano);
+        svl.ui.streetview.navArrows.off('click').on('click', clickToNextPano);
         svl.ui.compass.messageHolder.on('click', clickToNextPano);
         svl.ui.compass.messageHolder.css('cursor', 'pointer');
 

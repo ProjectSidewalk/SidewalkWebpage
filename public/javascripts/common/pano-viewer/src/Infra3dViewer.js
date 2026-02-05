@@ -41,7 +41,7 @@ class Infra3dViewer extends PanoViewer {
         panoOpts = { ...panoOpts, ...panoOptions };
 
         // Initialize the viewer.
-        // TODO sometimes initViewer fails and idk how to catch the error. Refresh page if not done after 10 seconds.
+        // Sometimes initViewer fails and idk how to catch the error. Refresh page if not done after 10 seconds.
         this.viewer = await Promise.race([
             manager.initViewer(panoOpts),
             new Promise((_, reject) => setTimeout(() => reject('timeout'), 10000))
@@ -109,8 +109,8 @@ class Infra3dViewer extends PanoViewer {
     //         });
     //     });
     //
-    //     // TODO We'll have to do the radius check GSV does ourselves. Though we should always have imagery now...
-    //     //      And can we get that info from the KNN data..?
+    //     // TODO We should be checking if the new location is within STREETVIEW_MAX_DISTANCE. But we always have imagery
+    //     //      in the zurich test city, so this should never be a problem. But can we get that info from the KNN data?
     //     return closestPano.then(this.setPano);
     // };
 
