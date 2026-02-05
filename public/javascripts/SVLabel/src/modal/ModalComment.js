@@ -6,10 +6,9 @@
  * @param taskContainer
  * @param uiLeftColumn
  * @param uiModalComment
- * @param onboardingModel
  * @constructor
  */
-function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, onboardingModel) {
+function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment) {
     let self = this;
     let status = {
         disableClickOK: true
@@ -21,10 +20,6 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
 
     // Initializing feedback popover
     _uiLeftColumn.feedback.popover();
-
-    onboardingModel.on("Onboarding:startOnboarding", function () {
-        self.hide();
-    });
 
     /**
      * Blink the feedback button on the left

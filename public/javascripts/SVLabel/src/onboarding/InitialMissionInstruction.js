@@ -1,140 +1,100 @@
 function InitialMissionInstruction(compass, navigationService, popUpMessage, taskContainer, labelContainer, aiGuidance, tracker) {
-    var self = this;
-    var initialHeading;
-    var lookingAroundInterval;
-    var overallAngleViewed = 0;
-    var initialPanoId;
-    var maxAngleMousePan = 135; //TODO - Once panorama is resizable, the max panning angle needs to be updated
+    let lookingAroundInterval;
+    let initialPanoId;
 
-    this._finishedInstructionToStart = function () {
-        if (!svl.isOnboarding()) {
-            navigationService.bindPositionUpdate(self._instructToCheckSidewalks);
+    /**
+     * Instruct a user to audit both sides of the streets once they have walked for 100 meters.
+     * @private
+     */
+    const _instructToCheckSidewalks = () => {
+        const distance = taskContainer.getCompletedTaskDistance({ units: 'meters' });
+        if (distance >= 100) {
+            tracker.push('PopUpShow_CheckBothSides');
+            const title = i18next.t('popup.both-sides-title');
+            const message = i18next.t('popup.both-sides-body');
+            const width = '450px';
+            const height = '291px';
+            const x = '50px';
+            const image = '/assets/images/examples/lookaround-example.gif';
 
-            // Show AI guidance message for the current street.
-            aiGuidance.showAiGuidanceMessage();
-        }
-    };
-
-    this._instructToCheckSidewalks = function () {
-        if (!svl.isOnboarding()) {
-            // Instruct a user to audit both sides of the streets once they have walked for 100 meters.
-            var distance = taskContainer.getCompletedTaskDistance({units: 'kilometers'});
-            if (distance >= 0.1) {
-                var title = i18next.t('popup.both-sides-title');
-                var message = i18next.t('popup.both-sides-body');
-                var width = '450px';
-                var height = '291px';
-                var x = '50px';
-                var image = "/assets/images/examples/lookaround-example.gif";
-                tracker.push('PopUpShow_CheckBothSides');
-
-                popUpMessage.notifyWithImage(title, message, image, width, height, x, function() {
-                    navigationService.unbindPositionUpdate(self._instructToCheckSidewalks);
-                    navigationService.bindPositionUpdate(self._instructForLabelDisappearing);
-                });
-            }
-        }
-    };
-
-    this._finishedInstructionForLabelDisappearing = function () {
-        svl.minimap.stopBlinkingMinimap();
-
-        if (!svl.isOnboarding()) {
-            navigationService.unbindPositionUpdate(self._instructForLabelDisappearing);
-        }
-    };
-
-    this._instructForLabelDisappearing = function () {
-        if (!svl.isOnboarding()) {
-            // Instruct the user about labels disappearing when they have labeled and walked for the first time
-            var labels = labelContainer.getAllLabels();
-            var labelCount = labels.length;
-            var nOnboardingLabels = 7;
-            if (labelCount > 0) {
-                if (svl.missionContainer.isTheFirstMission() && labelCount !== nOnboardingLabels) {
-                    var title = i18next.t('popup.labels-disappear-title');
-                    var message = i18next.t('popup.labels-disappear-body');
-                    tracker.push('PopUpShow_LabelDisappear');
-
-                    popUpMessage.notify(title, message, self._finishedInstructionForLabelDisappearing);
-                    svl.minimap.blinkMinimap();
-                }
-            }
-        }
-    };
-
-    this._instructToFollowTheGuidance = function () {
-        if (!svl.isOnboarding()) {
-            var title = i18next.t('popup.step-title');
-            var message = i18next.t('popup.step-body');
-            tracker.push('PopUpShow_LookAroundIntersection');
-
-            popUpMessage.notify(title, message, function () {
-                self._stopBlinkingNavigationComponents();
+            // Send the notification. After they click OK, get ready to notify them about disappearing labels.
+            popUpMessage.notifyWithImage(title, message, image, width, height, x, () => {
+                navigationService.unbindPositionUpdate(_instructToCheckSidewalks);
+                navigationService.bindPositionUpdate(_instructForLabelDisappearing);
             });
-            compass.blink();
+        }
+    };
+
+    /**
+     * Instruct the user about labels disappearing when they have labeled and walked for the first time.
+     * @private
+     */
+    const _instructForLabelDisappearing = () => {
+        if (labelContainer.getAllLabels().length > 0) {
+            tracker.push('PopUpShow_LabelDisappear');
+            const title = i18next.t('popup.labels-disappear-title');
+            const message = i18next.t('popup.labels-disappear-body');
+            popUpMessage.notify(title, message, () => {
+                svl.minimap.stopBlinkingMinimap();
+                navigationService.unbindPositionUpdate(_instructForLabelDisappearing);
+            });
             svl.minimap.blinkMinimap();
         }
     };
-    /*
-    This function calculates raw difference in angle relative to previous heading angle.
+
+    /**
+     * Shows the popup that tells the user to follow the line on the minimap if they spun in a circle at start.
+     * @private
      */
-    this._transformAngle = function (angle) {
-        var difference = angle - initialHeading;
-        //135 is max degree swipe in panorama
-        //if an impossible raw difference is calculated
-        if (Math.abs(difference) >= maxAngleMousePan){
-            //calculate difference in other direction of rotation
-            if (initialHeading > 180){
-                difference = 360 - initialHeading + angle;
-            }
-            else{
-                difference = -360 + angle - initialHeading;
-            }
-        }
+    const _instructToFollowTheGuidance = () => {
+        tracker.push('PopUpShow_LookAroundIntersection');
 
-        return difference;
+        const title = i18next.t('popup.step-title');
+        const message = i18next.t('popup.step-body');
+        popUpMessage.notify(title, message, () => {
+            compass.stopBlinking();
+            svl.minimap.stopBlinkingMinimap();
+        });
+        compass.blink();
+        svl.minimap.blinkMinimap();
     };
 
-    this._pollLookingAroundHasFinished = function () {
-
-        //check the panoId to make sure the user hasn't walked
-        if (svl.panoViewer.getPanoId() == initialPanoId) {
-            var currentHeadingAngle = svl.panoViewer.getPov().heading;
-            var transformedCurrent = self._transformAngle(currentHeadingAngle);
-
-            // An explanation of why/how this code was changed to fix a bug can be found here:
-            // https://github.com/ProjectSidewalk/SidewalkWebpage/pull/398#issuecomment-259284249
-            overallAngleViewed = overallAngleViewed + transformedCurrent;
-            initialHeading = currentHeadingAngle; //update heading angle previous
-
-            //Absolute value of total angle viewed by user is more than 330 degrees
-            if (Math.abs(overallAngleViewed) >= 330) {
+    /**
+     * Adds an instruction to make sure users know how to move. If they pan all the way around, show them.
+     * @private
+     */
+    const _pollLookingAroundHasFinished = () => {
+        // Check the panoId to make sure the user hasn't walked.
+        if (svl.panoViewer.getPanoId() === initialPanoId) {
+            // If the user has seen the entire panorama, show a notif explaining how to move.
+            if (svl.observedArea.getFractionObserved() === 1) {
                 clearInterval(lookingAroundInterval);
-                self._instructToFollowTheGuidance();
+                _instructToFollowTheGuidance();
             }
+        } else {
+            // If they've already moved successfully, stop continuously checking for this.
+            clearInterval(lookingAroundInterval);
         }
     };
 
-    this._stopBlinkingNavigationComponents = function () {
-        compass.stopBlinking();
-        svl.minimap.stopBlinkingMinimap();
+    /**
+     * Shows the starter notification when you begin your first mission.
+     * @param {Neighborhood} neighborhood
+     */
+    this.start = (neighborhood) => {
+        tracker.push('PopUpShow_LetsGetStarted');
+
+        const title = i18next.t('popup.start-title');
+        const message = i18next.t(
+            'popup.start-body', { neighborhood: neighborhood.getProperty('name'), city: svl.cityNameShort }
+        );
+        popUpMessage.notify(title, message, () => {
+            navigationService.bindPositionUpdate(_instructToCheckSidewalks);
+            aiGuidance.showAiGuidanceMessage(); // Show AI guidance message for the current street.
+        });
+
+        // If the user looks nearly 360 degrees, show a notification explaining how to move.
+        initialPanoId = svl.panoViewer.getPanoId();
+        lookingAroundInterval = setInterval(_pollLookingAroundHasFinished, 50);
     };
-
-    this.start = function (neighborhood) {
-        if (!svl.isOnboarding()) {
-            var title = i18next.t('popup.start-title');
-            var message = i18next.t('popup.start-body',
-                { neighborhood: neighborhood.getProperty("name"), city: svl.cityNameShort });
-            tracker.push('PopUpShow_LetsGetStarted');
-
-            popUpMessage.notify(title, message, self._finishedInstructionToStart);
-
-            initialHeading = svl.panoViewer.getPov().heading;
-            // lastHeadingTransformed = self._transformAngle(svl.panoViewer.getPov().heading);
-            initialPanoId = svl.panoViewer.getPanoId();
-            lookingAroundInterval = setInterval(self._pollLookingAroundHasFinished, 1);
-        }
-    };
-
 }

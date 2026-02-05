@@ -24,7 +24,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
     /**
      * End the current task.
      */
-    function endTask(task, nextTask) {
+    function endTask(task) {
         if (tracker) tracker.push("TaskEnd");
         task.complete();
         // Go through the tasks and mark the completed task as isComplete=true.
@@ -52,8 +52,6 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
 
         // Updates the segments that the user has already explored.
         self.updateCurrentTask();
-        // Renders the next street that the user will explore.
-        if (nextTask) nextTask.render();
 
         return task;
     }
@@ -144,11 +142,11 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
 
     /**
      * Get the total distance of completed segments.
-     * @params {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
+     * @params {{units: string}} [units] Object with field 'units' holding distance unit, default to 'kilometers'
      * @returns {number} distance in unit.
      */
-    function getCompletedTaskDistance(unit) {
-        if (!unit) unit = { units: i18next.t('common:unit-distance') };
+    function getCompletedTaskDistance(units) {
+        if (!units) units = { units: i18next.t('common:unit-distance') };
         const completedTasks = getCompletedTasks()
         let feature;
         let distance = 0;
@@ -156,10 +154,10 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
         if (completedTasks) {
             for (let i = 0, len = completedTasks.length; i < len; i++) {
                 feature = completedTasks[i].getGeoJSON();
-                distance += turf.length(feature, unit);
+                distance += turf.length(feature, units);
             }
         }
-        if (!currentTask.isComplete()) distance += getCurrentTaskDistance(unit);
+        if (!currentTask.isComplete()) distance += getCurrentTaskDistance(units);
 
         return distance;
     }

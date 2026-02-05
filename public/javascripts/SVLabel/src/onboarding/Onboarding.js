@@ -10,7 +10,6 @@
  * @param missionContainer
  * @param modalComment
  * @param leftMenu
- * @param onboardingModel
  * @param onboardingStates
  * @param ribbon
  * @param statusField
@@ -26,8 +25,8 @@
  * @constructor
  */
 function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationService, missionContainer, modalComment,
-                    leftMenu, onboardingModel, onboardingStates, ribbon, statusField, tracker, canvas, uiCanvas,
-                    contextMenu, uiOnboarding, uiLeft, user, zoomControl) {
+                    leftMenu, onboardingStates, ribbon, statusField, tracker, canvas, uiCanvas, contextMenu,
+                    uiOnboarding, uiLeft, user, zoomControl) {
     var self = this;
     var ctx;
     var blink_timer = 0;
@@ -93,8 +92,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
 
         _visit(getState("initialize"));
         handAnimation.initializeHandAnimation();
-
-        onboardingModel.triggerStartOnboarding();
     };
 
     /**

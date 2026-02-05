@@ -52,7 +52,6 @@ function Main (params) {
         svl.missionModel = new MissionModel();
         svl.gameEffectModel = new GameEffectModel();
         svl.statusModel = new StatusModel();
-        svl.onboardingModel = new OnboardingModel();
 
         svl.alert = new Alert();
         svl.stuckAlert = new StuckAlert(svl.alert);
@@ -130,7 +129,7 @@ function Main (params) {
         } else {
             svl.tracker.initTaskId();
         }
-        svl.popUpMessage = new PopUpMessage(svl.form, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
+        svl.popUpMessage = new PopUpMessage(svl.form, svl.taskContainer, svl.tracker, svl.user, svl.ui.popUpMessage);
         svl.aiGuidance = new AiGuidance(svl.tracker, svl.popUpMessage);
 
         // Logs when the page's focus changes.
@@ -154,10 +153,10 @@ function Main (params) {
         var modalMissionCompleteProgressBar = new ModalMissionCompleteProgressBar(svl.ui.modalMissionComplete);
         svl.modalMissionComplete = new ModalMissionComplete(svl, svl.missionContainer, svl.missionModel,
             svl.taskContainer, modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete,
-            svl.modalModel, svl.statusModel, svl.onboardingModel);
+            svl.modalModel, svl.statusModel);
         svl.modalMissionComplete.hide();
 
-        svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
+        svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment);
         svl.leftMenu = new LeftMenu(svl.ui.leftColumn, svl.tracker, svl.navigationService, svl.stuckAlert);
 
         svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, svl.panoViewer, svl.panoViewer.getPosition,
@@ -277,9 +276,9 @@ function Main (params) {
 
         if (!("onboarding" in svl && svl.onboarding)) {
             svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation,
-                svl.navigationService, svl.missionContainer, svl.modalComment, svl.leftMenu, svl.onboardingModel,
-                onboardingStates, svl.ribbon, svl.statusField, svl.tracker, svl.canvas, svl.ui.canvas, svl.contextMenu,
-                svl.ui.onboarding, svl.ui.leftColumn, svl.user, svl.zoomControl);
+                svl.navigationService, svl.missionContainer, svl.modalComment, svl.leftMenu, onboardingStates,
+                svl.ribbon, svl.statusField, svl.tracker, svl.canvas, svl.ui.canvas, svl.contextMenu, svl.ui.onboarding,
+                svl.ui.leftColumn, svl.user, svl.zoomControl);
         }
         svl.onboarding.start();
     }

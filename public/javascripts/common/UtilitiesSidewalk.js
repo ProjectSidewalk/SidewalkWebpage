@@ -492,7 +492,7 @@ function UtilitiesMisc (JSON) {
      *      call this function if PanoViewer fails to load...
      */
     async function reportNoImagery(task, missionId) {
-        console.error("Imagery missing for a large portion of street: " + currentTask.getStreetEdgeId());
+        console.error("Imagery missing for a large portion of street: " + task.getStreetEdgeId());
         const reversed = task.getProperty("startPointReversed");
         const data = {
             audit_task: {

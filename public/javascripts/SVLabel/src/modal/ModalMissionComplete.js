@@ -9,13 +9,11 @@
  * @param uiModalMissionComplete
  * @param modalModel
  * @param statusModel
- * @param onboardingModel
  * @returns {{className: string}}
  * @constructor
  */
 function ModalMissionComplete (svl, missionContainer, missionModel, taskContainer, modalMissionCompleteMap,
-                               modalMissionProgressBar, uiModalMissionComplete, modalModel, statusModel,
-                               onboardingModel) {
+                               modalMissionProgressBar, uiModalMissionComplete, modalModel, statusModel) {
     var self = this;
     var _missionModel = missionModel;
     var _missionContainer = missionContainer;
@@ -62,10 +60,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 
     _modalModel.on("ModalMissionComplete:one", function (parameters) {
         self.one(parameters.uiComponent, parameters.eventType, parameters.callback);
-    });
-
-    onboardingModel.on("Onboarding:startOnboarding", function () {
-        self.hide();
     });
 
     _missionModel.on("MissionProgress:complete", function (parameters) {

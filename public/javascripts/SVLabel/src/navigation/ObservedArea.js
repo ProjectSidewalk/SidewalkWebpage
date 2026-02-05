@@ -122,6 +122,10 @@ function ObservedArea(uiMinimap) {
         progressCircleCtx.stroke();
     }
 
+    this.getFractionObserved = () => {
+        return fractionObserved;
+    }
+
     /**
      * Updates everything relevant to the user's observed area.
      */

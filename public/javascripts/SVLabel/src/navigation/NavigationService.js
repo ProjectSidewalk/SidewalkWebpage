@@ -141,12 +141,12 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         }
     }
 
-    function finishCurrentTaskBeforeJumping(mission, nextTask) {
+    function finishCurrentTaskBeforeJumping(mission) {
         mission = mission || missionJump;
 
         // Finish the current task.
         const currentTask = svl.taskContainer.getCurrentTask();
-        svl.taskContainer.endTask(currentTask, nextTask);
+        svl.taskContainer.endTask(currentTask);
         mission.pushATaskToTheRoute(currentTask);
     }
 
@@ -185,12 +185,13 @@ function NavigationService (neighborhoodModel, uiStreetview) {
             // route/neighborhood. If either is the case, let the user know to label the location before proceeding.
             if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()
                 || !nextTask
-                || !task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, 'kilometers', true)) {
+                || !task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, { units: 'kilometers' })) {
 
                 // If we are out of streets, set the route/neighborhood as complete.
                 if (!nextTask) {
                     svl.neighborhoodModel.setComplete();
-                } else if (!task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD)) {
+                    // TODO should maybe trigger wrapUpRouteOrNeighborhood?
+                } else if (!task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, { units: 'kilometers' })) {
                     // If jumping to a new place, record what the next task will be.
                     svl.taskContainer.setNextTaskAfterJump(nextTask);
                 }
@@ -201,7 +202,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
                 setLabelBeforeJumpState(true);
             } else {
                 // If there is another contiguous task, end the current one and show the next one.
-                svl.taskContainer.endTask(task, nextTask);
+                svl.taskContainer.endTask(task);
                 mission.pushATaskToTheRoute(task);
                 svl.taskContainer.setCurrentTask(nextTask);
             }
@@ -290,7 +291,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         // Calling callbacks from outside NavigationService after a move (things like first mission popups).
         for (let i = 0, len = positionUpdateCallbacks.length; i < len; i++) {
             const callback = positionUpdateCallbacks[i];
-            if (typeof callback == 'function') {
+            if (typeof callback === 'function') {
                 callback();
             }
         }
@@ -465,7 +466,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
 
     self.disableWalking = disableWalking;
     self.enableWalking = enableWalking;
-    self.finishCurrentTaskBeforeJumping = finishCurrentTaskBeforeJumping;
     self.jumpToANewTask = jumpToANewTask;
     self.getLabelBeforeJumpState = getLabelBeforeJumpState;
     self.getProperty = getProperty;
