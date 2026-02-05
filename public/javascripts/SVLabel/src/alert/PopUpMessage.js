@@ -108,9 +108,7 @@ function PopUpMessage (form, taskContainer, tracker, user, uiPopUpMessage) {
         const task = taskContainer.getCurrentTask();
 
         // Add the 'Sign up' button.
-        // TODO change the text to just say sign up.
-        // const signUpHtml = `<button id="pop-up-message-sign-up-button">${i18next.t('popup.signup-button-signup')}</button>`;
-        const signUpHtml = `<button id="pop-up-message-sign-up-button">Sign up</button>`;
+        const signUpHtml = `<button id="pop-up-message-sign-up-button">${i18next.t('common:sign-up')}</button>`;
         const signUpCallback = () => {
             tracker.push('PopUpMessage_SignUpClickYes', {
                 "auditTaskId": task.getAuditTaskId(),
@@ -124,9 +122,7 @@ function PopUpMessage (form, taskContainer, tracker, user, uiPopUpMessage) {
         _appendButton(signUpHtml, signUpCallback);
 
         // Add the 'Sign in' button.
-        // TODO change button text.
-        // const signInHtml = `<button id="pop-up-message-sign-in-button">${i18next.t('popup.signup-button-signin')}</button>`;
-        const signInHtml = `<button id="pop-up-message-sign-in-button">Sign in</button>`;
+        const signInHtml = `<button id="pop-up-message-sign-in-button">${i18next.t('common:sign-in')}</button>`;
         const signInCallback = () => {
             tracker.push('PopUpMessage_SignInClick', {
                 "auditTaskId": task.getAuditTaskId(),
@@ -140,7 +136,7 @@ function PopUpMessage (form, taskContainer, tracker, user, uiPopUpMessage) {
         _appendButton(signInHtml, signInCallback);
 
         // Add the 'No' button.
-        const noHtml = `<button id="pop-up-message-cancel-button">${i18next.t('popup.signup-button-no')}</button>`;
+        const noHtml = `<button id="pop-up-message-cancel-button">${i18next.t('common:no')}</button>`;
         const noCallback = () => {
             tracker.push('PopUpMessage_SignUpClickNo', {
                 "auditTaskId": task.getAuditTaskId(),

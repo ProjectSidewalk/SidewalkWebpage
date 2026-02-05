@@ -20,6 +20,8 @@
     "signal": "Pedestrian Signal",
     "other": "Other",
     "surface-problems": "Surface Problems",
+    "sign-up": "Sign up",
+    "sign-in": "Sign in",
     "complete": "complete",
     "map": {
         "distance-left": "Only {{n}} kilometers left!",
