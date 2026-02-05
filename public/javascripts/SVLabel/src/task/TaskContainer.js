@@ -21,36 +21,6 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
         return tasksFinishedLoading;
     }
 
-    self.getFinishedAndInitNextTask = async function(finished) {
-        const newTask = self.nextTask(finished);
-        if (!newTask) {
-            svl.neighborhoodModel.setComplete();
-        } else {
-            await svl.taskContainer.initNextTask(newTask);
-        }
-        return newTask;
-    };
-
-    self.initNextTask = async function(nextTaskIn) {
-        svl.navigationService.disableWalking();
-        const geometry = nextTaskIn.getFeature();
-        const latLng = { lat: geometry.coordinates[0][1], lng: geometry.coordinates[0][0] };
-        await svl.panoManager.setLocation(latLng)
-            .then(() => {
-                svl.navigationService.enableWalking();
-                let beforeJumpTask = currentTask;
-                self.setCurrentTask(nextTaskIn);
-                beforeJumpTask.render();
-                nextTaskIn.render();
-                Promise.resolve();
-            }, (error) => {
-                // TODO _panoFailureCallback is reporting no imagery for currentTask's streetEdgeId instead of the one we're aiming for.
-                svl.tracker.push("PanoId_NotFound", { 'Location': JSON.stringify(latLng) });
-                nextTaskIn.complete();
-                self.getFinishedAndInitNextTask(nextTaskIn);
-            });
-    };
-
     /**
      * End the current task.
      */
