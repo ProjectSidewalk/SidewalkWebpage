@@ -127,7 +127,7 @@ module.exports = function(grunt) {
                 files: [
                     'public/javascripts/common/*.js',
                     'public/javascripts/common/*/*.js',
-                    'public/javascripts/common/*/*/*.js',
+                    'public/javascripts/common/*/src/*.js',
                     'public/javascripts/SVLabel/src/*.js',
                     'public/javascripts/SVLabel/src/**/*.js',
                     'public/javascripts/SVLabel/css/*.css',
