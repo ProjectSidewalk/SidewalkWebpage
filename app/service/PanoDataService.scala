@@ -182,7 +182,7 @@ class PanoDataServiceImpl @Inject() (
 
   def getInfra3dToken: Future[String] = {
     // Token expires after 60 minutes, so we don't need to get a new token every time.
-    cacheApi.getOrElseUpdate[String]("getInfra3dToken", Duration(30, "seconds")) {
+    cacheApi.getOrElseUpdate[String]("getInfra3dToken", Duration(30, "minutes")) {
       val clientId: String     = config.get[String]("infra3d-client-id")
       val clientSecret: String = config.get[String]("infra3d-client-secret")
       val body                 = Map(

@@ -15,6 +15,7 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.impl.exceptions.IdentityNotFoundException
+
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
