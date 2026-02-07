@@ -70,9 +70,7 @@ class Minimap {
 
         // Return a promise that resolves once the map is idle (and therefore fully initialized).
         return new Promise((resolve) => {
-            // TODO is it possible that the map could already be idle and we just never resolve this?
             const listener = google.maps.event.addListener(this.#map, 'idle', async () => {
-                console.log('map is now idle!');
                 google.maps.event.removeListener(listener);
                 resolve(this.#map);
             });

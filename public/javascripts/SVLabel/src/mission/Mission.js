@@ -1,109 +1,114 @@
 /**
- * Mission module
- * Todo. Needs clean up
- * @param parameters
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
+ * Mission objects, stores data from mission table, as well as label counts and associated tasks.
  */
-function Mission(parameters) {
-    var self = this;
-    var properties = {
-            missionId: null,
-            missionType: null,
-            regionId: null,
-            isComplete: false,
-            distance: null,
-            distanceProgress: null,
-            skipped: false
-        },
-        _tasksForTheMission = [],
-        labelCountsAtCompletion;
+class Mission {
+    #properties = {
+        missionId: null,
+        missionType: null,
+        regionId: null,
+        isComplete: false,
+        distance: null,
+        distanceProgress: null,
+        skipped: false
+    };
+    #tasksForTheMission = [];
+    #labelCountsAtCompletion;
 
-    function _init(parameters) {
-        if ("missionId" in parameters) setProperty("missionId", parameters.missionId);
-        if ("missionType" in parameters) setProperty("missionType", parameters.missionType);
-        if ("regionId" in parameters) setProperty("regionId", parameters.regionId);
-        if ("isComplete" in parameters) setProperty("isComplete", parameters.isComplete);
-        if ("distance" in parameters) setProperty("distance", parameters.distance);
-        if ("distanceProgress" in parameters) setProperty("distanceProgress", parameters.distanceProgress);
-        if ("skipped" in parameters) setProperty("skipped", parameters.skipped);
+    /**
+     * Fills in the #properties object with the data for the mission table.
+     * @param {object} params
+     * @param {number} params.missionId
+     * @param {string} params.missionType
+     * @param {number} params.regionId
+     * @param {boolean} params.isComplete
+     * @param {number} params.distance
+     * @param {number} params.distanceProgress
+     * @param {boolean} params.skipped
+     * @constructor
+     */
+    constructor(params) {
+        this.setProperty('missionId', params.missionId);
+        this.setProperty('missionType', params.missionType);
+        this.setProperty('regionId', params.regionId);
+        this.setProperty('isComplete', params.isComplete);
+        this.setProperty('distance', params.distance);
+        this.setProperty('distanceProgress', params.distanceProgress);
+        this.setProperty('skipped', params.skipped);
     }
 
     /**
      * Set the isComplete property to true.
+     * @returns {void}
      */
-    function complete() {
-        // Play the animation and audio effect after task completion.
-
-        setProperty("isComplete", true);
+    complete = () => {
+        this.setProperty('isComplete', true);
 
         // Set distanceProgress to be at most the distance for the mission, subtract the difference from the offset.
-        if (getProperty("missionType") === "audit") {
-            var distanceOver = getProperty("distanceProgress") - getProperty("distance");
-            var oldOffset = svl.missionContainer.getTasksMissionsOffset();
-            var newOffset = oldOffset - distanceOver;
+        if (this.getProperty('missionType') === 'audit') {
+            const distanceOver = this.getProperty('distanceProgress') - this.getProperty('distance');
+            const oldOffset = svl.missionContainer.getTasksMissionsOffset();
+            const newOffset = oldOffset - distanceOver;
             svl.missionContainer.setTasksMissionsOffset(newOffset);
         }
 
         // Reset the label counter
         if ('labelCounter' in svl) {
-            labelCountsAtCompletion = {
-                "CurbRamp": svl.labelCounter.countLabel("CurbRamp"),
-                "NoCurbRamp": svl.labelCounter.countLabel("NoCurbRamp"),
-                "Obstacle": svl.labelCounter.countLabel("Obstacle"),
-                "SurfaceProblem": svl.labelCounter.countLabel("SurfaceProblem"),
-                "NoSidewalk": svl.labelCounter.countLabel("NoSidewalk"),
-                "Other": svl.labelCounter.countLabel("Other")
+            this.#labelCountsAtCompletion = {
+                'CurbRamp': svl.labelCounter.countLabel('CurbRamp'),
+                'NoCurbRamp': svl.labelCounter.countLabel('NoCurbRamp'),
+                'Obstacle': svl.labelCounter.countLabel('Obstacle'),
+                'SurfaceProblem': svl.labelCounter.countLabel('SurfaceProblem'),
+                'NoSidewalk': svl.labelCounter.countLabel('NoSidewalk'),
+                'Other': svl.labelCounter.countLabel('Other')
             };
             svl.labelCounter.reset();
         }
 
-        if (!svl.isOnboarding()){
+        if (!svl.isOnboarding()) {
             svl.storage.set('completedFirstMission', true);
         }
-    }
+    };
 
     /**
      * This method returns the label count object
-     * @returns {*}
+     * @returns {object}
      */
-    function getLabelCount () {
-        return labelCountsAtCompletion;
-    }
+    getLabelCount = () => {
+        return this.#labelCountsAtCompletion;
+    };
 
     /**
      * Compute and return the mission completion rate
-     * @returns {number}
+     * @returns {number} The completion rate of the mission between 0 and 1
      */
-    function getMissionCompletionRate () {
-        updateDistanceProgress();
-        if ("taskContainer" in svl && getProperty("missionType") !== "auditOnboarding") {
-            var distanceProgress = getProperty("distanceProgress");
-            var targetDistance = getDistance('meters');
-
+    getMissionCompletionRate = () => {
+        this.updateDistanceProgress();
+        if ('taskContainer' in svl && this.getProperty('missionType') !== 'auditOnboarding') {
+            const distanceProgress = this.getProperty('distanceProgress');
+            const targetDistance = this.getDistance('meters');
             return Math.min(Math.max(distanceProgress / targetDistance, 0), 1);
         } else {
             return 0;
         }
-    }
+    };
 
     /**
      * Updates the distanceProgress for this audit mission.
+     * @returns {void}
      */
-    function updateDistanceProgress() {
-        if ("taskContainer" in svl
-            && getProperty("missionType") !== "auditOnboarding"
+    updateDistanceProgress = () => {
+        if ('taskContainer' in svl
+            && this.getProperty('missionType') !== 'auditOnboarding'
             && svl.missionContainer.getTasksMissionsOffset() !== null) {
 
-            var currentMissionCompletedDistance;
-            if (isComplete()) {
-                currentMissionCompletedDistance = getDistance("meters");
+            let currentMissionCompletedDistance;
+            if (this.isComplete()) {
+                currentMissionCompletedDistance = this.getDistance('meters');
             } else {
-                var taskDistance = util.math.kmsToMeters(svl.taskContainer.getCompletedTaskDistance({units: 'kilometers'}));
+                const taskDistance = util.math.kmsToMeters(svl.taskContainer.getCompletedTaskDistance({units: 'kilometers'}));
                 const offset = svl.missionContainer.getTasksMissionsOffset() || 0;
 
-                var missionDistance = svl.missionContainer.getCompletedMissionDistance();
+                const missionDistance = svl.missionContainer.getCompletedMissionDistance();
                 currentMissionCompletedDistance = taskDistance - missionDistance + offset;
                 // Hotfix for an issue where the mission completion distance was negative. Need to find root cause.
                 // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2120
@@ -113,78 +118,68 @@ function Mission(parameters) {
                     currentMissionCompletedDistance = 0;
                 }
             }
-            setProperty("distanceProgress", currentMissionCompletedDistance);
+            this.setProperty('distanceProgress', currentMissionCompletedDistance);
         }
-    }
+    };
 
-    /** Returns a property */
-    function getProperty (key) {
-        return key in properties ? properties[key] : null;
-    }
+    /**
+     * Returns a property
+     * @param {string} key The property being requested
+     * @returns {*|null} The value of the property, or null if no property found with that ID
+     */
+    getProperty = (key) => {
+        return key in this.#properties ? this.#properties[key] : null;
+    };
 
     /**
      * Get an array of tasks for this mission
-     * @returns {Array}
+     * @returns {Array<Task>}
      */
-    function getRoute() {
-        return _tasksForTheMission;
-    }
-
-    /**
-     * Check if the mission is completed or not
-     *
-     * @returns {boolean}
-     */
-    function isComplete () {
-        return getProperty("isComplete");
-    }
-
-    /**
-     * Push a completed task into `_tasksForTheMission`.
-     * @param task
-     */
-    function pushATaskToTheRoute(task) {
-        const streetEdgeIds = _tasksForTheMission.map((task) => task.getStreetEdgeId());
-        if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) {
-            _tasksForTheMission.push(task);
-        }
-    }
+    getRoute = () => {
+        return this.#tasksForTheMission;
+    };
 
     /**
      * Sets a property
+     * @param {string} key The property being set
+     * @param {*} value The value to set that property to
+     * @returns {void}
      */
-    function setProperty (key, value) {
-        properties[key] = value;
-        return this;
-    }
+    setProperty = (key, value) => {
+        this.#properties[key] = value;
+    };
+
+    /**
+     * Check if the mission is completed or not.
+     * @returns {boolean}
+     */
+    isComplete = () => {
+        return this.getProperty('isComplete');
+    };
+
+    /**
+     * Push a completed task into `this.#tasksForTheMission`.
+     * @param {Task} task
+     */
+    pushATaskToTheRoute = (task) => {
+        const streetEdgeIds = this.#tasksForTheMission.map((task) => task.getStreetEdgeId());
+        if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) {
+            this.#tasksForTheMission.push(task);
+        }
+    };
 
     /**
      * Total line distance in this mission.
-     * @param unit
+     * @param {string} [unit='meters'] One of 'meters', 'miles', 'feet', 'kilometers', or 'meters'
      */
-    function getDistance(unit) {
-        if (unit === undefined) unit = "meters";
-
-        if (unit === "miles")           return util.math.metersToMiles(getProperty("distance"));
-        else if (unit === "feet")       return util.math.metersToFeet(getProperty("distance"));
-        else if (unit === "kilometers") return util.math.metersToKms(getProperty("distance"));
-        else if (unit === "meters")     return getProperty("distance");
+    getDistance = (unit = 'meters') => {
+        if (unit === 'miles')           return util.math.metersToMiles(this.getProperty('distance'));
+        else if (unit === 'feet')       return util.math.metersToFeet(this.getProperty('distance'));
+        else if (unit === 'kilometers') return util.math.metersToKms(this.getProperty('distance'));
+        else if (unit === 'meters')     return this.getProperty('distance');
         else {
-            console.error("Unit must be miles, feet, kilometers, or meters. Given: " + unit);
-            return getProperty("distance");
+            console.error('Unit must be miles, feet, kilometers, or meters. Given: ' + unit);
+            return this.getProperty('distance');
         }
-    }
-
-    _init(parameters);
-
-    self.complete = complete;
-    self.getLabelCount = getLabelCount;
-    self.getProperty = getProperty;
-    self.getRoute = getRoute;
-    self.getMissionCompletionRate = getMissionCompletionRate;
-    self.updateDistanceProgress = updateDistanceProgress;
-    self.isComplete = isComplete;
-    self.pushATaskToTheRoute = pushATaskToTheRoute;
-    self.setProperty = setProperty;
-    self.getDistance = getDistance;
+    };
 }

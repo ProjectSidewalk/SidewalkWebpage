@@ -9,6 +9,8 @@ function Tracker() {
     var actions = [];
     var prevActions = [];
 
+    let waitingOnSubmit = false;
+
     var currentLabel = null;
     var updatedLabels = [];
     var currentAuditTask = null;
@@ -193,24 +195,17 @@ function Tracker() {
         }
 
         // Submit the data collected thus far if actions is too long.
-        if (actions.length > 200 && !self._isCanvasInteraction(action) && !self._isContextMenuAction(action)) {
-            self.submitForm();
+        if (!waitingOnSubmit && actions.length > 200 && !self._isCanvasInteraction(action) && !self._isContextMenuAction(action)) {
+            if (svl.hasOwnProperty('form') && svl.hasOwnProperty('taskContainer')) {
+                waitingOnSubmit = true;
+                svl.form.submitData().then(() => waitingOnSubmit = false);
+            }
         }
 
         // If there is a one-hour break between interactions (in ms), refresh the page to avoid weird bugs.
         if (prevItem && item.timestamp - prevItem.timestamp > 3600000) window.location.reload();
 
         return this;
-    };
-
-    this.submitForm = function() {
-        if (svl.hasOwnProperty('form') && svl.hasOwnProperty('taskContainer')) {
-            svl.form.submitData();
-        }
-    };
-
-    this.initTaskId = function() {
-        self.submitForm();
     };
 
     /**

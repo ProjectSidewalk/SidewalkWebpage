@@ -261,9 +261,12 @@ function Task (geojson, tutorialTask, currentLatLng) {
         return Math.min(Math.floor(_geojson.properties.priority / (1 / n)), n - 1);
     };
 
-    this.getAuditedDistance = function(units) {
+    /**
+     * @param {{units: string}} [units={units: 'kilometers'}] Can be degrees, radians, miles, or kilometers
+     * @returns {number}
+     */
+    this.getAuditedDistance = function(units = { units: 'kilometers' }) {
         if (typeof _furthestPoint === "undefined") return 0;
-        if (!units) units = { units: 'kilometers' };
         const latFurthest = _furthestPoint.geometry.coordinates[1];
         const lngFurthest = _furthestPoint.geometry.coordinates[0];
         return this.getDistanceFromStart({ lat: latFurthest, lng: lngFurthest }, units);

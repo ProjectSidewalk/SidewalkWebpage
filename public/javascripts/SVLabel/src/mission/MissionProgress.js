@@ -13,9 +13,7 @@ function MissionProgress(svl, missionModel, modalModel, neighborhoodModel, statu
     var _neighborhoodModel = neighborhoodModel;
 
     _missionModel.on("MissionProgress:update", function (parameters) {
-        var mission = parameters.mission;
-        var neighborhood = parameters.neighborhood;
-        self.update(mission, neighborhood);
+        self.update(parameters.mission, parameters.neighborhood);
     });
 
     _neighborhoodModel.on("Neighborhood:wrapUpRouteOrNeighborhood", function () {
@@ -48,7 +46,6 @@ function MissionProgress(svl, missionModel, modalModel, neighborhoodModel, statu
             }
         );
         mission.complete();
-
 
         _missionModel.completeMission(mission);
 

@@ -47,9 +47,6 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
             svl.popUpMessage.promptSignIn();
         }
 
-        // Submit the data.
-        svl.form.submitData(task);
-
         // Updates the segments that the user has already explored.
         self.updateCurrentTask();
 
@@ -398,15 +395,15 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
             const currMissionId = svl.missionContainer.getCurrentMission().getProperty('missionId');
             currentTask.setProperty('currentMissionId', currMissionId);
         }
-        if (tracker) tracker.push('TaskStart');
+        tracker.push('TaskStart');
 
         if ('compass' in svl) {
             svl.compass.showMessage();
             svl.compass.update();
         }
 
-        if ('form' in svl){
-            svl.form.submitData(currentTask);
+        if ('form' in svl) {
+            svl.form.submitData(currentTask); // Note that this happens async.
         }
 
         // Show AI guidance message if applicable.

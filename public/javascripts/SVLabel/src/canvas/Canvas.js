@@ -226,7 +226,7 @@ function Canvas(ribbon) {
     /**
      * Create a new label on mouse-up if we are in a labeling mode.
      */
-    function _handleDrawingLayerMouseUp(e) {
+    async function _handleDrawingLayerMouseUp(e) {
         const currMousePosition = util.mouseposition(e, this);
 
         if (!status.disableLabeling) {
@@ -237,7 +237,7 @@ function Canvas(ribbon) {
         }
 
         svl.tracker.push('LabelingCanvas_MouseUp', currMousePosition);
-        svl.form.submitData();
+        await svl.form.submitData(); // Submit the label to the back end.
     }
 
     /**

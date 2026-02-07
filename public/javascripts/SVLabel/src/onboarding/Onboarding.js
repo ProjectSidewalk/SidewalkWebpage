@@ -447,7 +447,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         missionContainer.getCurrentMission().setProperty("isComplete", true);
 
         // Makes sure all data has been submitted to server, then refreshes the page.
-        svl.form.submitData(svl.taskContainer.getCurrentTask(), false).then(function() {
+        svl.form.submitData().then(function() {
             window.location.replace('/explore');
         });
     }

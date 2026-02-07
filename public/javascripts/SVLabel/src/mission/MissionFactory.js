@@ -6,8 +6,7 @@
  * @param missionModel
  */
 function MissionFactory (missionModel) {
-    var self = this;
-    var _missionModel = missionModel;
+    const _missionModel = missionModel;
 
     _missionModel.on("MissionFactory:create", function (parameters) {
         // Makes any necessary changes from snake_case to camelCase since we get the values from JSON.
@@ -28,32 +27,15 @@ function MissionFactory (missionModel) {
         if (!parameters.hasOwnProperty("distanceProgress") && parameters.hasOwnProperty("distance_progress"))
             parameters.distanceProgress = parameters.distance_progress;
 
-        var mission = self.create(parameters.missionId, parameters.missionType, parameters.regionId,
-            parameters.isComplete, parameters.distance, parameters.distanceProgress, parameters.skipped);
+        const mission = new Mission({
+            missionId: parameters.missionId,
+            missionType: parameters.missionType,
+            regionId: parameters.regionId,
+            isComplete: parameters.isComplete,
+            distance: parameters.distance,
+            distanceProgress: parameters.distanceProgress,
+            skipped: parameters.skipped
+        });
         _missionModel.addAMission(mission);
     });
 }
-
-/**
- * Create an instance of a mission object
- *
- * @param missionId
- * @param missionType
- * @param regionId
- * @param isComplete
- * @param distance
- * @param distanceProgress
- * @param skipped
- * @returns {svl.Mission}
- */
-MissionFactory.prototype.create = function (missionId, missionType, regionId, isComplete, distance, distanceProgress, skipped) {
-    return new Mission({
-        missionId: missionId,
-        missionType: missionType,
-        regionId: regionId,
-        isComplete: isComplete,
-        distance: distance,
-        distanceProgress: distanceProgress,
-        skipped: skipped
-    });
-};

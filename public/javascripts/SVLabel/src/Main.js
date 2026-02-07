@@ -127,7 +127,7 @@ function Main (params) {
             var currTaskId = currTask.getProperty('auditTaskId');
             if (!currTaskId) currTask.setProperty("auditTaskId", params.mission.current_audit_task_id);
         } else {
-            svl.tracker.initTaskId();
+            await svl.form.submitData(); // Get an audit_task_id from the back end.
         }
         svl.popUpMessage = new PopUpMessage(svl.form, svl.taskContainer, svl.tracker, svl.user, svl.ui.popUpMessage);
         svl.aiGuidance = new AiGuidance(svl.tracker, svl.popUpMessage);
