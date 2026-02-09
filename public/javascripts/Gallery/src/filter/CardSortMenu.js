@@ -5,12 +5,12 @@
  * @constructor
  */
 function CardSortMenu(uiCardSortMenu) {
-    let self = this;
+    const self = this;
 
     // The code values associated with each sort.
     let orderCodes = {
         sort_LeastSevere: 0,
-        sort_MostSevere: 1 
+        sort_MostSevere: 1
     }
 
     // The status of the sorting at any point.
@@ -26,7 +26,7 @@ function CardSortMenu(uiCardSortMenu) {
             });
         }
     }
-    
+
     /**
      * Callback function for when sorting order of cards is changed.
      */
@@ -50,8 +50,8 @@ function CardSortMenu(uiCardSortMenu) {
 
     /**
      * Sets a specific key, value pair in the status
-     * @param {*} key 
-     * @param {*} value 
+     * @param {string} key
+     * @param {*} value
      */
     function setStatus(key, value) {
         if (key in status) {

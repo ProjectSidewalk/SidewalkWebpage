@@ -8,7 +8,7 @@
  * @memberof svl
  */
 function Task (geojson, tutorialTask, currentLatLng) {
-    let self = this;
+    const self = this;
     let _geojson;
 
     /* @type {turf.Point} */

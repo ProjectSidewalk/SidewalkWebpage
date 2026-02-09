@@ -4,7 +4,7 @@
  * @constructor
  */
 function ZoomControl () {
-    let self = this;
+    const self = this;
     let zoomInButton = $("#zoom-in-button");
     let zoomOutButton = $("#zoom-out-button");
 

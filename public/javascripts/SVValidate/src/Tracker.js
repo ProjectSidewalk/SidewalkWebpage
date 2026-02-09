@@ -4,7 +4,7 @@
  * @constructor
  */
 function Tracker() {
-    let self = this;
+    const self = this;
     let actions = [];
 
     function _init() {
@@ -32,7 +32,7 @@ function Tracker() {
 
     /**
      *
-     * @param action
+     * @param {string} action
      * @param notes
      * @private
      */
@@ -78,8 +78,8 @@ function Tracker() {
 
     /**
      * Pushes information to action list (to be submitted to the database)
-     * @param action    (required) Action
-     * @param notes     (optional) Notes to be logged into the notes field database
+     * @param {string} action
+     * @param [notes] Notes to be logged into the notes field database
      */
     function push(action, notes) {
         const item = _createAction(action, notes);

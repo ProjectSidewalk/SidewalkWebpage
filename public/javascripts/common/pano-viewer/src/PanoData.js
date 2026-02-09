@@ -1,30 +1,29 @@
 /**
  * A data structure used to store metadata about a panorama.
- * @param params {object}
- * @param {string} params.panoId The unique ID for this panorama
- * @param {string} params.source The data source for the image, one of "gsv", "mapillary", or "infra3d"
- * @param {number} params.lat Latitude of the camera
- * @param {number} params.lng Longitude of the camera
- * @param {number} params.cameraHeading Heading of the camera in degrees, with respect to true north
- * @param {number} params.cameraPitch Pitch of the camera in degrees, with respect to the horizon
- * @param {number} params.width Width of the image in pixels
- * @param {number} params.height Height of the image in pixels
- * @param {number} [params.tileWidth] Width of the tiles that make up the image in pixels
- * @param {number} [params.tileHeight] Height of hte tiles that make up the image in pixels
- * @param {moment} params.captureDate Time when the picture was taken, only using up to month/year granularity
- * @param {string} [params.address] Optional address for the current location
- * @param {string} [params.copyright] Optional associated copyright info for the image
- * @param {array<{panoId: string, heading: number}>} params.linkedPanos List of nearby panos linked to with nav arrows
- * @param {array<{panoId: string, captureDate: Date}>} params.history List of panos at this pano's location over time
- * @param {Boolean} [params.submitted=false] Whether we've sent this data to the server yet; false unless from tutorial
- * @returns {PanoData}
- * @constructor
  */
-function PanoData(params) {
-    let self = this;
-    let properties = { };
-
-    function _init() {
+class PanoData {
+    /**
+     * @param params {object}
+     * @param {string} params.panoId The unique ID for this panorama
+     * @param {string} params.source The data source for the image, one of "gsv", "mapillary", or "infra3d"
+     * @param {number} params.lat Latitude of the camera
+     * @param {number} params.lng Longitude of the camera
+     * @param {number} params.cameraHeading Heading of the camera in degrees, with respect to true north
+     * @param {number} params.cameraPitch Pitch of the camera in degrees, with respect to the horizon
+     * @param {number} params.width Width of the image in pixels
+     * @param {number} params.height Height of the image in pixels
+     * @param {number} [params.tileWidth] Width of the tiles that make up the image in pixels
+     * @param {number} [params.tileHeight] Height of hte tiles that make up the image in pixels
+     * @param {moment} params.captureDate Time when the picture was taken, only using up to month/year granularity
+     * @param {string} [params.address] Optional address for the current location
+     * @param {string} [params.copyright] Optional associated copyright info for the image
+     * @param {Array<{panoId: string, heading: number}>} params.linkedPanos List of nearby panos linked to with nav arrows
+     * @param {Array<{panoId: string, captureDate: Date}>} params.history List of panos at this pano's location over time
+     * @param {boolean} [params.submitted=false] Whether we've sent this data to the server yet; false unless from tutorial
+     * @returns {PanoData}
+     * @constructor
+     */
+    constructor(params) {
         // Validate required parameters.
         const requiredParams = ['panoId', 'source', 'lat', 'lng', 'cameraHeading', 'cameraPitch', 'width', 'height', 'captureDate', 'linkedPanos', 'history'];
         requiredParams.forEach(param => {
@@ -53,7 +52,7 @@ function PanoData(params) {
         }
 
         // If all checks passed, initialize the properties object.
-        properties = {
+        this.properties = {
             panoId: params.panoId,
             source: params.source,
             lat: params.lat,
@@ -74,27 +73,19 @@ function PanoData(params) {
         }
     }
 
-    function getProperties() {
-        return properties;
+    getProperties() {
+        return this.properties;
     }
 
-    function getProperty(key) {
-        return key in properties ? properties[key] : null;
+    getProperty(key) {
+        return key in this.properties ? this.properties[key] : null;
     }
 
-    function setProperty(key, value) {
-        properties[key] = value;
+    setProperty(key, value) {
+        this.properties[key] = value;
     }
 
-    function getPanoId() {
-        return properties.panoId;
+    getPanoId() {
+        return this.properties.panoId;
     }
-
-    _init()
-
-    self.getProperties = getProperties;
-    self.getProperty = getProperty;
-    self.setProperty = setProperty;
-    self.getPanoId = getPanoId;
-    return self;
 }

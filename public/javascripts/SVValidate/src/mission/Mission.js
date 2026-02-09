@@ -5,7 +5,7 @@
  * @constructor
  */
 function Mission(params) {
-    let self = this;
+    const self = this;
     let properties = {
         agreeCount: 0,
         disagreeCount: 0,

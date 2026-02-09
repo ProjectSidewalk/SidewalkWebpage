@@ -5,7 +5,7 @@
  * @constructor
  */
 async function LabelContainer(labelList) {
-    let self = this;
+    const self = this;
 
     // These three are set in resetLabelList.
     let labels;  // All labels in the mission.

@@ -5,7 +5,7 @@
  * @constructor
  */
 function ModalComment (modalUI) {
-    let self = this;
+    const self = this;
     let status = {
         disableClickOk: true
     };

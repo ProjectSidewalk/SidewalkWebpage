@@ -1,3 +1,14 @@
+/**
+ * Creates pop up messages during your first mission or two with instructions to improve labeling.
+ * @param {Compass} compass
+ * @param {NavigationService} navigationService
+ * @param {PopUpMessage} popUpMessage
+ * @param {TaskContainer} taskContainer
+ * @param {LabelContainer} labelContainer
+ * @param {AiGuidance} aiGuidance
+ * @param {Tracker} tracker
+ * @constructor
+ */
 function InitialMissionInstruction(compass, navigationService, popUpMessage, taskContainer, labelContainer, aiGuidance, tracker) {
     let lookingAroundInterval;
     let initialPanoId;

@@ -143,9 +143,9 @@ function Tracker() {
     };
 
     /**
-     * @param action the action to be stored in the database
-     * @param notes (optional) the notes field in the database
-     * @param extraData (optional) extra data that should not be stored in the notes field in db
+     * @param {string} action the action to be stored in the database
+     * @param [notes] the notes field in the database
+     * @param [extraData] extra data that should not be stored in the notes field in db
      */
     this.push = function (action, notes, extraData) {
         var labelProperties;

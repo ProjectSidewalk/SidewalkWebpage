@@ -10,7 +10,7 @@
  * @constructor
  */
 function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
-    let self = this;
+    const self = this;
 
     let status = {
         currentCity: cityMenu.getCurrentCity(),
@@ -203,7 +203,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     /**
      * Set attribute of status.
      *
-     * @param {*} key Status name.
+     * @param {string} key Status name.
      * @param {*} value Status value.
      */
     function setStatus(key, value) {

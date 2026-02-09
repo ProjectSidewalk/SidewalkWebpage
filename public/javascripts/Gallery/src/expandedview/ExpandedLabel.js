@@ -8,7 +8,7 @@
  * @param {number} ogCanvasWidth The width of the canvas when the label was added.
  * @param {number} ogCanvasHeight The height of the canvas when the label was added.
  * @param {{heading: number, pitch: number, zoom: number}} pov The pov of the pano when the label was added in Explore.
- * @param {Boolean} aiGenerated Whether the label was created by AI.
+ * @param {boolean} aiGenerated Whether the label was created by AI.
  * @returns {ExpandedLabel}
  * @constructor
  */

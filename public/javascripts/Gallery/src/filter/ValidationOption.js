@@ -7,7 +7,7 @@
  * @constructor
  */
 function ValidationOption (params, applied) {
-    let self = this;
+    const self = this;
 
     // UI element of the validation option container and image.
     let validationOptionElement = null;

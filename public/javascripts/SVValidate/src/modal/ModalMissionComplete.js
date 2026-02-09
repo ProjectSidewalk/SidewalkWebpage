@@ -1,5 +1,5 @@
 function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
-    let self = this;
+    const self = this;
 
     function _handleButtonClick(event) {
         // If they've done three missions and clicked the audit button, load the explore page.

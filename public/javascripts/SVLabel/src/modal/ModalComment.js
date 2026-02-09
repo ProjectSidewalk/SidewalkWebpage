@@ -9,7 +9,7 @@
  * @constructor
  */
 function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment) {
-    let self = this;
+    const self = this;
     let status = {
         disableClickOK: true
     };

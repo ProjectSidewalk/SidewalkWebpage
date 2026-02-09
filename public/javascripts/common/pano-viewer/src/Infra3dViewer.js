@@ -12,7 +12,6 @@ class Infra3dViewer extends PanoViewer {
     }
 
     async initialize(canvasElem, panoOptions = {}) {
-        console.log(canvasElem, panoOptions);
         const manager = await infra3dapi.init(canvasElem.id, panoOptions.accessToken);
         // Fetching projects will occasionally fail once, just refresh page to try again.
         let fetchedProjects;
@@ -21,7 +20,6 @@ class Infra3dViewer extends PanoViewer {
         } catch (error) {
             window.location.reload();
         }
-        console.log(fetchedProjects);
         const projectUID = fetchedProjects[0].uid;
 
         // Docs on Infra3D viewer options:
@@ -48,7 +46,6 @@ class Infra3dViewer extends PanoViewer {
         ]).catch(() => {
             window.location.reload();
         });
-        console.log(this.viewer);
 
         // Handle a few other configs that need to be handled after initialization.
         if (panoOpts.linksControl === false) {

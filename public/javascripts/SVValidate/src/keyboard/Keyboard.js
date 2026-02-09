@@ -1,5 +1,5 @@
 function Keyboard(menuUI) {
-    let self = this;
+    const self = this;
     let lastShiftKeyDownTimestamp = undefined;
     let status = {
         disableKeyboard: false,

@@ -4,7 +4,7 @@
  * @constructor
  */
 function MissionContainer () {
-    let self = this;
+    const self = this;
     let currentMission = undefined;
     let _completedMissions = [];
 

@@ -9,7 +9,7 @@
  */
 async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
 
-    let self = this;
+    const self = this;
 
     const cardsPerPage = 9;
     const unselectedCardClassName = "expanded-view-background-card";
@@ -229,7 +229,7 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
     /**
      * Updates the index of the current label being displayed in the expanded view.
      *
-     * @param {Number} newIndex The new index of the card being displayed
+     * @param {number} newIndex The new index of the card being displayed
      */
     function updateCardIndex(newIndex) {
         updateExpandedViewCardByIndex(newIndex);
@@ -238,7 +238,7 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
     /**
      * Tries to update the current card to the given input index.
      *
-     * @param {Number} index The index of the card to update to
+     * @param {number} index The index of the card to update to
      */
     function updateExpandedViewCardByIndex(index) {
         self.leftArrow.prop('disabled', false);
@@ -273,7 +273,7 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
 
     /**
      * Moves to the next label.
-     * @param keyboardShortcut {Boolean} Whether the action came from a keyboard shortcut.
+     * @param keyboardShortcut {boolean} Whether the action came from a keyboard shortcut.
      */
     function nextLabel(keyboardShortcut) {
         sg.tracker.push(`NextLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
@@ -299,7 +299,7 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
 
     /**
      * Moves to the previous label.
-     * @param keyboardShortcut {Boolean} Whether the action came from a keyboard shortcut.
+     * @param keyboardShortcut {boolean} Whether the action came from a keyboard shortcut.
      */
     function previousLabel(keyboardShortcut) {
         sg.tracker.push(`PrevLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);

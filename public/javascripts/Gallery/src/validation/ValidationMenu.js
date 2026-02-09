@@ -14,7 +14,7 @@
  * @constructor
  */
 function ValidationMenu(referenceCard, gsvImage, expandedView, onExpandedView) {
-    let self = this;
+    const self = this;
     let refCard = referenceCard;
     let currSelected = null;
 
@@ -108,8 +108,8 @@ function ValidationMenu(referenceCard, gsvImage, expandedView, onExpandedView) {
      * OnClick or keyboard shortcut function for validation buttons and thumbs up/down buttons.
      *
      * @param newValKey
-     * @param thumbsClick {Boolean} Whether the validation came from clicking the thumb icons.
-     * @param keyboardShortcut {Boolean} Whether the validation came from a keyboard shortcut.
+     * @param thumbsClick {boolean} Whether the validation came from clicking the thumb icons.
+     * @param keyboardShortcut {boolean} Whether the validation came from a keyboard shortcut.
      * @returns {(function(*): Promise)|*} A function returning a Promise that resolves after validation is submitted.
      */
     function validateOnClickOrKeyPress(newValKey, thumbsClick, keyboardShortcut) {

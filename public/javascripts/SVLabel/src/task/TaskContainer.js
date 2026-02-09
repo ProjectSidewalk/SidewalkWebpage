@@ -8,7 +8,7 @@
  * @param tracker
  */
 function TaskContainer (neighborhoodModel, svl, tracker) {
-    let self = this;
+    const self = this;
 
     let currentTask = null;
     /* Used to keep track of the task we've decided to jump to while the user finishes labeling the current location. */

@@ -5,7 +5,7 @@
  * @constructor
  */
 function User (param) {
-    let properties = {
+    const properties = {
         username: param.username,
         role: param.role,
         userId: param.userId

@@ -10,8 +10,8 @@
  * @param {function} panoDate Function that returns current pano's capture date as a moment object
  * @param {function} panoAddress Function that returns current pano's address according to GSV, could return null
  * @param {function} pov Function that returns current POV
- * @param {String} cityName Name of the current city
- * @param {Boolean} whiteIcon Set to true if using white icon, false if using blue icon.
+ * @param {string} cityName Name of the current city
+ * @param {boolean} whiteIcon Set to true if using white icon, false if using blue icon.
  * @param {function} infoLogging Function that adds the info button click to the appropriate logs.
  * @param {function} clipboardLogging Function that adds the copy to clipboard click to the appropriate logs.
  * @param {function} viewPanoLogging Function that adds the View in GSV click to the appropriate logs.
@@ -20,7 +20,7 @@
  * @returns {PanoInfoPopover} Popover object, holding popover title, content, info button HTML, and update values method
  */
 function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, cityName, whiteIcon, infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate) {
-    let self = this;
+    const self = this;
 
     function _init() {
         // Create popover title bar.
@@ -192,7 +192,7 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
 
     /**
      * Creates a key-value pair display within the popover.
-     * @param {String} key Key name of the key-value pair
+     * @param {string} key Key name of the key-value pair
      * @param {HTMLElement} dataList List element container to add list item to
      */
     function addListElement(key, dataList) {

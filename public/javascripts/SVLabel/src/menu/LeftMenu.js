@@ -1,6 +1,16 @@
+/**
+ * Handles interaction with the buttons on to the left of the panorama on the Explore page.
+ */
 class LeftMenu {
     #blinkInterval = null;
 
+    /**
+     * Initializes the LeftMenu object's properties from parameters.
+     * @param {object} uiLeftColumn
+     * @param {Tracker} tracker
+     * @param {NavigationService} navigationService
+     * @param {StuckAlert} stuckAlert
+     */
     constructor(uiLeftColumn, tracker, navigationService, stuckAlert) {
         this.uiLeftColumn = uiLeftColumn;
         this.tracker = tracker;

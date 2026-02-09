@@ -94,7 +94,7 @@ function Label(params) {
         radius = 25;
     }
 
-    let self = this;
+    const self = this;
 
     /**
      * Initializes a label from metadata (if parameters are passed in).

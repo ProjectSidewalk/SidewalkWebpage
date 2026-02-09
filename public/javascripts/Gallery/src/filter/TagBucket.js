@@ -5,14 +5,14 @@
  * @constructor
  */
 function TagBucket() {
-    let self = this;
+    const self = this;
 
     // List of Tags.
     let bucket = [];
 
     /**
      * Add Tag.
-     * 
+     *
      * @param {*} tag Tag to add.
      */
     function push(tag) {
@@ -21,7 +21,7 @@ function TagBucket() {
 
     /**
      * Render all Tags.
-     * 
+     *
      * @param {*} uiTagHolder UI element to render Tags in.
      */
     function render(uiTagHolder) {

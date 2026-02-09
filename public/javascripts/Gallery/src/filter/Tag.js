@@ -1,13 +1,13 @@
 /**
  * A Tag module.
- * 
+ *
  * @param {*} params Properties of tag.
  * @param applied A boolean to see if the tag filter is active.
  * @returns {Tag}
  * @constructor
  */
 function Tag (params, applied) {
-    let self = this;
+    const self = this;
 
     // UI element of Tag.
     let tagElement = null;
@@ -26,7 +26,7 @@ function Tag (params, applied) {
 
     /**
      * Initialize Tag.
-     * 
+     *
      * @param {*} param Tag properties.
      */
     function _init (param) {
@@ -105,7 +105,7 @@ function Tag (params, applied) {
 
     /**
      * Return the deep copy of the properties object, so the caller can only modify properties from setProperty().
-     * 
+     *
      * JavaScript Deepcopy:
      * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
      */
@@ -113,7 +113,7 @@ function Tag (params, applied) {
 
     /**
      * Gets property of Tag.
-     * 
+     *
      * @param propName Property name.
      * @returns {*} Property value if property name is valid. Otherwise false.
      */
@@ -128,7 +128,7 @@ function Tag (params, applied) {
 
     /**
      * Sets a property of Tag.
-     * 
+     *
      * @param key Property name.
      * @param value Property value.
      * @returns {setProperty}
@@ -140,8 +140,8 @@ function Tag (params, applied) {
 
     /**
      * Set status attribute of tag.
-     * 
-     * @param {*} key Status name.
+     *
+     * @param {string} key Status name.
      * @param {*} value Status value.
      */
     function setStatus(key, value) {
@@ -154,7 +154,7 @@ function Tag (params, applied) {
 
     /**
      * Renders the Tag.
-     * 
+     *
      * @param filterContainer UI element to render Tag in.
      * @returns {self}
      */

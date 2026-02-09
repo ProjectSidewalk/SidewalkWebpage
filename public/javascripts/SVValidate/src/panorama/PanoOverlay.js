@@ -2,7 +2,7 @@
  * An additional layer on top of the panorama object on validation interface. This layer handles panning.
  */
 function PanoOverlay () {
-    let self = this;
+    const self = this;
     let panningDisabled = false;
     let viewControlLayer = isMobile() ? $("#view-control-layer-mobile") : $("#view-control-layer");
 

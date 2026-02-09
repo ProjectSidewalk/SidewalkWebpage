@@ -319,8 +319,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             } else if (annotation.type === "label") {
                 _drawStaticLabel(annotation.labelType, canvasCoord.x, canvasCoord.y);
                 // The first time we draw the label, create the marker on the minimap.
-                if (!annotation.firstDraw && typeof google !== "undefined" && google && google.maps) {
-                    var googleMarker = Label.createMinimapMarker(annotation.labelType, annotation.lat, annotation.lng);
+                if (!annotation.firstDraw) {
+                    var googleMarker = Label.createMinimapMarker(annotation.labelType, { lat: annotation.lat, lng: annotation.lng });
                     googleMarker.setMap(svl.minimap.getMap());
                     annotation.firstDraw = true;
                 }
@@ -518,7 +518,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
 
         var annotationListener;
 
-        clear(); // Clear what ever was rendered on the onboarding-canvas in the previous state.
+        clear(); // Clear whatever was rendered on the onboarding-canvas in the previous state.
         _removeFlashingFromArrow();
 
         // End the onboarding if there is no transition state is specified. Move to the actual task
@@ -537,13 +537,11 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         // Draw arrows to annotate target accessibility attributes
         if (_onboardingStateAnnotationExists(state) || savedAnnotations.length > 0) {
             _drawAnnotations(state);
-            if (typeof google != "undefined") {
-                annotationListener = google.maps.event.addListener(svl.panoViewer.panorama, "pov_changed", function () {
-                    // Stop the animation for the blinking arrows.
-                    _removeFlashingFromArrow();
-                    _drawAnnotations(state);
-                });
-            }
+            annotationListener = google.maps.event.addListener(svl.panoViewer.gsvPano, "pov_changed", function () {
+                // Stop the animation for the blinking arrows.
+                _removeFlashingFromArrow();
+                _drawAnnotations(state);
+            });
         }
 
         // Change behavior based on the current state.
@@ -654,14 +652,14 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             var pov = svl.panoViewer.getPov();
             // Note that the tolerance is only a tolerance to the left. Must hit at least the given heading to proceed.
             if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
-                if (typeof google != "undefined") google.maps.event.removeListener($target);
+                google.maps.event.removeListener($target);
                 if (listener) google.maps.event.removeListener(listener);
                 handAnimation.hideGrabAndDragAnimation(interval);
                 next(state.transition);
             }
         };
 
-        if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panoViewer.panorama, "pov_changed", callback);
+        $target = google.maps.event.addListener(svl.panoViewer.gsvPano, "pov_changed", callback);
     }
 
     function _visitRateSeverity(state, listener) {

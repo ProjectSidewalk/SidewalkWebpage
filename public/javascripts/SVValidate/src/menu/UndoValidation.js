@@ -9,7 +9,7 @@ function UndoValidation (uiUndo) {
     let status = {
         disableUndo: false
     };
-    let self = this;
+    const self = this;
 
     /**
      * Enables the undo button (makes button clickable).

@@ -24,7 +24,7 @@
     window.LabelTagsPreview = {
         /**
          * Configure the label tags preview.
-         * @param {Object} options - Configuration options
+         * @param {object} options - Configuration options
          * @param {string} [options.apiBaseUrl] - Base URL for the API
          * @param {string} [options.containerId] - ID of the container element
          * @param {number} [options.maxWidth] - Maximum width for the preview container
@@ -95,7 +95,7 @@
         /**
          * Group label tags by label type.
          * @param {Array} labelTags - Array of label tag objects
-         * @returns {Object} Object with label types as keys and arrays of tags as values
+         * @returns {object} Object with label types as keys and arrays of tags as values
          */
         groupTagsByLabelType: function(labelTags) {
             return labelTags.reduce((groups, tag) => {
@@ -120,7 +120,7 @@
 
         /**
          * Render the label tags preview.
-         * @param {Object} data - Label tags data from the API
+         * @param {object} data - Label tags data from the API
          * @param {HTMLElement} container - Container element
          */
         renderLabelTags: function(data, container) {
@@ -233,7 +233,7 @@
 
         /**
          * Render a summary table of label tags by label type.
-         * @param {Object} data - Label tags data from the API
+         * @param {object} data - Label tags data from the API
          * @param {HTMLElement} container - Container element
          */
         renderLabelTagsSummary: function(data, container) {

@@ -27,7 +27,7 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
         'road'
     ];
 
-    let self = this;
+    const self = this;
 
     let cache = {};
 
@@ -61,9 +61,9 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
     /**
      * Finds the closest road given overpass API's response of nearby roads and the current position.
      *
-     * @param {Object} data The overpass API's response of nearby roads.
-     * @param {Number} lat The latitude of the current position.
-     * @param {Number} lon The longitude of the current position.
+     * @param {object} data The overpass API's response of nearby roads.
+     * @param {number} lat The latitude of the current position.
+     * @param {number} lon The longitude of the current position.
      */
     function findClosestRoad(data, lat, lon) {
         // Filter to only be roads, and not footpaths/walkways.
@@ -110,9 +110,9 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
     /**
      * Fetches the overpass json and closest road for a given set of coordinates.
      *
-     * @param {Number} lat The latitude of the current position.
-     * @param {Number} lng The longitude of the current position.
-     * @param {Boolean} shouldCache If true, this will cache the coordinates with the json response.
+     * @param {number} lat The latitude of the current position.
+     * @param {number} lng The longitude of the current position.
+     * @param {boolean} shouldCache If true, this will cache the coordinates with the json response.
      * @param {Label} label The label that is being validated. Can be null.
      * @returns Object that contains json response and calculated closest road
      */

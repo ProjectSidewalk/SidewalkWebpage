@@ -6,7 +6,7 @@
  * @constructor
  */
 function SeverityBucket(initialActiveSeverities) {
-    let self = this;
+    const self = this;
 
     // List of severities.
     let bucket = [];

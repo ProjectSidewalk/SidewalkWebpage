@@ -121,10 +121,10 @@ class AppManager {
     /**
      * Initialize i18next with the given language and namespaces. Handles country-specific overrides.
      *
-     * @param {Object} params - Properties that determine which translations should be loaded.
+     * @param {object} params - Properties that determine which translations should be loaded.
      * @param {string} params.language - The language to use for translations, e.g., "en", "en-US", "es", etc.
      * @param {string} params.defaultNS The default namespace to use if no specific ns is provided, e.g., "common"
-     * @param {array[string]} params.namespaces An array of namespaces to load, e.g., ["common", "explore"]
+     * @param {Array<string>} params.namespaces An array of namespaces to load, e.g., ["common", "explore"]
      * @param {string} params.countryId The server's country ID to determine if we load country-specific overrides
      * @returns {Promise} Promise that resolves when i18next is ready.
      * @private

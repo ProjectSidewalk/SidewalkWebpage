@@ -1,14 +1,15 @@
 /**
+ * Handles submitting interaction data to the back end.
  *
- * @param labelContainer
- * @param missionModel
- * @param missionContainer
- * @param panoStore
- * @param taskContainer
- * @param navigationService
- * @param compass
- * @param tracker
- * @param dataStoreUrl
+ * @param {LabelContainer} labelContainer
+ * @param {MissionModel} missionModel
+ * @param {MissionContainer} missionContainer
+ * @param {PanoStore} panoStore
+ * @param {TaskContainer} taskContainer
+ * @param {NavigationService} navigationService
+ * @param {Compass} compass
+ * @param {Tracker} tracker
+ * @param {string} dataStoreUrl
  * @returns {{className: string}}
  * @constructor
  */

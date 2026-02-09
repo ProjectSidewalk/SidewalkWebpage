@@ -7,7 +7,7 @@
  * @param language Fdfadfda
  */
 function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language = 'en') {
-    let self = this;
+    const self = this;
 
     const EXAMPLE_TYPES = {
         CORRECT: 'correct',

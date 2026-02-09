@@ -9,7 +9,7 @@ var sg = sg || {};
  * @constructor
  */
 async function Main (params) {
-    let self = this;
+    const self = this;
 
     sg.scrollStatus = {
         stickySidebar: true,

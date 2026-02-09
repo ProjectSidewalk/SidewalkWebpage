@@ -9,7 +9,7 @@
  * @constructor
  */
 async function CardContainer(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken) {
-    let self = this;
+    const self = this;
 
     // The number of labels to grab from database on initial page load.
     const initialLoad = 30;
@@ -122,7 +122,7 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
     /**
      * Find the card which contains the image with the same imageID as supplied.
      *
-     * @param {String} id The id of the image Id to find
+     * @param {string} id The id of the image Id to find
      * @returns {Card} finds the matching card and returns it
      */
     function findCard(id) {
@@ -132,8 +132,8 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
     /**
      * Returns the index of a card in the current CardBucket in use.
      *
-     * @param {String} id The id of the image Id to find
-     * @returns {Number} the index of the matching card in the current CardBucket
+     * @param {string} id The id of the image Id to find
+     * @returns {number} the index of the matching card in the current CardBucket
      */
     function findCardIndex(id) {
         return currentCards.findCardIndexByImageId(id);
@@ -142,7 +142,7 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
     /**
      * Gets a card from the current CardBucket given an index.
      *
-     * @param {Number} index the index of the card to find
+     * @param {number} index the index of the card to find
      * @returns {Card} the Card that has the matching index in the current CardBucket
      */
     function getCardByIndex(index) {
@@ -394,7 +394,7 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
     /**
      * Set status attribute.
      *
-     * @param {*} key Status name.
+     * @param {string} key Status name.
      * @param {*} value Status value.
      */
     function setStatus(key, value) {

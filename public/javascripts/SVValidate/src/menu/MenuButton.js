@@ -3,7 +3,7 @@
  * @constructor
  */
 function MenuButton(menuUI) {
-    let self = this;
+    const self = this;
 
     menuUI.yesButton.click(function() {
         validateLabel("Agree");
@@ -25,7 +25,7 @@ function MenuButton(menuUI) {
 
     /**
      * Validates a single label from a button click.
-     * @param action    {String} Validation action - must be agree, disagree, or unsure.
+     * @param {string} action Validation action; one of agree, disagree, or unsure.
      */
     function validateLabel(action) {
         let timestamp = new Date();

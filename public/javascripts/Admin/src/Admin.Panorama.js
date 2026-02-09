@@ -135,7 +135,7 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
         return new Promise((resolve) => {
             if (viewerType === GsvViewer) {
                 setTimeout(() => {
-                    google.maps.event.trigger(self.panoViewer.panorama, 'resize');
+                    google.maps.event.trigger(self.panoViewer.gsvPano, 'resize');
                     self.panoViewer.setPov(targetPov);
                     if (self.label) renderLabel(self.label);
                     resolve();

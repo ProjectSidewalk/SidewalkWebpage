@@ -30,7 +30,7 @@ function Canvas(ribbon) {
      */
     function _init() {
         // Set up the canvas context.
-        const el = document.getElementById("label-canvas");
+        const el = document.getElementById('label-canvas');
         if (!el) {
             return false;
         }
@@ -42,8 +42,8 @@ function Canvas(ribbon) {
         svl.ui.canvas.drawingLayer.bind('mousedown', _handleDrawingLayerMouseDown);
         svl.ui.canvas.drawingLayer.bind('mouseup', _handleDrawingLayerMouseUp);
         svl.ui.canvas.drawingLayer.bind('mousemove', _handleDrawingLayerMouseMove);
-        $("#interaction-area-holder").on('mouseleave', _handleDrawingLayerMouseOut);
-        svl.ui.canvas.deleteIcon.bind("click", _labelDeleteIconClick);
+        $('#interaction-area-holder').on('mouseleave', _handleDrawingLayerMouseOut);
+        svl.ui.canvas.deleteIcon.bind('click', _labelDeleteIconClick);
         svl.ui.streetview.viewControlLayer.bind('mousedown', _handlerViewControlLayerMouseDown);
         svl.ui.streetview.viewControlLayer.bind('mouseup', _handlerViewControlLayerMouseUp);
         svl.ui.streetview.viewControlLayer.bind('mousemove', _handlerViewControlLayerMouseMove);
@@ -65,7 +65,7 @@ function Canvas(ribbon) {
             povOfLabel, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
         );
         const param = {
-            tutorial: svl.missionContainer.getCurrentMission().getProperty("missionType") === "auditOnboarding",
+            tutorial: svl.missionContainer.getCurrentMission().getProperty('missionType') === 'auditOnboarding',
             auditTaskId: svl.taskContainer.getCurrentTask().getAuditTaskId(),
             labelType: labelType,
             originalCanvasXY: { x: canvasX, y: canvasY },
@@ -111,19 +111,24 @@ function Canvas(ribbon) {
         }, 20);
     }
 
+    /**
+     * Sets the cursor over the street view image.
+     * @param {string} type One of 'OpenHand', 'ClosedHand', or 'Pointer'; uses 'default' for any other input
+     * @private
+     */
     function _setViewControlLayerCursor(type) {
         switch(type) {
             case 'OpenHand':
-                svl.ui.streetview.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/openhand.cur) 4 4, move");
+                svl.ui.streetview.viewControlLayer.css('cursor', `url(${svl.rootDirectory}img/cursors/openhand.cur) 4 4, move`);
                 break;
             case 'ClosedHand':
-                svl.ui.streetview.viewControlLayer.css("cursor", "url(" + svl.rootDirectory + "img/cursors/closedhand.cur) 4 4, move");
+                svl.ui.streetview.viewControlLayer.css('cursor', `url(${svl.rootDirectory}img/cursors/closedhand.cur) 4 4, move`);
                 break;
             case 'Pointer':
-                svl.ui.streetview.viewControlLayer.css("cursor", "pointer");
+                svl.ui.streetview.viewControlLayer.css('cursor', 'pointer');
                 break;
             default:
-                svl.ui.streetview.viewControlLayer.css("cursor", "default");
+                svl.ui.streetview.viewControlLayer.css('cursor', 'default');
         }
     }
 
@@ -149,7 +154,7 @@ function Canvas(ribbon) {
         const currTime = new Date();
 
         const selectedLabel = onLabel(currMousePosition.x, currMousePosition.y);
-        if (selectedLabel && selectedLabel.className === "Label") {
+        if (selectedLabel && selectedLabel.className === 'Label') {
             setCurrentLabel(selectedLabel);
             _setViewControlLayerCursor('Pointer');
 
@@ -192,7 +197,7 @@ function Canvas(ribbon) {
             const dy = (currMousePosition.y - mouseStatus.prevY) / zoomScaling;
             svl.panoManager.updatePov(dx, dy);
             _setViewControlLayerCursor('ClosedHand');
-        } else if (item && item.className === "Label") {
+        } else if (item && item.className === 'Label') {
             // Show label delete menu and update cursor when hovering over a label.
             _setViewControlLayerCursor('Pointer');
             const selectedLabel = item;
@@ -263,7 +268,7 @@ function Canvas(ribbon) {
         if (!status.disableLabelDelete) {
             const currLabel = self.getCurrentLabel();
             // If in tutorial, only delete if it's the last label that the user added to the canvas.
-            if (currLabel && (!svl.onboarding || svl.onboarding.getCurrentLabelId() === currLabel.getProperty("temporaryLabelId"))) {
+            if (currLabel && (!svl.onboarding || svl.onboarding.getCurrentLabelId() === currLabel.getProperty('temporaryLabelId'))) {
                 svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
                 svl.labelContainer.removeLabel(currLabel);
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
@@ -372,7 +377,7 @@ function Canvas(ribbon) {
         if (key in status) {
             status[key] = value;
         } else {
-            throw self.className + ": Illegal status name.";
+            throw self.className + ': Illegal status name.';
         }
     }
 

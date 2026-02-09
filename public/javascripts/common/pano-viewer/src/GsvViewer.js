@@ -6,7 +6,7 @@ class GsvViewer extends PanoViewer {
     constructor() {
         super();
         this.streetViewService = undefined;
-        this.panorama = undefined;
+        this.gsvPano = undefined;
         this.prevPanoData = undefined;
         this.currPanoData = undefined;
     }
@@ -31,10 +31,10 @@ class GsvViewer extends PanoViewer {
             zoomControl: false
         };
         const panoOpts = { ...defaults, ...panoOptions };
-        this.panorama = await new StreetViewPanorama(canvasElem, panoOpts);
+        this.gsvPano = await new StreetViewPanorama(canvasElem, panoOpts);
 
         // Add support for the tutorial panos that we have supplied locally.
-        this.panorama.registerPanoProvider((pano) => {
+        this.gsvPano.registerPanoProvider((pano) => {
             if (pano === 'tutorial' || pano === 'afterWalkTutorial') {
                 return this.#getCustomPanoData(pano);
             }
@@ -128,11 +128,11 @@ class GsvViewer extends PanoViewer {
                 resolve(this.currPanoData);
             } else {
                 // Listen for the position_changed event which fires when the panorama has finished loading.
-                const listener = this.panorama.addListener('position_changed', () => {
+                const listener = this.gsvPano.addListener('position_changed', () => {
                     google.maps.event.removeListener(listener);
                     resolve(this.currPanoData);
                 });
-                this.panorama.setPano(newPano);
+                this.gsvPano.setPano(newPano);
             }
         });
     };
@@ -218,37 +218,37 @@ class GsvViewer extends PanoViewer {
 
     getPov = () => {
         // Get POV and adjust heading to be between 0 and 360.
-        let pov = this.panorama.getPov();
+        let pov = this.gsvPano.getPov();
         while (pov.heading < 0) pov.heading += 360;
         while (pov.heading > 360) pov.heading -= 360;
         return pov;
     };
 
     setPov = (pov) => {
-        return this.panorama.setPov(pov);
+        return this.gsvPano.setPov(pov);
     };
 
     hideNavigationArrows = () => {
-        return this.panorama.set('linksControl', false);
+        return this.gsvPano.set('linksControl', false);
     };
 
     showNavigationArrows = () => {
-        return this.panorama.set('linksControl', true);
+        return this.gsvPano.set('linksControl', true);
     };
 
     addListener(event, handler) {
         if (event === 'pano_changed') {
-            this.panorama.addListener('pano_changed', handler);
+            this.gsvPano.addListener('pano_changed', handler);
         } else if (event === 'pov_changed') {
-            this.panorama.addListener('pov_changed', handler);
+            this.gsvPano.addListener('pov_changed', handler);
         }
     }
 
     removeListener(event, handler) {
         if (event === 'pano_changed') {
-            this.panorama.removeListener('pano_changed', handler);
+            this.gsvPano.removeListener('pano_changed', handler);
         } else if (event === 'pov_changed') {
-            this.panorama.removeListener('pov_changed', handler);
+            this.gsvPano.removeListener('pov_changed', handler);
         }
     }
 }

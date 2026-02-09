@@ -30,7 +30,7 @@ class PanoMarker {
      * upon construction. Note that the position must be set for the marker to display.
      *
      * @constructor
-     * @param {Object} opts A set of parameters to customize the marker.
+     * @param {object} opts A set of parameters to customize the marker.
      * @param {PanoViewer} opts.panoViewer Panorama viewer on which to display marker.
      * @param {HTMLDivElement} opts.markerContainer The container holding the markers.
      * @param {string} [opts.className] The class name which will be assigned to the created div node.
@@ -67,7 +67,7 @@ class PanoMarker {
         /** @private @type {?Object} */
         this.position_ = opts.position || { heading: 0, pitch: 0 };
 
-        /** @private @type {Object} */
+        /** @private @type {object} */
         this.size_ = opts.size || { width: 32, height: 32 };
 
         /** @private @type {string} */

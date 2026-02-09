@@ -30,8 +30,8 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     function blink() {
         self.stopBlinking();
         blinkInterval = window.setInterval(function() {
-            uiCompass.messageHolder.toggleClass("white-background-75");
-            uiCompass.messageHolder.toggleClass("highlight-50");
+            uiCompass.messageHolder.toggleClass('white-background-75');
+            uiCompass.messageHolder.toggleClass('highlight-50');
         }, 500);
     }
 
@@ -118,7 +118,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     function _makeTheLabelBeforeJumpMessageBoxClickable() {
         let jumpMessageOnclick;
         if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
-            jumpMessageOnclick = function() { svl.neighborhoodModel.trigger("Neighborhood:wrapUpRouteOrNeighborhood"); }
+            jumpMessageOnclick = function() { svl.neighborhoodModel.trigger('Neighborhood:wrapUpRouteOrNeighborhood'); }
         } else {
             jumpMessageOnclick = _jumpToTheNewTask
         }
@@ -166,17 +166,17 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
      */
     function directionToImagePath (direction) {
         switch (direction) {
-            case "straight":
+            case 'straight':
                 return imageDirectories.straight;
-            case "slight-right":
+            case 'slight-right':
                 return imageDirectories.slightRight;
-            case "slight-left":
+            case 'slight-left':
                 return imageDirectories.slightLeft;
-            case "right":
+            case 'right':
                 return imageDirectories.rightTurn;
-            case "left":
+            case 'left':
                 return imageDirectories.leftTurn;
-            case "u-turn":
+            case 'u-turn':
                 return imageDirectories.uTurn;
             default:
         }
@@ -186,7 +186,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
      * Hide a message
      */
     function hideMessage() {
-        uiCompass.messageHolder.removeClass("fadeInUp").addClass("fadeOutDown");
+        uiCompass.messageHolder.removeClass('fadeInUp').addClass('fadeOutDown');
         uiCompass.messageHolder.css('pointer-events', 'none');
     }
 
@@ -222,7 +222,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
      * Show a message
      */
     function showMessage() {
-        uiCompass.messageHolder.removeClass("fadeOutDown").addClass("fadeInUp");
+        uiCompass.messageHolder.removeClass('fadeOutDown').addClass('fadeInUp');
         uiCompass.messageHolder.css('pointer-events', 'auto');
     }
 
@@ -232,8 +232,8 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     function stopBlinking() {
         window.clearInterval(blinkInterval);
         blinkInterval = null;
-        uiCompass.messageHolder.addClass("white-background-75");
-        uiCompass.messageHolder.removeClass("highlight-50");
+        uiCompass.messageHolder.addClass('white-background-75');
+        uiCompass.messageHolder.removeClass('highlight-50');
     }
 
     /**
@@ -259,20 +259,20 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
      */
     function _angleToDirection (angle) {
         if (angle < 20 || angle > 340)
-            return "straight";
+            return 'straight';
         else if (angle >= 20 && angle < 45)
-            return "slight-left";
+            return 'slight-left';
         else if (angle <= 340 && angle > 315)
-            return "slight-right";
+            return 'slight-right';
         else if (angle >= 45 && angle < 150)
-            return "left";
+            return 'left';
         else if (angle <= 315 && angle > 210)
-            return "right";
+            return 'right';
         else if (angle <= 210 && angle >= 150) {
-            return "u-turn";
+            return 'u-turn';
         }
         else {
-            console.debug("It shouldn't reach here.");
+            console.debug('It shouldn\'t reach here.');
         }
     }
 
@@ -283,17 +283,17 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
      */
     function _directionToDirectionMessage (direction) {
         switch (direction) {
-            case "straight":
+            case 'straight':
                 return i18next.t('center-ui.compass.straight');
-            case "slight-right":
+            case 'slight-right':
                 return i18next.t('center-ui.compass.slight-right');
-            case "slight-left":
+            case 'slight-left':
                 return i18next.t('center-ui.compass.slight-left');
-            case "right":
+            case 'right':
                 return i18next.t('center-ui.compass.right');
-            case "left":
+            case 'left':
                 return i18next.t('center-ui.compass.left');
-            case "u-turn":
+            case 'u-turn':
                 return i18next.t('center-ui.compass.u-turn');
             default:
         }

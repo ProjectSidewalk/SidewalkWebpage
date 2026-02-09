@@ -6,7 +6,7 @@
  * @constructor
  */
 function LabelVisibilityControl() {
-    let self = this;
+    const self = this;
     let visible = true;
     let labelVisibilityControlButton = $("#label-visibility-control-button");
     let labelVisibilityButtonOnPano = $("#label-visibility-button-on-pano");

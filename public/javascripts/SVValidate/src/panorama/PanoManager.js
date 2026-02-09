@@ -47,7 +47,7 @@ class PanoManager {
 
         // TODO we probably need to do this for any viewer type...
         if (panoViewerType === GsvViewer && !isMobile()) {
-            this.#linksListener = svv.panoViewer.panorama.addListener('links_changed', this.#makeLinksClickable.bind(this));
+            this.#linksListener = svv.panoViewer.gsvPano.addListener('links_changed', this.#makeLinksClickable.bind(this));
         }
     }
 

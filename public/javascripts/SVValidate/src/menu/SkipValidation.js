@@ -9,7 +9,7 @@ function SkipValidation (uiSkip) {
     let status = {
         disableSkip: false
     };
-    let self = this;
+    const self = this;
 
     /**
      * Enables the skip button (makes button clickable).

@@ -1,10 +1,11 @@
 /**
+ * A module used to create instructional (or sign in/up) popups on the Explore page.
  *
- * @param form
- * @param taskContainer
- * @param tracker
- * @param user
- * @param uiPopUpMessage
+ * @param {Form} form
+ * @param {TaskContainer} taskContainer
+ * @param {Tracker} tracker
+ * @param {User} user
+ * @param {object} uiPopUpMessage
  * @returns {{className: string}}
  * @constructor
  */

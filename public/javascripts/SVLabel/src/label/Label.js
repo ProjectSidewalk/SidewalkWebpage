@@ -98,7 +98,7 @@ function Label(params) {
 
         // Create the marker on the minimap.
         const latlng = toLatLng();
-        googleMarker = Label.createMinimapMarker(properties.labelType, latlng.lat, latlng.lng);
+        googleMarker = Label.createMinimapMarker(properties.labelType, latlng);
         googleMarker.setMap(svl.minimap.getMap());
     }
 
@@ -109,7 +109,7 @@ function Label(params) {
 
     /**
      * Returns the coordinate of the label.
-     * @returns { x: Number, y: Number }
+     * @returns { x: number, y: number }
      */
     function getCanvasXY() {
         return properties.currCanvasXY;
@@ -350,7 +350,7 @@ function Label(params) {
 
     /**
      * Get the label's estimated latlng position.
-     * @returns {lat: Number, lng: Number, computationMethod: String}
+     * @returns {lat: number, lng: number, computationMethod: string}
      */
     function toLatLng() {
         if (!properties.labelLat) {
@@ -400,7 +400,7 @@ function Label(params) {
     /**
      * Save a screenshot of the image named crop_<labelId>.png. The crops are stored in subdirs /<city-id>/<label-type>.
      * @param labelId
-     * @param retryAttempt {Number} Current retry attempt if image hasn't been saved yet.
+     * @param retryAttempt {number} Current retry attempt if image hasn't been saved yet.
      */
     function updateLabelIdAndUploadCrop(labelId, retryAttempt) {
         // Retry if crop isn't available yet.
@@ -504,17 +504,14 @@ Label.renderLabelIcon = function(ctx, labelType, x, y) {
  * This method creates a Google Maps marker.
  * https://developers.google.com/maps/documentation/javascript/markers
  * https://developers.google.com/maps/documentation/javascript/examples/marker-remove
+ * @param {string} labelType
+ * @param {{lat: number, lng: number}} latLng
  * @returns {google.maps.Marker}
  */
-Label.createMinimapMarker = function(labelType, lat, lng) {
-    if (typeof google !== "undefined") {
-        var googleLatLng = new google.maps.LatLng(lat, lng);
-        var url = util.misc.getIconImagePaths()[labelType].minimapIconImagePath;
-
-        return new google.maps.Marker({
-            position: googleLatLng,
-            map: svl.minimap.getMap(),
-            icon: url
-        });
-    }
+Label.createMinimapMarker = function(labelType, latLng) {
+    return new google.maps.Marker({
+        position: new google.maps.LatLng(latLng.lat, latLng.lng),
+        map: svl.minimap.getMap(),
+        icon: util.misc.getIconImagePaths()[labelType].minimapIconImagePath
+    });
 }

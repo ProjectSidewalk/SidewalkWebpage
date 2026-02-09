@@ -3,14 +3,14 @@
  * An object that creates a display for the severity.
  *
  * @param {HTMLElement} container The DOM element that contains the display
- * @param {Number} agreeCount The agree count to display
- * @param {Number} disagreeCount The disagree count to display
- * @param {String} aiValidation Either 'Agree' or 'Disagree', showing AI validation if there is any
- * @param {Boolean} isExpandedView a toggle to determine if this ValidationInfoDisplay is in expanded view, or in a card
+ * @param {number} agreeCount The agree count to display
+ * @param {number} disagreeCount The disagree count to display
+ * @param {string} aiValidation Either 'Agree' or 'Disagree', showing AI validation if there is any
+ * @param {boolean} isExpandedView a toggle to determine if this ValidationInfoDisplay is in expanded view, or in a card
  * @returns {ValidationInfoDisplay} the generated object
  */
 function ValidationInfoDisplay(container, agreeCount, disagreeCount, aiValidation, isExpandedView=false) {
-    let self = this;
+    const self = this;
     self.agreeCount = agreeCount;
     self.disagreeCount = disagreeCount;
     self.validationContainer = container;

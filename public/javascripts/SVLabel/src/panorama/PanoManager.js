@@ -98,7 +98,7 @@ class PanoManager {
 
         // TODO we probably need to do this for any viewer type...
         if (panoViewerType === GsvViewer) {
-            this.linksListener = svl.panoViewer.panorama.addListener('links_changed', this.#makeLinksClickable);
+            this.linksListener = svl.panoViewer.gsvPano.addListener('links_changed', this.#makeLinksClickable);
         }
 
         this.resetNavArrows();

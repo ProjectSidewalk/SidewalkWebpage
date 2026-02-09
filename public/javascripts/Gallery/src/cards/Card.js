@@ -7,7 +7,7 @@
  * @constructor
  */
 function Card(params, imageUrl, expandedView) {
-    let self = this;
+    const self = this;
 
     // UI card element.
     let card = null;
@@ -266,7 +266,7 @@ function Card(params, imageUrl, expandedView) {
     /**
      * Set aspect of status.
      *
-     * @param {*} key Status name.
+     * @param {string} key Status name.
      * @param {*} value Status value.
      */
     function setStatus(key, value) {

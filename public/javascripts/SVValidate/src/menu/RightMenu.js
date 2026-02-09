@@ -3,7 +3,7 @@
  * @constructor
  */
 function RightMenu(menuUI) {
-    let self = this;
+    const self = this;
     const $disagreeReasonButtons = menuUI.disagreeReasonOptions.children('.validation-reason-button');
     const $unsureReasonButtons = menuUI.unsureReasonOptions.children('.validation-reason-button');
     let $tagSelect;
@@ -470,8 +470,8 @@ function RightMenu(menuUI) {
 
     /**
      * Validates a single label from a button click.
-     * @param action           {String} Validation action - must be one of Agree, Disagree, or Unsure.
-     * @param keyboardShortcut {boolean} Whether or not the validation was triggered by a keyboard shortcut.
+     * @param {string} action Validation action - must be one of Agree, Disagree, or Unsure.
+     * @param {boolean} keyboardShortcut Whether or not the validation was triggered by a keyboard shortcut.
      */
     function _validateLabel(action, keyboardShortcut) {
         const actionStr = keyboardShortcut ? 'ValidationKeyboardShortcut_Submit_Validation=' : 'Click=Submit_Validation=';
