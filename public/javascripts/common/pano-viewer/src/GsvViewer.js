@@ -238,9 +238,17 @@ class GsvViewer extends PanoViewer {
 
     addListener(event, handler) {
         if (event === 'pano_changed') {
-            this.panorama.addListener(event, handler);
+            this.panorama.addListener('pano_changed', handler);
         } else if (event === 'pov_changed') {
-            this.panorama.addListener(event, handler);
+            this.panorama.addListener('pov_changed', handler);
         }
-    };
+    }
+
+    removeListener(event, handler) {
+        if (event === 'pano_changed') {
+            this.panorama.removeListener('pano_changed', handler);
+        } else if (event === 'pov_changed') {
+            this.panorama.removeListener('pov_changed', handler);
+        }
+    }
 }

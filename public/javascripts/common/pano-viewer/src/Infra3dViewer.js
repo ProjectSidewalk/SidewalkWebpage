@@ -294,18 +294,18 @@ class Infra3dViewer extends PanoViewer {
     };
 
     hideNavigationArrows = () => {
-        this.viewer._sdk_viewer.deactivateComponent("direction");
+        this.viewer._sdk_viewer.deactivateComponent('direction');
     };
 
     showNavigationArrows = () => {
-        this.viewer._sdk_viewer.activateComponent("direction");
+        this.viewer._sdk_viewer.activateComponent('direction');
     };
 
     addListener(event, handler) {
         if (event === 'pano_changed') {
-            this.viewer._sdk_viewer.on("nodechanged", handler);
+            this.viewer._sdk_viewer.on('nodechanged', handler);
         } else if (event === 'pov_changed') {
-            this.viewer.on("panorotationchanged", (evt) => {
+            this.viewer.on('panorotationchanged', (evt) => {
                 handler(evt);
             });
         }
@@ -313,9 +313,9 @@ class Infra3dViewer extends PanoViewer {
 
     removeListener(event, handler) {
         if (event === 'pano_changed') {
-            this.viewer._sdk_viewer.off("nodechanged", handler);
+            this.viewer._sdk_viewer.off('nodechanged', handler);
         } else if (event === 'pov_changed') {
-            this.viewer.off("panorotationchanged", handler);
+            this.viewer.off('panorotationchanged', handler);
         }
     };
 }

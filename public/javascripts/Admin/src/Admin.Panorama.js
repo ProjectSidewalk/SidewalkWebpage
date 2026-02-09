@@ -79,7 +79,7 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
         };
         self.panoViewer = await viewerType.create(self.panoCanvas, panoOptions);
 
-        self.panoViewer.addListener('pano_changed', function() {
+        self.panoViewer.addListener('pano_changed', () => {
             // Only show the label if we're looking at the correct pano.
             for (let marker of self.labelMarkers) {
                 if (marker.panoId === self.panoViewer.getPanoId()) {

@@ -50,7 +50,7 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
         self.validation_info = $('.gallery-expanded-view-info-validation');
         self.description = $('.gallery-expanded-view-info-description');
         self.header = $('.gallery-expanded-view-header');
-        self.panoManager = await PanoManager(self.panoHolder, panoViewerType, viewerAccessToken);
+        self.panoManager = await PanoManager.create(self.panoHolder[0], panoViewerType, viewerAccessToken);
         self.closeButton = $('.gallery-expanded-view-close');
         self.leftArrow = $('#prev-label');
         self.leftArrowDisabled = false;

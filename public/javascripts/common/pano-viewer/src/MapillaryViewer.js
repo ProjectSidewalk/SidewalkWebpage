@@ -256,4 +256,11 @@ class MapillaryViewer extends PanoViewer {
             // this.panorama.addListener(event, handler);
         }
     }
+
+    // TODO need to implement.
+    removeListener(event, handler) {
+        if (event === 'pano_changed') {
+        } else if (event === 'pov_changed') {
+        }
+    }
 }

@@ -22,8 +22,7 @@ function PopUpMessage (form, taskContainer, tracker, user, uiPopUpMessage) {
     this.disableInteractions = () => {
         svl.panoManager.hideNavArrows();
         svl.navigationService.disableWalking();
-        svl.panoManager.unlockDisablePanning();
-        svl.panoManager.disablePanning();
+        svl.panoManager.unlockDisablePanning().disablePanning();
         svl.canvas.disableLabeling();
         svl.keyboard.disableKeyboard();
     };

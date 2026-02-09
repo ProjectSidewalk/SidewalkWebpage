@@ -18,7 +18,7 @@ class PanoManager {
      * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
      * @param {string} viewerAccessToken An access token used to request images for the pano viewer
      * @param {string} startPanoId The ID of the panorama to load first
-     * @returns
+     * @returns {Promise<void>} A Promise that resolves once the PanoViewer has loaded with the first pano
      */
     async #init(panoViewerType, viewerAccessToken, startPanoId) {
         // Load the pano viewer.
@@ -80,18 +80,20 @@ class PanoManager {
     /**
      * Saves historic pano metadata and updates the date text field on the pano in pano viewer.
      * @param {PanoData} panoData The PanoData extracted from the PanoViewer when loading the pano
+     * @returns {PanoData}
      * @private
      */
     #setPanoCallback(panoData) {
-        const panoId = panoData.getPanoId();
-
         // Store the returned pano metadata.
+        const panoId = panoData.getPanoId();
         svv.panoStore.addPanoMetadata(panoId, panoData);
 
         if (!isMobile()) {
             // Add the capture date of the image to the bottom-right corner of the UI.
             svv.ui.viewer.date.text(panoData.getProperty('captureDate').format('MMM YYYY'));
         }
+
+        return panoData;
     }
 
     /**
@@ -149,18 +151,21 @@ class PanoManager {
     /**
      * Sets the panorama ID. Adds a callback function that will record pano metadata and update the date text field.
      * @param {string} panoId The ID for the panorama that we want to move to
+     * @returns {Promise<PanoData>}
      */
     async setPanorama(panoId) {
         this.setProperty('panoLoaded', false);
-        return svv.panoViewer.setPano(panoId).then(this.#setPanoCallback).then(() => {
+        return svv.panoViewer.setPano(panoId).then(this.#setPanoCallback).then((panoData) => {
             this.setProperty('panoLoaded', true);
             svv.tracker.push('PanoId_Changed');
+            return panoData;
         });
     }
 
     /**
      * Adds or removes the AI badge on the validation marker.
      * @param showIndicator  True to show the AI badge, false to remove it.
+     * @private
      */
     #updateMarkerAiIndicator(showIndicator) {
         const markerEl = this.labelMarker.marker_;
@@ -183,6 +188,7 @@ class PanoManager {
     /**
      * Sets the zoom level for this panorama.
      * @param zoom  Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
+     * @returns {void}
      */
     setZoom(zoom) {
         const currPov = svv.panoViewer.getPov();

@@ -47,15 +47,17 @@ class PanoViewer {
 
     /**
      * Factory method to create and initialize instances. Ex: `const viewer = await GsvViewer.create(canvasElem);`.
-     * @static
+     * @param {Element} canvasElem
+     * @param {object} panoOptions Object containing initialization options
+     * @param {string} [panoOptions.startPanoId] Pano to start at; either this or startLatLng is required
+     * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Location to start at; either this or startLatLng is required
      * @returns {Promise<PanoViewer>}
+     * @static
      */
     static async create(canvasElem, panoOptions = {}) {
         const newViewer = new this();
         return newViewer.initialize(canvasElem, panoOptions)
-            .then(() => {
-                return newViewer;
-            });
+            .then(() => newViewer);
     }
 
     /**
@@ -94,7 +96,7 @@ class PanoViewer {
      * Sets the panorama to the location closest to the specified lat/lng.
      * @param {{lat: number, lng: number}} latLng The desired location to move to.
      * @param {Set<string>} [excludedPanos=new Set()] Set of pano IDs that are not valid images to move to.
-     * @returns {Promise<Object>} The panorama data object. Rejects if closest image is in excludedPanos or none found.
+     * @returns {Promise<PanoData>} The panorama data object. Rejects if closest image is in excludedPanos or none found.
      */
     async setLocation(latLng, excludedPanos = new Set()) {
         throw new Error('setLocation(latLng, excludedPanos) must be implemented by subclass');
@@ -103,7 +105,7 @@ class PanoViewer {
     /**
      * Moves the current panorama to the specified panorama ID.
      * @param panoId The panorama ID to set.
-     * @returns {Promise<Object>} The panorama data object.
+     * @returns {Promise<PanoData>} The panorama data object.
      */
     async setPano(panoId) {
         throw new Error('setPano(panoId) must be implemented by subclass');
@@ -132,6 +134,7 @@ class PanoViewer {
      * @param {number} pov.heading - Desired heading in degrees (0-360, where 0 is true north)
      * @param {number} pov.pitch - Desired pitch in degrees (-90 to 90, where 0 is horizontal)
      * @param {number} pov.zoom - Desired zoom (1, 2, or 3)
+     * @returns {void}
      */
     setPov(pov) {
         throw new Error('setPov() must be implemented by subclass');
@@ -139,6 +142,7 @@ class PanoViewer {
 
     /**
      * Hides the navigation arrows in the panorama viewer.
+     * @returns {void}
      */
     hideNavigationArrows() {
         throw new Error('hideNavigationArrows() must be implemented by subclass');
@@ -146,6 +150,7 @@ class PanoViewer {
 
     /**
      * Shows the navigation arrows in the panorama viewer.
+     * @returns {void}
      */
     showNavigationArrows() {
         throw new Error('showNavigationArrows() must be implemented by subclass');
@@ -155,10 +160,19 @@ class PanoViewer {
      * Adds an event listener for the specified event type.
      * @param event One of ['pano_changed', 'pov_changed']
      * @param handler The function to call when the event occurs.
+     * @returns {void}
      */
     addListener(event, handler) {
         throw new Error('addListener() must be implemented by subclass');
     }
 
-    // TODO should add a removeListener function.
+    /**
+     * Removes an event listener for the specified event type.
+     * @param {string} event One of ['pano_changed', 'pov_changed']
+     * @param {function} handler The function to call when the event occurs.
+     * @returns {void}
+     */
+    removeListener(event, handler) {
+        throw new Error('removeListener() must be implemented by subclass');
+    }
 }

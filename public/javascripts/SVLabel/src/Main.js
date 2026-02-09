@@ -66,7 +66,7 @@ function Main (params) {
         const newTask = new Task(params.task, isTutorialTask);
         const initParams = isTutorialTask ? { startPanoId: 'tutorial' } : { startLat: startLat, startLng: startLng };
         const errorParams = { task: newTask, missionId: params.mission.mission_id };
-        svl.panoManager = await PanoManager(svl.viewerType, params.viewerAccessToken, initParams, errorParams);
+        svl.panoManager = await PanoManager.create(svl.viewerType, params.viewerAccessToken, initParams, errorParams);
         const currLatLng = svl.panoViewer.getPosition();
         newTask.updateTheFurthestPointReached(currLatLng);
 
