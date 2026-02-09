@@ -56,21 +56,20 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
     /**
      * Request the server to populate tasks
      * TODO Move this to somewhere else. TaskModel?
-     * TODO return a Promise instead of using a callback function
-     * @param callback A callback function
      */
-    self.fetchTasks = function(callback) {
+    self.fetchTasks = function() {
         const currMission = svl.missionContainer.getCurrentMission();
         const currMissionId = currMission.getProperty('missionId');
         let url;
         if (svl.neighborhoodModel.isRoute) url = `/routeTasks?userRouteId=${svl.userRouteId}`;
         else url = `/tasks?regionId=${svl.neighborhoodModel.currentNeighborhood().getRegionId()}`;
 
-        $.ajax({
-            url: url,
-            async: true,
+        return fetch(url, {
             method: 'GET',
-            success: function (result) {
+            headers: { 'Content-Type': 'application/json; charset=utf-8' }
+        })
+            .then((response) => response.json())
+            .then(async (result) => {
                 let task;
                 const currStreetId = getCurrentTaskStreetEdgeId();
                 for (let i = 0; i < result.features.length; i++) {
@@ -87,13 +86,10 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
                     }
                 }
                 tasksFinishedLoading = true;
-
-                if (callback) callback();
-            },
-            error: function (result) {
-                console.error(result);
-            }
-        });
+            })
+            .catch(error => {
+                console.error(error);
+            });
     };
 
     /**

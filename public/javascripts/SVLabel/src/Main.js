@@ -237,7 +237,7 @@ function Main (params) {
             loadingTasksCompleted = true;
             handleDataLoadComplete();
         } else {
-            taskContainer.fetchTasks(function () {
+            taskContainer.fetchTasks().then(() => {
                 loadingTasksCompleted = true;
                 handleDataLoadComplete();
             });

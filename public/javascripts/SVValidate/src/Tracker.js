@@ -87,7 +87,7 @@ function Tracker() {
         actions.push(item);
         if (actions.length > 200) {
             const data = svv.form.compileSubmissionData(false);
-            svv.form.submit(data, true);
+            svv.form.submit(data, true); // Note that this happens async
         }
         // If there is a one-hour break between interactions (in ms), refresh the page to avoid weird bugs.
         if (prevItem && item.timestamp - prevItem.timestamp > 3600000) window.location.reload();

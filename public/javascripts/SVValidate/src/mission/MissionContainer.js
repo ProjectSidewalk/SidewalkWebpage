@@ -45,7 +45,7 @@ function MissionContainer () {
         svv.missionsCompleted += 1;
         svv.modalMissionComplete.show(currentMission);
         let data = svv.form.compileSubmissionData(true);
-        svv.form.submit(data, true);
+        svv.form.submit(data); // Note that this happens async. Once finished, it enables start next mission button.
         _addToCompletedMissions(currentMission);
     }
 

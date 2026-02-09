@@ -103,44 +103,33 @@ function Form(url, beaconUrl) {
     /**
      * Submits all front-end data to the backend.
      * @param data  Data object (containing Interactions, Missions, etc...)
-     * @param async
-     * @returns {*}
+     * @returns {Promise<void>}
      */
-    function submit(data, async) {
-        if (typeof async === "undefined") {
-            async = false;
-        }
-
-        $.ajax({
-            async: async,
-            contentType: 'application/json; charset=utf-8',
-            url: properties.dataStoreUrl,
+    function submit(data) {
+        return fetch(properties.dataStoreUrl, {
             method: 'POST',
-            data: JSON.stringify(data),
-            dataType: 'json',
-            success: function (result) {
-                if (result) {
-                    // If a mission was returned after posting data, create a new mission.
-                    if (result.has_mission_available) {
-                        if (result.mission) {
-                            svv.missionContainer.createAMission(result.mission, result.progress);
-                            svv.labelContainer.resetLabelList(result.labels);
-                            svv.labelContainer.renderCurrentLabel(); // TODO This return a Promise.
-                            svv.modalMissionComplete.setProperty('clickable', true);
-                        }
-                    } else {
-                        // Otherwise, display popup that says there are no more labels left.
-                        svv.modalMissionComplete.hide();
-                        svv.modalNoNewMission.show();
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify(data)
+        })
+            .then((response) => response.json())
+            .then(async (result) => {
+                // If a mission was returned after posting data, create a new mission.
+                if (result.has_mission_available) {
+                    if (result.mission) {
+                        svv.missionContainer.createAMission(result.mission, result.progress);
+                        svv.labelContainer.resetLabelList(result.labels);
+                        await svv.labelContainer.renderCurrentLabel();
+                        svv.modalMissionComplete.nextMissionLoaded();
                     }
+                } else {
+                    // Otherwise, display popup that says there are no more labels left.
+                    svv.modalMissionComplete.hide();
+                    svv.modalNoNewMission.show();
                 }
-            },
-            error: function (xhr, status, result) {
-                // console.error(xhr.responseText);
-                // console.error(result);
+            })
+            .catch(error => {
                 window.location.reload(); // Refresh the page in case the server has gone down.
-            }
-        });
+            });
     }
 
     $(window).on('beforeunload', function () {
