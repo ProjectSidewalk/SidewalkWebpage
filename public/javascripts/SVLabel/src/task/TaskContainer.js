@@ -27,16 +27,9 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
     function endTask(task) {
         if (tracker) tracker.push("TaskEnd");
         task.complete();
-        // Go through the tasks and mark the completed task as isComplete=true.
-        for (let i = 0, len = self._tasks.length;  i < len; i++) {
-            if (task.getStreetEdgeId() === self._tasks[i].getStreetEdgeId()) {
-                // Check if the reference passed in from the method parameter and the array are the same.
-                // This is needed because otherwise we could update a reference to the same task twice.
-                if (task !== self._tasks[i]) {
-                    self._tasks[i].complete();
-                }
-            }
-        }
+
+        // Submit the data so that the task is marked as complete in the db. Note that this happens async.
+        svl.form.submitData(task);
 
         // Update the audited distance in the right sidebar.
         updateAuditedDistance();
@@ -382,7 +375,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
     };
 
     /**
-     * Set the current task
+     * Set the current task.
      * @param {Task} task
      */
     this.setCurrentTask = function(task) {
@@ -396,10 +389,6 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
         if ('compass' in svl) {
             svl.compass.showMessage();
             svl.compass.update();
-        }
-
-        if ('form' in svl) {
-            svl.form.submitData(currentTask); // Note that this happens async.
         }
 
         // Show AI guidance message if applicable.

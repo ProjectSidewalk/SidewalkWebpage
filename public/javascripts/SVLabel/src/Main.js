@@ -123,8 +123,8 @@ function Main (params) {
         svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.panoStore,
             svl.taskContainer, svl.navigationService, svl.compass, svl.tracker, params.dataStoreUrl);
         if (params.mission.current_audit_task_id) {
-            var currTask = svl.taskContainer.getCurrentTask();
-            var currTaskId = currTask.getProperty('auditTaskId');
+            const currTask = svl.taskContainer.getCurrentTask();
+            const currTaskId = currTask.getProperty('auditTaskId');
             if (!currTaskId) currTask.setProperty("auditTaskId", params.mission.current_audit_task_id);
         } else {
             await svl.form.submitData(); // Get an audit_task_id from the back end.

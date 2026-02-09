@@ -14,7 +14,7 @@
  * @constructor
  */
 function Form (labelContainer, missionModel, missionContainer, panoStore, taskContainer, navigationService, compass, tracker, dataStoreUrl) {
-    var self = this;
+    const self = this;
     let properties = {
         dataStoreUrl : undefined,
         beaconDataStoreUrl : undefined,
