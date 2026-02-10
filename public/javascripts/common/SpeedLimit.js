@@ -27,13 +27,18 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
         'road'
     ];
 
+    // Labels in which speed limit is necessary context for validation. Speed limit will not display for other labels.
+    const speedLimitRelevantLabels = ['NoCurbRamp'];
+
     const self = this;
 
     let cache = {};
 
     function _init() {
-        if (typeof(labelContainer) !== "undefined" && labelContainer !== null) {
-            prefetchLabels();
+        // If labelType is null/undefined (not provided), the speed limit will be displayed by default.
+        const speedLimitRelevant = !labelType || speedLimitRelevantLabels.includes(labelType);
+        if (typeof(labelContainer) !== "undefined" && labelContainer !== null && speedLimitRelevant) {
+            prefetchLabels(); // Note that this happens async.
             labelContainer.resetLabelListUpdateCallback(prefetchLabels);
         }
 
@@ -167,10 +172,6 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
             updateSpeedLimit();
             return;
         }
-
-        // Labels in which speed limit is necessary context for validation.
-        // Speed limit will not display for other labels.
-        const speedLimitRelevantLabels = ['NoCurbRamp'];
 
         // If labelType is null/undefined (not provided), the speed limit will be displayed by default.
         const speedLimitRelevant = !labelType || speedLimitRelevantLabels.includes(labelType);
