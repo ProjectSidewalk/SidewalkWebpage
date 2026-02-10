@@ -289,7 +289,7 @@ footer {
     text-decoration:underline;
 }
 
-/* GSV Info Popover styling. */
+/* Pano Info Popover styling. */
 .info-key {
     font-weight: bold;
     margin-right: 20px;
@@ -316,7 +316,7 @@ footer {
     justify-content: center;
 }
 
-#gsv-link {
+#pano-link {
     text-align: center;
     width: fit-content;
     margin-left: auto;

@@ -4,9 +4,10 @@
 @import play.api.Configuration
 @import play.api.libs.json.Json
 @import service.{CommonPageData, ExplorePageData}
+@import models.pano.PanoSource
 @(
-        commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, data: ExplorePageData,
-        lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None
+    commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, data: ExplorePageData,
+    lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -19,11 +20,11 @@
     <link rel="stylesheet" href='@assets.path("stylesheets/animate.css")'/>
 
     <script>
-        // Setup necessary for saving crops of GSV. We don't want to cause issues if this fails.
+        // Setup necessary for saving crops of pano. We don't want to cause issues if this fails.
         try {
             HTMLCanvasElement.prototype.getContext = function(origFn) {
                 return function(type, attributes) {
-                    if (type === 'webgl') {
+                    if (type === 'webgl' || type === 'webgl2') {
                         attributes = Object.assign({}, attributes, { preserveDrawingBuffer: true });
                     }
                     return origFn.call(this, type, attributes);
@@ -200,11 +201,6 @@
                         <br>
                         @Messages("audit.left.ui.sound")
                     </div>
-                    <div id="left-column-jump-button" class="button" title="@Messages("audit.left.ui.jump.tooltip")" data-toggle="tooltip" data-placement="top">
-                        <img src='@assets.path("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon">
-                        <br>
-                        @Messages("audit.left.ui.jump")
-                    </div>
                     <div id="left-column-stuck-button" class="button" title="@Messages("audit.left.ui.stuck.tooltip")" data-toggle="tooltip" data-placement="top">
                         <img src='@assets.path("javascripts/SVLabel/img/icons/noun_lost_1779388.png")'  alt="Stuck icon">
                         <br>
@@ -300,7 +296,11 @@
                 </div>
                 <div id="neighborhood-stats-status-box" class="status-box">
                     <h1 class="status-holder-header-1">@Messages("audit.right.ui.current.neighborhood")</h1>
-                    <span id="status-neighborhood-name"><span id="status-holder-neighborhood-name"></span>@currentCity.cityNameShort</span>
+                    <a href="" target="_blank" id="status-neighborhood-link">
+                        <span id="status-neighborhood-name">
+                            <span id="status-holder-neighborhood-name"></span>@currentCity.cityNameShort
+                        </span>
+                    </a>
                     <div class="status-row" id="neighborhood-status-row">
                         <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("distance.icon.alt")">
                         <span><strong id="status-audited-distance">0.00</strong> <small>@Messages("audit.right.ui.distance")</small></span>
@@ -345,11 +345,14 @@
                             <p class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></p>
                         </div>
                     </div>
+                    <div id="imagery-source-logo-holder">
+                        <img id="imagery-source-logo"/>
+                    </div>
                     <div id="svl-panorama-date-holder">
                         <span id="svl-panorama-date"></span>
                     </div>
                     <div id="ribbon-street-view-connector"><!-- border --></div>
-                    <!-- You can put an extra div element on top of the Street View div panel to disable any of StreetView control. -->
+                    <!-- You can put an extra div element on top of the pano div panel to disable any of pano control. -->
                     <div id="pano" class="window-streetview" style="z-index: 0;" ></div>
                     <div id="onboarding-holder" class="window-streetview">
                         <canvas id="onboarding-canvas"  class="window-streetview" width="720px" height="480px" style="cursor: default, move;"></canvas>
@@ -359,14 +362,15 @@
                             <p></p>
                         </div>
                     </div>
-                    <div id="userControlLayer"  class="window-streetview" style="z-index: 0;">
+                    <div id="user-control-layer"  class="window-streetview" style="z-index: 0;">
                         <div id="view-control-layer"  class="window-streetview" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 1;">
-                            <!-- In IE, it seems like a div element that has nothing inside gets neglected...
-                                So I put an empty canvas as a placeholder.
-                            -->
-                            <!--[if IE]>
-                            <canvas width="720px" height="480px"  class="window-streetview" style=""></canvas>
-                            <![endif]-->
+                            <div id="nav-arrows-container">
+                                <svg width="180" height="180" viewbox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+                                    <g id="arrow-group" transform-origin="center">
+                                        <!-- Arrows will be added here dynamically -->
+                                    </g>
+                                </svg>
+                            </div>
                         </div>
                         <div id="labelDrawingLayer"  class="window-streetview" style="z-index: 0;">
                             <canvas id="label-canvas"  class="window-streetview" width="720px" height="480px" style="cursor: default, move;"></canvas>
@@ -491,21 +495,6 @@
                     <p id="pop-up-message-content">Content</p>
                     <div id="pop-up-message-img-holder"></div>
                     <div id="pop-up-message-button-holder"></div>
-                </div>
-            </div>
-            <div id="modal-skip-holder" class="hidden">
-                <div id="modal-skip-background"></div>
-                <div id="modal-skip-box">
-                    <div id="modal-skip-title" class="bold">
-                        <p>@Messages("audit.left.ui.jump.title")</p>
-                    </div>
-                    <div id="modal-skip-content">
-                        <input type="button" class="overlay-option" id="modal-skip-continue-neighborhood" value="@Messages("audit.left.ui.jump.same.neighborhood")">
-                        <input type="button" class="overlay-option" id="modal-skip-new-neighborhood" value="@Messages("audit.left.ui.jump.new.neighborhood")">
-                    </div>
-                    <div class="modal-skip-cancel-button-holder">
-                        <button class="button" id="modal-skip-cancel-button">@Messages("cancel")</button>
-                    </div>
                 </div>
             </div>
             <div id="modal-comment-holder" class="hidden">
@@ -675,6 +664,14 @@
             </div>
         </div>
     </template>
+    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
+    @if(commonData.imagerySource == PanoSource.Infra3d) {
+        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("javascripts/lib/infra3dapi-1.7.0.js")'></script>
+    } else if (commonData.imagerySource == PanoSource.Mapillary) {
+        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+    }
     <script src='@assets.path("javascripts/SVLabel/build/SVLabel.js")'></script>
     <script src='@assets.path("javascripts/lib/kinetic-v4.4.3.min.js")'></script>
     <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
@@ -690,90 +687,6 @@
     <link href='@assets.path("javascripts/lib/mapbox-gl-3.16.0.css")' rel="stylesheet"/>
 
     <script>
-        // Todo. Try to move the following code to Main.js
-        var svl = svl || {};
-        var mainParam = {};
-        svl.storage = new TemporaryStorage(JSON);
-        if (!("tracker" in svl)) {
-            svl.tracker = new Tracker();
-        }
-
-        svl.userModel = new UserModel();
-        var userParam = {
-            username: '@user.username',
-            role: '@user.role',
-            userId: '@user.userId'
-        };
-        svl.user = new User(userParam);
-
-        // TODO this one line below was only run if user was defined before. It's now always defined, so maybe we should do this somewhere else? Not sure what it does.
-        $('#status-holder-neighborhood-name').parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
-
-        // TODO all of this makes more sense to do in the actual JS. Having it here is a bit hacky and is causing
-        // problems. For example, i18next hasn't been initialized yet.
-        svl.userModel._user = svl.user;
-        if (@data.task.isDefined) {
-            var streetViewService = new google.maps.StreetViewService();
-            svl.streetViewService = streetViewService;
-            var STREETVIEW_MAX_DISTANCE = 40;
-
-            var geojson = @Html(Json.toJson(data.task.get).toString);
-            var lat1 = geojson.properties.current_lat;
-            var lng1 = geojson.properties.current_lng;
-            var latLng = new google.maps.LatLng(lat1, lng1);
-
-            if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
-            if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
-            svl.taskModel = new TaskModel();
-            svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, streetViewService, svl, svl.tracker);
-
-            streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
-                if (status === google.maps.StreetViewStatus.OK) {
-                    svl.cityId = "@currentCity.cityId"; // Needed so setCurrentTask can use svl.cityId.
-                    var isTutorialTask = geojson.properties.street_edge_id === @data.tutorialStreetId;
-                    var newTask = new Task(geojson, isTutorialTask, lat1, lng1);
-                    svl.taskContainer._tasks.push(newTask);
-                    svl.taskContainer.setCurrentTask(newTask);
-                    init();
-
-                    // Handle query strings for panoId or latLng (panoId, lat, lng only Some[] when user is Admin).
-                    // Since it's only for admins, we added a hacky workaround of a 2 seconds sleep delay.
-                    var panoIdJS = `@panoId`;
-                    function sleep (time) {
-                        return new Promise((resolve) => setTimeout(resolve, time));
-                    }
-                    if (isTutorialTask) {
-                        sleep(2000).then(() => {
-                            svl.map.setPano('tutorial');
-                        });
-                    } else if (panoIdJS) {
-                        sleep(2000).then(() => {
-                            try {
-                                svl.streetViewService.getPanorama({pano: panoIdJS}, function(panoData) {
-                                    var lat = panoData.location.latLng.lat();
-                                    var lng = panoData.location.latLng.lng();
-                                    svl.map.setPositionByIdAndLatLng(panoIdJS, lat, lng);
-                                });
-                            } catch (e) {
-                                console.error("Invalid panorama ID");
-                            }
-                        });
-                    } else if (`@lat` && `@lng`) {
-                        sleep(2000).then(() => {
-                            svl.map.setPosition(`@lat`, `@lng`);
-                        });
-                    }
-                } else {
-                    // No street view available in this range.
-                    console.error("Error loading Street View imagery: " + status);
-                    console.log("Street edge we are trying to audit: " + @data.task.map(_.edgeId).getOrElse(-1));
-                }
-            });
-        } else {
-            $(".tool-ui").css({"visibility": "visible"});
-            $('#already-completed-neighborhood-overlay').show();
-        }
-
         $(document).ready(function() {
             // Prevents text selection with cursor. Fixes https://github.com/ProjectSidewalk/SidewalkWebpage/issues/121.
             // We also add the 'audit-selectable' class to a parent of any element that we want to have selectable.
@@ -830,82 +743,51 @@
             });
         }
 
-        function init() {
-            var mainParam = mainParam || {};
-            var formParam = {};
-            var initialLocation = svl.taskContainer.getCurrentTask().getFurthestPointReached().geometry.coordinates;
-            formParam.dataStoreUrl = '@routes.ExploreController.post';
-            formParam.beaconDataStoreUrl = formParam.dataStoreUrl + "Beacon";
-            formParam.hitId = '';
-            formParam.onboarding = false;
-            formParam.taskPanoramaId = "";
-            formParam.taskDescription = "";
-            formParam.domIds = {};
-            formParam.domIds.canvas = 'onboardingCanvas';
-            mainParam.form = formParam;
-            mainParam.initLat = initialLocation[1];
-            mainParam.initLng = initialLocation[0];
-            mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
+        var svl = {};
+        var mainParam = {};
 
-            var missionDescriptionParam = {};
-            missionDescriptionParam.description = "";
-            mainParam.missionDescription = missionDescriptionParam;
-
-            mainParam.regionId = @data.region.regionId;
-            mainParam.regionName = @Html(Json.stringify(Json.toJson(data.region.name)));
-            // TODO I think that we can replace this with Json.toJson(data.region.geom).toString after back end uprades.
-            mainParam.regionGeoJSON = window.betterknown.wktToGeoJSON("@data.region.geom");
-
-            mainParam.nextTemporaryLabelId = @data.nextTempLabelId;
-            mainParam.mission = @Html(Json.toJson(data.mission).toString);
-            mainParam.tutorialStreetId = @data.tutorialStreetId;
-            mainParam.hasCompletedAMission = @data.hasCompletedAMission;
-
-            @if(data.userRoute.isDefined) {
-                mainParam.routeId = @data.userRoute.get.routeId;
-                mainParam.userRouteId = @data.userRoute.get.userRouteId;
-            }
-
-            mainParam.language = "@messages.lang.code";
-            mainParam.cityId = "@currentCity.cityId";
-            mainParam.cityName = "@currentCity.cityNameFormatted";
-            mainParam.cityNameShort = "@currentCity.cityNameShort";
-            mainParam.mapboxApiKey = "@commonData.mapboxApiKey";
-            mainParam.makeCrops = @data.makeCrops;
-
-            svl.main = new Main(mainParam);
+        if (@data.task.isDefined) {
+            mainParam.task = @Html(Json.toJson(data.task.get).toString);
+        } else {
+            $(".tool-ui").css({"visibility": "visible"});
+            $('#already-completed-neighborhood-overlay').show();
         }
 
-        //Survey submission.
-        $("#survey-form").submit(function submitSurvey(e) {
-            var formData = $('#survey-form').serializeArray();
-            //alert(formData);
+        mainParam.dataStoreUrl = '@routes.ExploreController.post';
+        mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
 
-            var surveyUrl = '/survey';
-            var async = true;
-            //submit data from survey
-            $.ajax({
-                async: async,
-                contentType: 'application/json; charset=utf-8',
-                url: surveyUrl,
-                method: 'POST',
-                dataType: 'json',
-                data: JSON.stringify(formData),
-                success: function (data) {
-                    //close survey modal here
-                    $('#survey-modal-container').modal('hide');
-                }
-            });
-            // Prevents reloading the explore page with the posted data in the url
-            // https://stackoverflow.com/questions/12624230/jquery-post-returns-querystring-in-address-bar
-            e.preventDefault();
-        });
+        mainParam.user = {
+            username: '@user.username',
+            role: '@user.role',
+            userId: '@user.userId'
+        };
+        mainParam.regionId = @data.region.regionId;
+        mainParam.regionName = @Html(Json.stringify(Json.toJson(data.region.name)));
+        // TODO I think that we can replace this with Json.toJson(data.region.geom).toString after back end upgrades.
+        mainParam.regionGeoJSON = window.betterknown.wktToGeoJSON("@data.region.geom");
+
+        mainParam.nextTemporaryLabelId = @data.nextTempLabelId;
+        mainParam.mission = @Html(Json.toJson(data.mission).toString);
+        mainParam.tutorialStreetId = @data.tutorialStreetId;
+        mainParam.hasCompletedAMission = @data.hasCompletedAMission;
+
+        @if(data.userRoute.isDefined) {
+            mainParam.routeId = @data.userRoute.get.routeId;
+            mainParam.userRouteId = @data.userRoute.get.userRouteId;
+        }
+
+        mainParam.language = "@messages.lang.code";
+        mainParam.cityId = "@currentCity.cityId";
+        mainParam.cityName = "@currentCity.cityNameFormatted";
+        mainParam.cityNameShort = "@currentCity.cityNameShort";
+        mainParam.mapboxApiKey = "@commonData.mapboxApiKey";
+        mainParam.makeCrops = @data.makeCrops;
+        const imagerySrc = "@commonData.imagerySource.toString";
+        mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+        mainParam.viewerAccessToken = "@commonData.imageryAccessToken";
 
         window.appManager.ready(function () {
-            // Log whether the survey was skipped or completed to WebpageActivityTable.
-            $('#survey-skip-button').on('click', function() {
-                window.logWebpageActivity("SurveySkip", true);
-            });
+            new Main(mainParam);
         });
     </script>
 }

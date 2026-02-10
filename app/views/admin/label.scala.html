@@ -1,6 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
+@import models.pano.PanoSource
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, isAdmin: Boolean, labelId: Int
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
@@ -23,15 +24,25 @@
     <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
     <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
+    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
+    @if(commonData.imagerySource == PanoSource.Infra3d) {
+        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("javascripts/lib/infra3dapi-1.7.0.js")'></script>
+    } else if (commonData.imagerySource == PanoSource.Mapillary) {
+        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+    }
     <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
-    <script src='@assets.path("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
     <script>updateTimestamps("@messages.lang.code");</script>
 
     <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
     <script>
-        window.appManager.ready(function () {
-            let labelSearch = AdminLabelSearch(@isAdmin, 'LabelSearchPage');
-            labelSearch.adminGSVLabelView.showLabel(parseInt("@labelId"));
+        window.appManager.ready(async function () {
+            const imagerySrc = "@commonData.imagerySource.toString";
+            const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+            const accessToken = "@commonData.imageryAccessToken";
+            let labelSearch = await AdminLabelSearch(@isAdmin, viewerType, accessToken, 'LabelSearchPage');
+            await labelSearch.adminGSVLabelView.showLabel(parseInt("@labelId"));
         });
     </script>
 }

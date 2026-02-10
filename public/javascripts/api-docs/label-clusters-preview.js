@@ -25,8 +25,8 @@
     window.LabelClustersPreview = {
         /**
          * Configure the label clusters preview.
-         * @param {Object} options - Configuration options
-         * @returns {Object} The LabelClustersPreview object for chaining
+         * @param {object} options - Configuration options
+         * @returns {object} The LabelClustersPreview object for chaining
          */
         setup: function(options) {
             config = Object.assign(config, options);
@@ -120,7 +120,7 @@
 
         /**
          * Extract a bounding box from region geometry.
-         * @param {Object} region - Region data with geometry
+         * @param {object} region - Region data with geometry
          * @returns {string} Bounding box string (minLng,minLat,maxLng,maxLat)
          */
         getBoundingBoxFromRegion: function(region) {
@@ -160,7 +160,7 @@
 
         /**
          * Calculate center of a region from its geometry.
-         * @param {Object} region - Region data with geometry
+         * @param {object} region - Region data with geometry
          * @returns {Array} [lat, lon] center coordinates
          */
         getCenterFromRegion: function(region) {
@@ -189,8 +189,8 @@
         /**
          * Create the Leaflet map.
          * @param {HTMLElement} container - Container element for the map
-         * @param {Object} regionData - Data about the region to display
-         * @returns {Object} The Leaflet map object
+         * @param {object} regionData - Data about the region to display
+         * @returns {object} The Leaflet map object
          */
         createMap: function(container, regionData) {
             // Create a map element.
@@ -255,9 +255,9 @@
 
         /**
          * Display clusters on the map.
-         * @param {Object} map - The Leaflet map object
-         * @param {Object} clusters - GeoJSON data containing the label clusters
-         * @param {Object} regionData - Data about the region being displayed
+         * @param {object} map - The Leaflet map object
+         * @param {object} clusters - GeoJSON data containing the label clusters
+         * @param {object} regionData - Data about the region being displayed
          */
         displayClustersOnMap: function(map, clusters, regionData) {
             if (!clusters.features || clusters.features.length === 0) {
@@ -340,7 +340,7 @@
 
         /**
          * Create a legend for the map.
-         * @param {Object} map - The Leaflet map object
+         * @param {object} map - The Leaflet map object
          */
         createLegend: function(map) {
             const legend = L.control({position: 'bottomleft'});
@@ -365,7 +365,7 @@
 
         /**
          * Update the legend to show only label types present in the data.
-         * @param {Object} map - The Leaflet map object
+         * @param {object} map - The Leaflet map object
          * @param {Array} typesInData - Array of label type names found in the data
          */
         updateLegend: function(map, typesInData) {

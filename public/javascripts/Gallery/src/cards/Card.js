@@ -6,8 +6,8 @@
  * @returns {Card}
  * @constructor
  */
-function Card (params, imageUrl, expandedView) {
-    let self = this;
+function Card(params, imageUrl, expandedView) {
+    const self = this;
 
     // UI card element.
     let card = null;
@@ -19,7 +19,7 @@ function Card (params, imageUrl, expandedView) {
     let properties = {
         label_id: undefined,
         label_type: undefined,
-        gsv_panorama_id: undefined,
+        pano_id: undefined,
         image_capture_date: undefined,
         label_timestamp: undefined,
         heading: undefined,
@@ -71,12 +71,16 @@ function Card (params, imageUrl, expandedView) {
      *
      * @param {*} param Label properties.
      */
-    function _init (param) {
+    function _init(param) {
         for (const attrName in param) {
-            if (param.hasOwnProperty(attrName) && properties.hasOwnProperty(attrName)) {
+            // Add all the properties. Format the timestamps using the moment library.
+            if (attrName === 'label_timestamp' || attrName === 'image_capture_date') {
+                properties[attrName] = moment(param[attrName]);
+            } else if (param.hasOwnProperty(attrName) && properties.hasOwnProperty(attrName)) {
                 properties[attrName] = param[attrName];
             }
         }
+        properties.pov = { heading: param.heading, pitch: param.pitch, zoom: param.zoom };
         properties.original_canvas_x = param.canvas_x;
         properties.original_canvas_y = param.canvas_y;
         properties.val_counts = {
@@ -164,7 +168,7 @@ function Card (params, imageUrl, expandedView) {
         imageHolder.appendChild(markerWrapper);
         imageHolder.appendChild(panoImage);
         card.appendChild(cardInfo);
-        validationMenu = new ValidationMenu(self, $(imageHolder), properties, expandedView, false);
+        validationMenu = new ValidationMenu(self, $(imageHolder), expandedView, false);
     }
 
     /**
@@ -172,7 +176,7 @@ function Card (params, imageUrl, expandedView) {
      *
      * @returns {string}
      */
-    function getLabelId () {
+    function getLabelId() {
         return properties.label_id;
     }
 
@@ -181,7 +185,7 @@ function Card (params, imageUrl, expandedView) {
      *
      * @returns {string}
      */
-    function getLabelType () {
+    function getLabelType() {
         return properties.label_type;
     }
 
@@ -190,7 +194,7 @@ function Card (params, imageUrl, expandedView) {
      * JavaScript Deepcopy:
      * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
      */
-    function getProperties () { return $.extend(true, {}, properties); }
+    function getProperties() { return $.extend(true, {}, properties); }
 
     /**
      * Get a property.
@@ -198,7 +202,7 @@ function Card (params, imageUrl, expandedView) {
      * @param propName Property name.
      * @returns {*} Property value if property name is valid. Otherwise false.
      */
-    function getProperty (propName) { return (propName in properties) ? properties[propName] : false; }
+    function getProperty(propName) { return (propName in properties) ? properties[propName] : false; }
 
     /**
      * Get status of card.
@@ -254,7 +258,7 @@ function Card (params, imageUrl, expandedView) {
      * @param value Property value.
      * @returns {setProperty}
      */
-    function setProperty (key, value) {
+    function setProperty(key, value) {
         properties[key] = value;
         return this;
     }
@@ -262,7 +266,7 @@ function Card (params, imageUrl, expandedView) {
     /**
      * Set aspect of status.
      *
-     * @param {*} key Status name.
+     * @param {string} key Status name.
      * @param {*} value Status value.
      */
     function setStatus(key, value) {
@@ -289,11 +293,9 @@ function Card (params, imageUrl, expandedView) {
             self.validationInfoDisplay.updateValCounts(properties.val_counts['Agree'], properties.val_counts['Disagree']);
             self.validationMenu.showValidationOnCard(newUserValidation);
 
-            /*
-               If this card matches the currently open expanded view,
-               update the validation displays on the expanded view as well.
-            */
-            if (expandedView.getProperty('label_id') === properties.label_id) {
+            // If this card matches the one in expanded view, update the validation displays there as well.
+            const expandedViewRefCard = expandedView.getReferenceCard();
+            if (expandedViewRefCard && expandedViewRefCard.getLabelId() === properties.label_id) {
                 expandedView.validationInfoDisplay.updateValCounts(
                     properties.val_counts['Agree'],
                     properties.val_counts['Disagree']

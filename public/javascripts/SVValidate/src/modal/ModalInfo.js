@@ -7,7 +7,7 @@
  */
 
 function ModalInfo (uiModal, modalText) {
-    let self = this;
+    const self = this;
 
     let infoHeaderHTML = '<p>What is a __LABELTYPE_PLACEHOLDER__?</p>';
     let descriptionHTML = '<p>__DESCRIPTION_PLACEHOLDER__</p>';

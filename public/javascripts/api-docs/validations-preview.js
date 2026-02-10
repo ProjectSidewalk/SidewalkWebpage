@@ -37,7 +37,7 @@
     window.ValidationsPreview = {
         /**
          * Configure the validations preview.
-         * @param {Object} options - Configuration options
+         * @param {object} options - Configuration options
          * @param {string} [options.apiBaseUrl] - Base URL for the API
          * @param {string} [options.containerId] - ID of the container element
          * @param {string} [options.validationsEndpoint] - API endpoint for validations
@@ -45,7 +45,7 @@
          * @param {number} [options.chartHeight] - Height of each chart in pixels
          * @param {number} [options.maxChartsToShow] - Maximum number of charts to display
          * @param {number} [options.minValidationsToShow] - Minimum validations needed to show a chart
-         * @returns {Object} The ValidationsPreview object for chaining
+         * @returns {object} The ValidationsPreview object for chaining
          */
         setup: function(options) {
             config = Object.assign(config, options);
@@ -183,7 +183,7 @@
         /**
          * Group validations by label type ID.
          * @param {Array} validationsData - Array of validation objects
-         * @returns {Object} Object with label type IDs as keys and aggregated data as values
+         * @returns {object} Object with label type IDs as keys and aggregated data as values
          */
         groupValidationsByType: function(validationsData) {
             const validationsByType = {};
@@ -222,7 +222,7 @@
 
         /**
          * Filter and sort label types for display.
-         * @param {Object} validationsByType - Grouped validation data
+         * @param {object} validationsByType - Grouped validation data
          * @returns {Array} Array of [typeId, typeData] pairs, filtered and sorted
          */
         filterAndSortTypes: function(validationsByType) {
@@ -303,7 +303,7 @@
         /**
          * Create a single chart for one label type.
          * @param {HTMLElement} container - Parent container for the chart
-         * @param {Object} typeData - Data for this label type
+         * @param {object} typeData - Data for this label type
          */
         createSingleValidationChart: function(container, typeData) {
             // Create chart container.

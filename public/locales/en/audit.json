@@ -187,7 +187,8 @@
                 "cart": "cart (<tag-underline>;</tag-underline>)",
                 "drainage": "drainage (<tag-underline>,</tag-underline>)",
                 "electrical-box": "electrical box (<tag-underline>.</tag-underline>)",
-                "too-dirty-cluttered": "too dirt<tag-underline>y</tag-underline>/cluttered"
+                "too-dirty-cluttered": "too dirt<tag-underline>y</tag-underline>/cluttered",
+                "yellow-box-accessibility-features-not-visible": "yellow box, features not visible (<tag-underline>z</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Passable",
@@ -222,9 +223,6 @@
         "jump-auto": "We have automatically moved you to a new location.",
         "signup-title": "You've been contributing a lot!",
         "signup-body": "Do you want to create an account to keep track of your progress?",
-        "signup-button-signup": "Let me sign up!",
-        "signup-button-signin": "I do have an account! Let me sign in.",
-        "signup-button-no": "No",
         "severity-shortcuts": "Please provide severity ratings for each label by pressing keys <kbd>1</kbd> through <kbd>3</kbd>",
         "zoom-shortcuts": "You can also press the <kbd>Z</kbd> key to zoom in and the <kbd>Shift</kbd> + <kbd>Z</kbd> keys to zoom out.",
         "label-shortcuts-curb-ramp": "You can also press the <kbd>{{key}}</kbd> key for selecting the Curb Ramp label.",

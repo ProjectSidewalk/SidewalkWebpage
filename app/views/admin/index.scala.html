@@ -1,6 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
+@import models.pano.PanoSource
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
@@ -900,7 +901,7 @@
                                         <th class="col-md-1">Agree</th>
                                         <th class="col-md-1">Disagree</th>
                                         <th class="col-md-1">Unsure</th>
-                                        <th class="col-md-1">GSV</th>
+                                        <th class="col-md-1">Pano</th>
                                     </tr>
                                 </thead>
                             </table>
@@ -964,12 +965,19 @@
         </div>
     </div>
     <script src='@assets.path("javascripts/lib/d3-3.5.6.js")'></script>
+    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
+    @if(commonData.imagerySource == PanoSource.Infra3d) {
+        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("javascripts/lib/infra3dapi-1.7.0.js")'></script>
+    } else if (commonData.imagerySource == PanoSource.Mapillary) {
+        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+    }
     <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
     <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
     <script src='@assets.path("javascripts/lib/turf-7.3.0.min.js")'></script>
     <script src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script src='@assets.path("javascripts/lib/dataTables.bootstrap.min.js")'></script>
-    <script src='@assets.path("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
     <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
     <script>updateTimestamps("@messages.lang.code");</script>
 
@@ -990,12 +998,15 @@
 
     <script>
         // Gets all translations before loading the choropleths.
-        window.appManager.ready(function () {
+        window.appManager.ready(async function () {
             // Sets up sorting in DataTables on timestamps.
             $.fn.dataTable.ext.type.order['date-pre'] = function(data) { return new Date(data).getTime(); };
 
             // Kick off all the API requests to get data to fill in the Admin page.
-            window.admin = Admin(_, $, '@commonData.mapboxApiKey');
+            const imagerySrc = "@commonData.imagerySource.toString";
+            const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+            const accessToken = "@commonData.imageryAccessToken";
+            window.admin = await Admin(_, $, '@commonData.mapboxApiKey', viewerType, accessToken);
             // Initialize the sliders in the legend. We add the "change" functionality after the map loads.
             $("*[id*='slider']").each(function() {
                 $(this).slider({ range: true, min : 0, max : 3, step: 1, values: [0,3], disabled: true });

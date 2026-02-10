@@ -17,7 +17,7 @@ const CONFIG = {
 
 /**
  * Aggregated statistics data structure from the API.
- * @typedef {Object} AggregatedStats
+ * @typedef {object} AggregatedStats
  * @property {string} status - API response status
  * @property {number} kmExplored - Total kilometers of streets assessed
  * @property {number} kmExploredNoOverlap - Total kilometers without overlap
@@ -26,7 +26,7 @@ const CONFIG = {
  * @property {number} numCities - Total number of deployed cities
  * @property {number} numCountries - Total number of countries
  * @property {number} numLanguages - Total number of supported languages
- * @property {Object} byLabelType - Label statistics by type
+ * @property {object} byLabelType - Label statistics by type
  */
 
 /**

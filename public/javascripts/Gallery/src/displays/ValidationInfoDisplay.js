@@ -3,14 +3,14 @@
  * An object that creates a display for the severity.
  *
  * @param {HTMLElement} container The DOM element that contains the display
- * @param {Number} agreeCount The agree count to display
- * @param {Number} disagreeCount The disagree count to display
- * @param {String} aiValidation Either 'Agree' or 'Disagree', showing AI validation if there is any
- * @param {Boolean} isExpandedView a toggle to determine if this ValidationInfoDisplay is in expanded view, or in a card
+ * @param {number} agreeCount The agree count to display
+ * @param {number} disagreeCount The disagree count to display
+ * @param {string} aiValidation Either 'Agree' or 'Disagree', showing AI validation if there is any
+ * @param {boolean} isExpandedView a toggle to determine if this ValidationInfoDisplay is in expanded view, or in a card
  * @returns {ValidationInfoDisplay} the generated object
  */
 function ValidationInfoDisplay(container, agreeCount, disagreeCount, aiValidation, isExpandedView=false) {
-    let self = this;
+    const self = this;
     self.agreeCount = agreeCount;
     self.disagreeCount = disagreeCount;
     self.validationContainer = container;
@@ -66,7 +66,7 @@ function ValidationInfoDisplay(container, agreeCount, disagreeCount, aiValidatio
                 // Custom template uses defaults, just adds ai-tooltip class to enforce a wider tooltip. Starting with
                 // Bootstrap 4, we can use `customClass` instead of `template`.
                 template: '<div class="tooltip ai-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
-                container: 'body' // Ensures the tooltip isn't hidden behind the GSV element.
+                container: 'body' // Ensures the tooltip isn't hidden behind the pano canvas element.
             }).tooltip('hide');
 
             // Add AI icon to the appropriate count container based on AI validation.

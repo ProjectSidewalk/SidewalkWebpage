@@ -19,7 +19,7 @@
     window.StreetTypesPreview = {
         /**
          * Configure the street types preview.
-         * @param {Object} options - Configuration options
+         * @param {object} options - Configuration options
          * @param {string} [options.apiBaseUrl] - Base URL for the API
          * @param {string} [options.containerId] - ID of the container element
          * @param {number} [options.maxWidth] - Maximum width for the preview container
@@ -77,7 +77,7 @@
 
         /**
          * Render the street types table.
-         * @param {Object} data - Street types data from the API
+         * @param {object} data - Street types data from the API
          * @param {HTMLElement} container - Container element
          * @returns {HTMLElement} The rendered table
          */

@@ -1,11 +1,10 @@
 /**
- * Detect pinch zoom on mobile devices and push appropriate logs.
- * This is only used for mobile devices as they use GSV pinch zoom mechanism.
+ * Detect pinch zoom on mobile devices and push appropriate logs. This is only used for mobile devices.
  * return {PinchZoomDetector}
  * @constructor
  */
 function PinchZoomDetector () {
-    let self = this;
+    const self = this;
 
     let ZOOM_UNKNOWN_CODE = 0;
     let ZOOM_IN_CODE = 1;
@@ -19,10 +18,11 @@ function PinchZoomDetector () {
      * Adds listeners to the screen to log user interactions.
      * @private
      */
-    function _init () {
-        let panorama = svv.panorama.getPanorama();
+    function _init() {
         let screen = document.getElementById("svv-panorama");
-        panorama.addListener('zoom_changed', processZoomChange);
+        if (svv.panoViewer.getViewerType() === 'gsv') {
+            svv.panoViewer.gsvPano.addListener('zoom_changed', processZoomChange);
+        }
         screen.addEventListener('touchstart', processTouchstart);
         screen.addEventListener('touchend', processTouchend);
         return this;
@@ -34,7 +34,7 @@ function PinchZoomDetector () {
      */
     function processTouchstart (e) {
         if (e.touches.length >= 2) {
-            prevZoomLevel = svv.panorama.getPov().zoom;
+            prevZoomLevel = svv.panoViewer.getPov().zoom;
             pinchZooming = true;
             pinchZoomCode = ZOOM_UNKNOWN_CODE;
         }
@@ -44,8 +44,8 @@ function PinchZoomDetector () {
      * Determine whether a user is zooming in or out and logs their actions accordingly.
      * @private
      */
-    function processZoomChange () {
-        let currentZoom = svv.panorama.getPov().zoom;
+    function processZoomChange() {
+        let currentZoom = svv.panoViewer.getPov().zoom;
         // Logs interaction only if a user is pinch zooming and current zoom is less than max zoom.
         if (pinchZooming && currentZoom <= 4) {
             let zoomChange = currentZoom - prevZoomLevel;
@@ -75,8 +75,8 @@ function PinchZoomDetector () {
      * Logs zoom end interactions on mobile devices as users lift their hand off the screen.
      * @private
      */
-    function processTouchend (e) {
-        if (svv.tracker && svv.panorama && pinchZooming && e.touches.length <= 1) {
+    function processTouchend(e) {
+        if (svv.tracker && pinchZooming && e.touches.length <= 1) {
             if (pinchZoomCode === ZOOM_IN_CODE) {
                 svv.tracker.push('Pinch_ZoomIn_End');
             }

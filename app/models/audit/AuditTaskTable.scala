@@ -108,25 +108,20 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
     extends AuditTaskTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  val auditTasks               = TableQuery[AuditTaskTableDef]
-  val streetEdges              = TableQuery[StreetEdgeTableDef]
-  val regions                  = TableQuery[RegionTableDef]
-  val streetEdgeRegionTable    = TableQuery[StreetEdgeRegionTableDef]
-  val configTable              = TableQuery[ConfigTableDef]
-  val streetEdgePriorities     = TableQuery[StreetEdgePriorityTableDef]
-  val userStats                = TableQuery[UserStatTableDef]
-  val roleTable                = TableQuery[RoleTableDef]
-  val userRoleTable            = TableQuery[UserRoleTableDef]
-  val auditTaskIncompleteTable = TableQuery[AuditTaskIncompleteTableDef]
-  val routeStreets             = TableQuery[RouteStreetTableDef]
-  val userRoutes               = TableQuery[UserRouteTableDef]
-  val auditTaskUserRoutes      = TableQuery[AuditTaskUserRouteTableDef]
+  val auditTasks            = TableQuery[AuditTaskTableDef]
+  val streetEdges           = TableQuery[StreetEdgeTableDef]
+  val regions               = TableQuery[RegionTableDef]
+  val streetEdgeRegionTable = TableQuery[StreetEdgeRegionTableDef]
+  val configTable           = TableQuery[ConfigTableDef]
+  val streetEdgePriorities  = TableQuery[StreetEdgePriorityTableDef]
+  val userStats             = TableQuery[UserStatTableDef]
+  val roleTable             = TableQuery[RoleTableDef]
+  val userRoleTable         = TableQuery[UserRoleTableDef]
+  val routeStreets          = TableQuery[RouteStreetTableDef]
+  val userRoutes            = TableQuery[UserRouteTableDef]
+  val auditTaskUserRoutes   = TableQuery[AuditTaskUserRouteTableDef]
 
-  val activeTasks = auditTasks
-    .joinLeft(auditTaskIncompleteTable)
-    .on(_.auditTaskId === _.auditTaskId)
-    .filter(x => !x._1.completed && x._2.isEmpty)
-    .map(_._1)
+  val activeTasks                 = auditTasks.filterNot(_.completed)
   val completedTasks              = auditTasks.filter(_.completed)
   val streetEdgesWithoutDeleted   = streetEdges.filterNot(_.deleted)
   val regionsWithoutDeleted       = regions.filterNot(_.deleted)
@@ -401,11 +396,11 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
           timestamp,
           false, // completedByAnyUser is always false for the tutorial task.
           1.0,
-          false, // completed is always false for a new task.
+          false,             // completed is always false for a new task.
           None: Option[Int], // auditTaskId is None for a new task.
           missionId.asColumnOf[Option[Int]],
           None: Option[Point], // currentMissionStart is None for a new task.
-          None: Option[Int] // routeStreetId is None for the tutorial task.
+          None: Option[Int]    // routeStreetId is None for the tutorial task.
         )
       }
       .result
@@ -433,11 +428,11 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
       OffsetDateTime.now,
       sc._2, // completedByAnyUser
       sp.priority,
-      false, // completed is false for a new task.
+      false,             // completed is false for a new task.
       None: Option[Int], // auditTaskId is None for a new task.
       Some(missionId).asColumnOf[Option[Int]],
       None: Option[Point], // currentMissionStart is None for a new task.
-      None: Option[Int] // routeStreetId
+      None: Option[Int]    // routeStreetId
     )
 
     // Get the priority of the highest priority task.
@@ -498,8 +493,8 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
       ucs.map(_._2).getOrElse(OffsetDateTime.now),
       scau._2, // completedByAnyUser
       sep.priority,
-      ucs.isDefined, // completed is true if the user has audited this street before.
-      ucs.map(_._3), // fill auditTaskId using the existing audit_task for this street if the user has one.
+      ucs.isDefined,         // completed is true if the user has audited this street before.
+      ucs.map(_._3),         // fill auditTaskId using the existing audit_task for this street if the user has one.
       ucs.map(_._4).flatten, // fill currentMissionId if the user has an existing mission for this street.
       ucs.map(_._5).flatten, // fill currentMissionStart if the user has an existing mission for this street.
       None: Option[Int]
@@ -548,10 +543,10 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
       _se2.wayType,
       _rs.reverse,
       ucs.map(_._2).getOrElse(timestamp), // taskStart is now, or the existing task start if the user has one.
-      _scau._2, // completedByAnyUser
+      _scau._2,                           // completedByAnyUser
       _sep.priority,
-      ucs.isDefined, // completed is true if the user has audited this street before.
-      ucs.map(_._3), // fill auditTaskId using the existing audit_task for this street if the user has one.
+      ucs.isDefined,     // completed is true if the user has audited this street before.
+      ucs.map(_._3),     // fill auditTaskId using the existing audit_task for this street if the user has one.
       ucs.flatMap(_._4), // fill currentMissionId if the user has an existing mission for this street.
       ucs.flatMap(_._5), // fill currentMissionStart if the user has an existing mission for this street.
       _rs.routeStreetId.asColumnOf[Option[Int]]

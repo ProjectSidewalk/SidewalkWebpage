@@ -13,6 +13,15 @@
     width: 720px;
 }
 
+#imagery-source-logo-holder {
+    display: flex;
+    height: 29px;
+    position: absolute;
+    bottom: 0;
+    z-index: 1;
+    padding: 4px 0 6px 10px;
+}
+
 #svv-panorama-date-holder {
     display: flex;
     justify-content: flex-start;
@@ -37,7 +46,7 @@
     height: 16px;
 }
 
-/* Black outline around GSV panorama. */
+/* Black outline around panorama. */
 #svv-panorama-outline {
     border: 5px solid black;
     border-radius: 5px;
@@ -108,9 +117,10 @@
     width: 60px;
     height: 70px;
     padding: 3px;
-    margin-top: -7px;
+    margin-top: -5px;
     margin-left: -4px;
     margin-right: -4px;
+    top: 0;
     right: 0;
     border-radius: 5px;
     position: absolute;

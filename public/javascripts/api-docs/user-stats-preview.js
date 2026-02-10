@@ -53,8 +53,8 @@
     window.UserStatsPreview = {
         /**
          * Configure the user stats preview.
-         * @param {Object} options - Configuration options
-         * @returns {Object} The UserStatsPreview object for chaining
+         * @param {object} options - Configuration options
+         * @returns {object} The UserStatsPreview object for chaining
          */
         setup: function(options) {
             config = Object.assign(config, options);
@@ -167,7 +167,7 @@
         /**
          * Filter and prepare the data for visualization.
          * @param {Array} userStatsData - The raw user statistics data
-         * @returns {Object} Processed data ready for visualization
+         * @returns {object} Processed data ready for visualization
          */
         filterData: function(userStatsData) {
             // Filter out users with empty stats or 0 labels.
@@ -207,7 +207,7 @@
         /**
          * Create all visualizations in the container.
          * @param {HTMLElement} container - Container element for the visualizations
-         * @param {Object} data - Processed data for visualizations
+         * @param {object} data - Processed data for visualizations
          */
         createVisualizations: function(container, data) {
             // Create top contributors chart section.

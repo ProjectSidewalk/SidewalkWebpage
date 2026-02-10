@@ -7,13 +7,17 @@ import models.label.LabelTable._
 import models.label.LabelTypeEnum.labelTypeToId
 import models.label.{Tag, _}
 import models.mission.{Mission, MissionTable}
+import models.pano.PanoSource
+import models.pano.PanoSource.PanoSource
 import models.user.SidewalkUserWithRole
+import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ExcludedTag, MyPostgresProfile}
 import models.validation.LabelValidationTable
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
+
 import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
@@ -57,6 +61,7 @@ trait LabelService {
   def retrieveLabelListForValidation(
       userId: String,
       n: Int,
+      viewer: PanoSource,
       labelTypeId: Int,
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
@@ -93,7 +98,7 @@ trait LabelService {
 class LabelServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     configService: ConfigService,
-    gsvDataService: GsvDataService,
+    panoDataService: PanoDataService,
     labelTable: LabelTable,
     tagTable: TagTable,
     labelValidationTable: LabelValidationTable,
@@ -195,11 +200,13 @@ class LabelServiceImpl @Inject() (
       aiValOptions: Set[String],
       userId: String
   ): Future[Seq[LabelValidationMetadata]] = {
+    val viewer: PanoSource = configService.getPanoSource
 
     // If a label type is specified, get labels for that type. Otherwise, get labels for all types.
     if (labelType.isDefined) {
       findValidLabelsForType(
-        labelTable.getGalleryLabelsQuery(labelType.get, loadedLabelIds, valOptions, regionIds, severity, tags,
+        viewer,
+        labelTable.getGalleryLabelsQuery(viewer, labelType.get, loadedLabelIds, valOptions, regionIds, severity, tags,
           aiValOptions, userId),
         randomize = true,
         n
@@ -210,7 +217,8 @@ class LabelServiceImpl @Inject() (
       Future
         .sequence(LabelTypeEnum.primaryLabelTypes.map { labelType =>
           findValidLabelsForType(
-            labelTable.getGalleryLabelsQuery(labelType, loadedLabelIds, valOptions, regionIds, severity, tags,
+            viewer,
+            labelTable.getGalleryLabelsQuery(viewer, labelType, loadedLabelIds, valOptions, regionIds, severity, tags,
               aiValOptions, userId),
             randomize = true,
             nPerType
@@ -221,12 +229,13 @@ class LabelServiceImpl @Inject() (
   }
 
   /**
-   * Get n labels for validation, sorted according to priority algorithm, after checking that they have GSV imagery.
+   * Get n labels for validation, sorted according to priority algorithm, after checking that imagery isn't expired.
    *
-   * Starts by querying for n * 5 labels, then checks GSV API to see if each gsv_panorama_id exists until we find n.
+   * Starts by querying for n * 5 labels, then checks GSV API to see if each pano_id exists until we find n.
    *
    * @param userId         User ID for the current user.
    * @param n              Number of labels we need to query.
+   * @param viewer         The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param labelTypeId    Label Type ID of labels requested.
    * @param userIds        Optional list of user IDs to filter by.
    * @param regionIds      Optional list of region IDs to filter by.
@@ -236,6 +245,7 @@ class LabelServiceImpl @Inject() (
   def retrieveLabelListForValidation(
       userId: String,
       n: Int,
+      viewer: PanoSource,
       labelTypeId: Int,
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
@@ -244,15 +254,17 @@ class LabelServiceImpl @Inject() (
   ): Future[Seq[LabelValidationMetadata]] = {
     // TODO can we make this and the Gallery queries transactions to prevent label dupes?
     findValidLabelsForType(
-      labelTable.retrieveLabelListForValidationQuery(userId, labelTypeId, configService.getAiTagSuggestionsEnabled,
-        userIds, regionIds, unvalidatedOnly, skippedLabelId),
+      viewer,
+      labelTable.retrieveLabelListForValidationQuery(userId, viewer, labelTypeId,
+        configService.getAiTagSuggestionsEnabled, userIds, regionIds, unvalidatedOnly, skippedLabelId),
       randomize = true,
       n
     )
   }
 
   /**
-   * Query labels from the db in batches until we have enough labels that have GSV imagery available. Works recursively.
+   * Query labels from the db in batches until we have enough labels that have imagery available. Works recursively.
+   * @param viewer The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param labelQuery Query to get labels from the db.
    * @param randomize Whether to randomize the label order or not.
    * @param remaining Number of labels remaining to get.
@@ -261,6 +273,7 @@ class LabelServiceImpl @Inject() (
    * @param tupleConverter Implicit converter to convert the tuple from the db to the appropriate case class.
    */
   private def findValidLabelsForType[A <: BasicLabelMetadata, TupleRep, Tuple](
+      viewer: PanoSource,
       labelQuery: Query[TupleRep, Tuple, Seq],
       randomize: Boolean,
       remaining: Int,
@@ -279,14 +292,18 @@ class LabelServiceImpl @Inject() (
           // Randomize the labels to prevent similar labels in a mission.
           val shuffledLabels: Seq[A] = if (randomize) scala.util.Random.shuffle(labels) else labels
 
-          // Check each of those labels for GSV imagery in parallel.
-          checkGsvImageryBatch(shuffledLabels).flatMap { validLabels =>
+          // Check each of those labels for GSV imagery in parallel. Only doing the check for GSV imagery for now.
+          // TODO maybe we include viewer in BasicLabelMetadata and sort it out in checkImageryBatch() instead?
+          val imageryCheck: Future[Seq[A]] =
+            if (viewer == PanoSource.Gsv) checkImageryBatch(shuffledLabels) else Future.successful(shuffledLabels)
+          imageryCheck.flatMap { validLabels =>
             if (validLabels.isEmpty) {
               Future.successful(accumulator) // No more valid labels found.
             } else {
               // Add the valid labels to the accumulator and recurse.
               val newValidLabels = validLabels.take(remaining)
               findValidLabelsForType(
+                viewer,
                 labelQuery,
                 randomize,
                 remaining - newValidLabels.size,
@@ -300,10 +317,10 @@ class LabelServiceImpl @Inject() (
   }
 
   // Checks each label in a batch for GSV imagery in parallel.
-  private def checkGsvImageryBatch[A <: BasicLabelMetadata](labels: Seq[A]): Future[Seq[A]] = {
+  private def checkImageryBatch[A <: BasicLabelMetadata](labels: Seq[A]): Future[Seq[A]] = {
     Future
       .traverse(labels) { label =>
-        gsvDataService.panoExists(label.gsvPanoramaId).map {
+        panoDataService.panoExists(label.panoId).map {
           case Some(true) => Some(label)
           case _          => None
         }
@@ -320,17 +337,18 @@ class LabelServiceImpl @Inject() (
    *
    * @param userId            User ID of the current user.
    * @param missionLength     Number of labels for this mission.
-   * @param requiredLabelType labelTypeId of the current mission.
+   * @param requiredLabelType labelType of the current mission.
    */
   def getLabelTypeIdToValidate(
       userId: String,
       missionLength: Int,
-      requiredLabelType: Option[Int]
+      viewerType: PanoSource,
+      requiredLabelType: Option[LabelTypeEnum.Base]
   ): Future[Option[Int]] = {
-    db.run(labelTable.getAvailableValidationsLabelsByType(userId).map { availValidations =>
+    db.run(labelTable.getAvailableValidationsLabelsByType(userId, viewerType).map { availValidations =>
       val availTypes: Seq[LabelTypeValidationsLeft] = availValidations
         .filter(_.validationsAvailable >= missionLength)
-        .filter(x => requiredLabelType.isEmpty || Some(x.labelType) == LabelTypeEnum.byId.get(requiredLabelType.get))
+        .filter(x => requiredLabelType.isEmpty || requiredLabelType.contains(x.labelType))
         .filter(x => LabelTypeEnum.primaryLabelTypes.contains(x.labelType))
 
       // Unless NoSidewalk (7) is the only available label type, remove it from the list of available types.
@@ -376,7 +394,8 @@ class LabelServiceImpl @Inject() (
       validateParams: ValidateParams
   ): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
     // TODO can this be merged with `getDataForValidatePostRequest`?
-    getLabelTypeIdToValidate(user.userId, labelCount, validateParams.labelTypeId).flatMap {
+    val viewerType: PanoSource = configService.getPanoSource
+    getLabelTypeIdToValidate(user.userId, labelCount, viewerType, validateParams.labelType).flatMap {
       case Some(labelTypeId) =>
         for {
           mission: Mission <- missionService
@@ -388,7 +407,7 @@ class LabelServiceImpl @Inject() (
           labelsProgress: Int   = mission.labelsProgress.get
           labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
           labelsToRetrieve: Int = labelsToValidate - labelsProgress
-          labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId,
+          labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, viewerType, labelTypeId,
             validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
             validateParams.unvalidatedOnly)
           adminData <- {
@@ -415,11 +434,12 @@ class LabelServiceImpl @Inject() (
       validateParams: ValidateParams
   ): Future[ValidationTaskPostReturnValue] = {
     // TODO can this be merged with `getDataForValidationPages`?
-    val labelsToRetrieve: Int = MissionTable.validationMissionLabelsToRetrieve
+    val viewerType: PanoSource = configService.getPanoSource
+    val labelsToRetrieve: Int  = MissionTable.validationMissionLabelsToRetrieve
     (for {
       nextMissionLabelTypeId <- {
         if (missionProgress.exists(_.completed))
-          getLabelTypeIdToValidate(user.userId, labelsToRetrieve, validateParams.labelTypeId)
+          getLabelTypeIdToValidate(user.userId, labelsToRetrieve, viewerType, validateParams.labelType)
         else Future.successful(Option.empty[Int])
       }
     } yield {
@@ -432,8 +452,8 @@ class LabelServiceImpl @Inject() (
               Some(nextMissionLabelTypeId)
             )
             labelList: Seq[LabelValidationMetadata] <- retrieveLabelListForValidation(user.userId, labelsToRetrieve,
-              nextMissionLabelTypeId, validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
-              validateParams.unvalidatedOnly)
+              viewerType, nextMissionLabelTypeId, validateParams.userIds.map(_.toSet),
+              validateParams.neighborhoodIds.map(_.toSet), validateParams.unvalidatedOnly)
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
               else Future.successful(Seq.empty[AdminValidationData])
@@ -483,6 +503,7 @@ class LabelServiceImpl @Inject() (
     Future
       .sequence(labelTypes.map { labelType =>
         findValidLabelsForType(
+          PanoSource.Gsv,
           labelTable.getValidatedLabelsForUserQuery(userId, labelType),
           randomize = false,
           nPerType
@@ -503,12 +524,12 @@ class LabelServiceImpl @Inject() (
   def insertLabel(label: Label): DBIO[Int] = {
     for {
       cleanTags: Seq[String] <- cleanTagList(label.tags, label.labelTypeId)
-      cleanL: Label = label.copy(tags = cleanTags.toList)
-      labelId: Int <- (labelTable.labelsUnfiltered returning labelTable.labelsUnfiltered.map(_.labelId)) += cleanL
+      clean: Label = label.copy(tags = cleanTags.toList)
+      labelId: Int <- (labelTable.labelsUnfiltered returning labelTable.labelsUnfiltered.map(_.labelId)) += clean
 
       // Add a corresponding entry to the label_history table.
       _ <- labelHistoryTable.insert(
-        LabelHistory(0, labelId, cleanL.severity, cleanL.tags, cleanL.userId, cleanL.timeCreated, "Explore", None)
+        LabelHistory(0, labelId, clean.severity, clean.tags, clean.userId, clean.timeCreated, UiSource.Explore, None)
       )
     } yield {
       labelId
@@ -545,8 +566,8 @@ class LabelServiceImpl @Inject() (
           labelHistoryTable.labelHistory.filter(_.labelId === labelId).length.result.flatMap {
             case labelHistoryCount if labelHistoryCount > 1 =>
               labelHistoryTable.insert(
-                LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, OffsetDateTime.now, "Explore",
-                  None)
+                LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, OffsetDateTime.now,
+                  UiSource.Explore, None)
               )
             case _ =>
               labelHistoryTable.labelHistory

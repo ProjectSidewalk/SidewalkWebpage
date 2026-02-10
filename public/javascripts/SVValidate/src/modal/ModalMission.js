@@ -1,5 +1,5 @@
 function ModalMission (uiModalMission, user) {
-    let self = this;
+    const self = this;
 
     let validationStartMissionHTML = ' <figure> \
         <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \

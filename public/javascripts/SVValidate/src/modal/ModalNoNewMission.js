@@ -6,7 +6,7 @@
  * @constructor
  */
 function ModalNoNewMission (uiModalMission) {
-    let self = this;
+    const self = this;
 
     let instructions = isMobile() ? i18next.t('mobile.no-new-mission-body') : i18next.t('mission-complete.no-new-mission-body');
     let noMissionsRemaining = '<figure> \

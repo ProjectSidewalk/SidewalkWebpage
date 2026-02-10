@@ -4,7 +4,7 @@ function Form(url, beaconUrl) {
         beaconDataStoreUrl : beaconUrl
     };
 
-    function _getSource() {
+    function getSource() {
         if (isMobile()) {
             return "ValidateMobile";
         } else if (svv.expertValidate) {
@@ -22,12 +22,12 @@ function Form(url, beaconUrl) {
      * @param {boolean} missionComplete Whether or not the mission is complete. To ensure we only send once per mission.
      */
     function compileSubmissionData(missionComplete) {
-        let data = { timestamp: new Date(), source: _getSource() };
+        let data = { timestamp: new Date(), source: getSource() };
         let missionContainer = svv.missionContainer;
         let mission = missionContainer ? missionContainer.getCurrentMission() : null;
 
         let labelContainer = svv.labelContainer;
-        let labelList = labelContainer ? labelContainer.getCurrentLabels() : null;
+        let labelList = labelContainer ? labelContainer.getLabelsToSubmit() : null;
         // Only submit mission progress if there is a mission when we're compiling submission data.
         if (mission) {
             // Add the current mission
@@ -67,18 +67,35 @@ function Form(url, beaconUrl) {
 
         data.validate_params = {
             admin_version: svv.adminVersion,
-            label_type_id: svv.validateParams.labelTypeId,
+            label_type: svv.validateParams.labelTypeId,
             user_ids: svv.validateParams.userIds,
             neighborhood_ids: svv.validateParams.regionIds,
             unvalidated_only: svv.validateParams.unvalidatedOnly
         };
 
         data.interactions = svv.tracker.getActions();
+
         data.pano_histories = [];
-        if (svv.panoramaContainer) {
-            data.pano_histories = svv.panoramaContainer.getPanoHistories();
-            svv.panoramaContainer.clearPanoHistories();
+        if (svv.panoManager) {
+            const panoramas = svv.panoStore.getStagedPanoData();
+            for (let i = 0; i < svv.panoStore.getStagedPanoData().length; i++) {
+                const panoData = panoramas[i].getProperties();
+                let panoHist = {
+                    curr_pano_id: panoData.panoId,
+                    pano_history_saved: new Date(),
+                    history: panoData.history.map(function(prevPano) {
+                        return {
+                            pano_id: prevPano.panoId,
+                            date: prevPano.captureDate.format('YYYY-MM')
+                        }
+                    })
+                };
+
+                data.pano_histories.push(panoHist);
+                panoramas[i].setProperty('submitted', true);
+            }
         }
+
         svv.tracker.refresh();
         return data;
     }
@@ -86,44 +103,33 @@ function Form(url, beaconUrl) {
     /**
      * Submits all front-end data to the backend.
      * @param data  Data object (containing Interactions, Missions, etc...)
-     * @param async
-     * @returns {*}
+     * @returns {Promise<void>}
      */
-    function submit(data, async) {
-        if (typeof async === "undefined") {
-            async = false;
-        }
-
-        $.ajax({
-            async: async,
-            contentType: 'application/json; charset=utf-8',
-            url: properties.dataStoreUrl,
+    function submit(data) {
+        return fetch(properties.dataStoreUrl, {
             method: 'POST',
-            data: JSON.stringify(data),
-            dataType: 'json',
-            success: function (result) {
-                if (result) {
-                    // If a mission was returned after posting data, create a new mission.
-                    if (result.has_mission_available) {
-                        if (result.mission) {
-                            svv.missionContainer.createAMission(result.mission, result.progress);
-                            svv.panoramaContainer.setLabelList(result.labels);
-                            svv.panoramaContainer.reset();
-                            svv.modalMissionComplete.setProperty('clickable', true);
-                        }
-                    } else {
-                        // Otherwise, display popup that says there are no more labels left.
-                        svv.modalMissionComplete.hide();
-                        svv.modalNoNewMission.show();
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify(data)
+        })
+            .then((response) => response.json())
+            .then(async (result) => {
+                // If a mission was returned after posting data, create a new mission.
+                if (result.has_mission_available) {
+                    if (result.mission) {
+                        svv.missionContainer.createAMission(result.mission, result.progress);
+                        svv.labelContainer.resetLabelList(result.labels);
+                        await svv.labelContainer.renderCurrentLabel();
+                        svv.modalMissionComplete.nextMissionLoaded();
                     }
+                } else {
+                    // Otherwise, display popup that says there are no more labels left.
+                    svv.modalMissionComplete.hide();
+                    svv.modalNoNewMission.show();
                 }
-            },
-            error: function (xhr, status, result) {
-                // console.error(xhr.responseText);
-                // console.error(result);
+            })
+            .catch(error => {
                 window.location.reload(); // Refresh the page in case the server has gone down.
-            }
-        });
+            });
     }
 
     $(window).on('beforeunload', function () {
@@ -142,6 +148,7 @@ function Form(url, beaconUrl) {
         navigator.sendBeacon(properties.beaconDataStoreUrl, jsonData);
     });
 
+    self.getSource = getSource;
     self.compileSubmissionData = compileSubmissionData;
     self.submit = submit;
 

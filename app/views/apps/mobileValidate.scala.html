@@ -3,6 +3,7 @@
 @import play.api.Configuration
 @import play.api.libs.json.JsValue
 @import service.CommonPageData
+@import models.pano.PanoSource
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams,
         mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean,
         completedValidations: Int
@@ -12,12 +13,20 @@
 
 @common.main(commonData, title, defaultI18nNamespace = "validate", i18Namespaces = Seq("validate", "common"), "/mobile") {
 
+    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
+    @if(commonData.imagerySource == PanoSource.Infra3d) {
+        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("javascripts/lib/infra3dapi-1.7.0.js")'></script>
+    } else if (commonData.imagerySource == PanoSource.Mapillary) {
+        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+    }
     <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
     <script src='@assets.path("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/mobile/mobileValidate.css")'/>
     <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>\
 
     @common.icons()
 
@@ -48,17 +57,19 @@
         </button>
         <div id="mission-title"></div>
         <button id="info-button" class="button info-button"><img src='@assets.path("javascripts/SVLabel/img/misc/info_button.png")'></button>
-        <button id="left-column-jump-button">
-            <img src='@assets.path("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Jump icon">
+        <button id="left-column-skip-button">
+            <img src='@assets.path("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Skip icon">
         </button>
     </div>
     <div id="mobile-viewer">
         <div id="svv-panorama-holder">
             <div id="svv-panorama-outline">
-                <div id="svv-panorama">
-                    <div id="view-control-layer-mobile" style="z-index: 2">
-                        <div id="label-description-box"></div>
-                    </div>
+                <div id="svv-panorama"></div>
+                <div id="view-control-layer-mobile" style="z-index: 2">
+                    <div id="label-description-box"></div>
+                </div>
+                <div id="imagery-source-logo-holder">
+                    <img id="imagery-source-logo"/>
                 </div>
             </div>
         </div>
@@ -192,14 +203,15 @@
             param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
             param.hasNextMission = @hasNextMission;
             param.completedValidations = @completedValidations;
-            param.canvasHeight = window.innerHeight;
-            param.canvasWidth = window.innerWidth;
             param.language = "@messages.lang.code";
             param.cityId = "@commonData.cityId";
             param.cityName = "@currentCity.cityNameFormatted";
+            const imagerySrc = "@commonData.imagerySource.toString";
+            param.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+            param.viewerAccessToken = "@commonData.imageryAccessToken";
             param.validateParams = {
                 adminVersion: @validateParams.adminVersion,
-                labelTypeId: @Html(validateParams.labelTypeId.map(_.toString).getOrElse("null")),
+                labelTypeId: @Html(validateParams.labelType.map(_.toString).getOrElse("null")),
                 userIds: @Html(validateParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null")),
                 regionIds: @Html(validateParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
                 unvalidatedOnly: @validateParams.unvalidatedOnly
@@ -219,12 +231,6 @@
                 param.mission = @Html(mission.getOrElse("\"\"").toString);
                 param.labelList = @Html(labelList.getOrElse("\"\"").toString);
                 param.progress = @Html(progress.getOrElse("\"\"").toString);
-
-                // Initializes an object of labels from label metadata.
-                // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
-                Object.keys(param.labelList).map(function (key, index) {
-                    param.labelList[key] = new Label(param.labelList[key]);
-                });
             }
             svv.main = new Main(param);
         });

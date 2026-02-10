@@ -64,7 +64,7 @@ def main():
         # Drop last row, which was only used to hold our current progress through the script.
         streets_with_no_imagery.drop(streets_with_no_imagery.tail(1).index, inplace=True)
 
-    # Loop through the streets, adding any that are missing GSV imagery to streets_with_no_imagery.
+    # Loop through the streets, adding any that are missing imagery to streets_with_no_imagery.
     gsv_base_url = 'https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor&key=' + api_key
     gsv_url = gsv_base_url + '&radius=15'
     gsv_url_endpoint = gsv_base_url + '&radius=25'

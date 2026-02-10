@@ -3,6 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import models.label._
 import models.user.SidewalkUserTable
+import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile.api._
 import models.utils._
 import models.validation.LabelValidation
@@ -11,6 +12,7 @@ import play.api.libs.json.{JsObject, JsValue}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
+
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
@@ -45,7 +47,7 @@ class AiServiceImpl @Inject() (
     validationService: ValidationService,
     labelAiAssessmentTable: models.label.LabelAiAssessmentTable,
     missionTable: models.mission.MissionTable,
-    gsvDataService: GsvDataService
+    panoDataService: PanoDataService
 )(implicit val ec: ExecutionContext)
     extends AiService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -126,8 +128,8 @@ class AiServiceImpl @Inject() (
               validation: LabelValidation = LabelValidation(
                 0, labelId, aiValResult, label.severity, label.severity, label.tags, label.tags,
                 SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX), Some(labelPoint.canvasY),
-                labelPoint.heading, labelPoint.pitch, labelPoint.zoom.toFloat, LabelPointTable.canvasWidth,
-                LabelPointTable.canvasHeight, startTime, aiResults.timestamp, "SidewalkAI"
+                labelPoint.heading, labelPoint.pitch, labelPoint.zoom, LabelPointTable.canvasWidth,
+                LabelPointTable.canvasHeight, startTime, aiResults.timestamp, UiSource.SidewalkAI
               )
               valId: Option[Int] <- validationService
                 .submitValidationsDbio(
@@ -169,9 +171,9 @@ class AiServiceImpl @Inject() (
     // Create form data for the multipart request.
     val formData = Map(
       "label_type"  -> LabelTypeEnum.labelTypeIdToLabelType(labelData.labelTypeId).toLowerCase,
-      "panorama_id" -> labelData.gsvData.gsvPanoramaId,
-      "x"           -> (labelData.labelPoint.panoX.toDouble / labelData.gsvData.width.get).toString,
-      "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.gsvData.height.get).toString
+      "panorama_id" -> labelData.panoData.panoId,
+      "x"           -> (labelData.labelPoint.panoX.toDouble / labelData.panoData.width.get).toString,
+      "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.panoData.height.get).toString
     )
 
     ws.url(url)
@@ -211,7 +213,7 @@ class AiServiceImpl @Inject() (
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")
             // Most common failure is for expired imagery, so do that check and mark it as expired here.
-            Await.result(gsvDataService.panoExists(labelData.gsvData.gsvPanoramaId), 5.seconds)
+            Await.result(panoDataService.panoExists(labelData.panoData.panoId), 5.seconds)
             None
           }
         } catch {

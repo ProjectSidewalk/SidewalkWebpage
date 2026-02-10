@@ -6,12 +6,11 @@
  * @constructor
  */
 function StatusField(param) {
-    let containerWidth = 730;
-    let self = this;
+    const self = this;
     let completedValidations = param.completedValidations;
-    let statusUI = svv.ui.status;
-    let expertValidateProgressBarProgress = $('#mission-progress-bar-complete');
-    let expertValidateProgressBarText = $('#mission-progress-bar-text');
+    const statusUI = svv.ui.status;
+    const expertValidateProgressBarProgress = $('#mission-progress-bar-complete');
+    const expertValidateProgressBarText = $('#mission-progress-bar-text');
 
     /**
      * Resets the status field whenever a new mission is introduced.
@@ -51,7 +50,7 @@ function StatusField(param) {
 
     /**
      * Updates the label name that is displayed in the status field and title bar.
-     * @param labelType {String} Name of label without spaces.
+     * @param labelType {string} Name of label without spaces.
      */
     function updateLabelText(labelType) {
         // Centers and updates title top of the validation interface.
@@ -67,14 +66,14 @@ function StatusField(param) {
             let offset = statusUI.zoomInButton.outerWidth()
                 + statusUI.zoomOutButton.outerWidth()
                 + statusUI.labelVisibilityControlButton.outerWidth();
-            let width = ((svv.canvasWidth - offset) / 2) - (statusUI.upperMenuTitle.outerWidth() / 2);
+            let width = ((svv.canvasWidth() - offset) / 2) - (statusUI.upperMenuTitle.outerWidth() / 2);
             statusUI.upperMenuTitle.css("left", width + "px");
         }
     }
 
     /**
      * Updates the text for the mission description.
-     * @param count {Number} Number of labels to validate this mission.
+     * @param count {number} Number of labels to validate this mission.
      */
     function updateMissionDescription(count) {
         statusUI.missionDescription.html(i18next.t('right-ui.current-mission.validate-labels', { n: count }));

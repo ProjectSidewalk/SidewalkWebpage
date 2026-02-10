@@ -17,6 +17,39 @@
     width: 720px;
 }
 
+#nav-arrows-container {
+    position: absolute;
+    top: 55%;
+    left: calc(50% - 90px);
+    width: 180px;
+    height: 180px;
+    perspective: 250px;
+}
+
+/* Used to make it look like there's a 3D perspective for the arrows. */
+#nav-arrows-container svg {
+     transform: rotateX(45deg);
+     transform-style: preserve-3d;
+}
+
+#arrow-group image {
+    cursor: pointer;
+    filter: drop-shadow(0 0 0.05rem black) drop-shadow(0 0 0.05rem black); /* Adds black outline. */
+}
+
+#arrow-group image:hover {
+    filter:
+        drop-shadow(0 0 0.05rem black) drop-shadow(0 0 0.05rem black) /* Adds black outline. */
+        sepia(1) saturate(2) hue-rotate(315deg); /* Adds yellow highlight on hover. */
+}
+
+/* Used to highlight/blink the nav arrows in the tutorial. */
+#arrow-group image.highlight {
+    filter:
+        drop-shadow(0 0 0.05rem black) drop-shadow(0 0 0.05rem black) /* Adds black outline. */
+        sepia(1) saturate(5) hue-rotate(315deg); /* Adds yellow highlight. */
+}
+
 #delete-icon-holder {
     cursor: pointer;
     visibility: hidden;

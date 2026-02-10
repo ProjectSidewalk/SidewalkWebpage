@@ -115,7 +115,7 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
     if r.deleted === false
     if l.correct || (us.highQuality && l.correct.isEmpty && !at.lowQuality)
     if lp.lat.isDefined && lp.lng.isDefined
-  } yield (ser.regionId, us.userId, l.gsvPanoramaId, l.labelId, lt.labelType, lp.lat.ifNull(-1f), lp.lng.ifNull(-1f),
+  } yield (ser.regionId, us.userId, l.panoId, l.labelId, lt.labelType, lp.lat.ifNull(-1f), lp.lng.ifNull(-1f),
     l.severity)
 
   def getRegionsToCluster: DBIO[Seq[Int]] = {

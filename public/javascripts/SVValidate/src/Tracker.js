@@ -4,17 +4,15 @@
  * @constructor
  */
 function Tracker() {
-    let self = this;
-    let panorama = undefined;
+    const self = this;
     let actions = [];
-    let prevActions = [];
 
     function _init() {
         _trackWindowEvents();
     }
 
     function _trackWindowEvents() {
-        let prefix = "LowLevelEvent_";
+        const prefix = 'LowLevelEvent_';
 
         // track all mouse related events
         $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e) {
@@ -34,45 +32,30 @@ function Tracker() {
 
     /**
      *
-     * @param action
+     * @param {string} action
      * @param notes
-     * @param extraData
      * @private
      */
-    function _createAction(action, notes, extraData) {
-        if (!notes) {
-            notes = {};
-        }
+    function _createAction(action, notes) {
+        const panoViewer = svv.panoViewer ? svv.panoViewer : null;
+        const position = panoViewer ? panoViewer.getPosition() : { lat: null, lng: null };
+        const pov = panoViewer ? panoViewer.getPov() : { heading: null, pitch: null, zoom: null };
 
-        if (!extraData) {
-            extraData = {};
-        }
+        const missionContainer = svv.missionContainer ? svv.missionContainer : null;
+        const currentMission = missionContainer ? missionContainer.getCurrentMission() : null;
 
-        let note = _notesToString(notes);
-        let timestamp = new Date();
-
-        panorama = svv.panorama ? svv.panorama : null;
-        let panoId = panorama ? panorama.getPanoId() : null;
-        let position = panorama ? panorama.getPosition() : null;  // sometimes buggy, so position will be null.
-        let pov = panorama ? panorama.getPov() : null;
-
-        let missionContainer = svv.missionContainer ? svv.missionContainer : null;
-        let currentMission = missionContainer ? missionContainer.getCurrentMission() : null;
-
-        let data = {
+        return {
             action: action,
-            gsv_panorama_id: panoId,
-            lat: position ? position.lat : null,
-            lng: position ? position.lng : null,
+            pano_id: panoViewer ? panoViewer.getPanoId() : null,
+            lat: position.lat,
+            lng: position.lng,
             heading: pov ? pov.heading : null,
-            mission_id: currentMission ? currentMission.getProperty("missionId") : null,
-            note: note,
             pitch: pov ? pov.pitch : null,
-            timestamp: timestamp,
-            zoom: pov ? pov.zoom : null
+            zoom: pov ? pov.zoom : null,
+            mission_id: currentMission ? currentMission.getProperty('missionId') : null,
+            note: _notesToString(notes || {}),
+            timestamp: new Date(),
         };
-
-        return data;
     }
 
     function getActions() {
@@ -81,12 +64,12 @@ function Tracker() {
 
     function _notesToString(notes) {
         if (!notes)
-            return "";
+            return '';
 
-        let noteString = "";
+        let noteString = '';
         for (let key in notes) {
             if (noteString.length > 0)
-                noteString += ",";
+                noteString += ',';
             noteString += key + ':' + notes[key];
         }
 
@@ -95,17 +78,16 @@ function Tracker() {
 
     /**
      * Pushes information to action list (to be submitted to the database)
-     * @param action    (required) Action
-     * @param notes     (optional) Notes to be logged into the notes field database
-     * @param extraData (optional) Extra data that should not be stored in the db notes field
+     * @param {string} action
+     * @param [notes] Notes to be logged into the notes field database
      */
-    function push(action, notes, extraData) {
-        let item = _createAction(action, notes, extraData);
-        var prevItem = actions.slice(-1)[0];
+    function push(action, notes) {
+        const item = _createAction(action, notes);
+        const prevItem = actions.slice(-1)[0];
         actions.push(item);
         if (actions.length > 200) {
-            let data = svv.form.compileSubmissionData(false);
-            svv.form.submit(data, true);
+            const data = svv.form.compileSubmissionData(false);
+            svv.form.submit(data, true); // Note that this happens async
         }
         // If there is a one-hour break between interactions (in ms), refresh the page to avoid weird bugs.
         if (prevItem && item.timestamp - prevItem.timestamp > 3600000) window.location.reload();
@@ -116,10 +98,8 @@ function Tracker() {
      * Empties actions stored in the Tracker.
      */
     function refresh() {
-        // Commented out to save memory since we aren't using prevActions right now.
-        // prevActions = prevActions.concat(actions);
         actions = [];
-        self.push("RefreshTracker");
+        self.push('RefreshTracker');
     }
 
     _init();

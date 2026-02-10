@@ -3,6 +3,30 @@ package models.utils
 object CommonUtils {
   val METERS_TO_MILES: Float = 0.000621371f
 
+  // NOTE need to update ui_source enum in postgres as well if changing this Enumeration.
+  object UiSource extends Enumeration {
+    type UiSource = Value
+    val Explore                         = Value("Explore")
+    val Validate                        = Value("Validate")
+    val ExpertValidate                  = Value("ExpertValidate")
+    val ValidateMobile                  = Value("ValidateMobile")
+    val AdminValidate                   = Value("AdminValidate")
+    val LabelMap                        = Value("LabelMap")
+    val GalleryImage                    = Value("GalleryImage")
+    val GalleryExpandedImage            = Value("GalleryExpandedImage")
+    val GalleryThumbs                   = Value("GalleryThumbs")
+    val GalleryExpandedThumbs           = Value("GalleryExpandedThumbs")
+    val UserMap                         = Value("UserMap")
+    val LabelSearchPage                 = Value("LabelSearchPage")
+    val AdminUserDashboard              = Value("AdminUserDashboard")
+    val AdminMapTab                     = Value("AdminMapTab")
+    val AdminContributionsTab           = Value("AdminContributionsTab")
+    val AdminLabelSearchTab             = Value("AdminLabelSearchTab")
+    val SidewalkAI                      = Value("SidewalkAI")
+    val ExternalTagValidationASSETS2024 = Value("ExternalTagValidationASSETS2024")
+    val OldDataUnknownSource            = Value("Old data, unknown source")
+  }
+
   /**
    * Calculate a destination point given a starting point, distance, and bearing using the Haversine formula.
    *

@@ -25,8 +25,8 @@
     window.RawLabelsPreview = {
         /**
          * Configure the raw labels preview.
-         * @param {Object} options - Configuration options
-         * @returns {Object} The RawLabelsPreview object for chaining
+         * @param {object} options - Configuration options
+         * @returns {object} The RawLabelsPreview object for chaining
          */
         setup: function(options) {
             config = Object.assign(config, options);
@@ -120,7 +120,7 @@
 
         /**
          * Extract a bounding box from region geometry.
-         * @param {Object} region - Region data with geometry
+         * @param {object} region - Region data with geometry
          * @returns {string} Bounding box string (minLng,minLat,maxLng,maxLat)
          */
         getBoundingBoxFromRegion: function(region) {
@@ -160,7 +160,7 @@
 
         /**
          * Calculate center of a region from its geometry.
-         * @param {Object} region - Region data with geometry
+         * @param {object} region - Region data with geometry
          * @returns {Array} [lat, lon] center coordinates
          */
         getCenterFromRegion: function(region) {
@@ -189,8 +189,8 @@
         /**
          * Create the Leaflet map.
          * @param {HTMLElement} container - Container element for the map
-         * @param {Object} regionData - Data about the region to display
-         * @returns {Object} The Leaflet map object
+         * @param {object} regionData - Data about the region to display
+         * @returns {object} The Leaflet map object
          */
         createMap: function(container, regionData) {
             // Create a map element.
@@ -254,9 +254,9 @@
 
         /**
          * Display labels on the map.
-         * @param {Object} map - The Leaflet map object
-         * @param {Object} labels - GeoJSON data containing the labels
-         * @param {Object} regionData - Data about the region being displayed
+         * @param {object} map - The Leaflet map object
+         * @param {object} labels - GeoJSON data containing the labels
+         * @param {object} regionData - Data about the region being displayed
          */
         displayLabelsOnMap: function(map, labels, regionData) {
             if (!labels.features || labels.features.length === 0) {
@@ -322,9 +322,9 @@
                         validationStatus = `Invalidated (${props.agree_count} agree, ${props.disagree_count} disagree)`;
                     }
 
-                    // Add the GSV URL link to the popup content.
-                    const gsvLink = props.gsv_url ?
-                        `<p><a href="${props.gsv_url}" target="_blank" rel="noopener noreferrer">View in Google Street View</a></p>` :
+                    // Add the image URL link to the popup content.
+                    const panoLink = props.image_url ?
+                        `<p><a href="${props.image_url}" target="_blank" rel="noopener noreferrer">View in Google Street View</a></p>` :
                         '';
 
                     layer.bindPopup(`
@@ -336,7 +336,7 @@
               <p>Created: ${timeCreated}</p>
               <p>${validationStatus}</p>
               <p>Label ID: ${props.label_id}</p>
-              ${gsvLink}
+              ${panoLink}
             </div>
           `);
                 }
@@ -348,7 +348,7 @@
 
         /**
          * Create a legend for the map.
-         * @param {Object} map - The Leaflet map object
+         * @param {object} map - The Leaflet map object
          */
         createLegend: function(map) {
             const legend = L.control({position: 'bottomleft'});
@@ -373,7 +373,7 @@
 
         /**
          * Update the legend to show only label types present in the data.
-         * @param {Object} map - The Leaflet map object
+         * @param {object} map - The Leaflet map object
          * @param {Array} typesInData - Array of label type names found in the data
          */
         updateLegend: function(map, typesInData) {

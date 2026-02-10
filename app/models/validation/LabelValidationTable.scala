@@ -5,12 +5,14 @@ import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResu
 import models.label.LabelTypeEnum.{labelTypeIdToLabelType, validLabelTypeIds, validLabelTypes}
 import models.label._
 import models.user._
+import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTable.validationOptions
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
+
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
@@ -30,12 +32,12 @@ case class LabelValidation(
     canvasY: Option[Int],
     heading: Float,
     pitch: Float,
-    zoom: Float,
+    zoom: Double,
     canvasHeight: Int,
     canvasWidth: Int,
     startTimestamp: OffsetDateTime,
     endTimestamp: OffsetDateTime,
-    source: String
+    source: UiSource
 )
 
 case class ValidationCount(
@@ -69,12 +71,12 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
   def canvasY: Rep[Option[Int]]           = column[Option[Int]]("canvas_y")
   def heading: Rep[Float]                 = column[Float]("heading")
   def pitch: Rep[Float]                   = column[Float]("pitch")
-  def zoom: Rep[Float]                    = column[Float]("zoom")
+  def zoom: Rep[Double]                   = column[Double]("zoom")
   def canvasHeight: Rep[Int]              = column[Int]("canvas_height")
   def canvasWidth: Rep[Int]               = column[Int]("canvas_width")
   def startTimestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("start_timestamp")
   def endTimestamp: Rep[OffsetDateTime]   = column[OffsetDateTime]("end_timestamp")
-  def source: Rep[String]                 = column[String]("source")
+  def source: Rep[UiSource]               = column[UiSource]("source")
 
   def * = (labelValidationId, labelId, validationResult, oldSeverity, newSeverity, oldTags, newTags, userId, missionId,
     canvasX, canvasY, heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, source) <>

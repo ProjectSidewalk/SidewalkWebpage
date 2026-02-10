@@ -96,6 +96,7 @@ class AppManager {
         // Set up CSRF token for fetch requests by overwriting the fetch function.
         const originalFetch = window.fetch;
         window.fetch = function(url, options = {}) {
+            // console.log(url);
             // Create new options object with default headers.
             const newOptions = {
                 ...options,
@@ -104,34 +105,46 @@ class AppManager {
                     'Csrf-Token': csrfToken
                 }
             };
-            return originalFetch(url, newOptions);
+
+            const requestUrl = (typeof url === 'string') ? url : url.url;
+
+            // Bypass adding CSRF token for requests to certain external APIs that don't accept the Csrf-Token header.
+            const pathsToBypass = ['mapbox.com', 'api.infra3d.com', 'wmts.geo.admin.ch'];
+            if (pathsToBypass.some(path => requestUrl.includes(path))) {
+                return originalFetch(url, options);
+            } else {
+                return originalFetch(url, newOptions).catch((e) => console.log('I will not be showing the error'));
+            }
         };
     }
 
     /**
-     * Initialize i18next with the given language and namespaces. Handles India-specific overrides.
+     * Initialize i18next with the given language and namespaces. Handles country-specific overrides.
      *
-     * @param {Object} params - Properties that determine which translations should be loaded.
+     * @param {object} params - Properties that determine which translations should be loaded.
      * @param {string} params.language - The language to use for translations, e.g., "en", "en-US", "es", etc.
      * @param {string} params.defaultNS The default namespace to use if no specific ns is provided, e.g., "common"
-     * @param {array[string]} params.namespaces An array of namespaces to load, e.g., ["common", "explore"]
-     * @param {string} params.countryId The server's country ID to determine if we need to load India-specific overrides
+     * @param {Array<string>} params.namespaces An array of namespaces to load, e.g., ["common", "explore"]
+     * @param {string} params.countryId The server's country ID to determine if we load country-specific overrides
      * @returns {Promise} Promise that resolves when i18next is ready.
      * @private
      */
     _setupI18next(params) {
-        const namespaces = params.namespaces;
+        // Set up country-specific namespace overrides.
+        let namespaces = params.namespaces;
+        if (params.countryId === 'india') {
+            namespaces = [...namespaces, ...namespaces.map(str => `${str}-india`)];
+        } else if (params.countryId === 'switzerland') {
+            namespaces = [...namespaces, ...namespaces.map(str => `${str}-zurich`)]
+        }
 
-        // Add "-india" suffix to each namespace to be used if this is an India server.
-        const namespacesWithIndiaOverrides = [...namespaces, ...namespaces.map(str => `${str}-india`)];
         return i18next.use(i18nextHttpBackend).init({
             backend: {
                 loadPath: '/assets/locales/{{lng}}/{{ns}}.json',
                 allowMultiLoading: true
             },
             fallbackLng: 'en',
-            // Also include india-specific namespaces if appropriate.
-            ns: params.countryId === "india" ? namespacesWithIndiaOverrides : namespaces,
+            ns: namespaces,
             defaultNS: params.defaultNS,
             lng: params.language,
             partialBundledLanguages: true,
@@ -142,12 +155,14 @@ class AppManager {
                 return console.error(err.filter(e => !e.includes('status code: 404')));
             }
 
-            // After loading, merge the india-specific override namespaces into the base ones.
-            if (params.countryId === "india") {
-                // Going through list of languages so that we still get the en translations when using en-US.
-                for (const l of i18next.languages) {
-                    for (const ns of namespaces) {
+            // After loading, merge the country-specific override namespaces into the base ones.
+            // Going through list of languages so that we still get the en translations when using en-US.
+            for (const l of i18next.languages) {
+                for (const ns of namespaces) {
+                    if (params.countryId === "india") {
                         i18next.addResourceBundle(l, ns, i18next.getResourceBundle(l, `${ns}-india`) || {}, true, true);
+                    } else if (params.countryId === "switzerland") {
+                        i18next.addResourceBundle(l, ns, i18next.getResourceBundle(l, `${ns}-zurich`) || {}, true, true);
                     }
                 }
             }

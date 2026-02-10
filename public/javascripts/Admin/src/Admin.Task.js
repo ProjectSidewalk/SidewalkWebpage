@@ -30,7 +30,7 @@ function AdminTask(params) {
         const userMarkerEl = document.createElement('div');
         userMarkerEl.className = 'user-marker';
         let userMarker;
-        
+
         // Plays/Pauses the stream.
         $('#control-btn').on('click', function() {
             if (document.getElementById('control-btn').innerHTML === 'Play') {
@@ -40,7 +40,7 @@ function AdminTask(params) {
             }
         });
 
-        
+
         // Adds input listeners and pauses playback whenever fields are changed.
         const elements = document.getElementsByTagName('input');
         for (let i = 0; i < elements.length; ++i) {
@@ -51,7 +51,7 @@ function AdminTask(params) {
 
         function _init() {
             // Get the audit task data.
-            $.getJSON('/adminapi/auditpath/' + self.auditTaskId, function (data) {
+            $.getJSON('/adminapi/auditpath/' + self.auditTaskId, async function (data) {
                 if (data.features.length === 0) {
                     alert('No data for this audit task.');
                     return;
@@ -61,8 +61,12 @@ function AdminTask(params) {
                 currentTimestamp = featuresData[0].properties.timestamp;
 
                 // Initialize the pano.
-                if (!self.panorama) self.panorama = AdminPanorama($('#svholder')[0]);
-                self.panorama.setPano(featuresData[0].properties.panoId, featuresData[0].properties.heading, featuresData[0].properties.pitch, featuresData[0].properties.zoom);
+                if (!self.panoManager) self.panoManager = await AdminPanorama($('#svholder')[0], null, true, params.viewerType, params.viewerAccessToken);
+                self.panoManager.setPano(featuresData[0].properties.panoId, {
+                    heading: featuresData[0].properties.heading,
+                    pitch: featuresData[0].properties.pitch,
+                    zoom: featuresData[0].properties.zoom
+                });
 
                 // Once the map has loaded, add the user marker and layer for the labels.
                 map.on('load', function() {
@@ -92,7 +96,7 @@ function AdminTask(params) {
                 });
             });
         }
-        
+
         // The animation is played again by recalculating the stream again from where it stopped.
         function playAnimation() {
             paused = false;
@@ -127,9 +131,13 @@ function AdminTask(params) {
                 // Update the pano POV.
                 if (currPano === null || currPano !== action.properties.panoId) {
                     currPano = action.properties.panoId;
-                    self.panorama.setPano(action.properties.panoId, action.properties.heading, action.properties.pitch, action.properties.zoom);
+                    self.panoManager.setPano(action.properties.panoId, action.properties.heading, action.properties.pitch, action.properties.zoom);
                 } else {
-                    self.panorama.setPov(action.properties.heading, action.properties.pitch, action.properties.zoom);
+                    self.panoManager.panoViewer.setPov({
+                        heading: action.properties.heading,
+                        pitch: action.properties.pitch,
+                        zoom: action.properties.zoom
+                    });
                 }
 
                 // Update the location of the map.
@@ -150,7 +158,7 @@ function AdminTask(params) {
                         util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
                         action.properties.heading, action.properties.pitch, action.properties.zoom
                     );
-                    self.panorama.renderLabel(adminPanoramaLabel);
+                    self.panoManager.renderLabel(adminPanoramaLabel);
                 }
 
                 // Update the UI for time elapsed.

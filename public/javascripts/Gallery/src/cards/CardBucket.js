@@ -1,16 +1,16 @@
 /**
  * A Card Bucket to store Cards of a certain label type.
- * 
+ *
  * @param bucket List of Cards in order received from database.
  * @returns {CardBucket}
  * @constructor
  */
 function CardBucket(inputCards) {
-    let self = this;
+    const self = this;
     let bucket = inputCards || [];
     /**
      * Add a Card to bucket.
-     * 
+     *
      * @param {Card} card Card to add.
      */
     function push(card) {
@@ -19,7 +19,7 @@ function CardBucket(inputCards) {
 
     /**
      * Filters cards upon a non-empty array of tags.
-     * 
+     *
      * @param {*} tags Tags to filter upon.
      */
     function filterOnTags(tags) {
@@ -71,11 +71,11 @@ function CardBucket(inputCards) {
     function copy() {
         return new CardBucket([...bucket]);
     }
-    
+
     /**
      * Gets the card that has the matching imageId.
-     * 
-     * @param {String} imageId the id to search for.
+     *
+     * @param {string} imageId the id to search for.
      * @returns {Card} The card in the card bucket that contains the imageId.
      */
     function findCardByImageId(imageId) {

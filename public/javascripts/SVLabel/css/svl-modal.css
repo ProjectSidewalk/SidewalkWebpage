@@ -1,4 +1,4 @@
-#modal-skip-holder, #modal-comment-holder {
+##modal-comment-holder {
     position: absolute;
     left: 0;
     top: 0;
@@ -7,7 +7,7 @@
     text-align: justify;
 }
 
-#modal-skip-background, #modal-comment-background {
+#modal-comment-background {
     position: absolute;
     left: 0px;
     top: 0;
@@ -17,12 +17,12 @@
     width: 110%;
 }
 
-#modal-skip-box, #modal-comment-box {
+#modal-comment-box {
     background: rgba(255, 255, 255, 1);
     color: rgba(80, 80, 80, 1);
     font-size: 13pt;
     padding: 10px;
-    position: relative;
+    position: absolute;
     top: 35%;
     left: 8px;
     visibility: visible;
@@ -32,18 +32,6 @@
     border-radius: 3px 3px 3px 3px;
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
-}
-
-#modal-skip-box .overlay-option {
-    background-color: rgb(220, 220, 220);
-}
-
-#modal-skip-box .overlay-option:hover  {
-    background-color: rgb(190, 190, 190);
-}
-
-.modal-skip-cancel-button-holder {
-    text-align: right;
 }
 
 .modal-foreground {

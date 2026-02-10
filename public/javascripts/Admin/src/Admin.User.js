@@ -14,7 +14,7 @@ function AdminUser(username, userId, serviceHoursUser) {
      * @param state
      */
     function setTaskFlagByDate(date, flag, state) {
-        data = {
+        const data = {
             'userId': userId,
             'date': date,
             'flag': flag,

@@ -67,7 +67,7 @@ object LabelValidationSummaryForApi {
  *
  * @param labelId Unique identifier for the label
  * @param userId Anonymized identifier of the user who created the label
- * @param gsvPanoramaId Google Street View panorama identifier where the label was placed
+ * @param panoId Panorama identifier where the label was placed
  * @param labelType Type of accessibility issue (e.g., "CurbRamp", "SurfaceProblem")
  * @param severity Optional severity rating (1-3 scale)
  * @param tags List of descriptive tags applied to the label
@@ -85,7 +85,7 @@ object LabelValidationSummaryForApi {
  * @param validations List of individual user validations for this label
  * @param auditTaskId Optional audit task identifier
  * @param missionId Optional mission identifier
- * @param imageCaptureDate Optional date when the Street View image was captured
+ * @param imageCaptureDate Optional date when the image was captured
  * @param heading Optional heading angle in degrees
  * @param pitch Optional pitch angle in degrees
  * @param zoom Optional zoom level
@@ -103,7 +103,7 @@ object LabelValidationSummaryForApi {
 case class LabelDataForApi(
     labelId: Int,
     userId: String,
-    gsvPanoramaId: String,
+    panoId: String,
     labelType: String,
     severity: Option[Int],
     tags: List[String],
@@ -124,7 +124,7 @@ case class LabelDataForApi(
     imageCaptureDate: Option[String],
     heading: Option[Double],
     pitch: Option[Double],
-    zoom: Option[Int],
+    zoom: Option[Double],
     canvasX: Option[Int],
     canvasY: Option[Int],
     canvasWidth: Option[Int],
@@ -138,7 +138,7 @@ case class LabelDataForApi(
 ) extends StreamingApiType {
 
   /**
-   * Generates a direct Google Street View URL for this label location.
+   * Generates a direct panorama URL for this label location.
    *
    * This URL can be opened in a browser to view the Street View at the label position.
    * The URL format follows Google's standard Street View URL structure:
@@ -152,9 +152,9 @@ case class LabelDataForApi(
    * - {pitch}t: Vertical view angle in degrees followed by 't'
    * - !3m4!1e1!3m2!1s{panoId}!2e0: Data parameter specifying panorama ID
    *
-   * @return A complete Google Street View URL pointing to this label's location
+   * @return A complete panorama URL pointing to this label's location
    */
-  def gsvUrl: String = {
+  def imageUrl: String = {
     // Base URL for Google Maps.
     val baseUrl = "https://www.google.com/maps/@"
 
@@ -167,7 +167,7 @@ case class LabelDataForApi(
 
     // The data parameter contains the panorama ID information.
     // Format is: !3m4!1e1!3m2!1s{PANORAMA_ID}!2e0
-    val panoParam = s"data=!3m4!1e1!3m2!1s$gsvPanoramaId!2e0"
+    val panoParam = s"data=!3m4!1e1!3m2!1s$panoId!2e0"
 
     // Assemble all components into the final URL
     s"$baseUrl$latLng,$headingStr,$pitchStr/$panoParam"
@@ -187,22 +187,22 @@ case class LabelDataForApi(
       "type"       -> "Feature",
       "geometry"   -> createGeoJsonPointGeometry(longitude, latitude),
       "properties" -> Json.obj(
-        "label_id"        -> labelId,
-        "user_id"         -> userId,
-        "gsv_panorama_id" -> gsvPanoramaId,
-        "label_type"      -> labelType,
-        "severity"        -> severity,
-        "tags"            -> tags,
-        "description"     -> description,
-        "time_created"    -> timeCreated,
-        "street_edge_id"  -> streetEdgeId,
-        "osm_way_id"      -> osmWayId,
-        "neighborhood"    -> neighborhood,
-        "correct"         -> correct,
-        "agree_count"     -> agreeCount,
-        "disagree_count"  -> disagreeCount,
-        "unsure_count"    -> unsureCount,
-        "validations"     -> validations.map(v =>
+        "label_id"       -> labelId,
+        "user_id"        -> userId,
+        "pano_id"        -> panoId,
+        "label_type"     -> labelType,
+        "severity"       -> severity,
+        "tags"           -> tags,
+        "description"    -> description,
+        "time_created"   -> timeCreated,
+        "street_edge_id" -> streetEdgeId,
+        "osm_way_id"     -> osmWayId,
+        "neighborhood"   -> neighborhood,
+        "correct"        -> correct,
+        "agree_count"    -> agreeCount,
+        "disagree_count" -> disagreeCount,
+        "unsure_count"   -> unsureCount,
+        "validations"    -> validations.map(v =>
           Json.obj(
             "user_id"    -> v.userId,
             "validation" -> v.validationType
@@ -224,7 +224,7 @@ case class LabelDataForApi(
         "pano_height"        -> panoHeight,
         "camera_heading"     -> cameraHeading,
         "camera_pitch"       -> cameraPitch,
-        "gsv_url"            -> gsvUrl // Include the direct GSV URL
+        "image_url"          -> imageUrl // Include the direct pano URL
       )
     )
   }
@@ -240,7 +240,7 @@ case class LabelDataForApi(
     val fields = Seq(
       labelId.toString,
       userId,
-      gsvPanoramaId,
+      panoId,
       labelType,
       severity.map(_.toString).getOrElse(""),
       escapeCsvField(tags.mkString("[", ",", "]")),
@@ -274,7 +274,7 @@ case class LabelDataForApi(
       panoHeight.map(_.toString).getOrElse(""),
       cameraHeading.map(_.toString).getOrElse(""),
       cameraPitch.map(_.toString).getOrElse(""),
-      escapeCsvField(gsvUrl),
+      escapeCsvField(imageUrl),
       latitude.toString,
       longitude.toString
     )
@@ -291,10 +291,10 @@ object LabelDataForApi {
    * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.
    */
-  val csvHeader: String = "label_id,user_id,gsv_panorama_id,label_type,severity,tags,description,time_created," +
-    "street_edge_id,osm_way_id,neighborhood,correct,agree_count,disagree_count,unsure_count,validations," +
-    "audit_task_id,mission_id,image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height," +
-    "pano_x,pano_y,pano_width,pano_height,camera_heading,camera_pitch,gsv_url,latitude,longitude\n"
+  val csvHeader: String = "label_id,user_id,pano_id,label_type,severity,tags,description,time_created,street_edge_id," +
+    "osm_way_id,neighborhood,correct,agree_count,disagree_count,unsure_count,validations,audit_task_id,mission_id," +
+    "image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height,pano_x,pano_y,pano_width," +
+    "pano_height,camera_heading,camera_pitch,image_url,latitude,longitude\n"
 
   /**
    * Implicit JSON writer for LabelData that uses the toJson method.

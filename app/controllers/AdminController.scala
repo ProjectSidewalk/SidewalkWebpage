@@ -18,6 +18,7 @@ import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import service._
+
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.concurrent.ThreadPoolExecutor
@@ -39,7 +40,7 @@ class AdminController @Inject() (
     regionService: RegionService,
     labelService: LabelService,
     streetService: StreetService,
-    gsvDataService: GsvDataService,
+    panoDataService: PanoDataService,
     userService: service.UserService,
     actorSystem: ActorSystem,
     cpuEc: CpuIntensiveExecutionContext
@@ -573,11 +574,11 @@ class AdminController @Inject() (
   }
 
   /**
-   * Checks for Google Street View imagery that might be missing. Same as nightly process.
+   * Checks for imagery that might be missing. Same as nightly process.
    */
-  def checkGsvImagery() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def checkImagery() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    gsvDataService.checkForGsvImagery.map { results => Ok(results) }
+    panoDataService.checkForImagery.map { results => Ok(results) }
   }
 
   /**

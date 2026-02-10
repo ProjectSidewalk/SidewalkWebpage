@@ -1,5 +1,5 @@
 function Keyboard(menuUI) {
-    let self = this;
+    const self = this;
     let lastShiftKeyDownTimestamp = undefined;
     let status = {
         disableKeyboard: false,
@@ -58,21 +58,20 @@ function Keyboard(menuUI) {
 
     /**
      * Validate a single label using keyboard shortcuts.
-     * @param button    jQuery element for the button clicked.
-     * @param action    {String} Validation action. Must be either agree, disagree, or unsure.
+     * @param {jQuery} button    jQuery element for the button clicked.
+     * @param {string} action Validation action. Must be either agree, disagree, or unsure.
+     * @param {string} comment
      */
     function validateLabel(button, action, comment) {
-        // Want at least 800ms in-between to allow GSV Panorama to load. (Value determined
-        // experimentally).
-
-        // It does not look like GSV StreetView supports any listeners that will check when the
-        // panorama is fully loaded yet.
+        // Want at least 800ms in-between to allow Panorama to load. (Value determined experimentally).
+        // It does not look like GSV supports any listeners that will check when the pano is fully loaded yet.
+        // TODO changing the pano through PanoViewer now returns a Promise that resolves when it's finished loading.
         let timestamp = new Date();
-        if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
+        if (timestamp - svv.labelContainer.getProperty('validationTimestamp') > 800) {
             button.toggleClass("validate");
             svv.tracker.push("ValidationKeyboardShortcut_" + action);
-            svv.panorama.getCurrentLabel().validate(action, comment);
-            svv.panorama.setProperty('validationTimestamp', timestamp);
+            svv.labelContainer.getCurrentLabel().validate(action, comment);
+            svv.labelContainer.setProperty('validationTimestamp', timestamp);
             status.keyPressed = true;
         }
     }

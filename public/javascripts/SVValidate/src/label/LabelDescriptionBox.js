@@ -6,7 +6,7 @@
  * @constructor
  */
 function LabelDescriptionBox () {
-    let self = this;
+    const self = this;
     let descriptionBox = $("#label-description-box");
 
     /**

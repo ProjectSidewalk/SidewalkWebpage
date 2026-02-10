@@ -1,22 +1,21 @@
 /**
  *
- * @param labelId
- * @param labelType
- * @param canvasX
- * @param canvasY
- * @param originalCanvasWidth
- * @param originalCanvasHeight
- * @param heading
- * @param pitch
- * @param zoom
- * @param streetEdgeId
- * @param severity
- * @param tags
+ * @param {number} labelId
+ * @param {string} labelType
+ * @param {number} canvasX
+ * @param {number} canvasY
+ * @param {number} originalCanvasWidth
+ * @param {number} originalCanvasHeight
+ * @param {{heading: number, pitch: number, zoom: number}} pov
+ * @param {number} [streetEdgeId]
+ * @param {number} [severity]
+ * @param {Array[string]} [tags]
+ * @param {boolean=false} aiGenerated
  * @returns {{className: string}}
  * @constructor
  */
 function AdminPanoramaLabel(labelId, labelType, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight,
-                            heading, pitch, zoom, streetEdgeId, severity, tags, aiGenerated = false) {
+                            pov, streetEdgeId, severity, tags, aiGenerated = false) {
     var self = { className: "AdminPanoramaLabel" };
 
     /**
@@ -29,9 +28,7 @@ function AdminPanoramaLabel(labelId, labelType, canvasX, canvasY, originalCanvas
         self.canvasY = canvasY;
         self.originalCanvasWidth = originalCanvasWidth;
         self.originalCanvasHeight = originalCanvasHeight;
-        self.heading = heading;
-        self.pitch = pitch;
-        self.zoom = zoom;
+        self.pov = pov;
         self.streetEdgeId = streetEdgeId;
         self.oldSeverity = severity;
         self.newSeverity = severity;

@@ -4,7 +4,7 @@
  * @constructor
  */
 function MissionContainer () {
-    let self = this;
+    const self = this;
     let currentMission = undefined;
     let _completedMissions = [];
 
@@ -45,7 +45,7 @@ function MissionContainer () {
         svv.missionsCompleted += 1;
         svv.modalMissionComplete.show(currentMission);
         let data = svv.form.compileSubmissionData(true);
-        svv.form.submit(data, true);
+        svv.form.submit(data); // Note that this happens async. Once finished, it enables start next mission button.
         _addToCompletedMissions(currentMission);
     }
 
@@ -74,6 +74,8 @@ function MissionContainer () {
         addAMission(mission);
         svv.modalMission.setMissionMessage(mission);
         svv.modalInfo.setMissionInfo(mission);
+        svv.statusField.updateLabelText(svv.labelTypes[mission.getProperty('labelTypeId')]);
+        svv.statusExample.updateLabelImage(svv.labelTypes[mission.getProperty('labelTypeId')]);
         svv.statusField.refreshLabelCountsDisplay();
     }
 

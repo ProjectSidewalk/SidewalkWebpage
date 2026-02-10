@@ -54,7 +54,7 @@ $(document).ready(function() {
     });
 });
 
-// Prevents double tap functionality. We only want to pinch zoom in GSV.
+// Prevents double tap functionality. We only want to pinch zoom in the pano.
 let doubleTouchStartTimestamp = 0;
 document.addEventListener("touchstart", function(event){
     let now = +(new Date());
@@ -84,7 +84,7 @@ function resizeMobileValidation() {
     document.getElementById("status-current-mission-completion-rate").style.width = w + "px";
     // Resize button elements.
     document.getElementById("title-bar-holder").style.width = w + "px";
-    document.getElementById("left-column-jump-button").style.left = w - 75 + "px";
+    document.getElementById("left-column-skip-button").style.left = w - 75 + "px";
     document.getElementById("info-button").style.left = w - 150 + "px";
     // Resize mission start popup.
     let modalForegrounds = document.getElementsByClassName("modal-foreground");
@@ -112,6 +112,6 @@ function resizeMobileValidation() {
     // document.getElementById("validation-yes-button").style.width = w/5-30 + "px";
     // document.getElementById("validation-no-button").style.width = w/5-30 + "px";
     // document.getElementById("validation-unsure-button").style.width = w/5-30 + "px";
-    // document.getElementById("left-column-jump-button").style.left = w - 600 + "px";
+    // document.getElementById("left-column-skip-button").style.left = w - 600 + "px";
     // document.getElementById("info-button").style.left = w - 700 + "px";
 }

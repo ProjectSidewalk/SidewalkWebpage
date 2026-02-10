@@ -1,12 +1,12 @@
 /**
  * A Validation Option Bucket to store ValidationOptions.
- * 
+ *
  * @param initialValidationOptions array containing validation options to set on page load.
  * @returns {ValidationOptionBucket}
  * @constructor
  */
 function ValidationOptionBucket(initialValidationOptions) {
-    let self = this;
+    const self = this;
 
     // List of validationOptions.
     let bucket = [];
@@ -23,7 +23,7 @@ function ValidationOptionBucket(initialValidationOptions) {
 
     /**
      * Add validationOption.
-     * 
+     *
      * @param {*} validationOption
      */
     function push(validationOption) {

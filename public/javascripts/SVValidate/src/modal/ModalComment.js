@@ -1,12 +1,11 @@
 /**
- * Handles feedback button functionality. Allows users to submit feedback, which is logged to the
- * validation_task_interaction table.
+ * Handles feedback button functionality. Allows users to submit feedback, logged to the validation_task_comment table.
  * @param modalUI   UI elements related to feedback (button, dialog box buttons)
  * @returns {ModalComment}
  * @constructor
  */
 function ModalComment (modalUI) {
-    let self = this;
+    const self = this;
     let status = {
         disableClickOk: true
     };
@@ -17,7 +16,7 @@ function ModalComment (modalUI) {
     /**
      * Disables the ok button (makes button unclickable).
      */
-    function disableClickOk () {
+    function disableClickOk() {
         modalUI.ok.attr("disabled", true);
         modalUI.ok.addClass("disabled");
         status.disableClickOk = true;
@@ -26,7 +25,7 @@ function ModalComment (modalUI) {
     /**
      * Enables the ok button (makes button clickable).
      */
-    function enableClickOk () {
+    function enableClickOk() {
         modalUI.ok.attr("disabled", false);
         modalUI.ok.removeClass("disabled");
         status.disableClickOk = false;
@@ -35,7 +34,7 @@ function ModalComment (modalUI) {
     /**
      * Hides the comments dialog box.
      */
-    function handleClickCancel () {
+    function handleClickCancel() {
         svv.tracker.push("ModalComment_ClickCancel");
         hideCommentMenu();
     }
@@ -51,7 +50,7 @@ function ModalComment (modalUI) {
     /**
      * Submits text in the comment box to the backend.
      */
-    function handleClickOk () {
+    function handleClickOk() {
         svv.tracker.push("ModalComment_ClickOK");
         let data = prepareCommentData();
         submitComment(data);
@@ -59,10 +58,9 @@ function ModalComment (modalUI) {
     }
 
     /**
-     * Triggered when text is changed in the comments box. Will enable the "ok"
-     * button if there is text.
+     * Triggered when text is changed in the comments box. Will enable the "ok" button if there is text.
      */
-    function handleTextAreaChange () {
+    function handleTextAreaChange() {
         let comment = modalUI.textarea.val();
         if (comment.length > 0) {
             enableClickOk();
@@ -82,7 +80,7 @@ function ModalComment (modalUI) {
         svv.undoValidation.enableUndo();
     }
 
-    function hideBackground () {
+    function hideBackground() {
         svv.ui.modal.background.css({
             width: 0,
             height: 0
@@ -101,13 +99,13 @@ function ModalComment (modalUI) {
         if (svv.keyboard) svv.keyboard.disableKeyboard();
         svv.skipValidation.disableSkip();
         svv.undoValidation.disableUndo();
-        showBackground();    // doesn't work as expected... overlay isn't applied to GSV pano
+        showBackground();    // doesn't work as expected... overlay isn't applied to pano
     }
 
     /**
      * Renders a transparent white overlay over the validation interface and side menus.
      */
-    function showBackground () {
+    function showBackground() {
         svv.ui.modal.background.css('background-color', 'white');
         svv.ui.modal.background.css({
             width: '100%',
@@ -116,20 +114,18 @@ function ModalComment (modalUI) {
             visibility: 'visible'
         });
 
-        // SVV Panorama is not covered by overlay at regular z-index
+        // SVV Panorama is not covered by overlay at regular z-index.
         $('#svv-panorama').css('z-Index', '0');
     }
 
     /**
      * Submit the comment.
      */
-    function submitComment (data) {
-        let url = "/validate/comment";
-        let async = true;
+    function submitComment(data) {
         $.ajax({
-            async: async,
+            async: true,
             contentType: 'application/json; charset=utf-8',
-            url: url,
+            url: '/validate/comment',
             method: 'POST',
             data: JSON.stringify(data),
             dataType: 'json',
@@ -147,18 +143,15 @@ function ModalComment (modalUI) {
 
     /**
      * Converts comment and some validation interface data into an object to be sent to the backend.
-     * @returns Comment data object {{comment, label_id, gsv_panorama_id: *, heading, lat, lng,
-     * pitch, mission_id, zoom}}
+     * @returns Comment data object {{comment, label_id, pano_id: *, heading, lat, lng, pitch, mission_id, zoom}}
      */
-    function prepareCommentData () {
-        let comment = modalUI.textarea.val();
-        let position = svv.panorama.getPosition();
-        let pov = svv.panorama.getPov();
-
-        let data = {
-            comment: comment,
-            label_id: svv.panorama.getCurrentLabel().getAuditProperty("labelId"),
-            gsv_panorama_id: svv.panorama.getPanoId(),
+    function prepareCommentData() {
+        const position = svv.panoViewer.getPosition();
+        const pov = svv.panoViewer.getPov();
+        return data = {
+            comment: modalUI.textarea.val(),
+            label_id: svv.labelContainer.getCurrentLabel().getAuditProperty("labelId"),
+            pano_id: svv.panoViewer.getPanoId(),
             heading: pov.heading,
             lat: position.lat,
             lng: position.lng,
@@ -166,7 +159,6 @@ function ModalComment (modalUI) {
             mission_id: svv.missionContainer.getCurrentMission().getProperty('missionId'),
             zoom: pov.zoom
         };
-        return data;
     }
 
     modalUI.cancel.on('click', handleClickCancel);

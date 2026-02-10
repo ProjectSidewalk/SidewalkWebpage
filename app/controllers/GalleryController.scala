@@ -14,7 +14,8 @@ import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsObject, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, Result}
 import play.silhouette.api.Silhouette
-import service.{ConfigService, GsvDataService, LabelService, RegionService}
+import service.{ConfigService, LabelService, PanoDataService, RegionService}
+
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -27,7 +28,7 @@ class GalleryController @Inject() (
     implicit val ec: ExecutionContext,
     configService: ConfigService,
     labelService: LabelService,
-    gsvDataService: GsvDataService,
+    panoDataService: PanoDataService,
     galleryTaskInteractionTable: GalleryTaskInteractionTable,
     galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable,
     regionService: RegionService
@@ -116,7 +117,7 @@ class GalleryController @Inject() (
             val jsonList: Seq[JsObject] = labels.map(l =>
               Json.obj(
                 "label"    -> LabelFormats.validationLabelMetadataToJson(l),
-                "imageUrl" -> gsvDataService.getImageUrl(l.gsvPanoramaId, l.pov.heading, l.pov.pitch, l.pov.zoom)
+                "imageUrl" -> panoDataService.getImageUrl(l.panoId, l.pov.heading, l.pov.pitch, l.pov.zoom)
               )
             )
             val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)

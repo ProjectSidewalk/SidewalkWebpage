@@ -7,29 +7,11 @@ module.exports = function(grunt) {
         concat: {
             dist_audit: {
                 src: [
-                    'public/javascripts/SVLabel/src/SVLabel/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/alert/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/canvas/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/data/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/game/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/keyboard/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/label/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/menu/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/mission/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/modal/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/navigation/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/neighborhood/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/onboarding/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/panorama/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/ribbon/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/status/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/task/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/user/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/zoom/*.js',
-                    'public/javascripts/common/Panomarker.js',
-                    'public/javascripts/common/UtilitiesPanomarker.js',
+                    'public/javascripts/SVLabel/src/*.js',
+                    'public/javascripts/SVLabel/src/*/*.js',
+                    'public/javascripts/common/PanoMarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/GSVInfoPopover.js',
+                    'public/javascripts/common/PanoInfoPopover.js',
                     'public/javascripts/common/SpeedLimit.js',
                     'public/javascripts/common/MissionStartTutorial.js'
                 ],
@@ -39,7 +21,7 @@ module.exports = function(grunt) {
                 src: [
                     'public/javascripts/Admin/src/*.js',
                     'public/javascripts/SVValidate/src/util/*.js',
-                    'public/javascripts/common/Panomarker.js',
+                    'public/javascripts/common/PanoMarker.js',
                     'public/javascripts/Progress/src/*.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                 ],
@@ -50,8 +32,7 @@ module.exports = function(grunt) {
                     'public/javascripts/common/AiLabelIndicator.js',
                     'public/javascripts/Admin/src/*.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/Panomarker.js',
-                    'public/javascripts/common/UtilitiesPanomarker.js'
+                    'public/javascripts/common/PanoMarker.js',
                 ],
                 dest: 'public/javascripts/Admin/build/Admin.js'
             },
@@ -76,9 +57,9 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/src/user/*.js',
                     'public/javascripts/SVValidate/src/util/*.js',
                     'public/javascripts/SVValidate/src/zoom/*.js',
-                    'public/javascripts/common/Panomarker.js',
+                    'public/javascripts/common/PanoMarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/GSVInfoPopover.js',
+                    'public/javascripts/common/PanoInfoPopover.js',
                     'public/javascripts/common/SpeedLimit.js',
                     'public/javascripts/common/MissionStartTutorial.js'
                 ],
@@ -95,8 +76,8 @@ module.exports = function(grunt) {
                     'public/javascripts/Gallery/src/displays/*.js',
                     'public/javascripts/Gallery/src/expandedview/*.js',
                     'public/javascripts/Gallery/src/*.js',
-                    'public/javascripts/common/Panomarker.js',
-                    'public/javascripts/common/GSVInfoPopover.js'
+                    'public/javascripts/common/PanoMarker.js',
+                    'public/javascripts/common/PanoInfoPopover.js'
                 ],
                 dest: 'public/javascripts/Gallery/build/Gallery.js'
             },
@@ -105,6 +86,18 @@ module.exports = function(grunt) {
                     'public/javascripts/PSMap/*.js',
                 ],
                 dest: 'public/javascripts/PSMap/build/PSMap.js'
+            },
+            dist_pano_viewer: {
+                src: [
+                    'public/javascripts/common/pano-viewer/src/PanoData.js',
+                    'public/javascripts/common/pano-viewer/src/PanoStore.js',
+                    'public/javascripts/common/pano-viewer/src/PanoUtilities.js',
+                    'public/javascripts/common/pano-viewer/src/PanoViewer.js',
+                    'public/javascripts/common/pano-viewer/src/GsvViewer.js',
+                    'public/javascripts/common/pano-viewer/src/MapillaryViewer.js',
+                    'public/javascripts/common/pano-viewer/src/Infra3dViewer.js'
+                ],
+                dest: 'public/javascripts/common/pano-viewer/build/pano-viewer.js'
             }
         },
         concat_css: {
@@ -133,6 +126,9 @@ module.exports = function(grunt) {
             scripts: {
                 files: [
                     'public/javascripts/common/*.js',
+                    'public/javascripts/common/*/*.js',
+                    'public/javascripts/common/*/src/*.js',
+                    'public/javascripts/SVLabel/src/*.js',
                     'public/javascripts/SVLabel/src/**/*.js',
                     'public/javascripts/SVLabel/css/*.css',
                     'public/javascripts/Progress/src/**/*.js',

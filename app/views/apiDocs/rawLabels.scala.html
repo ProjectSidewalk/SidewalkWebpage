@@ -225,7 +225,7 @@
             "properties": {
                 "label_id": 8,
                 "user_id": "18b26a38-24ab-402d-a64e-158fc0bb8a8a",
-                "gsv_panorama_id": "DsCvWstZYz9JL81V9NloOQ",
+                "pano_id": "DsCvWstZYz9JL81V9NloOQ",
                 "label_type": "CurbRamp",
                 "severity": 1,
                 "tags": [],
@@ -265,7 +265,7 @@
                 "pano_height": 6656,
                 "camera_heading": 228.928619384766,
                 "camera_pitch": -0.998329997062683,
-                "gsv_url": "https://www.google.com/maps/@@40.88399124145508,-74.02436065673828,3a,75y,94.31143188476562h,65.3222501t/data=!3m4!1e1!3m2!1sDsCvWstZYz9JL81V9NloOQ!2e0"
+                "image_url": "https://www.google.com/maps/@@40.88399124145508,-74.02436065673828,3a,75y,94.31143188476562h,65.3222501t/data=!3m4!1e1!3m2!1sDsCvWstZYz9JL81V9NloOQ!2e0"
             }
         },
         {
@@ -277,7 +277,7 @@
             "properties": {
                 "label_id": 9,
                 "user_id": "18b26a38-24ab-402d-a64e-158fc0bb8a8a",
-                "gsv_panorama_id": "DsCvWstZYz9JL81V9NloOQ",
+                "pano_id": "DsCvWstZYz9JL81V9NloOQ",
                 "label_type": "Crosswalk",
                 "severity": 1,
                 "tags": [],
@@ -320,7 +320,7 @@
                 "pano_height": 6656,
                 "camera_heading": 228.928619384766,
                 "camera_pitch": -0.998329997062683,
-                "gsv_url": "https://www.google.com/maps/@@40.883941650390625,-74.02438354492188,3a,75y,140.74000549316406h,71.84035682679t/data=!3m4!1e1!3m2!1sDsCvWstZYz9JL81V9NloOQ!2e0"
+                "image_url": "https://www.google.com/maps/@@40.883941650390625,-74.02438354492188,3a,75y,140.74000549316406h,71.84035682679t/data=!3m4!1e1!3m2!1sDsCvWstZYz9JL81V9NloOQ!2e0"
             }
         },
         ...
@@ -445,19 +445,19 @@
 
                         <!-- Panorama Information -->
                     <tr>
-                        <td><code>properties.gsv_panorama_id</code></td>
+                        <td><code>properties.pano_id</code></td>
                         <td><code>string</code></td>
-                        <td>Google Street View panorama identifier where the label was placed.</td>
+                        <td>Panorama identifier where the label was placed.</td>
                     </tr>
                     <tr>
                         <td><code>properties.image_capture_date</code></td>
                         <td><code>string</code></td>
-                        <td>Date when the Street View imagery was captured, typically in "YYYY-MM" format (e.g., "2012-08").</td>
+                        <td>Date when the imagery was captured, typically in "YYYY-MM" format (e.g., "2012-08").</td>
                     </tr>
                     <tr>
-                        <td><code>properties.gsv_url</code></td>
+                        <td><code>properties.image_url</code></td>
                         <td><code>string</code></td>
-                        <td>URL to the Google Street View panorama where this label was placed, including parameters to position the view at the correct heading and pitch.</td>
+                        <td>URL to the panorama where this label was placed, including parameters to position the view at the correct heading and pitch.</td>
                     </tr>
 
                         <!-- Camera and View Position Information -->
@@ -474,17 +474,17 @@
                     <tr>
                         <td><code>properties.zoom</code></td>
                         <td><code>integer</code></td>
-                        <td>Zoom level of the Street View panorama when the label was placed.</td>
+                        <td>Zoom level of the panorama when the label was placed.</td>
                     </tr>
                     <tr>
                         <td><code>properties.camera_heading</code></td>
                         <td><code>number</code></td>
-                        <td>Base heading of the Street View camera (in degrees), before user rotation.</td>
+                        <td>Base heading of the camera (in degrees), before user rotation.</td>
                     </tr>
                     <tr>
                         <td><code>properties.camera_pitch</code></td>
                         <td><code>number</code></td>
-                        <td>Base pitch of the Street View camera (in degrees), before user adjustment.</td>
+                        <td>Base pitch of the camera (in degrees), before user adjustment.</td>
                     </tr>
 
                         <!-- Canvas and Panorama Coordinates -->
@@ -538,7 +538,7 @@
             headers, corresponding to the fields in the GeoJSON properties object, plus <code>latitude</code> and
             <code>longitude</code> columns derived from the geometry. CRS is WGS84 (EPSG:4326).
         </p>
-        <pre><code class="language-csv">label_id,user_id,gsv_panorama_id,label_type,severity,tags,description,...,disagree_count,unsure_count,latitude,longitude
+        <pre><code class="language-csv">label_id,user_id,pano_id,label_type,severity,tags,description,...,disagree_count,unsure_count,latitude,longitude
 115,18b26a38-...,YQScv...,CurbRamp,2,[missing tactile warning],,...,1,0,40.715,-74.005
 116,...,...,Obstacle,4,[construction],"Temporary fence",...,3,0,40.7151,-74.0051
 ...</code></pre>

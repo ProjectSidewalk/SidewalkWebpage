@@ -2,6 +2,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
+@import models.pano.PanoSource
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, task: AuditTask
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
@@ -50,9 +51,16 @@
             </div>
         </div>
     </div>
+    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
+    @if(commonData.imagerySource == PanoSource.Infra3d) {
+        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("javascripts/lib/infra3dapi-1.7.0.js")'></script>
+    } else if (commonData.imagerySource == PanoSource.Mapillary) {
+        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+    }
     <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
     <script src='@assets.path("javascripts/common/UtilitiesSidewalk.js")'></script>
-    <script src='@assets.path("javascripts/common/Panomarker.js")'></script>
     <script src='@assets.path("javascripts/lib/bootstrap-3.3.5/js/bootstrap-slider.min.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-3.16.0.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
@@ -66,7 +74,14 @@
     <script>
         // Load the translations, then initialize the AdminTask module.
         window.appManager.ready(function () {
-            window.admin = AdminTask({ auditTaskId: @task.auditTaskId, mapboxApiKey: '@commonData.mapboxApiKey' });
+            const imagerySrc = "@commonData.imagerySource.toString";
+            const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+            window.admin = AdminTask({
+                auditTaskId: @task.auditTaskId,
+                mapboxApiKey: '@commonData.mapboxApiKey',
+                viewerType: viewerType,
+                accessToken: "@commonData.imageryAccessToken",
+            });
         });
     </script>
 }

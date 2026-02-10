@@ -3,7 +3,7 @@
  * @constructor
  */
 function RightMenu(menuUI) {
-    let self = this;
+    const self = this;
     const $disagreeReasonButtons = menuUI.disagreeReasonOptions.children('.validation-reason-button');
     const $unsureReasonButtons = menuUI.unsureReasonOptions.children('.validation-reason-button');
     let $tagSelect;
@@ -16,24 +16,24 @@ function RightMenu(menuUI) {
             const action = e.isTrigger ? 'ValidationKeyboardShortcut_Agree' : 'ValidationButtonClick_Agree';
             svv.tracker.push(action);
             _setYesView();
-            svv.panorama.getCurrentLabel().setProperty('validationResult', 1);
+            svv.labelContainer.getCurrentLabel().setProperty('validationResult', 1);
         });
         menuUI.noButton.click(function(e) {
             const action = e.isTrigger ? 'ValidationKeyboardShortcut_Disagree' : 'ValidationButtonClick_Disagree';
             svv.tracker.push(action);
             _setNoView();
-            svv.panorama.getCurrentLabel().setProperty('validationResult', 2);
+            svv.labelContainer.getCurrentLabel().setProperty('validationResult', 2);
         });
         menuUI.unsureButton.click(function(e) {
             const action = e.isTrigger ? 'ValidationKeyboardShortcut_Unsure' : 'ValidationButtonClick_Unsure';
             svv.tracker.push(action);
             _setUnsureView();
-            svv.panorama.getCurrentLabel().setProperty('validationResult', 3);
+            svv.labelContainer.getCurrentLabel().setProperty('validationResult', 3);
         });
 
         // Add onclick for each severity button.
         menuUI.severityMenu.find('.severity-level').click(function(e) {
-            let currLabel = svv.panorama.getCurrentLabel();
+            let currLabel = svv.labelContainer.getCurrentLabel();
             const oldSeverity = currLabel.getProperty('newSeverity');
             const newSeverity = $(e.target).closest('.severity-level').data('severity');
             const labelType = currLabel.getAuditProperty('labelType')
@@ -112,7 +112,7 @@ function RightMenu(menuUI) {
         menuUI.disagreeReasonTextBox.on('input', function() {
             if (menuUI.disagreeReasonTextBox.val() === '') {
                 menuUI.disagreeReasonTextBox.removeClass('chosen');
-                svv.panorama.getCurrentLabel().setProperty('disagreeOption', undefined);
+                svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
             } else {
                 _setDisagreeReason('other');
             }
@@ -120,7 +120,7 @@ function RightMenu(menuUI) {
         menuUI.unsureReasonTextBox.on('input', function() {
             if (menuUI.unsureReasonTextBox.val() === '') {
                 menuUI.unsureReasonTextBox.removeClass('chosen');
-                svv.panorama.getCurrentLabel().setProperty('unsureOption', undefined);
+                svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
             } else {
                 _setUnsureReason('other');
             }
@@ -129,7 +129,7 @@ function RightMenu(menuUI) {
         // Add onclick for submit button.
         menuUI.submitButton.click(function(e) {
             if (!e.target.disabled) {
-                _validateLabel(svv.validationOptions[svv.panorama.getCurrentLabel().getProperty('validationResult')], e.isTrigger);
+                _validateLabel(svv.validationOptions[svv.labelContainer.getCurrentLabel().getProperty('validationResult')], e.isTrigger);
             }
         });
     }
@@ -222,7 +222,7 @@ function RightMenu(menuUI) {
         menuUI.unsureButton.removeClass('chosen');
         _renderTags();
         menuUI.tagsMenu.css('display', 'block');
-        let currLabelType = svv.panorama.getCurrentLabel().getAuditProperty('labelType');
+        let currLabelType = svv.labelContainer.getCurrentLabel().getAuditProperty('labelType');
 
         // Pedestrian Signal and No Sidewalk label types don't have severity ratings.
         if (!['Signal', 'NoSidewalk'].includes(currLabelType)) {
@@ -279,7 +279,7 @@ function RightMenu(menuUI) {
 
     // TAG SECTION.
     function _addTag(tagName, fromAiSuggestion = false) {
-        let currLabel = svv.panorama.getCurrentLabel();
+        let currLabel = svv.labelContainer.getCurrentLabel();
 
         // If the tag is mutually exclusive with another tag that's been added, remove the other tag.
         const allTags = svv.tagsByLabelType[currLabel.getAuditProperty('labelType')];
@@ -310,7 +310,7 @@ function RightMenu(menuUI) {
         _removeTag(tagToRemove, label, false);
     }
     function _renderTags() {
-        let label = svv.panorama.getCurrentLabel();
+        let label = svv.labelContainer.getCurrentLabel();
         let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
         const allTagOptionsPermanent = structuredClone(allTagOptions);
 
@@ -412,9 +412,9 @@ function RightMenu(menuUI) {
 
     // SEVERITY SECTION.
     function _renderSeverity() {
-        let label = svv.panorama.getCurrentLabel();
+        let label = svv.labelContainer.getCurrentLabel();
         const severity = label.getProperty('newSeverity');
-        const labelType = svv.panorama.getCurrentLabel().getAuditProperty('labelType');
+        const labelType = svv.labelContainer.getCurrentLabel().getAuditProperty('labelType');
 
         // Add example image tooltips to the severity buttons after removing old ones (in case label type changed).
         for (const severityButton of menuUI.severityMenu.find('.severity-level')) {
@@ -438,11 +438,11 @@ function RightMenu(menuUI) {
         $disagreeReasonButtons.removeClass('chosen');
         if (id === 'other') {
             menuUI.disagreeReasonTextBox.addClass('chosen');
-            svv.panorama.getCurrentLabel().setProperty('disagreeOption', 'other');
+            svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', 'other');
         } else {
             menuUI.disagreeReasonTextBox.removeClass('chosen');
             menuUI.disagreeReasonTextBox.val('');
-            svv.panorama.getCurrentLabel().setProperty('disagreeOption', id);
+            svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', id);
             menuUI.disagreeReasonOptions.find(`#${id}`).addClass('chosen');
         }
     }
@@ -452,17 +452,17 @@ function RightMenu(menuUI) {
         $unsureReasonButtons.removeClass('chosen');
         if (id === 'other') {
             menuUI.unsureReasonTextBox.addClass('chosen');
-            svv.panorama.getCurrentLabel().setProperty('unsureOption', 'other');
+            svv.labelContainer.getCurrentLabel().setProperty('unsureOption', 'other');
         } else {
             menuUI.unsureReasonTextBox.removeClass('chosen');
             menuUI.unsureReasonTextBox.val('');
-            svv.panorama.getCurrentLabel().setProperty('unsureOption', id);
+            svv.labelContainer.getCurrentLabel().setProperty('unsureOption', id);
             menuUI.unsureReasonOptions.find(`#${id}`).addClass('chosen');
         }
     }
 
     function saveValidationState() {
-        let currLabel = svv.panorama.getCurrentLabel();
+        let currLabel = svv.labelContainer.getCurrentLabel();
         currLabel.setProperty('agreeComment', menuUI.optionalCommentTextBox.val());
         currLabel.setProperty('disagreeReasonTextBox', menuUI.disagreeReasonTextBox.val());
         currLabel.setProperty('unsureReasonTextBox', menuUI.unsureReasonTextBox.val());
@@ -470,14 +470,14 @@ function RightMenu(menuUI) {
 
     /**
      * Validates a single label from a button click.
-     * @param action           {String} Validation action - must be one of Agree, Disagree, or Unsure.
-     * @param keyboardShortcut {boolean} Whether or not the validation was triggered by a keyboard shortcut.
+     * @param {string} action Validation action - must be one of Agree, Disagree, or Unsure.
+     * @param {boolean} keyboardShortcut Whether or not the validation was triggered by a keyboard shortcut.
      */
     function _validateLabel(action, keyboardShortcut) {
         const actionStr = keyboardShortcut ? 'ValidationKeyboardShortcut_Submit_Validation=' : 'Click=Submit_Validation=';
         let timestamp = new Date();
         svv.tracker.push(actionStr + action);
-        let currLabel = svv.panorama.getCurrentLabel();
+        let currLabel = svv.labelContainer.getCurrentLabel();
 
         // Resets CSS elements for all buttons to their default states.
         menuUI.yesButton.removeClass('validate');
@@ -513,8 +513,8 @@ function RightMenu(menuUI) {
         currLabel.setProperty('comment', comment);
 
         // If enough time has passed between validations, log validations.
-        if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
-            svv.panoramaContainer.validateLabel(action, timestamp, comment);
+        if (timestamp - svv.labelContainer.getProperty('validationTimestamp') > 800) {
+            svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
         }
     }
 

@@ -20,6 +20,8 @@
     "signal": "Fussgänger&shy;lichtsignal",
     "other": "Andere",
     "surface-problems": "Oberflächen&shy;probleme",
+    "sign-up": "Registrieren",
+    "sign-in": "Anmelden",
     "complete": "vollständig",
     "map": {
         "distance-left": "Nur {{n}} Kilometer übrig!",
@@ -37,9 +39,8 @@
     },
     "errors": {
         "title": "Ups, unser Fehler! Für diese Beschriftung sind keine Bilder mehr verfügbar.",
-        "explanation": "Wir verwenden die “Google Maps API”, um die Bilder der Gehwege anzuzeigen. Manchmal entfernt Google diese Bilder und wir können nicht mehr darauf zugreifen. Wir bitten um Entschuldigung!",
-        "google-connect-error": "Wir haben Probleme mit dem Verbinden von “Google Street View”. Versuchen Sie es später erneut!",
-        "explore-street": "Strasse nochmals erkunden</a>, um die neuen Aufnahmen von Google zu verwenden!"
+        "explanation": "Entweder haben wir Probleme beim Zugriff auf die Webseite, die dieses Bild bereitstellt, oder das Bild wurde entfernt.",
+        "explore-street": "Erkunden Sie die Straße</a>  erneut, um neuere Bilder zu verwenden!"
     },
     "severity": "Schweregrad",
     "severity-example-tooltip-1": "Beispiel mit geringem Schweregrad",
@@ -109,10 +110,10 @@
         "very long crossing": "sehr lange Überquerung",
         "level with sidewalk": "auf der selben Höhe wie Trottoir",
         "button waist height": "Anforderungsgerät auf Hüfthöhe",
-        "APS": "Taktil-identische Tasten",
+        "APS": "taktil-hörbare Knöpfe",
         "one button": "ein Knopf",
         "two buttons": "zwei Knöpfe",
-        "hard to reach buttons": "schwer zu erreichen Knöpfe",
+        "hard to reach buttons": "schwer erreichbare Knöpfe",
         "missing crosswalk": "fehlender Markierter Fussgängerstreifen",
         "no bus stop access": "kein Zugang zur Haltestelle",
         "pedestrian lane marking": "Längsstreifen / Gehwegmarkierung",
@@ -135,7 +136,8 @@
         "cart": "Warenkorb",
         "drainage": "Drainage",
         "electrical box": "Schaltkasten",
-        "too dirty/cluttered": "zu schmutzig/unordentlich"
+        "too dirty/cluttered": "zu schmutzig/unordentlich",
+        "yellow box, accessibility features not visible": "gelbe Box, Funktionen nicht sichtbar"
     },
     "gsv-info": {
         "details-title": "Details",

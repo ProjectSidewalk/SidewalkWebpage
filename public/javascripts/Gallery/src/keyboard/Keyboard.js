@@ -6,7 +6,8 @@
 function Keyboard(expandedView) {
     // Initialization function.
     function _init() {
-        // Add the keyboard event listeners. We need { capture: true } for keydown to disable StreetView's shortcuts.
+        // Add the keyboard event listeners. We need { capture: true } for keydown to disable pano's shortcuts.
+        // TODO is that true? Or are we successfully disabling everything in configuration?
         window.addEventListener('keydown', _documentKeyDown, { capture: true });
         window.addEventListener('keyup', _documentKeyUp);
     }
@@ -56,9 +57,9 @@ function Keyboard(expandedView) {
                 case "Z":
                     if (expandedView.open) {
                         if (e.shiftKey) {
-                            expandedView.zoomOut();
+                            expandedView.panoManager.zoomOut();
                         } else {
-                            expandedView.zoomIn();
+                            expandedView.panoManager.zoomIn();
                         }
                     }
                     break;

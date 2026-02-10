@@ -1,11 +1,11 @@
 /**
  * Logs information from the Gallery.
- * 
+ *
  * @returns {Tracker}
  * @constructor
  */
 function Tracker() {
-    let self = this;
+    const self = this;
     let actions = [];
 
     function _init() {
@@ -34,8 +34,8 @@ function Tracker() {
 
     /**
      * Creates action to be added to action buffer.
-     * 
-     * @param action Action name.
+     *
+     * @param {string} action Action name.
      * @param suppData Optional supplementary data about action.
      * @param notes Optional notes about action.
      * @private
@@ -67,7 +67,7 @@ function Tracker() {
 
     /**
      * Convert notes object to string.
-     * 
+     *
      * @param {*} notes Notes object.
      */
     function _notesToString(notes) {
@@ -86,10 +86,10 @@ function Tracker() {
 
     /**
      * Pushes information to action list (to be submitted to the database).
-     * 
-     * @param action (required) Action name.
-     * @param suppData (optional) Supplementary data to be logged about action.
-     * @param notes (optional) Notes to be logged into the notes field in database.
+     *
+     * @param {string} action Action name.
+     * @param [suppData] Supplementary data to be logged about action.
+     * @param [notes] Notes to be logged into the notes field in database.
      */
     function push(action, suppData, notes) {
         let item = _createAction(action, suppData, notes);

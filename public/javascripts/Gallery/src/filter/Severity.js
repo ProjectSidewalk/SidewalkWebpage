@@ -7,7 +7,7 @@
  * @constructor
  */
 function Severity (params, active) {
-    let self = this;
+    const self = this;
 
     // UI element of the severity container and image.
     let severityElement = null;

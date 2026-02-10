@@ -1,6 +1,7 @@
 package models.label
 
 import com.google.inject.ImplementedBy
+import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -15,17 +16,9 @@ case class LabelHistory(
     tags: Seq[String],
     editedBy: String,
     editTime: OffsetDateTime,
-    source: String,
+    source: UiSource,
     labelValidationId: Option[Int]
-) {
-  require(
-    Seq("Explore", "Validate", "ExpertValidate", "ValidateMobile", "LabelMap", "GalleryImage", "GalleryExpandedImage",
-      "GalleryThumbs", "GalleryExpandedThumbs", "AdminUserDashboard", "AdminLabelSearchTab", "SidewalkAI",
-      "ExternalTagValidationASSETS2024")
-      .contains(source),
-    "Invalid source for Label History table."
-  )
-}
+)
 
 class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](tag, "label_history") {
   def labelHistoryId: Rep[Int]            = column[Int]("label_history_id", O.PrimaryKey, O.AutoInc)
@@ -34,14 +27,14 @@ class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](ta
   def tags: Rep[List[String]]             = column[List[String]]("tags", O.Default(List()))
   def editedBy: Rep[String]               = column[String]("edited_by")
   def editTime: Rep[OffsetDateTime]       = column[OffsetDateTime]("edit_time")
-  def source: Rep[String]                 = column[String]("source")
+  def source: Rep[UiSource]               = column[UiSource]("source")
   def labelValidationId: Rep[Option[Int]] = column[Option[Int]]("label_validation_id")
 
   // Need to do all this nonsense just to convert tags from a List to a Seq, since Slick doesn't have support for Seq.
   def * = (
     labelHistoryId, labelId, severity, tags, editedBy, editTime, source, labelValidationId
   ) <> (
-    { t: (Int, Int, Option[Int], List[String], String, OffsetDateTime, String, Option[Int]) =>
+    { t: (Int, Int, Option[Int], List[String], String, OffsetDateTime, UiSource, Option[Int]) =>
       LabelHistory(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8)
     },
     { lh: LabelHistory =>

@@ -2,9 +2,9 @@
  * Adds streets to the map and returns a promise.
  *
  * @param map Map on which the streets are rendered.
- * @param {Object} map The Mapbox map object.
- * @param {Object} streetData - GeoJSON object containing streets to draw on the map.
- * @param {Object} params - Properties that can change the process of choropleth creation.
+ * @param {object} map The Mapbox map object.
+ * @param {object} streetData - GeoJSON object containing streets to draw on the map.
+ * @param {object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
  * @param {boolean} [params.differentiateUnauditedStreets=false] - Whether to color unaudited streets differently.
