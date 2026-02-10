@@ -78,7 +78,6 @@ class PanoManager {
         }
 
         await this.#panoSuccessCallback(svl.panoViewer.currPanoData);
-        svl.panoViewer.addListener('pov_changed', this.#handlerPovChange);
 
         // Adds event listeners to the navigation arrows.
         svl.ui.streetview.navArrows.on('click', (event) => {
@@ -149,9 +148,8 @@ class PanoManager {
             cameraPitch: panoData.getProperty('cameraPitch'),
         });
 
-        if ('compass' in svl) {
-            svl.compass.update();
-        }
+        // Update various views since the POV has changed.
+        this.#handlePovChange();
 
         return Promise.resolve(panoData);
     };
@@ -263,16 +261,17 @@ class PanoManager {
     }
 
     /**
-     * Callback for pov update.
+     * Updates various views when the POV has changed.
      * @private
      */
-    #handlerPovChange = () => {
+    #handlePovChange = () => {
+        const heading = svl.panoViewer.getPov().heading;
         if (svl.canvas) this.updateCanvas();
         if (svl.compass) svl.compass.update();
         if (svl.observedArea) svl.observedArea.update();
+        if (svl.peg) svl.peg.setHeading(heading);
 
         const arrowGroup = svl.ui.streetview.navArrows[0];
-        const heading = svl.panoViewer.getPov().heading;
         arrowGroup.setAttribute('transform', `rotate(${-heading})`);
 
         svl.tracker.push('POV_Changed');
@@ -386,7 +385,7 @@ class PanoManager {
             const pitchDelta = pov.pitch - currentPov.pitch;
             const pitchIncrement = pitchDelta * (timeSegment / durationMs);
 
-            interval = window.setInterval(function () {
+            interval = window.setInterval(() => {
                 const headingDelta = (pov.heading - currentPov.heading + 360) % 360;
                 if (headingDelta > 1 && headingDelta < 359) {
                     // Update heading angle and pitch angle.
@@ -394,7 +393,7 @@ class PanoManager {
                     currentPov.pitch += pitchIncrement;
                     currentPov.heading = (currentPov.heading + 360) % 360;
                     svl.panoViewer.setPov(currentPov);
-                    svl.peg.setHeading(currentPov.heading);
+                    this.#handlePovChange();
                 } else {
                     // Set the pov to adjust zoom level, then clear the interval. Invoke a callback if there is one.
                     if (!pov.zoom) {
@@ -402,7 +401,7 @@ class PanoManager {
                     }
 
                     svl.panoViewer.setPov(pov);
-                    svl.peg.setHeading(currentPov.heading);
+                    this.#handlePovChange();
                     window.clearInterval(interval);
                     if (callback) {
                         callback();
@@ -411,7 +410,7 @@ class PanoManager {
             }, timeSegment);
         } else {
             svl.panoViewer.setPov(pov);
-            svl.peg.setHeading(pov.heading);
+            this.#handlePovChange();
         }
     }
 
