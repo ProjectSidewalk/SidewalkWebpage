@@ -72,22 +72,16 @@ function RibbonMenu(tracker, uiRibbonMenu) {
 
     /**
      * This is a callback method that is invoked with a ribbon menu button click
-     * @param mode
+     * @param {string} mode Either a label type name or 'Walk'
      */
     function modeSwitch(mode) {
-        var labelType = (typeof mode === 'string') ? mode : $(this).attr("val"); // Do I need this???
-        tracker.push('ModeSwitch_' + labelType);
+        tracker.push('ModeSwitch_' + mode);
 
-        if (status.disableModeSwitch === false || status.disableMode[labelType] === false) {
-            // Used to trigger onboarding states
-            $(document).trigger('ModeSwitch_' + labelType);
+        if (status.disableModeSwitch === false || status.disableMode[mode] === false) {
+            // Used to trigger onboarding states.
+            $(document).trigger('ModeSwitch_' + mode);
 
-            var labelColors, borderColor;
-
-            labelColors = util.misc.getLabelColors();
-            borderColor = labelColors[labelType].fillStyle;
-
-            if (labelType === 'Walk') {
+            if (mode === 'Walk') {
                 // Switch to walking mode.
                 setStatus('mode', 'Walk');
                 setStatus('selectedLabelType', undefined);
@@ -96,40 +90,37 @@ function RibbonMenu(tracker, uiRibbonMenu) {
                 }
             } else {
                 // Switch to labeling mode.
-                setStatus('mode', labelType);
-                setStatus('selectedLabelType', labelType);
-                if (svl.navigationService) {
-                    svl.navigationService.switchToLabelingMode();
-                }
+                setStatus('mode', mode);
+                setStatus('selectedLabelType', mode);
+                if (svl.navigationService) svl.navigationService.switchToLabelingMode();
 
                 // Change cursor before mouse is moved.
-                if (svl.ui.canvas.drawingLayer) {
-                    svl.ui.canvas.drawingLayer.triggerHandler('mousemove');
-                }
+                if (svl.ui.canvas.drawingLayer) svl.ui.canvas.drawingLayer.triggerHandler('mousemove');
 
                 // Loads the audio for when a label is placed. Safari requires audios to be loaded each time before being played.
                 // Since this takes time, it is done early (when user selects label type) so that it is ready for when the label is placed.
-                if ('audioEffect' in svl) {
-                    svl.audioEffect.load('drip');
-                }
+                if ('audioEffect' in svl) svl.audioEffect.load('drip');
             }
 
             if (uiRibbonMenu) {
-                setLabelTypeButtonBorderColors(labelType);
+                setLabelTypeButtonBorderColors(mode);
 
-                var connectorWidth = parseInt(uiRibbonMenu.connector.css('border-left-width'));
-                var panoBorderWidth = parseInt(uiRibbonMenu.streetViewHolder.css('border-left-width'));
-                var selectedType = mode === 'Occlusion' ? 'Other' : mode;
-                var currLabelType;
+                const connectorWidth = parseInt(uiRibbonMenu.connector.css('border-left-width'));
+                const panoBorderWidth = parseInt(uiRibbonMenu.streetViewHolder.css('border-left-width'));
+                const selectedType = mode === 'Occlusion' ? 'Other' : mode;
+                let currLabelType;
                 $.each(uiRibbonMenu.buttons, function (i, v) {
                     currLabelType = $(v).attr('val');
                     if (currLabelType === selectedType) {
-                        var buttonLeft = $(this).position().left;
-                        var buttonWidth = $(this).width();
-                        var connectorLeft = buttonLeft + buttonWidth / 2 - panoBorderWidth - connectorWidth / 2;
+                        const buttonLeft = $(this).position().left;
+                        const buttonWidth = $(this).width();
+                        const connectorLeft = buttonLeft + buttonWidth / 2 - panoBorderWidth - connectorWidth / 2;
                         uiRibbonMenu.connector.css("left", connectorLeft);
                     }
                 });
+
+                const labelColors = util.misc.getLabelColors();
+                const borderColor = labelColors[mode].fillStyle;
                 uiRibbonMenu.connector.css("border-left-color", borderColor);
                 uiRibbonMenu.streetViewHolder.css({
                     "border-color": borderColor,
@@ -142,7 +133,7 @@ function RibbonMenu(tracker, uiRibbonMenu) {
     // TODO
     function handleSubcategoryClick(e) {
         e.stopPropagation();
-        var subcategory = $(this).attr("val");
+        const subcategory = $(this).attr("val");
         if (status.disableMode[subcategory] === false) {
             tracker.push('Click_Subcategory_' + subcategory);
             svl.keyboardShortcutAlert.modeSwitchButtonClicked(subcategory);
@@ -325,14 +316,14 @@ function RibbonMenu(tracker, uiRibbonMenu) {
     }
 
     /**
-     * This method enables a specific label type
-     * @param labelType
-     * @param subLabelType
+     * This method enables a specific label type.
+     * @param {string} labelType
+     * @param {string} [subLabelType]
      */
     function enableMode(labelType, subLabelType) {
         if (!status.lockDisableMode) {
-            var button = uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0),
-                dropdown;
+            const button = uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0);
+            let dropdown;
 
             // So that sub category Other is not enabled
             if (labelType === "Other") {
@@ -386,43 +377,45 @@ function RibbonMenu(tracker, uiRibbonMenu) {
         return key in properties ? properties[key] : null;
     }
 
+    /**
+     * Sets the given value in the status object.
+     *
+     * @param {string} name
+     * @param {*} value
+     * @param {string} [subname]
+     * @returns {RibbonMenu|boolean}
+     */
     function setStatus(name, value, subname) {
-        try {
-            if (name in status) {
-                if (name === 'disableModeSwitch') {
-                    if (typeof value === 'boolean') {
-                        if (value) {
-                            disableModeSwitch();
-                        } else {
-                            enableModeSwitch();
-                        }
-                        return this;
+        if (name in status) {
+            if (name === 'disableModeSwitch') {
+                if (typeof value === 'boolean') {
+                    if (value) {
+                        disableModeSwitch();
                     } else {
-                        return false
+                        enableModeSwitch();
                     }
+                    return self;
                 } else {
-                    if (subname) {
-                        status[name][subname] = value;
-                    } else {
-                        status[name] = value;
-                    }
-                    return this;
+                    return false
                 }
             } else {
-                var errMsg = '"' + name + '" is not a modifiable status.';
-                throw errMsg;
+                if (subname) {
+                    status[name][subname] = value;
+                } else {
+                    status[name] = value;
+                }
+                return self;
             }
-        } catch (e) {
-            console.error(self.className, e);
+        } else {
+            console.error(self.className, `"${name}" is not a modifiable status.`);
             return false;
         }
-
     }
 
     function startBlinking(labelType, subLabelType) {
-        var highlighted = false;
-        var button = uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0).children[0];
-        var dropdown;
+        let highlighted = false;
+        const button = uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0).children[0];
+        let dropdown;
 
         if (subLabelType) {
             dropdown = uiRibbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);

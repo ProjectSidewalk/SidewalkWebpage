@@ -257,7 +257,6 @@ function Canvas(ribbon) {
             $(this).css('cursor', '');
             $(this).css('cursor', `url(${iconImagePaths[labelType].iconImagePath}) 19 19, auto`);
         }
-        clear();
     }
 
     /**
