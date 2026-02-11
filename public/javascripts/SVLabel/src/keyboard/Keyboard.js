@@ -61,8 +61,7 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
      * @private
      */
     this._documentKeyDown = function (e) {
-        // Prevent Google's default panning and moving using arrow keys and WASD.
-        // https://stackoverflow.com/a/66069717/9409728
+        // Prevent pano viewer's default panning and moving using arrow keys and WASD.
         if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(e.code) > -1) {
             e.stopPropagation();
         }

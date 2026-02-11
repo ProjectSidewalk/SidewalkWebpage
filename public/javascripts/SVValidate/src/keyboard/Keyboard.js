@@ -1,10 +1,8 @@
 function Keyboard(menuUI) {
     const self = this;
-    let lastShiftKeyDownTimestamp = undefined;
     let status = {
         disableKeyboard: false,
         keyPressed: false,
-        shiftDown: false,
         addingComment: false
     };
 
@@ -15,7 +13,7 @@ function Keyboard(menuUI) {
             e.preventDefault();
             e.stopImmediatePropagation();
             this.blur();
-            svv.tracker.push("KeyboardShortcut_UnfocusComment", { keyCode: e.keyCode });
+            svv.tracker.push('KeyboardShortcut_UnfocusComment', { keyCode: e.keyCode });
         }
     }
 
@@ -58,9 +56,10 @@ function Keyboard(menuUI) {
 
     /**
      * Validate a single label using keyboard shortcuts.
-     * @param {jQuery} button    jQuery element for the button clicked.
+     *
+     * @param {jQuery} button jQuery element for the button clicked.
      * @param {string} action Validation action. Must be either agree, disagree, or unsure.
-     * @param {string} comment
+     * @param {string} comment The user's comment associated with the label.
      */
     function validateLabel(button, action, comment) {
         // Want at least 800ms in-between to allow Panorama to load. (Value determined experimentally).
@@ -68,8 +67,8 @@ function Keyboard(menuUI) {
         // TODO changing the pano through PanoViewer now returns a Promise that resolves when it's finished loading.
         let timestamp = new Date();
         if (timestamp - svv.labelContainer.getProperty('validationTimestamp') > 800) {
-            button.toggleClass("validate");
-            svv.tracker.push("ValidationKeyboardShortcut_" + action);
+            button.toggleClass('validate');
+            svv.tracker.push('ValidationKeyboardShortcut_' + action);
             svv.labelContainer.getCurrentLabel().validate(action, comment);
             svv.labelContainer.setProperty('validationTimestamp', timestamp);
             status.keyPressed = true;
@@ -80,9 +79,9 @@ function Keyboard(menuUI) {
      * Removes the visual effect of the buttons being pressed down.
      */
     function removeAllKeyPressVisualEffect () {
-        menuUI.yesButton.removeClass("validate");
-        menuUI.noButton.removeClass("validate");
-        menuUI.unsureButton.removeClass("validate");
+        menuUI.yesButton.removeClass('validate');
+        menuUI.noButton.removeClass('validate');
+        menuUI.unsureButton.removeClass('validate');
         status.keyPressed = false;
     }
 
@@ -91,9 +90,9 @@ function Keyboard(menuUI) {
             svv.ui.expertValidate.yesButton.click();
         } else {
             let comment = menuUI.comment.val();
-            validateLabel(menuUI.yesButton, "Agree", comment);
-            menuUI.noButton.removeClass("validate");
-            menuUI.unsureButton.removeClass("validate");
+            validateLabel(menuUI.yesButton, 'Agree', comment);
+            menuUI.noButton.removeClass('validate');
+            menuUI.unsureButton.removeClass('validate');
         }
     }
 
@@ -102,9 +101,9 @@ function Keyboard(menuUI) {
             svv.ui.expertValidate.noButton.click();
         } else {
             let comment = menuUI.comment.val();
-            validateLabel(menuUI.noButton, "Disagree", comment);
-            menuUI.yesButton.removeClass("validate");
-            menuUI.unsureButton.removeClass("validate");
+            validateLabel(menuUI.noButton, 'Disagree', comment);
+            menuUI.yesButton.removeClass('validate');
+            menuUI.unsureButton.removeClass('validate');
         }
     }
 
@@ -147,103 +146,78 @@ function Keyboard(menuUI) {
     }
 
     this._documentKeyDown = function (e) {
+        // Prevent pano viewer's default panning and moving using arrow keys and WASD.
+        if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(e.code) > -1) {
+            e.stopPropagation();
+        }
+
         // When the user is typing in the validation comment text field, temporarily disable keyboard
         // shortcuts that can be used to validate a label.
         checkIfTextAreaSelected();
         if (!status.disableKeyboard && !status.keyPressed && !status.addingComment) {
-            status.shiftDown = e.shiftKey;
             svv.labelVisibilityControl.hideTagsAndDeleteButton();
-            switch (e.keyCode) {
-                // shift key
-                case 16:
-                    // Store the timestamp here so that we can check if the z-up event is
-                    // within the buffer range
-                    lastShiftKeyDownTimestamp = e.timeStamp;
-                    break;
-                // "y" key
-                case 89:
+            switch (e.code) {
+                // Validate yes/agree.
+                case 'KeyY':
+                case 'KeyA':
                     _agreeShortcutPressed();
                     break;
-                // "a" key (keeping old "agree" shortcut for backwards compatibility)
-                case 65:
-                    _agreeShortcutPressed();
-                    break;
-                // "n" key
-                case 78:
+                // Validate no/disagree.
+                case 'KeyN':
+                case 'KeyD':
                     _disagreeShortcutPressed();
                     break;
-                // "d" key (keeping old "disagree" shortcut for backwards compatibility)
-                case 68:
-                    _disagreeShortcutPressed();
-                    break;
-                // "h" key
-                case 72:
-                    if (svv.labelVisibilityControl.isVisible()) {
-                        svv.labelVisibilityControl.hideLabel();
-                        svv.tracker.push("KeyboardShortcut_HideLabel", {
-                            keyCode: e.keyCode
-                        });
-                    } else {
-                        svv.labelVisibilityControl.unhideLabel();
-                        svv.tracker.push("KeyboardShortcut_UnhideLabel", {
-                            keyCode: e.keyCode
-                        });
-                    }
-                    break;
-                // "u" key
-                case 85:
+                // Validate unsure.
+                case 'KeyU':
                     if (svv.expertValidate) {
                         svv.ui.expertValidate.unsureButton.click();
                     } else {
                         let comment = menuUI.comment.val();
-                        validateLabel(menuUI.unsureButton, "Unsure", comment);
-                        menuUI.yesButton.removeClass("validate");
-                        menuUI.noButton.removeClass("validate");
+                        validateLabel(menuUI.unsureButton, 'Unsure', comment);
+                        menuUI.yesButton.removeClass('validate');
+                        menuUI.noButton.removeClass('validate');
                     }
                     break;
-                // "s" key
-                case 83:
+                // Hide/Unhide the label.
+                case 'KeyH':
+                    if (svv.labelVisibilityControl.isVisible()) {
+                        svv.labelVisibilityControl.hideLabel();
+                        svv.tracker.push('KeyboardShortcut_HideLabel', { keyCode: e.keyCode });
+                    } else {
+                        svv.labelVisibilityControl.unhideLabel();
+                        svv.tracker.push('KeyboardShortcut_UnhideLabel', { keyCode: e.keyCode });
+                    }
+                    break;
+                // Submit the validation.
+                case 'KeyS':
                     if (svv.expertValidate) {
                         svv.ui.expertValidate.submitButton.click();
                     }
                     break;
-                // "z" key
-                case 90:
-                    // Zoom out when shift + z keys are pressed.
-                    if (status.shiftDown || (e.timeStamp - lastShiftKeyDownTimestamp) < 100) {
+                // Zoom in on 'Z', zoom out on 'Shift+Z'.
+                case 'KeyZ':
+                    if (e.shiftKey) {
                         // Zoom out
                         svv.zoomControl.zoomOut();
-                        svv.tracker.push("KeyboardShortcut_ZoomOut", {
-                            keyCode: e.keyCode
-                        });
-                    // Zoom in when just the z key is pressed.
+                        svv.tracker.push('KeyboardShortcut_ZoomOut', { keyCode: e.keyCode });
                     } else {
                         svv.zoomControl.zoomIn();
-                        svv.tracker.push("KeyboardShortcut_ZoomIn", {
-                            keyCode: e.keyCode
-                        });
+                        svv.tracker.push('KeyboardShortcut_ZoomIn', { keyCode: e.keyCode });
                     }
                     break;
-                // Severity shortcuts (1, 2, 3)
-                case 49: // "1"
-                case 97: // Numpad "1"
-                    handleNumberKeyShortcut(1, e);
+                // Severity shortcuts (1, 2, 3).
+                case 'Digit1':
+                case 'Digit2':
+                case 'Digit3':
+                case 'Numpad1':
+                case 'Numpad2':
+                case 'Numpad3':
+                    handleNumberKeyShortcut(parseInt(e.key), e);
                     break;
-
-                case 50: // "2"
-                case 98: // Numpad "2"
-                    handleNumberKeyShortcut(2, e);
-                    break;
-
-                case 51: // "3"
-                case 99: // Numpad "3"
-                    handleNumberKeyShortcut(3, e);
-                    break;
-
-                // "4" or "c" key (Focus comment box)
-                case 52: // "4"
-                case 100: // Numpad "4"
-                case 67: // "c"
+                // '4' or 'c' key (Focus comment box)
+                case 'Digit4':
+                case 'Numpad4':
+                case 'KeyC':
                     handleCommentBoxShortcut(e);
                     break;
             }
@@ -252,38 +226,30 @@ function Keyboard(menuUI) {
 
     this._documentKeyUp = function (e) {
         if (!status.disableKeyboard && !status.addingComment) {
-            switch (e.keyCode) {
-                // "y" key
-                case 89:
-                    menuUI.yesButton.removeClass("validate");
+            switch (e.code) {
+                // Remove the button press CSS class on key up for the validation buttons.
+                // TODO would rather use the Promise that resolves when next label has loaded to remove the class.
+                case 'KeyY':
+                case 'KeyA':
+                    menuUI.yesButton.removeClass('validate');
                     status.keyPressed = false;
                     break;
-                // "a" key
-                case 65:
-                    menuUI.yesButton.removeClass("validate");
+                case 'KeyN':
+                case 'KeyD':
+                    menuUI.noButton.removeClass('validate');
                     status.keyPressed = false;
                     break;
-                // "n" key
-                case 78:
-                    menuUI.noButton.removeClass("validate");
-                    status.keyPressed = false;
-                    break;
-                // "d" key
-                case 68:
-                    menuUI.noButton.removeClass("validate");
-                    status.keyPressed = false;
-                    break;
-                // "u" key
-                case 85:
-                    menuUI.unsureButton.removeClass("validate");
+                case 'KeyU':
+                    menuUI.unsureButton.removeClass('validate');
                     status.keyPressed = false;
                     break;
             }
         }
     };
 
-    $(document).bind('keyup', this._documentKeyUp);
-    $(document).bind('keydown', this._documentKeyDown);
+    // Add the keyboard event listeners. We need { capture: true } for keydown to disable pano's shortcuts.
+    window.addEventListener('keydown', this._documentKeyDown, { capture: true });
+    window.addEventListener('keyup', this._documentKeyUp);
 
     self.disableKeyboard = disableKeyboard;
     self.enableKeyboard = enableKeyboard;
