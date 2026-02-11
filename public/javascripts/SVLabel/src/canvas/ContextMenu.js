@@ -443,7 +443,8 @@ function ContextMenu (uiContextMenu) {
                 const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
                 $(`#severity-${sev}`).tooltip({
                     placement: "top", html: true, delay: {"show": 300, "hide": 10},
-                    title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
+                    title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`,
+                    container: 'body'
                 });
             });
         }

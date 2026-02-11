@@ -135,7 +135,7 @@ function RightMenu(menuUI) {
     }
 
     function resetMenu(label) {
-        tagsAddedByUser = []
+        tagsAddedByUser = [];
         const prevValResult = label.getProperty('validationResult');
         if (prevValResult === undefined) {
             // This is a new label (not returning from an undo), so reset everything.
@@ -271,6 +271,7 @@ function RightMenu(menuUI) {
         $elem.tooltip(({
             placement: 'top',
             html: true,
+            container: 'body',
             delay: { show: 500, hide: 10 },
             title: tooltipHtml
         })).tooltip('show').tooltip('hide');

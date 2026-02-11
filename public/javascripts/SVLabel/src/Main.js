@@ -224,7 +224,8 @@ function Main (params) {
 
         $('[data-toggle="tooltip"]').tooltip({
             delay: { "show": 500, "hide": 100 },
-            html: true
+            html: true,
+            container: 'body'
         });
 
         // Clean up the URL in the address bar.

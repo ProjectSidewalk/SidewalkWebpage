@@ -251,7 +251,8 @@ function Main (param) {
         });
         $('[data-toggle="tooltip"]').tooltip({
             delay: { "show": 500, "hide": 100 },
-            html: true
+            html: true,
+            container: 'body'
         });
 
         const missionStartTutorial = new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
