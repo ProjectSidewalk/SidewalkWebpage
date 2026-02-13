@@ -98,8 +98,14 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
      * Sets the mini map to be transparent for everything except for yellow pin.
      */
     function adjustMap() {
-        map.setOptions({styles: [{ featureType: "all", stylers: [{ visibility: "off" }] }]});
         svl.ui.minimap.holder.css('backgroundImage', `url('${svl.rootDirectory}img/onboarding/TutorialMiniMap.jpg')`);
+        // TODO could use cloud-based maps styling for this potentially as well..? Hiding something in dom as workaround.
+        // map.setOptions({styles: [{ featureType: "all", stylers: [{ visibility: "off" }] }]});
+        setTimeout(() => {
+            // TODO extra hacky to set a timeout because the div wasn't ready even though map theoretically loaded.
+            const mapToHide = document.querySelector("#minimap")?.firstChild?.children[2]?.firstChild?.firstChild;
+            mapToHide.style.display = 'none';
+        }, 1000);
     }
 
     /**
