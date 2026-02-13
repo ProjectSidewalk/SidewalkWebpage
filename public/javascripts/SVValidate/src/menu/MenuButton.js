@@ -3,7 +3,7 @@
  * @constructor
  */
 function MenuButton(menuUI) {
-    let self = this;
+    const self = this;
 
     menuUI.yesButton.click(function() {
         validateLabel("Agree");
@@ -25,7 +25,7 @@ function MenuButton(menuUI) {
 
     /**
      * Validates a single label from a button click.
-     * @param action    {String} Validation action - must be agree, disagree, or unsure.
+     * @param {string} action Validation action; one of agree, disagree, or unsure.
      */
     function validateLabel(action) {
         let timestamp = new Date();
@@ -35,14 +35,14 @@ function MenuButton(menuUI) {
         menuUI.yesButton.removeClass("validate");
         menuUI.noButton.removeClass("validate");
         menuUI.unsureButton.removeClass("validate");
-        
+
         let comment = '';
         let validationTextArea = menuUI.comment[0];
         if (validationTextArea && validationTextArea.value !== '') comment = validationTextArea.value;
 
         // If enough time has passed between validations, log validations.
-        if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
-            svv.panoramaContainer.validateLabel(action, timestamp, comment);
+        if (timestamp - svv.labelContainer.getProperty('validationTimestamp') > 800) {
+            svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
         }
     }
 

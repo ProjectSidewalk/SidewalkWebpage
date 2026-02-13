@@ -58,8 +58,8 @@ class ClusterTableDef(tag: slick.lifted.Tag) extends Table[Cluster](tag, "cluste
   def clusteringSessionId: Rep[Int] = column[Int]("clustering_session_id")
   def labelTypeId: Rep[Int]         = column[Int]("label_type_id")
   def streetEdgeId: Rep[Int]        = column[Int]("street_edge_id")
-  def geom: Rep[Point]           = column[Point]("geom")
-  def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
+  def geom: Rep[Point]              = column[Point]("geom")
+  def severity: Rep[Option[Int]]    = column[Option[Int]]("severity")
 
   def * = (clusterId, clusteringSessionId, labelTypeId, streetEdgeId, geom, severity) <> (
     (Cluster.apply _).tupled,
@@ -210,13 +210,13 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         |       string_agg(capture_dates.users_list, ',') AS users_list
         |FROM (
         |    SELECT cluster.cluster_id,
-        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from CAST(gsv_data.capture_date || '-01' AS DATE)))) AS capture_date,
+        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from TO_DATE(pano_data.capture_date, 'YYYY-MM')))) AS capture_date,
         |           array_to_string(array_agg(DISTINCT label.user_id), ',') AS users_list
         |    FROM cluster
         |    INNER JOIN cluster_label ON cluster.cluster_id = cluster_label.cluster_id
         |    INNER JOIN label ON cluster_label.label_id = label.label_id
-        |    INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
-        |    GROUP BY cluster.cluster_id, gsv_data.gsv_panorama_id
+        |    INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
+        |    GROUP BY cluster.cluster_id, pano_data.pano_id
         |) capture_dates
         |GROUP BY capture_dates.cluster_id""".stripMargin
 
@@ -325,13 +325,13 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         |       string_agg(capture_dates.users_list, ',') AS users_list
         |FROM (
         |    SELECT cluster.cluster_id,
-        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from CAST(gsv_data.capture_date || '-01' AS DATE)))) AS capture_date,
+        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from TO_DATE(pano_data.capture_date, 'YYYY-MM')))) AS capture_date,
         |           array_to_string(array_agg(DISTINCT label.user_id), ',') AS users_list
         |    FROM cluster
         |    INNER JOIN cluster_label ON cluster.cluster_id = cluster_label.cluster_id
         |    INNER JOIN label ON cluster_label.label_id = label.label_id
-        |    INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
-        |    GROUP BY cluster.cluster_id, gsv_data.gsv_panorama_id
+        |    INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
+        |    GROUP BY cluster.cluster_id, pano_data.pano_id
         |) capture_dates
         |GROUP BY capture_dates.cluster_id""".stripMargin
 
@@ -376,7 +376,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
                    jsonb_build_object(
                        'labelId', l.label_id,
                        'userId', l.user_id,
-                       'gsvPanoramaId', l.gsv_panorama_id,
+                       'panoId', l.pano_id,
                        'severity', l.severity,
                        'timeCreated', l.time_created,
                        'latitude', lp.lat,
@@ -389,7 +389,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         LEFT JOIN cluster_label cl ON base_query.label_cluster_id = cl.cluster_id
         LEFT JOIN label l ON cl.label_id = l.label_id
         LEFT JOIN label_point lp ON l.label_id = lp.label_id
-        LEFT JOIN gsv_data gd ON l.gsv_panorama_id = gd.gsv_panorama_id
+        LEFT JOIN pano_data gd ON l.pano_id = gd.pano_id
         GROUP BY
             base_query.label_cluster_id,
             base_query.label_type,

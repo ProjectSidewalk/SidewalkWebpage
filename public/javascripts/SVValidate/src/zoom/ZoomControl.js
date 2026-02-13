@@ -1,10 +1,10 @@
 /**
- * Handles zooming for the GSV pano. Also called by the Keyboard class to deal with zooming via keyboard shortcuts.
+ * Handles zooming for the pano. Also called by the Keyboard class to deal with zooming via keyboard shortcuts.
  * @returns {ZoomControl}
  * @constructor
  */
 function ZoomControl () {
-    let self = this;
+    const self = this;
     let zoomInButton = $("#zoom-in-button");
     let zoomOutButton = $("#zoom-out-button");
 
@@ -25,25 +25,25 @@ function ZoomControl () {
     }
 
     /**
-     * Increases zoom for the Google StreetView Panorama and checks if 'Zoom In' button needs to be disabled.
+     * Increases zoom for the panorama and checks if 'Zoom In' button needs to be disabled.
      * Zoom levels: {1, 2, 3}
      */
     function zoomIn() {
-        const zoomLevel = Math.round(svv.panorama.getPov().zoom);
+        const zoomLevel = Math.round(svv.panoViewer.getPov().zoom);
         if (zoomLevel <= 2) {
-            svv.panorama.setZoom(zoomLevel + 1);
+            svv.panoManager.setZoom(zoomLevel + 1);
         }
         updateZoomAvailability();
     }
 
     /**
-     * Decreases zoom for the Google StreetView Panorama and checks if 'Zoom Out' button needs to be disabled.
+     * Decreases zoom for the panorama and checks if 'Zoom Out' button needs to be disabled.
      * Zoom levels: {1, 2, 3}
      */
     function zoomOut() {
-        const zoomLevel = Math.round(svv.panorama.getPov().zoom);
+        const zoomLevel = Math.round(svv.panoViewer.getPov().zoom);
         if (zoomLevel >= 2) {
-            svv.panorama.setZoom(zoomLevel - 1);
+            svv.panoManager.setZoom(zoomLevel - 1);
         }
         updateZoomAvailability();
     }
@@ -55,7 +55,7 @@ function ZoomControl () {
      * Zoom levels: { 1 (Zoom-out Disabled), 2 (Both buttons enabled), 3 (Zoom-In Disabled) }
      */
     function updateZoomAvailability() {
-        let zoomLevel = svv.panorama.getPov().zoom;
+        let zoomLevel = svv.panoViewer.getPov().zoom;
         if (zoomLevel >= 3) {
             zoomInButton.css('opacity', 0.5);
             zoomInButton.addClass('disabled');

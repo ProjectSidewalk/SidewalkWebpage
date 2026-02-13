@@ -289,7 +289,7 @@ footer {
     text-decoration:underline;
 }
 
-/* GSV Info Popover styling. */
+/* Pano Info Popover styling. */
 .info-key {
     font-weight: bold;
     margin-right: 20px;
@@ -316,7 +316,7 @@ footer {
     justify-content: center;
 }
 
-#gsv-link {
+#pano-link {
     text-align: center;
     width: fit-content;
     margin-left: auto;
@@ -873,6 +873,16 @@ kbd {
     opacity: 1;
 }
 
+.ai-icon-marker {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    top: -6px;
+    left: -6px;
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 3;
+}
 
 /* LabelMap / LabelView section */
 #ai-validation-header {
@@ -883,4 +893,14 @@ kbd {
     position: absolute;
     top: 0px;
     height: 60%;
+    z-index: 3;
+}
+
+.ai-tooltip .tooltip-inner {
+    max-width: 220px;
+}
+
+.tooltip.ai-tooltip {
+    /* Keep AI tooltips above map/canvas overlays without unnecessarily high stacking */
+    z-index: 1160;
 }

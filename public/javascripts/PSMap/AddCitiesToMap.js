@@ -2,9 +2,9 @@
  * Adds cities to the map as circles and returns a promise.
  *
  * @param map Map on which the streets are rendered.
- * @param {Object} map The Mapbox map object.
- * @param {Object} citiesData - GeoJSON object containing cities to draw on the map.
- * @param {Object} params - Properties that can change the process of choropleth creation.
+ * @param {object} map The Mapbox map object.
+ * @param {object} citiesData - GeoJSON object containing cities to draw on the map.
+ * @param {object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {boolean} params.logClicks - Whether to log click activity.
  * @returns {Promise} Promise that resolves when the streets have been added to the map.
@@ -128,7 +128,7 @@ function AddCitiesToMap(map, citiesData, params) {
      * or link. Also logs click activity if enabled.
      *
      * @function
-     * @param {Object} params - Configuration parameters.
+     * @param {object} params - Configuration parameters.
      * @param {string} params.mapName - The name/id of the map element.
      * @param {boolean} params.logClicks - Whether to log click activity.
      * @returns {void}

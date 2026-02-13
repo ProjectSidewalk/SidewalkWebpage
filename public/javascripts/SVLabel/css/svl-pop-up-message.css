@@ -33,3 +33,10 @@
 #pop-up-message-foreground a {
     color: rgba(20, 20, 20, 1);
 }
+
+#pop-up-message-button-holder {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 20px;
+}

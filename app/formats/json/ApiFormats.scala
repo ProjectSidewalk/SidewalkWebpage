@@ -3,8 +3,8 @@ package formats.json
 import controllers.helper.ControllerUtils.labelTypeOrdering
 import models.cluster.ClusterForApi
 import models.computation.{RegionScore, StreetScore}
-import models.gsv.GsvDataSlim
 import models.label._
+import models.pano.{PanoDataSlim, PanoSource}
 import models.region.Region
 import models.user.{LabelTypeStat, UserStatApi}
 import models.utils.MapParams
@@ -12,6 +12,7 @@ import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+
 import java.time.OffsetDateTime
 
 object ApiFormats {
@@ -285,7 +286,7 @@ object ApiFormats {
 
   implicit val labelCVMetadataWrites: Writes[LabelCVMetadata] = (
     (__ \ "label_id").write[Int] and
-      (__ \ "gsv_panorama_id").write[String] and
+      (__ \ "pano_id").write[String] and
       (__ \ "label_type_id").write[Int] and
       (__ \ "agree_count").write[Int] and
       (__ \ "disagree_count").write[Int] and
@@ -298,7 +299,7 @@ object ApiFormats {
       (__ \ "canvas_height").write[Int] and
       (__ \ "canvas_x").write[Int] and
       (__ \ "canvas_y").write[Int] and
-      (__ \ "zoom").write[Int] and
+      (__ \ "zoom").write[Double] and
       (__ \ "heading").write[Float] and
       (__ \ "pitch").write[Float] and
       (__ \ "camera_heading").write[Float] and
@@ -309,14 +310,15 @@ object ApiFormats {
     s"${l.labels},${l.validatedCorrect},${l.validatedIncorrect},${l.notValidated}"
   }
 
-  implicit val gsvDataSlimWrites: Writes[GsvDataSlim] = (
-    (__ \ "gsv_panorama_id").write[String] and
+  implicit val panoDataSlimWrites: Writes[PanoDataSlim] = (
+    (__ \ "pano_id").write[String] and
       (__ \ "has_labels").write[Boolean] and
       (__ \ "width").writeNullable[Int] and
       (__ \ "height").writeNullable[Int] and
       (__ \ "lat").writeNullable[Float] and
       (__ \ "lng").writeNullable[Float] and
       (__ \ "camera_heading").writeNullable[Float] and
-      (__ \ "camera_pitch").writeNullable[Float]
-  )(unlift(GsvDataSlim.unapply))
+      (__ \ "camera_pitch").writeNullable[Float] and
+      (__ \ "source").write[PanoSource.Value]
+  )(unlift(PanoDataSlim.unapply))
 }

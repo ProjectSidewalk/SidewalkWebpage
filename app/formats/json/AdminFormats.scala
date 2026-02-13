@@ -75,12 +75,12 @@ object AdminFormats {
   implicit val genericCommentWrites: Writes[GenericComment] = (
     (__ \ "comment_type").write[String] and
       (__ \ "username").write[String] and
-      (__ \ "gsv_panorama_id").write[Option[String]] and
+      (__ \ "pano_id").write[String] and
       (__ \ "timestamp").write[OffsetDateTime] and
       (__ \ "comment").write[String] and
-      (__ \ "heading").write[Option[Double]] and
-      (__ \ "pitch").write[Option[Double]] and
-      (__ \ "zoom").write[Option[Int]] and
+      (__ \ "heading").write[Double] and
+      (__ \ "pitch").write[Double] and
+      (__ \ "zoom").write[Double] and
       (__ \ "label_id").write[Option[Int]]
   )(unlift(GenericComment.unapply))
 
@@ -107,7 +107,7 @@ object AdminFormats {
       )
       val properties = if (interaction.labelType.isEmpty) {
         Json.obj(
-          "panoId"    -> interaction.gsvPanoramaId,
+          "panoId"    -> interaction.panoId,
           "heading"   -> interaction.heading.get.toDouble,
           "pitch"     -> interaction.pitch,
           "zoom"      -> interaction.zoom,
@@ -117,7 +117,7 @@ object AdminFormats {
         )
       } else {
         Json.obj(
-          "panoId"    -> interaction.gsvPanoramaId,
+          "panoId"    -> interaction.panoId,
           "heading"   -> interaction.heading.get.toDouble,
           "pitch"     -> interaction.pitch,
           "zoom"      -> interaction.zoom,

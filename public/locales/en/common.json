@@ -20,6 +20,8 @@
     "signal": "Pedestrian Signal",
     "other": "Other",
     "surface-problems": "Surface Problems",
+    "sign-up": "Sign up",
+    "sign-in": "Sign in",
     "complete": "complete",
     "map": {
         "distance-left": "Only {{n}} kilometers left!",
@@ -36,10 +38,9 @@
         "private-deployment": "Private Deployment"
     },
     "errors": {
-        "title": "Oops, our fault but there is no longer imagery available for this label.",
-        "explanation": "We use the Google Maps API to show the sidewalk images and sometimes Google removes these images so we can no longer access them. Sorry about that.",
-        "google-connect-error": "We had trouble connecting to Google Street View, please try again later!",
-        "explore-street": "Explore the street</a> again to use Google's newer images!"
+        "title": "Oops, there is no longer imagery available for this label.",
+        "explanation": "We are either having trouble accessing the site that provides this image, or the image has been taken down.",
+        "explore-street": "Explore the street</a> again to use newer images!"
     },
     "severity": "Severity",
     "severity-example-tooltip-1": "Low severity example",
@@ -57,6 +58,7 @@
     "yes": "Yes",
     "no": "No",
     "ai-disclaimer": "AI analyzed this label and voted \"$t({{aiVal}})\"; however, AI can make mistakes. Please make your own assessment.",
+    "ai-generated-label-tooltip": "This label was AI generated. AI can make mistakes, so please make your own assessment.",
     "tag": {
         "narrow": "narrow",
         "points into traffic": "points into cross traffic",
@@ -134,7 +136,8 @@
         "cart": "cart",
         "drainage": "drainage",
         "electrical box": "electrical box",
-        "too dirty/cluttered": "too dirty/cluttered"
+        "too dirty/cluttered": "too dirty/cluttered",
+        "yellow box, accessibility features not visible": "yellow box, accessibility features not visible"
     },
     "gsv-info": {
         "details-title": "Details",

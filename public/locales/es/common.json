@@ -20,6 +20,8 @@
     "disagree": "Discrepar",
     "unsure": "Inseguro",
     "surface-problems": "Problemas en superficie",
+    "sign-up": "Regístrate",
+    "sign-in": "Iniciar sesión",
     "complete": "completado",
     "map": {
         "distance-left": "Sólo faltan {{n}} kilómetros!",
@@ -37,9 +39,8 @@
     },
     "errors": {
         "title": "Vaya, es culpa nuestra, pero ya no hay imágenes disponibles para esta etiqueta.",
-        "explanation": "Usamos la API de Google Maps para mostrar las imágenes de la acera y, a veces, Google elimina estas imágenes para que ya no podamos acceder a ellas. Lo lamento.",
-        "google-connect-error": "Tuvimos problemas para conectarnos a Google Street View, inténtalo de nuevo más tarde.",
-        "explore-street": "Explora la calle</a> de nuevo para usar las imágenes más nuevas de Google!"
+        "explanation": "Estamos teniendo problemas para acceder al sitio que proporciona esta imagen, o la imagen ha sido eliminada.",
+        "explore-street": "¡Explora la calle</a> nuevamente para usar imágenes más nuevas!"
     },
     "severity": "Calificación ",
     "severity-example-tooltip-1": "Ejemplo de baja gravedad",
@@ -57,6 +58,7 @@
     "yes": "Sí",
     "no": "No",
     "ai-disclaimer": "La IA analizó esta etiqueta y votó \"$t({{aiVal}})\"; sin embargo, la IA puede cometer errores. Por favor, haga su propia evaluación.",
+    "ai-generated-label-tooltip": "Esta etiqueta fue generada por IA. La IA puede cometer errores, así que haga su propia evaluación.",
     "tag": {
         "narrow": "muy angosta",
         "points into traffic": "orientado hacia el tráfico transversal",
@@ -134,7 +136,8 @@
         "cart": "carro",
         "drainage": "drenaje",
         "electrical box": "caja eléctrica",
-        "too dirty/cluttered": "demasiado sucio/desordenado"
+        "too dirty/cluttered": "demasiado sucio/desordenado",
+        "yellow box, accessibility features not visible": "Cuadro amarillo, funciones de accesibilidad no visibles"
     },
     "gsv-info": {
         "details-title": "Detalles",

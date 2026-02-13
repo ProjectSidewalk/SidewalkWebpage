@@ -14,7 +14,7 @@ function Label(params) {
         cameraLng: undefined,
         canvasX: undefined,
         canvasY: undefined,
-        gsvPanoramaId: undefined,
+        panoId: undefined,
         imageCaptureDate: undefined,
         labelTimestamp: undefined,
         heading: undefined,
@@ -28,7 +28,8 @@ function Label(params) {
         regionId: undefined,
         tags: undefined,
         aiTags: undefined,
-        isMobile: undefined
+        isMobile: undefined,
+        aiGenerated: false
     };
 
     // These properties are set through validating labels. In this object, canvas properties and
@@ -93,7 +94,7 @@ function Label(params) {
         radius = 25;
     }
 
-    let self = this;
+    const self = this;
 
     /**
      * Initializes a label from metadata (if parameters are passed in).
@@ -107,7 +108,7 @@ function Label(params) {
             if ("camera_lng" in params) setAuditProperty("cameraLng", params.camera_lng);
             if ("canvas_x" in params) setAuditProperty("canvasX", params.canvas_x);
             if ("canvas_y" in params) setAuditProperty("canvasY", params.canvas_y);
-            if ("gsv_panorama_id" in params) setAuditProperty("gsvPanoramaId", params.gsv_panorama_id);
+            if ("pano_id" in params) setAuditProperty("panoId", params.pano_id);
             if ("image_capture_date" in params) setAuditProperty("imageCaptureDate", moment(params.image_capture_date));
             if ("label_timestamp" in params) setAuditProperty("labelTimestamp", moment(params.label_timestamp));
             if ("heading" in params) setAuditProperty("heading", params.heading);
@@ -129,6 +130,7 @@ function Label(params) {
                 setProperty("newTags", [...params.tags]); // Copy tags to newTags.
             }
             if ("ai_tags" in params) setAuditProperty("aiTags", params.ai_tags);
+            if ("ai_generated" in params) setAuditProperty("aiGenerated", params.ai_generated);
             // Properties only used on the Admin version of Validate.
             if ("admin_data" in params && params.admin_data !== null) {
                 if ("username" in params.admin_data) adminProperties.username = params.admin_data.username;
@@ -170,24 +172,17 @@ function Label(params) {
     }
 
     /**
-     * Gets the position of this label from the POV from which it was originally placed.
-     * @returns {heading: number, pitch: number}
+     * Calculate heading/pitch for drawing this Label on the pano from the POV of the user when placing the label.
+     * @returns {heading: number, pitch: number, zoom: number}
      */
-    function getPosition() {
-        // This calculates the heading and position for placing this Label onto the panorama from
-        // the same POV as when the user placed the label.
-        let pos = svv.util.properties.panorama.getPosition(getAuditProperty('canvasX'),
-            getAuditProperty('canvasY'), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
-            getAuditProperty('zoom'), getAuditProperty('heading'), getAuditProperty('pitch'));
-        return pos;
-    }
-
-    /**
-     * Gets the radius of this label.
-     * @returns {number}
-     */
-    function getRadius () {
-        return radius;
+    function getOriginalPov() {
+        const origPov = {
+            heading: getAuditProperty('heading'),
+            pitch: getAuditProperty('pitch'),
+            zoom: getAuditProperty('zoom')
+        }
+        return util.pano.canvasCoordToCenteredPov(origPov, getAuditProperty('canvasX'),
+            getAuditProperty('canvasY'), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT);
     }
 
     /**
@@ -228,7 +223,7 @@ function Label(params) {
             return {
                 comment: comment,
                 label_id: getAuditProperty("labelId"),
-                gsv_panorama_id: getAuditProperty("gsvPanoramaId"),
+                pano_id: getAuditProperty("panoId"),
                 heading: getProperty("heading"),
                 lat: getAuditProperty("lat"),
                 lng: getAuditProperty("lng"),
@@ -242,47 +237,25 @@ function Label(params) {
     }
 
     /**
-     * Updates validation status for Label, StatusField and logs interactions into Tracker. Occurs
-     * when a validation button is clicked.
-     *
-     * NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
+     * When a validation button is clicked, updates validation status for Label, StatusField, and logs interactions.
      *
      * @param validationResult  Must be one of the following: {Agree, Disagree, Unsure}.
      * @param comment An optional comment submitted with the validation.
      */
     function validate(validationResult, comment) {
-        // This is the POV of the PanoMarker, where the PanoMarker would be loaded at the center of the viewport.
-        let pos = getPosition();
-        let panomarkerPov = {
-            heading: pos.heading,
-            pitch: pos.pitch
-        };
+        // This is the POV if the label were in the center of the viewport.
+        let centeredPov = getOriginalPov();
 
         // This is the POV of the viewport center - this is where the user is looking.
-        let userPov = svv.panorama.getPov();
+        let userPov = svv.panoViewer.getPov();
 
         // Calculates the center xy coordinates of the Label on the current viewport.
-        let pixelCoordinates = svv.util.properties.panorama.povToPixel3d(panomarkerPov, userPov, svv.canvasWidth, svv.canvasHeight);
-
-        // If the user has panned away from the label and it is no longer visible on the canvas, set canvasX/Y to null.
-        // We add/subtract the radius of the label so that we still record these values when only a fraction of the
-        // label is still visible.
-        let labelCanvasX = null;
-        let labelCanvasY = null;
-        if (pixelCoordinates
-            && pixelCoordinates.left + getRadius() > 0
-            && pixelCoordinates.left - getRadius() < svv.canvasWidth
-            && pixelCoordinates.top + getRadius() > 0
-            && pixelCoordinates.top - getRadius() < svv.canvasHeight) {
-
-            labelCanvasX = pixelCoordinates.left - getRadius();
-            labelCanvasY = pixelCoordinates.top - getRadius();
-        }
+        let pixelCoordinates =
+            util.pano.centeredPovToCanvasCoord(centeredPov, userPov, svv.canvasWidth(), svv.canvasHeight(), svv.labelRadius);
 
         setProperty("endTimestamp", new Date());
-        // TODO do we actually want to use `labelCanvasX` and `labelCanvasY` here? Or are they updated already?
-        setProperty("canvasX", Math.round(labelCanvasX));
-        setProperty("canvasY", Math.round(labelCanvasY));
+        setProperty("canvasX", pixelCoordinates ? Math.round(pixelCoordinates.x) : null);
+        setProperty("canvasY", pixelCoordinates ? Math.round(pixelCoordinates.y) : null);
         setProperty("heading", userPov.heading);
         setProperty("pitch", userPov.pitch);
         setProperty("zoom", userPov.zoom);
@@ -299,21 +272,21 @@ function Label(params) {
             case "Agree":
                 setProperty("validationResult", 1);
                 svv.missionContainer.getCurrentMission().updateValidationResult(1, false);
-                svv.labelContainer.push(getAuditProperty('labelId'), getProperties(), prepareCommentData());
+                svv.labelContainer.pushToLabelsToSubmit(getAuditProperty('labelId'), getProperties(), prepareCommentData());
                 svv.missionContainer.updateAMission();
                 break;
             // Disagree option selected.
             case "Disagree":
                 setProperty("validationResult", 2);
                 svv.missionContainer.getCurrentMission().updateValidationResult(2, false);
-                svv.labelContainer.push(getAuditProperty('labelId'), getProperties(), prepareCommentData());
+                svv.labelContainer.pushToLabelsToSubmit(getAuditProperty('labelId'), getProperties(), prepareCommentData());
                 svv.missionContainer.updateAMission();
                 break;
             // Unsure option selected.
             case "Unsure":
                 setProperty("validationResult", 3);
                 svv.missionContainer.getCurrentMission().updateValidationResult(3, false);
-                svv.labelContainer.push(getAuditProperty('labelId'), getProperties(), prepareCommentData());
+                svv.labelContainer.pushToLabelsToSubmit(getAuditProperty('labelId'), getProperties(), prepareCommentData());
                 svv.missionContainer.updateAMission();
                 break;
         }
@@ -321,7 +294,7 @@ function Label(params) {
         // If there are more labels left to validate, add a new label to the panorama. Otherwise, we will load a new
         // label onto the panorama from Form.js - where we still need to retrieve 10 more labels for the next mission.
         if (!svv.missionContainer.getCurrentMission().isComplete()) {
-            svv.panoramaContainer.loadNewLabelOntoPanorama();
+            svv.labelContainer.moveToNextLabel();
         }
     }
 
@@ -333,8 +306,7 @@ function Label(params) {
     self.getProperty = getProperty;
     self.getProperties = getProperties;
     self.setProperty = setProperty;
-    self.getPosition = getPosition;
-    self.getRadius = getRadius;
+    self.getOriginalPov = getOriginalPov;
     self.validate = validate;
 
     return this;

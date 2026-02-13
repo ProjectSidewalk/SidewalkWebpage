@@ -45,18 +45,18 @@ case class LabelClusterFiltersForApi(
  *
  * @param labelId Unique identifier for the label
  * @param userId Anonymized identifier of the user who created the label
- * @param gsvPanoramaId Google Street View panorama identifier where the label was placed
+ * @param panoId Panorama identifier where the label was placed
  * @param severity Optional severity rating (1-3 scale)
  * @param timeCreated Timestamp when the label was created
  * @param latitude Geographic latitude coordinate
  * @param longitude Geographic longitude coordinate
  * @param correct Option indicating consensus validation status
- * @param imageCaptureDate Optional date when the Street View image was captured
+ * @param imageCaptureDate Optional date when the image was captured
  */
 case class RawLabelInClusterDataForApi(
     labelId: Int,
     userId: String,
-    gsvPanoramaId: String,
+    panoId: String,
     severity: Option[Int],
     timeCreated: OffsetDateTime,
     latitude: Double,
@@ -82,7 +82,7 @@ object RawLabelInClusterDataForApi {
  * @param osmWayId OpenStreetMap way identifier
  * @param regionId Region ID where the cluster is located
  * @param regionName Name of the region where the cluster is located
- * @param avgImageCaptureDate Average date when the Street View images were captured
+ * @param avgImageCaptureDate Average date when the images were captured
  * @param avgLabelDate Average date when the labels were created
  * @param agreeCount Total number of users who agreed with labels in this cluster
  * @param disagreeCount Total number of users who disagreed with labels in this cluster

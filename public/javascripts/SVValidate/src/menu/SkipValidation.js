@@ -9,7 +9,7 @@ function SkipValidation (uiSkip) {
     let status = {
         disableSkip: false
     };
-    let self = this;
+    const self = this;
 
     /**
      * Enables the skip button (makes button clickable).
@@ -34,7 +34,7 @@ function SkipValidation (uiSkip) {
      */
     function skip() {
         svv.tracker.push("ModalSkip_ClickOK");
-        svv.panorama.skipLabel();
+        svv.labelContainer.skipLabel();
         svv.undoValidation.disableUndo();
     }
 

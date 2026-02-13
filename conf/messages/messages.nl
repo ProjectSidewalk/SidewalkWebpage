@@ -170,7 +170,7 @@ audit.tutorial.examples.curb.ramp = <span style="color:limegreen">Trottoir oprit
 audit.tutorial.examples.missing.ramp = Rolstoelgebruikers kunnen geen gebruik maken van trottoirs als <span style="color:#ff0066">trottoir opritten ontbreken</span>
 audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Obstakels</span> blokkeren het pad van rolstoelgebruikers
 audit.tutorial.examples.surface.problem = Trottoirs met <span style="color:orange">oppervlakte problemen</span> zijn mogelijk niet berijdbaar
-audit.tutorial.end.1 = Goed! Je hebt geleerd hoe je de interface moet gebruiken! Ga nu verder en <span class="bold">label de volgende toegankelijkheids kenmerken in Google Street View</span> wat positief impact zal hebben op hoe rolstoelgebruikers zich kunnen bewegen door de stad:
+audit.tutorial.end.1 = Goed! Je hebt geleerd hoe je de interface moet gebruiken! Ga nu verder en <span class="bold">Label de volgende toegankelijkheidskenmerken in Street View-beelden.</span> wat positief impact zal hebben op hoe rolstoelgebruikers zich kunnen bewegen door de stad:
 audit.tutorial.end.2 = Nogmaals, dank voor <span class="bold">je bijdrage aan een toegankelijke wereld voor iedereen!</span>
 audit.tutorial.examples = Voorbeelden van toegankelijkheidskenmerken: stoep opritten, ontbrekende stoep opritten, obstakels in het pad, en oppervlakteproblemen.
 
@@ -194,11 +194,6 @@ audit.left.ui.zoom.out = Zoom Uit
 audit.left.ui.sound = Geluid
 audit.left.ui.stuck = Vastgelopen
 audit.left.ui.stuck.tooltip = We zullen proberen u terug te brengen naar uw missie
-audit.left.ui.jump = Spring
-audit.left.ui.jump.tooltip = Begin met het verkennen van een nieuwe plek
-audit.left.ui.jump.title = Als je niet verder kunt, klik dan op de knop "Vastgelopen"!
-audit.left.ui.jump.same.neighborhood = Ga naar een nieuwe locatie in de wijk
-audit.left.ui.jump.new.neighborhood = Ga naar een nieuwe wijk
 
 audit.right.ui.overall.stats = Algemene statistieken
 audit.right.ui.current.neighborhood = Huidige Wijk

@@ -12,7 +12,7 @@ import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * Controller for handling API requests for the Gemini 2.0 Flash model, sending GSV screenshots for visual analysis.
+ * Controller for handling API requests for the Gemini 2.0 Flash model, sending canvas screenshots for visual analysis.
  */
 @Singleton
 class AiController @Inject() (
@@ -21,7 +21,7 @@ class AiController @Inject() (
     config: Configuration,
     configService: service.ConfigService,
     exploreService: service.ExploreService,
-    gsvDataService: service.GsvDataService
+    panoDataService: service.PanoDataService
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
@@ -83,9 +83,9 @@ class AiController @Inject() (
     val prompt = generatePrompt(wayType, cityName)
 
     for {
-      gsvImageUrls   <- gsvDataService.getImageUrlsForStreet(streetEdgeId) // Get GSV image URLs for the street
-      imageObjects   <- fetchAndEncodeImages(gsvImageUrls)                 // Fetch and encode images
-      geminiResponse <- sendToGeminiApi(prompt, imageObjects)              // Send to Gemini API
+      gsvImageUrls   <- panoDataService.getImageUrlsForStreet(streetEdgeId) // Get image URLs for the street
+      imageObjects   <- fetchAndEncodeImages(gsvImageUrls)                  // Fetch and encode images
+      geminiResponse <- sendToGeminiApi(prompt, imageObjects)               // Send to Gemini API
     } yield {
       val activity = s"Analyzing street $streetEdgeId with URLs: ${gsvImageUrls.mkString(", ")}"
       cc.loggingService.insert(request.identity.userId, request.ipAddress, activity)
@@ -95,7 +95,7 @@ class AiController @Inject() (
 
   /**
    * Fetches images from Google Street View URLs and converts them to base64 encoded objects.
-   * @param imageUrls Sequence of GSV image URLs
+   * @param imageUrls Sequence of image URLs
    * @return Future sequence of JSON objects containing base64 encoded image data
    */
   private def fetchAndEncodeImages(imageUrls: Seq[String]): Future[Seq[JsObject]] = {
@@ -124,7 +124,7 @@ class AiController @Inject() (
           }
           .recover { case ex: Exception =>
             // Log error but don't fail the entire request.
-            logger.warn(s"Failed to fetch GSV image from $url: ${ex.getMessage}")
+            logger.warn(s"Failed to fetch pano image from $url: ${ex.getMessage}")
             None
           }
       }

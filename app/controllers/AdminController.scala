@@ -18,6 +18,7 @@ import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import service._
+
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.concurrent.ThreadPoolExecutor
@@ -39,7 +40,7 @@ class AdminController @Inject() (
     regionService: RegionService,
     labelService: LabelService,
     streetService: StreetService,
-    gsvDataService: GsvDataService,
+    panoDataService: PanoDataService,
     userService: service.UserService,
     actorSystem: ActorSystem,
     cpuEc: CpuIntensiveExecutionContext
@@ -135,7 +136,8 @@ class AdminController @Inject() (
               "label_type"        -> label.labelType,
               "severity"          -> label.severity,
               "correct"           -> label.correct,
-              "high_quality_user" -> label.highQualityUser
+              "high_quality_user" -> label.highQualityUser,
+              "ai_generated"      -> label.aiGenerated
             )
           )
         }.seq
@@ -187,7 +189,8 @@ class AdminController @Inject() (
                 "has_validations"   -> label.hasValidations,
                 "ai_validation"     -> label.aiValidation.map(LabelValidationTable.validationOptions.get),
                 "expired"           -> label.expired,
-                "high_quality_user" -> label.highQualityUser
+                "high_quality_user" -> label.highQualityUser,
+                "ai_generated"      -> label.aiGenerated
               )
             )
           }.seq
@@ -571,11 +574,11 @@ class AdminController @Inject() (
   }
 
   /**
-   * Checks for Google Street View imagery that might be missing. Same as nightly process.
+   * Checks for imagery that might be missing. Same as nightly process.
    */
-  def checkGsvImagery() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def checkImagery() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    gsvDataService.checkForGsvImagery.map { results => Ok(results) }
+    panoDataService.checkForImagery.map { results => Ok(results) }
   }
 
   /**

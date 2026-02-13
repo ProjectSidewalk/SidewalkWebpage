@@ -5,7 +5,7 @@
  * @constructor
  */
 function StatusExample (statusUI) {
-    let self = this;
+    const self = this;
     let labelType = undefined;
     let examplePath = '/assets/javascripts/SVValidate/img/ValidationExamples/';
     let counterExamplePath = '/assets/javascripts/SVValidate/img/ValidationCounterexamples/';

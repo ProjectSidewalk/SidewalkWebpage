@@ -1,9 +1,5 @@
 function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
-    let self = this;
-    let properties = {
-        clickable: false
-    };
-    let watch;
+    const self = this;
 
     function _handleButtonClick(event) {
         // If they've done three missions and clicked the audit button, load the explore page.
@@ -21,15 +17,11 @@ function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
         }
     }
 
-    function getProperty(key) {
-        return key in properties ? properties[key] : null;
-    }
-
     /**
      * Hides the mission complete menu. Waits until the next mission has been initialized and the
      * first label has been loaded onto the screen.
      */
-    function hide () {
+    function hide() {
         // Have to remove the effect since keyup event did not go through (but no keyboard use on mobile).
         if (svv.keyboard) {
             svv.keyboard.removeAllKeyPressVisualEffect();
@@ -44,54 +36,33 @@ function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
         uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
     }
 
-    function setProperty(key, value) {
-        properties[key] = value;
-        return this;
-    }
-
     /**
      * Displays the mission complete screen.
      * @param mission   Object for the mission that was just completed.
      */
-    function show (mission) {
+    function show(mission) {
         // Disable keyboard on mobile.
         svv.undoValidation.disableUndo();
         if (svv.keyboard) {
             svv.keyboard.disableKeyboard();
         }
-        let totalLabels = mission.getProperty("agreeCount") + mission.getProperty("disagreeCount")
-            + mission.getProperty("unsureCount");
+        let totalLabels = mission.getProperty('agreeCount') + mission.getProperty('disagreeCount')
+            + mission.getProperty('unsureCount');
         let message = i18next.t('mission-complete.body-' + mission.getProperty('labelTypeId'), { n: totalLabels });
 
-        // Disable user from clicking the "Validate next mission" button and set background to gray.
+        // Disable user from clicking the 'Validate next mission' button and set background to gray. When we have a new
+        // mission from the back end, nextMissionLoaded() will be called from Form.js to re-enable the button.
         uiModalMissionComplete.closeButtonPrimary.removeClass('btn-primary');
         uiModalMissionComplete.closeButtonPrimary.addClass('btn-loading');
         uiModalMissionComplete.closeButtonSecondary.removeClass('btn-secondary');
         uiModalMissionComplete.closeButtonSecondary.addClass('btn-loading');
 
-        // Wait until next mission has been loaded before allowing the user to click the button.
-        clearInterval(watch);
-        watch = window.setInterval(function () {
-            if (getProperty('clickable')) {
-                // Enable button clicks, reset the CSS for primary/secondary close buttons.
-                uiModalMissionComplete.closeButtonPrimary.removeClass('btn-loading');
-                uiModalMissionComplete.closeButtonPrimary.addClass('btn-primary');
-                uiModalMissionComplete.closeButtonPrimary.on('click', { button: 'primary' }, _handleButtonClick);
-                uiModalMissionComplete.closeButtonSecondary.removeClass('btn-loading');
-                uiModalMissionComplete.closeButtonSecondary.addClass('btn-secondary');
-                uiModalMissionComplete.closeButtonSecondary.on('click', { button: 'secondary' }, _handleButtonClick);
-                if (isMobile()) uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
-                setProperty('clickable', false);
-                clearInterval(watch);
-            }
-        }, 100);
-
         uiModalMissionComplete.background.css('visibility', 'visible');
         uiModalMissionComplete.missionTitle.html(i18next.t('mission-complete.title'));
         uiModalMissionComplete.message.html(message);
-        uiModalMissionComplete.agreeCount.html(mission.getProperty("agreeCount"));
-        uiModalMissionComplete.disagreeCount.html(mission.getProperty("disagreeCount"));
-        uiModalMissionComplete.unsureCount.html(mission.getProperty("unsureCount"));
+        uiModalMissionComplete.agreeCount.html(mission.getProperty('agreeCount'));
+        uiModalMissionComplete.disagreeCount.html(mission.getProperty('disagreeCount'));
+        uiModalMissionComplete.unsureCount.html(mission.getProperty('unsureCount'));
         uiModalMissionComplete.yourOverallTotalCount.html(svv.statusField.getCompletedValidations());
 
         uiModalMissionComplete.holder.css('visibility', 'visible');
@@ -115,18 +86,31 @@ function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
         if (isMobile()) uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
 
         svv.tracker.push(
-            "MissionComplete",
+            'MissionComplete',
             {
-                missionId: mission.getProperty("missionId"),
-                missionType: mission.getProperty("missionType"),
-                labelTypeId: mission.getProperty("labelTypeId"),
-                labelsValidated: mission.getProperty("labelsValidated")
+                missionId: mission.getProperty('missionId'),
+                missionType: mission.getProperty('missionType'),
+                labelTypeId: mission.getProperty('labelTypeId'),
+                labelsValidated: mission.getProperty('labelsValidated')
             }
         );
     }
 
-    self.getProperty = getProperty;
+    /**
+     * Re-enables the start next mission button; called once a new mission has loaded from the back end.
+     */
+    function nextMissionLoaded() {
+        // Enable button clicks, reset the CSS for primary/secondary close buttons.
+        uiModalMissionComplete.closeButtonPrimary.removeClass('btn-loading');
+        uiModalMissionComplete.closeButtonPrimary.addClass('btn-primary');
+        uiModalMissionComplete.closeButtonPrimary.on('click', { button: 'primary' }, _handleButtonClick);
+        uiModalMissionComplete.closeButtonSecondary.removeClass('btn-loading');
+        uiModalMissionComplete.closeButtonSecondary.addClass('btn-secondary');
+        uiModalMissionComplete.closeButtonSecondary.on('click', { button: 'secondary' }, _handleButtonClick);
+        if (isMobile()) uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
+    }
+
     self.hide = hide;
-    self.setProperty = setProperty;
     self.show = show;
+    self.nextMissionLoaded = nextMissionLoaded;
 }

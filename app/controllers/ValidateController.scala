@@ -10,12 +10,14 @@ import formats.json.MissionFormats._
 import formats.json.ValidateFormats.{EnvironmentSubmission, LabelMapValidationSubmission, SkipLabelSubmission, ValidationTaskSubmission}
 import models.auth.WithAdmin
 import models.label.{LabelTypeEnum, Tag}
+import models.pano.PanoSource.PanoSource
 import models.user._
 import models.validation.{LabelValidation, ValidationTaskComment, ValidationTaskEnvironment, ValidationTaskInteraction}
 import play.api.Configuration
 import play.api.libs.json._
 import play.api.mvc.Result
 import service.ValidationSubmission
+
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -33,7 +35,7 @@ class ValidateController @Inject() (
     validationService: service.ValidationService,
     authenticationService: service.AuthenticationService,
     regionService: service.RegionService,
-    gsvDataService: service.GsvDataService,
+    panoDataService: service.PanoDataService,
     missionService: service.MissionService
 )(implicit assets: AssetsFinder)
     extends CustomBaseController(cc) {
@@ -41,10 +43,11 @@ class ValidateController @Inject() (
 
   /**
    * Returns the validation page.
-   * @param neighborhoods Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    */
-  def validate(neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) = cc.securityService.SecuredAction {
-    implicit request =>
+  def validate(neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) =
+    cc.securityService.SecuredAction { implicit request =>
       checkParams(adminVersion = false, None, None, neighborhoods, unvalidatedOnly).flatMap {
         case (validateParams, response) =>
           if (response.header.status == 200) {
@@ -64,13 +67,14 @@ class ValidateController @Inject() (
             Future.successful(response)
           }
       }
-  }
+    }
 
   /**
    * Returns the new validate beta page, optionally with some admin filters.
    * @param labelType       Label type or label type ID to validate.
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    */
   def expertValidate(
       labelType: Option[String],
@@ -104,6 +108,7 @@ class ValidateController @Inject() (
   /**
    * Returns the validation page for mobile.
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    */
   def mobileValidate(neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) =
     cc.securityService.SecuredAction { implicit request =>
@@ -129,11 +134,6 @@ class ValidateController @Inject() (
                     labelList, missionProgress, hasNextMission, completedVals)
                 )
               }
-              cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
-              Ok(
-                views.html.apps.mobileValidate(commonPageData, "Sidewalk - Validate", user, validateParams, mission,
-                  labelList, missionProgress, hasNextMission, completedVals)
-              )
             }
           } else {
             Future.successful(response)
@@ -146,6 +146,7 @@ class ValidateController @Inject() (
    * @param labelType       Label type or label type ID to validate.
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    */
   def adminValidate(
       labelType: Option[String],
@@ -181,6 +182,7 @@ class ValidateController @Inject() (
    * @param labelType       Label type or label type ID to validate.
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
+   * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
    */
   def checkParams(
       adminVersion: Boolean,
@@ -192,11 +194,11 @@ class ValidateController @Inject() (
     // If any inputs are invalid, send back error message. For each input, we check if the input is an integer
     // representing a valid ID (label_type_id, user_id, or region_id) or a String representing a valid name for that
     // parameter (label_type, username, or region_name).
-    val parsedLabelTypeId: Option[Option[Int]] = labelType.map { lType =>
-      val parsedId: Try[Int]           = Try(lType.toInt)
-      val lTypeIdFromName: Option[Int] = LabelTypeEnum.labelTypeToId.get(lType)
-      if (parsedId.isSuccess && LabelTypeEnum.primaryLabelTypeIds.contains(parsedId.get)) parsedId.toOption
-      else if (lTypeIdFromName.isDefined) lTypeIdFromName
+    val parsedLabelType: Option[Option[LabelTypeEnum.Base]] = labelType.map { lType =>
+      val lTypeFromId: Option[LabelTypeEnum.Base]   = lType.toIntOption.flatMap(LabelTypeEnum.byId.get)
+      val lTypeFromName: Option[LabelTypeEnum.Base] = LabelTypeEnum.byName.get(lType)
+      if (lTypeFromId.isDefined) lTypeFromId
+      else if (lTypeFromName.isDefined) lTypeFromName
       else None
     }
     val userIdsList: Option[Seq[Future[Option[String]]]] = users.map(
@@ -241,7 +243,7 @@ class ValidateController @Inject() (
       }
     } yield {
       // Return a BadRequest if anything is wrong, or the ValidateParams if everything looks good.
-      if (parsedLabelTypeId.isDefined && parsedLabelTypeId.get.isEmpty) {
+      if (parsedLabelType.isDefined && parsedLabelType.get.isEmpty) {
         (
           ValidateParams(adminVersion),
           BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeEnum.primaryLabelTypeNames.mkString(", ")}. Or you can use their IDs: ${LabelTypeEnum.primaryLabelTypeIds.mkString(", ")}.")
@@ -259,7 +261,7 @@ class ValidateController @Inject() (
       } else {
         (
           ValidateParams(
-            adminVersion, parsedLabelTypeId.flatten, userIds.map(_.flatten), regionIds.map(_.flatten),
+            adminVersion, parsedLabelType.flatten, userIds.map(_.flatten), regionIds.map(_.flatten),
             unvalidatedOnly.getOrElse(false)
           ),
           Ok("")
@@ -327,8 +329,8 @@ class ValidateController @Inject() (
             newVal.endTimestamp, newVal.source),
           newVal.comment.map(c =>
             ValidationTaskComment(
-              0, c.missionId, c.labelId, user.userId, ipAddress, c.gsvPanoramaId, c.heading, c.pitch,
-              Math.round(c.zoom), c.lat, c.lng, currTime, c.comment
+              0, c.missionId, c.labelId, user.userId, ipAddress, c.panoId, c.heading, c.pitch, c.zoom, c.lat, c.lng,
+              currTime, c.comment
             )
           ),
           newVal.undone,
@@ -369,7 +371,7 @@ class ValidateController @Inject() (
     // Now we do all the stuff that can be done async, we can return the response before these are done.
     // Insert interactions async.
     validationService.insertMultipleInteractions(data.interactions.map { action =>
-      ValidationTaskInteraction(0, action.missionId, action.action, action.gsvPanoramaId, action.lat, action.lng,
+      ValidationTaskInteraction(0, action.missionId, action.action, action.panoId, action.lat, action.lng,
         action.heading, action.pitch, action.zoom, action.note, action.timestamp, data.source)
     })
 
@@ -382,7 +384,7 @@ class ValidateController @Inject() (
     )
 
     // Adding the new panorama information to the pano_history table async.
-    gsvDataService.insertPanoHistories(data.panoHistories)
+    panoDataService.insertPanoHistories(data.panoHistories)
 
     // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
     val eligibleUser: Boolean = RoleTable.SCISTARTER_ROLES.contains(user.role)
@@ -464,8 +466,8 @@ class ValidateController @Inject() (
           _              <- validationService.deleteCommentIfExists(submission.labelId, submission.missionId)
           commentId: Int <- validationService.insertComment(
             ValidationTaskComment(0, submission.missionId, submission.labelId, request.identity.userId,
-              request.ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
-              Math.round(submission.zoom), submission.lat, submission.lng, OffsetDateTime.now, submission.comment)
+              request.ipAddress, submission.panoId, submission.heading, submission.pitch, submission.zoom,
+              submission.lat, submission.lng, OffsetDateTime.now, submission.comment)
           )
         } yield {
           Ok(Json.obj("commend_id" -> commentId))
@@ -490,8 +492,8 @@ class ValidateController @Inject() (
           _              <- validationService.deleteCommentIfExists(submission.labelId, mission.get.missionId)
           commentId: Int <- validationService.insertComment(
             ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
-              submission.gsvPanoramaId, submission.heading, submission.pitch, Math.round(submission.zoom),
-              submission.lat, submission.lng, OffsetDateTime.now, submission.comment)
+              submission.panoId, submission.heading, submission.pitch, submission.zoom, submission.lat, submission.lng,
+              OffsetDateTime.now, submission.comment)
           )
         } yield {
           Ok(Json.obj("commend_id" -> commentId))
@@ -504,12 +506,12 @@ class ValidateController @Inject() (
    * Gets the metadata for a single random label in the database. Excludes labels that were originally placed by the
    * user, labels that have already appeared on the interface, and the label that was just skipped.
    *
-   * @param labelTypeId    Label Type Id this label should have
+   * @param labelTypeId    Label Type ID this label should have
    * @param skippedLabelId Label ID of the label that was just skipped
-   * @return Label metadata containing GSV metadata and label type
+   * @return Label metadata containing pano metadata and label type
    */
-  def getRandomLabelData(labelTypeId: Int, skippedLabelId: Int) = cc.securityService.SecuredAction(parse.json) {
-    implicit request =>
+  def getRandomLabelData(labelTypeId: Int, skippedLabelId: Int) =
+    cc.securityService.SecuredAction(parse.json) { implicit request =>
       val submission = request.body.validate[SkipLabelSubmission]
       submission.fold(
         errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
@@ -517,13 +519,14 @@ class ValidateController @Inject() (
           val validateParams: ValidateParams =
             if (submission.validateParams.adminVersion && isAdmin(request.identity)) submission.validateParams
             else ValidateParams(adminVersion = false)
-          val userId: String = request.identity.userId
+          val userId: String         = request.identity.userId
+          val viewerType: PanoSource = configService.getPanoSource
 
           // Get metadata for one new label to replace the skipped one.
           // TODO should really exclude all remaining labels in the mission, not just the skipped one. Not bothering now
           //      because it isn't a heavily used feature, and it's a rare edge case.
           labelService
-            .retrieveLabelListForValidation(userId, n = 1, labelTypeId, validateParams.userIds.map(_.toSet),
+            .retrieveLabelListForValidation(userId, n = 1, viewerType, labelTypeId, validateParams.userIds.map(_.toSet),
               validateParams.neighborhoodIds.map(_.toSet), validateParams.unvalidatedOnly,
               skippedLabelId = Some(skippedLabelId))
             .flatMap { labelMetadata =>
@@ -539,5 +542,5 @@ class ValidateController @Inject() (
             }
         }
       )
-  }
+    }
 }

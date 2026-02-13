@@ -8,6 +8,7 @@ package models.api
 import models.api.ApiModelUtils.escapeCsvField
 import models.computation.StreamingApiType
 import models.label.LocationXY
+import models.utils.CommonUtils.UiSource.UiSource
 import play.api.libs.json.{JsObject, Json, OFormat}
 
 import java.time.OffsetDateTime
@@ -53,9 +54,9 @@ case class ValidationFiltersForApi(
  * @param validatorType Whether the validation was performed by a human or AI
  * @param missionId ID of the mission during which the validation was performed
  * @param canvasXY Canvas X/Y coordinates of the label when it was validated; can be None if label was offscreen
- * @param heading GSV heading when validation occurred
- * @param pitch GSV pitch when validation occurred
- * @param zoom GSV zoom level when validation occurred
+ * @param heading Pano heading when validation occurred
+ * @param pitch Pano pitch when validation occurred
+ * @param zoom Pano zoom level when validation occurred
  * @param canvasHeight Height of the canvas
  * @param canvasWidth Width of the canvas
  * @param startTimestamp When the validation was started
@@ -79,12 +80,12 @@ case class ValidationDataForApi(
     canvasXY: Option[LocationXY],
     heading: Float,
     pitch: Float,
-    zoom: Float,
+    zoom: Double,
     canvasHeight: Int,
     canvasWidth: Int,
     startTimestamp: OffsetDateTime,
     endTimestamp: OffsetDateTime,
-    source: String
+    source: UiSource
 ) extends StreamingApiType {
 
   /**
@@ -153,7 +154,7 @@ case class ValidationDataForApi(
       canvasWidth.toString,
       startTimestamp.toString,
       endTimestamp.toString,
-      escapeCsvField(source)
+      escapeCsvField(source.toString)
     )
     fields.mkString(",")
   }

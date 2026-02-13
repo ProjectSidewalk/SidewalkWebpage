@@ -15,6 +15,7 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.impl.exceptions.IdentityNotFoundException
+
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -28,7 +29,7 @@ class UserProfileController @Inject() (
     userService: service.UserService,
     labelService: service.LabelService,
     streetService: service.StreetService,
-    gsvDataService: service.GsvDataService,
+    panoDataService: service.PanoDataService,
     implicit val ec: ExecutionContext,
     cpuEc: CpuIntensiveExecutionContext
 )(implicit assets: AssetsFinder)
@@ -120,7 +121,7 @@ class UserProfileController @Inject() (
                 "properties" -> Json.obj(
                   "audit_task_id"   -> label.auditTaskId,
                   "label_id"        -> label.labelId,
-                  "gsv_panorama_id" -> label.gsvPanoramaId,
+                  "pano_id"         -> label.panoId,
                   "label_type"      -> label.labelType,
                   "correct"         -> label.correct,
                   "has_validations" -> label.hasValidations
@@ -150,7 +151,7 @@ class UserProfileController @Inject() (
             val validationJson = Json.toJson(labelTypes.map { labelType =>
               labelType.name -> validations(labelType).map { l =>
                 val imageUrl: String =
-                  gsvDataService.getImageUrl(l.gsvPanoramaId, l.pov.heading, l.pov.pitch, l.pov.zoom)
+                  panoDataService.getImageUrl(l.panoId, l.pov.heading, l.pov.pitch, l.pov.zoom)
                 labelMetadataUserDashToJson(l, imageUrl)
               }
             }.toMap)

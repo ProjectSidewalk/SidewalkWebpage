@@ -3,12 +3,12 @@
  * An object that creates a display for the severity.
  *
  * @param {HTMLElement} container The DOM element that contains the display
- * @param {Number} severity The severity to display
- * @param {Boolean} isExpandedView a toggle to determine if this SeverityDisplay is in an expanded view, or in a card
+ * @param {number} severity The severity to display
+ * @param {boolean} isExpandedView a toggle to determine if this SeverityDisplay is in an expanded view, or in a card
  * @returns {SeverityDisplay} the generated object
  */
 function SeverityDisplay(container, severity, labelType, isExpandedView= false) {
-    let self = this;
+    const self = this;
     self.severity = severity;
     self.severityContainer = container;
 

@@ -1,14 +1,15 @@
 /**
  * An indicator that displays the speed limit of the current position's nearest road.
  *
- * @param {StreetViewPanorama} panorama Panorama object.
+ * @param {PanoViewer} panoViewer PanoramaViewer object.
  * @param {function} coords Function that returns current longitude and latitude coordinates.
  * @param {function} isOnboarding Function that returns a boolean on whether the current mission is the tutorial task.
- * @param {PanoramaContainer} panoContainer Panorama container that is used to pre-fetch validation labels. Can be left null.
+ * @param {LabelContainer} labelContainer Label container that is used to pre-fetch validation labels. Can be left null.
+ * @param labelType
  * @returns {SpeedLimit} SpeedLimit object with updateSpeedLimit function, container, speedLimit object with
  * number and sub (units, e.g. 'mph'), speedLimitVisible boolean.
  */
-function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
+function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType) {
     const ROAD_HIGHWAY_TYPES = [
         'motorway',
         'trunk',
@@ -26,14 +27,19 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
         'road'
     ];
 
-    let self = this;
+    // Labels in which speed limit is necessary context for validation. Speed limit will not display for other labels.
+    const speedLimitRelevantLabels = ['NoCurbRamp'];
+
+    const self = this;
 
     let cache = {};
 
     function _init() {
-        if (typeof(panoContainer) !== "undefined" && panoContainer !== null) {
-            prefetchLabels();
-            panoContainer.setLabelsUpdateCallback(prefetchLabels);
+        // If labelType is null/undefined (not provided), the speed limit will be displayed by default.
+        const speedLimitRelevant = !labelType || speedLimitRelevantLabels.includes(labelType);
+        if (typeof(labelContainer) !== "undefined" && labelContainer !== null && speedLimitRelevant) {
+            prefetchLabels(); // Note that this happens async.
+            labelContainer.resetLabelListUpdateCallback(prefetchLabels);
         }
 
         self.container = document.getElementById('speed-limit-sign');
@@ -44,8 +50,8 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
         self.speedLimitVisible = false;
         updateSpeedLimit();
 
-        // Listen for position changes.
-        panorama.addListener('position_changed', positionChange);
+        // Listen for pano changes.
+        panoViewer.addListener('pano_changed', panoChangeListener);
     }
 
     /**
@@ -60,9 +66,9 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
     /**
      * Finds the closest road given overpass API's response of nearby roads and the current position.
      *
-     * @param {Object} data The overpass API's response of nearby roads.
-     * @param {Number} lat The latitude of the current position.
-     * @param {Number} lon The longitude of the current position.
+     * @param {object} data The overpass API's response of nearby roads.
+     * @param {number} lat The latitude of the current position.
+     * @param {number} lon The longitude of the current position.
      */
     function findClosestRoad(data, lat, lon) {
         // Filter to only be roads, and not footpaths/walkways.
@@ -96,7 +102,7 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
         cache = {};
 
         // Get the labels from the pano container and prefetch them.
-        const labelsToPrefetch = panoContainer.getLabels();
+        const labelsToPrefetch = labelContainer.getLabels();
         for (const label of labelsToPrefetch) {
             const cameraLat = label.getAuditProperty("cameraLat");
             const cameraLng = label.getAuditProperty("cameraLng");
@@ -109,14 +115,14 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
     /**
      * Fetches the overpass json and closest road for a given set of coordinates.
      *
-     * @param {Number} lat The latitude of the current position.
-     * @param {Number} lng The longitude of the current position.
-     * @param {Boolean} shouldCache If true, this will cache the coordinates with the json response.
+     * @param {number} lat The latitude of the current position.
+     * @param {number} lng The longitude of the current position.
+     * @param {boolean} shouldCache If true, this will cache the coordinates with the json response.
      * @param {Label} label The label that is being validated. Can be null.
      * @returns Object that contains json response and calculated closest road
      */
     async function queryClosestRoadForCoords(lat, lng, shouldCache, label) {
-        const cacheKey = label === null ? (panoContainer === null ? "" : panoContainer.getCurrentLabel().getAuditProperty("gsvPanoramaId")) : label.getAuditProperty("gsvPanoramaId");
+        const cacheKey = label === null ? (labelContainer === null ? "" : labelContainer.getCurrentLabel().getAuditProperty("panoId")) : label.getAuditProperty("panoId");
         if (cacheKey in cache) {
             return await cache[cacheKey];
         }
@@ -159,17 +165,13 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
     /**
      * Function to be called on a position change/movement in the google street view.
      */
-    async function positionChange() {
+    async function panoChangeListener() {
         // If user is in the onboarding/tutorial mission, we can skip getting the speed limit and hide the sign.
         if (isOnboarding()) {
             self.speedLimitVisible = false;
             updateSpeedLimit();
             return;
         }
-
-        // Labels in which speed limit is necessary context for validation.
-        // Speed limit will not display for other labels.
-        const speedLimitRelevantLabels = ['NoCurbRamp'];
 
         // If labelType is null/undefined (not provided), the speed limit will be displayed by default.
         const speedLimitRelevant = !labelType || speedLimitRelevantLabels.includes(labelType);

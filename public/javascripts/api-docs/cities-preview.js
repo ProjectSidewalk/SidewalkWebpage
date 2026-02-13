@@ -26,8 +26,8 @@
     window.CitiesPreview = {
         /**
          * Configure the cities preview.
-         * @param {Object} options - Configuration options
-         * @returns {Object} The CitiesPreview object for chaining
+         * @param {object} options - Configuration options
+         * @returns {object} The CitiesPreview object for chaining
          */
         setup: function(options) {
             config = Object.assign(config, options);
@@ -92,7 +92,7 @@
         /**
          * Create the Leaflet map.
          * @param {HTMLElement} container - Container element for the map
-         * @returns {Object} The Leaflet map object
+         * @returns {object} The Leaflet map object
          */
         createMap: function(container) {
             // Create a map element.
@@ -114,8 +114,8 @@
 
         /**
          * Display cities on the map.
-         * @param {Object} map - The Leaflet map object
-         * @param {Object} citiesData - Data about the cities from the API
+         * @param {object} map - The Leaflet map object
+         * @param {object} citiesData - Data about the cities from the API
          */
         displayCitiesOnMap: function(map, citiesData) {
             if (!citiesData || !citiesData.cities || citiesData.cities.length === 0) {

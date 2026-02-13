@@ -1,20 +1,19 @@
-function AdminGSVLabelView(admin, source) {
+async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
     var self = {};
     self.admin = admin;
     self.source = source;
 
-    var _init = function() {
-        self.panoProp = new PanoProperties();
+    var _init = async function() {
         self.resultOptions = {
             "Agree": 1,
             "Disagree": 2,
             "Unsure": 3
         };
 
-        _resetModal();
+        await _resetModal();
     };
 
-    function _resetModal() {
+    async function _resetModal() {
         var modalText =
             '<div class="modal fade" id="labelModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">' +
                 '<div class="modal-dialog" role="document" style="width: 570px">' +
@@ -151,7 +150,7 @@ function AdminGSVLabelView(admin, source) {
 
         self.modal = $(modalText);
 
-        self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-input-holder"), admin);
+        self.panoManager = await AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-input-holder"), admin, viewerType, viewerAccessToken);
 
         self.agreeButton = self.modal.find("#validation-agree-button");
         self.modalComments = self.modal.find("#validator-comments");
@@ -244,7 +243,7 @@ function AdminGSVLabelView(admin, source) {
         self.modalTask = self.modal.find("#task");
         self.modalPrevValidations = self.modal.find("#prev-validations");
         self.modalPanoId = self.modal.find('#pano-id');
-        self.modalGsvLink = self.modal.find('#view-in-gsv');
+        self.modalPanoLink = self.modal.find('#view-in-gsv');
         self.modalLat = self.modal.find('#lat');
         self.modalLng = self.modal.find('#lng');
         self.modalLabelId = self.modal.find("#label-id");
@@ -258,48 +257,30 @@ function AdminGSVLabelView(admin, source) {
      * @private
      */
     function _validateLabel(action) {
-        var validationTimestamp = new Date();
-        var canvasWidth = self.panorama.svHolder.width();
-        var canvasHeight = self.panorama.svHolder.height();
+        const validationTimestamp = new Date();
+        const canvasWidth = self.panoManager.svHolder.width();
+        const canvasHeight = self.panoManager.svHolder.height();
 
-        var pos = self.panorama.getOriginalPosition();
-        var panomarkerPov = {
-            heading: pos.heading,
-            pitch: pos.pitch
-        };
+        const panoMarkerPov = self.panoManager.getOriginalPosition();
 
         // This is the POV of the viewport center - this is where the user is looking.
-        var userPov = self.panorama.panorama.getPov();
+        const userPov = self.panoManager.getPov();
 
-        // Calculates the center xy coordinates of the kabel on the current viewport.
-        var pixelCoordinates = self.panoProp.povToPixel3d(panomarkerPov, userPov, canvasWidth, canvasHeight);
+        // Calculates the center xy coordinates of the label on the current viewport.
+        const labelRadius = 10;
+        const pixelCoordinates =
+            util.pano.centeredPovToCanvasCoord(panoMarkerPov, userPov, canvasWidth, canvasHeight, labelRadius);
 
-        // If the user has panned away from the label and it is no longer visible on the canvas, set canvasX/Y to null.
-        // We add/subtract the radius of the label so that we still record these values when only a fraction of the
-        // label is still visible.
-        var labelCanvasX = null;
-        var labelCanvasY = null;
-        var labelRadius = 10;
-        if (pixelCoordinates
-            && pixelCoordinates.left + labelRadius > 0
-            && pixelCoordinates.left - labelRadius < canvasWidth
-            && pixelCoordinates.top + labelRadius > 0
-            && pixelCoordinates.top - labelRadius < canvasHeight) {
-
-            labelCanvasX = Math.round(pixelCoordinates.left - labelRadius);
-            labelCanvasY = Math.round(pixelCoordinates.top - labelRadius);
-        }
-
-        var data = {
-            label_id: self.panorama.label.labelId,
-            label_type: self.panorama.label.label_type,
+        const data = {
+            label_id: self.panoManager.label.labelId,
+            label_type: self.panoManager.label.label_type,
             validation_result: self.resultOptions[action],
-            old_severity: self.panorama.label.oldSeverity,
-            new_severity: self.panorama.label.newSeverity,
-            old_tags: self.panorama.label.oldTags,
-            new_tags: self.panorama.label.newTags,
-            canvas_x: labelCanvasX,
-            canvas_y: labelCanvasY,
+            old_severity: self.panoManager.label.oldSeverity,
+            new_severity: self.panoManager.label.newSeverity,
+            old_tags: self.panoManager.label.oldTags,
+            new_tags: self.panoManager.label.newTags,
+            canvas_x: pixelCoordinates ? Math.round(pixelCoordinates.x) : null,
+            canvas_y: pixelCoordinates ? Math.round(pixelCoordinates.y) : null,
             heading: userPov.heading,
             pitch: userPov.pitch,
             zoom: userPov.zoom,
@@ -332,7 +313,7 @@ function AdminGSVLabelView(admin, source) {
     }
 
     function _disableValidationButtons() {
-        for (var button in self.resultButtons) {
+        for (let button in self.resultButtons) {
             if (self.resultButtons.hasOwnProperty(button)) {
                 self.resultButtons[button].prop('disabled', true);
                 self.resultButtons[button].css('cursor', 'wait');
@@ -340,7 +321,7 @@ function AdminGSVLabelView(admin, source) {
         }
     }
     function _enableValidationButtons() {
-        for (var button in self.resultButtons) {
+        for (let button in self.resultButtons) {
             if (self.resultButtons.hasOwnProperty(button)) {
                 self.resultButtons[button].prop('disabled', false);
                 self.resultButtons[button].css('cursor', 'pointer');
@@ -384,21 +365,23 @@ function AdminGSVLabelView(admin, source) {
      * @private
      */
     function _setAiValidationRow(aiValidation) {
-        if (aiValidation) {
-            self.modalAiValidation.html(i18next.t('labelmap:ai-val-included', { aiVal: aiValidation.toLowerCase() }));
+        // Remove any existing AI icon before adding a new one.
+        self.modalAiValidationHeader.find('.label-view-ai-icon').remove();
 
-            // Create the AI icon.
-            let aiIcon = document.createElement('img')
-            aiIcon.className = 'label-view-ai-icon';
+        if (aiValidation) {
+            const normalizedAiVal = aiValidation.toLowerCase();
+            self.modalAiValidation.html(i18next.t('labelmap:ai-val-included', { aiVal: normalizedAiVal }));
+
+            // Create the AI validation icon with the correct tooltip text.
+            const aiIcon = new Image();
             aiIcon.src = '/assets/images/icons/ai-icon-transparent-small.png';
             aiIcon.alt = 'AI indicator';
-            self.modalAiValidationHeader.append(aiIcon);
-
-            // Create the AI validation tooltip that we show in the header.
+            aiIcon.classList.add('label-view-ai-icon');
             aiIcon.setAttribute('data-toggle', 'tooltip');
             aiIcon.setAttribute('data-placement', 'top');
-            aiIcon.setAttribute('title', i18next.t('common:ai-disclaimer', { aiVal: aiValidation.toLowerCase() }));
-            $(aiIcon).tooltip('hide');
+            aiIcon.setAttribute('title', i18next.t('common:ai-disclaimer', { aiVal: normalizedAiVal }));
+            ensureAiTooltip(aiIcon);
+            self.modalAiValidationHeader.append(aiIcon);
         } else {
             self.modalAiValidation.html(i18next.t('common:none'));
         }
@@ -409,17 +392,17 @@ function AdminGSVLabelView(admin, source) {
      * @private
      */
     function _submitComment(comment) {
-        var userPov = self.panorama.panorama.getPov();
-        var pos = self.panorama.panorama.getPosition();
+        var userPov = self.panoManager.getPov();
+        var pos = self.panoManager.panoViewer.getPosition();
         var button = document.getElementById("comment-button");
 
         button.style.cursor = "wait";
 
-        let data = {
-            label_id: self.panorama.label.labelId,
-            label_type: self.panorama.label.label_type,
+        const data = {
+            label_id: self.panoManager.label.labelId,
+            label_type: self.panoManager.label.label_type,
             comment: comment,
-            gsv_panorama_id: self.panorama.panoId,
+            pano_id: self.panoManager.panoId,
             heading: userPov.heading,
             pitch: userPov.pitch,
             zoom: userPov.zoom,
@@ -526,50 +509,55 @@ function AdminGSVLabelView(admin, source) {
         }
     }
 
-    function showLabel(labelId) {
+    async function showLabel(labelId) {
         // Reset modal when gsv panorama is not found.
-        if (self.panorama.panorama.getStatus() === "ZERO_RESULTS") {
-            _resetModal();
-        }
         _resetButtonStates();
-        self.panorama.clearLabels();
+        self.panoManager.clearLabels();
+        self.modal.modal({ 'show': true });
 
-        self.modal.modal({
-            'show': true
-        });
-        var adminLabelUrl = admin ? "/adminapi/label/id/" + labelId : "/label/id/" + labelId;
-        $.ajax({
-            dataType: 'json',
-            url: adminLabelUrl,
-            success: function (data) {
-                _handleData(data);
-            },
-            error: function (xhr, textStatus, error) {
+        await fetch(admin ? '/adminapi/label/id/' + labelId : '/label/id/' + labelId, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        }).then(response => {
+            if (!response.ok) {
                 alert('Server error. Most likely a label with this ID did not exist.');
+                throw new Error(`HTTP error! Status: ${response.status}`);
             }
-        });
+            return response.json();
+        }).then(_handleData);
     }
 
     function _handleData(labelMetadata) {
-        // Pass a callback function that fills in the pano lat/lng.
-        var panoCallback = function () {
-            var lat = self.panorama.panorama.getPosition().lat();
-            var lng = self.panorama.panorama.getPosition().lng();
-            var href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelMetadata['gsv_panorama_id']}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}`;
+        const labelPov = {
+            heading: labelMetadata.heading,
+            pitch: labelMetadata.pitch,
+            zoom: labelMetadata.zoom,
+        };
 
-            self.modalGsvLink.html(`<a target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
-            self.modalGsvLink.children(":first").attr('href', href)
+        const adminPanoramaLabel = AdminPanoramaLabel(labelMetadata.label_id, labelMetadata.label_type,
+            labelMetadata.canvas_x, labelMetadata.canvas_y, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
+            labelPov, labelMetadata.street_edge_id, labelMetadata.severity, labelMetadata.tags,
+            labelMetadata.ai_generated);
+        self.panoManager.setLabel(adminPanoramaLabel);
+
+        // Pass a callback function that fills in the pano lat/lng.
+        // TODO we're going to replace this in a future redesign, including in the same place as on all other UIs.
+        const panoCallback = function () {
+            const lat = self.panoManager.panoViewer.getPosition().lat;
+            const lng = self.panoManager.panoViewer.getPosition().lng;
             self.modalLat.html(lat.toFixed(8) + '°');
             self.modalLng.html(lng.toFixed(8) + '°');
-        }
-        self.panorama.setPano(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
-            labelMetadata['pitch'], labelMetadata['zoom'], panoCallback);
 
-        var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type'],
-            labelMetadata['canvas_x'], labelMetadata['canvas_y'], util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
-            labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id'],
-            labelMetadata['severity'], labelMetadata['tags']);
-        self.panorama.setLabel(adminPanoramaLabel);
+            // Fill in the View in GSV link if we're using GSV, otherwise hide it for now.
+            if (self.panoManager.panoViewer.getViewerType() === 'gsv') {
+                const href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelPov.pano_id}&heading=${labelPov.heading}&pitch=${labelPov.pitch}`;
+                self.modalPanoLink.html(`<a target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
+                self.modalPanoLink.children(":first").attr('href', href);
+            } else {
+                self.modalPanoLink.parent().hide();
+            }
+        };
+        self.panoManager.setPano(labelMetadata.pano_id, labelPov).then(panoCallback);
 
         self.validationCounts['Agree'] = labelMetadata['num_agree'];
         self.validationCounts['Disagree'] = labelMetadata['num_disagree'];
@@ -583,30 +571,30 @@ function AdminGSVLabelView(admin, source) {
         self.flags["stale"] = labelMetadata['stale'];
         _updateFlagButton();
 
-        var labelDate = moment(new Date(labelMetadata['timestamp']));
-        var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
+        var labelDate = moment(new Date(labelMetadata.timestamp));
+        var imageCaptureDate = moment(new Date(labelMetadata.image_capture_date));
         // Change modal title
-        self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + camelToKebab(labelMetadata['label_type']))}`);
-        self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
+        self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + camelToKebab(labelMetadata.label_type))}`);
+        self.modalSeverity.html(labelMetadata.severity != null ? labelMetadata.severity : "No severity");
         // Create a list of translated tags that's parsable by i18next.
-        var translatedTags = labelMetadata['tags'].map(tag => i18next.t(`common:tag.${tag.replace(/:/g, '-')}`));
+        var translatedTags = labelMetadata.tags.map(tag => i18next.t(`common:tag.${tag.replace(/:/g, '-')}`));
         self.modalTags.html(translatedTags.join(', ')); // Join to format using commas and spaces.
-        self.modalDescription.text(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
+        self.modalDescription.text(labelMetadata.description != null ? labelMetadata.description : i18next.t('common:no-description'));
         self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
         self.modalImageDate.html(imageCaptureDate.format('MMMM YYYY'));
-        self.modalPanoId.text(labelMetadata['gsv_panorama_id']);
-        self.modalLabelId.html(labelMetadata['label_id']);
-        self.modalStreetId.html(labelMetadata['street_edge_id']);
-        self.modalRegionId.html(labelMetadata['region_id']);
-        if (labelMetadata['comments'] != null) {
-            self.modalComments.html(labelMetadata['comments'].map(util.escapeHTML).join("<hr style=\"margin: 2px 0;\">"));
+        self.modalPanoId.text(labelMetadata.pano_id);
+        self.modalLabelId.html(labelMetadata.label_id);
+        self.modalStreetId.html(labelMetadata.street_edge_id);
+        self.modalRegionId.html(labelMetadata.region_id);
+        if (labelMetadata.comments != null) {
+            self.modalComments.html(labelMetadata.comments.map(util.escapeHTML).join("<hr style=\"margin: 2px 0;\">"));
         } else {
             self.modalComments.html(i18next.t('common:none'));
         }
         if (self.admin) {
-            self.taskID = labelMetadata['audit_task_id'];
-            self.modalTask.html(`<a href='/admin/task/${labelMetadata['audit_task_id']}'>${labelMetadata['audit_task_id']}</a>`);
-            self.modalUsername.html(`<a href='/admin/user/${encodeURI(labelMetadata['username'])}'>${labelMetadata['username']}</a>`);
+            self.taskID = labelMetadata.audit_task_id;
+            self.modalTask.html(`<a href='/admin/task/${labelMetadata.audit_task_id}'>${labelMetadata.audit_task_id}</a>`);
+            self.modalUsername.html(`<a href='/admin/user/${encodeURI(labelMetadata.username)}'>${labelMetadata.username}</a>`);
             var prevVals = labelMetadata['admin_data']['previous_validations'];
             if (prevVals.length === 0) {
                 self.modalPrevValidations.html(i18next.t('common:none'));
@@ -614,7 +602,7 @@ function AdminGSVLabelView(admin, source) {
                 var prevValText = "";
                 for (var i = 0; i < prevVals.length; i++) {
                     var prevVal = prevVals[i];
-                    prevValText += `<a href='/admin/user/${encodeURI(prevVal['username'])}'>${prevVal['username']}</a>: ${i18next.t('common:' + camelToKebab(prevVal['validation']))}`;
+                    prevValText += `<a href='/admin/user/${encodeURI(prevVal.username)}'>${prevVal.username}</a>: ${i18next.t('common:' + camelToKebab(prevVal['validation']))}`;
                     if (i !== prevVals.length - 1) {
                         prevValText += "<br>";
                     }
@@ -622,11 +610,11 @@ function AdminGSVLabelView(admin, source) {
                 self.modalPrevValidations.html(prevValText);
             }
         }
-        // If the signed in user has already validated this label, make the button look like it has been clicked.
+        // If the signed-in user has already validated this label, make the button look like it has been clicked.
         if (labelMetadata['user_validation']) _resetButtonColors(labelMetadata['user_validation']);
     }
 
-    _init();
+    await _init();
 
     self.showLabel = showLabel;
 

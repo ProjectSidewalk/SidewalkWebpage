@@ -20,6 +20,8 @@
     "disagree": "不同意",
     "unsure": "不確定",
     "surface-problems": "鋪面問題",
+    "sign-up": "註冊",
+    "sign-in": "登入",
     "complete": "完成",
     "map": {
         "distance-left": "只剩下{{n}}公里了!",
@@ -37,9 +39,8 @@
     },
     "errors": {
         "title": "啊糟糕！我們現在沒有與此標記相關的圖片可供參考。",
-        "explanation": "我們使用 Google 地圖應用程式介面來顯示人行道的圖像，有時候 Google 會移除這些圖片，因此我們無法再讀取它們。抱歉啦！",
-        "google-connect-error": "我們在連接到 Google 街景時遇到了問題，請稍後再試！",
-        "explore-street": "請再次探索此街道</a> 以使用較新的Google圖片！"
+        "explanation": "我們可能無法存取提供此圖片的網站，或該圖片已被刪除。",
+        "explore-street": "請再次探索此街道</a> 使用更新的圖片！"
     },
     "severity": "嚴重度評分",
     "severity-example-tooltip-1": "低嚴重性範例",
@@ -57,6 +58,7 @@
     "yes": "是",
     "no": "否",
     "ai-disclaimer": "AI 分析了此標籤並投票「$t({{aiVal}})」；然而，AI 難免會犯錯。請自行判斷。",
+    "ai-generated-label-tooltip": "此標籤由 AI 產生。AI 可能會犯錯，請自行判斷。",
     "tag": {
         "narrow": "狹窄",
         "points into traffic": "指向橫向交通",
@@ -134,7 +136,8 @@
         "cart": "大車",
         "drainage": "引流",
         "electrical box": "電氣箱",
-        "too dirty/cluttered": "太髒/太雜亂"
+        "too dirty/cluttered": "太髒/太雜亂",
+        "yellow box, accessibility features not visible": "黃色方框，輔助功能不可見"
     },
     "gsv-info": {
         "details-title": "詳細資訊",

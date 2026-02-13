@@ -7,7 +7,7 @@
  * @constructor
  */
 function CityMenu(uiCityMenu) {
-    let self = this;
+    const self = this;
 
     let status = {
         currentCity: null
@@ -50,8 +50,8 @@ function CityMenu(uiCityMenu) {
 
     /**
      * Set status attribute.
-     * 
-     * @param {*} key Status name.
+     *
+     * @param {string} key Status name.
      * @param {*} value Status value.
      */
     function setStatus(key, value) {

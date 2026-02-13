@@ -2,12 +2,14 @@
  * Card Container module. This is responsible for managing the Card objects that are to be rendered.
  *
  * @param {*} uiCardContainer UI element tied with this CardContainer.
- * @param initialFilters Object containing initial set of filters in sidebar.
+ * @param {object} initialFilters Object containing initial set of filters in sidebar.
+ * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
+ * @param {string} viewerAccessToken An access token used to request images for the pano viewer
  * @returns {CardContainer}
  * @constructor
  */
-function CardContainer(uiCardContainer, initialFilters) {
-    let self = this;
+async function CardContainer(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken) {
+    const self = this;
 
     // The number of labels to grab from database on initial page load.
     const initialLoad = 30;
@@ -63,7 +65,7 @@ function CardContainer(uiCardContainer, initialFilters) {
     // Current labels being displayed of current type based off filters.
     let currentCards = new CardBucket();
 
-    function _init() {
+    async function _init() {
         // Bind click actions to the forward/backward paging buttons.
         if (uiCardContainer) {
             uiCardContainer.nextPage.bind({
@@ -89,18 +91,29 @@ function CardContainer(uiCardContainer, initialFilters) {
             render();
         });
         // Creates the ExpandedView object in the DOM element currently present.
-        expandedView = new ExpandedView($('.gallery-expanded-view'));
+        sg.panoStore = new PanoStore();
+        expandedView = await ExpandedView($('.gallery-expanded-view'), panoViewerType, viewerAccessToken);
         // Add the click event for opening the ExpandedView when a card is clicked.
-        sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count', (event) => {
+        sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count, .ai-icon-marker-card', (event) => {
             $('.gallery-expanded-view').css('display', 'flex');
             $('.grid-container').css("grid-template-columns", "1fr 5fr");
             // If the user clicks on the image body in the card, just use the provided id.
+            // If they click the AI icon, use the image id from the same card.
             // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
             // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
             // the correct form).
-            let clickedImage = event.target.classList.contains("static-gallery-image")
-            let cardId = clickedImage ? event.target.id :
-                "label_id_" + event.target.closest(".card-tags").id;
+            let clickedImage = event.target.classList.contains("static-gallery-image");
+            let cardId;
+            if (event.target.classList.contains("ai-icon-marker-card")) {
+                let imageHolder = event.target.closest(".image-holder");
+                let parentImage = imageHolder ? imageHolder.querySelector(".static-gallery-image") : null;
+                cardId = parentImage ? parentImage.id : null;
+            } else if (clickedImage) {
+                cardId = event.target.id;
+            } else {
+                cardId = "label_id_" + event.target.closest(".card-tags").id;
+            }
+            if (!cardId) return;
             // Sets/Updates the label being displayed in the expanded view.
             expandedView.updateCardIndex(findCardIndex(cardId));
         });
@@ -109,7 +122,7 @@ function CardContainer(uiCardContainer, initialFilters) {
     /**
      * Find the card which contains the image with the same imageID as supplied.
      *
-     * @param {String} id The id of the image Id to find
+     * @param {string} id The id of the image Id to find
      * @returns {Card} finds the matching card and returns it
      */
     function findCard(id) {
@@ -119,8 +132,8 @@ function CardContainer(uiCardContainer, initialFilters) {
     /**
      * Returns the index of a card in the current CardBucket in use.
      *
-     * @param {String} id The id of the image Id to find
-     * @returns {Number} the index of the matching card in the current CardBucket
+     * @param {string} id The id of the image Id to find
+     * @returns {number} the index of the matching card in the current CardBucket
      */
     function findCardIndex(id) {
         return currentCards.findCardIndexByImageId(id);
@@ -129,7 +142,7 @@ function CardContainer(uiCardContainer, initialFilters) {
     /**
      * Gets a card from the current CardBucket given an index.
      *
-     * @param {Number} index the index of the card to find
+     * @param {number} index the index of the card to find
      * @returns {Card} the Card that has the matching index in the current CardBucket
      */
     function getCardByIndex(index) {
@@ -381,7 +394,7 @@ function CardContainer(uiCardContainer, initialFilters) {
     /**
      * Set status attribute.
      *
-     * @param {*} key Status name.
+     * @param {string} key Status name.
      * @param {*} value Status value.
      */
     function setStatus(key, value) {
@@ -467,6 +480,6 @@ function CardContainer(uiCardContainer, initialFilters) {
     self.getCurrentPageCards = getCurrentPageCards;
     self.getExpandedView = getExpandedView;
 
-    _init();
+    await _init();
     return this;
 }

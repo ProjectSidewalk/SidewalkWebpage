@@ -6,7 +6,7 @@
  */
 
 function ModalLandscape (uiModal) {
-    let self = this;
+    const self = this;
 
     function hide () {
         uiModal.background.css('visibility', 'hidden');

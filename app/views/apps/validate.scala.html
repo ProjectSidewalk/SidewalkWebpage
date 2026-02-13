@@ -3,6 +3,7 @@
 @import play.api.Configuration
 @import play.api.libs.json.JsValue
 @import service.CommonPageData
+@import models.pano.PanoSource
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams,
         mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean,
         completedValidations: Int
@@ -15,6 +16,14 @@
 
     @common.icons()
 
+    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
+    @if(commonData.imagerySource == PanoSource.Infra3d) {
+        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("javascripts/lib/infra3dapi-1.7.0.js")'></script>
+    } else if (commonData.imagerySource == PanoSource.Mapillary) {
+        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+    }
     <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@assets.path("stylesheets/animate.css")'/>
@@ -50,8 +59,8 @@
                         <br>@Html(Messages("validate.left.ui.undo"))
                     </div>
                     <div class="spacer10"></div>
-                    <div id="left-column-jump-button" class="button" title="@Messages("validate.left.ui.skip.tooltip")" data-toggle="tooltip" data-placement="top">
-                        <img src='@assets.path("javascripts/SVLabel/img/icons/Skip.png")'  alt="Jump icon" align="">
+                    <div id="left-column-skip-button" class="button" title="@Messages("validate.left.ui.skip.tooltip")" data-toggle="tooltip" data-placement="top">
+                        <img src='@assets.path("javascripts/SVLabel/img/icons/Skip.png")'  alt="Skip icon" align="">
                         <br>@Html(Messages("validate.left.ui.skip"))
                     </div>
                     <div class="spacer10"></div>
@@ -81,16 +90,18 @@
             </div>
             <div id="svv-panorama-holder">
                 <div id="svv-panorama-outline">
-                    <div id="svv-panorama">
-                        <div id="speed-limit-sign" class="speed-limit-sign" data-design-style="us-canada">
-                            <div class="speed-limit-holder">
-                                <p class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></p>
-                            </div>
+                    <div id="svv-panorama"></div>
+                    <div id="view-control-layer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;">
+                        <button id="label-visibility-button-on-pano" class="button label-visibility-button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
+                        <div id="label-description-box"></div>
+                    </div>
+                    <div id="speed-limit-sign" class="speed-limit-sign" data-design-style="us-canada">
+                        <div class="speed-limit-holder">
+                            <p class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></p>
                         </div>
-                        <div id="view-control-layer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;">
-                            <button id="label-visibility-button-on-pano" class="button label-visibility-button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
-                            <div id="label-description-box"></div>
-                        </div>
+                    </div>
+                    <div id="imagery-source-logo-holder">
+                        <img id="imagery-source-logo"/>
                     </div>
                     <div id="svv-panorama-date-holder">
                         <span id="svv-panorama-date"></span>
@@ -259,14 +270,15 @@
             param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
             param.hasNextMission = @hasNextMission;
             param.completedValidations = @completedValidations;
-            param.canvasHeight = 440;
-            param.canvasWidth = 720;
             param.language = "@messages.lang.code";
             param.cityId = "@commonData.cityId";
             param.cityName = "@currentCity.cityNameFormatted";
+            const imagerySrc = "@commonData.imagerySource.toString";
+            param.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+            param.viewerAccessToken = "@commonData.imageryAccessToken";
             param.validateParams = {
                 adminVersion: @validateParams.adminVersion,
-                labelTypeId: @Html(validateParams.labelTypeId.map(_.toString).getOrElse("null")),
+                labelTypeId: @Html(validateParams.labelType.map(_.toString).getOrElse("null")),
                 userIds: @Html(validateParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null")),
                 regionIds: @Html(validateParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
                 unvalidatedOnly: @validateParams.unvalidatedOnly
@@ -286,12 +298,6 @@
                 param.mission = @Html(mission.getOrElse("\"\"").toString);
                 param.labelList = @Html(labelList.getOrElse("\"\"").toString);
                 param.progress = @Html(progress.getOrElse("\"\"").toString);
-
-                // Initializes an object of labels from label metadata.
-                // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
-                Object.keys(param.labelList).map(function (key, index) {
-                    param.labelList[key] = new Label(param.labelList[key]);
-                });
             }
             svv.main = new Main(param);
         });

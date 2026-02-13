@@ -228,7 +228,7 @@ audit.tutorial.examples.curb.ramp = <span style="color:limegreen">路緣斜坡</
 audit.tutorial.examples.missing.ramp = 如果<span style="color:#ff0066">沒有設置路緣斜坡</span>，輪椅使用者將無法使用人行道
 audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">障礙物</span>阻擋輪椅使用者通行之路徑
 audit.tutorial.examples.surface.problem = 人行道的<span style="color:orange">鋪面問題</span>可能造成無法通行
-audit.tutorial.end.1 =很棒！您已學會如何使用平臺介面！請特別針對嚴重影響輪椅使用者之情形於Google街景中<span class="bold">注意並標記以下可及性(無障礙)問題</span>：
+audit.tutorial.end.1 =很棒！您已學會如何使用平臺介面！請特別針對嚴重影響輪椅使用者之情形於街景中<span class="bold">在街景影像中標註以下無障礙屬性</span>：
 audit.tutorial.end.2 = 再次感謝您為這個世界<span class="bold">創造出能讓所有用路人更容易通行的環境！</span>
 audit.tutorial.examples = 無障礙屬性的案例：路緣斜坡、無路緣斜坡、有障礙物及鋪面問題。
 
@@ -252,11 +252,6 @@ audit.left.ui.zoom.out = 縮小
 audit.left.ui.sound = 音效
 audit.left.ui.stuck = 卡住
 audit.left.ui.stuck.tooltip = 我們會盡力讓您回到您的使命
-audit.left.ui.jump = 跳過
-audit.left.ui.jump.tooltip = 開始探索新的地方
-audit.left.ui.jump.title = 如果您无法前进，请单击“卡住”按钮！
-audit.left.ui.jump.same.neighborhood = 前往此鄰里的另一個地點
-audit.left.ui.jump.new.neighborhood = 前往新的鄰里
 
 audit.right.ui.overall.stats = 整體統計數據
 audit.right.ui.current.neighborhood = 目前所在的鄰里

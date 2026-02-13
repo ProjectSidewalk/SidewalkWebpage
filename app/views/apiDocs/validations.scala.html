@@ -229,13 +229,13 @@
                     <tr><td><code>user_id</code></td><td><code>string</code></td><td>ID of the user who performed the validation.</td></tr>
                     <tr><td><code>validator_type</code></td><td><code>string</code></td><td>One of: Human, AI.</td></tr>
                     <tr><td><code>mission_id</code></td><td><code>integer</code></td><td>The mission ID associated with the validation.</td></tr>
-                    <tr><td><code>canvas_x</code></td><td><code>integer | null</code></td><td>The X-coordinate on the GSV canvas of the label when it was validated, or null if label was offscreen.</td></tr>
-                    <tr><td><code>canvas_y</code></td><td><code>integer | null</code></td><td>The Y-coordinate on the GSV canvas of the label when it was validated, or null if label was offscreen.</td></tr>
-                    <tr><td><code>heading</code></td><td><code>number</code></td><td>Camera heading in GSV when the label was validated.</td></tr>
-                    <tr><td><code>pitch</code></td><td><code>number</code></td><td>Camera pitch in GSV when the label was validated.</td></tr>
-                    <tr><td><code>zoom</code></td><td><code>number</code></td><td>Camera zoom in GSV when the label was validated.</td></tr>
-                    <tr><td><code>canvas_width</code></td><td><code>integer</code></td><td>Width of the GSV canvas in pixels.</td></tr>
-                    <tr><td><code>canvas_height</code></td><td><code>integer</code></td><td>Height of the GSV canvas in pixels.</td></tr>
+                    <tr><td><code>canvas_x</code></td><td><code>integer | null</code></td><td>The X-coordinate on the pano canvas of the label when it was validated, or null if label was offscreen.</td></tr>
+                    <tr><td><code>canvas_y</code></td><td><code>integer | null</code></td><td>The Y-coordinate on the pano canvas of the label when it was validated, or null if label was offscreen.</td></tr>
+                    <tr><td><code>heading</code></td><td><code>number</code></td><td>Camera heading in the pano viewer when the label was validated.</td></tr>
+                    <tr><td><code>pitch</code></td><td><code>number</code></td><td>Camera pitch in the pano viewer when the label was validated.</td></tr>
+                    <tr><td><code>zoom</code></td><td><code>number</code></td><td>Camera zoom in the pano viewer when the label was validated.</td></tr>
+                    <tr><td><code>canvas_width</code></td><td><code>integer</code></td><td>Width of the pano viewer canvas in pixels.</td></tr>
+                    <tr><td><code>canvas_height</code></td><td><code>integer</code></td><td>Height of the pano viewer canvas in pixels.</td></tr>
                     <tr><td><code>start_timestamp</code></td><td><code>string</code></td><td>ISO 8601 formatted timestamp when the user started viewing the label for validation.</td></tr>
                     <tr><td><code>end_timestamp</code></td><td><code>string</code></td><td>ISO 8601 formatted timestamp when the validation was performed.</td></tr>
                     <tr><td><code>source</code></td><td><code>string</code></td><td>In which interface the validation occurred: "Validate", "ValidateMobile", "ExpertValidate", "LabelMap", "GalleryImage", "GalleryExpandedImage", "GalleryThumbs", "GalleryExpandedThumbs", "SidewalkAI", "AdminUserDashboard", "AdminLabelSearchTab", "ExternalTagValidationASSETS2024"</td></tr>

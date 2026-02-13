@@ -3,6 +3,7 @@ var util = util || {};
 // Some constants that are used across the site.
 util.EXPLORE_CANVAS_WIDTH = 720;
 util.EXPLORE_CANVAS_HEIGHT = 480;
+util.EXPLORE_CANVAS_ASPECT_RATIO = util.EXPLORE_CANVAS_WIDTH / util.EXPLORE_CANVAS_HEIGHT;
 
 // A cross-browser function to capture a mouse position.
 function mouseposition(e, dom) {

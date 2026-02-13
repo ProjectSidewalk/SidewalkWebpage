@@ -28,7 +28,7 @@ import scala.concurrent.{ExecutionContext, Future}
  * @param silhouette Silhouette authentication environment.
  * @param apiService Service for accessing API-related data.
  * @param configService Service for accessing configuration parameters.
- * @param gsvDataService Service for accessing Google Street View data.
+ * @param panoDataService Service for accessing panorama data.
  * @param labelService Service for accessing label-related data.
  * @param shapefileCreator Helper for creating shapefiles.
  * @param ec Execution context for handling asynchronous operations.
@@ -39,7 +39,7 @@ class LabelApiController @Inject() (
     val silhouette: Silhouette[models.auth.DefaultEnv],
     apiService: ApiService,
     configService: ConfigService,
-    gsvDataService: service.GsvDataService,
+    panoDataService: service.PanoDataService,
     labelService: LabelService,
     shapefileCreator: ShapefilesCreatorHelper
 )(implicit ec: ExecutionContext)
@@ -275,12 +275,12 @@ class LabelApiController @Inject() (
   /**
    * Retrieves all panorama IDs that have labels.
    *
-   * This method is an asynchronous action that fetches all panoramas with labels from the `gsvDataService`. The result
+   * This method is an asynchronous action that fetches all panoramas with labels from the `panoDataService`. The result
    * is a JSON response containing a list of panorama IDs, where each panorama is serialized into JSON format.
    *
    * @return Asynchronous result containing an HTTP response with a JSON array of pano IDs and their associated labels.
    */
   def getAllPanoIdsWithLabels = Action.async {
-    gsvDataService.getAllPanos.map { panos => Ok(Json.toJson(panos.map(p => Json.toJson(p)))) }
+    panoDataService.getAllPanos.map { panos => Ok(Json.toJson(panos.map(p => Json.toJson(p)))) }
   }
 }

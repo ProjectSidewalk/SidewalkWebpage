@@ -1,13 +1,13 @@
 /**
  * An object that can display the tags of a label.
- * 
+ *
  * @param {HTMLElement} container The DOM element to contain the label information
  * @param {String[]} tags The tags to display
- * @param {Boolean} isExpandedView a boolean switch used if the tags are displayed in expanded view or in a Card
+ * @param {boolean} isExpandedView a boolean switch used if the tags are displayed in expanded view or in a Card
  * @returns {TagDisplay} The created object
  */
 function TagDisplay(container, tags, isExpandedView=false) {
-    let self = this;
+    const self = this;
     const popoverTemplate = '<div class="popover additional-tag-popover" role="tooltip">' +
                                 '<div class="arrow"></div>' +
                                 '<h3 class="popover-title"></h3>' +
@@ -22,7 +22,7 @@ function TagDisplay(container, tags, isExpandedView=false) {
             let tagHeader = document.createElement('div');
             tagHeader.className = 'label-tags-header';
             if (isExpandedView) {
-                // Add bold weight. Find better way to do this. 
+                // Add bold weight. Find better way to do this.
                 tagHeader.classList.add('expanded-view-tag-header');
             }
 

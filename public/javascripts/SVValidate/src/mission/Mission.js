@@ -5,7 +5,7 @@
  * @constructor
  */
 function Mission(params) {
-    let self = this;
+    const self = this;
     let properties = {
         agreeCount: 0,
         disagreeCount: 0,
@@ -86,13 +86,14 @@ function Mission(params) {
             } else {
                 if (undo) {
                     labelsProgress -= 1;
-                    updateValidationResult(svv.panorama.getLastLabel().validation_result, true);
+                    const priorLabelFormData = svv.labelContainer.getPriorLabelFormData();
+                    updateValidationResult(priorLabelFormData.validation_result, true);
                     svv.statusField.decrementLabelCounts();
                     // We either have or have not submitted the last label to the backend.
-                    if (svv.labelContainer.getCurrentLabels().length > 0) {
+                    if (svv.labelContainer.getLabelsToSubmit().length > 0) {
                         svv.labelContainer.pop();
                     } else {
-                        svv.labelContainer.pushUndoValidation(svv.panorama.getLastLabel());
+                        svv.labelContainer.pushUndoValidation(priorLabelFormData);
                     }
                 } else {
                     labelsProgress += 1;

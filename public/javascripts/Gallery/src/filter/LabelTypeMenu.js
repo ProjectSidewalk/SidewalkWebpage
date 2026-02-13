@@ -7,7 +7,7 @@
  * @constructor
  */
 function LabelTypeMenu(uiLabelTypeMenu, initialLabelType) {
-    let self = this;
+    const self = this;
     let defaultType = "Assorted";
 
     let status = {
@@ -66,8 +66,8 @@ function LabelTypeMenu(uiLabelTypeMenu, initialLabelType) {
 
     /**
      * Set status attribute.
-     * 
-     * @param {*} key Status name.
+     *
+     * @param {string} key Status name.
      * @param {*} value Status value.
      */
     function setStatus(key, value) {

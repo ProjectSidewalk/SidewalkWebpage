@@ -51,8 +51,8 @@
     window.OverallStatsPreview = {
         /**
          * Configure the overall stats preview.
-         * @param {Object} options - Configuration options
-         * @returns {Object} The OverallStatsPreview object for chaining
+         * @param {object} options - Configuration options
+         * @returns {object} The OverallStatsPreview object for chaining
          */
         setup: function(options) {
             config = Object.assign(config, options);
@@ -159,7 +159,7 @@
         /**
          * Create all visualizations in the container.
          * @param {HTMLElement} container - Container element for the visualizations
-         * @param {Object} data - Overall stats data for visualizations
+         * @param {object} data - Overall stats data for visualizations
          */
         createVisualizations: function(container, data) {
 
@@ -242,7 +242,7 @@
         /**
          * Create a bar chart showing label counts by type.
          * @param {HTMLElement} container - Container element for the chart
-         * @param {Object} data - Overall stats data
+         * @param {object} data - Overall stats data
          */
         createLabelCountsChart: function(container, data) {
             // Create canvas for the chart.
@@ -324,7 +324,7 @@
         /**
          * Create a bar chart showing mean severity by label type.
          * @param {HTMLElement} container - Container element for the chart
-         * @param {Object} data - Overall stats data
+         * @param {object} data - Overall stats data
          */
         createMeanSeverityChart: function(container, data) {
             // Create canvas for the chart.
@@ -411,7 +411,7 @@
         /**
          * Create a bar chart showing accuracy by label type.
          * @param {HTMLElement} container - Container element for the chart
-         * @param {Object} data - Overall stats data
+         * @param {object} data - Overall stats data
          */
         createAccuracyChart: function(container, data) {
             // Create canvas for the chart.
@@ -501,7 +501,7 @@
         /**
          * Create an information section with overall stats summary.
          * @param {HTMLElement} container - Container element for the info section
-         * @param {Object} data - Overall stats data
+         * @param {object} data - Overall stats data
          */
         createInfoSection: function(container, data) {
             // Create info section container.

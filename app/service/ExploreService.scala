@@ -3,9 +3,10 @@ package service
 import com.google.inject.ImplementedBy
 import formats.json.ExploreFormats._
 import models.audit._
-import models.gsv._
 import models.label.{Tag, _}
 import models.mission.{Mission, MissionTable, MissionTypeTable}
+import models.pano.PanoSource.PanoSource
+import models.pano._
 import models.region.{Region, RegionCompletionTable, RegionTable}
 import models.route._
 import models.street._
@@ -16,8 +17,9 @@ import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
-import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.{Configuration, Logger}
+
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
@@ -37,8 +39,8 @@ case class ExplorePageData(
 case class ExploreTaskPostReturnValue(
     auditTaskId: Int,
     mission: Option[Mission],
-    // newLabels is a sequence of tuples containing (label_id, temporary_label_id, label_type, time_created).
-    newLabels: Seq[(Int, Int, LabelTypeEnum.Base, OffsetDateTime)],
+    // A sequence of tuples containing (label_id, temporary_label_id, label_type, pano_source, time_created).
+    newLabels: Seq[(Int, Int, LabelTypeEnum.Base, PanoSource, OffsetDateTime)],
     updatedStreets: Option[UpdatedStreets],
     refreshPage: Boolean
 )
@@ -60,12 +62,20 @@ trait ExploreService {
   def insertMultipleInteractions(interactions: Seq[AuditTaskInteraction]): Future[Unit]
 
   /**
-   * Takes data submitted from the Explore page updates the gsv_data, gsv_link, and pano_history tables accordingly.
-   * @param gsvPanoramas All pano-related data submitted from the Explore page front-end.
+   * Takes data submitted from the Explore page updates the pano_data, pano_link, and pano_history tables accordingly.
+   * @param panos All pano-related data submitted from the Explore page front-end.
    */
-  def savePanoInfo(gsvPanoramas: Seq[GsvPanoramaSubmission]): Future[Unit]
+  def savePanoInfo(panos: Seq[PanoSubmission]): Future[Unit]
   def insertComment(comment: AuditTaskComment): Future[Int]
-  def insertNoGsv(streetIssue: StreetEdgeIssue): Future[Int]
+
+  /**
+   * Logs to the street_edge_issue table and marks the task as complete as if it were completed normally.
+   * @param taskSubmission The audit task associated to be marked as complete
+   * @param streetIssue The StreetIssue object to submit
+   * @param missionId The mission_id for the task
+   * @return The number of rows added to the street_edge_issue table (should always be 1)
+   */
+  def insertNoImagery(taskSubmission: TaskSubmission, streetIssue: StreetEdgeIssue, missionId: Int): Future[Int]
 
   /**
    * Inserts a set of AI-generated labels into the database, filling in appropriate tables with dummy data.
@@ -102,6 +112,7 @@ trait ExploreService {
 @Singleton
 class ExploreServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
+    val config: Configuration,
     configTable: ConfigTable,
     missionService: MissionService,
     regionTable: RegionTable,
@@ -115,15 +126,14 @@ class ExploreServiceImpl @Inject() (
     auditTaskTable: AuditTaskTable,
     auditTaskEnvironmentTable: AuditTaskEnvironmentTable,
     auditTaskInteractionTable: AuditTaskInteractionTable,
-    auditTaskIncompleteTable: AuditTaskIncompleteTable,
     auditTaskCommentTable: AuditTaskCommentTable,
     auditTaskUserRouteTable: AuditTaskUserRouteTable,
     streetEdgePriorityTable: StreetEdgePriorityTable,
     regionCompletionTable: RegionCompletionTable,
     streetEdgeTable: StreetEdgeTable,
     streetEdgeRegionTable: StreetEdgeRegionTable,
-    gsvDataTable: GsvDataTable,
-    gsvLinkTable: GsvLinkTable,
+    panoDataTable: PanoDataTable,
+    panoLinkTable: PanoLinkTable,
     panoHistoryTable: PanoHistoryTable,
     labelAiInfoTable: LabelAiInfoTable,
     streetEdgeIssueTable: StreetEdgeIssueTable,
@@ -320,6 +330,7 @@ class ExploreServiceImpl @Inject() (
 
   /**
    * Insert or update the submitted audit task in the database.
+   * @return {Int} auditTaskId
    */
   private def updateAuditTaskTable(userId: String, task: TaskSubmission, missionId: Int): DBIO[Int] = {
     val timestamp: OffsetDateTime = OffsetDateTime.now
@@ -389,7 +400,7 @@ class ExploreServiceImpl @Inject() (
       auditTaskId: Int,
       taskStreetId: Int,
       missionId: Int
-  ): DBIO[(Int, Int, LabelTypeEnum.Base, OffsetDateTime)] = {
+  ): DBIO[(Int, Int, LabelTypeEnum.Base, PanoSource, OffsetDateTime)] = {
     // Get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp.
     val timeCreated: OffsetDateTime = label.timeCreated match {
       case Some(time) => time
@@ -420,7 +431,7 @@ class ExploreServiceImpl @Inject() (
           auditTaskId = auditTaskId,
           missionId = missionId,
           userId = userId,
-          gsvPanoramaId = label.gsvPanoramaId,
+          panoId = label.panoId,
           labelTypeId = LabelTypeEnum.labelTypeToId(label.labelType),
           deleted = label.deleted,
           temporaryLabelId = label.temporaryLabelId,
@@ -443,41 +454,37 @@ class ExploreServiceImpl @Inject() (
           point.zoom, point.lat, point.lng, pointGeom, point.computationMethod)
       )
     } yield {
-      (newLabelId, label.temporaryLabelId, LabelTypeEnum.byName(label.labelType), timeCreated)
+      (newLabelId, label.temporaryLabelId, LabelTypeEnum.byName(label.labelType), label.panoSource, timeCreated)
     }
   }
 
-  def savePanoInfo(gsvPanoramas: Seq[GsvPanoramaSubmission]): Future[Unit] = {
+  def savePanoInfo(panos: Seq[PanoSubmission]): Future[Unit] = {
     val currTime: OffsetDateTime = OffsetDateTime.now
-    val panoSubmissionActions    = gsvPanoramas.map { pano: GsvPanoramaSubmission =>
+    val panoSubmissionActions    = panos.map { pano: PanoSubmission =>
       (for {
-        // Insert new entry to gsv_data table, or update the last_viewed/checked columns if we've already recorded it.
-        panoExists: Boolean <- gsvDataTable.panoramaExists(pano.gsvPanoramaId)
+        // Insert new entry to pano_data table, or update the last_viewed/checked columns if we've already recorded it.
+        panoExists: Boolean <- panoDataTable.panoramaExists(pano.panoId)
         _                   <-
           if (panoExists) {
-            gsvDataTable.updateFromExplore(pano.gsvPanoramaId, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch,
+            panoDataTable.updateFromExplore(pano.panoId, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch,
               expired = false, currTime, Some(currTime))
           } else {
-            gsvDataTable.insert(
-              GsvData(pano.gsvPanoramaId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
+            panoDataTable.insert(
+              PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
                 pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, expired = false, currTime,
-                Some(currTime), currTime)
+                Some(currTime), currTime, pano.source)
             )
           }
       } yield {
         // Once panorama is saved, save the links and history.
         val panoLinkInserts = pano.links.map { link =>
-          gsvLinkTable.linkExists(pano.gsvPanoramaId, link.targetGsvPanoramaId).map {
-            case false =>
-              gsvLinkTable.insert(GsvLink(pano.gsvPanoramaId, link.targetGsvPanoramaId, link.yawDeg, link.description))
-            case true => DBIO.successful("")
-          }
+          panoLinkTable.insertIfNew(PanoLink(pano.panoId, link.targetPanoId, link.yawDeg, link.description))
         }
         val panoHistoryInserts = pano.history.map { h =>
-          panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, pano.gsvPanoramaId))
+          panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, pano.panoId))
         }
 
-        // Run the gsv_link and pano_history inserts in parallel.
+        // Run the pano_link and pano_history inserts in parallel.
         DBIO.sequence(panoLinkInserts).zip(DBIO.sequence(panoHistoryInserts)).map(_ => ())
       }).flatten
     }
@@ -488,8 +495,13 @@ class ExploreServiceImpl @Inject() (
     db.run(auditTaskCommentTable.insert(comment))
   }
 
-  def insertNoGsv(streetIssue: StreetEdgeIssue): Future[Int] = {
-    db.run(streetEdgeIssueTable.insert(streetIssue))
+  def insertNoImagery(taskSubmission: TaskSubmission, streetIssue: StreetEdgeIssue, missionId: Int): Future[Int] = {
+    db.run(for {
+      auditTaskId                 <- updateAuditTaskTable(streetIssue.userId, taskSubmission, missionId)
+      newPriority: Option[Double] <- updateStreetPriority(streetIssue.streetEdgeId, streetIssue.userId)
+      atRowsUpdated: Int          <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
+      nIssues                     <- streetEdgeIssueTable.insert(streetIssue)
+    } yield nIssues)
   }
 
   /**
@@ -531,11 +543,11 @@ class ExploreServiceImpl @Inject() (
     val labelSubmitActions = DBIO.sequence {
       data.labels.map { label =>
         // Calculate the label's lat/lng and theoretical user's heading/pitch from its panoX/panoY coordinates.
-        val pov = GsvDataService.calculatePovFromPanoXY(label.panoX, label.panoY, pano.width.get, pano.height.get,
+        val pov = PanoDataService.calculatePovFromPanoXY(label.panoX, label.panoY, pano.width.get, pano.height.get,
           pano.cameraHeading.get.toDouble)
         val canvasX = LabelPointTable.canvasWidth / 2
         val canvasY = LabelPointTable.canvasHeight / 2
-        val latLng  = GsvDataService.toLatLng(pano.lat.get.toDouble, pano.lng.get.toDouble, pov.heading, pov.zoom,
+        val latLng  = PanoDataService.toLatLng(pano.lat.get.toDouble, pano.lng.get.toDouble, pov.heading, pov.zoom,
           canvasX, canvasY, label.panoY, pano.height.get)
         for {
           // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
@@ -550,7 +562,8 @@ class ExploreServiceImpl @Inject() (
             heading = pov.heading.toFloat, pitch = pov.pitch.toFloat, pov.zoom, lat = Some(latLng._1.toFloat),
             lng = Some(latLng._2.toFloat), computationMethod = Some("approximation2"))
           labelSubmission: LabelSubmission = LabelSubmission(
-            gsvPanoramaId = pano.gsvPanoramaId,
+            panoId = pano.panoId,
+            panoSource = pano.source,
             auditTaskId = auditTaskId,
             labelType = data.labelType,
             deleted = false,
@@ -579,11 +592,9 @@ class ExploreServiceImpl @Inject() (
 
     // Update the audit_task table and get the audit_task_id. This is needed to submit all other data.
     db.run(updateAuditTaskTable(userId, data.auditTask, missionId).flatMap { auditTaskId: Int =>
-      // If task is complete or the user skipped with `GSVNotAvailable`, mark the task as complete.
+      // If task is complete, mark it in the db and update the street priority.
       val taskCompletedAction: DBIO[Int] =
-        if (
-          data.auditTask.completed.getOrElse(false) || data.incomplete.exists(_.issueDescription == "GSVNotAvailable")
-        ) {
+        if (data.auditTask.completed.getOrElse(false)) {
           for {
             newPriority: Option[Double] <- updateStreetPriority(streetEdgeId, userId)
             atRowsUpdated: Int          <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
@@ -605,17 +616,9 @@ class ExploreServiceImpl @Inject() (
       val updateMissionAction: DBIO[Option[Mission]] =
         missionService.updateMissionTableExplore(userId, data.missionProgress)
 
-      // Insert the skip information.
-      val taskIncompleteAction: DBIO[Int] = if (data.incomplete.isDefined) {
-        val incomplete: IncompleteTaskSubmission = data.incomplete.get
-        auditTaskIncompleteTable.insert(
-          AuditTaskIncomplete(0, auditTaskId, missionId, incomplete.issueDescription, incomplete.lat, incomplete.lng)
-        )
-      } else DBIO.successful(0)
-
       // Insert any labels.
-      val labelSubmitActions: Seq[DBIO[Option[(Int, Int, LabelTypeEnum.Base, OffsetDateTime)]]] = data.labels.map {
-        label: LabelSubmission =>
+      val labelSubmitActions: Seq[DBIO[Option[(Int, Int, LabelTypeEnum.Base, PanoSource, OffsetDateTime)]]] =
+        data.labels.map { label: LabelSubmission =>
           val labelTypeId: Int = LabelTypeEnum.labelTypeToId(label.labelType)
           labelTable.find(label.temporaryLabelId, userId).flatMap {
             case Some(existingLabel) =>
@@ -639,7 +642,7 @@ class ExploreServiceImpl @Inject() (
             // If there is no existing label with this temp id, insert a new one.
             case None => insertLabel(label, userId, auditTaskId, streetEdgeId, missionId).map(Some(_))
           }
-      }
+        }
 
       // Check for streets in the user's neighborhood that have been audited by other users while they were auditing.
       val updatedStreetsAction: DBIO[Option[UpdatedStreets]] =
@@ -657,10 +660,9 @@ class ExploreServiceImpl @Inject() (
       taskCompletedAction
         .zip(userRouteAction)
         .zip(updateMissionAction)
-        .zip(taskIncompleteAction)
         .zip(DBIO.sequence(labelSubmitActions))
         .zip(updatedStreetsAction)
-        .map { case (((((_, _), possibleNewMission), _), newLabels), updatedStreets) =>
+        .map { case ((((_, _), possibleNewMission), newLabels), updatedStreets) =>
           ExploreTaskPostReturnValue(auditTaskId, possibleNewMission, newLabels.flatten, updatedStreets, refreshPage)
         }
     }.transactionally)

@@ -1,8 +1,8 @@
 /**
  * Central function that handles the creation of choropleths and maps.
  *
- * @param {Object} $ - Allows the use of jQuery.
- * @param {Object} params - Properties that can change the process of choropleth creation.
+ * @param {object} $ - Allows the use of jQuery.
+ * @param {object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {string} params.mapStyle - URL of a Mapbox style.
  * @param {string} [params.mapboxApiKey] - Mapbox API key to use for the map.
@@ -23,7 +23,7 @@
  * @param {boolean} [params.interactiveStreets=false] - Whether to include hover/click interactions on the streets.
  * @param {boolean} [params.includeLabelCounts=false] - Whether to include label counts for each type in the legend.
  * @param {boolean} [params.differentiateExpiredLabels=false] - Whether to color expired labels differently.
- * @param {Object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
+ * @param {object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
  * @return {Promise} - Promise that resolves all components of map have loaded.
  */
 function CreatePSMap($, params) {
@@ -97,7 +97,7 @@ function CreatePSMap($, params) {
 
     /**
      * Create the Mapbox map object and attach a custom logging function to it.
-     * @param {Object} mapParamData - Map configuration parameters from the /cityMapParams endpoint.
+     * @param {object} mapParamData - Map configuration parameters from the /cityMapParams endpoint.
      * @returns {Promise} - Promise that resolves with the Mapbox map once it has loaded.
      */
     function createMap(mapParamData) {

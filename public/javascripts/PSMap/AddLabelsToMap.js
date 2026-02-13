@@ -2,14 +2,14 @@
  * Adds labels to the map and returns a promise.
  *
  * @param map Map on which the streets are rendered.
- * @param {Object} map The Mapbox map object.
- * @param {Object} labelData - GeoJSON object containing labels to draw on the map.
- * @param {Object} params - Properties that can change the process of choropleth creation.
+ * @param {object} map The Mapbox map object.
+ * @param {object} labelData - GeoJSON object containing labels to draw on the map.
+ * @param {object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
  * @param {boolean} [params.includeLabelCounts=false] - Whether to include label counts for each type in the legend.
  * @param {boolean} [params.differentiateExpiredLabels=false] - Whether to color expired labels differently.
- * @param {Object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
+ * @param {object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
  * @returns {Promise} Promise that resolves with all layer names when the labels have been added to the map.
  */
 function AddLabelsToMap(map, labelData, params) {
@@ -60,8 +60,8 @@ function AddLabelsToMap(map, labelData, params) {
 
     // Set up the label hover and popup functionality.
     if (params.popupLabelViewer) {
-        map.on('click', Object.values(mapData.layerNames).flat(), (event) => {
-            params.popupLabelViewer.showLabel(event.features[0].properties.label_id);
+        map.on('click', Object.values(mapData.layerNames).flat(), async (event) => {
+            await params.popupLabelViewer.showLabel(event.features[0].properties.label_id);
         });
 
         let hoveredLab = null;

@@ -17,7 +17,7 @@ case class LabelPoint(
     canvasY: Int,
     heading: Float,
     pitch: Float,
-    zoom: Int,
+    zoom: Double,
     lat: Option[Float],
     lng: Option[Float],
     geom: Option[Point],
@@ -33,7 +33,7 @@ class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "
   def canvasY: Rep[Int]                      = column[Int]("canvas_y")
   def heading: Rep[Float]                    = column[Float]("heading")
   def pitch: Rep[Float]                      = column[Float]("pitch")
-  def zoom: Rep[Int]                         = column[Int]("zoom")
+  def zoom: Rep[Double]                      = column[Double]("zoom")
   def lat: Rep[Option[Float]]                = column[Option[Float]]("lat")
   def lng: Rep[Option[Float]]                = column[Option[Float]]("lng")
   def geom: Rep[Option[Point]]               = column[Option[Point]]("geom")

@@ -19,6 +19,8 @@
     "disagree": "Het oneens zijn",
     "unsure": "Onzeker",
     "surface-problems": "Oppervlakte problemen",
+    "sign-up": "Een account maken",
+    "sign-in": "Log in",
     "complete": "voltooid",
     "map": {
         "distance-left": "Nog maar {{n}} kilometer te gaan!",
@@ -36,9 +38,8 @@
     },
     "errors": {
         "title": "Oeps, onze fout, maar er zijn geen afbeeldingen meer beschikbaar voor dit label.",
-        "explanation": "We gebruiken de Google Maps API om de stoepafbeeldingen weer te geven en soms verwijdert Google deze afbeeldingen zodat we er niet meer bij kunnen. Sorry daarvoor.",
-        "google-connect-error": "We hadden problemen met het verbinden met Google Street View, probeer het later opnieuw!",
-        "explore-street": "Verken de straat</a> opnieuw om de nieuwere afbeeldingen van Google te gebruiken!"
+        "explanation": "We ondervinden problemen met de toegang tot de website die deze afbeelding aanbiedt, of de afbeelding is verwijderd.",
+        "explore-street": "Verken de straat</a> opnieuw om nieuwere afbeeldingen te gebruiken!"
     },
     "severity": "Ernst",
     "severity-example-tooltip-1": "Voorbeeld van lage ernst",
@@ -56,6 +57,7 @@
     "yes": "Ja",
     "no": "Nee",
     "ai-disclaimer": "AI heeft dit label geanalyseerd en gestemd op \"$t({{aiVal}})\". AI kan echter fouten maken. Maak uw eigen beoordeling.",
+    "ai-generated-label-tooltip": "Dit label is door AI gemaakt. AI kan fouten maken, dus maak uw eigen beoordeling.",
     "tag": {
         "narrow": "smal",
         "points into traffic": "punten in het kruisende verkeer",
@@ -133,7 +135,8 @@
         "cart": "kar",
         "drainage": "drainage",
         "electrical box": "elektrische doos",
-        "too dirty/cluttered": "te vuil/rommelig"
+        "too dirty/cluttered": "te vuil/rommelig",
+        "yellow box, accessibility features not visible": "gele kader, toegankelijkheidsfuncties niet zichtbaar"
     },
     "gsv-info": {
         "details-title": "Details",

@@ -1,13 +1,15 @@
 /**
- * An ExpandedView element that provides extended information about a label, along with placing a label in a GSV Panorama
+ * An ExpandedView element that provides extended information about a label, along with placing a label in a Panorama
  * to aid the user in contextualizing the location of labels.
  *
  * @param {HTMLElement} uiModal The container for the ExpandedView in the DOM
+ * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
+ * @param {string} viewerAccessToken An access token used to request images for the pano viewer
  * @returns
  */
-function ExpandedView(uiModal) {
+async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
 
-    let self = this;
+    const self = this;
 
     const cardsPerPage = 9;
     const unselectedCardClassName = "expanded-view-background-card";
@@ -34,35 +36,12 @@ function ExpandedView(uiModal) {
         }
     });
 
-    // Properties of the label in the card.
-    let properties = {
-        label_id: undefined,
-        label_type: undefined,
-        gsv_panorama_id: undefined,
-        image_capture_date: undefined,
-        label_timestamp: undefined,
-        heading: undefined,
-        pitch: undefined,
-        zoom: undefined,
-        original_canvas_x: undefined,
-        original_canvas_y: undefined,
-        severity: undefined,
-        description: undefined,
-        street_edge_id: undefined,
-        region_id: undefined,
-        val_counts: undefined,
-        correctness: undefined,
-        user_validation: undefined,
-        ai_validation: undefined,
-        tags: []
-    };
-
     /**
      * Initialization function for the ExpandedView. Serves to bind the DOM elements of the ExpandedView to class
-     * variables for future access when populating the fields. It also instantiates the GSV panorama in the specified
+     * variables for future access when populating the fields. It also instantiates the panorama in the specified
      * location of the ExpandedView.
      */
-    function _init() {
+    async function _init() {
         self.open = false;
         self.panoHolder = $('.actual-pano');
         self.tags = $('.gallery-expanded-view-info-tags');
@@ -71,7 +50,7 @@ function ExpandedView(uiModal) {
         self.validation_info = $('.gallery-expanded-view-info-validation');
         self.description = $('.gallery-expanded-view-info-description');
         self.header = $('.gallery-expanded-view-header');
-        self.pano = new GalleryPanorama(self.panoHolder);
+        self.panoManager = await PanoManager.create(self.panoHolder[0], panoViewerType, viewerAccessToken);
         self.closeButton = $('.gallery-expanded-view-close');
         self.leftArrow = $('#prev-label');
         self.leftArrowDisabled = false;
@@ -82,7 +61,8 @@ function ExpandedView(uiModal) {
         self.rightArrow.click(function() { nextLabel(false); });
         self.leftArrow.click(function() { previousLabel(false); });
         self.cardIndex = -1;
-        self.validationMenu = new ValidationMenu(null, self.panoHolder, null, self, true);
+        self.refCard = null;
+        self.validationMenu = new ValidationMenu(null, self.panoHolder, self, true);
 
         attachEventHandlers();
     }
@@ -137,35 +117,40 @@ function ExpandedView(uiModal) {
      * Populates the information in the expanded view.
      */
     function populateExpandedViewDescriptionFields() {
+        const labelProps = self.refCard.getProperties();
+
         // Add timestamp data for when label was placed and when pano was created.
         self.labelTimestampData = document.createElement('div');
         self.labelTimestampData.className = 'label-timestamp';
-        self.labelTimestampData.innerHTML = `<div>${i18next.t('labeled')}: ${properties.label_timestamp.format('LL, LT')}</div>`;
+        self.labelTimestampData.innerHTML =
+            `<div>${i18next.t('labeled')}: ${labelProps.label_timestamp.format('LL, LT')}</div>`;
         let panoTimestampData = document.createElement('div');
         panoTimestampData.className = 'pano-timestamp';
-        panoTimestampData.innerHTML = `<div>${i18next.t('image-capture-date')}: ${properties.image_capture_date.format('MMM YYYY')}</div>`;
+        panoTimestampData.innerHTML =
+            `<div>${i18next.t('image-capture-date')}: ${labelProps.image_capture_date.format('MMM YYYY')}</div>`;
         self.timestamps.append(self.labelTimestampData);
         self.timestamps.append(panoTimestampData);
 
         // Add info button to the right of the label timestamp.
-        let getPanoId = sg.expandedView().pano.getPanoId;
-        self.infoPopover = new GSVInfoPopover(self.labelTimestampData, sg.expandedView().pano.panorama,
-            sg.expandedView().pano.getPosition, getPanoId,
-            function() { return properties['street_edge_id']; }, function() { return properties['region_id']; },
-            function() { return properties['image_capture_date']; },
-            function() { return self.pano.panorama.location.shortDescription; }, sg.expandedView().pano.getPov,
-            sg.cityName, false, function() { sg.tracker.push('GSVInfoButton_Click', { panoId: getPanoId() }); },
-            function() { sg.tracker.push('GSVInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
-            function() { sg.tracker.push('GSVInfoViewInGSV_Click', { panoId: getPanoId() }); },
-            function() { return properties['label_id']; }, function() { return properties['label_timestamp']; }
+        let getPanoId = sg.panoViewer.getPanoId;
+        self.infoPopover = new PanoInfoPopover(
+            self.labelTimestampData, sg.panoViewer, sg.panoViewer.getPosition, getPanoId,
+            function() { return labelProps.street_edge_id; }, function() { return labelProps.region_id; },
+            function() { return labelProps.image_capture_date; },
+            function() { return sg.panoStore.getPanoData(getPanoId()).getProperty('address'); },
+            sg.panoViewer.getPov, sg.cityName, false,
+            function() { sg.tracker.push('PanoInfoButton_Click', { panoId: getPanoId() }); },
+            function() { sg.tracker.push('PanoInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
+            function() { sg.tracker.push('PanoInfoViewInPano_Click', { panoId: getPanoId() }); },
+            function() { return labelProps.label_id; }, function() { return labelProps.label_timestamp; }
         );
 
         // Add severity, validation info, and tag display to the expanded view.
-        new SeverityDisplay(self.severity, properties.severity, properties.label_type, true);
+        new SeverityDisplay(self.severity, labelProps.severity, labelProps.label_type, true);
         self.validationInfoDisplay = new ValidationInfoDisplay(
-            self.validation_info, properties.val_counts['Agree'], properties.val_counts['Disagree'], properties.ai_validation, true
+            self.validation_info, labelProps.val_counts.Agree, labelProps.val_counts.Disagree, labelProps.ai_validation, true
         );
-        new TagDisplay(self.tags, properties.tags, true);
+        new TagDisplay(self.tags, labelProps.tags, true);
         self.validationMenu.addExpandedViewValInfoOnClicks(self.validationInfoDisplay);
 
         // Add the information about the description of the label to the expanded view.
@@ -174,7 +159,7 @@ function ExpandedView(uiModal) {
         descriptionHeader.innerHTML = i18next.t("description");
         let descriptionBody = document.createElement('div');
         descriptionBody.className = 'expanded-view-description-body';
-        descriptionBody.textContent = properties.description === null ? i18next.t('no-description') : properties.description;
+        descriptionBody.textContent = labelProps.description === null ? i18next.t('no-description') : labelProps.description;
         self.description.append(descriptionHeader);
         self.description.append(descriptionBody);
     }
@@ -183,15 +168,19 @@ function ExpandedView(uiModal) {
      * Performs the actions needed to open the expanded view.
      */
     function openExpandedView() {
+        // Load the pano and then render the label.
+        self.panoManager.setPano(self.refCard.getProperty('pano_id'), self.refCard.getProperty('pov'))
+            .then(() => { self.panoManager.renderLabel(self.label) });
+
+        // Update the text various fields shown below the pano.
         resetExpandedView();
-        self.open = true;
         populateExpandedViewDescriptionFields();
-        self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
-        self.pano.renderLabel(self.label);
-        self.header.text(i18next.t(util.camelToKebab(properties.label_type)));
+        self.header.text(i18next.t(util.camelToKebab(self.refCard.getLabelType())));
 
         // Highlight selected card thumbnail.
-        highlightThumbnail(document.getElementById("gallery_card_" + properties.label_id));
+        highlightThumbnail(document.getElementById("gallery_card_" + self.refCard.getLabelId()));
+
+        self.open = true;
     }
 
     function highlightThumbnail(galleryCard) {
@@ -224,7 +213,7 @@ function ExpandedView(uiModal) {
         let currentPageCards = sg.cardContainer.getCurrentPageCards();
         for (let card of currentPageCards) {
             let cardLabelId = card.getLabelId();
-            if (cardLabelId !== properties.label_id) {
+            if (cardLabelId !== self.refCard.getLabelId()) {
                 let cardDomEl = document.getElementById("gallery_card_" + cardLabelId);
                 if (!cardDomEl.classList.contains(unselectedCardClassName)) {
                     cardDomEl.classList.add(unselectedCardClassName);
@@ -233,37 +222,14 @@ function ExpandedView(uiModal) {
         }
     }
 
-    /**
-     * Updates the local variables to the properties of a new label and creates a new GalleryPanoramaLabel object.
-     *
-     * @param newProps The new properties to push into the ExpandedView
-     */
-    function updateProperties(newProps) {
-        for (const attrName in newProps) {
-            // Add all the properties. Format the timestamps using the moment library.
-            if (attrName === 'label_timestamp' || attrName === 'image_capture_date') {
-                properties[attrName] = moment(newProps[attrName]);
-            } else if (newProps.hasOwnProperty(attrName) && properties.hasOwnProperty(attrName)) {
-                properties[attrName] = newProps[attrName];
-            }
-        }
-        self.label = new GalleryPanoramaLabel(
-            properties.label_id, properties.label_type, properties.original_canvas_x, properties.original_canvas_y,
-            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, properties.heading, properties.pitch, properties.zoom
-        );
-
-        self.validationMenu.updateCardProperties(properties);
-        self.validationMenu.updateReferenceCard(sg.cardContainer.getCardByIndex(self.cardIndex));
-    }
-
-    function getProperty(key) {
-        return properties[key];
+    function getReferenceCard() {
+        return self.refCard;
     }
 
     /**
      * Updates the index of the current label being displayed in the expanded view.
      *
-     * @param {Number} newIndex The new index of the card being displayed
+     * @param {number} newIndex The new index of the card being displayed
      */
     function updateCardIndex(newIndex) {
         updateExpandedViewCardByIndex(newIndex);
@@ -272,7 +238,7 @@ function ExpandedView(uiModal) {
     /**
      * Tries to update the current card to the given input index.
      *
-     * @param {Number} index The index of the card to update to
+     * @param {number} index The index of the card to update to
      */
     function updateExpandedViewCardByIndex(index) {
         self.leftArrow.prop('disabled', false);
@@ -280,7 +246,14 @@ function ExpandedView(uiModal) {
         self.rightArrow.prop('disabled', false);
         self.rightArrowDisabled = false;
         self.cardIndex = index;
-        updateProperties(sg.cardContainer.getCardByIndex(index).getProperties());
+        self.refCard = sg.cardContainer.getCardByIndex(self.cardIndex);
+        self.validationMenu.updateReferenceCard(self.refCard);
+        const labelProps = self.refCard.getProperties();
+        self.label = new ExpandedLabel(
+            labelProps.label_id, labelProps.label_type, labelProps.original_canvas_x, labelProps.original_canvas_y,
+            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, labelProps.pov, labelProps.ai_generated
+        );
+
         openExpandedView();
         if (self.cardIndex === 0) {
             self.leftArrow.prop('disabled', true);
@@ -300,7 +273,7 @@ function ExpandedView(uiModal) {
 
     /**
      * Moves to the next label.
-     * @param keyboardShortcut {Boolean} Whether the action came from a keyboard shortcut.
+     * @param keyboardShortcut {boolean} Whether the action came from a keyboard shortcut.
      */
     function nextLabel(keyboardShortcut) {
         sg.tracker.push(`NextLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
@@ -326,7 +299,7 @@ function ExpandedView(uiModal) {
 
     /**
      * Moves to the previous label.
-     * @param keyboardShortcut {Boolean} Whether the action came from a keyboard shortcut.
+     * @param keyboardShortcut {boolean} Whether the action came from a keyboard shortcut.
      */
     function previousLabel(keyboardShortcut) {
         sg.tracker.push(`PrevLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
@@ -347,32 +320,6 @@ function ExpandedView(uiModal) {
 
             // Start observing the target node for configured mutations.
             observer.observe(cardHolder, { childList: true });
-        }
-    }
-
-    // Increment zoom by 1 or to the maximum zoom level (3).
-    function zoomIn() {
-        if (self.open) {
-            sg.tracker.push("KeyboardShortcutZoomIn");
-            const panorama = self.pano.panorama;
-            if (panorama) {
-                const currentZoom = panorama.getZoom();
-                const newZoom = Math.min(3, currentZoom + 1);
-                panorama.setZoom(newZoom);
-            }
-        }
-    }
-
-    // Decrement zoom level by 1 or to the minimum zoom level (1).
-    function zoomOut() {
-        if (self.open) {
-            sg.tracker.push("KeyboardShortcutZoomOut");
-            const panorama = self.pano.panorama;
-            if (panorama) {
-                const currentZoom = panorama.getZoom();
-                const newZoom = Math.max(1, currentZoom - 1);
-                panorama.setZoom(newZoom);
-            }
         }
     }
 
@@ -418,15 +365,13 @@ function ExpandedView(uiModal) {
         });
     }
 
-    _init();
+    await _init();
 
     self.closeExpandedView = closeExpandedView;
     self.updateCardIndex = updateCardIndex;
-    self.getProperty = getProperty;
+    self.getReferenceCard = getReferenceCard;
     self.nextLabel = nextLabel;
     self.previousLabel = previousLabel;
-    self.zoomIn = zoomIn;
-    self.zoomOut = zoomOut;
     self.closeExpandedViewAndRemoveCardTransparency = closeExpandedViewAndRemoveCardTransparency;
 
 

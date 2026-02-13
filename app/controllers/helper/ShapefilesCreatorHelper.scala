@@ -249,7 +249,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       "the_geom:Point:srid=4326," // The geometry attribute: Point type
       + "labelId:Integer,"        // Label ID
       + "userId:String,"          // User ID
-      + "gsvPanoId:String,"       // GSV Panorama ID
+      + "panoId:String,"          // Pano ID
       + "labelType:String,"       // Label type
       + "severity:Integer,"       // Severity
       + "tags:String,"            // Tags list
@@ -279,7 +279,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "panoHeight:Integer,"     // Panorama height
       + "cameraHdng:Double,"      // Camera heading
       + "cameraPtch:Double,"      // Camera pitch
-      + "gsvUrl:String"           // GSV URL
+      + "imageUrl:String"         // Pano URL
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -291,7 +291,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       // Add all attributes
       featureBuilder.add(label.labelId)
       featureBuilder.add(label.userId)
-      featureBuilder.add(label.gsvPanoramaId)
+      featureBuilder.add(label.panoId)
       featureBuilder.add(label.labelType)
       featureBuilder.add(label.severity.orNull)
       featureBuilder.add(label.tags.mkString("[", ",", "]"))
@@ -326,7 +326,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.panoHeight.orNull)
       featureBuilder.add(label.cameraHeading.orNull)
       featureBuilder.add(label.cameraPitch.orNull)
-      featureBuilder.add(label.gsvUrl)
+      featureBuilder.add(label.imageUrl)
 
       featureBuilder.buildFeature(null)
     }
@@ -414,7 +414,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       "the_geom:Point:srid=4326," // the geometry attribute: Point type
       + "label_id:Integer,"       // label ID
       + "user_id:String,"         // User Id
-      + "gsv_pano_id:String,"     // GSV Panorama ID
+      + "gsv_pano_id:String,"     // Pano ID
       + "label_type:String,"      // Label type
       + "severity:Integer,"       // Severity
       + "tags:String,"            // Label Tags
@@ -444,7 +444,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "pano_height:Integer,"    // Panorama height
       + "camera_heading:Double,"  // Camera heading
       + "camera_pitch:Double,"    // Camera pitch
-      + "gsv_url:String"          // GSV URL
+      + "image_url:String"        // Pano URL
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -457,7 +457,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
       featureBuilder.add(label.labelId)
       featureBuilder.add(label.userId)
-      featureBuilder.add(label.gsvPanoramaId)
+      featureBuilder.add(label.panoId)
       featureBuilder.add(label.labelType)
       featureBuilder.add(label.severity.map(Integer.valueOf).orNull)
       featureBuilder.add(label.tags.mkString("[", ",", "]"))
@@ -476,7 +476,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.imageCaptureDate.orNull)
       featureBuilder.add(label.heading.orNull)
       featureBuilder.add(label.pitch.orNull)
-      featureBuilder.add(label.zoom.map(Integer.valueOf).orNull)
+      featureBuilder.add(label.zoom.orNull)
       featureBuilder.add(label.canvasX.map(Integer.valueOf).orNull)
       featureBuilder.add(label.canvasY.map(Integer.valueOf).orNull)
       featureBuilder.add(label.canvasWidth.map(Integer.valueOf).orNull)
@@ -487,7 +487,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.panoHeight.map(Integer.valueOf).orNull)
       featureBuilder.add(label.cameraHeading.orNull)
       featureBuilder.add(label.cameraPitch.orNull)
-      featureBuilder.add(label.gsvUrl)
+      featureBuilder.add(label.imageUrl)
       featureBuilder.buildFeature(null)
     }
 

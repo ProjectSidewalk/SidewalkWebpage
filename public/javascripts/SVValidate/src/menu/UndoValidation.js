@@ -9,7 +9,7 @@ function UndoValidation (uiUndo) {
     let status = {
         disableUndo: false
     };
-    let self = this;
+    const self = this;
 
     /**
      * Enables the undo button (makes button clickable).
@@ -27,7 +27,6 @@ function UndoValidation (uiUndo) {
         status.disableUndo = true;
         uiUndo.undoButton.prop("disabled", true);
         if (!svv.expertValidate) uiUndo.undoButton.addClass("disabled");
-        svv.panorama.setLastLabel({});
     }
 
     /**
@@ -37,7 +36,7 @@ function UndoValidation (uiUndo) {
         svv.tracker.push("ModalUndo_Click");
         svv.missionContainer.updateAMissionUndoValidation();
         if (svv.expertValidate) svv.rightMenu.saveValidationState();
-        svv.panorama.undoLabel();
+        svv.labelContainer.undoLabel();
         disableUndo();
     }
 

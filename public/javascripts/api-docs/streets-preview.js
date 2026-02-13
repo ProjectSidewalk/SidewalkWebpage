@@ -70,8 +70,8 @@
     window.StreetsPreview = {
         /**
          * Configure the streets preview.
-         * @param {Object} options - Configuration options
-         * @returns {Object} The StreetsPreview object for chaining
+         * @param {object} options - Configuration options
+         * @returns {object} The StreetsPreview object for chaining
          */
         setup: function(options) {
             config = Object.assign(config, options);
@@ -246,7 +246,7 @@
 
         /**
          * Calculate center of a region from its geometry.
-         * @param {Object} region - Region data with geometry
+         * @param {object} region - Region data with geometry
          * @returns {Array} [lat, lon] center coordinates
          */
         getCenterFromRegion: function(region) {
@@ -300,9 +300,9 @@
         /**
          * Create a Leaflet map with darkened background.
          * @param {HTMLElement} container - Container element for the map
-         * @param {Object} regionData - Data about the region to display
+         * @param {object} regionData - Data about the region to display
          * @param {string} mapType - Type identifier for the map
-         * @returns {Object} The Leaflet map object
+         * @returns {object} The Leaflet map object
          */
         createMap: function(container, regionData, mapType) {
             const mapElement = document.createElement('div');
@@ -489,9 +489,9 @@
 
         /**
          * Display streets on the user count map.
-         * @param {Object} map - The Leaflet map object
-         * @param {Object} streets - GeoJSON data containing the street segments
-         * @param {Object} regionData - Data about the region being displayed
+         * @param {object} map - The Leaflet map object
+         * @param {object} streets - GeoJSON data containing the street segments
+         * @param {object} regionData - Data about the region being displayed
          */
         displayUserCountMap: function(map, streets, regionData) {
             if (!streets.features || streets.features.length === 0) {
@@ -600,9 +600,9 @@
 
         /**
          * Display streets on the audit age map.
-         * @param {Object} map - The Leaflet map object
-         * @param {Object} streets - GeoJSON data containing the street segments
-         * @param {Object} regionData - Data about the region being displayed
+         * @param {object} map - The Leaflet map object
+         * @param {object} streets - GeoJSON data containing the street segments
+         * @param {object} regionData - Data about the region being displayed
          */
         displayAuditAgeMap: function(map, streets, regionData) {
             if (!streets.features || streets.features.length === 0) {
@@ -734,9 +734,9 @@
 
         /**
          * Display streets on the label count map.
-         * @param {Object} map - The Leaflet map object
-         * @param {Object} streets - GeoJSON data containing the street segments
-         * @param {Object} regionData - Data about the region being displayed
+         * @param {object} map - The Leaflet map object
+         * @param {object} streets - GeoJSON data containing the street segments
+         * @param {object} regionData - Data about the region being displayed
          */
         displayLabelCountMap: function(map, streets, regionData) {
             if (!streets.features || streets.features.length === 0) {
@@ -845,7 +845,7 @@
 
         /**
          * Add no streets message to map.
-         * @param {Object} map - The Leaflet map object
+         * @param {object} map - The Leaflet map object
          */
         addNoStreetsMessage: function(map) {
             const noStreetsDiv = document.createElement('div');
@@ -865,7 +865,7 @@
 
         /**
          * Create a horizontal continuous legend for the user count map.
-         * @param {Object} map - The Leaflet map object
+         * @param {object} map - The Leaflet map object
          * @param {number} minUserCount - Minimum user count found in the data (excluding 0)
          * @param {number} maxUserCount - Maximum user count found in the data
          */
@@ -981,7 +981,7 @@
 
         /**
          * Create a horizontal continuous legend for the label count map.
-         * @param {Object} map - The Leaflet map object
+         * @param {object} map - The Leaflet map object
          * @param {number} minLabelCount - Minimum label count found in the data (excluding 0)
          * @param {number} maxLabelCount - Maximum label count found in the data
          */
@@ -1097,7 +1097,7 @@
 
         /**
          * Create a horizontal continuous legend for the audit age map.
-         * @param {Object} map - The Leaflet map object
+         * @param {object} map - The Leaflet map object
          * @param {number} minDays - Minimum days since audit found in the data
          * @param {number} maxDays - Maximum days since audit found in the data
          */
@@ -1223,8 +1223,8 @@
 
         /**
          * Add summary statistics panel for user count map.
-         * @param {Object} map - The Leaflet map object
-         * @param {Object} stats - Statistics about the streets shown
+         * @param {object} map - The Leaflet map object
+         * @param {object} stats - Statistics about the streets shown
          */
         addUserCountStats: function(map, stats) {
             const statsControl = L.control({position: 'bottomright'});
@@ -1252,8 +1252,8 @@
 
         /**
          * Add summary statistics panel for label count map.
-         * @param {Object} map - The Leaflet map object
-         * @param {Object} stats - Statistics about the streets shown
+         * @param {object} map - The Leaflet map object
+         * @param {object} stats - Statistics about the streets shown
          */
         addLabelCountStats: function(map, stats) {
             const statsControl = L.control({position: 'bottomright'});
@@ -1283,8 +1283,8 @@
 
         /**
          * Add summary statistics panel for audit age map.
-         * @param {Object} map - The Leaflet map object
-         * @param {Object} stats - Statistics about the streets shown
+         * @param {object} map - The Leaflet map object
+         * @param {object} stats - Statistics about the streets shown
          */
         addAuditAgeStats: function(map, stats) {
             const statsControl = L.control({position: 'bottomright'});
