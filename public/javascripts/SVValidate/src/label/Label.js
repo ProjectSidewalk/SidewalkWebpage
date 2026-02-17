@@ -87,13 +87,6 @@ function Label(params) {
         };
     }
 
-    // Labels are circles with a 10px radius, mobile is 25px.
-    let radius = 10;
-
-    if (isMobile()) {
-        radius = 25;
-    }
-
     const self = this;
 
     /**
@@ -102,46 +95,46 @@ function Label(params) {
      */
     function _init() {
         if (params) {
-            if ("lat" in params) setAuditProperty("lat", params.lat);
-            if ("lng" in params) setAuditProperty("lng", params.lng);
-            if ("camera_lat" in params) setAuditProperty("cameraLat", params.camera_lat);
-            if ("camera_lng" in params) setAuditProperty("cameraLng", params.camera_lng);
-            if ("canvas_x" in params) setAuditProperty("canvasX", params.canvas_x);
-            if ("canvas_y" in params) setAuditProperty("canvasY", params.canvas_y);
-            if ("pano_id" in params) setAuditProperty("panoId", params.pano_id);
-            if ("image_capture_date" in params) setAuditProperty("imageCaptureDate", moment(params.image_capture_date));
-            if ("label_timestamp" in params) setAuditProperty("labelTimestamp", moment(params.label_timestamp));
-            if ("heading" in params) setAuditProperty("heading", params.heading);
-            if ("label_id" in params) setAuditProperty("labelId", params.label_id);
-            if ("label_type" in params) setAuditProperty("labelType", params.label_type);
-            if ("pitch" in params) setAuditProperty("pitch", params.pitch);
-            if ("zoom" in params) setAuditProperty("zoom", params.zoom);
-            if ("severity" in params) {
-                setAuditProperty("severity", params.severity);
-                setProperty("oldSeverity", params.severity);
-                setProperty("newSeverity", params.severity);
+            if ('lat' in params) setAuditProperty('lat', params.lat);
+            if ('lng' in params) setAuditProperty('lng', params.lng);
+            if ('camera_lat' in params) setAuditProperty('cameraLat', params.camera_lat);
+            if ('camera_lng' in params) setAuditProperty('cameraLng', params.camera_lng);
+            if ('canvas_x' in params) setAuditProperty('canvasX', params.canvas_x);
+            if ('canvas_y' in params) setAuditProperty('canvasY', params.canvas_y);
+            if ('pano_id' in params) setAuditProperty('panoId', params.pano_id);
+            if ('image_capture_date' in params) setAuditProperty('imageCaptureDate', moment(params.image_capture_date));
+            if ('label_timestamp' in params) setAuditProperty('labelTimestamp', moment(params.label_timestamp));
+            if ('heading' in params) setAuditProperty('heading', params.heading);
+            if ('label_id' in params) setAuditProperty('labelId', params.label_id);
+            if ('label_type' in params) setAuditProperty('labelType', params.label_type);
+            if ('pitch' in params) setAuditProperty('pitch', params.pitch);
+            if ('zoom' in params) setAuditProperty('zoom', params.zoom);
+            if ('severity' in params) {
+                setAuditProperty('severity', params.severity);
+                setProperty('oldSeverity', params.severity);
+                setProperty('newSeverity', params.severity);
             }
-            if ("description" in params) setAuditProperty("description", params.description);
-            if ("street_edge_id" in params) setAuditProperty("streetEdgeId", params.street_edge_id);
-            if ("region_id" in params) setAuditProperty("regionId", params.region_id);
-            if ("tags" in params) {
-                setAuditProperty("tags", params.tags);
-                setProperty("oldTags", params.tags);
-                setProperty("newTags", [...params.tags]); // Copy tags to newTags.
+            if ('description' in params) setAuditProperty('description', params.description);
+            if ('street_edge_id' in params) setAuditProperty('streetEdgeId', params.street_edge_id);
+            if ('region_id' in params) setAuditProperty('regionId', params.region_id);
+            if ('tags' in params) {
+                setAuditProperty('tags', params.tags);
+                setProperty('oldTags', params.tags);
+                setProperty('newTags', [...params.tags]); // Copy tags to newTags.
             }
-            if ("ai_tags" in params) setAuditProperty("aiTags", params.ai_tags);
-            if ("ai_generated" in params) setAuditProperty("aiGenerated", params.ai_generated);
+            if ('ai_tags' in params) setAuditProperty('aiTags', params.ai_tags);
+            if ('ai_generated' in params) setAuditProperty('aiGenerated', params.ai_generated);
             // Properties only used on the Admin version of Validate.
-            if ("admin_data" in params && params.admin_data !== null) {
-                if ("username" in params.admin_data) adminProperties.username = params.admin_data.username;
-                if ("previous_validations" in params.admin_data) {
+            if ('admin_data' in params && params.admin_data !== null) {
+                if ('username' in params.admin_data) adminProperties.username = params.admin_data.username;
+                if ('previous_validations' in params.admin_data) {
                     adminProperties.previousValidations = []
                     for (let prevVal of params.admin_data.previous_validations) {
                         adminProperties.previousValidations.push(prevVal);
                     }
                 }
             }
-            setAuditProperty("isMobile", isMobile());
+            setAuditProperty('isMobile', isMobile());
         }
     }
 
@@ -218,18 +211,18 @@ function Label(params) {
     }
 
     function prepareCommentData() {
-        let comment = getProperty("comment");
+        let comment = getProperty('comment');
         if (comment) {
             return {
                 comment: comment,
-                label_id: getAuditProperty("labelId"),
-                pano_id: getAuditProperty("panoId"),
-                heading: getProperty("heading"),
-                lat: getAuditProperty("lat"),
-                lng: getAuditProperty("lng"),
-                pitch: getProperty("pitch"),
+                label_id: getAuditProperty('labelId'),
+                pano_id: getAuditProperty('panoId'),
+                heading: getProperty('heading'),
+                lat: getAuditProperty('lat'),
+                lng: getAuditProperty('lng'),
+                pitch: getProperty('pitch'),
                 mission_id: svv.missionContainer.getCurrentMission().getProperty('missionId'),
-                zoom: getProperty("zoom"),
+                zoom: getProperty('zoom'),
             };
         } else {
             return null;
@@ -253,38 +246,37 @@ function Label(params) {
         let pixelCoordinates =
             util.pano.centeredPovToCanvasCoord(centeredPov, userPov, svv.canvasWidth(), svv.canvasHeight(), svv.labelRadius);
 
-        setProperty("endTimestamp", new Date());
-        setProperty("canvasX", pixelCoordinates ? Math.round(pixelCoordinates.x) : null);
-        setProperty("canvasY", pixelCoordinates ? Math.round(pixelCoordinates.y) : null);
-        setProperty("heading", userPov.heading);
-        setProperty("pitch", userPov.pitch);
-        setProperty("zoom", userPov.zoom);
-        setProperty("isMobile", isMobile());
-        setProperty("comment", comment);
+        setProperty('endTimestamp', new Date());
+        setProperty('canvasX', pixelCoordinates ? Math.round(pixelCoordinates.x) : null);
+        setProperty('canvasY', pixelCoordinates ? Math.round(pixelCoordinates.y) : null);
+        setProperty('heading', userPov.heading);
+        setProperty('pitch', userPov.pitch);
+        setProperty('zoom', userPov.zoom);
+        setProperty('isMobile', isMobile());
+        setProperty('comment', comment);
 
-        if (getProperty("comment")) {
-            if (!svv.expertValidate) svv.ui.validation.comment.val('');
-            svv.tracker.push("ValidationTextField_DataEntered", { validation: validationResult, text: comment });
+        if (getProperty('comment')) {
+            svv.tracker.push('ValidationTextField_DataEntered', { validation: validationResult, text: comment });
         }
 
         switch (validationResult) {
             // Agree option selected.
-            case "Agree":
-                setProperty("validationResult", 1);
+            case 'Agree':
+                setProperty('validationResult', 1);
                 svv.missionContainer.getCurrentMission().updateValidationResult(1, false);
                 svv.labelContainer.pushToLabelsToSubmit(getAuditProperty('labelId'), getProperties(), prepareCommentData());
                 svv.missionContainer.updateAMission();
                 break;
             // Disagree option selected.
-            case "Disagree":
-                setProperty("validationResult", 2);
+            case 'Disagree':
+                setProperty('validationResult', 2);
                 svv.missionContainer.getCurrentMission().updateValidationResult(2, false);
                 svv.labelContainer.pushToLabelsToSubmit(getAuditProperty('labelId'), getProperties(), prepareCommentData());
                 svv.missionContainer.updateAMission();
                 break;
             // Unsure option selected.
-            case "Unsure":
-                setProperty("validationResult", 3);
+            case 'Unsure':
+                setProperty('validationResult', 3);
                 svv.missionContainer.getCurrentMission().updateValidationResult(3, false);
                 svv.labelContainer.pushToLabelsToSubmit(getAuditProperty('labelId'), getProperties(), prepareCommentData());
                 svv.missionContainer.updateAMission();
@@ -294,7 +286,7 @@ function Label(params) {
         // If there are more labels left to validate, add a new label to the panorama. Otherwise, we will load a new
         // label onto the panorama from Form.js - where we still need to retrieve 10 more labels for the next mission.
         if (!svv.missionContainer.getCurrentMission().isComplete()) {
-            svv.labelContainer.moveToNextLabel();
+            svv.labelContainer.moveToNextLabel(); // NOTE That this returns a Promise that we're ignoring right now.
         }
     }
 

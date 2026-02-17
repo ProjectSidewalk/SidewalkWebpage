@@ -20,14 +20,14 @@ function ModalMission (uiModalMission, user) {
 
         // Check added so that if a user begins a mission, leaves partway through, and then resumes the mission later,
         // another MissionStart will not be triggered
-        if(mission.getProperty("labelsProgress") < 1) {
+        if(mission.getProperty('labelsProgress') < 1) {
             svv.tracker.push(
-                "MissionStart",
+                'MissionStart',
                 {
-                    missionId: mission.getProperty("missionId"),
-                    missionType: mission.getProperty("missionType"),
-                    labelTypeId: mission.getProperty("labelTypeId"),
-                    labelsValidated: mission.getProperty("labelsValidated")
+                    missionId: mission.getProperty('missionId'),
+                    missionType: mission.getProperty('missionType'),
+                    labelTypeId: mission.getProperty('labelTypeId'),
+                    labelsValidated: mission.getProperty('labelsValidated')
                 }
             );
         }
@@ -43,12 +43,7 @@ function ModalMission (uiModalMission, user) {
      */
     function hide () {
         if (svv.keyboard) {
-            // We still want to disable keyboard shortcuts if the comment box is shown.
-            if ($('#modal-comment-box').is(":hidden")) {
-                svv.keyboard.enableKeyboard();
-            } else {
-                svv.keyboard.disableKeyboard();
-            }
+            svv.keyboard.enableKeyboard();
         }
         uiModalMission.background.css('visibility', 'hidden');
         uiModalMission.holder.css('visibility', 'hidden');
@@ -61,19 +56,19 @@ function ModalMission (uiModalMission, user) {
      * @param mission   Mission object for the new mission
      */
     function setMissionMessage(mission) {
-        if (mission.getProperty("labelsProgress") === 0) {
+        if (mission.getProperty('labelsProgress') === 0) {
             let validationMissionStartTitle = i18next.t('mission-start.title',
                 {
-                    n: mission.getProperty("labelsValidated"),
-                    label_type: svv.labelTypeNames[mission.getProperty("labelTypeId")]
+                    n: mission.getProperty('labelsValidated'),
+                    label_type: svv.labelTypeNames[mission.getProperty('labelTypeId')]
                 });
-            let validationStartMissionHTMLCopy = validationStartMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
-            validationStartMissionHTMLCopy = validationStartMissionHTMLCopy.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
+            let validationStartMissionHTMLCopy = validationStartMissionHTML.replace('__LABELCOUNT_PLACEHOLDER__', mission.getProperty('labelsValidated'));
+            validationStartMissionHTMLCopy = validationStartMissionHTMLCopy.replace('__LABELTYPE_PLACEHOLDER__', svv.labelTypeNames[mission.getProperty('labelTypeId')]);
             show(validationMissionStartTitle, validationStartMissionHTMLCopy);
         } else {
-            validationMissionStartTitle = "Return to your mission";
-            let validationResumeMissionHTMLCopy = validationResumeMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
-            validationResumeMissionHTMLCopy = validationResumeMissionHTMLCopy.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
+            const validationMissionStartTitle = 'Return to your mission';
+            let validationResumeMissionHTMLCopy = validationResumeMissionHTML.replace('__LABELCOUNT_PLACEHOLDER__', mission.getProperty('labelsValidated'));
+            validationResumeMissionHTMLCopy = validationResumeMissionHTMLCopy.replace('__LABELTYPE_PLACEHOLDER__', svv.labelTypeNames[mission.getProperty('labelTypeId')]);
             show(validationMissionStartTitle, validationResumeMissionHTMLCopy);
         }
     }

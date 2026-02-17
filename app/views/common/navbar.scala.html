@@ -128,12 +128,7 @@
                                     </a>
                                 </li>
                                 <li role="presentation">
-                                    <a id="navbar-admin-validate-btn" role="menuitem" href='@routes.ValidateController.adminValidate()'>
-                                    @Messages("navbar.admin.validate")
-                                    </a>
-                                </li>
-                                <li role="presentation">
-                                    <a id="navbar-new-validate-beta-btn" role="menuitem" href='@routes.ValidateController.expertValidate()'>
+                                    <a id="navbar-expert-validate-btn" role="menuitem" href='@routes.ValidateController.expertValidate()'>
                                         @Messages("navbar.expert.validate")
                                     </a>
                                 </li>
@@ -253,9 +248,6 @@
         });
         $("#navbar-admin-btn").on('click', function() {
             logNavbarClick("Click_module=ToAdmin");
-        });
-        $("#navbar-admin-validate-btn").on('click', function() {
-            logNavbarClick("Click_module=ToAdminValidate");
         });
         $("#navbar-dashboard-btn").on('click', function() {
             logNavbarClick("Click_module=ToDashboard")

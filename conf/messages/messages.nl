@@ -86,7 +86,6 @@ navbar.signin = Log in
 navbar.signout = Log uit
 navbar.dashboard = Je dashboard
 navbar.admin = Beheerder
-navbar.admin.validate = Beheerder valideren
 navbar.expert.validate = Deskundige validatie
 navbar.city = Stad
 navbar.lang.aria = Taal opties
@@ -234,23 +233,10 @@ audit.survey.performance.option.5 = Uitstekend
 audit.survey.rationale.question = Waarom koos je ervoor om bij te dragen aan Project Sidewalk?
 audit.survey.feedback.question = Heb je feedback, design ideeën, of vragen?
 
-validate.top.ui.zoom.in = <u>Z</u>oom In
-validate.top.ui.zoom.out = Zoom Uit
-validate.left.ui.skip = Sla over
-validate.left.ui.skip.tooltip = Sla dit label over als er een probleem is met de afbeelding
-validate.left.ui.undo = Ongedaan maken
-validate.left.ui.undo.tooltip = Maak het vorige label ongedaan als er een probleem was met uw antwoord
-validate.bottom.ui.add.comment = Als u het er niet mee eens bent, voer dan hier uw redenering in, die kan worden gezien door de labeler in hun dashboard
-validate.right.ui.current.mission = Huidige Missie
-validate.right.ui.correct.examples = <strong>Correcte</strong> Voorbeelden
-validate.right.ui.incorrect.examples = <strong>Incorrecte</strong> Voorbeelden
 validate.suggestions = Suggesties
 validate.ai.disclaimer = Tag-suggesties worden door AI gedaan, zijn niet volledig en kunnen onjuist zijn
 validate.mission.complete.category = Categorie
 validate.mission.complete.your.overall.total = Je Totaal
-
-
-mobile.validate.leave.feedback = Geef feedback
 
 authenticate.email = Email-adres
 authenticate.password = Wachtwoord

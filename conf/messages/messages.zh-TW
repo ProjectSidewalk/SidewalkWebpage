@@ -144,7 +144,6 @@ navbar.signin = 登入
 navbar.signout = 登出
 navbar.dashboard = 您的儀錶板
 navbar.admin = 系統人員
-navbar.admin.validate = 管理員驗證
 navbar.expert.validate = 專家驗證
 navbar.city = 城市
 navbar.lang.aria = 語言選項
@@ -292,23 +291,10 @@ audit.survey.performance.option.5 = 傑出
 audit.survey.rationale.question = 為什麼您願意在Project Sidewalk平台上貢獻呢？
 audit.survey.feedback.question = 您有任何意見回饋、設計想法或問題嗎？
 
-validate.top.ui.zoom.in = <u>Z</u>放大
-validate.top.ui.zoom.out = 縮小
-validate.left.ui.skip = 跳過
-validate.left.ui.skip.tooltip = 如果圖像有問題，請跳過此標籤
-validate.left.ui.undo = 撤消
-validate.left.ui.undo.tooltip = 如果您的答案有问题，请撤消之前的标签
-validate.bottom.ui.add.comment = 於此輸入說明...
-validate.right.ui.current.mission = 目前任務
-validate.right.ui.correct.examples = <strong>正確</strong> 的範例
-validate.right.ui.incorrect.examples = <strong>錯誤</strong> 的範例
 validate.suggestions = 建議
 validate.ai.disclaimer = 標籤建議由AI提供，並不全面，並且可能存在錯誤
 validate.mission.complete.category = 類別
 validate.mission.complete.your.overall.total = 總成績
-
-
-mobile.validate.leave.feedback = 請給予意見回饋
 
 authenticate.email = 電子郵件地址
 authenticate.password = 密碼

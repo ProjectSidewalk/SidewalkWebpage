@@ -6,13 +6,11 @@ function Form(url, beaconUrl) {
 
     function getSource() {
         if (isMobile()) {
-            return "ValidateMobile";
-        } else if (svv.expertValidate) {
-            return "ExpertValidate";
+            return 'ValidateMobile';
         } else if (svv.adminVersion) {
-            return "AdminValidate";
+            return 'ExpertValidate';
         } else {
-            return "Validate";
+            return 'Validate';
         }
     }
 
@@ -32,13 +30,13 @@ function Form(url, beaconUrl) {
         if (mission) {
             // Add the current mission
             data.mission_progress = {
-                mission_id: mission.getProperty("missionId"),
-                mission_type: mission.getProperty("missionType"),
-                labels_progress: mission.getProperty("labelsProgress"),
-                labels_total: mission.getProperty("labelsValidated"),
-                label_type_id: mission.getProperty("labelTypeId"),
+                mission_id: mission.getProperty('missionId'),
+                mission_type: mission.getProperty('missionType'),
+                labels_progress: mission.getProperty('labelsProgress'),
+                labels_total: mission.getProperty('labelsValidated'),
+                label_type_id: mission.getProperty('labelTypeId'),
                 completed: missionComplete ? missionComplete : false,
-                skipped: mission.getProperty("skipped")
+                skipped: mission.getProperty('skipped')
             };
         }
 
@@ -51,7 +49,7 @@ function Form(url, beaconUrl) {
         }
 
         data.environment = {
-            mission_id: mission ? mission.getProperty("missionId") : null,
+            mission_id: mission ? mission.getProperty('missionId') : null,
             browser: util.getBrowser(),
             browser_version: util.getBrowserVersion(),
             browser_width: $(window).width(),
@@ -133,7 +131,7 @@ function Form(url, beaconUrl) {
     }
 
     $(window).on('beforeunload', function () {
-        svv.tracker.push("Unload");
+        svv.tracker.push('Unload');
 
         // April 17, 2019
         // What we want here is type: 'application/json'. Can't do that quite yet because the

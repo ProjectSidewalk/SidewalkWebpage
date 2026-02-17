@@ -83,7 +83,7 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
             title: self.titleBox.innerHTML,
             content: self.popoverContent.innerHTML
         }).on('click', updateVals).on('shown.bs.popover', () => {
-            // Add popover-element classes to more elements, making it easier to dismiss popover on when outside it.
+            // Add popover-element classes to more elements, making it easier to dismiss popover when outside it.
             $('.popover-title').addClass('popover-element');
             $('.popover-content').addClass('popover-element');
 

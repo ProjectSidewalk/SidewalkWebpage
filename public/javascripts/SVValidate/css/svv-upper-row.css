@@ -1,49 +1,78 @@
-#upper-menu-holder {
-    position: absolute;
-    top: 0px;
-    width: 730px;
-    height: 75px;
-}
-
 #mission-title {
+    width: 1050px;
     position: absolute;
-    top: 33px;
-    font-size: 25px;
+    top: 35px;
+    color: #525252;
+    font-family: "Open Sans";
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    letter-spacing: 0.8px;
 }
 
-.upper-menu-button-holder {
-    background: transparent;
+#mission-progress-bar-section {
     position: absolute;
-    top: 27px;
+    top: 60px;
+    width: 730px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
-#label-visibility-control-holder {
-    left: 524px;
-    width: 65px;
+#mission-progress-bar {
+    width: 690px;
+    height: 5px;
 }
 
-#zoom-control-holder {
-    left: 595px;
-    width: 185px;
+#mission-progress-bar-complete {
+    width: 10%;
+    border-radius: 5px;
+    background: var(--Brand-Pine-300, #76C9AB);
+    z-index: 2;
+    height: inherit;
+    position: relative;
 }
 
-.button.upper-menu-button {
-    color: rgba(0,0,0,1);
-    font-size: 7px;
-    height: 44px;
-    width: 65px;
-    padding-bottom: 10px; /* Not sure why we needed this, but buttons were moving around vertically otherwise.  */
+#mission-progress-bar-incomplete {
+    border-radius: 5px;
+    background: #E2E2E2;
+    height: inherit;
+    margin-top: -5px; /* Makes it so that the progress bars are overlapping */
+    z-index: 1;
+    position: relative;
 }
 
-.button.upper-menu-button:focus {
-    outline: none;
+#mission-progress-bar-text {
+    color: var(--Brand-Asphalt-500, #2D2A3F);
+    font-family: Raleway;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 21px; /* 150% */
+    padding-bottom: 2px;
 }
 
-.button.zoom-control-button {
-    margin-right: 2px;
+#admin-info-section {
+    display: none;
+    position: absolute;
+    top: 55px;
+    left: 740px;
 }
 
-.upper-menu-button-icon {
-    height: 18px;
-    width: 18px;
+#admin-info-content h1 {
+    font-size: 20px;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+#admin-info-content h2 {
+    font-size: 16px;
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+#admin-info-content p {
+    font-size: 12px;
+    margin-bottom: 0;
 }

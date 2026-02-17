@@ -131,7 +131,7 @@ class PanoManager {
         }
 
         if (!this.labelMarker) {
-            let markerLayer = isMobile() ? document.getElementById('view-control-layer-mobile') : document.getElementById('view-control-layer');
+            const markerLayer = document.getElementById('view-control-layer');
             this.labelMarker = new PanoMarker({
                 id: 'validate-pano-marker',
                 markerContainer: markerLayer,
@@ -202,7 +202,7 @@ class PanoManager {
      */
     #sizePano() {
         let panoHolderElem = document.getElementById('svv-panorama-holder');
-        let controlLayerElem = document.getElementById('view-control-layer-mobile');
+        let controlLayerElem = document.getElementById('view-control-layer');
         let panoOutlineElem = document.getElementById('svv-panorama-outline');
         let heightOffset = panoHolderElem.getBoundingClientRect().top;
         const h = window.innerHeight - heightOffset - 10;
