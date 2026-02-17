@@ -229,34 +229,34 @@
                 </div>
                 <div id="validate-optional-comment-section" class="validation-menu-section">
                     <div id="optional-comment-input" class="input-group input-group-sm validate-text-input">
-                        <input type="text" class="form-control" placeholder="Add optional comment" id="add-optional-comment" size="36" aria-label="Add optional comment">
+                        <input type="text" class="form-control" placeholder="@Messages("validate.comment.placeholder")" id="add-optional-comment" size="36" aria-label=@Messages("validate.comment.placeholder")>
                     </div>
                 </div>
                 <div id="validate-why-no-section" class="validation-menu-section">
-                    <div id="validate-why-not-header" class="validation-menu-section-header">Why not?</div>
+                    <div id="validate-why-not-header" class="validation-menu-section-header">@Messages("validate.why.not")</div>
                     <div id="no-reason-options">
                         <button id="no-button-1" class="validation-reason-button"></button>
                         <button id="no-button-2" class="validation-reason-button"></button>
                         <button id="no-button-3" class="validation-reason-button"></button>
                         <div class="input-group input-group-sm validate-text-input">
-                            <input type="text" class="form-control" placeholder="Or add your own reason" id="add-disagree-comment" size="36" aria-label="Add no reason input">
+                            <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
                         </div>
                     </div>
                 </div>
                 <div id="validate-why-unsure-section" class="validation-menu-section">
-                    <div id="validate-why-unsure-header" class="validation-menu-section-header">Why 'Unsure'?</div>
+                    <div id="validate-why-unsure-header" class="validation-menu-section-header">@Messages("validate.why.unsure")</div>
                     <div id="unsure-reason-options">
                         <button id="unsure-button-1" class="validation-reason-button"></button>
                         <button id="unsure-button-2" class="validation-reason-button"></button>
                         <button id="unsure-button-3" class="validation-reason-button"></button>
                         <div class="input-group input-group-sm validate-text-input">
-                            <input type="text" class="form-control" placeholder="Or add your own reason" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
+                            <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
                         </div>
                     </div>
                 </div>
                 <div id="validate-submit-section" class="validation-menu-section button-section">
-                    <button id="validate-back-button" class="validate-page-button">Back</button>
-                    <button id="validate-submit-button" class="validate-page-button">Submit</button>
+                    <button id="validate-back-button" class="validate-page-button">@Messages("back")</button>
+                    <button id="validate-submit-button" class="validate-page-button">@Messages("submit")</button>
                 </div>
             </div>
         </div>
@@ -285,7 +285,7 @@
             param.viewerAccessToken = "@commonData.imageryAccessToken";
             param.validateParams = {
                 adminVersion: @validateParams.adminVersion,
-                labelTypeId: @Html(validateParams.labelType.map(_.toString).getOrElse("null")),
+                labelTypeId: @Html(validateParams.labelType.map(_.id.toString).getOrElse("null")),
                 userIds: @Html(validateParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null")),
                 regionIds: @Html(validateParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
                 unvalidatedOnly: @validateParams.unvalidatedOnly

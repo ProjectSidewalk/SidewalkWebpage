@@ -50,6 +50,7 @@ thanks = Dank je wel!
 username = Gebruikersnaam
 loading = Laden...
 loading.encouragement = Let''s go!
+submit = Dien in
 test.server.warning.message = <strong>WAARSCHUWING!</strong> U bevindt zich op een testserver! Uw gegevens worden niet opgeslagen! Als u wilt dat uw gegevens worden opgeslagen, gebruik dan de hoofdsite
 dont.show.again = Laat niet opnieuw zien
 
@@ -233,6 +234,10 @@ audit.survey.performance.option.5 = Uitstekend
 audit.survey.rationale.question = Waarom koos je ervoor om bij te dragen aan Project Sidewalk?
 audit.survey.feedback.question = Heb je feedback, design ideeën, of vragen?
 
+validate.comment.placeholder = Voeg een optionele opmerking toe
+validate.why.not = Waarom niet?
+validate.why.unsure = Waarom 'Onzeker'?
+validate.add.own.reason = Of voeg je eigen reden toe.
 validate.suggestions = Suggesties
 validate.ai.disclaimer = Tag-suggesties worden door AI gedaan, zijn niet volledig en kunnen onjuist zijn
 validate.mission.complete.category = Categorie
@@ -240,7 +245,6 @@ validate.mission.complete.your.overall.total = Je Totaal
 
 authenticate.email = Email-adres
 authenticate.password = Wachtwoord
-authenticate.submit = Dien in
 authenticate.remember.me = Houd mij aangemeld
 authenticate.new = Ben je nieuw? <a href="#" id="form-open-sign-up">Nieuw account maken!</a>
 authenticate.non.member = Nog geen account? <a href="{0}">Maak er een</a>

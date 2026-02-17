@@ -50,6 +50,7 @@ thanks = ¡Gracias!
 username = Nombre de usuario/a
 loading = Cargando...
 loading.encouragement = ¡Hagámoslo!
+submit = Enviar
 test.server.warning.message = <strong>¡ADVERTENCIA!</strong> ¡Estás en un servidor de prueba! ¡Tus datos no se guardarán! Si desea que sus datos se guarden, utilice el sitio principal
 dont.show.again = No mostrar de nuevo
 
@@ -244,6 +245,10 @@ audit.survey.performance.option.5 = Excelente
 audit.survey.rationale.question = ¿Por qué elegiste contribuir a <i>Project Sidewalk</i>?
 audit.survey.feedback.question = ¿Tienes algún comentario, ideas de diseño o preguntas?
 
+validate.comment.placeholder = Añadir comentario opcional
+validate.why.not = ¿Por qué no?
+validate.why.unsure = ¿Por qué “Inseguro”?
+validate.add.own.reason = O añade tu propia razón
 validate.suggestions = Sugerencias
 validate.ai.disclaimer = Las sugerencias de etiquetas las realiza la IA, no son exhaustivas y pueden ser erróneas.
 validate.mission.complete.category = Categoría
@@ -251,7 +256,6 @@ validate.mission.complete.your.overall.total = Su total en general
 
 authenticate.email = Correo electrónico
 authenticate.password = Contraseña
-authenticate.submit = Enviar
 authenticate.remember.me = Mantenerme conectado
 authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
 authenticate.non.member = ¿No eres un miembro? <a href="{0}">Regístrate ahora</a>

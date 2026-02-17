@@ -13,11 +13,12 @@
         "visibility-control-hide": "<u>H</u>ide Label",
         "visibility-control-show": "S<u>h</u>ow Label"
     },
-    "right-ui": {
+    "validate-menu": {
         "disagree-reason": {
             "curb-ramp": {
                 "no-button-1": "This is a driveway",
                 "no-button-2": "This is a sidewalk to driveway transition",
+                "no-button-2-tooltip": "Sidewalk to driveway transitions are not curb ramps unless a dedicated ramp has been added",
                 "no-button-3": "This should be a Missing Curb Ramp label",
                 "no-button-3-tooltip": "Sometimes a missing curb ramp is accidentally mislabeled as a curb ramp"
             },

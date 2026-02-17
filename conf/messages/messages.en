@@ -50,6 +50,7 @@ thanks = Thanks!
 username = Username
 loading = Loading...
 loading.encouragement = Let''s do this!
+submit = Submit
 test.server.warning.message = <strong>WARNING!</strong> You are on a test server! Your data will not be saved! If you would like your data to be saved, please use the main site
 dont.show.again = Don''t show again
 
@@ -234,6 +235,10 @@ audit.survey.performance.option.5 = Excellent
 audit.survey.rationale.question = Why did you choose to contribute to Project Sidewalk?
 audit.survey.feedback.question = Do you have any feedback, design ideas, or questions?
 
+validate.comment.placeholder = Add optional comment
+validate.why.not = Why not?
+validate.why.unsure = Why 'Unsure'?
+validate.add.own.reason = Or add your own reason
 validate.suggestions = Suggestions
 validate.ai.disclaimer = Tag suggestions are made by AI, are not comprehensive, and may be wrong
 validate.mission.complete.category = Category
@@ -241,7 +246,6 @@ validate.mission.complete.your.overall.total = Your Overall Total
 
 authenticate.email = Email address
 authenticate.password = Password
-authenticate.submit = Submit
 authenticate.remember.me = Keep me signed in
 authenticate.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
 authenticate.non.member = Not a member? <a href="{0}">Sign up now</a>

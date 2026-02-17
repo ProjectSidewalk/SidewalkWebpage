@@ -13,6 +13,78 @@
         "visibility-control-hide": "Ocultar (<u>H</u>)",
         "visibility-control-show": "Mostrar (<u>H</u>)"
     },
+    "validate-menu": {
+        "disagree-reason": {
+            "curb-ramp": {
+                "no-button-1": "Este es un camino de entrada",
+                "no-button-2": "Esta es una transición de banqueta a camino de entrada.",
+                "no-button-2-tooltip": "Las transiciones de la banqueta a los caminos de las entradas residenciales no son rampas peatonales a menos que se haya agregado una rampa dedicada",
+                "no-button-3": "Esta debería ser una etiqueta de Rampa peatonal ausente",
+                "no-button-3-tooltip": "A veces, una rampa peatonal ausente se etiqueta incorrectamente por accidente como rampa peatonal."
+            },
+            "no-curb-ramp": {
+                "no-button-1": "Esta es una pasarela residencial.",
+                "no-button-2": "No hay banqueta aquí",
+                "no-button-3": "Esta debería ser una etiqueta de rampa peatonal",
+                "no-button-3-tooltip": "A veces, una rampa peatonal está mal etiquetada como una rampa faltante, a menudo porque le falta una advertencia táctil."
+            },
+            "obstacle": {
+                "no-button-1": "Esto no está en un camino peatonal.",
+                "no-button-1-tooltip": "Si no hay banqueta o el objeto no está en la parte de la banqueta destinada a los peatones, como en la imagen de abajo, no se necesita una etiqueta de Obstáculo",
+                "no-button-2": "Hay suficiente espacio para evitar este objeto.",
+                "no-button-2-tooltip": "En banquetas muy anchas, los objetos fácilmente evitables no deben etiquetarse como obstáculos.",
+                "no-button-3": "Esta debería ser una etiqueta de problema de superficie",
+                "no-button-3-tooltip": "El césped y los residuos como las hojas deben marcarse con una etiqueta de problema de superficie."
+            },
+            "surface-problem": {
+                "no-button-1": "Esta debería ser una etiqueta de No Sidewalk",
+                "no-button-1-tooltip": "La grava o el césped no se consideran banquetas y deben marcarse con una etiqueta de \"No Sidewalk\"",
+                "no-button-2": "Esto no está en un camino peatonal.",
+                "no-button-2-tooltip": "Si un problema de superficie no se encuentra en un camino destinado a peatones, no debe etiquetarse como un problema de superficie.",
+                "no-button-3": "Estas son baldosas de banqueta normales."
+            },
+            "no-sidewalk": {
+                "no-button-1": "Hay una banqueta aquí",
+                "no-button-2": "Esta es una mediana de tráfico",
+                "no-button-3": "Esto debería estar marcado con un tipo de etiqueta diferente.",
+                "no-button-3-tooltip": "Los problemas u obstáculos en la superficie pueden etiquetarse erróneamente como Sin Banqueta"
+            },
+            "crosswalk": {
+                "no-button-1": "No hay ningún paso de peatones visible aquí",
+                "no-button-2": "Esta es una línea de parada para coches.",
+                "no-button-3": "Esto es un obstáculo"
+            },
+            "signal": {
+                "no-button-1": "Esto es solo un semáforo para vehículos.",
+                "no-button-2": "Esta es una señal sin luz para indicar un cruce seguro.",
+                "no-button-3": "Este es un poste sin señal para peatones ni botón."
+            }
+        },
+        "unsure-reason": {
+            "common": {
+                "reason-1": "Necesita una mejor imagen",
+                "reason-1-tooltip": "Esto podría deberse a que la imagen está borrosa, lo que se está etiquetando está demasiado lejos o se necesita un ángulo diferente.",
+                "reason-2": "La ubicación de la etiqueta parece incorrecta",
+                "reason-2-tooltip": "A veces lo que se etiqueta es visible pero la etiqueta aparece lejos de ello."
+            },
+            "no-curb-ramp": {
+                "unsure-button-3": "No estoy seguro de si se requiere una rampa peatonal",
+                "unsure-button-3-tooltip": "Puede que no esté claro si los peatones deberían poder cruzar en una intersección con una carretera más transitada."
+            },
+            "obstacle": {
+                "unsure-button-3": "Podría haber suficiente espacio para evitar el objeto.",
+                "unsure-button-3-tooltip": "Puede ser difícil juzgar el ancho de la banqueta a partir de una imagen."
+            },
+            "surface-problem": {
+                "unsure-button-3": "Podría ser demasiado menor para etiquetarlo",
+                "unsure-button-3-tooltip": "Puede que no esté claro si un problema como el césped entre los bloques de la banqueta necesita ser etiquetado."
+            },
+            "no-sidewalk": {
+                "unsure-button-3": "No estoy seguro de si debería haber una banqueta aquí.",
+                "unsure-button-3-tooltip": "A veces es necesario más contexto y es difícil determinar si una banqueta es necesaria a partir de una sola imagen."
+            }
+        }
+    },
     "center-ui": {
         "no-info": "No hay información disponible"
     },

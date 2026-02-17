@@ -50,6 +50,7 @@ thanks = Danke!
 username = Benutzername
 loading = Laden...
 loading.encouragement = Los geht''s!
+submit = Übermitteln
 test.server.warning.message = <strong>ACHTUNG!</strong> Sie befinden sich auf einem Testserver! Ihre Daten werden nicht gespeichert. Wenn Sie Ihre Daten speichern möchten, nutzen Sie bitte unsere Hauptseite
 dont.show.again = Nicht erneut anzeigen.
 
@@ -236,6 +237,10 @@ audit.survey.performance.option.5 = Ausgezeichnet
 audit.survey.rationale.question = Wieso haben Sie sich dazu entschieden, zum Project Sidewalk beizutragen?
 audit.survey.feedback.question = Haben Sie zusätzliche Rückmeldungen, Gestaltungsvorschläge oder Fragen?
 
+validate.comment.placeholder = Optionalen Kommentar hinzufügen
+validate.why.not = Warum nicht?
+validate.why.unsure = Warum „unsicher“?
+validate.add.own.reason = Oder fügen Sie Ihren eigenen Grund hinzu
 validate.suggestions = Vorschläge
 validate.ai.disclaimer = Tag-Vorschläge werden von der KI erstellt, sind nicht umfassend und können falsch sein
 validate.mission.complete.category = Kategorie
@@ -243,7 +248,6 @@ validate.mission.complete.your.overall.total = Ihr Gesamtwert
 
 authenticate.email = E-Mail-Adresse
 authenticate.password = Passwort
-authenticate.submit = Übermitteln
 authenticate.remember.me = Ich möchte angemeldet bleiben
 authenticate.new = Neu dabei? <a href="#" id="form-open-sign-up">Registrieren!</a>
 authenticate.non.member = Kein Mitglied? <a href="{0}">Registrieren Sie sich jetzt</a>
