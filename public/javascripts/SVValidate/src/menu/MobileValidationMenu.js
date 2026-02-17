@@ -102,6 +102,7 @@ function MobileValidationMenu(menuUI) {
             menuUI.unsureButton.removeClass('chosen');
             menuUI.noMenu.css('display', 'none');
             menuUI.unsureMenu.css('display', 'none');
+            menuUI.mobilePopupNotch.removeClass('mobile-popup-notch-no mobile-popup-notch-unsure');
             $disagreeReasonButtons.removeClass('chosen');
             $unsureReasonButtons.removeClass('chosen');
             menuUI.disagreeReasonTextBox.removeClass('chosen');
@@ -175,6 +176,7 @@ function MobileValidationMenu(menuUI) {
 
         menuUI.noMenu.css('display', 'none');
         menuUI.unsureMenu.css('display', 'none');
+        menuUI.mobilePopupNotch.removeClass('mobile-popup-notch-no mobile-popup-notch-unsure');
         menuUI.submitButton.prop('disabled', false); // TODO probably won't do this, just submit automatically.
     }
 
@@ -184,6 +186,7 @@ function MobileValidationMenu(menuUI) {
         menuUI.unsureButton.removeClass('chosen');
         menuUI.noMenu.css('display', 'flex');
         menuUI.unsureMenu.css('display', 'none');
+        menuUI.mobilePopupNotch.removeClass('mobile-popup-notch-unsure').addClass('mobile-popup-notch-no');
         menuUI.submitButton.prop('disabled', false);
     }
 
@@ -193,6 +196,7 @@ function MobileValidationMenu(menuUI) {
         menuUI.unsureButton.addClass('chosen');
         menuUI.noMenu.css('display', 'none');
         menuUI.unsureMenu.css('display', 'flex');
+        menuUI.mobilePopupNotch.removeClass('mobile-popup-notch-no').addClass('mobile-popup-notch-unsure');
         menuUI.submitButton.prop('disabled', false);
     }
 

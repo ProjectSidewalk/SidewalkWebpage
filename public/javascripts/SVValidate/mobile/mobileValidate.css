@@ -229,10 +229,28 @@ body {
     background: #1A1A1A;
 }
 
+#mobile-popup-notch {
+    visibility: hidden;
+    position: absolute;
+    height: 21px;
+    bottom: calc(14vw + 20px);
+    z-index: 1;
+}
+
+.mobile-popup-notch-no {
+    visibility: visible !important;
+    left: calc(7vw + 12.5vw - 24px); /* Dist to start of no button + no button width / 2 - notch width / 2. */
+}
+
+.mobile-popup-notch-unsure {
+    visibility: visible !important;
+    /* Distance to start of buttons + no button width + button gap + unsure button width / 2 - notch width / 2. */
+    left: calc(7vw + 25vw + 5.5vw + 12.5vw - 24px);
+}
+
 .validation-menu-section {
     z-index: 2;
     position: absolute;
-    left: 7vw;
     bottom: calc(14vw + 40px);
     width: 60vw;
     padding: 16px 0 16px 0;
@@ -241,6 +259,14 @@ body {
     gap: 8px;
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.70);
+}
+
+#validate-why-no-section {
+    left: 7vw;
+}
+
+#validate-why-unsure-section {
+    left: 20vw;
 }
 
 .validation-menu-section-header {

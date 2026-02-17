@@ -46,6 +46,7 @@ function Main (param) {
         svv.ui.validationMenu.unsureReasonOptions = $('#unsure-reason-options');
         svv.ui.validationMenu.unsureReasonTextBox = $('#add-unsure-comment');
         svv.ui.validationMenu.submitButton = $('#validate-submit-button');
+        svv.ui.validationMenu.mobilePopupNotch = $('#mobile-popup-notch');
 
         svv.ui.validationMenu.currentTags = $('#current-tags-list');
         svv.ui.validationMenu.aiSuggestionSection = $('#sidewalk-ai-suggestions-block');
