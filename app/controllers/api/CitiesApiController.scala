@@ -56,8 +56,8 @@ class CitiesApiController @Inject() (
    * @return Response in requested format containing city information.
    */
   def getCities(filetype: String) = silhouette.UserAwareAction.async { implicit request =>
-    // Get city information from ConfigService.
-    val cityInfos: Seq[CityInfo] = configService.getAllCityInfo(request.lang)
+    // Get city information from ConfigService, excluding the staging server.
+    val cityInfos: Seq[CityInfo] = configService.getAllCityInfo(request.lang).filter(_.cityId != "staging")
 
     // Get map parameters for each city - use parallel execution for efficiency.
     val cityDetailsWithMapParams: Future[Seq[JsObject]] = Future.sequence(
