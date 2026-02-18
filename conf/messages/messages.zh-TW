@@ -296,6 +296,7 @@ validate.comment.placeholder = 新增可選評論
 validate.why.not = 為什麼不呢？
 validate.why.unsure = 為什麼選擇“不確定”？
 validate.add.own.reason = 或補充你自己的理由
+validate.skip.reason = 跳過原因
 validate.suggestions = 建議
 validate.ai.disclaimer = 標籤建議由AI提供，並不全面，並且可能存在錯誤
 validate.mission.complete.category = 類別

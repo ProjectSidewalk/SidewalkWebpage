@@ -249,6 +249,7 @@ validate.comment.placeholder = Añadir comentario opcional
 validate.why.not = ¿Por qué no?
 validate.why.unsure = ¿Por qué “Inseguro”?
 validate.add.own.reason = O añade tu propia razón
+validate.skip.reason = Motivo de omisión
 validate.suggestions = Sugerencias
 validate.ai.disclaimer = Las sugerencias de etiquetas las realiza la IA, no son exhaustivas y pueden ser erróneas.
 validate.mission.complete.category = Categoría

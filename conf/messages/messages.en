@@ -239,6 +239,7 @@ validate.comment.placeholder = Add optional comment
 validate.why.not = Why not?
 validate.why.unsure = Why 'Unsure'?
 validate.add.own.reason = Or add your own reason
+validate.skip.reason = Skip reason
 validate.suggestions = Suggestions
 validate.ai.disclaimer = Tag suggestions are made by AI, are not comprehensive, and may be wrong
 validate.mission.complete.category = Category

@@ -238,6 +238,7 @@ validate.comment.placeholder = Voeg een optionele opmerking toe
 validate.why.not = Waarom niet?
 validate.why.unsure = Waarom 'Onzeker'?
 validate.add.own.reason = Of voeg je eigen reden toe.
+validate.skip.reason = Reden overslaan
 validate.suggestions = Suggesties
 validate.ai.disclaimer = Tag-suggesties worden door AI gedaan, zijn niet volledig en kunnen onjuist zijn
 validate.mission.complete.category = Categorie
