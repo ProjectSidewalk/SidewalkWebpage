@@ -93,7 +93,7 @@ case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[F
 case class AiConcurrence(aiYesHumanConcurs: Int, aiYesHumanDiffers: Int, aiNoHumanDiffers: Int, aiNoHumanConcurs: Int)
 case class ProjectSidewalkStats(
     launchDate: String,
-    avgTimestampLast100Labels: OffsetDateTime,
+    avgTimestampLast100Labels: Option[OffsetDateTime],
     kmExplored: Float,
     kmExploreNoOverlap: Float,
     nUsers: Int,
@@ -105,8 +105,8 @@ case class ProjectSidewalkStats(
     nResearcher: Int,
     nLabels: Int,
     nLabelsWithSeverity: Int,
-    avgLabelTimestamp: OffsetDateTime,
-    avgImageAgeByLabel: Duration,
+    avgLabelTimestamp: Option[OffsetDateTime],
+    avgImageAgeByLabel: Option[Duration],
     severityByLabelType: Map[String, LabelSeverityStats],
     nValidations: Int,
     accuracyByLabelType: Map[String, LabelAccuracy],
@@ -567,7 +567,7 @@ class LabelTable @Inject() (
   implicit val projectSidewalkStatsConverter: GetResult[ProjectSidewalkStats] = GetResult[ProjectSidewalkStats](r =>
     ProjectSidewalkStats(
       r.nextString(),
-      r.nextOffsetDateTime(),
+      r.nextOffsetDateTimeOption(),
       r.nextFloat(),
       r.nextFloat(),
       r.nextInt(),
@@ -579,8 +579,8 @@ class LabelTable @Inject() (
       r.nextInt(),
       r.nextInt(),
       r.nextInt(),
-      r.nextOffsetDateTime(),
-      r.nextDuration(),
+      r.nextOffsetDateTimeOption(),
+      r.nextDurationOption(),
       Map(
         CurbRamp.name   -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
         NoCurbRamp.name -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
@@ -1539,7 +1539,7 @@ class LabelTable @Inject() (
 
     sql"""
       SELECT '#$launchDate' AS launch_date,
-             '#${avgRecentLabels.map(_.toString).getOrElse("N/A")}' AS avg_timestamp_last_100_labels,
+             #${avgRecentLabels.map(avg => s"'$avg'").getOrElse("NULL")} AS avg_timestamp_last_100_labels,
              km_audited.km_audited AS km_audited,
              km_audited_no_overlap.km_audited_no_overlap AS km_audited_no_overlap,
              users.total_users,

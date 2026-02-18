@@ -188,7 +188,7 @@ object ApiFormats {
   def projectSidewalkStatsToJson(stats: ProjectSidewalkStats): JsObject = {
     Json.obj(
       "launch_date"                   -> stats.launchDate,
-      "avg_timestamp_last_100_labels" -> stats.avgTimestampLast100Labels.toString,
+      "avg_timestamp_last_100_labels" -> stats.avgTimestampLast100Labels.map(_.toString),
       "km_explored"                   -> stats.kmExplored,
       "km_explored_no_overlap"        -> stats.kmExploreNoOverlap,
       "user_counts"                   -> Json.obj(
@@ -204,8 +204,11 @@ object ApiFormats {
         Seq(
           ("label_count", JsNumber(stats.nLabels.toDouble)),
           ("label_count_with_severity", JsNumber(stats.nLabelsWithSeverity.toDouble)),
-          ("avg_label_timestamp", JsString(stats.avgLabelTimestamp.toString)),
-          ("avg_age_of_image_when_labeled", JsString(s"${stats.avgImageAgeByLabel.toDays} days"))
+          ("avg_label_timestamp", stats.avgLabelTimestamp.map(t => JsString(t.toString)).getOrElse(JsNull)),
+          (
+            "avg_age_of_image_when_labeled",
+            stats.avgImageAgeByLabel.map(avgImgAge => JsString(s"${avgImgAge.toDays} days")).getOrElse(JsNull)
+          )
         ) ++
           // Turns into { "CurbRamp" -> { "count" -> ###, ... }, ... }.
           stats.severityByLabelType.toSeq.sorted(labelTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2))
