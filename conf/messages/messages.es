@@ -38,6 +38,7 @@ dist.metric.abbr = km
 distance.icon.alt = Icono que muestra el camino curvo hacia el destino
 ok = OK
 cancel = Cancelar
+undo = Deshacer
 back = Atrás
 error = ¡Error!
 yes.caps = Sí

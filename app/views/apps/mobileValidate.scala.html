@@ -53,7 +53,11 @@
                 <div id="view-control-layer">
                     <div id="label-description-box"></div>
                 </div>
-                <button id="label-visibility-control-button" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"></button>
+                <button id="label-visibility-control-button" class="button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"></button>
+                <button id="validate-undo-button" class="button-on-pano">
+                    <img src="assets/images/icons/undo-icon.svg" class="hide-label-button-icon" alt="undo">
+                    <span>@Messages("undo")</span>
+                </button>
                 <div id="validation-button-holder">
                     <button id="validate-no-button" class="validate-page-button">
                         @Html(Messages("no.caps.shortcut"))

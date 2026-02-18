@@ -59,7 +59,7 @@ function Main (param) {
         svv.ui.skipValidation.skipButton = $('#left-column-skip-button');
 
         svv.ui.undoValidation = {};
-        svv.ui.undoValidation.undoButton = $('#validate-back-button');
+        svv.ui.undoValidation.undoButton = $('#validate-undo-button');
 
         svv.ui.modalLandscape = {};
         svv.ui.modalLandscape.holder = $('#modal-landscape-holder');

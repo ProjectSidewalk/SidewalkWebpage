@@ -171,7 +171,7 @@
     border-color: #A9C5B9;
 }
 
-#validate-back-button:disabled {
+#validate-undo-button:disabled {
     opacity: 0.5;
 }
 

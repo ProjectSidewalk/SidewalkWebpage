@@ -157,16 +157,24 @@ body {
     pointer-events: none; /* For now, just letting the SV viewer handle panning on it's own. */
 }
 
+.button-on-pano {
+    height: 66px;
+    padding: 0 18px;
+    gap: 16px;
+    border-radius: 12px;
+    border: 3px solid #525252;
+    font-size: 26px;
+}
+
 #label-visibility-control-button {
     top: 20px;
     left: 20px;
     right: auto;
-    height: 60px;
-    padding: 0 18px 0 18px;
-    gap: 6px;
-    border-radius: 12px;
-    border: 3px solid #525252;
-    font-size: 26px;
+}
+
+#validate-undo-button {
+    top: 20px;
+    right: 20px;
 }
 
 .hide-label-button-icon {
@@ -203,8 +211,8 @@ body {
 #validation-button-holder {
     z-index: 1;
     position: relative;
-    height: 8vw;
-    bottom: 14vw;
+    height: 9vw;
+    bottom: 15vw;
     padding: 0 7vw;
 }
 
@@ -233,7 +241,7 @@ body {
     visibility: hidden;
     position: absolute;
     height: 21px;
-    bottom: calc(14vw + 20px);
+    bottom: calc(15vw + 20px);
     z-index: 1;
 }
 
@@ -251,9 +259,9 @@ body {
 .validation-menu-section {
     z-index: 2;
     position: absolute;
-    bottom: calc(14vw + 40px);
+    bottom: calc(15vw + 40px);
     width: 60vw;
-    padding: 16px 0 16px 0;
+    padding: 16px 0;
     flex-direction: column;
     align-items: center;
     gap: 8px;

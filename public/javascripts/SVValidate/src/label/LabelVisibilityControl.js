@@ -38,7 +38,7 @@ function LabelVisibilityControl() {
         labelVisibilityButtonOnPano.html(`<span>${hideText}</span>`);
         let htmlString =
             `<img src="assets/images/icons/eye-invisible.svg" class="hide-label-button-icon" alt="${hideText}">
-            <br /><span>${hideText}</span>`;
+            <span>${hideText}</span>`;
         labelVisibilityControlButton.html(htmlString);
         panoMarker.marker_.classList.add('icon-outline');
     }
@@ -54,7 +54,7 @@ function LabelVisibilityControl() {
         labelVisibilityButtonOnPano.html(`<span>${showText}</span>`);
         let htmlString =
             `<img src="assets/images/icons/eye-visible.svg" class="hide-label-button-icon" alt="${showText}">
-            <br /><span>${showText}</span>`;
+            <span>${showText}</span>`;
         labelVisibilityControlButton.html(htmlString);
         panoMarker.marker_.classList.remove('icon-outline');
     }

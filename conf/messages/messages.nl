@@ -38,6 +38,7 @@ dist.metric.abbr = km
 distance.icon.alt = Pictogram met gebogen pad naar bestemming
 ok = OK
 cancel = Annuleer
+undo = Ongedaan maken
 back = Rug
 error = Error!
 yes.caps = Ja
