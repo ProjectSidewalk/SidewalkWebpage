@@ -180,7 +180,7 @@
     z-index: 2;
     font-family: sans-serif;
     font-size: 15px;
-    text-shadow: 0.5px 0.5px 0.5px rgba(0, 0, 0, 0.5);
+    text-shadow: 1px 1px 1px black;
     color: white;
 }
 

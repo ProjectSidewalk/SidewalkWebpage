@@ -38,7 +38,7 @@
     <div id="page-loading">
         <div id="loading-animation">
             <p class="loading-text">@Messages("loading")</p>
-            <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' title='@Messages("loading")'/>
+            <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'/>
             <p class="loading-sub-text">@Messages("loading.encouragement")</p>
         </div>
     </div>
@@ -117,12 +117,12 @@
                         <span id="svv-panorama-date"></span>
                     </div>
                     <div id="zoom-buttons-holder">
-                        <button id="zoom-in-button" class="zoom-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
-                            <svg viewBox="0 0 20 20"><use xlink:href="#plus"></use></svg>
+                        <button id="zoom-in-button" class="zoom-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top" aria-label="zoom in">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><use xlink:href="#plus"></use></svg>
                         </button>
                         <div id="zoom-button-divider"></div>
-                        <button id="zoom-out-button" class="zoom-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
-                            <svg viewBox="0 0 20 20"><use xlink:href="#minus"></use></svg>
+                        <button id="zoom-out-button" class="zoom-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top" aria-label="zoom out">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><use xlink:href="#minus"></use></svg>
                         </button>
                     </div>
                 </div>
@@ -207,21 +207,21 @@
                         <div class="severity-level radio-inline" id="severity-button-1" data-severity="1" data-toggle="tooltip">
                             <input type="radio" name="label-severity" value="1" id="radio-severity-1">
                             <div class="severity-icon severity-1">
-                                <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-1"></use></svg>
+                                <svg viewBox="0 0 150 150" aria-hidden="true"><use xlink:href="#smiley-frown-1"></use></svg>
                             </div>
                             <label for="radio-severity-1" class="severity-label">Low</label>
                         </div>
                         <div class="severity-level radio-inline" id="severity-button-2" data-severity="2" data-toggle="tooltip">
                             <input type="radio" name="label-severity" value="2" id="radio-severity-2">
                             <div class="severity-icon severity-2">
-                                <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-2"></use></svg>
+                                <svg viewBox="0 0 150 150" aria-hidden="true"><use xlink:href="#smiley-frown-2"></use></svg>
                             </div>
                             <label for="radio-severity-2" class="severity-label">Medium</label>
                         </div>
                         <div class="severity-level radio-inline selected" id="severity-button-3" data-severity="3" data-toggle="tooltip">
                             <input type="radio" name="label-severity" value="3" id="radio-severity-3">
                             <div class="severity-icon severity-3">
-                                <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-3"></use></svg>
+                                <svg viewBox="0 0 150 150" aria-hidden="true"><use xlink:href="#smiley-frown-3"></use></svg>
                             </div>
                             <label for="radio-severity-3" class="severity-label">High</label>
                         </div>

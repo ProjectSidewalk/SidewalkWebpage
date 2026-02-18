@@ -32,12 +32,14 @@ class PanoManager {
         svv.panoViewer = await panoViewerType.create(this.#panoCanvas, panoOptions);
         if (svv.panoViewer.currPanoData) this.#setPanoCallback(svv.panoViewer.currPanoData);
         if (panoViewerType === GsvViewer) {
-            $('#imagery-source-logo-holder').hide();
+            $('#imagery-source-logo-holder').remove();
         } else if (panoViewerType === MapillaryViewer) {
-            $('#imagery-source-logo').attr('src', '/assets/images/logos/mapillary-logo-white.png');
+            $('#imagery-source-logo').attr('src', '/assets/images/logos/mapillary-logo-white.png')
+                .attr('alt', 'Mapillary logo');
             $('#imagery-source-logo-holder').css        ('padding-left', '5px');
         } else if (panoViewerType === Infra3dViewer) {
-            $('#imagery-source-logo').attr('src', '/assets/images/logos/infra3d-logo.svg');
+            $('#imagery-source-logo').attr('src', '/assets/images/logos/infra3d-logo.svg')
+                .attr('alt', 'infra3D logo');
         }
 
         svv.panoViewer.addListener('pov_changed', () => svv.tracker.push('POV_Changed'));

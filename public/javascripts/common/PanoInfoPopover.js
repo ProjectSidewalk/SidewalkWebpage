@@ -69,6 +69,7 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
         self.infoButton = document.createElement('img');
         self.infoButton.classList.add('popover-element');
         self.infoButton.id = 'gsv-info-button';
+        self.infoButton.alt = i18next.t('common:gsv-info.details-title');
         if (whiteIcon) self.infoButton.src = '/assets/images/icons/pano_info_btn_white.svg';
         else self.infoButton.src = '/assets/images/icons/pano_info_btn.png';
         self.infoButton.setAttribute('data-toggle', 'popover');
