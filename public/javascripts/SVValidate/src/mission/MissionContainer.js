@@ -14,7 +14,7 @@ function MissionContainer () {
      * @private
      */
     function addAMission(mission) {
-        if (mission.getProperty("completed")) {
+        if (mission.getProperty('completed')) {
             _addToCompletedMissions(mission);
         } else {
             currentMission = mission;
@@ -30,9 +30,9 @@ function MissionContainer () {
      */
     function _addToCompletedMissions(mission) {
         let existingMissionIds = _completedMissions.map(function (m) {
-            return m.getProperty("missionId")
+            return m.getProperty('missionId')
         });
-        let currentMissionId = mission.getProperty("missionId");
+        let currentMissionId = mission.getProperty('missionId');
         if (existingMissionIds.indexOf(currentMissionId) < 0) {
             _completedMissions.push(mission);
         }
@@ -73,10 +73,7 @@ function MissionContainer () {
         let mission = new Mission(metadata);
         addAMission(mission);
         svv.modalMission.setMissionMessage(mission);
-        svv.modalInfo.setMissionInfo(mission);
         svv.statusField.updateLabelText(svv.labelTypes[mission.getProperty('labelTypeId')]);
-        svv.statusExample.updateLabelImage(svv.labelTypes[mission.getProperty('labelTypeId')]);
-        svv.statusField.refreshLabelCountsDisplay();
     }
 
     /**

@@ -1,153 +1,4 @@
-/* Overriding defaults from Validate. */
-.tool-ui {
-    width: 1080px;
-}
-#svv-application-holder {
-    height: 635px;
-    width: 1050px;
-}
-#svv-panorama-holder {
-    top: 100px;
-}
-
-#mission-title {
-    width: 1050px;
-    position: absolute;
-    top: 35px;
-    color: #525252;
-    font-family: "Open Sans";
-    font-size: 16px;
-    font-style: normal;
-    font-weight: 700;
-    line-height: normal;
-    letter-spacing: 0.8px;
-}
-
-#mission-progress-bar-section {
-    position: absolute;
-    top: 60px;
-    width: 730px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-#mission-progress-bar {
-    width: 690px;
-    height: 5px;
-}
-
-#mission-progress-bar-complete {
-    width: 10%;
-    border-radius: 5px;
-    background: var(--Brand-Pine-300, #76C9AB);
-    z-index: 2;
-    height: inherit;
-    position: relative;
-}
-
-#mission-progress-bar-incomplete {
-    border-radius: 5px;
-    background: #E2E2E2;
-    height: inherit;
-    margin-top: -5px; /* Makes it so that the progress bars are overlapping */
-    z-index: 1;
-    position: relative;
-}
-
-#mission-progress-bar-text {
-    color: var(--Brand-Asphalt-500, #2D2A3F);
-    font-family: Raleway;
-    font-size: 14px;
-    font-style: normal;
-    font-weight: 400;
-    line-height: 21px; /* 150% */
-    padding-bottom: 2px;
-}
-
-#label-visibility-control-button {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    z-index: 2;
-    display: inline-flex;
-    height: 28px;
-    padding: 0px 6px;
-    align-items: center;
-    gap: 3px;
-    background: #fff;
-    border-radius: 6px;
-    border: 1.5px solid #525252;
-    font-family: Raleway;
-    font-size: 9px;
-    font-weight: 600;
-    outline: none;
-}
-
-.hide-label-button-icon {
-    width: 13px;
-    height: 13px;
-}
-
-#zoom-buttons-holder {
-    position: absolute;
-    z-index: 3;
-    height: 40px;
-    width: 20px;
-    right: 5px;
-    bottom: 19px;
-    border-radius: 8px;
-    background-color: #000;
-}
-
-#zoom-buttons-holder .tooltip {
-    width: 70px;
-    font-size: 10px;
-}
-
-.zoom-button {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
-    border-radius: 8px;
-    background-color: #000;
-    border-style: none;
-    padding: 1px 5px;
-    outline: none;
-}
-
-.zoom-button svg {
-    stroke: #fff;
-    stroke-width: 2px;
-    width: 10px;
-    height: 10px;
-}
-
-.zoom-button svg:hover {
-    stroke-width: 3px;
-}
-
-#zoom-in-button {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-}
-
-#zoom-button-divider {
-    position: absolute;
-    left: 5px;
-    width: 10px;
-    height: 1px;
-    background-color: #fff;
-    opacity: 0.5;
-}
-
-#zoom-out-button {
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-}
-
-#right-ui-holder {
+#validation-menu-holder {
     margin: 0;
     padding: 0px 12px;
     position: absolute;
@@ -162,7 +13,7 @@
     gap: 20px;
 }
 
-.right-ui-section {
+.validation-menu-section {
     display: none; /* Initially hidden, sections shown when validation buttons are clicked. */
 }
 
@@ -173,10 +24,10 @@
 #validate-submit-section {
     display: flex;
     justify-content: space-between;
-    margin-top: auto; /* Pushes the section to the bottom of the right-ui-holder. */
+    margin-top: auto; /* Pushes the section to the bottom of the validation-menu-holder. */
 }
 
-.right-ui-header {
+.validation-menu-section-header {
     color: #2D2A3F;
     font-family: "Open Sans";
     font-size: 14px;
@@ -186,12 +37,12 @@
     margin-bottom: 10px;
 }
 
-#validation-button-holder-small {
+#validation-button-holder {
     display: flex;
     justify-content: space-between;
 }
 
-.new-validate-beta-button-small {
+.validate-page-button {
     display: flex;
     width: 86px;
     height: 32px;
@@ -199,9 +50,9 @@
     align-items: center;
     flex-shrink: 0;
     border-radius: 6px;
-    border: 1px solid #666;
+    border: 1px solid #2D2A3F;
 
-    color: #666;
+    color: #2D2A3F;
     text-align: center;
     font-family: Raleway;
     font-size: 12px;
@@ -213,26 +64,36 @@
     outline: none; /* Removes focus outline that shows up when I press shift after clicking on a button. */
 }
 
-.new-validate-beta-button-small:disabled {
+.validate-page-button:disabled {
     cursor: not-allowed;
 }
 
-#new-validate-beta-yes-button:hover, #new-validate-beta-yes-button.chosen {
+/*#validate-yes-button:hover, #validate-yes-button.chosen {*/
+#validate-yes-button.chosen {
     background: #76C9AB;
-    border-color: #76C9AB;
-    color: white;
 }
 
-#new-validate-beta-no-button:hover, #new-validate-beta-no-button.chosen {
+#validate-no-button.chosen {
     background: #F29173;
-    border-color: #F29173;
+}
+
+#validate-unsure-button.chosen {
+    background: #1A1A1A;
     color: white;
 }
 
-#new-validate-beta-unsure-button:hover, #new-validate-beta-unsure-button.chosen {
-    background: #1A1A1A;
-    border-color: #1A1A1A;
-    color: white;
+/* Only show hover states on non-touch devices. Same CSS as for chosen state. */
+@media (hover: hover) {
+    #validate-yes-button:hover {
+        background: #76C9AB;
+    }
+    #validate-no-button:hover {
+        background: #F29173;
+    }
+    #validate-unsure-button:hover {
+        background: #1A1A1A;
+        color: white;
+    }
 }
 
 #sidewalk-ai-suggestions-block {
@@ -300,17 +161,17 @@
     color: #EE724E;
 }
 
-#new-validate-beta-submit-button {
+#validate-submit-button {
     background: #5A9E85;
     border-color: #5A9E85;
     color: white;
 }
-#new-validate-beta-submit-button:disabled {
+#validate-submit-button:disabled {
     background: #A9C5B9;
     border-color: #A9C5B9;
 }
 
-#new-validate-beta-back-button:disabled {
+#validate-undo-button:disabled {
     opacity: 0.5;
 }
 
@@ -344,7 +205,6 @@
 #current-tags-list {
     display: flex; /* display:none when there are no tags, display: flex when there are; updated in JS. */
     flex-wrap: wrap;
-    /* align-items: flex-start; */
     row-gap: 5px;
     column-gap: 5px;
     margin-bottom: 10px;
@@ -375,7 +235,6 @@
     height: 9px;
     fill: white;
 }
-
 
 .face-outline { stroke: black; }
 .facial-feature { fill: black; }
@@ -427,9 +286,19 @@
     border-color: #78C9AB;
 }
 
-/* We should add transition only when the cursor is on the context menu. */
-/* Otherwise, it causes a delay when the context menu is closed and re-opened. */
-#context-menu-holder:hover .severity-level .severity-icon svg {
+#severity-radio-holder {
+    display: flex;
+    align-items: center;
+    font-size: 10px;
+    text-align: center;
+    gap: 20px;  /* This can be used to control the distance between the severity icons. */
+}
+
+#severity-radio-holder .radio-inline input[type="radio"] {
+    visibility: hidden;
+}
+
+.severity-level .severity-icon svg {
     transition: fill 0.3s;
 }
 
@@ -453,20 +322,8 @@
     fill: #e85f2b;
 }
 
-#severity-radio-holder .radio-inline input[type="radio"] {
-    visibility: hidden;
-}
-
 .severity-level.radio-inline {
     padding: 0;
-}
-
-#severity-radio-holder {
-    display: flex;
-    align-items: center;
-    font-size: 10px;
-    text-align: center;
-    gap: 20px;  /* This can be used to control the distance between the severity icons. */
 }
 
 #optional-comment-input {
@@ -477,7 +334,6 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-
 }
 
 .validation-reason-button {
@@ -501,31 +357,34 @@
 }
 
 /* Matching style of 'No' and 'Unsure' button for now. */
-#no-reason-options .validation-reason-button:hover, #no-reason-options .validation-reason-button.chosen {
+#no-reason-options .validation-reason-button.chosen {
     background: #F29173;
     border-color: #F29173;
     color: white;
 }
-#unsure-reason-options .validation-reason-button:hover, #unsure-reason-options .validation-reason-button.chosen {
+#unsure-reason-options .validation-reason-button.chosen {
     background: #1A1A1A;
     border-color: #1A1A1A;
     color: white;
 }
 
-.tooltip {
-    font-size: 10px;
-}
-
-/* Overwriting jquery tooltip styling. */
-.tooltip.in {
-    opacity: 1;
-}
-
-#add-disagree-comment:hover, #add-disagree-comment.chosen {
+#add-disagree-comment.chosen {
     border-color: #F29173 !important;
 }
 
-/* Override mission complete location to cover the next mission text and progress bar. */
-#modal-mission-complete-foreground {
-    top: 36px;
+/* Only show hover states on non-touch devices. Same CSS as for chosen state. */
+@media (hover: hover) {
+    #no-reason-options .validation-reason-button:hover {
+        background: #F29173;
+        border-color: #F29173;
+        color: white;
+    }
+    #unsure-reason-options .validation-reason-button:hover {
+        background: #1A1A1A;
+        border-color: #1A1A1A;
+        color: white;
+    }
+    #add-disagree-comment:hover {
+        border-color: #F29173 !important;
+    }
 }

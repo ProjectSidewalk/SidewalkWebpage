@@ -7,6 +7,7 @@
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
 
 <!DOCTYPE html>
+<html lang="@messages.lang.code">
 <head>
         <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=@commonData.googleAnalyticsId"></script>
@@ -234,3 +235,4 @@
     <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
     <script>updateTimestamps("@messages.lang.code");</script>
 </body>
+</html>

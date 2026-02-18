@@ -13,95 +13,75 @@
         "visibility-control-hide": "隱藏標記<u>H</u>",
         "visibility-control-show": "顯示標記<u>h</u>"
     },
-    "right-ui": {
-        "current-mission": {
-            "validate-labels": "檢核{{n}}標記"
-        },
-        "correct": {
+    "validate-menu": {
+        "disagree-reason": {
             "curb-ramp": {
-                "title": "<strong>正確的</strong>路緣斜坡標記",
-                "example-1-2-3-4": "這個標記被正確地標示於路緣斜坡底端。"
+                "no-button-1": "這是一條車道",
+                "no-button-2": "這是人行道到車道的過渡段。",
+                "no-button-2-tooltip": "人行道與道路車道之間的銜接方式不是路緣斜坡, 除非添加了專用坡道",
+                "no-button-3": "這應該是“缺少路緣坡道標籤”",
+                "no-button-3-tooltip": "有時，缺少的路緣坡道會被錯誤地標記為路緣坡道。"
             },
             "no-curb-ramp": {
-                "title": "<strong>正確的</strong>無路緣斜坡標記",
-                "example-1-2-3": "這個路口缺乏路緣斜坡",
-                "example-4": "此行人穿越道尾端應該要有路緣斜坡"
+                "no-button-1": "這是一條住宅人行道。",
+                "no-button-2": "這裡沒有人行道。",
+                "no-button-3": "這應該是路緣坡道標籤",
+                "no-button-3-tooltip": "有時，路緣坡道會被錯誤地標記為缺失坡道，這通常是因為缺少觸覺警告標誌。"
             },
             "obstacle": {
-                "title": "<strong>正確的</strong>障礙物標記",
-                "example-1": "這些工程角錐擋住了行人穿越道",
-                "example-2": "這棵樹擋住了整個人行道",
-                "example-3": "這根桿柱擋住了人行道及路緣斜坡入口",
-                "example-4": "這個消防栓擋住了人行道"
+                "no-button-1": "這裡不是人行道。",
+                "no-button-1-tooltip": "如果沒有人行道，或物體不在人行道的行人專用區域內（如下圖所示），則無需添加「障礙物」標籤。",
+                "no-button-2": "有足夠的空間避開這個物體",
+                "no-button-2-tooltip": "在非常寬闊的人行道上，很容易避開的物體不應被標記為障礙物。",
+                "no-button-3": "這應該是一個表面問題標籤",
+                "no-button-3-tooltip": "草屑和落葉等雜物應貼上「表面問題」標籤。"
             },
             "surface-problem": {
-                "title": "<strong>正確的</strong>鋪面問題標記",
-                "example-1": "這個人行道非常地不平整",
-                "example-2": "此磚砌的人行道是顛簸的且難以通行",
-                "example-3": "這個人行道上有裂縫",
-                "example-4": "人行道裂縫中生長許多雜草"
+                "no-button-1": "這應該是一個“禁止通行”的標誌。",
+                "no-button-1-tooltip": "碎石路或草地不屬於人行道，應標示「禁止通行」標誌。",
+                "no-button-2": "這裡不是人行道。",
+                "no-button-2-tooltip": "如果路面問題並非發生在人行道上，則不應標記為路面問題。",
+                "no-button-3": "這些是普通的人行道地磚。"
             },
             "no-sidewalk": {
-                "title": "<strong>正確的</strong>無人行道標記",
-                "example-1-2": "這是個突然中斷的人行道",
-                "example-3": "這條街道沒有人行道",
-                "example-4": "這個路口轉角沒有人行道"
+                "no-button-1": "這裡有人行道。",
+                "no-button-2": "這是交通中央隔離帶。",
+                "no-button-3": "這應該用不同的標籤類型來標記。",
+                "no-button-3-tooltip": "路面問題或障礙物可能被錯誤地標記為「無人行道」。"
             },
             "crosswalk": {
-                "title": "<strong>正確的</strong>缺有標記的行人穿越道標記",
-                "example-1-2-3": "這個標記被正確地標示在行人穿越道上",
-                "example-4": "這個標記被正確地標示在油漆褪色的行人穿越道上"
+                "no-button-1": "這裡沒有明顯的斑馬線。",
+                "no-button-2": "這是車輛停車線。",
+                "no-button-3": "這是一個減速帶"
             },
             "signal": {
-                "title": "<strong>正確的</strong>行人號誌標記",
-                "example-1-2-3": "此標記被正確地標示在行人號誌桿柱的底部",
-                "example-4": "此桿柱上有行人號誌燈及啟動按鈕"
+                "no-button-1": "這只是車輛的交通號誌。",
+                "no-button-2": "這是一個沒有燈光指示安全過馬路的標誌。",
+                "no-button-3": "這是一根沒有行人號誌或按鈕的電線桿"
             }
         },
-        "incorrect": {
-            "curb-ramp": {
-                "title": "<strong>錯誤的</strong>路緣斜坡標記",
-                "example-1-2": "人行道與道路車道之間的銜接方式不是路緣斜坡, 除非添加了專用坡道",
-                "example-3-4": "私家車道不是路緣斜坡"
+        "unsure-reason": {
+            "common": {
+                "reason-1": "需要更好的圖片",
+                "reason-1-tooltip": "這可能是因為影像模糊、被標註的物體距離太遠，或是需要不同的拍攝角度。",
+                "reason-2": "標籤位置看起來不正確",
+                "reason-2-tooltip": "有時，被標記的物體本身是可見的，但標籤卻顯得離它很遠。"
             },
             "no-curb-ramp": {
-                "title": "<strong>錯誤的</strong>無路緣斜坡標記",
-                "example-1": "住宅前走道不應該被標記為無路緣斜坡",
-                "example-2-4": "這不位於行人路徑上",
-                "example-3": "此處不是行人應該穿越的路口"
+                "unsure-button-3": "不確定是否需要路緣坡道。",
+                "unsure-button-3-tooltip": "行人是否應該被允許在與繁忙道路交叉口過馬路，這一點可能尚不明確。"
             },
             "obstacle": {
-                "title": "<strong>錯誤的</strong>障礙物標記",
-                "example-1": "桿柱的周邊有足夠的空間供平順地繞道通行",
-                "example-2": "此桿柱是位於路緣斜坡之間，並非在路緣斜坡上",
-                "example-3": "這棵樹木不位於行人路徑上",
-                "example-4": "此孔蓋周邊有足夠的空間可平順地繞道通行"
+                "unsure-button-3": "或許有足夠的空間避開該物體",
+                "unsure-button-3-tooltip": "從照片上可能很難判斷人行道的寬度。"
             },
             "surface-problem": {
-                "title": "<strong>錯誤的</strong>鋪面問題標記",
-                "example-1": "路緣斜坡上的鋪面問題應使用路緣斜坡標記並點選高嚴重度評分",
-                "example-2": "此碎石鋪面不在行人路徑上",
-                "example-3": "此草皮不在行人路徑上",
-                "example-4": "正常的人行道磚砌不是鋪面問題"
+                "unsure-button-3": "可能太輕微，不值得貼標籤。",
+                "unsure-button-3-tooltip": "人行道石塊間的草坪是否需要貼標籤可能並不明確。"
             },
             "no-sidewalk": {
-                "title": "<strong>錯誤的</strong>無人行道標記",
-                "example-1": "狹窄的人行道不應被標記為無人行道",
-                "example-2": "私家車道不應被標記為無人行道",
-                "example-3": "道路分隔島不應被標記為無人行道",
-                "example-4": "窄巷及弄不應被標記為無人行道"
-            },
-            "crosswalk": {
-                "title": "<strong>錯誤的</strong>缺有標記的行人穿越道標記",
-                "example-1": "交叉路口路面上無任何標線處，不應被標記為缺有標記的行人穿越道",
-                "example-2": "車輛停止線不應被標記為缺有標記的行人穿越道",
-                "example-3-4": "減速丘不應被標記為缺有標記的行人穿越道"
-            },
-            "signal": {
-                "title": "<strong>錯誤的</strong>行人號誌標記",
-                "example-1-2": "這個交通標誌並不指示行人何時可以穿越街道",
-                "example-3": "此為車輛號誌，非行人號誌",
-                "example-4": "這個燈桿沒有行人號誌啟動按鈕"
+                "unsure-button-3": "不確定這裡是否該建造人行道。",
+                "unsure-button-3-tooltip": "有時需要更多背景信息，僅憑一張圖片很難判斷人行道是否必要。"
             }
         }
     },
@@ -129,13 +109,6 @@
         "no-new-mission-button": "開始探索"
     },
     "mobile": {
-        "info-title-curb-ramp": "路緣斜坡是什麼？",
-        "info-title-no-curb-ramp": "無路緣斜坡是什麼？",
-        "info-title-obstacle": "障礙物是什麼？",
-        "info-title-surface-problem": "鋪面問題是什麼？",
-        "info-title-no-sidewalk": "「無人行道」是什麼 ",
-        "info-title-crosswalk": "缺有標記的行人穿越道是什麼？",
-        "info-title-signal": "行人號誌是什麼？",
         "no-new-mission-body": "您可以使用筆記型電腦/台式計算機添加更多標籤，也可以在其他城市驗證標籤！",
         "no-new-mission-button": "在中驗證"
     },

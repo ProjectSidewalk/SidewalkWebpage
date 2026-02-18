@@ -38,6 +38,7 @@ dist.metric.abbr = km
 distance.icon.alt = Icono que muestra el camino curvo hacia el destino
 ok = OK
 cancel = Cancelar
+undo = Deshacer
 back = Atrás
 error = ¡Error!
 yes.caps = Sí
@@ -50,6 +51,7 @@ thanks = ¡Gracias!
 username = Nombre de usuario/a
 loading = Cargando...
 loading.encouragement = ¡Hagámoslo!
+submit = Enviar
 test.server.warning.message = <strong>¡ADVERTENCIA!</strong> ¡Estás en un servidor de prueba! ¡Tus datos no se guardarán! Si desea que sus datos se guarden, utilice el sitio principal
 dont.show.again = No mostrar de nuevo
 
@@ -97,7 +99,6 @@ navbar.signin = Iniciar sesión
 navbar.signout = Cerrar sesión
 navbar.dashboard = Tu panel
 navbar.admin = Administrador
-navbar.admin.validate = Validación de administrador
 navbar.expert.validate = Validación experta
 navbar.city = Ciudad
 navbar.lang.aria = Opciones de idioma
@@ -245,26 +246,18 @@ audit.survey.performance.option.5 = Excelente
 audit.survey.rationale.question = ¿Por qué elegiste contribuir a <i>Project Sidewalk</i>?
 audit.survey.feedback.question = ¿Tienes algún comentario, ideas de diseño o preguntas?
 
-validate.top.ui.zoom.in = Acercar (<u>Z</u>)
-validate.top.ui.zoom.out = Alejar
-validate.left.ui.skip = Saltar
-validate.left.ui.skip.tooltip = Omita esta etiqueta si hay algún problema con la imagen
-validate.left.ui.undo = Deshacer
-validate.left.ui.undo.tooltip = Deshaz la etiqueta anterior si hubo un problema con tu respuesta
-validate.bottom.ui.add.comment = Si no está de acuerdo, ingrese su razonamiento aquí, que puede ser visto por el etiquetador en su tablero
-validate.right.ui.current.mission = Misión actual
-validate.right.ui.correct.examples = Ejemplo <strong>Correcto</strong>
-validate.right.ui.incorrect.examples = Ejemplo <strong>Incorrecto</strong>
+validate.comment.placeholder = Añadir comentario opcional
+validate.why.not = ¿Por qué no?
+validate.why.unsure = ¿Por qué “Inseguro”?
+validate.add.own.reason = O añade tu propia razón
+validate.skip.reason = Motivo de omisión
 validate.suggestions = Sugerencias
 validate.ai.disclaimer = Las sugerencias de etiquetas las realiza la IA, no son exhaustivas y pueden ser erróneas.
 validate.mission.complete.category = Categoría
 validate.mission.complete.your.overall.total = Su total en general
 
-mobile.validate.leave.feedback = Retroalimentación
-
 authenticate.email = Correo electrónico
 authenticate.password = Contraseña
-authenticate.submit = Enviar
 authenticate.remember.me = Mantenerme conectado
 authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
 authenticate.non.member = ¿No eres un miembro? <a href="{0}">Regístrate ahora</a>

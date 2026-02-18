@@ -128,12 +128,7 @@
                                     </a>
                                 </li>
                                 <li role="presentation">
-                                    <a id="navbar-admin-validate-btn" role="menuitem" href='@routes.ValidateController.adminValidate()'>
-                                    @Messages("navbar.admin.validate")
-                                    </a>
-                                </li>
-                                <li role="presentation">
-                                    <a id="navbar-new-validate-beta-btn" role="menuitem" href='@routes.ValidateController.expertValidate()'>
+                                    <a id="navbar-expert-validate-btn" role="menuitem" href='@routes.ValidateController.expertValidate()'>
                                         @Messages("navbar.expert.validate")
                                     </a>
                                 </li>
@@ -254,9 +249,6 @@
         $("#navbar-admin-btn").on('click', function() {
             logNavbarClick("Click_module=ToAdmin");
         });
-        $("#navbar-admin-validate-btn").on('click', function() {
-            logNavbarClick("Click_module=ToAdminValidate");
-        });
         $("#navbar-dashboard-btn").on('click', function() {
             logNavbarClick("Click_module=ToDashboard")
         });
@@ -324,7 +316,7 @@
                         @b3.password(forms.SignUpForm.form("passwordConfirm"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.confirm.password"))
                         @b3.radio(forms.SignUpForm.form("serviceHours"), Seq("YES" -> Messages("yes.caps"), "NO" -> Messages("no.caps")), '_label -> Messages("authenticate.service.hours.title"))
                         @b3.checkbox(forms.SignUpForm.form("terms"), '_text -> Html(Messages("authenticate.terms")))
-                        @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("authenticate.submit") }
+                        @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("submit") }
                     }
                 </div>
                 <div class="modal-footer">

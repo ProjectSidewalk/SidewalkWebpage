@@ -2,12 +2,13 @@
     background: rgba(255,255,255,1);
     margin: 0 auto;
     position: relative;
-    height: 655px;
-    width: 960px;
+    height: 635px;
+    width: 1050px;
 }
 
 .tool-ui {
-    width: 1170px; /* Used to override bootstrap .container media queries. We want to keep a consistent width. */
+    width: 1080px; /* Used to override bootstrap .container media queries. We want to keep a consistent width. */
+    visibility: hidden; /* Hidden until mission start tutorial overlay is ready to cover it. */
 }
 
 text {
@@ -30,10 +31,7 @@ text {
     cursor: pointer;
     font-size: 14px;
     margin-top: 3px;
-    padding-bottom: 2px;
-    padding-left: 5px;
-    padding-right: 5px;
-    padding-top: 2px;
+    padding: 2px 5px;
     width: 200px;
 
     border-radius: 3px 3px 0 0;
@@ -58,27 +56,22 @@ b { font-weight: bold; }
     float: left;
 }
 
-.InlineBlock {
-    display: inline-block;
-}
-
 input[type="radio"] {
     height: 15px;
     width: 15px;
-}
-
-/* http://stackoverflow.com/questions/8942805/chrome-bug-cursor-changes-on-mouse-down-move */
-#view-control-layer {
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    -o-user-select: none;
-    user-select: none;
 }
 
 .disabled {
     pointer-events: none;
     cursor: default;
     opacity: 0.5;
+}
+
+.tooltip {
+    font-size: 10px;
+}
+
+/* Overwriting jquery tooltip styling. */
+.tooltip.in {
+    opacity: 1;
 }

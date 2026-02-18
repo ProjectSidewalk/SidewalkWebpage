@@ -18,15 +18,9 @@ function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
     }
 
     /**
-     * Hides the mission complete menu. Waits until the next mission has been initialized and the
-     * first label has been loaded onto the screen.
+     * Hides the mission complete menu.
      */
     function hide() {
-        // Have to remove the effect since keyup event did not go through (but no keyboard use on mobile).
-        if (svv.keyboard) {
-            svv.keyboard.removeAllKeyPressVisualEffect();
-        }
-
         uiModalMissionComplete.closeButtonPrimary.off('click');
         uiModalMissionComplete.closeButtonSecondary.off('click');
         uiModalMissionComplete.background.css('visibility', 'hidden');

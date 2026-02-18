@@ -1,14 +1,12 @@
-#left-column-undo-button {
-    background: transparent;
-    position: absolute;
-    left: 4px;
-    top: -4px;
-    height: 75px;
-    width: 75px;
+/**
+ Most of this file contains overrides to elements/classes used in Validate on desktop.
+ */
+
+html {
+    position: fixed;
 }
 
 body {
-    background-color: #2C293E;
     height: 100vh;
     width: 100vw;
     text-align: center;
@@ -17,146 +15,46 @@ body {
     color: #777;
 }
 
-.example-image {
-    padding-left: 25px;
-    height: 249px;
-    width: 285px;
-    margin-top: 20px;
+.tool-ui {
+    position: static;
+    width: unset;
+}
+
+#page-loading {
+    max-width: unset;
+    max-height: unset;
+    top: 40vw;
+    left: 20vw;
+}
+
+#loading-animation {
+    width: unset;
+    height: unset;
+    margin: 0;
+}
+
+#loading-animation img {
+    width: 55vw;
+    height: 55vw;
+}
+
+.loading-text {
+    font-size: 10vw;
+}
+
+.loading-sub-text {
+    font-size: 5vw;
 }
 
 .filler, #footer-container, #info-footer {
     display: none;
 }
 
-html {
-    position: fixed;
-}
-
-#info-button {
-    background: transparent;
-    position: absolute;
-    left: 750px;
-    top: 0px;
-    height: 75px;
-    width: 75px;
-}
-
-#infopage-status-box {
-  border-bottom: 0;
-}
-
-#label-type-counterexample, #label-type-example {
-    font-size: 30pt;
-    padding-left: 25px;
-    font-weight: bold;
-}
-
-#left-column-feedback-button {
-    font-size: 30pt;
-    width: 90%
-}
-
-#left-column-skip-button {
-    background: transparent;
-    position: absolute;
-    left: 900px;
-    top: 0px;
-    height: 75px;
-    width: 75px;
-    color: white;
-}
-
-#modal-comment-box {
-    top: 0px;
-}
-
-#modal-comment-cancel-button {
-    font-size: 30pt;
-    width: 45%;
-    float: right;
-}
-
-#modal-comment-holder {
-    z-index: 5;
-}
-
-#modal-comment-ok-button {
-    font-size: 30pt;
-    width: 45%;
-    float: left;
-}
-
-#modal-comment-textarea {
-    font-size: 60pt;
-    border-width: 2px;
-    height: 200%;
-    width: 200%;
-    transform: scale(0.5);
-    transform-origin: left top;
-    margin-bottom: -100px;
-}
-
-#modal-comment-title {
-    font-size: 30pt;
-    text-align: left;
-}
-
 .modal-foreground {
     top: 0px;
-    left: 0;
-    right: 0;
-    padding: 0px;
-    height: 525px;
-    background: rgba(255, 255, 255, 1);
-    color: rgba(80, 80, 80, 1);
-    font-size: 40pt;
-    position: absolute;
-    min-height: 480px;
-    border: 5px solid black;
-    border-radius: 3px 3px 3px 3px;
-    z-index: 4;
-    -webkit-border-radius: 3px 3px 3px 3px;
-    -moz-border-radius: 3px 3px 3px 3px;
-    overflow: auto;
-    padding-bottom: 20px;
-}
-
-#modal-info-background {
-    position: absolute;
-    left: 0px;
-    top: 0;
-    background: rgba(255, 255, 255, 0.5);
-    visibility: hidden;
     height: 100%;
-    width: 110%;
-}
-
-#modal-info-close-button {
-    font-size: 50pt;
-    position: absolute;
-    width: 75px;
-    height: 75px;
-    background: transparent;
-    color: white;
-    top: -25px;
-}
-
-#modal-info-description {
-    padding-left: 25px;
-    padding-bottom: 10px;
-    color: #2C293E;
-    font-size: 30pt;
-    text-align: left;
-    line-height: 1.3;
-}
-
-#modal-info-holder {
-    visibility: hidden;
-}
-
-#modal-info-header {
-    background: #2C293E;
-    color: white;
+    width: 100%;
+    font-size: 40pt;
 }
 
 #modal-landscape-description {
@@ -167,16 +65,43 @@ html {
     visibility: hidden;
 }
 
+#modal-mission-complete-foreground {
+    top: 0;
+    padding-top: 8vw;
+}
+
+#ps-logo-mission {
+    width: calc(80vw - 40px);
+    margin-left: calc(10vw - 20px); /* Subtracting modal padding. */
+}
+
+#ps-logo-mission-complete {
+    width: 80vw;
+}
+
 #modal-mission-close-button {
     font-size: 50pt;
+    height: 80pt;
 }
 
 #modal-mission-header {
-    font-size: 50pt;
+    font-size: 46pt;
+    margin: 5vw 5vw;
 }
 
 #modal-mission-complete-title {
     font-size: 50pt;
+}
+
+#modal-mission-complete-message {
+    width: 84%;
+    margin-left: 8%;
+}
+
+#modal-mission-complete-table {
+    width: 94%;
+    margin-left: 11%;
+    padding-left: 0;
 }
 
 #ps-logo {
@@ -187,56 +112,74 @@ html {
     width: 350px;
 }
 
-#status-current-mission-completion-bar {
-    height: 50px;
-    width: 190px;
-    left: 0px;
-    top: 0px;
-}
-
-#status-current-mission-completion-bar-filler {
-    border-width: 0;
-    height: 50px;
-    position: absolute;
-    width: 190px;
-}
-
-#status-current-mission-completion-rate {
-    font-size: 25pt;
-    width: 190px;
-}
-
 #svv-panorama-holder {
     position: absolute;
-    top: 120px;
-    width: 730px;
-    height: 390px;
+    top: 80px;
 }
 
-#title-bar-holder {
-    position: absolute;
-    left: 0px;
-    width: 500px;
-    height: 75px;
-    top: 50px;
+#mission-progress-bar-section {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 20px;
+}
+
+#mission-progress-bar {
+    width: inherit;
+    height: inherit;
+}
+
+#mission-progress-bar-complete {
+    border-radius: 0 10px 10px 0;
+    background: var(--Brand-Pine-400, #37A17B);
+}
+
+#mission-progress-bar-incomplete {
+    border-radius: unset;
+    height: inherit;
+    margin-top: -20px; /* Makes it so that the progress bars are overlapping */
 }
 
 #mission-title {
-    font-size: 40px;
+    font-size: 38px;
     color: white;
-    top: 10px;
-    width: 700px;
+    top: 20px;
+    left: 0;
+    height: 60px;
+    width: 100%;
+    background-color: #2C293E;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-#view-control-layer-mobile {
-    position: absolute;
-    top: 0;
+#view-control-layer {
     pointer-events: none; /* For now, just letting the SV viewer handle panning on it's own. */
 }
 
-#validation-yes-button {
-    background-color: #78C8AB;
-    color: #2C293E;
+.button-on-pano {
+    height: 66px;
+    padding: 0 18px;
+    gap: 16px;
+    border-radius: 12px;
+    border: 3px solid #525252;
+    font-size: 26px;
+}
+
+#label-visibility-control-button {
+    top: 20px;
+    left: 20px;
+    right: auto;
+}
+
+#validate-undo-button {
+    top: 20px;
+    right: 20px;
+}
+
+.hide-label-button-icon {
+    width: 26px;
+    height: 26px;
 }
 
 .animate-button:active {
@@ -265,76 +208,169 @@ html {
     }
 }
 
-#validation-no-button {
-    background-color: #EB7350;
-    color: #2C293E;
-}
-
-#validation-unsure-button {
-    background-color: #FDD68D;
-    color: #2C293E;
-}
-
-.validation-button {
-    height: 100px;
-    background-color: white;
-    border-radius: 25px;
-    border-width: 3px;
-    border-color: #2C293E;
-    width: 260px;
-    font-size: 36px;
-}
-
 #validation-button-holder {
+    z-index: 1;
     position: relative;
-    left: -80px;
-    height: 90px;
-    width: 730px;
+    height: 9vw;
+    bottom: 15vw;
+    padding: 0 7vw;
+}
+
+.validate-page-button {
+    width: 25vw;
+    height: inherit;
+    border-radius: 16px;
+    border: 4px solid #2d2a3f;
+    color: #2d2a3f;
+    font-size: 28px;
+}
+
+#validate-yes-button.chosen {
+    background: #76C9AB;
+}
+
+#validate-no-button.chosen {
+    background: #F29173;
+}
+
+#validate-unsure-button.chosen {
+    background: #1A1A1A;
+}
+
+#mobile-popup-notch {
+    visibility: hidden;
+    position: absolute;
+    height: 21px;
+    bottom: calc(15vw + 20px);
     z-index: 1;
 }
 
-.gray-button-mobile {
-    position: relative;
-    background-color: rgba(251, 215, 139, 1);
-    -moz-border-radius:15px;
-    -webkit-border-radius:15px;
-    border-radius:10px;
-    border:1px solid rgba(251, 215, 139, 1);
-    display:inline-block;
+.mobile-popup-notch-no {
+    visibility: visible !important;
+    left: calc(7vw + 12.5vw - 24px); /* Dist to start of no button + no button width / 2 - notch width / 2. */
+}
+
+.mobile-popup-notch-unsure {
+    visibility: visible !important;
+    /* Distance to start of buttons + no button width + button gap + unsure button width / 2 - notch width / 2. */
+    left: calc(7vw + 25vw + 5.5vw + 12.5vw - 24px);
+}
+
+.validation-menu-section {
+    z-index: 2;
     position: absolute;
+    bottom: calc(15vw + 40px);
+    width: 60vw;
+    padding: 16px 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.70);
+}
+
+#validate-why-no-section {
+    left: 7vw;
+}
+
+#validate-why-unsure-section {
+    left: 20vw;
+}
+
+.validation-menu-section-header {
+    font-size: 28px;
+    display: flex;
+    padding: 0 32px;
+    align-items: flex-start;
+    gap: 12px;
+    align-self: stretch;
+}
+
+#no-reason-options, #unsure-reason-options {
+    gap: 16px;
+    padding: 0 32px;
+    align-items: flex-start;
+    align-self: stretch;
+}
+
+.validation-reason-button {
+    width: unset;
+    height: 80px;
+    justify-content: center;
+    border-radius: 16px;
+    border: 3px solid #666;
+
+    color: #2D2A3F;
+    font-size: 24px;
+    align-self: stretch;
+}
+
+.validate-text-input {
+    width: unset;
+    align-self: stretch;
+}
+
+/* Bootstrap is getting loaded after this file hence overriding this. To avoid it, I am adding important but ideally the order of inclusion should be flipped. */
+.validate-text-input input {
+    height: 80px !important;
+    padding: 8px 18px !important;
+    border-radius: 16px !important;
+    font-size: 24px !important;
+}
+
+#no-submit-section, #unsure-submit-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    align-self: stretch;
+    margin-top: 20px;
+    padding: 0 32px;
+}
+
+#no-menu-skip-reason-button, #unsure-menu-skip-reason-button {
+    height: 76px;
+    width: auto;
+    padding: 0 12px;
+    border: none;
+    background: none;
+}
+
+#no-menu-submit-button, #unsure-menu-submit-button {
+    height: 76px;
+    width: auto;
+    padding: 10px 24px;
+    border-radius: 16px;
+    border: 3px solid #666;
+    background: #FBD98C;
+}
+
+.sign-in-up-button-mobile {
+    position: absolute;
+    background-color: rgba(251, 215, 139, 1);
+    -moz-border-radius: 15px;
+    -webkit-border-radius: 15px;
+    border-radius: 15px;
+    border: none;
     right: 45px;
     top: 45px;
-    cursor:pointer;
-    color:#2D2A3F;
+    color: #2D2A3F;
     font: normal normal normal 14px/1.4em raleway,sans-serif;
     font-family: 'Raleway', sans-serif;
-    text-align: center;
     font-weight: bolder;
-    font-size:40px;
+    font-size: 40px;
     max-width: 500px;
     height: 75px;
-    padding:5px 25px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-    text-decoration:none;
+    padding: 5px 25px;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
 
-/* Styling for the test server warning banner that is specific to only the mobile validate page. */
 .test-server-banner {
     position: absolute;
-    top: 125px;
-    width: 99%;
-    left: 0.5%;
-    z-index: 2;
+    top: 80px;
+    width: 100%;
+    left: 0;
+    z-index: 3;
 }
 .test-server-banner-content {
     font-size: xx-large;
-}
-
-.severity-image {
-    height: 30px;
-    width: 30px;
-    margin-left: 8px;
 }

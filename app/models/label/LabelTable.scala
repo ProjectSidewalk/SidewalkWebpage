@@ -151,7 +151,7 @@ case class LabelMetadata(
     aiGenerated: Boolean
 )
 
-// Extra data to include with validations for Admin Validate. Includes usernames and previous validators.
+// Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
 case class AdminValidationData(labelId: Int, username: String, previousValidations: Seq[(String, Int)])
 
 case class ResumeLabelMetadata(
@@ -959,7 +959,7 @@ class LabelTable @Inject() (
   }
 
   /**
-   * Get additional info about a label for use by admins on Admin Validate.
+   * Get additional info about a label for use by admins on Expert Validate.
    * @param labelIds Seq of label IDs to get extra info for.
    */
   def getExtraAdminValidateData(labelIds: Seq[Int]): DBIO[Seq[AdminValidationData]] = {
