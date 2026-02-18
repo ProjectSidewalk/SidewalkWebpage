@@ -2,7 +2,7 @@ name := """sidewalk-webpage"""
 
 version := "11.0.0"
 
-scalaVersion := "2.13.17"
+scalaVersion := "2.13.18"
 
 // These lines prevent documentation from being generated. Once we clean up our Scaladoc, we can remove these lines.
 Compile / doc / sources := Seq.empty
@@ -17,24 +17,24 @@ resolvers ++= Seq(
 // Play: https://mvnrepository.com/artifact/com.typesafe.play/play?repo=central
 libraryDependencies ++= Seq(
   // General Play stuff.
-  "org.playframework" %% "play-guice" % "3.0.9",
-  "org.playframework" %% "play-cache" % "3.0.9",
-  "org.playframework" %% "play-ws" % "3.0.9",
-  "org.playframework" %% "play-caffeine-cache" % "3.0.9",
+  "org.playframework" %% "play-guice" % "3.0.10",
+  "org.playframework" %% "play-cache" % "3.0.10",
+  "org.playframework" %% "play-ws" % "3.0.10",
+  "org.playframework" %% "play-caffeine-cache" % "3.0.10",
   "org.playframework" %% "play-mailer" % "10.1.0", // play-mailer is on a different versioning scheme than Play itself.
   "org.playframework" %% "play-mailer-guice" % "10.1.0", // play-mailer is on a different versioning scheme than Play itself.
   "org.playframework" %% "play-json" % "3.0.6", // play-json is on a different versioning scheme than Play itself.
 
   // Authentication using Silhouette.
-  "org.playframework.silhouette" %% "play-silhouette" % "10.0.3",
-  "org.playframework.silhouette" %% "play-silhouette-password-bcrypt" % "10.0.3",
-  "org.playframework.silhouette" %% "play-silhouette-crypto-jca" % "10.0.3",
-  "org.playframework.silhouette" %% "play-silhouette-persistence" % "10.0.3",
+  "org.playframework.silhouette" %% "play-silhouette" % "10.0.4",
+  "org.playframework.silhouette" %% "play-silhouette-password-bcrypt" % "10.0.4",
+  "org.playframework.silhouette" %% "play-silhouette-crypto-jca" % "10.0.4",
+  "org.playframework.silhouette" %% "play-silhouette-persistence" % "10.0.4",
   "net.codingwell" %% "scala-guice" % "6.0.0", // This on top of play-guice, I think to simplify SilhouetteModule.scala.
   "com.iheart" %% "ficus" % "1.5.2",
 
   // Slick and Postgres stuff.
-  "org.postgresql" % "postgresql" % "42.7.8",
+  "org.postgresql" % "postgresql" % "42.7.10",
   "org.playframework" %% "play-slick" % "6.2.0",
   "org.playframework" %% "play-slick-evolutions" % "6.2.0",
 

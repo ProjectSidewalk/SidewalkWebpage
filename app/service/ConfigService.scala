@@ -520,8 +520,7 @@ class ConfigServiceImpl @Inject() (
     val currentCountryId = config.get[String](s"city-params.country-id.$currentCityId")
     val envType          = config.get[String]("environment-type")
 
-    // Get info for all cities except the staging server.
-    val cityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
+    val cityIds = config.get[Seq[String]]("city-params.city-ids")
     cityIds.map { cityId =>
       val stateId    = config.get[Option[String]](s"city-params.state-id.$cityId")
       val countryId  = config.get[String](s"city-params.country-id.$cityId")
