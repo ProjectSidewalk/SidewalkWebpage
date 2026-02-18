@@ -9,6 +9,7 @@ import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.silhouette.api.Silhouette
 import service.{AggregateStats, ApiService, ConfigService}
+
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
@@ -84,7 +85,7 @@ class StatsApiController @Inject() (
             val writer            = new java.io.PrintStream(sidewalkStatsFile)
 
             writer.println(s"Launch Date, ${stats.launchDate}")
-            writer.println(s"Recent Labels Average Timestamp, ${stats.avgTimestampLast100Labels}")
+            writer.println(s"Recent Labels Average Timestamp, ${stats.avgTimestampLast100Labels.getOrElse("NA")}")
             writer.println(s"KM Explored,${stats.kmExplored}")
             writer.println(s"KM Explored Without Overlap,${stats.kmExploreNoOverlap}")
             writer.println(s"Total User Count,${stats.nUsers}")
@@ -96,8 +97,9 @@ class StatsApiController @Inject() (
             writer.println(s"Researcher User Count,${stats.nResearcher}")
             writer.println(s"Total Label Count,${stats.nLabels}")
             writer.println(s"Total Label Count With Severity,${stats.nLabelsWithSeverity}")
-            writer.println(s"Average Label Timestamp,${stats.avgLabelTimestamp}")
-            writer.println(s"Average Age of Image When Labeled,${stats.avgImageAgeByLabel.toDays} Days")
+            writer.println(s"Average Label Timestamp,${stats.avgLabelTimestamp.getOrElse("NA")}")
+            val avgImgAge: String = stats.avgImageAgeByLabel.map(avg => s"${avg.toDays} Days").getOrElse("NA")
+            writer.println(s"Average Age of Image When Labeled,$avgImgAge")
             for ((labType, sevStats) <- stats.severityByLabelType.toSeq.sorted(labelTypeOrdering)) {
               writer.println(s"$labType Count,${sevStats.n}")
               writer.println(s"$labType Count With Severity,${sevStats.nWithSeverity.getOrElse("NA")}")
