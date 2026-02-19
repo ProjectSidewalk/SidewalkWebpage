@@ -2,7 +2,7 @@
  * Initializes the primary validation UI on the right side, including validation of tags/severity.
  * @constructor
  */
-function RightMenu(menuUI) {
+function DesktopValidationMenu(menuUI) {
     const self = this;
     const $disagreeReasonButtons = menuUI.disagreeReasonOptions.children('.validation-reason-button');
     const $unsureReasonButtons = menuUI.unsureReasonOptions.children('.validation-reason-button');
@@ -31,43 +31,48 @@ function RightMenu(menuUI) {
             svv.labelContainer.getCurrentLabel().setProperty('validationResult', 3);
         });
 
-        // Add onclick for each severity button.
-        menuUI.severityMenu.find('.severity-level').click(function(e) {
-            let currLabel = svv.labelContainer.getCurrentLabel();
-            const oldSeverity = currLabel.getProperty('newSeverity');
-            const newSeverity = $(e.target).closest('.severity-level').data('severity');
-            const labelType = currLabel.getAuditProperty('labelType')
-            if (oldSeverity !== newSeverity && !['NoSidewalk', 'Signal'].includes(labelType)) {
-                svv.tracker.push(`Click=Severity_Old=${oldSeverity}_New=${newSeverity}`);
-                currLabel.setProperty('newSeverity', newSeverity);
-                _renderSeverity();
-            }
-        });
-
-        // Initialize the selectize object for tags (this is the auto-completing tag picker).
-        $tagSelect = $('#select-tag').selectize({
-            maxItems: 1,
-            placeholder: 'Add more tags here',
-            labelField: 'tag_name',
-            valueField: 'tag_name',
-            searchField: 'tag_name',
-            sortField: 'popularity', // TODO include data abt frequency of use on this server.
-            onFocus: function() { svv.tracker.push('Click=TagSearch'); },
-            onItemAdd: function (tagName, $item) {
-                tagsAddedByUser.push(tagName);
-                _addTag(tagName, false);
-            },
-            render: {
-                option: function(item, escape) {
-                    // Add an example image tooltip to the tag.
-                    const translatedTagName = i18next.t('common:tag.' + item.tag_name.replace(/:/g, '-'));
-                    let $tagDiv = $(`<div class="option">${escape(translatedTagName)}</div>`);
-                    const tooltipText = `"${translatedTagName}" example`
-                    _addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${item.tag_id}.png`);
-                    return $tagDiv[0];
+        // Tag and severity sections only available with Expert Validate.
+        if (svv.adminVersion) {
+            // Add onclick for each severity button.
+            menuUI.severityMenu.find('.severity-level').click(function (e) {
+                let currLabel = svv.labelContainer.getCurrentLabel();
+                const oldSeverity = currLabel.getProperty('newSeverity');
+                const newSeverity = $(e.target).closest('.severity-level').data('severity');
+                const labelType = currLabel.getAuditProperty('labelType')
+                if (oldSeverity !== newSeverity && !['NoSidewalk', 'Signal'].includes(labelType)) {
+                    svv.tracker.push(`Click=Severity_Old=${oldSeverity}_New=${newSeverity}`);
+                    currLabel.setProperty('newSeverity', newSeverity);
+                    _renderSeverity();
                 }
-            }
-        });
+            });
+
+            // Initialize the selectize object for tags (this is the auto-completing tag picker).
+            $tagSelect = $('#select-tag').selectize({
+                maxItems: 1,
+                placeholder: 'Add more tags here',
+                labelField: 'tag_name',
+                valueField: 'tag_name',
+                searchField: 'tag_name',
+                sortField: 'popularity', // TODO include data abt frequency of use on this server.
+                onFocus: function () {
+                    svv.tracker.push('Click=TagSearch');
+                },
+                onItemAdd: function (tagName, $item) {
+                    tagsAddedByUser.push(tagName);
+                    _addTag(tagName, false);
+                },
+                render: {
+                    option: function (item, escape) {
+                        // Add an example image tooltip to the tag.
+                        const translatedTagName = i18next.t('common:tag.' + item.tag_name.replace(/:/g, '-'));
+                        let $tagDiv = $(`<div class="option">${escape(translatedTagName)}</div>`);
+                        const tooltipText = `"${translatedTagName}" example`
+                        _addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${item.tag_id}.png`);
+                        return $tagDiv[0];
+                    }
+                }
+            });
+        }
 
         // Add onclick for disagree and unsure reason buttons.
         for (const reasonButton of $disagreeReasonButtons) {
@@ -220,15 +225,20 @@ function RightMenu(menuUI) {
         menuUI.yesButton.addClass('chosen');
         menuUI.noButton.removeClass('chosen');
         menuUI.unsureButton.removeClass('chosen');
-        _renderTags();
-        menuUI.tagsMenu.css('display', 'block');
-        let currLabelType = svv.labelContainer.getCurrentLabel().getAuditProperty('labelType');
 
-        // Pedestrian Signal and No Sidewalk label types don't have severity ratings.
-        if (!['Signal', 'NoSidewalk'].includes(currLabelType)) {
-            _renderSeverity();
-            menuUI.severityMenu.css('display', 'block');
+        // Only show the tags and severity sections on Expert Validate.
+        if (svv.adminVersion) {
+            _renderTags();
+            menuUI.tagsMenu.css('display', 'block');
+
+            // Pedestrian Signal and No Sidewalk label types don't have severity ratings.
+            let currLabelType = svv.labelContainer.getCurrentLabel().getAuditProperty('labelType');
+            if (!['Signal', 'NoSidewalk'].includes(currLabelType)) {
+                _renderSeverity();
+                menuUI.severityMenu.css('display', 'block');
+            }
         }
+
         menuUI.optionalCommentSection.css('display', 'block');
         menuUI.noMenu.css('display', 'none');
         menuUI.unsureMenu.css('display', 'none');
@@ -261,9 +271,9 @@ function RightMenu(menuUI) {
 
     /**
      * Adds a jquery tooltip to the given element with the given text and image (if given).
-     * @param $elem Element to add the tooltip to, as jquery wrapped object.
-     * @param tooltipText Text to display in the tooltip.
-     * @param img Optional image to display in the tooltip.
+     * @param {jQuery} $elem Element to add the tooltip to, as jquery wrapped object.
+     * @param {string} tooltipText Text to display in the tooltip.
+     * @param {string} img Optional image to display in the tooltip.
      * @private
      */
     function _addTooltip($elem, tooltipText, img) {
@@ -310,6 +320,7 @@ function RightMenu(menuUI) {
         let tagToRemove = allTagOptions.find(t => t.tag_id === tagIdToRemove).tag_name;
         _removeTag(tagToRemove, label, false);
     }
+
     function _renderTags() {
         let label = svv.labelContainer.getCurrentLabel();
         let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
@@ -513,7 +524,7 @@ function RightMenu(menuUI) {
         }
         currLabel.setProperty('comment', comment);
 
-        // If enough time has passed between validations, log validations.
+        // If enough time has passed between validations, log the new validation.
         if (timestamp - svv.labelContainer.getProperty('validationTimestamp') > 800) {
             svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
         }

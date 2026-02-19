@@ -403,7 +403,7 @@ class LabelServiceImpl @Inject() (
             .map(_.get)
           missionProgress: (Int, Int, Int) <- db.run(labelValidationTable.getValidationProgress(mission.missionId))
 
-          // Get list of labels and their metadata for Validate page. Get extra metadata if it's for Admin Validate.
+          // Get list of labels and their metadata for Validate page. Get extra metadata if it's for Expert Validate.
           labelsProgress: Int   = mission.labelsProgress.get
           labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
           labelsToRetrieve: Int = labelsToValidate - labelsProgress

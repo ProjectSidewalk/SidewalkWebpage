@@ -118,8 +118,8 @@ async function LabelContainer(labelList) {
         if (currLabelIndex > 0) { svv.undoValidation.enableUndo(); }
         await svv.panoManager.setPanorama(currLabel.getAuditProperty('panoId'));
         svv.labelDescriptionBox.setDescription(currLabel);
-        if (svv.expertValidate) svv.rightMenu.resetMenu(currLabel);
-        if (svv.adminVersion) svv.statusField.updateAdminInfo(currLabel);
+        svv.validationMenu.resetMenu(currLabel);
+        if (svv.adminVersion) svv.adminInfo.updateAdminInfo(currLabel);
         svv.panoManager.renderPanoMarker(currLabel);
     }
 
@@ -221,7 +221,7 @@ async function LabelContainer(labelList) {
             end_timestamp: labelMetadata.endTimestamp,
             heading: labelMetadata.heading,
             label_id: labelId,
-            mission_id: svv.missionContainer.getCurrentMission().getProperty("missionId"),
+            mission_id: svv.missionContainer.getCurrentMission().getProperty('missionId'),
             pitch: labelMetadata.pitch,
             start_timestamp: labelMetadata.startTimestamp,
             validation_result: labelMetadata.validationResult,

@@ -16,8 +16,7 @@ function UndoValidation (uiUndo) {
      */
     function enableUndo() {
         status.disableUndo = false;
-        uiUndo.undoButton.prop("disabled", false);
-        if (!svv.expertValidate) uiUndo.undoButton.removeClass("disabled");
+        uiUndo.undoButton.prop('disabled', false);
     }
 
     /**
@@ -25,22 +24,21 @@ function UndoValidation (uiUndo) {
      */
     function disableUndo() {
         status.disableUndo = true;
-        uiUndo.undoButton.prop("disabled", true);
-        if (!svv.expertValidate) uiUndo.undoButton.addClass("disabled");
+        uiUndo.undoButton.prop('disabled', true);
     }
 
     /**
      * Goes back to the previous label (decrements user's progress).
      */
     function undo() {
-        svv.tracker.push("ModalUndo_Click");
+        svv.tracker.push('ModalUndo_Click');
         svv.missionContainer.updateAMissionUndoValidation();
-        if (svv.expertValidate) svv.rightMenu.saveValidationState();
+        svv.validationMenu.saveValidationState();
         svv.labelContainer.undoLabel();
         disableUndo();
     }
 
-    uiUndo.undoButton.on("click", undo);
+    uiUndo.undoButton.on('click', undo);
 
     self.enableUndo = enableUndo;
     self.disableUndo = disableUndo;

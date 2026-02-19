@@ -1,26 +1,23 @@
 /**
- * Updates items that appear on the right side of the validation interface (i.e., label counts)
- * @param param must have:
- *                  - completedValidations: the number of validations the user has completed in all time.
+ * Tracks the number of completed validations for the user, updating the progress bar throughout the mission.
+ *
+ * @param {number} completedValidationsParam The number of validations the user has completed all time
  * @returns {StatusField}
  * @constructor
  */
-function StatusField(param) {
+function StatusField(completedValidationsParam) {
     const self = this;
-    let completedValidations = param.completedValidations;
+    let completedValidations = completedValidationsParam;
     const statusUI = svv.ui.status;
-    const expertValidateProgressBarProgress = $('#mission-progress-bar-complete');
-    const expertValidateProgressBarText = $('#mission-progress-bar-text');
 
     /**
      * Resets the status field whenever a new mission is introduced.
-     * @param currentMission    Mission object for the current mission.
+     *
+     * @param {Mission} currentMission Mission object for the current mission
      */
     function reset(currentMission) {
         let progress = currentMission.getProperty('labelsProgress');
         let total = currentMission.getProperty('labelsValidated');
-        refreshLabelCountsDisplay();
-        updateMissionDescription(total);
         setProgressText(progress, total);
         setProgressBar(progress, total);
     }
@@ -30,7 +27,6 @@ function StatusField(param) {
      */
     function incrementLabelCounts(){
         completedValidations++;
-        refreshLabelCountsDisplay();
     }
 
     /**
@@ -38,126 +34,52 @@ function StatusField(param) {
      */
     function decrementLabelCounts(){
         completedValidations--;
-        refreshLabelCountsDisplay();
     }
 
     /**
-     * Refreshes the number count displayed.
-     */
-    function refreshLabelCountsDisplay(){
-        statusUI.labelCount.html(completedValidations);
-    }
-
-    /**
-     * Updates the label name that is displayed in the status field and title bar.
+     * Updates the label name that is displayed in the title bar and above the validation section.
+     *
      * @param labelType {string} Name of label without spaces.
      */
     function updateLabelText(labelType) {
-        // Centers and updates title top of the validation interface.
-        if (svv.expertValidate) {
-            let missionLength = svv.missionContainer ? svv.missionContainer.getCurrentMission().getProperty('labelsValidated') : svv.missionLength;
-            let newMissionTitle = i18next.t('mission-start-tutorial.mst-instruction-2',
-                {'nLabels': missionLength, 'labelType': i18next.t(`common:${util.camelToKebab(labelType)}`)}
-            ).toUpperCase().replace(/&SHY;/g, '&shy;');
-            statusUI.upperMenuTitle.html(newMissionTitle);
-            svv.ui.expertValidate.header.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
-        } else {
-            statusUI.upperMenuTitle.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
-            let offset = statusUI.zoomInButton.outerWidth()
-                + statusUI.zoomOutButton.outerWidth()
-                + statusUI.labelVisibilityControlButton.outerWidth();
-            let width = ((svv.canvasWidth() - offset) / 2) - (statusUI.upperMenuTitle.outerWidth() / 2);
-            statusUI.upperMenuTitle.css("left", width + "px");
-        }
+        let missionLength = svv.missionContainer ? svv.missionContainer.getCurrentMission().getProperty('labelsValidated') : svv.missionLength;
+        let newMissionTitle = i18next.t(
+            'mission-start-tutorial.mst-instruction-2',
+            {'nLabels': missionLength, 'labelType': i18next.t(`common:${util.camelToKebab(labelType)}`)}
+        ).toUpperCase().replace(/&SHY;/g, '&shy;');
+        statusUI.upperMenuTitle.html(newMissionTitle);
+        svv.ui.validationMenu.header.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
     }
 
     /**
-     * Updates the text for the mission description.
-     * @param count {number} Number of labels to validate this mission.
-     */
-    function updateMissionDescription(count) {
-        statusUI.missionDescription.html(i18next.t('right-ui.current-mission.validate-labels', { n: count }));
-    }
-
-    /**
-     * Updates the mission progress completion bar
+     * Updates the mission progress completion bar by setting the width of the green portion.
      */
     function setProgressBar(progress, total) {
-        let completionRate = progress / total;
-        let color = completionRate < 1 ? 'rgba(0, 161, 203, 1)' : 'rgba(0, 222, 38, 1)';
-
-        completionRate *=  100;
-        if (completionRate > 100) completionRate = 100;
-
-        completionRate = completionRate.toFixed(0);
-        completionRate = completionRate + "%";
-
-        // Update blue portion of progress bar
-        statusUI.progressFiller.css({
-            background: color,
-            width: completionRate
-        });
-
-        if (svv.expertValidate) {
-            expertValidateProgressBarProgress.css({ width: completionRate });
-        }
+        const completionRate = Math.min(100 * progress / total, 100);
+        statusUI.progressFiller.css({ width: `${completionRate.toFixed(0)}%` });
     }
 
     /**
      * Updates the percentage on the progress bar to show how much of the validation mission the user has completed.
      */
     function setProgressText(progress, total) {
-        let completionRate = progress / total;
-        completionRate *= 100;
-        if (completionRate > 100) completionRate = 100;
-        completionRate = completionRate.toFixed(0, 10);
-        completionRate = completionRate + "% " + i18next.t('common:complete');
-        statusUI.progressText.html(completionRate);
-        if (svv.expertValidate) expertValidateProgressBarText.text(`${progress}/${total}`);
+        if (!isMobile()) statusUI.progressText.text(`${progress}/${total}`);
     }
 
     /**
      * Returns the user's total validation count.
      */
-    function getCompletedValidations(){
+    function getCompletedValidations() {
       return completedValidations;
-    }
-
-    /**
-     * Updates the admin HTML with extra information about the label being validated. Only call if on Admin Validate!
-     */
-    function updateAdminInfo(currentLabel) {
-        if (svv.adminVersion) {
-            // Update the status area with extra info if on Admin Validate.
-            const user = currentLabel.getAdminProperty('username');
-            statusUI.admin.username.html(`<a href="/admin/user/${user}" target="_blank">${user}</a>`);
-            statusUI.admin.labelId.html(currentLabel.getAuditProperty('labelId'));
-
-            // Remove prior set of previous validations and add the new set.
-            document.querySelectorAll('.prev-val').forEach(e => e.remove());
-            const prevVals = currentLabel.getAdminProperty('previousValidations');
-            if (prevVals.length === 0) {
-                // TODO statusUI.admin.prevValidations
-                $(`<p class="prev-val">None</p>`).insertAfter('#curr-label-prev-validations');
-            } else {
-                for (const prevVal of currentLabel.getAdminProperty('previousValidations')) {
-                    $(`<p class="prev-val"><a href="/admin/user/${prevVal.username}" target="_blank">${prevVal.username}</a>: ${i18next.t(`common:${util.camelToKebab(prevVal.validation)}`)}</p>`)
-                        .insertAfter('#curr-label-prev-validations');
-                }
-            }
-        }
     }
 
     self.setProgressBar = setProgressBar;
     self.setProgressText = setProgressText;
     self.updateLabelText = updateLabelText;
-    self.updateMissionDescription = updateMissionDescription;
-    self.refreshLabelCountsDisplay = refreshLabelCountsDisplay;
     self.incrementLabelCounts = incrementLabelCounts;
     self.decrementLabelCounts = decrementLabelCounts;
     self.reset = reset;
     self.getCompletedValidations = getCompletedValidations;
-    self.updateAdminInfo = updateAdminInfo;
 
     return this;
 }

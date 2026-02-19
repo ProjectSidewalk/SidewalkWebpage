@@ -69,6 +69,7 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
         self.infoButton = document.createElement('img');
         self.infoButton.classList.add('popover-element');
         self.infoButton.id = 'gsv-info-button';
+        self.infoButton.alt = i18next.t('common:gsv-info.details-title');
         if (whiteIcon) self.infoButton.src = '/assets/images/icons/pano_info_btn_white.svg';
         else self.infoButton.src = '/assets/images/icons/pano_info_btn.png';
         self.infoButton.setAttribute('data-toggle', 'popover');
@@ -83,7 +84,7 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
             title: self.titleBox.innerHTML,
             content: self.popoverContent.innerHTML
         }).on('click', updateVals).on('shown.bs.popover', () => {
-            // Add popover-element classes to more elements, making it easier to dismiss popover on when outside it.
+            // Add popover-element classes to more elements, making it easier to dismiss popover when outside it.
             $('.popover-title').addClass('popover-element');
             $('.popover-content').addClass('popover-element');
 

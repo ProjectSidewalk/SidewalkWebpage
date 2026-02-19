@@ -39,7 +39,7 @@
             @b3.password(signUpForm("passwordConfirm"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.confirm.password"))
             @b3.radio(signUpForm("serviceHours"), Seq("YES" -> Messages("yes.caps"), "NO" -> Messages("no.caps")), '_label -> Messages("authenticate.service.hours.title"))
             @b3.checkbox(signUpForm("terms"), '_text -> Html(Messages("authenticate.terms")))
-            @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("authenticate.submit") }
+            @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("submit") }
             <div class="sign-in-now">
                 <p>@Html(Messages(
                     "authenticate.is.member",

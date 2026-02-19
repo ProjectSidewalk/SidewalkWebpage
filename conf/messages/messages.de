@@ -38,6 +38,7 @@ dist.metric.abbr = km
 distance.icon.alt = Symbol mit kurvigem Pfad zum Ziel
 ok = Ok
 cancel = Abbrechen
+undo = Rückgängig machen
 back = Zurück
 error = Fehler!
 yes.caps = Ja
@@ -50,6 +51,7 @@ thanks = Danke!
 username = Benutzername
 loading = Laden...
 loading.encouragement = Los geht''s!
+submit = Übermitteln
 test.server.warning.message = <strong>ACHTUNG!</strong> Sie befinden sich auf einem Testserver! Ihre Daten werden nicht gespeichert. Wenn Sie Ihre Daten speichern möchten, nutzen Sie bitte unsere Hauptseite
 dont.show.again = Nicht erneut anzeigen.
 
@@ -89,7 +91,6 @@ navbar.signin = Anmelden
 navbar.signout = Abmelden
 navbar.dashboard = Ihr Dashboard
 navbar.admin = Admin
-navbar.admin.validate = Administratorvalidierung
 navbar.expert.validate = Expertenvalidierung
 navbar.city = Stadt
 navbar.lang.aria = Sprachoptionen
@@ -237,27 +238,18 @@ audit.survey.performance.option.5 = Ausgezeichnet
 audit.survey.rationale.question = Wieso haben Sie sich dazu entschieden, zum Project Sidewalk beizutragen?
 audit.survey.feedback.question = Haben Sie zusätzliche Rückmeldungen, Gestaltungsvorschläge oder Fragen?
 
-validate.top.ui.zoom.in = Hineinzoomen (<u>Z</u>)
-validate.top.ui.zoom.out = Hinauszoomen
-validate.left.ui.skip = Über&shy;springen
-validate.left.ui.skip.tooltip = Überspringen Sie diese Beschriftung, wenn ein Problem mit dem Bild vorliegt
-validate.left.ui.undo = Rück&shy;gängig machen
-validate.left.ui.undo.tooltip = Machen Sie die vorherige Beschriftung rückgängig, wenn bei Ihrer Antwort ein Problem aufgetreten ist
-validate.bottom.ui.add.comment = Wenn Sie nicht einverstanden sind, bitte geben Sie hier eine Begründung an. Diese kann später von der Person, die dieses Zugänglichkeitsmerkmal beschriftet hat, gelesen werden.
-validate.right.ui.current.mission = Aktuelle Mission
-validate.right.ui.correct.examples = <strong>Richtige</strong> Beispiele
-validate.right.ui.incorrect.examples = <strong>Falsche</strong> Beispiele
+validate.comment.placeholder = Optionalen Kommentar hinzufügen
+validate.why.not = Warum nicht?
+validate.why.unsure = Warum „unsicher“?
+validate.add.own.reason = Oder fügen Sie Ihren eigenen Grund hinzu
+validate.skip.reason = Grund zum Überspringen
 validate.suggestions = Vorschläge
 validate.ai.disclaimer = Tag-Vorschläge werden von der KI erstellt, sind nicht umfassend und können falsch sein
 validate.mission.complete.category = Kategorie
 validate.mission.complete.your.overall.total = Ihr Gesamtwert
 
-
-mobile.validate.leave.feedback = Rückmeldung verfassen
-
 authenticate.email = E-Mail-Adresse
 authenticate.password = Passwort
-authenticate.submit = Übermitteln
 authenticate.remember.me = Ich möchte angemeldet bleiben
 authenticate.new = Neu dabei? <a href="#" id="form-open-sign-up">Registrieren!</a>
 authenticate.non.member = Kein Mitglied? <a href="{0}">Registrieren Sie sich jetzt</a>

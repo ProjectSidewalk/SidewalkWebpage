@@ -42,7 +42,7 @@
     <div id="page-loading">
         <div id="loading-animation">
             <p class="loading-text">@Messages("loading")</p>
-            <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' title='@Messages("loading")'/>
+            <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'/>
             <p class="loading-sub-text">@Messages("loading.encouragement")</p>
         </div>
     </div>
@@ -100,7 +100,7 @@
                             </li>
                         }
                     </ol>
-                        <button value="Submit" class="btn btn-sm btn-primary btn-block">@Messages("authenticate.submit")</button>
+                        <button value="Submit" class="btn btn-sm btn-primary btn-block">@Messages("submit")</button>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -362,8 +362,8 @@
                             <p></p>
                         </div>
                     </div>
-                    <div id="user-control-layer"  class="window-streetview" style="z-index: 0;">
-                        <div id="view-control-layer"  class="window-streetview" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 1;">
+                    <div id="user-control-layer" class="window-streetview" style="z-index: 0;">
+                        <div id="view-control-layer" class="window-streetview" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 1;">
                             <div id="nav-arrows-container">
                                 <svg width="180" height="180" viewbox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
                                     <g id="arrow-group" transform-origin="center">
@@ -400,7 +400,7 @@
                                     data-toggle="tooltip" data-placement="top"
                                 />
                             </div>
-                            <div id="context-menu-tag-holder">
+                            <div id="context-menu-tag-holder" class="context-menu-section">
                                 <button class="context-menu-tag" name='tag' id="0"></button>
                                 <button class="context-menu-tag" name='tag' id="1"></button>
                                 <button class="context-menu-tag" name='tag' id="2"></button>
@@ -430,7 +430,7 @@
                                     data-toggle="tooltip" data-placement="top"
                                 />
                             </div>
-                            <div id="severity-radio-holder">
+                            <div id="severity-radio-holder" class="context-menu-section">
                                 <div class="severity-level" id="severity-1" data-toggle="tooltip">
                                     <label>
                                         <input type="radio" name="label-severity" value="1">
@@ -679,12 +679,12 @@
 
     <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/turf-7.3.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/turf-7.3.4.min.js")'></script>
     <script src='@assets.path("javascripts/lib/async-lock-1.4.1.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/betterknown-1.1.1.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-3.16.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/betterknown-1.2.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.18.1.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("javascripts/lib/mapbox-gl-3.16.0.css")' rel="stylesheet"/>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.18.1.css")' rel="stylesheet"/>
 
     <script>
         $(document).ready(function() {
