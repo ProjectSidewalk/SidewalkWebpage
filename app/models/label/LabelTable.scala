@@ -463,10 +463,7 @@ object LabelTable {
 trait LabelTableRepository {}
 
 @Singleton
-class LabelTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    sidewalkUserTable: SidewalkUserTable
-)(implicit ec: ExecutionContext)
+class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
     extends LabelTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -491,8 +488,10 @@ class LabelTable @Inject() (
   val routeStreets           = TableQuery[RouteStreetTableDef]
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
 
-  val aiValidations =
-    labelValidations.join(sidewalkUserTable.aiUsers).on(_.userId === _.userId).map(_._1).distinctOn(_.labelId)
+  // Note that we are assuming only a single AI assessment and validation per label.
+  val aiData        = labelAiAssessments.joinLeft(labelValidations).on(_.labelValidationId === _.labelValidationId)
+  val aiValidations = aiData.map(_._2)
+
   val neighborhoods        = regions.filter(_.deleted === false)
   val usersWithoutExcluded = usersUnfiltered
     .join(userStats)
@@ -812,8 +811,7 @@ class LabelTable @Inject() (
     val labelsToValidate = for {
       _lb <- labels
       _pd <- panoData if _pd.panoId === _lb.panoId
-      _us <- userStats if _lb.userId === _us.userId
-      if _us.highQuality && _pd.expired === false && _pd.source === viewer && _lb.userId =!= userId
+      if _pd.expired === false && _pd.source === viewer && _lb.userId =!= userId
     } yield (_lb.labelId, _lb.labelTypeId, _lb.correct)
 
     // Left join with the labels that the user has already validated, then filter those out.
@@ -875,33 +873,25 @@ class LabelTable @Inject() (
       if userIds.map(ids => _lb.userId inSetBind ids).getOrElse(true: Rep[Boolean])      // Filter by user IDs.
     } yield (_lb, _lp, _pd, _us, _at, _lt.labelType, _ser.regionId, _r.role === "AI")
 
-    // Get AI validations.
-    val _labelInfoWithAIValidation = _labelInfo
-      .joinLeft(aiValidations)
-      .on(_._1.labelId === _.labelId)
-      .map { case ((_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser), _aiv) =>
-        (_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser, _aiv)
-      }
-
-    // Get AI suggested tags.
-    val _labelInfoWithAiTagSuggestions = _labelInfoWithAIValidation
-      .joinLeft(labelAiAssessments)
-      .on(_._1.labelId === _.labelId)
-      .map { case ((_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser, _aiv), _la) =>
-        (_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser, _aiv, _la)
-      }
-
     // Filter out labels that have already been validated by this user.
-    val _labelInfoFiltered = _labelInfoWithAiTagSuggestions
-      .joinLeft(labelValidations.filter(_.userId === userId))
-      .on(_._1.labelId === _.labelId)
-      .filter(_._2.isEmpty)
-      .map(_._1)
+    val labelsValidatedByUser = labelValidations.filter(_.userId === userId)
+    val _labelInfoFiltered    = for {
+      (_lab, _val) <- _labelInfo.joinLeft(labelsValidatedByUser).on(_._1.labelId === _.labelId)
+      if _val.isEmpty
+    } yield _lab
+
+    // Get any AI suggested tags and validation.
+    val _labelInfoWithAiData = _labelInfoFiltered
+      .joinLeft(aiData)
+      .on(_._1.labelId === _._1.labelId)
+      .map { case ((_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser), _ai) =>
+        (_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser, _ai.map(_._1), _ai.map(_._2).flatten)
+      }
 
     // Priority ordering algorithm is described in the method comment, max score is 276.
-    val _labelInfoSorted = _labelInfoFiltered
+    val _labelInfoSorted = _labelInfoWithAiData
       .sortBy {
-        case (l, lp, gd, us, at, labelType, regionId, isAiUser, aiv, la) => {
+        case (l, lp, gd, us, at, labelType, regionId, isAiUser, aiv, laa) => {
           // A label gets 150 if the labeler as < 50 of their labels validated (and this label needs a validation).
           val needsValidationScore =
             Case.If(us.ownLabelsValidated < 50 && l.correct.isEmpty && !at.lowQuality && !at.stale).Then(150d).Else(0d)
@@ -927,7 +917,7 @@ class LabelTable @Inject() (
         }
       }
       // Select only the columns needed for the LabelValidationMetadata class.
-      .map { case (l, lp, gd, us, at, labelType, regionId, isAiUser, aiv, la) =>
+      .map { case (l, lp, gd, us, at, labelType, regionId, isAiUser, laa, aiv) =>
         (
           l.labelId,
           labelType,
@@ -949,7 +939,7 @@ class LabelTable @Inject() (
           gd.lat,
           gd.lng,
           // Include AI tags if requested.
-          if (includeAiTags) la.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
+          if (includeAiTags) laa.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
           else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
           isAiUser
         )
@@ -1045,9 +1035,9 @@ class LabelTable @Inject() (
 
     val _labelInfoWithAIValidation = _labelInfo
       .joinLeft(aiValidations)
-      .on(_._1.labelId === _.labelId)
+      .on(_._1.labelId === _.map(_.labelId))
       .map { case ((lb, lp, pd, labelType, regionId, isAiUser), aiv) =>
-        (lb, lp, pd, labelType, regionId, isAiUser, aiv)
+        (lb, lp, pd, labelType, regionId, isAiUser, aiv.flatten)
       }
 
     // Filter labels based on how the AI validated them. If no filters provided, do no filtering here.
@@ -1178,9 +1168,9 @@ class LabelTable @Inject() (
     // Get AI validations.
     val _labelInfoWithAIValidation = _labels
       .joinLeft(aiValidations)
-      .on(_._1.labelId === _.labelId)
+      .on(_._1.labelId === _.map(_.labelId))
       .map { case ((l, lp, highQuality, labelType, expired, isAiUser), aiv) =>
-        (l, lp, highQuality, labelType, expired, isAiUser, aiv)
+        (l, lp, highQuality, labelType, expired, isAiUser, aiv.flatten)
       }
 
     // Filter labels based on how the AI validated them. If no filters provided, do no filtering here.
