@@ -70,6 +70,13 @@
                         <li>
                             <a id="navbar-gallery-btn" role="menuitem" href="@routes.GalleryController.gallery()">@Messages("gallery")</a>
                         </li>
+                        @if(user.get.role == "Administrator" || user.get.role == "Owner") {
+                            <li>
+                                <a id="navbar-expert-validate-btn-tools" role="menuitem" href='@routes.ValidateController.expertValidate()'>
+                                    @Messages("navbar.expert.validate")
+                                </a>
+                            </li>
+                        }
                         <li>
                             <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>@Messages("navbar.leaderboard")</a>
                         </li>
@@ -128,7 +135,7 @@
                                     </a>
                                 </li>
                                 <li role="presentation">
-                                    <a id="navbar-expert-validate-btn" role="menuitem" href='@routes.ValidateController.expertValidate()'>
+                                    <a id="navbar-expert-validate-btn-user" role="menuitem" href='@routes.ValidateController.expertValidate()'>
                                         @Messages("navbar.expert.validate")
                                     </a>
                                 </li>
@@ -223,6 +230,9 @@
         $("#navbar-gallery-btn").on('click', function() {
             logNavbarClick("Click_module=Gallery");
         });
+        $('#navbar-expert-validate-btn-tools').on('click', function() {
+            logNavbarClick('Click_module=ExpertValidate_from=ToolsDropdown');
+        });
         $("#navbar-leaderboard-btn").on('click', function() {
             logNavbarClick("Click_module=Leaderboard");
         });
@@ -249,8 +259,11 @@
         $("#navbar-admin-btn").on('click', function() {
             logNavbarClick("Click_module=ToAdmin");
         });
-        $("#navbar-dashboard-btn").on('click', function() {
-            logNavbarClick("Click_module=ToDashboard")
+        $('#navbar-dashboard-btn').on('click', function() {
+            logNavbarClick('Click_module=ToDashboard');
+        });
+        $('#navbar-expert-validate-btn-user').on('click', function() {
+            logNavbarClick('Click_module=ExpertValidate_from=UserDropdown');
         });
         // Logging clicks to the language button was moved to ApplicationController.scala b/c the redirect was happening
         // before the log could be sent off.
