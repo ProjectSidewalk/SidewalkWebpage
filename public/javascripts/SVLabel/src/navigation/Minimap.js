@@ -28,42 +28,14 @@ class Minimap {
             fullscreenControl: false,
             gestureHandling: 'none',
             keyboardShortcuts: false,
-            mapId: 'DEMO_MAP_ID', // TODO use cloud-based map styling, to replace old way to style maps.
+            // Map style is changed via cloud-based maps styling in the Google Cloud Console.
+            mapId: '9c9a85114c815aa4d4dbd5d3',
             mapTypeControl: false,
             mapTypeId: MapTypeId.ROADMAP, // HYBRID is another option
             renderingType: RenderingType.RASTER,
-            // streetViewControl: true,
             zoom: 18
         };
         this.#map = new Map(document.getElementById('minimap'), mapOptions);
-
-        // TODO use cloud-based map styling, to replace old way to style maps.
-        // https://developers.google.com/maps/documentation/javascript/cloud-customization
-        // Styling google map.
-        // http://stackoverflow.com/questions/8406636/how-to-remove-all-from-google-map
-        // http://gmaps-samples-v3.googlecode.com/svn/trunk/styledmaps/wizard/index.html
-        // const mapStyleOptions = [
-        //     {
-        //         featureType: "all",
-        //         stylers: [
-        //             { visibility: "off" }
-        //         ]
-        //     },
-        //     {
-        //         featureType: "road",
-        //         stylers: [
-        //             { visibility: "on" }
-        //         ]
-        //     },
-        //     {
-        //         "elementType": "labels",
-        //         "stylers": [
-        //             { "visibility": "off" }
-        //         ]
-        //     }
-        // ];
-        //
-        // map.setOptions({ styles: mapStyleOptions });
 
         // Add listener to the PanoViewer to update observed area on the minimap when zoom changes.
         svl.panoViewer.addListener('zoom_changed', this.handlerZoomChange);
