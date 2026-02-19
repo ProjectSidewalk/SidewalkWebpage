@@ -107,9 +107,9 @@ function ContextMenu (uiContextMenu) {
     }
 
     function handleSeverityPopup() {
-        var labels = svl.labelContainer.getAllLabels();
+        const labels = svl.labelContainer.getAllLabels();
         if (labels.length > 0) {
-            var lastLabelProps = labels[labels.length - 1].getProperties();
+            const lastLabelProps = labels[labels.length - 1].getProperties();
             // If the label is No Sidewalk or Pedestrian Signal, do not call ratingReminderAlert().
             if (!['NoSidewalk', 'Signal'].includes(lastLabelProps.labelType)) {
                 svl.ratingReminderAlert.ratingClicked(lastLabelProps.severity);
@@ -118,8 +118,8 @@ function ContextMenu (uiContextMenu) {
     }
 
     function _handleSeverityChange(e) {
-        var severity = parseInt($(this).val(), 10);
-        var label = status.targetLabel;
+        const severity = parseInt($(this).val(), 10);
+        const label = status.targetLabel;
         svl.tracker.push('ContextMenu_RadioChange', { LabelType: label.getLabelType(), RadioValue: severity });
 
         self.updateRadioButtonImages();
@@ -406,10 +406,13 @@ function ContextMenu (uiContextMenu) {
                             $tagHolder.find("button[id=" + buttonIndex + "]").tooltip(({
                                 placement: 'top',
                                 html: true,
-                                delay: {"show": 300, "hide": 10},
+                                delay: { 'show': 300, 'hide': 10 },
                                 height: '130',
-                                title: `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`
-                            })).tooltip("show").tooltip("hide");
+                                title: `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
+                                container: 'body',
+                                // Add template so we can attach a custom CSS class.
+                                template: '<div class="tooltip context-menu-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
+                            })).tooltip('show').tooltip('hide');
                         });
 
                         count += 1;
@@ -442,9 +445,11 @@ function ContextMenu (uiContextMenu) {
                 const tooltipHeader = i18next.t(`common:severity-example-tooltip-${sev}`);
                 const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
                 $(`#severity-${sev}`).tooltip({
-                    placement: "top", html: true, delay: {"show": 300, "hide": 10},
+                    placement: 'top', html: true, delay: { 'show': 300, 'hide': 10 },
                     title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`,
-                    container: 'body'
+                    container: 'body',
+                    // Add template so we can attach a custom CSS class.
+                    template: '<div class="tooltip context-menu-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
                 });
             });
         }

@@ -9,7 +9,6 @@
     border-radius: 8.1px;
     border: solid 1px lightgray;
     visibility: hidden;
-    z-index: 1050; /* so that tooltips will show up on top of the navbar */
     box-sizing: border-box;
 }
 
@@ -38,12 +37,12 @@
     width: 15px;
 }
 
-.context-menu-header .tooltip {
+.context-menu-tooltip {
     font-size: 10px;
+    z-index: 1050; /* so that tooltips will show up on top of the navbar */
 }
 
 #context-menu-tag-holder {
-    width: 100%;
     margin: 0;
     display: flex;
     flex-direction: row;
@@ -51,7 +50,6 @@
     align-items: center;
     gap: 5px 4px;
     padding: 0;
-    box-sizing: border-box;
     white-space: pre;
 }
 
@@ -92,8 +90,6 @@
 }
 
 #severity-menu {
-    width: 100%;
-    height: auto;
     min-height: fit-content;
     margin-top: 1px;
     display: flex;
