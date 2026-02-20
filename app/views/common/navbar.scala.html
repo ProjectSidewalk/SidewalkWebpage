@@ -70,7 +70,7 @@
                         <li>
                             <a id="navbar-gallery-btn" role="menuitem" href="@routes.GalleryController.gallery()">@Messages("gallery")</a>
                         </li>
-                        @if(user.get.role == "Administrator" || user.get.role == "Owner") {
+                        @if(user.isDefined && (user.get.role == "Administrator" || user.get.role == "Owner")) {
                             <li>
                                 <a id="navbar-expert-validate-btn-tools" role="menuitem" href='@routes.ValidateController.expertValidate()'>
                                     @Messages("navbar.expert.validate")
