@@ -78,6 +78,7 @@ GET     /adminapi/getRecentLabelMetadata                controllers.AdminControl
 GET     /adminapi/getUserStats                          controllers.AdminController.getUserStats
 
 PUT     /adminapi/setRole                               controllers.AdminController.setUserRole
+PUT     /adminapi/setUserQualityManual                  controllers.AdminController.setUserQualityManual
 PUT     /adminapi/setTaskFlagsBeforeDate                controllers.AdminController.setTaskFlagsBeforeDate()
 PUT     /adminapi/setTaskFlag                           controllers.AdminController.setTaskFlag()
 PUT     /adminapi/updateTeamStatus/:teamId              controllers.AdminController.updateTeamStatus(teamId: Int)

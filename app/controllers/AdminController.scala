@@ -392,6 +392,46 @@ class AdminController @Inject() (
     )
   }
 
+  /**
+   * Updates high_quality_manual and high_quality in the database for the given user.
+   */
+  def setUserQualityManual = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
+    val submission = request.body.validate[UserQualitySubmission]
+    submission.fold(
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => {
+        val userId: String                  = submission.userId
+        val newUserQuality: Option[Boolean] = submission.userQualityManual
+
+        authenticationService.findByUserId(userId) flatMap {
+          case Some(user) =>
+            if (user.role == "Owner") {
+              Future.successful(
+                BadRequest(Json.obj("status" -> "Error", "message" -> "Owner's quality cannot be changed"))
+              )
+            } else if (user.role == "Administrator" && request.identity.role != "Owner") {
+              Future.successful(
+                BadRequest(Json.obj("status" -> "Error", "message" -> "Admin's quality can only be set by an Owner"))
+              )
+            } else {
+              // Update the high_quality_manual and high_quality columns. Recomputes high_quality if input is None.
+              userService
+                .setManualUserQuality(userId, newUserQuality)
+                .map {
+                  case Some(newQuality) =>
+                    val logText = s"UpdateUserManualQuality_User=${userId}_Manual=${newUserQuality}_New=$newQuality"
+                    cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
+                    Ok(Json.obj("new_user_quality" -> newQuality))
+                  case None => BadRequest(Json.obj("status" -> "Error", "message" -> "Likely an excluded user"))
+                }
+            }
+          case None =>
+            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "No user has this user_id")))
+        }
+      }
+    )
+  }
+
   /* Clears all cached values. Should only be called from the Admin page. */
   def clearPlayCache() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.

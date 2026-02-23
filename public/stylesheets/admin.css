@@ -147,3 +147,7 @@
     max-height: 700px;
     overflow-y: auto;
 }
+
+#user-quality-button {
+    margin-top: unset; /* Remove default styling from main.css since this isn't in a table. */
+}

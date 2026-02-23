@@ -31,7 +31,7 @@ case class AdminUserProfileData(
     currentRegion: Option[Region],
     numCompletedAudits: Int,
     hoursWorked: Float,
-    labelsPerMeter: Option[Float],
+    userStats: UserStat,
     completedMissions: Seq[RegionalMission],
     exploreComments: Seq[AuditTaskComment]
 )
@@ -42,6 +42,14 @@ trait UserService {
   def getDistanceAudited(userId: String): Future[Float]
   def countLabelsFromUser(userId: String): Future[Int]
   def getUserAccuracy(userId: String): Future[Option[Float]]
+
+  /**
+   * Updates the high_quality_manual column for the given user. If None, recalculates stats and updates high_quality.
+   * @param userId The user whose stats should be updated
+   * @param highQualityManual The new value to set in the high_quality_manual column
+   * @return The user's new value in the high_quality column; None if user marked excluded or no user found
+   */
+  def setManualUserQuality(userId: String, highQualityManual: Option[Boolean]): Future[Option[Boolean]]
   def getUserTeam(userId: String): Future[Option[Team]]
   def setUserTeam(userId: String, newTeamId: Int): Future[Int]
   def getAllTeams: Future[Seq[Team]]
@@ -97,6 +105,38 @@ class UserServiceImpl @Inject() (
       }
       UserProfileData(userId, userTeam, teams, missionCount, auditedDistance, labelCount, valCount, accuracy)
     })
+  }
+
+  def setManualUserQuality(userId: String, highQualityManual: Option[Boolean]): Future[Option[Boolean]] = {
+    db.run(for {
+      hqmRowsUpdated <- userStatTable.updateHighQualityManual(userId, highQualityManual)
+
+      // If high_quality_manual set to None, recalculate stats to update high_quality column.
+      hqRowsUpdated <- {
+        if (highQualityManual.isDefined) userStatTable.updateHighQuality(userId, highQualityManual.get)
+        else updateStatsForUser(userId)
+      }
+
+      // If rows weren't actually updated, return None, otherwise return the user's new high_quality value.
+      currUserStats <- {
+        if (hqmRowsUpdated > 0 && hqRowsUpdated > 0) userStatTable.getStatsFromUserId(userId)
+        else DBIO.successful(None)
+      }
+    } yield currUserStats.map(_.highQuality))
+  }
+
+  /**
+   * Calls functions to update all columns in user_stat table for the given user.
+   * @param userId The user whose stats should be updated
+   * @return The number of users whose stats were updated; should be 1, or 0 if user marked excluded or no user found
+   */
+  private def updateStatsForUser(userId: String): DBIO[Int] = {
+    for {
+      _           <- userStatTable.updateAuditedDistance(userId)
+      _           <- userStatTable.updateLabelsPerMeter(userId)
+      _           <- userStatTable.updateAccuracy(Seq(userId))
+      rowsUpdated <- userStatTable.updateUserQuality(userId)
+    } yield rowsUpdated
   }
 
   def getDistanceAudited(userId: String): Future[Float] = db.run(auditTaskTable.getDistanceAudited(userId))
