@@ -120,8 +120,7 @@ class AdminServiceImpl @Inject() (
       completedMissions: Seq[RegionalMission] <- missionTable.selectCompletedRegionalMission(userId)
       comments: Seq[AuditTaskComment]         <- auditTaskCommentTable.all(userId)
     } yield {
-      val labelsPerMeter = userStats.flatMap(_.labelsPerMeter)
-      AdminUserProfileData(currRegion, completedAudits, hoursWorked, labelsPerMeter, completedMissions, comments)
+      AdminUserProfileData(currRegion, completedAudits, hoursWorked, userStats.get, completedMissions, comments)
     })
   }
 
@@ -410,18 +409,17 @@ class AdminServiceImpl @Inject() (
 
   /**
    * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time.
+   * @param cutoffTime Only update users who have done any auditing since this cutoff time
+   * @return The number of users whose stats were updated
    */
   def updateUserStatTable(cutoffTime: OffsetDateTime): Future[Int] = {
     db.run(
-      DBIO
-        .seq(
-          userStatTable.updateAuditedDistance(cutoffTime),
-          userStatTable.updateLabelsPerMeter(cutoffTime),
-          userStatTable.updateAccuracy(Seq())
-        )
-        .andThen(
-          userStatTable.updateHighQuality(cutoffTime)
-        )
+      for {
+        _ad         <- userStatTable.updateAuditedDistance(cutoffTime)
+        _lpm        <- userStatTable.updateLabelsPerMeter(cutoffTime)
+        _a          <- userStatTable.updateAccuracy(Seq())
+        rowsUpdated <- userStatTable.updateHighQuality(cutoffTime)
+      } yield rowsUpdated
     )
   }
 }

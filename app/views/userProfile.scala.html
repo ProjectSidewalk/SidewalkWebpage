@@ -250,12 +250,28 @@
                             <th class="col-md">Username</th>
                             <th class="col-md">User Id</th>
                             <th class="col-md">Email</th>
+                            <th class="col-md">High quality</th>
+                            <th class="col-md">High quality manual</th>
                             <th class="col-md">Volunteer</th>
                         </tr>
                         <tr>
                             <td>@profileUser.username</td>
                             <td>@profileUser.userId</td>
                             <td>@profileUser.email</td>
+                            <td id="stat-high-quality">@adminData.get.userStats.highQuality</td>
+                            <td>
+                                <div id="user-quality-dropdown" class="dropdown">
+                                    <button class="btn btn-default dropdown-toggle" type="button" id="user-quality-button" data-toggle="dropdown">
+                                        @adminData.get.userStats.highQualityManual.map(_.toString).getOrElse("Not set")
+                                        <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu" role="menu" aria-labelledby="user-quality-button">
+                                        <li><a href="#!" class="change-role">true</a></li>
+                                        <li><a href="#!" class="change-role">false</a></li>
+                                        <li><a href="#!" class="change-role">Not set</a></li>
+                                    </ul>
+                                </div>
+                            </td>
                             <td><input type="checkbox" id="check-volunteer"></td>
                         </tr>
                     </table>
@@ -278,7 +294,7 @@
                             </td>
                             <td>@adminData.get.numCompletedAudits</td>
                             <td>@{"%.2f".format(adminData.get.hoursWorked)} hours</td>
-                            <td>@{adminData.get.labelsPerMeter.map(f => "%.2f labels per km".format(f * 1000)).getOrElse("NA")}</td>
+                            <td>@{adminData.get.userStats.labelsPerMeter.map(f => "%.2f labels per km".format(f * 1000)).getOrElse("NA")}</td>
                         </tr>
                     </table>
                 </div>
