@@ -9,6 +9,8 @@ class GsvViewer extends PanoViewer {
         this.gsvPano = undefined;
         this.prevPanoData = undefined;
         this.currPanoData = undefined;
+        this.panoChangedListeners = [];
+        this.povChangedListeners = [];
     }
 
     async initialize(canvasElem, panoOptions = {}) {
@@ -43,11 +45,28 @@ class GsvViewer extends PanoViewer {
 
         // Initialize pano at the desired location.
         if (panoOptions.startPanoId) {
-            return this.setPano(panoOptions.startPanoId);
+            await this.setPano(panoOptions.startPanoId);
         } else if (panoOptions.startLatLng) {
-            return this.setLocation(panoOptions.startLatLng).catch(err => {
+            await this.setLocation(panoOptions.startLatLng).catch(err => {
                 if (panoOptions.backupLatLng) return this.setLocation(panoOptions.backupLatLng);
                 else throw err;
+            });
+        }
+
+        // Set up event listeners. We hold a list and go through each listener ourselves to control their ordering.
+        const panoChangeListener = async () => {
+            for (const listener of this.panoChangedListeners) await listener();
+        }
+        this.gsvPano.addListener('pano_changed', panoChangeListener);
+        const povChangeListener = async () => {
+            for (const listener of this.povChangedListeners) await listener();
+        }
+        this.gsvPano.addListener('pov_changed', povChangeListener);
+
+        // If clickToGo is enabled, we need a pano_changed listener to record the pano metadata after moving.
+        if (panoOpts.clickToGo) {
+            this.addListener('pano_changed', () => {
+                return this.streetViewService.getPanorama({ pano: this.gsvPano.pano }).then(this.#updateCurrPanoData);
             });
         }
     };
@@ -61,18 +80,10 @@ class GsvViewer extends PanoViewer {
     };
 
     /**
-     * A callback to getPanorama() that packages the data into a PanoData object. Resolves when pano has done loading.
-     * @param {object} newPanoData
-     * @param {Set<string>} [excludedPanos=new Set()] Set of pano IDs that are not valid images to move to.
-     * @returns {Promise<PanoData>}
-     * @private
+     * Packages data the pano's data from Google into a PanoData object, saving it in this.currPanoData.
+     * @param {object} newPanoData The pano data returned from StreetViewService.getPanorama()
      */
-    #getPanoramaCallback = async (newPanoData, excludedPanos = new Set()) => {
-        // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing.
-        if (excludedPanos.has(newPanoData.data.location.pano)) {
-            throw new Error(`Excluded pano: ${newPanoData.data.location.pano}`);
-        }
-
+    #updateCurrPanoData = (newPanoData) => {
         // Putting the data returned from Google into the format for our generic PanoData object.
         let panoDataParams = {
             panoId: newPanoData.data.location.pano,
@@ -118,6 +129,23 @@ class GsvViewer extends PanoViewer {
 
         // Create the new PanoData object.
         this.currPanoData = new PanoData(panoDataParams);
+    }
+
+    /**
+     * A callback to getPanorama() that packages the data into a PanoData object. Resolves when pano has done loading.
+     * @param {object} newPanoData The pano data returned from StreetViewService.getPanorama()
+     * @param {Set<string>} [excludedPanos=new Set()] Set of pano IDs that are not valid images to move to.
+     * @returns {Promise<PanoData>} The PanoData object created from newPanoData
+     * @private
+     */
+    #getPanoramaCallback = async (newPanoData, excludedPanos = new Set()) => {
+        // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing.
+        if (excludedPanos.has(newPanoData.data.location.pano)) {
+            throw new Error(`Excluded pano: ${newPanoData.data.location.pano}`);
+        }
+
+        // Package the data into a PanoData object and save it in this.currPanoData.
+        this.#updateCurrPanoData(newPanoData)
 
         // Now we actually set the pano and wait to resolve until it's finished loading.
         const newPano = this.currPanoData.getPanoId();
@@ -238,17 +266,17 @@ class GsvViewer extends PanoViewer {
 
     addListener(event, handler) {
         if (event === 'pano_changed') {
-            this.gsvPano.addListener('pano_changed', handler);
+            this.panoChangedListeners.push(handler);
         } else if (event === 'pov_changed') {
-            this.gsvPano.addListener('pov_changed', handler);
+            this.povChangedListeners.push(handler);
         }
     }
 
     removeListener(event, handler) {
         if (event === 'pano_changed') {
-            this.gsvPano.removeListener('pano_changed', handler);
+            this.panoChangedListeners =  this.panoChangedListeners.filter(func => func !== handler);
         } else if (event === 'pov_changed') {
-            this.gsvPano.removeListener('pov_changed', handler);
+            this.povChangedListeners =  this.povChangedListeners.filter(func => func !== handler);
         }
     }
 }

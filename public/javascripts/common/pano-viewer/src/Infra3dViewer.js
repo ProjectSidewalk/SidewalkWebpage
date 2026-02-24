@@ -9,6 +9,8 @@ class Infra3dViewer extends PanoViewer {
         this.prevNode = null;
         this.currNode = null; // This becomes null while waiting to load subsequent panos.
         this.currPanoData = undefined; // This holds onto the data for the prior pano while we are loading the next one.
+        this.panoChangedListeners = [];
+        this.povChangedListeners = [];
     }
 
     async initialize(canvasElem, panoOptions = {}) {
@@ -57,13 +59,23 @@ class Infra3dViewer extends PanoViewer {
 
         // Initialize pano at the desired location.
         if (panoOptions.startPanoId) {
-            return this.setPano(panoOptions.startPanoId);
+            await this.setPano(panoOptions.startPanoId);
         } else if (panoOptions.startLatLng) {
-            return this.setLocation(panoOptions.startLatLng).catch(err => {
+            await this.setLocation(panoOptions.startLatLng).catch(err => {
                 if (panoOptions.backupLatLng) return this.setLocation(panoOptions.backupLatLng);
                 else throw err;
             });
         }
+
+        // Set up event listeners. We hold a list and go through each listener ourselves to control their ordering.
+        const panoChangeListener = async (e) => {
+            for (const listener of this.panoChangedListeners) await listener(e);
+        }
+        this.viewer._sdk_viewer.on('nodechanged', panoChangeListener);
+        const povChangeListener = async (e) => {
+            for (const listener of this.povChangedListeners) await listener(e);
+        }
+        this.viewer.on('panorotationchanged', povChangeListener);
     };
 
     getPanoId = () => {
@@ -300,19 +312,17 @@ class Infra3dViewer extends PanoViewer {
 
     addListener(event, handler) {
         if (event === 'pano_changed') {
-            this.viewer._sdk_viewer.on('nodechanged', handler);
+            this.panoChangedListeners.push(handler);
         } else if (event === 'pov_changed') {
-            this.viewer.on('panorotationchanged', (evt) => {
-                handler(evt);
-            });
+            this.povChangedListeners.push(handler);
         }
-    };
+    }
 
     removeListener(event, handler) {
         if (event === 'pano_changed') {
-            this.viewer._sdk_viewer.off('nodechanged', handler);
+            this.panoChangedListeners =  this.panoChangedListeners.filter(func => func !== handler);
         } else if (event === 'pov_changed') {
-            this.viewer.off('panorotationchanged', handler);
+            this.povChangedListeners =  this.povChangedListeners.filter(func => func !== handler);
         }
-    };
+    }
 }

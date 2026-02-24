@@ -550,7 +550,7 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
 
             // Fill in the View in GSV link if we're using GSV, otherwise hide it for now.
             if (self.panoManager.panoViewer.getViewerType() === 'gsv') {
-                const href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelPov.pano_id}&heading=${labelPov.heading}&pitch=${labelPov.pitch}`;
+                const href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelMetadata.pano_id}&heading=${labelPov.heading}&pitch=${labelPov.pitch}`;
                 self.modalPanoLink.html(`<a target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
                 self.modalPanoLink.children(":first").attr('href', href);
             } else {

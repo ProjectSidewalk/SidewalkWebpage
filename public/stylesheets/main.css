@@ -363,9 +363,9 @@ footer {
 
 #header {
     background-color: #fff;
-    -webkit-box-shadow: 0 8px 6px -6px #999;
-    -moz-box-shadow: 0 8px 6px -6px #999;
-    box-shadow: 0 8px 6px -6px #999;
+    -webkit-box-shadow: 0 6px 4px -6px #999;
+    -moz-box-shadow: 0 6px 4px -6px #999;
+    box-shadow: 0 6px 4px -6px #999;
 }
 
 
