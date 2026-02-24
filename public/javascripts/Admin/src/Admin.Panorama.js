@@ -118,7 +118,7 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
     /**
      * Refreshes all views for the new pano and saves historic pano metadata.
      * @param {{heading: number, pitch: number, zoom: number}} targetPov The desired pov to set for the pano
-     * @returns {Promise<void>}
+     * @returns {Promise<void>} A Promise that resolves once the pano and label have rendered
      * @private
      */
     async function _panoSuccessCallback(targetPov) {
