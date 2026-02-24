@@ -315,14 +315,16 @@ function DesktopValidationMenu(menuUI) {
     }
 
     function _removeTagListener(e, label) {
-        let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
-        let tagIdToRemove = $(e.target).parents('.current-tag').data('tag-id');
-        let tagToRemove = allTagOptions.find(t => t.tag_id === tagIdToRemove).tag_name;
+        const allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
+        const tagElem = $(e.target).parents('.current-tag');
+        tagElem.tooltip('destroy');
+        const tagIdToRemove = tagElem.data('tag-id');
+        const tagToRemove = allTagOptions.find(t => t.tag_id === tagIdToRemove).tag_name;
         _removeTag(tagToRemove, label, false);
     }
 
     function _renderTags() {
-        let label = svv.labelContainer.getCurrentLabel();
+        const label = svv.labelContainer.getCurrentLabel();
         let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
         const allTagOptionsPermanent = structuredClone(allTagOptions);
 
