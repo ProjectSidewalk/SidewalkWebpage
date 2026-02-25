@@ -26,7 +26,6 @@ class GsvViewer extends PanoViewer {
             linksControl: false, // We create our own navigation arrows.
             motionTracking: false,
             motionTrackingControl: false,
-            navigationControl: false,
             panControl: false,
             scrollwheel: false,
             showRoadLabels: false,
@@ -52,6 +51,14 @@ class GsvViewer extends PanoViewer {
                 else throw err;
             });
         }
+
+        // Prevent keyboard shortcuts from moving the pano.
+        const preventShortcuts = (e) => {
+            if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(e.code) > -1) {
+                e.stopPropagation();
+            }
+        }
+        window.addEventListener('keydown', preventShortcuts, { capture: true });
 
         // Set up event listeners. We hold a list and go through each listener ourselves to control their ordering.
         const panoChangeListener = async () => {

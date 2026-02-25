@@ -133,16 +133,12 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
         // it by triggering a resize event after a short delay. This seems to only be an issue with the label popup, not
         // with Explore/Gallery/Validate. Probably because of how we show/hide the popup.
         return new Promise((resolve) => {
-            if (viewerType === GsvViewer) {
-                setTimeout(() => {
-                    google.maps.event.trigger(self.panoViewer.gsvPano, 'resize');
-                    self.panoViewer.setPov(targetPov);
-                    if (self.label) renderLabel(self.label);
-                    resolve();
-                }, 250);
-            } else {
+            setTimeout(() => {
+                if (viewerType === GsvViewer) google.maps.event.trigger(self.panoViewer.gsvPano, 'resize');
+                self.panoViewer.setPov(targetPov);
+                if (self.label) renderLabel(self.label);
                 resolve();
-            }
+            }, 250);
         });
     }
 

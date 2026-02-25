@@ -61,11 +61,6 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
      * @private
      */
     this._documentKeyDown = function (e) {
-        // Prevent pano viewer's default panning and moving using arrow keys and WASD.
-        if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(e.code) > -1) {
-            e.stopPropagation();
-        }
-
         if (!status.disableKeyboard && !status.focusOnTextField) {
             // Shortcuts that only apply when the context menu is closed (moving/panning).
             if (!contextMenu.isOpen()) {
@@ -201,7 +196,7 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
     };
 
 
-    // Add the keyboard event listeners. We need { capture: true } for keydown to disable pano's shortcuts.
+    // Add the keyboard event listeners. We need { capture: true } for keydown to overwrite pano's shortcuts.
     window.addEventListener('keydown', this._documentKeyDown, { capture: true });
     window.addEventListener('keyup', this._documentKeyUp);
 }

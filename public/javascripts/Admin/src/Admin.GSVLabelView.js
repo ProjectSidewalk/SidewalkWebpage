@@ -150,7 +150,22 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
 
         self.modal = $(modalText);
 
-        self.panoManager = await AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-input-holder"), admin, viewerType, viewerAccessToken);
+        self.svHolder = self.modal.find("#svholder");
+        self.validateSection = self.modal.find('#validation-input-holder');
+
+        // For the infra3D viewer at least, the associated DOM element has to exist upon initialization. So we show and
+        // hide the modal quickly at the beginning (though we keep it hidden while we do it). Return the Promise that
+        // resolves once the pano viewer has loaded.
+        const panoViewerLoaded = new Promise((resolve) => {
+            self.modal.one('shown.bs.modal', async () => {
+                self.panoManager =
+                    await AdminPanorama(self.svHolder[0], self.validateSection, admin, viewerType, viewerAccessToken);
+                self.modal.css('visibility', 'visible');
+                resolve();
+            });
+        });
+        self.modal.css('visibility', 'hidden').modal({ 'show': true }).modal('hide');
+        $('.modal-backdrop').css('visibility', 'hidden'); // Prevents backdrop from appearing briefly.
 
         self.agreeButton = self.modal.find("#validation-agree-button");
         self.modalComments = self.modal.find("#validator-comments");
@@ -189,7 +204,7 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
         self.commentTextArea = self.modal.find("#comment-textarea");
 
         if (self.source !== "UserMap") {
-            self.modal.find('#validation-input-holder').removeClass('hidden');
+            self.validateSection.removeClass('hidden');
             self.agreeButton.click(function () {
                 if (self.prevAction !== "Agree") {
                     _disableValidationButtons();
@@ -213,7 +228,7 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
                 template: '<div class="feedback-popover" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>'
             });
             self.commentButton.click(function () {
-                var comment = self.commentTextArea.val();
+                const comment = self.commentTextArea.val();
                 if (comment) {
                     _submitComment(comment);
                 }
@@ -249,6 +264,8 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
         self.modalLabelId = self.modal.find("#label-id");
         self.modalStreetId = self.modal.find('#street-id');
         self.modalRegionId = self.modal.find('#region-id');
+
+        return panoViewerLoaded;
     }
 
     /**
