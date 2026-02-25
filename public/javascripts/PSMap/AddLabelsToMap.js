@@ -9,6 +9,7 @@
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
  * @param {boolean} [params.includeLabelCounts=false] - Whether to include label counts for each type in the legend.
  * @param {boolean} [params.differentiateExpiredLabels=false] - Whether to color expired labels differently.
+ * @param {string} [params.uiSource] - Used to record the UI used when submitting a validation through the popup.
  * @param {object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
  * @returns {Promise} Promise that resolves with all layer names when the labels have been added to the map.
  */
@@ -61,7 +62,7 @@ function AddLabelsToMap(map, labelData, params) {
     // Set up the label hover and popup functionality.
     if (params.popupLabelViewer) {
         map.on('click', Object.values(mapData.layerNames).flat(), async (event) => {
-            await params.popupLabelViewer.showLabel(event.features[0].properties.label_id);
+            await params.popupLabelViewer.showLabel(event.features[0].properties.label_id, params.uiSource);
         });
 
         let hoveredLab = null;

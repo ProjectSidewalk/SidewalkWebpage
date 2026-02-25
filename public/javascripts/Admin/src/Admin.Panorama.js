@@ -154,7 +154,7 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
         $(self.panoCanvas).css('display', 'none');
         $(self.panoNotAvailable).css('display', 'block');
         $(self.panoNotAvailableDetails).css('display', 'block');
-        $("#explore-street").attr('href', '/explore?streetEdgeId=' + self.label['streetEdgeId']);
+        if (self.label) $("#explore-street").attr('href', '/explore?streetEdgeId=' + self.label['streetEdgeId']);
         $(self.panoNotAvailableAuditSuggestion).css('display', 'block');
         $(self.buttonHolder).css('display', 'none');
         return Promise.resolve();

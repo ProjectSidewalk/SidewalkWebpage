@@ -27,7 +27,7 @@ trait MissionService {
   def resumeOrCreateNewAuditOnboardingMission(userId: String): DBIO[Option[Mission]]
   def resumeOrCreateNewAuditMission(userId: String, regionId: Int): DBIO[Option[Mission]]
   def resumeOrCreateNewAiExploreMission(regionId: Int): DBIO[Mission]
-  def resumeOrCreateNewValidationMission(userId: String, missionType: String, labelTypeId: Int): Future[Option[Mission]]
+  def resumeOrCreateNewValidateMission(userId: String, missionType: String, labelTypeId: Int): Future[Option[Mission]]
   def updateCompleteAndGetNextValidationMission(
       userId: String,
       missionId: Int,
@@ -256,7 +256,7 @@ class MissionServiceImpl @Inject() (
    * @param missionType  Name of the mission type of the current validation mission {validation, labelmapValidation}
    * @param labelTypeId  Label Type ID to be validated for the next mission {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
    */
-  def resumeOrCreateNewValidationMission(
+  def resumeOrCreateNewValidateMission(
       userId: String,
       missionType: String,
       labelTypeId: Int

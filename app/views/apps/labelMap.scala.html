@@ -161,7 +161,8 @@
                 neighborhoodTooltip: 'none',
                 differentiateUnauditedStreets: true,
                 interactiveStreets: true,
-                popupLabelViewer: await AdminGSVLabelView(false, viewerType, accessToken, "LabelMap"),
+                uiSource: 'LabelMap',
+                popupLabelViewer: await AdminGSVLabelView(false, viewerType, accessToken, false),
                 differentiateExpiredLabels: true
             };
             params.neighborhoodsURL = new URL('/neighborhoods', window.location.origin);

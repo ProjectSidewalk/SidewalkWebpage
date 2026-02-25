@@ -399,7 +399,7 @@ class LabelServiceImpl @Inject() (
       case Some(labelTypeId) =>
         for {
           mission: Mission <- missionService
-            .resumeOrCreateNewValidationMission(user.userId, "validation", labelTypeId)
+            .resumeOrCreateNewValidateMission(user.userId, "validation", labelTypeId)
             .map(_.get)
           missionProgress: (Int, Int, Int) <- db.run(labelValidationTable.getValidationProgress(mission.missionId))
 
