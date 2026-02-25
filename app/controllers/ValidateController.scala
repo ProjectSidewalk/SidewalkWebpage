@@ -400,9 +400,8 @@ class ValidateController @Inject() (
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       newVal => {
-        val labelTypeId: Int = LabelTypeEnum.labelTypeToId(newVal.labelType)
         for {
-          mission   <- missionService.resumeOrCreateNewValidationMission(userId, "labelmapValidation", labelTypeId)
+          mission <- missionService.resumeOrCreateNewValidateMission(userId, "labelmapValidation", newVal.labelType.id)
           newValIds <- validationService.submitValidations(
             Seq(
               ValidationSubmission(
@@ -435,7 +434,7 @@ class ValidateController @Inject() (
         val labelTypeId: Int = LabelTypeEnum.labelTypeToId(submission.labelType)
         for {
           // Get the (or create a) mission_id for this user_id and label_type_id.
-          mission        <- missionService.resumeOrCreateNewValidationMission(userId, "labelmapValidation", labelTypeId)
+          mission        <- missionService.resumeOrCreateNewValidateMission(userId, "labelmapValidation", labelTypeId)
           _              <- validationService.deleteCommentIfExists(submission.labelId, mission.get.missionId)
           commentId: Int <- validationService.insertComment(
             ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,

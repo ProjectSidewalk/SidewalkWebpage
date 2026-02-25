@@ -35,7 +35,7 @@ class Infra3dViewer extends PanoViewer {
             map_expand: !disableDefaultUi, // Only used if show_mapWindow is true
             show_cockpit: !disableDefaultUi,
 
-            linksControl: false,
+            clickToGo: false, // If true, we show infra3D viewer's navigation arrows
             zoomControl: true,
         };
         panoOpts = { ...panoOpts, ...panoOptions };
@@ -67,15 +67,30 @@ class Infra3dViewer extends PanoViewer {
             });
         }
 
+        // Prevent keyboard shortcuts from moving the pano.
+        const preventShortcuts = (e) => {
+            if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space'].indexOf(e.code) > -1) {
+                e.stopPropagation();
+            }
+        }
+        window.addEventListener('keydown', preventShortcuts, { capture: true });
+
         // Set up event listeners. We hold a list and go through each listener ourselves to control their ordering.
         const panoChangeListener = async (e) => {
             for (const listener of this.panoChangedListeners) await listener(e);
         }
-        this.viewer._sdk_viewer.on('nodechanged', panoChangeListener);
         const povChangeListener = async (e) => {
             for (const listener of this.povChangedListeners) await listener(e);
         }
+        this.viewer._sdk_viewer.on('nodechanged', panoChangeListener);
         this.viewer.on('panorotationchanged', povChangeListener);
+
+        // If clickToGo is enabled, we need a pano_changed listener to record the pano metadata after moving.
+        if (panoOpts.clickToGo) {
+            this.addListener('pano_changed', (node) => {
+                return this.#finishRecordingMetadata(node);
+            });
+        }
     };
 
     getPanoId = () => {

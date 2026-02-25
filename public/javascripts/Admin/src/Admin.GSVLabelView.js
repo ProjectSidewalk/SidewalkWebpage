@@ -1,9 +1,19 @@
-async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
-    var self = {};
+/**
+ * Creates the label popup modal used on LabelMap, User Dashboard, and various Admin UIs.
+ *
+ * @param {boolean} admin If true, this is an admin UI, so additional info can be shown
+ * @param {typeof PanoViewer} viewerType The type of pano viewer to initialize
+ * @param {string} viewerAccessToken An access token used to request images for the pano viewer
+ * @param {boolean} userMap If true, the modal is for a user's map of their own labels, so we don't allow validation
+ * @returns {Promise<{void}>} A Promise that resolves once the pano viewer has been initialized
+ * @constructor
+ */
+async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, userMap) {
+    const self = {};
     self.admin = admin;
-    self.source = source;
+    self.source = undefined; // Used to know which UI created the popup. Set in setLabel().
 
-    var _init = async function() {
+    const _init = async function() {
         self.resultOptions = {
             "Agree": 1,
             "Disagree": 2,
@@ -14,16 +24,16 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
     };
 
     async function _resetModal() {
-        var modalText =
-            '<div class="modal fade" id="labelModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">' +
+        let modalText =
+            '<div class="modal fade" id="label-modal" tabindex="-1" role="dialog" aria-labelledby="modal-label">' +
                 '<div class="modal-dialog" role="document" style="width: 570px">' +
                     '<div class="modal-content">' +
                         '<div class="modal-header">' +
                             '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
-                            '<h4 class="modal-title" id="myModalLabel"></h4>' +
+                            '<h4 class="modal-title" id="modal-label"></h4>' +
                         '</div>' +
                         '<div class="modal-body">' +
-                            '<div id="svholder" style="width: 540px; height:360px"></div>' +
+                            '<div id="sv-holder-label" style="width: 540px; height:360px"></div>' +
                             '<div id="validation-input-holder" class="hidden">' +
                                 `<h3 style="margin: 0px; padding-top: 10px;">${i18next.t('labelmap:is-correct')}</h3>` +
                                 '<div id="validation-button-holder" style="padding-top: 10px;">' +
@@ -150,7 +160,22 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
 
         self.modal = $(modalText);
 
-        self.panoManager = await AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-input-holder"), admin, viewerType, viewerAccessToken);
+        self.svHolder = self.modal.find('#sv-holder-label');
+        self.validateSection = self.modal.find('#validation-input-holder');
+
+        // For the infra3D viewer at least, the associated DOM element has to exist upon initialization. So we show and
+        // hide the modal quickly at the beginning (though we keep it hidden while we do it). Return the Promise that
+        // resolves once the pano viewer has loaded.
+        const panoViewerLoaded = new Promise((resolve) => {
+            self.modal.one('shown.bs.modal', async () => {
+                self.panoManager =
+                    await AdminPanorama(self.svHolder[0], self.validateSection, admin, viewerType, viewerAccessToken);
+                self.modal.css('visibility', 'visible');
+                resolve();
+            });
+        });
+        self.modal.css('visibility', 'hidden').modal({ 'show': true }).modal('hide');
+        $('.modal-backdrop').css('visibility', 'hidden'); // Prevents backdrop from appearing briefly.
 
         self.agreeButton = self.modal.find("#validation-agree-button");
         self.modalComments = self.modal.find("#validator-comments");
@@ -188,8 +213,8 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
         self.commentButton = self.modal.find("#comment-button");
         self.commentTextArea = self.modal.find("#comment-textarea");
 
-        if (self.source !== "UserMap") {
-            self.modal.find('#validation-input-holder').removeClass('hidden');
+        if (!userMap) {
+            self.validateSection.removeClass('hidden');
             self.agreeButton.click(function () {
                 if (self.prevAction !== "Agree") {
                     _disableValidationButtons();
@@ -213,7 +238,7 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
                 template: '<div class="feedback-popover" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>'
             });
             self.commentButton.click(function () {
-                var comment = self.commentTextArea.val();
+                const comment = self.commentTextArea.val();
                 if (comment) {
                     _submitComment(comment);
                 }
@@ -230,7 +255,7 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
             _setFlag("stale", !self.flags["stale"]);
         });
 
-        self.modalTitle = self.modal.find("#myModalLabel");
+        self.modalTitle = self.modal.find("#modal-label");
         self.modalTimestamp = self.modal.find("#timestamp");
         self.modalSeverity = self.modal.find("#severity");
         self.modalTags = self.modal.find("#tags");
@@ -249,6 +274,8 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
         self.modalLabelId = self.modal.find("#label-id");
         self.modalStreetId = self.modal.find('#street-id');
         self.modalRegionId = self.modal.find('#region-id');
+
+        return panoViewerLoaded;
     }
 
     /**
@@ -509,7 +536,16 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
         }
     }
 
-    async function showLabel(labelId) {
+    /**
+     * Requests data on the label, shows it on the pano, and fills in the table with the label's metadata.
+     *
+     * @param {number} labelId The ID of the label to show
+     * @param {string} source The UI that created the popup, one of ''
+     * @returns {Promise<void>}
+     */
+    async function showLabel(labelId, source) {
+        self.source = source;
+
         // Reset modal when gsv panorama is not found.
         _resetButtonStates();
         self.panoManager.clearLabels();
@@ -571,13 +607,13 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
         self.flags["stale"] = labelMetadata['stale'];
         _updateFlagButton();
 
-        var labelDate = moment(new Date(labelMetadata.timestamp));
-        var imageCaptureDate = moment(new Date(labelMetadata.image_capture_date));
+        const labelDate = moment(new Date(labelMetadata.timestamp));
+        const imageCaptureDate = moment(new Date(labelMetadata.image_capture_date));
         // Change modal title
         self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + camelToKebab(labelMetadata.label_type))}`);
         self.modalSeverity.html(labelMetadata.severity != null ? labelMetadata.severity : "No severity");
         // Create a list of translated tags that's parsable by i18next.
-        var translatedTags = labelMetadata.tags.map(tag => i18next.t(`common:tag.${tag.replace(/:/g, '-')}`));
+        const translatedTags = labelMetadata.tags.map(tag => i18next.t(`common:tag.${tag.replace(/:/g, '-')}`));
         self.modalTags.html(translatedTags.join(', ')); // Join to format using commas and spaces.
         self.modalDescription.text(labelMetadata.description != null ? labelMetadata.description : i18next.t('common:no-description'));
         self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
@@ -595,7 +631,7 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, source) {
             self.taskID = labelMetadata.audit_task_id;
             self.modalTask.html(`<a href='/admin/task/${labelMetadata.audit_task_id}'>${labelMetadata.audit_task_id}</a>`);
             self.modalUsername.html(`<a href='/admin/user/${encodeURI(labelMetadata.username)}'>${labelMetadata.username}</a>`);
-            var prevVals = labelMetadata['admin_data']['previous_validations'];
+            const prevVals = labelMetadata['admin_data']['previous_validations'];
             if (prevVals.length === 0) {
                 self.modalPrevValidations.html(i18next.t('common:none'));
             } else {

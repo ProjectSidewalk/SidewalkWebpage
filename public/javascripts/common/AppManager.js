@@ -113,7 +113,11 @@ class AppManager {
             if (pathsToBypass.some(path => requestUrl.includes(path))) {
                 return originalFetch(url, options);
             } else {
-                return originalFetch(url, newOptions).catch((e) => console.log('I will not be showing the error'));
+                return originalFetch(url, newOptions).catch((e) => {
+                    // Note that some URLs might fail because of ad blockers, especially if they include words like
+                    // event, track, or collect.
+                    console.error(`This URL may not accept Csrf-Token header, try adding to the exception list: `, url);
+                });
             }
         };
     }

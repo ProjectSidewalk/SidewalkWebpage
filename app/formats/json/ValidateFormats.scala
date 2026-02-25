@@ -84,7 +84,7 @@ object ValidateFormats {
   )
   case class LabelMapValidationSubmission(
       labelId: Int,
-      labelType: String,
+      labelType: LabelTypeEnum.Base,
       validationResult: Int,
       oldSeverity: Option[Int],
       newSeverity: Option[Int],
@@ -196,7 +196,7 @@ object ValidateFormats {
 
   implicit val labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] = (
     (JsPath \ "label_id").read[Int] and
-      (JsPath \ "label_type").read[String] and
+      (JsPath \ "label_type").read[LabelTypeEnum.Base] and
       (JsPath \ "validation_result").read[Int] and
       (JsPath \ "old_severity").readNullable[Int] and
       (JsPath \ "new_severity").readNullable[Int] and

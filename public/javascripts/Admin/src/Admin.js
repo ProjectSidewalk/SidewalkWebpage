@@ -1,13 +1,14 @@
 async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
-    var self = {};
-    var legendTable = document.getElementById('legend-table');
-    var sliderNotApplicableText = (legendTable && legendTable.dataset.notApplicableLabel) || "N/A";
-    var mapLoaded = false;
-    var graphsLoaded = false;
-    var labelsLoaded = false;
-    var usersLoaded = false;
-    var teamsLoaded = false;
-    var analyticsTabMapParams = {
+    const self = {};
+    const $loadingGif = $('#page-loading');
+    const legendTable = document.getElementById('legend-table');
+    const sliderNotApplicableText = (legendTable && legendTable.dataset.notApplicableLabel) || "N/A";
+    let mapLoaded = false;
+    let graphsLoaded = false;
+    let labelsLoaded = false;
+    let usersLoaded = false;
+    let teamsLoaded = false;
+    const analyticsTabMapParams = {
         mapName: 'admin-landing-choropleth',
         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
         mapboxApiKey: mapboxApiKey,
@@ -19,7 +20,8 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
         neighborhoodTooltip: 'completionRate',
         logClicks: false
     };
-    var mapTabMapParams = {
+    self.adminGSVLabelView = await AdminGSVLabelView(true, viewerType, viewerAccessToken, false);
+    const mapTabMapParams = {
         mapName: 'admin-labelmap-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
         mapboxApiKey: mapboxApiKey,
@@ -34,30 +36,35 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
         neighborhoodTooltip: 'none',
         differentiateUnauditedStreets: true,
         interactiveStreets: true,
-        popupLabelViewer: await AdminGSVLabelView(true, viewerType, viewerAccessToken, "AdminMapTab"),
+        uiSource: 'AdminMapTab',
+        popupLabelViewer: self.adminGSVLabelView,
         differentiateExpiredLabels: true,
         logClicks: false
     };
 
     // Constructor: load data for the Overview page tables from backend & make the loader finish after that data loads.
     function _init() {
-        Promise.all([loadStreetEdgeData(), loadUserCountData(), loadContributionTimeData(), loadLabelCountData(), loadValidationCountData(), loadComments()]).then(function() {
-            $('#page-loading').css('visibility', 'hidden');
+        // Run all the API requests. Once the data has loaded, make the page visible.
+        Promise.all([
+            loadStreetEdgeData(), loadUserCountData(), loadContributionTimeData(), loadLabelCountData(),
+            loadValidationCountData(), loadComments(), initializeAdminGSVCommentView()
+        ]).then(function() {
+            $loadingGif.css('visibility', 'hidden');
             $('#admin-page-container').css('visibility', 'visible');
         }).catch(function(error) {
             console.error("Error loading street edge data:", error);
         });
-    }
 
-    async function initializeAdminGSVLabelView() {
-        self.adminGSVLabelView = await AdminGSVLabelView(true, viewerType, viewerAccessToken, "AdminContributionsTab");
-    }
+        // Create the functionality for the Label Search tab.
+        self.adminLabelSearch = AdminLabelSearch(true, self.adminGSVLabelView, 'AdminLabelSearchTab');
 
-    async function initializeAdminGSVCommentView(){
-        self.adminGSVCommentView = await AdminGSVCommentView(true, viewerType, viewerAccessToken);
-    }
+        // Set up the listeners for the Labels table.
+        $('#label-table').on('click', '.labelView', async function(e) {
+            e.preventDefault();
+            await self.adminGSVLabelView.showLabel($(this).data('labelId'), 'AdminContributionsTab');
+        });
 
-    function initializeAdminGSVCommentWindow(){
+        // Set up the listeners for the comments table.
         $('#comments-table').on('click', '.show-comment-location', async function(e) {
             e.preventDefault();
             const pov = {
@@ -70,15 +77,8 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
         });
     }
 
-    async function initializeAdminLabelSearch() {
-        self.adminLabelSearch = await AdminLabelSearch(true, viewerType, viewerAccessToken, 'AdminLabelSearchTab');
-    }
-
-    function initializeLabelTable() {
-        $('#label-table').on('click', '.labelView', async function(e) {
-            e.preventDefault();
-            await self.adminGSVLabelView.showLabel($(this).data('labelId'));
-        });
+    async function initializeAdminGSVCommentView(){
+        self.adminGSVCommentView = await AdminGSVCommentView(true, viewerType, viewerAccessToken);
     }
 
     function isResearcherRole(roleName) {
@@ -1087,30 +1087,30 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
             graphsLoaded = true;
         } else if (e.target.id === "labels" && labelsLoaded === false) {
             $('#tabs-4').css('visibility', 'hidden');
-            $('#page-loading').css('visibility', 'visible');
+            $loadingGif.css('visibility', 'visible');
             loadLabels().then(function() {
                 labelsLoaded = true;
-                $('#page-loading').css('visibility', 'hidden');
+                $loadingGif.css('visibility', 'hidden');
                 $('#tabs-4').css('visibility', 'visible');
             }).catch(function(error) {
                 console.error("Error loading labels:", error);
             });
         } else if (e.target.id === "users" && usersLoaded === false) {
             $('#tabs-5').css('visibility', 'hidden');
-            $('#page-loading').css('visibility', 'visible');
+            $loadingGif.css('visibility', 'visible');
             loadUserStats().then(function() {
                 usersLoaded = true;
-                $('#page-loading').css('visibility', 'hidden');
+                $loadingGif.css('visibility', 'hidden');
                 $('#tabs-5').css('visibility', 'visible');
             }).catch(function(error) {
                 console.error("Error loading users:", error);
             });
         } else if (e.target.id === "teams" && teamsLoaded === false) {
             $('#tabs-7').css('visibility', 'hidden');
-            $('#page-loading').css('visibility', 'visible');
+            $loadingGif.css('visibility', 'visible');
             loadTeams().then(function() {
                 teamsLoaded = true;
-                $('#page-loading').css('visibility', 'hidden');
+                $loadingGif.css('visibility', 'hidden');
                 $('#tabs-7').css('visibility', 'visible');
             }).catch(function(error) {
                 console.error("Error loading teams:", error);
@@ -1577,13 +1577,6 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
             });
         });
     }
-
-
-    initializeLabelTable();
-    await initializeAdminGSVLabelView();
-    await initializeAdminLabelSearch();
-    await initializeAdminGSVCommentView();
-    initializeAdminGSVCommentWindow();
 
     self.clearPlayCache = clearPlayCache;
     self.loadStreetEdgeData = loadStreetEdgeData;

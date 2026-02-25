@@ -1,22 +1,22 @@
 async function AdminGSVCommentView(admin, viewerType, viewerAccessToken) {
-    var self = {};
+    const self = {};
     self.admin = admin;
 
-    var _init = async function() {
+    const _init = async function() {
         await _resetModal();
     };
 
     async function _resetModal() {
-        var modalText =
-            '<div class="modal fade" id="label-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">' +
+        const modalText =
+            '<div class="modal fade" id="comment-modal" tabindex="-1" role="dialog" aria-labelledby="modal-comment">' +
                 '<div class="modal-dialog" role="document" style="width: 840px">' +
                     '<div class="modal-content">' +
                         '<div class="modal-header">' +
                             '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
-                            '<h4 class="modal-title" id="myModalLabel"></h4>' +
+                            '<h4 class="modal-title" id="modal-comment"></h4>' +
                         '</div>' +
                         '<div class="modal-body">' +
-                            '<div id="svholder" style="width: 810px; height:540px">' +
+                            '<div id="sv-holder-comment" style="width: 810px; height:540px">' +
                         '</div>' +
                         '<div id="button-holder">' +
                         '</div>' +
@@ -25,7 +25,28 @@ async function AdminGSVCommentView(admin, viewerType, viewerAccessToken) {
             '</div>';
 
         self.modal = $(modalText);
-        self.panoManager = await AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#button-holder"), admin, viewerType, viewerAccessToken);
+
+        self.svHolder = self.modal.find('#sv-holder-comment');
+        self.validateSection = self.modal.find('#button-holder');
+
+        // For the infra3D viewer at least, the associated DOM element has to exist upon initialization. So we show and
+        // hide the modal quickly at the beginning (though we keep it hidden while we do it). Return the Promise that
+        // resolves once the pano viewer has loaded.
+        return new Promise((resolve) => {
+            // TODO not supported w/ infra3D, as it can't have multiple viewers per page, a conflict with label viewer.
+            if (viewerType === Infra3dViewer) {
+                resolve();
+            } else {
+                self.modal.one('shown.bs.modal', async () => {
+                    self.panoManager =
+                        await AdminPanorama(self.svHolder[0], self.validateSection, admin, viewerType, viewerAccessToken);
+                    self.modal.css('visibility', 'visible');
+                    resolve();
+                });
+                self.modal.css('visibility', 'hidden').modal({'show': true}).modal('hide');
+                $('.modal-backdrop').css('visibility', 'hidden'); // Prevents backdrop from showing briefly.
+            }
+        });
     }
 
     /**
@@ -36,8 +57,13 @@ async function AdminGSVCommentView(admin, viewerType, viewerAccessToken) {
      * @returns {Promise<void>}
      */
     async function showCommentGSV(panoId, pov, labelId) {
-        await _resetModal();
         self.modal.modal({ 'show': true });
+
+        if (viewerType === Infra3dViewer) {
+            self.svHolder.text('Not supported in with infra3D at this time, sorry!');
+            return;
+        }
+
         await self.panoManager.setPano(panoId, pov);
 
         if (labelId) {
