@@ -163,18 +163,19 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, userMap) 
         self.svHolder = self.modal.find('#sv-holder-label');
         self.validateSection = self.modal.find('#validation-input-holder');
 
-        // For the infra3D viewer at least, the associated DOM element has to exist upon initialization. So we show and
-        // hide the modal quickly at the beginning (though we keep it hidden while we do it). Return the Promise that
+        // For the both Mapillary and infra3D, the associated DOM element has to exist upon initialization. For
+        // Mapillary, it can't be set to display: none. So we show the modal (with visibility: hidden) during init. Once
+        // the pano viewer has been initialized, we close the modal and set it to visible again. Return the Promise that
         // resolves once the pano viewer has loaded.
         const panoViewerLoaded = new Promise((resolve) => {
             self.modal.one('shown.bs.modal', async () => {
                 self.panoManager =
                     await AdminPanorama(self.svHolder[0], self.validateSection, admin, viewerType, viewerAccessToken);
-                self.modal.css('visibility', 'visible');
+                self.modal.modal('hide').css('visibility', 'visible');
                 resolve();
             });
         });
-        self.modal.css('visibility', 'hidden').modal({ 'show': true }).modal('hide');
+        self.modal.css('visibility', 'hidden').modal({ 'show': true });//.modal('hide');
         $('.modal-backdrop').css('visibility', 'hidden'); // Prevents backdrop from appearing briefly.
 
         self.agreeButton = self.modal.find("#validation-agree-button");
