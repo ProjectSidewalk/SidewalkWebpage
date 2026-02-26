@@ -13,7 +13,8 @@ async function Progress (_, $, mapboxApiKey, viewerType, viewerAccessToken, user
         neighborhoodTooltip: admin? 'none' : 'completionRate',
         neighborhoodFillColor: '#5d6d6b',
         neighborhoodFillOpacity: 0.1,
-        popupLabelViewer: admin? await AdminGSVLabelView(true, viewerType, viewerAccessToken, "AdminUserDashboard") : await AdminGSVLabelView(false, viewerType, viewerAccessToken, "UserMap"),
+        uiSource: admin ? 'AdminUserDashboard' : 'UserMap',
+        popupLabelViewer: await AdminGSVLabelView(admin, viewerType, viewerAccessToken, !admin),
         includeLabelCounts: true
     };
     var self = {}

@@ -13,6 +13,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
+
 import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.ExecutionContext
@@ -179,6 +180,37 @@ class UserStatTable @Inject() (
   }
 
   /**
+   * Updates the high_quality_manual column for the given user.
+   * @param userId The user whose data quality is being set
+   * @param newHighQualityManual The new value for the high_quality_manual column
+   * @return Number of rows updated; should be 1, or 0 if user is excluded or no user is found
+   */
+  def updateHighQualityManual(userId: String, newHighQualityManual: Option[Boolean]): DBIO[Int] = {
+    userStats.filter(u => u.userId === userId && !u.excluded).map(_.highQualityManual).update(newHighQualityManual)
+  }
+
+  /**
+   * Updates the high_quality column for a single user.
+   * @param userId The user whose data quality is being set
+   * @param newHighQuality The new value for the high_quality column
+   * @return Number of rows updated; should be 1, or 0 if user is excluded or no user is found
+   */
+  def updateHighQuality(userId: String, newHighQuality: Boolean): DBIO[Int] = {
+    userStats.filter(u => u.userId === userId && !u.excluded).map(_.highQuality).update(newHighQuality)
+  }
+
+  /**
+   * Update the meters_audited column in the user_stat table for the given user.
+   * @param userId The user whose audited distance is being calculated
+   */
+  def updateAuditedDistance(userId: String): DBIO[Unit] = {
+    val userQuery: Query[Rep[String], String, Seq] = userStats.filter(_.userId === userId).map(_.userId)
+
+    // Computes the audited distance in meters for each user using the audit_task and street_edge tables.
+    updateAuditedDistanceHelper(userQuery)
+  }
+
+  /**
    * Update meters_audited column in the user_stat table for users who have done any auditing since `cutoffTime`.
    */
   def updateAuditedDistance(cutoffTime: OffsetDateTime): DBIO[Unit] = {
@@ -186,6 +218,19 @@ class UserStatTable @Inject() (
     val usersToUpdate: Query[Rep[String], String, Seq] =
       auditMissions.filter(_.missionEnd > cutoffTime).groupBy(_.userId).map(_._1)
 
+    // Computes the audited distance in meters for each user using the audit_task and street_edge tables.
+    updateAuditedDistanceHelper(usersToUpdate)
+  }
+
+  /**
+   * Update the meters_audited column in the user_stat table for users who have done any auditing since `cutoffTime`.
+   */
+
+  /**
+   * Updates the meters_audited column in the user_stat table for the given users.
+   * @param usersToUpdate A query for the users whose audited distance is being calculated
+   */
+  def updateAuditedDistanceHelper(usersToUpdate: Query[Rep[String], String, Seq]): DBIO[Unit] = {
     // Computes the audited distance in meters for each user using the audit_task and street_edge tables.
     auditTaskTable
       .filter(_.completed === true)
@@ -204,17 +249,29 @@ class UserStatTable @Inject() (
         }
         DBIO.sequence(updateActions).map(_ => ())
       }
-      .transactionally
+  }.transactionally
+
+  /**
+   * Update the labels_per_meter column in the user_stat table for the given user.
+   * @param userId The user whose labeling frequency is being calculated
+   */
+  def updateLabelsPerMeter(userId: String): DBIO[Unit] = {
+    val userQuery: Query[Rep[String], String, Seq] = userStats.filter(_.userId === userId).map(_.userId)
+    updateLabelsPerMeterHelper(userQuery)
   }
 
   /**
    * Update labels_per_meter column in the user_stat table for all users who have done any auditing since `cutoffTime`.
    */
   def updateLabelsPerMeter(cutoffTime: OffsetDateTime): DBIO[Unit] = {
+    val usersToUpdate: Query[Rep[String], String, Seq] = usersThatAuditedSinceCutoffTime(cutoffTime)
+    updateLabelsPerMeterHelper(usersToUpdate)
+  }
 
-    // Get the list of users who have done any auditing since the cutoff time.
-    val usersToUpdate = usersThatAuditedSinceCutoffTime(cutoffTime)
-
+  /**
+   * Update labels_per_meter column in the user_stat table for all users who have done any auditing since `cutoffTime`.
+   */
+  def updateLabelsPerMeterHelper(usersToUpdate: Query[Rep[String], String, Seq]): DBIO[Unit] = {
     // Compute label counts for each of those users.
     val labelCounts = (for {
       _mission       <- auditMissions
@@ -229,19 +286,24 @@ class UserStatTable @Inject() (
       .joinLeft(labelCounts)
       .on(_._1.userId === _._1)
       .map { case ((_stat, _userId), _count) =>
-        (_userId, _count.map(_._2).ifNull(0.asColumnOf[Int]).asColumnOf[Float] / _stat.metersAudited)
+        // Calculate labels_per_meter. If no meters audited, just set to NULL.
+        val newLabelsPerMeter = Case
+          .If(_stat.metersAudited > 0f)
+          .Then(_count.map(_._2).ifNull(0.asColumnOf[Int]).asColumnOf[Option[Float]] / _stat.metersAudited)
+          .Else(Option.empty[Float].bind)
+
+        (_userId, newLabelsPerMeter)
       }
       .result
-      .flatMap { labelFreqs: Seq[(String, Float)] =>
+      .flatMap { labelFreqs: Seq[(String, Option[Float])] =>
         // Update the labels_per_meter column in the user_stat table.
         val updateActions = labelFreqs.map { case (userId, labelingFreq) =>
           val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.labelsPerMeter
-          updateQuery.update(Some(labelingFreq))
+          updateQuery.update(labelingFreq)
         }
         DBIO.sequence(updateActions).map(_ => ())
       }
-      .transactionally
-  }
+  }.transactionally
 
   /**
    * Update the accuracy column in the user_stat table for the given users, or every user if the list is empty.
@@ -281,8 +343,43 @@ class UserStatTable @Inject() (
         }
         DBIO.sequence(updateActions).map(_ => ())
       }
-      .transactionally
-  }
+  }.transactionally
+
+  /**
+   * Update the high_quality column for the given user based on labeling freq and accuracy (or use manual setting).
+   *
+   * Users are considered low quality if they either:
+   * 1. have been manually marked as high_quality_manual = FALSE in the user_stat table,
+   * 2. have a labeling frequency below `LABEL_PER_METER_THRESHOLD`, or
+   * 3. have an accuracy rating below 60% (with at least 50 of their labels validated).
+   *
+   * @param userId The user whose high_quality column should be updated
+   * @return The number of rows updated; should be 1, or 0 if no user is found
+   */
+  def updateUserQuality(userId: String): DBIO[Int] = {
+    // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
+    // low quality are filtered out later (using results from the previous query).
+    val userQualQuery: DBIO[Seq[Boolean]] = {
+      userStats
+        .filter(_.userId === userId)
+        .map { x =>
+          !x.excluded &&                              // false if excluded=true
+          x.highQualityManual.getOrElse(true) && (    // false if high_quality_manual=false
+            x.highQualityManual.getOrElse(false) || ( // true if high_quality_manual set to true
+              (x.metersAudited === 0f || x.labelsPerMeter.getOrElse(5f) > LABEL_PER_METER_THRESHOLD)
+                && (x.accuracy.getOrElse(1.0f) > 0.6f.asColumnOf[Float] || x.ownLabelsValidated < 50.asColumnOf[Int])
+            )
+          )
+        }
+        .result
+    }
+    for {
+      newUserQuality <- userQualQuery
+      rowsUpdated    <-
+        if (newUserQuality.nonEmpty) updateHighQuality(userId, newUserQuality.head)
+        else DBIO.successful(0)
+    } yield rowsUpdated
+  }.transactionally
 
   /**
    * Update high_quality col in user_stat table, run after updateAuditedDistance, updateLabelsPerMeter, updateAccuracy.
@@ -318,8 +415,7 @@ class UserStatTable @Inject() (
           )
         }
         .result
-        .transactionally
-    }
+    }.transactionally
 
     // Get the list of users who have done any auditing or have had any of their labels validated since the cutoff time.
     // Will only update these users.

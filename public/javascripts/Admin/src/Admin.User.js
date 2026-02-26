@@ -8,6 +8,42 @@ function AdminUser(username, userId, serviceHoursUser) {
     }).datepicker('update', d);
 
     /**
+     * Used to send a request to update a user's high_quality_manual column in the database through a dropdown click.
+     * @param {Event} e
+     * @returns {Promise<void>}
+     */
+    async function updateUserQuality(e) {
+        const choice = e.target.innerText;
+        const data = {
+            'user_id': userId,
+            'quality': choice === 'true' ? true : (choice === 'false' ? false : null)
+        };
+        return fetch('/adminapi/setUserQualityManual', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        })
+            .then((response) => response.json())
+            .then(result => {
+                // Owners and 'excluded' users can't have their quality set, so back end might give an error.
+                if (result.status === 'Error') throw(result.message);
+
+                // Change the adjacent 'High quality' column to the correct value.
+                $('#stat-high-quality').text(result.new_user_quality);
+
+                // Change dropdown button to reflect new quality selection.
+                const button = $('#user-quality-button')[0];
+                button.childNodes[0].nodeValue = ` ${choice} `;
+            })
+            .catch(error => {
+                console.error(error);
+                alert('Error updating user quality: ' + error);
+                return undefined;
+            });
+    }
+    $('#user-quality-dropdown').on('click', 'a', updateUserQuality);
+
+    /**
      * Perform an AJAX call (PUT request) to modify all of a specified flag for the user before a specified date.
      * @param date
      * @param flag One of "low_quality", "incomplete", or "stale".
@@ -81,7 +117,7 @@ function AdminUser(username, userId, serviceHoursUser) {
 
     // Updates user's volunteer status when the checkbox is clicked.
     $("#check-volunteer").click(function() {
-        var isChecked = $(this).is(":checked");
+        const isChecked = $(this).is(":checked");
         updateVolunteerStatus(isChecked);
     });
 

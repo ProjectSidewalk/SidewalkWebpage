@@ -93,11 +93,6 @@ function Keyboard(validationMenuUi) {
      * @private
      */
     this._documentKeyDown = function (e) {
-        // Prevent pano viewer's default panning and moving using arrow keys and WASD.
-        if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(e.code) > -1) {
-            e.stopPropagation();
-        }
-
         // When the user is typing in a comment box, disable keyboard shortcuts that can be used to validate a label.
         checkIfTextAreaSelected();
 
@@ -163,7 +158,7 @@ function Keyboard(validationMenuUi) {
         }
     };
 
-    // Add the keyboard event listeners. We need { capture: true } for keydown to disable pano's shortcuts.
+    // Add the keyboard event listeners. We need { capture: true } for keydown to overwrite pano's shortcuts.
     window.addEventListener('keydown', this._documentKeyDown, { capture: true });
 
     self.disableKeyboard = disableKeyboard;

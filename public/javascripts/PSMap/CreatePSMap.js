@@ -23,6 +23,7 @@
  * @param {boolean} [params.interactiveStreets=false] - Whether to include hover/click interactions on the streets.
  * @param {boolean} [params.includeLabelCounts=false] - Whether to include label counts for each type in the legend.
  * @param {boolean} [params.differentiateExpiredLabels=false] - Whether to color expired labels differently.
+ * @param {string} [params.uiSource] - Used to record the UI used when submitting a validation through the popup.
  * @param {object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
  * @return {Promise} - Promise that resolves all components of map have loaded.
  */

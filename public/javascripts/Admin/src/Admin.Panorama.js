@@ -118,7 +118,7 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
     /**
      * Refreshes all views for the new pano and saves historic pano metadata.
      * @param {{heading: number, pitch: number, zoom: number}} targetPov The desired pov to set for the pano
-     * @returns {Promise<void>}
+     * @returns {Promise<void>} A Promise that resolves once the pano and label have rendered
      * @private
      */
     async function _panoSuccessCallback(targetPov) {
@@ -133,16 +133,12 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
         // it by triggering a resize event after a short delay. This seems to only be an issue with the label popup, not
         // with Explore/Gallery/Validate. Probably because of how we show/hide the popup.
         return new Promise((resolve) => {
-            if (viewerType === GsvViewer) {
-                setTimeout(() => {
-                    google.maps.event.trigger(self.panoViewer.gsvPano, 'resize');
-                    self.panoViewer.setPov(targetPov);
-                    if (self.label) renderLabel(self.label);
-                    resolve();
-                }, 250);
-            } else {
+            setTimeout(() => {
+                if (viewerType === GsvViewer) google.maps.event.trigger(self.panoViewer.gsvPano, 'resize');
+                self.panoViewer.setPov(targetPov);
+                if (self.label) renderLabel(self.label);
                 resolve();
-            }
+            }, 250);
         });
     }
 
@@ -158,7 +154,7 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
         $(self.panoCanvas).css('display', 'none');
         $(self.panoNotAvailable).css('display', 'block');
         $(self.panoNotAvailableDetails).css('display', 'block');
-        $("#explore-street").attr('href', '/explore?streetEdgeId=' + self.label['streetEdgeId']);
+        if (self.label) $("#explore-street").attr('href', '/explore?streetEdgeId=' + self.label['streetEdgeId']);
         $(self.panoNotAvailableAuditSuggestion).css('display', 'block');
         $(self.buttonHolder).css('display', 'none');
         return Promise.resolve();

@@ -41,8 +41,9 @@
             const imagerySrc = "@commonData.imagerySource.toString";
             const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
             const accessToken = "@commonData.imageryAccessToken";
-            let labelSearch = await AdminLabelSearch(@isAdmin, viewerType, accessToken, 'LabelSearchPage');
-            await labelSearch.adminGSVLabelView.showLabel(parseInt("@labelId"));
+            const gsvLabelView = await AdminGSVLabelView(@isAdmin, viewerType, accessToken, false);
+            const labelSearch = AdminLabelSearch(@isAdmin, gsvLabelView, 'LabelSearchPage');
+            await labelSearch.adminGSVLabelView.showLabel(parseInt("@labelId"), 'LabelSearchPage');
         });
     </script>
 }

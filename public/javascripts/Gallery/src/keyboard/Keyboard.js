@@ -6,23 +6,8 @@
 function Keyboard(expandedView) {
     // Initialization function.
     function _init() {
-        // Add the keyboard event listeners. We need { capture: true } for keydown to disable pano's shortcuts.
-        // TODO is that true? Or are we successfully disabling everything in configuration?
-        window.addEventListener('keydown', _documentKeyDown, { capture: true });
+        // Add the keyboard event listeners.
         window.addEventListener('keyup', _documentKeyUp);
-    }
-
-    /**
-     * This is a callback for a key down event.
-     * @param {object} e An event object
-     * @private
-     */
-    function _documentKeyDown(e) {
-        // Prevent Google's default panning and moving using arrow keys and WASD.
-        // https://stackoverflow.com/a/66069717/9409728
-        if (e.key && ['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'W', 'A', 'S', 'D'].map((key) => key.toUpperCase()).indexOf(e.key.toUpperCase()) > -1) {
-            e.stopPropagation();
-        }
     }
 
     /**
