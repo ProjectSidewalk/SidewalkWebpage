@@ -92,10 +92,11 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
         });
         // Creates the ExpandedView object in the DOM element currently present.
         sg.panoStore = new PanoStore();
-        expandedView = await ExpandedView($('.gallery-expanded-view'), panoViewerType, viewerAccessToken);
+        expandedView = await ExpandedView(sg.ui.expandedView.container, panoViewerType, viewerAccessToken);
         // Add the click event for opening the ExpandedView when a card is clicked.
         sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count, .ai-icon-marker-card', (event) => {
-            $('.gallery-expanded-view').css('display', 'flex');
+            sg.ui.expandedView.container.css('position', 'relative');
+            sg.ui.expandedView.container.css('visibility', 'visible');
             $('.grid-container').css("grid-template-columns", "1fr 5fr");
             // If the user clicks on the image body in the card, just use the provided id.
             // If they click the AI icon, use the image id from the same card.

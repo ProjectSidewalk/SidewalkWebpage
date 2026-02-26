@@ -52,13 +52,18 @@ async function Main (params) {
         sg.ui.cardContainer.pageNumber = $("#page-number")
         sg.ui.cardContainer.nextPage = $("#next-page");
 
+        // Initialize expanded view component.
+        sg.ui.expandedView = {};
+        sg.ui.expandedView.container = $('.gallery-expanded-view');
+
         // Keep track of some other elements whose status or dimensions are useful.
         sg.ui.pageControl = $(".page-control");
         sg.ui.navbar = $("#header");
         sg.pageLoading = $('#page-loading');
         sg.labelsNotFound = $('#labels-not-found');
 
-        $('.gallery-expanded-view').hide();
+        sg.ui.expandedView.container.css('position', 'absolute');
+        sg.ui.expandedView.container.css('visibility', 'hidden');
 
         // Calculate offset between bottom of navbar and sidebar.
         headerSidebarOffset =
@@ -135,14 +140,14 @@ async function Main (params) {
                 if (cardContainerBottomOffset < visibleWindowBottomOffset) {
                     if (sg.scrollStatus.stickyExpandedView) {
                         // Prevent expanded view from going too low (i.e., when a user scrolls down fast).
-                        $('.gallery-expanded-view').css('top', cardContainerBottomOffset - $(window).height());
+                        sg.ui.expandedView.container.css('top', cardContainerBottomOffset - $(window).height());
                         sg.scrollStatus.stickyExpandedView = false;
                     }
                 } else {
                     if (!sg.scrollStatus.stickyExpandedView) sg.scrollStatus.stickyExpandedView = true;
 
                     // Emulate the expanded view being "fixed".
-                    $('.gallery-expanded-view').css('top', $(window).scrollTop());
+                    sg.ui.expandedView.container.css('top', $(window).scrollTop());
                 }
             }
         });
