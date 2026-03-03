@@ -12,11 +12,7 @@
 @admin = @{adminData.isDefined}
 
 @common.main(commonData, title, defaultI18nNamespace = "dashboard", i18Namespaces = Seq("dashboard", "common", "labelmap")) {
-    @if(admin) {
-        @common.navbar(commonData, Some(user))
-    } else {
-        @common.navbar(commonData, Some(user))
-    }
+    @common.navbar(commonData, Some(user))
     <div class="container">
         <div class="row" id="profile-container">
             <div id="username">@profileUser.username</div>

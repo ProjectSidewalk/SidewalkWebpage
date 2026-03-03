@@ -20,6 +20,12 @@ class MapillaryViewer extends PanoViewer {
         this.currCameraHeading = undefined;
         this.currCenter = undefined;
         this.currVerticalFov = undefined;
+
+        // Used to differentiate between pano changing from Mapillary's nav arrows vs calling setPano/setLocation.
+        this.changingPanoOurselves = undefined;
+
+        // A function to update image metadata after a pano change; only used if move happens thru Mapillary nav arrows.
+        this.updateImageData = undefined;
     }
 
     async initialize(canvasElem, panoOptions = {}) {
@@ -59,15 +65,25 @@ class MapillaryViewer extends PanoViewer {
 
         // Set up event listeners. We hold a list and go through each listener ourselves to control their ordering.
         // Changing zoom fires 'fov' but not 'pov' event, but we consider that a pov change so we fire on either.
-        const panoChangeListener = async (e) => {
-            for (const listener of this.panoChangedListeners) await listener(e);
-        }
         const povChangeListener = async (e) => {
             for (const listener of this.povChangedListeners) await listener(e);
         }
-        this.viewer.on('image', panoChangeListener);
         this.viewer.on('pov', povChangeListener);
         this.viewer.on('fov', povChangeListener);
+
+        // Set up event listener on a pano change. Adding one to the front of the list that updates the image metadata.
+        // We don't want to run it if the pano change happened through setPano/setLocation, since those functions
+        // already update the metadata.
+        this.updateImageData = (e) => {
+            return this._getPanoramaCallback(e.image);
+        };
+        const panoChangeListener = async (e) => {
+            for (const listener of this.panoChangedListeners) {
+                // Skip the updateImageData() call if it's already happening through setPano/setLocation.
+                if (!this.changingPanoOurselves || listener !== this.updateImageData) await listener(e);
+            }
+        }
+        this.viewer.on('image', panoChangeListener);
 
         // TODO Maybe we could add the following two subscribers only if we aren't handling panning/zooming ourselves,
         //      which could be passed as a parameter. That logic could be applied to the other viewers as well.
@@ -90,9 +106,7 @@ class MapillaryViewer extends PanoViewer {
 
         // If clickToGo is enabled, we need a pano_changed listener to record the pano metadata after moving.
         if (clickToGo) {
-            this.addListener('pano_changed', (e) => {
-                return this._getPanoramaCallback(e.image);
-            });
+            this.addListener('pano_changed', this.updateImageData);
         }
 
         // Can even set the width of the nav arrows? https://mapillary.github.io/mapillary-js/api/interfaces/component.DirectionConfiguration/
@@ -175,6 +189,8 @@ class MapillaryViewer extends PanoViewer {
             // Make sure that we keep the same pov in the new pano.
             if (oldPov) this.setPov(oldPov);
 
+            this.changingPanoOurselves = false;
+
             this.currPanoData = new PanoData(panoDataParams);
             return this.currPanoData;
         });
@@ -227,6 +243,7 @@ class MapillaryViewer extends PanoViewer {
                     }
                 }
 
+                this.changingPanoOurselves = true;
                 return await this.viewer.moveTo(closestPano.id).then(this._getPanoramaCallback);
             } else {
                 if (data.data && data.data.length === 0) throw new Error('No images found near this location');
@@ -240,7 +257,7 @@ class MapillaryViewer extends PanoViewer {
     }
 
     setPano = async (panoId) => {
-        // return this.viewer.moveTo('1485659461780098').then(this._getPanoramaCallback);
+        this.changingPanoOurselves = true;
         return this.viewer.moveTo(panoId).then(this._getPanoramaCallback);
     }
 
