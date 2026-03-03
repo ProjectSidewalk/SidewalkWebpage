@@ -15,6 +15,18 @@ class PanoViewer {
     canvasClass;
 
     /**
+     * A list of functions to execute (in order) after moving to a new pano.
+     * @type {Function[]}
+     */
+    panoChangedListeners = [];
+
+    /**
+     * A list of functions to execute (in order) after the pov changes.
+     * @type {Function[]}
+     */
+    povChangedListeners = [];
+
+    /**
      * Private constructor to prevent direct instantiation.
      */
     constructor() {
@@ -163,7 +175,11 @@ class PanoViewer {
      * @returns {void}
      */
     addListener(event, handler) {
-        throw new Error('addListener() must be implemented by subclass');
+        if (event === 'pano_changed') {
+            this.panoChangedListeners.push(handler);
+        } else if (event === 'pov_changed') {
+            this.povChangedListeners.push(handler);
+        }
     }
 
     /**
@@ -173,6 +189,10 @@ class PanoViewer {
      * @returns {void}
      */
     removeListener(event, handler) {
-        throw new Error('removeListener() must be implemented by subclass');
+        if (event === 'pano_changed') {
+            this.panoChangedListeners =  this.panoChangedListeners.filter(func => func !== handler);
+        } else if (event === 'pov_changed') {
+            this.povChangedListeners =  this.povChangedListeners.filter(func => func !== handler);
+        }
     }
 }
