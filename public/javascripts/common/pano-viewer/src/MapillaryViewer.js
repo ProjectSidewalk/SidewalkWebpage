@@ -108,6 +108,8 @@ class MapillaryViewer extends PanoViewer {
     }
 
     _getPanoramaCallback = async (newImage) => {
+        const oldPov = this.currImage ? this.getPov() : null; // Save old pov so we can keep the same view.
+
         // Make sure that the node has the linked panos are initialized (in image._cache._spatialEdges.edges).
         const edgesInitialized= new Promise((resolve) => {
             // Use links if they're already cached.
@@ -125,12 +127,17 @@ class MapillaryViewer extends PanoViewer {
             }
         });
 
-        // Use async func to fill in metadata used by synchronous getPov() function for later use.
-        const currPov = this._getPov();
+        // Call a few async funcs to get metadata used by synchronous getPov() function.
+        const gotCenter = this.viewer.getCenter();
+        const gotFov = this.viewer.getFieldOfView();
 
         // Once all async processes have finished, let's fill in the currPanoData object.
-        return Promise.all([edgesInitialized, currPov]).then(([edges, pov]) => {
+        return Promise.all([edgesInitialized, gotCenter, gotFov]).then(([edges, newCenter, newFov]) => {
             this.currImage = newImage;
+
+            this.currCameraHeading = this.currImage.compassAngle;
+            this.currCenter = newCenter;
+            this.currVerticalFov = newFov;
 
             // To get various info about the pano -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Image/
             // TODO merged, might want to record whether it's been merged thru sfm
@@ -146,7 +153,10 @@ class MapillaryViewer extends PanoViewer {
                 lat: this.currImage.lngLat.lat,
                 lng: this.currImage.lngLat.lng,
                 cameraHeading: this.currImage.compassAngle,
-                cameraPitch: 0, // TODO I'm not sure that we have this information...
+                // TODO I think that we have camera pitch in renderCamera.camera.position.z. But actually seems really
+                //      important when it comes to Mapillary images... And that info should be available in the
+                //      renderCamera.camera.up vector.
+                cameraPitch: 0,
                 copyright: this.currImage.creatorUsername,
                 history: [] // TODO could use /images endpoint to fill this. But can also see history in the UI https://www.mapillary.com/app/user/uwrapid?lat=47.66374856411&lng=-122.28224790652&z=17&x=0.5871305676894112&y=0.5159912788583514&zoom=0&panos=true&focus=photo&pKey=134748085384999&my_coverage=false&user_coverage=false
             }
@@ -161,6 +171,9 @@ class MapillaryViewer extends PanoViewer {
                         heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI))
                     };
                 });
+
+            // Make sure that we keep the same pov in the new pano.
+            if (oldPov) this.setPov(oldPov);
 
             this.currPanoData = new PanoData(panoDataParams);
             return this.currPanoData;
@@ -252,21 +265,6 @@ class MapillaryViewer extends PanoViewer {
             pitch: currPitch,
             zoom: util.pano.fovToZoom(horizontalFov)
         };
-    }
-
-    /**
-     * An async version of getPov that's called once when moving to a new pano to make sure everything is up-to-date.
-     * @returns {Promise<{heading: number, pitch: number, zoom: number}>}
-     * @private
-     */
-    _getPov = async () => {
-        // Use async APIs to fill in all data used by getPov(), then just call it to do the actual calculation.
-        const currImage = await this.viewer.getImage();
-        this.currCameraHeading = currImage.compassAngle;
-        this.currCenter = await this.viewer.getCenter();
-        this.currVerticalFov = await this.viewer.getFieldOfView();
-
-        return this.getPov();
     }
 
     setPov = (pov) => {
