@@ -166,16 +166,21 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, userMap) 
         // For the both Mapillary and infra3D, the associated DOM element has to exist upon initialization. For
         // Mapillary, it can't be set to display: none. So we show the modal (with visibility: hidden) during init. Once
         // the pano viewer has been initialized, we close the modal and set it to visible again. Return the Promise that
-        // resolves once the pano viewer has loaded.
+        // resolves once the pano viewer has loaded and the modal has been closed.
         const panoViewerLoaded = new Promise((resolve) => {
             self.modal.one('shown.bs.modal', async () => {
                 self.panoManager =
                     await AdminPanorama(self.svHolder[0], self.validateSection, admin, viewerType, viewerAccessToken);
-                self.modal.modal('hide').css('visibility', 'visible');
-                resolve();
+
+                // Once the modal has finished closing, we can set it as visible and resolve the Promise.
+                self.modal.one('hidden.bs.modal', async () => {
+                    self.modal.css('visibility', 'visible');
+                    resolve();
+                });
+                self.modal.modal('hide');
             });
         });
-        self.modal.css('visibility', 'hidden').modal({ 'show': true });//.modal('hide');
+        self.modal.css('visibility', 'hidden').modal('show');
         $('.modal-backdrop').css('visibility', 'hidden'); // Prevents backdrop from appearing briefly.
 
         self.agreeButton = self.modal.find("#validation-agree-button");
@@ -550,7 +555,13 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, userMap) 
         // Reset modal when gsv panorama is not found.
         _resetButtonStates();
         self.panoManager.clearLabels();
-        self.modal.modal({ 'show': true });
+
+        // Open the modal. Listening to an event to know when it's fully open.
+        const modalOpened = new Promise((resolve) => {
+            self.modal.one('shown.bs.modal', () => resolve());
+        });
+        self.modal.modal('show');
+        await modalOpened;
 
         await fetch(admin ? '/adminapi/label/id/' + labelId : '/label/id/' + labelId, {
             method: 'GET',
