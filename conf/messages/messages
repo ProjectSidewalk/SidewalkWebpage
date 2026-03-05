@@ -51,6 +51,7 @@ city.name.tucson-az = Tucson
 city.name.paterson-nj = Paterson
 city.name.staging = Zurich Infra3d
 city.name.richmond-va = Richmond
+city.name.fort-wayne-in = Fort Wayne
 
 state.name.oregon = Oregon
 state.name.washington = Washington
@@ -66,6 +67,7 @@ state.name.wisconsin = Wisconsin
 state.name.new-york = New York
 state.name.arizona = Arizona
 state.name.virginia = Virginia
+state.name.indiana = Indiana
 
 country.name.usa = USA
 country.name.mexico = Mexico
