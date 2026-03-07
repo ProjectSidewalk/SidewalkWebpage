@@ -2,7 +2,7 @@
  * An ExpandedView element that provides extended information about a label, along with placing a label in a Panorama
  * to aid the user in contextualizing the location of labels.
  *
- * @param {HTMLElement} uiModal The container for the ExpandedView in the DOM
+ * @param {jQuery} uiModal The container for the ExpandedView in the DOM
  * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
  * @param {string} viewerAccessToken An access token used to request images for the pano viewer
  * @returns
@@ -23,7 +23,9 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
                 // We check to make sure that the mutation effects the childList (adding/removing child nodes) of the
                 // card container and that cards (child nodes) were added in the mutation, indicating the cards have
                 // been rendered.
-                $('.gallery-expanded-view').attr('style', 'display: flex');
+
+                uiModal.css('visibility', 'visible');
+                uiModal.css('position', 'relative');
                 $('.grid-container').css("grid-template-columns", "1fr 5fr");
 
                 // Sets/Updates the label being displayed in the expanded view.
@@ -77,7 +79,9 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
         // therefore shouldn't need to divide the grid into columns (changed "0.5fr 3fr" to "none").
         // Disclaimer: I could be totally wrong lol.
         $('.grid-container').css("grid-template-columns", "none");
-        uiModal.hide();
+        uiModal.css('position', 'absolute');
+        uiModal.css('visibility', 'hidden');
+        self.panoHolder.css('visibility', 'hidden');
         self.open = false;
     }
 

@@ -9,8 +9,6 @@ class Infra3dViewer extends PanoViewer {
         this.prevNode = null;
         this.currNode = null; // This becomes null while waiting to load subsequent panos.
         this.currPanoData = undefined; // This holds onto the data for the prior pano while we are loading the next one.
-        this.panoChangedListeners = [];
-        this.povChangedListeners = [];
     }
 
     async initialize(canvasElem, panoOptions = {}) {
@@ -58,11 +56,11 @@ class Infra3dViewer extends PanoViewer {
         }
 
         // Initialize pano at the desired location.
-        if (panoOptions.startPanoId) {
-            await this.setPano(panoOptions.startPanoId);
-        } else if (panoOptions.startLatLng) {
-            await this.setLocation(panoOptions.startLatLng).catch(err => {
-                if (panoOptions.backupLatLng) return this.setLocation(panoOptions.backupLatLng);
+        if (panoOpts.startPanoId) {
+            await this.setPano(panoOpts.startPanoId);
+        } else if (panoOpts.startLatLng) {
+            await this.setLocation(panoOpts.startLatLng).catch(err => {
+                if (panoOpts.backupLatLng) return this.setLocation(panoOptions.backupLatLng);
                 else throw err;
             });
         }
@@ -324,20 +322,4 @@ class Infra3dViewer extends PanoViewer {
     showNavigationArrows = () => {
         this.viewer._sdk_viewer.activateComponent('direction');
     };
-
-    addListener(event, handler) {
-        if (event === 'pano_changed') {
-            this.panoChangedListeners.push(handler);
-        } else if (event === 'pov_changed') {
-            this.povChangedListeners.push(handler);
-        }
-    }
-
-    removeListener(event, handler) {
-        if (event === 'pano_changed') {
-            this.panoChangedListeners =  this.panoChangedListeners.filter(func => func !== handler);
-        } else if (event === 'pov_changed') {
-            this.povChangedListeners =  this.povChangedListeners.filter(func => func !== handler);
-        }
-    }
 }

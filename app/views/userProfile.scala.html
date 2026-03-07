@@ -12,11 +12,7 @@
 @admin = @{adminData.isDefined}
 
 @common.main(commonData, title, defaultI18nNamespace = "dashboard", i18Namespaces = Seq("dashboard", "common", "labelmap")) {
-    @if(admin) {
-        @common.navbar(commonData, Some(user))
-    } else {
-        @common.navbar(commonData, Some(user))
-    }
+    @common.navbar(commonData, Some(user))
     <div class="container">
         <div class="row" id="profile-container">
             <div id="username">@profileUser.username</div>
@@ -44,7 +40,7 @@
                         <li>
                             <a id="create-team-button" role="menuitem" class="create-team" data-toggle="modal" data-target="#create-team-modal" href="#"><strong>@Messages("dashboard.create.team")</strong></a>
                         </li>
-                        @for(team <- data.allTeams.sortBy(_.name)) {
+                        @for(team <- data.allTeams.filter(_.open).sortBy(_.name)) {
                             @if(!data.userTeam.contains(team)) {
                                 <li class="put-team-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@team.description">
                                     <a id="from-@data.userTeam.map(_.teamId).getOrElse(0)-to-@team.teamId" role="menuitem" class="put-user-team">@team.name</a>

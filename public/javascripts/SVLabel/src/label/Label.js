@@ -358,6 +358,7 @@ function Label(params) {
             var panoLat = getProperty("panoLat");
             var panoLng = getProperty("panoLng");
             var heading = getProperty("originalPov").heading;
+            // TODO rounding here could definitely throw things off!!
             var zoom = Math.round(getProperty("originalPov").zoom); // Need to round specifically for Safari.
             var canvasX = getProperty('originalCanvasXY').x;
             var canvasY = getProperty('originalCanvasXY').y;

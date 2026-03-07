@@ -78,7 +78,7 @@ class Minimap {
     /**
      * Callback for zoom update; updates the observed area view.
      */
-     handlerZoomChange () {
+     handlerZoomChange() {
         if ("observedArea" in svl) { svl.observedArea.update(); }
 
         // TODO it makes more sense for this to be tracked from PanoManager (when we setPov), but might need this if we enable scroll zoom.
