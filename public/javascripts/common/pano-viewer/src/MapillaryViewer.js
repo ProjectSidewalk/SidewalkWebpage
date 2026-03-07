@@ -199,11 +199,12 @@ class MapillaryViewer extends PanoViewer {
     setLocation = async (latLng, excludedPanos = new Set()) => {
         // Search for images near the coordinates.
         // Docs for how to filter images: https://www.mapillary.com/developer/api-documentation#image
-        // TODO I divided by 10 for now the API was often failing with too many results.
-        const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0 / 10; // Convert search radius to kms.
+        const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
         // TODO don't send accessToken in the URL: https://www.mapillary.com/developer/api-documentation#authentication
         // TODO start by asking for a smaller area, then move larger if we find nothing. Getting an error if requesting too many images.
         // TODO should be able to use this to find (or decide on our own) links if we want.
+        // NOTE The 'limit' API param doesn't do what it says. Including it can make the API return no images when the
+        //      limit is set to something greater than 0 and we get images if we exclude the limit param. Don't use it!
 
         // Create a bounding box using to search for imagery.
         const centerPoint = turf.point([latLng.lng, latLng.lat]);
