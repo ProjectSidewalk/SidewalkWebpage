@@ -2,8 +2,11 @@ import requests
 import pandas as pd
 import sys
 import os
+import argparse
 from shapely import wkb
 from shapely.geometry import LineString
+from geopy.distance import geodesic
+from geopy import Point
 
 # Create CSV from street_edge table with street_edge_id, x1, y1, x2, y2, geom.
 # Name it street_edge_endpoints.csv and put it in the root directory, then run this script.
@@ -34,12 +37,31 @@ def redistribute_vertices(geom):
         num_vert = 1
     return LineString([geom.interpolate(float(n) / num_vert, normalized=True) for n in range(num_vert + 1)])
 
+def create_bounding_box(lat, lng, radius_km):
+    center = Point(lat, lng)
+
+    west  = geodesic(kilometers=radius_km).destination(center, bearing=270).longitude
+    south = geodesic(kilometers=radius_km).destination(center, bearing=180).latitude
+    east  = geodesic(kilometers=radius_km).destination(center, bearing=90).longitude
+    north = geodesic(kilometers=radius_km).destination(center, bearing=0).latitude
+
+    return (west, south, east, north)
 
 def main():
+    parser = argparse.ArgumentParser(description='Loops through streets, outputting any without imagery to a separate file.')
+    parser.add_argument('--gsv', action='store_true', help='Include if checking for GSV imagery')
+    parser.add_argument('--mapillary', action='store_true', help='Include if checking for Mapillary imagery')
+    args = parser.parse_args()
+    if not (args.gsv or args.mapillary):
+        parser.error('At least one of --gsv or --mapillary is required')
+    elif (args.gsv and args.mapillary):
+        parser.error('Please specify only one of --gsv or --mapillary')
+    API = 'GSV' if args.gsv else 'Mapillary'
+
     # Read google maps API key from env variable.
-    api_key = os.getenv('GOOGLE_MAPS_API_KEY')
+    api_key = os.getenv('GOOGLE_MAPS_API_KEY') if API == 'GSV' else os.getenv('MAPILLARY_ACCESS_TOKEN')
     if api_key is None:
-        print("Couldn't read GOOGLE_MAPS_API_KEY environment variable.")
+        print("Couldn't read API key environment variable.")
         exit(1)
 
     # Read street edge data from CSV.
@@ -68,6 +90,8 @@ def main():
     gsv_base_url = 'https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor&key=' + api_key
     gsv_url = gsv_base_url + '&radius=15'
     gsv_url_endpoint = gsv_base_url + '&radius=25'
+    mapillary_url = 'https://graph.mapillary.com/images?is_pano=true&access_token=' + api_key
+
     street_data = street_data.set_index('id')
     for index, street in street_data.iterrows():
         # Print a progress percentage.
@@ -77,13 +101,38 @@ def main():
 
         # Check endpoints first. If neither have imagery, we can say it has no imagery and move on.
         try:
-            first_endpoint = requests.get(gsv_url_endpoint + '&location=' + str(street.y1) + ',' + str(street.x1))
-            second_endpoint = requests.get(gsv_url_endpoint + '&location=' + str(street.y2) + ',' + str(street.x2))
+            if API == 'GSV':
+                first_endpoint = requests.get(gsv_url_endpoint + '&location=' + str(street.y1) + ',' + str(street.x1))
+                second_endpoint = requests.get(gsv_url_endpoint + '&location=' + str(street.y2) + ',' + str(street.x2))
+            elif API == 'Mapillary':
+                bbox1 = create_bounding_box(street.y1, street.x1, 25)
+                bbox2 = create_bounding_box(street.y2, street.x2, 0.025)
+                first_endpoint = requests.get(mapillary_url + '&bbox=' + ",".join(str(coord) for coord in bbox1))
+                second_endpoint = requests.get(mapillary_url + '&bbox=' + ",".join(str(coord) for coord in bbox2))
         except (requests.exceptions.RequestException, KeyboardInterrupt) as e:
             write_output(streets_with_no_imagery, street)
             exit(1)
-        first_endpoint_fail = pd.json_normalize(first_endpoint.json()).status[0] == 'ZERO_RESULTS'
-        second_endpoint_fail = pd.json_normalize(second_endpoint.json()).status[0] == 'ZERO_RESULTS'
+
+        if API == 'GSV':
+            first_endpoint_fail = pd.json_normalize(first_endpoint.json()).status[0] == 'ZERO_RESULTS'
+            second_endpoint_fail = pd.json_normalize(second_endpoint.json()).status[0] == 'ZERO_RESULTS'
+        elif API == 'Mapillary':
+            # Here, we know that there is no imagery if we get a response like {data: []}. But there are more than 2000
+            # images we'll get an error (with the code 100) asking us to request a smaller area. If this is the case,
+            # then clearly there's enough imagery, and we mark it as a success.
+            first_endpoint_results = pd.json_normalize(first_endpoint.json())
+            if 'error.code' in first_endpoint_results.columns and first_endpoint_results['error.code'][0] != 100:
+                print('new error type (code ' + str(first_endpoint_results['error.code'][0]) + '): ' + first_endpoint_results['error.message'][0])
+                write_output(streets_with_no_imagery, street)
+                exit(1)
+            first_endpoint_fail = 'data' in first_endpoint_results.columns and first_endpoint_results.data[0] == []
+
+            second_endpoint_results = pd.json_normalize(second_endpoint.json())
+            if 'error.code' in second_endpoint_results.columns and second_endpoint_results['error.code'][0] != 100:
+                print('new error type (code ' + str(second_endpoint_results['error.code'][0]) + '): ' + second_endpoint_results['error.message'][0])
+                write_output(streets_with_no_imagery, street)
+                exit(1)
+            second_endpoint_fail = 'data' in second_endpoint_results.columns and second_endpoint_results.data[0] == []
 
         # If no imagery at either endpoint, add to no imagery list and move on. If at least one has imagery, check many
         # points along the street for imagery to figure out whether or not most of the street is missing imagery.
@@ -99,15 +148,34 @@ def main():
             # street to ensure that we are not actually finding imagery for a nearby street.
             for coord in coords:
                 try:
-                    response = requests.get(gsv_url + '&location=' + str(coord[1]) + ',' + str(coord[0]))
+                    if API == 'GSV':
+                        response = requests.get(gsv_url + '&location=' + str(coord[1]) + ',' + str(coord[0]))
+                    elif API == 'Mapillary':
+                        bbox = create_bounding_box(coord[1], coord[0], 0.015)
+                        response = requests.get(mapillary_url + '&bbox=' + ",".join(str(coord) for coord in bbox))
                 except (requests.exceptions.RequestException, KeyboardInterrupt) as e:
                     write_output(streets_with_no_imagery, street)
                     exit(1)
-                response_status = pd.json_normalize(response.json()).status[0]
-                if response_status == 'ZERO_RESULTS':
-                    n_fail += 1
-                else:
-                    n_success += 1
+
+                if API == 'GSV':
+                    response_status = pd.json_normalize(response.json()).status[0]
+                    if response_status == 'ZERO_RESULTS':
+                        n_fail += 1
+                    else:
+                        n_success += 1
+                elif API == 'Mapillary':
+                    # Here, we know that there is no imagery if we get a response like {data: []}. But there are more
+                    # than 2000 images we'll get an error (with the code 100) asking us to request a smaller area. If
+                    # this is the case, then clearly there's enough imagery, and we mark it as a success.
+                    response_output = pd.json_normalize(response.json())
+                    if 'error.code' in response_output.columns and response_output['error.code'][0] != 100:
+                        print('new error type (code ' + str(response_output['error.code'][0]) + '): ' + response_output['error.message'][0])
+                        write_output(streets_with_no_imagery, street)
+                        exit(1)
+                    if 'data' in response_output.columns and response_output.data[0] == []:
+                        n_fail += 1
+                    else:
+                        n_success += 1
 
                 # If there is no imagery on at least 50% of the street or if an endpoint is missing imagery and there is
                 # no imagery on at least 25% of the street, add to streets_with_no_imagery. If at any point while
