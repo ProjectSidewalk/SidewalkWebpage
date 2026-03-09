@@ -107,15 +107,6 @@
     background-color: transparent;
 }
 
-.activetab.stepnumber {
-    font-family: Raleway-black, sans-serif;
-    font-size: 90px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: bold;
-    color: #fff;
-}
-
 #greenbar {
     background-color: #58CEAB;
     max-width: 680px;
@@ -150,7 +141,7 @@
     font-variant: normal;
     font-weight: bold;
     line-height: 58px;
-    color: #C0BEBF;
+    color: #424055;
 }
 
 #bigtext {
@@ -225,7 +216,7 @@ video#bgvid {
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
 
-.body-start-btn:hover {
+.body-start-btn:hover, body-start-btn:focus {
     background-color: #fcecbe;
     border: 0px solid #eb734d;
     color: #2d2a3f;
@@ -471,7 +462,7 @@ p#conditional-text {
     /* Adjust the value as needed */
 }
 
-.ps-news-ribbon:hover {
+.ps-news-ribbon:hover, .ps-news-ribbon:focus {
     background-color: #ff3300;
     color: #fff;
     text-decoration: none;

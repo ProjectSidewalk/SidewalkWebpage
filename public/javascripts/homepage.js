@@ -139,17 +139,20 @@ function autoAdvanceLaptopVideos() {
 window.appManager.ready(function () {
     // Triggered upon clicking tabs in "How you can help" section.
     // Logs "Click_module=HowYouCanHelp_tab=<tabNumber>" in WebpageActivityTable
-    $("#firstnumbox").on('click', function(e){
+    $("#firstnumbox").on('click keydown', function(e){
+        if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
         switchToVideo(1);
         autoAdvanceLaptop = false;
         window.logWebpageActivity("Click_module=HowYouCanHelp_tab=1");
     });
-    $("#secondnumbox").on('click', function(e){
+    $("#secondnumbox").on('click keydown', function(e){
+        if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
         switchToVideo(2);
         autoAdvanceLaptop = false;
         window.logWebpageActivity("Click_module=HowYouCanHelp_tab=2");
     });
-    $("#thirdnumbox").on('click', function(e){
+    $("#thirdnumbox").on('click keydown', function(e){
+        if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
         switchToVideo(3);
         autoAdvanceLaptop = false;
         window.logWebpageActivity("Click_module=HowYouCanHelp_tab=3");
