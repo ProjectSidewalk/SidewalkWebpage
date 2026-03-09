@@ -19,11 +19,11 @@
 
 #nav-arrows-container {
     position: absolute;
-    top: 55%;
+    top: 50%;
     left: calc(50% - 90px);
-    width: 180px;
-    height: 180px;
-    perspective: 250px;
+    width: 220px;
+    height: 220px;
+    perspective: 285px;
 }
 
 /* Used to make it look like there's a 3D perspective for the arrows. */
