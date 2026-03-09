@@ -29,13 +29,13 @@
             Ready to build the future of urban accessibility? All Project Sidewalk <strong>data is open and public</strong>, accessible in popular formats like CSV, GeoJSON, or shape files
             or accessed programmatically via our APIs.
         </p>
-        <h2 class="api-heading" id="data">API Overview<a href="#api-overview" class="permalink">#</a></h2>
+        <h2 class="api-heading" id="api-overview">API Overview<a href="#api-overview" class="permalink">#</a></h2>
         Our API is divided into four sections:
         <ul class="api-list">
             <li><a href="#metadata-apis"><strong>Metadata APIs:</strong></a> for describing our data structures and deployment cities</li>
-            <li><a href="#data"><strong>Data APIs:</strong></a> for our collected label data and validations</li>
-            <li><a href="#accessibility-scores"><strong>AccessScores APIs:</strong></a> for scoring of sidewalk accessibility of streets and regions</li>
-            <li><a href="#stats"><strong>Stats APIs:</strong></a> for overall stats on users and collected data</li>
+            <li><a href="#data-apis"><strong>Data APIs:</strong></a> for our collected label data and validations</li>
+            <li><a href="#accessibility-score-apis"><strong>AccessScores APIs:</strong></a> for scoring of sidewalk accessibility of streets and regions</li>
+            <li><a href="#stats-apis"><strong>Stats APIs:</strong></a> for overall stats on users and collected data</li>
         </ul>
 
         <p>
@@ -53,7 +53,7 @@
         </div>
         <p>
             In Project Sidewalk, users navigate street view imagery and <strong>label sidewalk features</strong> (like
-            <i>curb ramps</i>) as well as barriers (like <i>surface problems</i>), which are then geo-located by our
+            <i>curb ramps</i>) as well as barriers (like <i>surface problems</i>), which are then geolocated by our
             tool (<i>i.e.,</i> assigned a <code>lat,lng</code>). For each label, users can provide tags, a severity
             rating, and an open-ended description. For quality control, labels are also validated by other users in
             tools like <a href="@routes.ValidateController.validate()">Validator</a>,
@@ -124,13 +124,13 @@
         <h2 class="api-heading" id="data-apis">Label Data APIs<a href="#data-apis" class="permalink">#</a></h2>
         <p>We provide two different labeling datasets plus an aggregated version (by street) along with validation data.</p>
         <ul class="api-list">
-            <li><a href="@routes.ApiDocsController.rawLabels"><b>Raw Labels:</b></a> Individual geo-located labels provided by our users.</li>
+            <li><a href="@routes.ApiDocsController.rawLabels"><b>Raw Labels:</b></a> Individual geolocated labels provided by our users.</li>
             <li><a href="@routes.ApiDocsController.labelClusters"><b>Label Clusters (recommended):</b></a> Because the same sidewalk feature/barrier could be labeled by multiple users or even the same user from different street view images (<i>i.e.,</i> from different perspectives), we use a custom clustering algorithm to group labels together.</li>
             <li><a href="@routes.ApiDocsController.streets"><b>Streets:</b></a> Labeling data organized per street.</li>
             <li><a href="@routes.ApiDocsController.validations"><b>Validations:</b></a> User judgments of label data.</li>
         </ul>
 
-        <h2 class="api-heading" id="accessibility-scores">Accessibility Score APIs<a href="#accessibility-scores" class="permalink">#</a></h2>
+        <h2 class="api-heading" id="accessibility-score-apis">Accessibility Score APIs<a href="#accessibility-score-apis" class="permalink">#</a></h2>
         <p>
             Inspired by <a href="https://www.walkscore.com/">WalkScore</a>, we also compute an aggregate "accessibility"
             index based on Project Sidewalk data. These scoring algorithms are experimental. You can compute your own
@@ -140,11 +140,11 @@
 
         <p><i>Note: The accessibility score version 3 APIs are not yet available.</i></p>
         <ul class="api-list">
-            <li><b><a href="TODO">StreetScore:</a></b> A score that represents the accessibility of individual streets based on the presence of barriers and features.</li>
-            <li><b><a href="TODO">NeighborhoodScore:</a></b> An aggregated score that represents the overall accessibility of neighborhoods.</li>
+            <li><b>StreetScore:</b> A score that represents the accessibility of individual streets based on the presence of barriers and features.</li>
+            <li><b>NeighborhoodScore:</b> An aggregated score that represents the overall accessibility of neighborhoods.</li>
         </ul>
 
-        <h2 class="api-heading" id="stats">Stats API<a href="#stats" class="permalink">#</a></h2>
+        <h2 class="api-heading" id="stats-apis">Stats API<a href="#stats-apis" class="permalink">#</a></h2>
         <p>Finally, we also provide basic statistics about Project Sidewalk data and users.</p>
         <ul class="api-list">
             <li><b><a href="@routes.ApiDocsController.overallStats">Overall Stats:</a></b> Basic data stats, including number of users, kilometers audited, label counts (broken down by label type), accuracy, severity.</li>
