@@ -13,7 +13,7 @@
 @common.main(commonData, title) {
     @common.navbar(commonData, Some(user))
     <div id="vidbanner">
-        <video playsinline autoplay muted loop poster='@assets.path("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
+        <video playsinline autoplay muted loop controls poster='@assets.path("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
             <source src='@assets.path("assets/mainvideo.webm")' type="video/webm">
             <source src='@assets.path("assets/mainvideo.mp4")' type="video/mp4">
         </video>
@@ -67,22 +67,22 @@
             <div class="instructional-video-container">
                 <div class="row" id="numbersrow">
                     <div class="col-sm-4">
-                        <div id="firstnumbox">
+                        <div id="firstnumbox" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.explore")">
                             <span class="stepnumber" id="number1">01</span><br>
                             <span id="word1" class="stepword">@Messages("landing.how.you.help.explore")</span>
                         </div>
                     </div>
 
                     <div class="col-sm-4">
-                        <div id="secondnumbox">
+                        <div id="secondnumbox" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.find")">
                             <span class="stepnumber" id="number2">02</span><br>
-                            <span id="word2"class="stepword">@Messages("landing.how.you.help.find")</span>
+                            <span id="word2" class="stepword">@Messages("landing.how.you.help.find")</span>
                         </div>
                     </div>
                     <div class="col-sm-4">
-                        <div id="thirdnumbox">
+                        <div id="thirdnumbox" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.assess")">
                             <span class="stepnumber" id="number3">03</span><br>
-                            <span id="word3"class="stepword">@Messages("landing.how.you.help.assess")</span>
+                            <span id="word3" class="stepword">@Messages("landing.how.you.help.assess")</span>
                         </div>
                     </div>
                 </div>
@@ -120,19 +120,19 @@
                     <strong style="font-size: 17px">@Messages("landing.choropleth.legend")</strong>
                     <nav class='legend clearfix'>
                         <div style='width: 100%; padding: 0;'>
-                            <span style='background: #03152f; width: 9.09%'></span>
-                            <span style='background: #08306b; width: 9.09%'></span>
-                            <span style='background: #08519c; width: 9.09%'></span>
-                            <span style='background: #08719c; width: 9.09%'></span>
-                            <span style='background: #2171b5; width: 9.09%'></span>
-                            <span style='background: #4292c6; width: 9.09%'></span>
-                            <span style='background: #6baed6; width: 9.09%'></span>
-                            <span style='background: #82badb; width: 9.09%'></span>
-                            <span style='background: #9ecae1; width: 9.09%'></span>
-                            <span style='background: #b3d3e8; width: 9.09%'></span>
-                            <span style='background: #c6dbef; width: 9.09%'></span>
+                            <span style='background: #03152f; width: 9.09%' aria-hidden="true"></span>
+                            <span style='background: #08306b; width: 9.09%' aria-hidden="true"></span>
+                            <span style='background: #08519c; width: 9.09%' aria-hidden="true"></span>
+                            <span style='background: #08719c; width: 9.09%' aria-hidden="true"></span>
+                            <span style='background: #2171b5; width: 9.09%' aria-hidden="true"></span>
+                            <span style='background: #4292c6; width: 9.09%' aria-hidden="true"></span>
+                            <span style='background: #6baed6; width: 9.09%' aria-hidden="true"></span>
+                            <span style='background: #82badb; width: 9.09%' aria-hidden="true"></span>
+                            <span style='background: #9ecae1; width: 9.09%' aria-hidden="true"></span>
+                            <span style='background: #b3d3e8; width: 9.09%' aria-hidden="true"></span>
+                            <span style='background: #c6dbef; width: 9.09%' aria-hidden="true"></span>
                         </div>
-                        <div id='legend-percentages-container'>
+                        <div id='legend-percentages-container' aria-label="Describes range of colors on choropleth from 0% to 100%">
                             <label>0%</label>
                             <label>100%</label>
                         </div>

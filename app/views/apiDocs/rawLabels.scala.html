@@ -149,12 +149,12 @@
                     <tr>
                         <td><code>labelType</code></td>
                         <td><code>string</code></td>
-                        <td>Filter by one or more label types. Provide comma-separated values (e.g., <code>labelType=CurbRamp,Obstacle</code>). See <a href="@routes.ApiDocsController.labelTypes">Label Types Reference</a> for available types. </td>
+                        <td>Filter by one or more label types. Provide comma-separated values (e.g., <code>labelType=CurbRamp,Obstacle</code>). See <a target="_blank" href="@routes.ApiDocsController.labelTypes">Label Types Reference</a> for available types. </td>
                     </tr>
                     <tr>
                         <td><code>tags</code></td>
                         <td><code>string</code></td>
-                        <td>Filter by one or more tags associated with labels. Provide comma-separated values (e.g., <code>tags=missing tactile warning,uneven surface</code>). Matches labels containing *any* of the specified tags. See <a href="#tags-reference">Tags Reference</a> for available tags. </td>
+                        <td>Filter by one or more tags associated with labels. Provide comma-separated values (e.g., <code>tags=missing tactile warning,uneven surface</code>). Matches labels containing *any* of the specified tags. See <a target="_blank" href="@routes.ApiDocsController.labelTags">Tags Reference</a> for available tags. </td>
                     </tr>
                     <tr>
                         <td><code>minSeverity</code></td>
@@ -538,7 +538,7 @@
             headers, corresponding to the fields in the GeoJSON properties object, plus <code>latitude</code> and
             <code>longitude</code> columns derived from the geometry. CRS is WGS84 (EPSG:4326).
         </p>
-        <pre><code class="language-csv">label_id,user_id,pano_id,label_type,severity,tags,description,...,disagree_count,unsure_count,latitude,longitude
+        <pre tabindex="0"><code class="language-csv">label_id,user_id,pano_id,label_type,severity,tags,description,...,disagree_count,unsure_count,latitude,longitude
 115,18b26a38-...,YQScv...,CurbRamp,2,[missing tactile warning],,...,1,0,40.715,-74.005
 116,...,...,Obstacle,4,[construction],"Temporary fence",...,3,0,40.7151,-74.0051
 ...</code></pre>

@@ -79,6 +79,9 @@ class PanoManager {
 
         await this.#panoSuccessCallback(svl.panoViewer.currPanoData);
 
+        // Make sure that we are set to a legal zoom level to start.
+        this.setZoom(1);
+
         // Adds event listeners to the navigation arrows.
         svl.ui.streetview.navArrows.on('click', (event) => {
             event.stopPropagation();

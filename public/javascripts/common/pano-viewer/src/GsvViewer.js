@@ -9,8 +9,6 @@ class GsvViewer extends PanoViewer {
         this.gsvPano = undefined;
         this.prevPanoData = undefined;
         this.currPanoData = undefined;
-        this.panoChangedListeners = [];
-        this.povChangedListeners = [];
     }
 
     async initialize(canvasElem, panoOptions = {}) {
@@ -270,20 +268,4 @@ class GsvViewer extends PanoViewer {
     showNavigationArrows = () => {
         return this.gsvPano.set('linksControl', true);
     };
-
-    addListener(event, handler) {
-        if (event === 'pano_changed') {
-            this.panoChangedListeners.push(handler);
-        } else if (event === 'pov_changed') {
-            this.povChangedListeners.push(handler);
-        }
-    }
-
-    removeListener(event, handler) {
-        if (event === 'pano_changed') {
-            this.panoChangedListeners =  this.panoChangedListeners.filter(func => func !== handler);
-        } else if (event === 'pov_changed') {
-            this.povChangedListeners =  this.povChangedListeners.filter(func => func !== handler);
-        }
-    }
 }

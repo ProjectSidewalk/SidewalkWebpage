@@ -66,6 +66,13 @@ footer {
     width: 400px;
 }
 
+/*
+ * Accessibility styling updates.
+ */
+a {
+    color: #0d6efd;
+}
+
 
 /*
  * Custom styles

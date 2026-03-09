@@ -29,22 +29,29 @@ async function AdminGSVCommentView(admin, viewerType, viewerAccessToken) {
         self.svHolder = self.modal.find('#sv-holder-comment');
         self.validateSection = self.modal.find('#button-holder');
 
-        // For the infra3D viewer at least, the associated DOM element has to exist upon initialization. So we show and
-        // hide the modal quickly at the beginning (though we keep it hidden while we do it). Return the Promise that
-        // resolves once the pano viewer has loaded.
+        // For the both Mapillary and infra3D, the associated DOM element has to exist upon initialization. For
+        // Mapillary, it can't be set to display: none. So we show the modal (with visibility: hidden) during init. Once
+        // the pano viewer has been initialized, we close the modal and set it to visible again. Return the Promise that
+        // resolves once the pano viewer has loaded and the modal has been closed.
         return new Promise((resolve) => {
             // TODO not supported w/ infra3D, as it can't have multiple viewers per page, a conflict with label viewer.
-            if (viewerType === Infra3dViewer) {
+            // TODO my guess is that this is the same reason the Mapillary didn't work, though I didn't test fully.
+            if (viewerType !== GsvViewer) {
                 resolve();
             } else {
                 self.modal.one('shown.bs.modal', async () => {
                     self.panoManager =
                         await AdminPanorama(self.svHolder[0], self.validateSection, admin, viewerType, viewerAccessToken);
-                    self.modal.css('visibility', 'visible');
-                    resolve();
+
+                    // Once the modal has finished closing, we can set it as visible and resolve the Promise.
+                    self.modal.one('hidden.bs.modal', async () => {
+                        self.modal.css('visibility', 'visible');
+                        resolve();
+                    });
+                    self.modal.modal('hide');
                 });
-                self.modal.css('visibility', 'hidden').modal({'show': true}).modal('hide');
-                $('.modal-backdrop').css('visibility', 'hidden'); // Prevents backdrop from showing briefly.
+                self.modal.css('visibility', 'hidden').modal('show');
+                $('.modal-backdrop').css('visibility', 'hidden'); // Prevents backdrop from appearing briefly.
             }
         });
     }
@@ -57,10 +64,15 @@ async function AdminGSVCommentView(admin, viewerType, viewerAccessToken) {
      * @returns {Promise<void>}
      */
     async function showCommentGSV(panoId, pov, labelId) {
-        self.modal.modal({ 'show': true });
+        // Open the modal. Listening to an event to know when it's fully open.
+        const modalOpened = new Promise((resolve) => {
+            self.modal.one('shown.bs.modal', () => resolve());
+        });
+        self.modal.modal('show');
+        await modalOpened;
 
-        if (viewerType === Infra3dViewer) {
-            self.svHolder.text('Not supported in with infra3D at this time, sorry!');
+        if (viewerType !== GsvViewer) {
+            self.svHolder.text('Only supported with Google imagery at this time, sorry!');
             return;
         }
 

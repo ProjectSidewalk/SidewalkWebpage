@@ -6,3 +6,4 @@ requests==2.31.0
 
 # Additional packages needed for check_streets_for_imagery.py.
 shapely==2.0.2
+geopy==2.4.1
