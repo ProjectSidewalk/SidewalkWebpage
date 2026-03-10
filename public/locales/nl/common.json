@@ -151,6 +151,7 @@
         "pano-date": "$t(common:image-capture-date)",
         "pano-address": "Adres",
         "view-in-gsv": "Bekijken in Google Streetview",
+        "view-in-mapillary": "Bekijken in Mapillary",
         "city": "Stad",
         "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
     },

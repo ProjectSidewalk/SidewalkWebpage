@@ -152,6 +152,7 @@
         "pano-date": "$t(common:image-capture-date)",
         "pano-address": "Address",
         "view-in-gsv": "View in Google Street View",
+        "view-in-mapillary": "View in Mapillary",
         "city": "City",
         "copied-to-clipboard": "Data copied to your clipboard!"
     },
