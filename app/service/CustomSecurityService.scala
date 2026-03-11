@@ -99,7 +99,7 @@ class CustomSecurityService @Inject() (
       Redirect("/signIn", queryString + ("url" -> Seq(path)))
         .flashing("error" -> "Please sign in to access this resource.")
     } else {
-      Status(403)(s"This page requires infra3D imagery permission. Please email your supervisor if you require access")
+      Status(403)(s"This page requires infra3D imagery permission. Please email the ZuReach team (zureach_info@dsi.uzh.ch) if you require access.")
     }
   }
 
