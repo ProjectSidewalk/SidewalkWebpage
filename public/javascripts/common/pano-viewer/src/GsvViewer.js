@@ -21,7 +21,6 @@ class GsvViewer extends PanoViewer {
             addressControl: false,
             clickToGo: false,
             disableDefaultUI: true,
-            linksControl: false, // We create our own navigation arrows.
             motionTracking: false,
             motionTrackingControl: false,
             panControl: false,

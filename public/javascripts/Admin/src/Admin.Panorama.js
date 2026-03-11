@@ -75,7 +75,8 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
         const panoOptions = {
             accessToken: viewerAccessToken,
             scrollwheel: true,
-            clickToGo: !!admin // Only allow clickToGo on admin version, not on normal LabelMap.
+            clickToGo: !!admin, // Only allow clickToGo on admin version, not on normal LabelMap.
+            linksControl: !!admin
         };
         self.panoViewer = await viewerType.create(self.panoCanvas, panoOptions);
 
