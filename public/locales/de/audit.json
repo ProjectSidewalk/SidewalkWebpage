@@ -187,7 +187,9 @@
                 "cart": "Warenkorb (<tag-underline>;</tag-underline>)",
                 "drainage": "Drainage (<tag-underline>,</tag-underline>)",
                 "electrical-box": "Schaltkasten (<tag-underline>.</tag-underline>)",
-                "too-dirty-cluttered": "zu schmutzig/unordentlich (<tag-underline>y</tag-underline>)"
+                "too-dirty-cluttered": "zu schmutzig/unordentlich (<tag-underline>y</tag-underline>)",
+                "yellow-box-accessibility-features-not-visible": "gelbe Box, Funktionen nicht sichtbar (<tag-underline>z</tag-underline>)",
+                "bollard": "Poller (<tag-underline>/</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Passierbar",

@@ -137,7 +137,8 @@
         "drainage": "Drainage",
         "electrical box": "Schaltkasten",
         "too dirty/cluttered": "zu schmutzig/unordentlich",
-        "yellow box, accessibility features not visible": "gelbe Box, Funktionen nicht sichtbar"
+        "yellow box, accessibility features not visible": "gelbe Box, Funktionen nicht sichtbar",
+        "bollard": "Poller"
     },
     "gsv-info": {
         "details-title": "Details",

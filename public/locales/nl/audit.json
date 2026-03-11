@@ -187,7 +187,9 @@
                 "cart": "kar (<tag-underline>;</tag-underline>)",
                 "drainage": "drainage (<tag-underline>,</tag-underline>)",
                 "electrical-box": "elektrische doos (<tag-underline>.</tag-underline>)",
-                "too-dirty-cluttered": "te vuil/rommelig (<tag-underline>y</tag-underline>)"
+                "too-dirty-cluttered": "te vuil/rommelig (<tag-underline>y</tag-underline>)",
+                "yellow-box-accessibility-features-not-visible": "gele kader, toegankelijkheidsfuncties niet zichtbaar (<tag-underline>z</tag-underline>)",
+                "bollard": "paaltje (<tag-underline>/</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Begaanbaar",

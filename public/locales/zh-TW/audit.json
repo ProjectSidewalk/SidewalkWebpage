@@ -187,7 +187,9 @@
                 "cart": "大車(<tag-underline>;</tag-underline>)",
                 "drainage": "引流(<tag-underline>,</tag-underline>)",
                 "electrical-box": "電氣箱(<tag-underline>.</tag-underline>)",
-                "too-dirty-cluttered": "太髒/太雜亂(<tag-underline>y</tag-underline>)"
+                "too-dirty-cluttered": "太髒/太雜亂(<tag-underline>y</tag-underline>)",
+                "yellow-box-accessibility-features-not-visible": "黃色方框，輔助功能不可見(<tag-underline>z</tag-underline>)",
+                "bollard": "繫船柱(<tag-underline>/</tag-underline>)"
             },
             "tooltip": {
                 "passable": "能通行的",
