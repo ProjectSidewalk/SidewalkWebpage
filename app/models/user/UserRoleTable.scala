@@ -5,18 +5,18 @@ import models.user.UserRoleTable.roleToId
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-
 import javax.inject.{Inject, Singleton}
 
-case class UserRole(userRoleId: Int, userId: String, roleId: Int, communityService: Boolean)
+case class UserRole(userRoleId: Int, userId: String, roleId: Int, communityService: Boolean, infra3dAccess: Boolean)
 
 class UserRoleTableDef(tag: Tag) extends Table[UserRole](tag, "user_role") {
   def userRoleId: Rep[Int]           = column[Int]("user_role_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]            = column[String]("user_id")
   def roleId: Rep[Int]               = column[Int]("role_id")
   def communityService: Rep[Boolean] = column[Boolean]("community_service")
+  def infra3dAccess: Rep[Boolean]    = column[Boolean]("infra3d_access")
 
-  def * = (userRoleId, userId, roleId, communityService) <> ((UserRole.apply _).tupled, UserRole.unapply)
+  def * = (userRoleId, userId, roleId, communityService, infra3dAccess) <> ((UserRole.apply _).tupled, UserRole.unapply)
 }
 
 /**
@@ -50,10 +50,16 @@ class UserRoleTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    * @param userId The ID of the user to whom the role is being added
    * @param newRole The role to be added to the user
    * @param communityService Optional parameter to indicate if the user is doing community service, defaults to false
+   * @param infra3dAccess Optional parameter to indicate if the user is authorized to access infra3D imagery
    * @return A DBIO action that returns the newly added UserRole
    */
-  def addRole(userId: String, newRole: String, communityService: Boolean = false): DBIO[UserRole] = {
-    (userRoles returning userRoles) += UserRole(0, userId, roleToId(newRole), communityService)
+  def addRole(
+      userId: String,
+      newRole: String,
+      communityService: Boolean = false,
+      infra3dAccess: Boolean = false
+  ): DBIO[UserRole] = {
+    (userRoles returning userRoles) += UserRole(0, userId, roleToId(newRole), communityService, infra3dAccess)
   }
 
   /**
@@ -78,5 +84,15 @@ class UserRoleTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    */
   def updateCommunityService(userId: String, newCommServ: Boolean): DBIO[Int] = {
     userRoles.filter(_.userId === userId).map(_.communityService).update(newCommServ)
+  }
+
+  /**
+   * Updates the infra3D imagery access for the user.
+   * @param userId The ID of the user whose access is to be updated
+   * @param newAccess The new access status to set
+   * @return A DBIO action that returns the number of rows affected
+   */
+  def updateInfra3dAccess(userId: String, newAccess: Boolean): DBIO[Int] = {
+    userRoles.filter(_.userId === userId).map(_.infra3dAccess).update(newAccess)
   }
 }

@@ -14,7 +14,8 @@ case class SidewalkUserWithRole(
     username: String,
     email: String,
     role: String,
-    communityService: Boolean
+    communityService: Boolean,
+    infra3dAccess: Boolean
 ) extends Identity {
   require(RoleTable.VALID_ROLES.contains(role), s"Invalid role: $role")
 }
@@ -54,7 +55,7 @@ class SidewalkUserTable @Inject() (protected val dbConfigProvider: DatabaseConfi
     .map { case ((_user, _userRole), _role) => (_user, _userRole, _role) }
   val sidewalkUserWithRole = sidewalkUserToRoleJoin
     .map { case (user, userRole, role) =>
-      (user.userId, user.username, user.email, role.role, userRole.communityService)
+      (user.userId, user.username, user.email, role.role, userRole.communityService, userRole.infra3dAccess)
     }
   val aiUsers    = sidewalkUserToRoleJoin.filter(_._3.role === "AI").map(_._1)
   val humanUsers = sidewalkUserToRoleJoin.filter(_._3.role =!= "AI").map(_._1)

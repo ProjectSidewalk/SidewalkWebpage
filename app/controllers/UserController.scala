@@ -16,7 +16,6 @@ import play.silhouette.api.exceptions.ProviderException
 import play.silhouette.api.util.{Clock, PasswordHasher}
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import play.silhouette.impl.providers.CredentialsProvider
-
 import java.util.UUID
 import javax.inject._
 import scala.concurrent.duration.FiniteDuration
@@ -137,7 +136,7 @@ class UserController @Inject() (
       )
   }
 
-  // Post function that receives a JSON object with userId and isChecked, and updates the user's volunteer status.
+  // PUT function that receives sets a user's volunteer status.
   def updateVolunteerStatus(userId: String, communityService: Boolean) =
     cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { _ =>
       authenticationService.findByUserId(userId).flatMap {
@@ -293,7 +292,7 @@ class UserController @Inject() (
               // If username and email are unique, create the new user.
               val loginInfo         = LoginInfo(CredentialsProvider.ID, email)
               val newUserId: String = oldUserId.getOrElse(UUID.randomUUID().toString)
-              val newUser = SidewalkUserWithRole(newUserId, data.username, email, "Registered", serviceHoursUser)
+              val newUser = SidewalkUserWithRole(newUserId, data.username, email, "Registered", serviceHoursUser, false)
               val pwInfo  = passwordHasher.hash(data.password)
 
               for {
