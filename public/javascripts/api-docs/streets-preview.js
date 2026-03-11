@@ -925,7 +925,7 @@
           height: 20px;
           position: relative;
           font-size: 11px;
-          color: #333;
+          color: #222;
         `;
 
                 // Add special label for 0 users.
@@ -1041,7 +1041,7 @@
           height: 20px;
           position: relative;
           font-size: 11px;
-          color: #333;
+          color: #222;
         `;
 
                 // Add special label for 0 labels.
@@ -1153,7 +1153,7 @@
           height: 20px;
           position: relative;
           font-size: 11px;
-          color: #333;
+          color: #222;
         `;
 
                 // Helper function to format days to human-readable.

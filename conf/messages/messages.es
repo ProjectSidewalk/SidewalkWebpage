@@ -110,7 +110,7 @@ navbar.cities = Ciudades
 
 landing.create.path = Creemos un camino para todas las personas
 landing.start.exploring = Comienza a explorar
-landing.new.deployment = <a id="new-deployment-link" class="header-link" href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank">Haga clic aquí</a> para conocer cómo implementar Project Sidewalk en su ciudad.
+landing.new.deployment = Aprenda cómo implementar el Proyecto Sidewalk en su ciudad.
 landing.mapathon = ¿Vives en {0}? ¡Pasa por <a id="mapathonLink" class="other-city-link header-link" href="{1}" target="_blank">un evento "mapathon" en tu área!</a>
 landing.how.you.help = Cómo puedes ayudar
 landing.how.you.help.content = Explora virtualmente las calles de la ciudad en {0} para encontrar y etiquetar problemas de accesibilidad en tres sencillos pasos, directamente desde la comodidad de tu hogar.

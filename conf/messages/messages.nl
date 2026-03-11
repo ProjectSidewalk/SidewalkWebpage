@@ -98,7 +98,7 @@ navbar.cities = Steden
 
 landing.create.path = Laten we een pad creëren voor iedereen!
 landing.start.exploring = Start met Verkennen
-landing.new.deployment = <a id="new-deployment-link" class="header-link" href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank">Klik hier</a> voor meer informatie over de implementatie van Project Sidewalk in uw stad.
+landing.new.deployment = Leer meer over de implementatie van Project Sidewalk in jouw stad.
 landing.mapathon = Woon je in {0}? Kom dan langs <a id="mapathonLink" class="other-city-link header-link" href="{1}" target="_blank"> bij een van onze mapathon events in jouw buurt!</a>
 landing.how.you.help = Hoe je kunt helpen
 landing.how.you.help.content = Verken virtueel de straten van de stad in {0} om toegankelijkheidsproblemen te vinden en te labelen in slechts drie eenvoudige stappen, gewoon vanuit je luie stoel.

@@ -83,6 +83,12 @@
     cy: 50%;
 }
 
+.map-legend-label {
+    font-weight: normal;
+    width: 150px;
+    margin-bottom: 0;
+}
+
 #map-legend-curb-ramp circle {
     fill: #90C31F;
 }

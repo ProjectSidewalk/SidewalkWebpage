@@ -73,6 +73,15 @@ a {
     color: #0d6efd;
 }
 
+/* Replacing bootstrap 3 colors with bootstrap 5, which have a better color contrast. */
+body {
+    color: #222222;
+}
+.btn-primary {
+    background-color: #0D6EFD;
+    border: #0D6EFD;
+}
+
 
 /*
  * Custom styles
