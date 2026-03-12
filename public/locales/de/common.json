@@ -17,7 +17,7 @@
     "occlusion": "Trottoir nicht sichtbar",
     "no-sidewalk": "kein Trottoir",
     "crosswalk": "Markierter Fussgängerstreifen",
-    "signal": "Fussgänger&shy;lichtsignal",
+    "signal": "Fussgänger:&shy;innensignal",
     "other": "Andere",
     "surface-problems": "Oberflächen&shy;probleme",
     "sign-up": "Registrieren",
@@ -260,7 +260,7 @@
         "signal": {
             "slide-1": {
                 "title": "{{- labelType}}",
-                "description": "Ein Fussgängerlichtsignal zeigt an, wann Fussgänger:innen die Strasse sicher überqueren können und bietet genügend Zeit, um dies zu tun.<br><br>Einige dieser Signale werden durch ein Anforderungsgerät auf Hüfthöhe aktiviert."
+                "description": "Ein Fussgänger:innensignal zeigt an, wann Fussgänger:innen die Strasse sicher überqueren können und bietet genügend Zeit, um dies zu tun.<br><br>Einige dieser Signale werden durch ein Anforderungsgerät auf Hüfthöhe aktiviert."
             },
             "slide-2": {
                 "title": "Beschilderung",

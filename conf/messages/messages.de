@@ -12,7 +12,7 @@ surface.problem = Oberflächenproblem
 surface.problems = Oberflächenprobleme
 no.sidewalk = Kein Trottoir
 crosswalk = Markierter Fussgängerstreifen
-signal = Fussgängerlichtsignal
+signal = Fussgänger:innensignal
 occlusion = Trottoir nicht sichtbar
 other = Andere
 low = Niedrig
@@ -189,7 +189,7 @@ audit.ribbon.obstacle = Hindernis im Weg (<u>O</u>)
 audit.ribbon.surface.problem = Oberflächenproblem (<u>S</u>)
 audit.ribbon.no.sidewalk = kein Trottoir (<u>N</u>)
 audit.ribbon.crosswalk = Markierter Fussgängerstreifen (<u>W</u>)
-audit.ribbon.signal = Fussgängerlichtsignal (<u>P</u>)
+audit.ribbon.signal = Fussgänger:innensignal (<u>P</u>)
 audit.ribbon.other = Andere
 audit.ribbon.occlusion = Trottoir nicht sichtbar (<u>B</u>)
 

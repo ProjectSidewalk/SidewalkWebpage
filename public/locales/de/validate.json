@@ -8,7 +8,7 @@
             "surface-problem": "Ist das ein <b>Oberflächenproblem</b>?",
             "no-sidewalk": "Sollte hier eine<b>kein Trottoir</b>-Beschriftung vorhanden sein?",
             "crosswalk": "Ist das ein <b>Markierter Fussgängerstreifen</b>?",
-            "signal": "Ist das ein <b>Fussgängerlichtsignal</b>?"
+            "signal": "Ist das ein <b>Fussgänger:innensignal</b>?"
         },
         "visibility-control-hide": "Beschriftung ausblenden (<u>H</u>)",
         "visibility-control-show": "Beschriftung einblenden (<u>h</u>)"
@@ -57,7 +57,7 @@
             "signal": {
                 "no-button-1": "Dies ist lediglich eine Ampel für Fahrzeuge.",
                 "no-button-2": "Dies ist ein Schild ohne Beleuchtung, das einen sicheren Übergang signalisiert.",
-                "no-button-3": "Dies ist ein Mast ohne Fussgängerlichtsignal oder -knopf."
+                "no-button-3": "Dies ist ein Mast ohne Fussgänger:innensignal oder -knopf."
             }
         },
         "unsure-reason": {
@@ -100,7 +100,7 @@
         "body-4": "Sie haben gerade {{n}} Beschriftungen von Oberflächenproblemen validiert.",
         "body-7": "Sie haben gerade {{n}} Beschriftungen von kein Trottoir validiert.",
         "body-9": "Sie haben gerade {{n}} Beschriftungen von Markierter Fussgängerstreifen validiert.",
-        "body-10": "Sie haben gerade {{n}} Beschriftungen von Fussgängerlichtsignal validiert.",
+        "body-10": "Sie haben gerade {{n}} Beschriftungen von Fussgänger:innensignal validiert.",
         "validate-more": "Mehr Beschriftungen validieren",
         "continue": "Validierung fortsetzen",
         "explore": "Erkundungsmission starten",
