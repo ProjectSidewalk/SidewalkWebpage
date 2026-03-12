@@ -25,7 +25,7 @@ class PanoManager {
         const panoOptions = {
             accessToken: viewerAccessToken,
             startPanoId: startPanoId,
-            linksControl: false,
+            defaultNavigation: false,
             scrollwheel: isMobile()
         };
 

@@ -1,13 +1,6 @@
 /**
  * Mapillary implementation of the panorama viewer.
  * Docs: https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer
- *
- * Some functions that might be useful, but I'm not sure what they do quite yet
- * https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#getcenter
- * https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#project -- this one should take a lat/lng and give us canvas pixel coordinates
- * https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#unproject -- this one should take canvas pixel coordinates and give us lat/lng
- * https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#projectfrombasic -- I think goes from pano_x/y to canvas pixel coordinates?
- * https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#unprojecttobasic -- I think goes from canvas pixel coordinates to pano_x/y?
  */
 class MapillaryViewer extends PanoViewer {
     constructor() {
@@ -31,14 +24,14 @@ class MapillaryViewer extends PanoViewer {
     async initialize(canvasElem, panoOptions = {}) {
         // TODO Need to define a set of options and then find a nice way to map them onto viewer-specific configs.
         let disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
-        let clickToGo = 'clickToGo' in panoOptions ? panoOptions.clickToGo : false;
+        let defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
         let panoOpts = {
             accessToken: panoOptions.accessToken,
             container: canvasElem.id,
             component: {
                 bearing: !disableDefaultUi, // Shows heading viewer orb thing
                 cache: false, // TODO should make this true on Explore
-                direction: clickToGo, // Shows Mapillary's navigation arrows
+                direction: defaultNavigation, // Shows Mapillary's navigation arrows
                 keyboard: false,
                 marker: true, // TODO "Enable an interface for showing 3D markers in the viewer"
                 tag: true, // TODO "Enable an interface for drawing 2D geometries on top of images"
@@ -104,13 +97,13 @@ class MapillaryViewer extends PanoViewer {
             }
         }));
 
-        // If clickToGo is enabled, we need a pano_changed listener to record the pano metadata after moving.
-        if (clickToGo) {
+        // If defaultNavigation is enabled, we need a pano_changed listener to record the pano metadata after moving.
+        if (defaultNavigation) {
             this.addListener('pano_changed', this.updateImageData);
         }
 
         // Can even set the width of the nav arrows? https://mapillary.github.io/mapillary-js/api/interfaces/component.DirectionConfiguration/
-        // TODO Might want to do that in clickToGo actually... They're kinda big.
+        // TODO Might want to do that in defaultNavigation actually... They're kinda big.
     }
 
     getPanoId = () => {
