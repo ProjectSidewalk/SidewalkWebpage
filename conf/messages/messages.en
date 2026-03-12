@@ -74,6 +74,9 @@ state.name.south-carolina = SC
 state.name.michigan = MI
 state.name.wisconsin = WI
 state.name.new-york = NY
+state.name.arizona = AZ
+state.name.virginia = VA
+state.name.indiana = IN
 
 navbar.explore = Explore
 navbar.validate = Validate
