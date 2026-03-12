@@ -57,11 +57,11 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
         self.popoverContent.appendChild(dataList);
 
         // Create element for a link to the pano in a separate tab. Only implemented for GSV right now.
-        if (panoViewer.getViewerType() === 'gsv') {
+        if (panoViewer.getViewerType() !== 'infra3d') {
             let linkPano = document.createElement('a');
             linkPano.classList.add('popover-element');
             linkPano.id = 'pano-link'
-            linkPano.textContent = i18next.t('common:gsv-info.view-in-gsv');
+            linkPano.textContent = i18next.t(`common:gsv-info.view-in-${panoViewer.getViewerType()}`);
             self.popoverContent.appendChild(linkPano);
         }
 
@@ -118,7 +118,7 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
         infoLogging();
 
         // Get info values.
-        const currCoords = coords ? coords() : {lat: null, lng: null};
+        const currCoords = coords ? coords() : { lat: null, lng: null };
         const currPanoId = panoId ? panoId() : null;
         const currStreetEdgeId = streetEdgeId ? streetEdgeId() : null;
         const currRegionId = regionId ? regionId() : null;
@@ -147,9 +147,17 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
 
         // Create pano link and log the click.
         let panoLink = $('#pano-link');
-        panoLink.attr('href', `https://www.google.com/maps/@?api=1&map_action=pano&pano=${currPanoId}&heading=${currPov.heading}&pitch=${currPov.pitch}`);
         panoLink.attr('target', '_blank');
         panoLink.on('click', viewPanoLogging);
+
+        // Set the link depending on the viewer type. We don't have a way to view in an infra3D viewer.
+        if (panoViewer.getViewerType() === 'gsv') {
+            panoLink.attr('href', `https://www.google.com/maps/@?api=1&map_action=pano&pano=${currPanoId}&heading=${currPov.heading}&pitch=${currPov.pitch}`);
+        } else if (panoViewer.getViewerType() === 'mapillary') {
+            // TODO would like to include zoom parameter too, but we would get that info async from the viewer.
+            const center = panoViewer.currCenter;
+            panoLink.attr('href', `https://www.mapillary.com/app/?pKey=${currPanoId}&focus=photo&x=${center[0]}&y=${center[1]}`);
+        }
 
         // Position popover.
         let infoPopover = $('.popover');
