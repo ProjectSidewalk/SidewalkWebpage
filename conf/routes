@@ -38,7 +38,7 @@ POST    /signUp                                         controllers.UserControll
 POST    /authenticate/credentials                       controllers.UserController.authenticate()
 POST    /forgotPassword                                 controllers.UserController.submitForgottenPassword
 POST    /resetPassword                                  controllers.UserController.resetPassword(token: String)
-POST    /updateVolunteerStatus                          controllers.UserController.updateVolunteerStatus(userId: String, communityService: Boolean)
+PUT     /updateVolunteerStatus                          controllers.UserController.updateVolunteerStatus(userId: String, communityService: Boolean)
 
 # Security policy endpoints.
 + nocsrf
@@ -79,6 +79,7 @@ GET     /adminapi/getUserStats                          controllers.AdminControl
 
 PUT     /adminapi/setRole                               controllers.AdminController.setUserRole
 PUT     /adminapi/setUserQualityManual                  controllers.AdminController.setUserQualityManual
+PUT     /adminapi/setInfra3dAccess                      controllers.AdminController.setInfra3dAccess
 PUT     /adminapi/setTaskFlagsBeforeDate                controllers.AdminController.setTaskFlagsBeforeDate()
 PUT     /adminapi/setTaskFlag                           controllers.AdminController.setTaskFlag()
 PUT     /adminapi/updateTeamStatus/:teamId              controllers.AdminController.updateTeamStatus(teamId: Int)

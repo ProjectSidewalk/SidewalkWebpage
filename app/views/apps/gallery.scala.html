@@ -47,23 +47,20 @@
         <div class="sidebar">
             <div id="card-filter">
                 <div id="city-filter-holder" class="filter-section-holder">
-                    <span id="city-type-holder">
-                        <h4><b>@Messages("navbar.city")</b></h4>
-                        <select id="city-select" class="gallery-filter" disabled>
-                            @for(city <- commonData.allCityInfo.filter(c => c.visibility == "public" || c.cityId == commonData.cityId).sortBy(c => (c.countryId, c.stateId, c.cityId))) {
-                                @if(city.cityId == commonData.cityId) {
-                                    <option value="@city.URL" selected>@city.cityNameFormatted</option>
-                                } else {
-                                    <option value="@city.URL">@city.cityNameFormatted</option>
-                                }
+                    <label for="city-select" id="city-select-header"><b>@Messages("navbar.city")</b></label>
+                    <select id="city-select" class="gallery-filter" disabled>
+                        @for(city <- commonData.allCityInfo.filter(c => c.visibility == "public" || c.cityId == commonData.cityId).sortBy(c => (c.countryId, c.stateId, c.cityId))) {
+                            @if(city.cityId == commonData.cityId) {
+                                <option value="@city.URL" selected>@city.cityNameFormatted</option>
+                            } else {
+                                <option value="@city.URL">@city.cityNameFormatted</option>
                             }
-                        </select>
-                    </span>
+                        }
+                    </select>
                 </div>
-                <div id="horizontal-line"></div>
                 <div id="filters">
                     <h4 id="filter-header"><b>@Messages("gallery.filter.by")</b></h4>
-                    <h5 id="label-type-filter-holder" class="filter-subheader">@Messages("label.type")</h5>
+                    <label for="label-select" id="label-type-filter-holder" class="filter-subheader">@Messages("label.type")</label>
                     <span id="label-type-holder">
                         <select id="label-select" class="gallery-filter" disabled>
                             @for((value, message) <- labels) {

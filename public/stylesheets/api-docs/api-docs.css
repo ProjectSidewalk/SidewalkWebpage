@@ -37,7 +37,7 @@
     --font-size-heading-6: 1em;
 
     /* ---- Colors ---- */
-    --color-text-primary: #333333;
+    --color-text-primary: #222222;
     --color-text-secondary: #5a7785;
     --color-text-tertiary: #666666;
     --color-text-light: #999999;
@@ -462,17 +462,12 @@ h6:hover .permalink {
     padding: var(--space-md) var(--space-lg);
     font-size: var(--font-size-sm);
     line-height: 1.6;
-    color: var(--color-text-secondary);
+    color: var(--color-text-primary);
     margin-bottom: var(--space-sm); /* Add space between citation and button */
 }
 
 .citation i {
     font-style: italic;
-}
-
-.citation a {
-    color: var(--color-text-tertiary);
-    word-break: break-word;
 }
 
 .bibtex-btn {

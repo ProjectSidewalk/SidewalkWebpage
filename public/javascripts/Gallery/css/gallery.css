@@ -9,7 +9,13 @@
 }
 
 .filter-section-holder {
-   padding-bottom: 30px;
+   padding-bottom: 12px;
+}
+
+#city-select-header {
+    font-size: 18px;
+    margin: 10px 0;
+    line-height: 1.1;
 }
 
 #labels-not-found {
@@ -39,7 +45,10 @@
 }
 
 .filter-subheader {
+    display: block;
     margin-bottom: 6px;
+    font-weight: normal;
+    line-height: 1.1;
 }
 
 /* Note that the side bar is out of the "flow" of the grid container b/c it is fixed when we aren't loading anything. */

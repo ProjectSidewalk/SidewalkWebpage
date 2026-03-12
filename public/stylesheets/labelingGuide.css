@@ -2,7 +2,21 @@
     padding-left: 40px;
 }
 
-.img-container img{
+#subtopics {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
+    padding: 0 !important;
+    border: none !important;
+}
+
+#subtopics-list {
+    padding: 0;
+    list-style-type: none;
+    margin: 0;
+}
+
+.img-container img {
     height: 213px;
     margin: auto;
 }
@@ -36,12 +50,6 @@
 .plusminus {
     float:right;
     font-size: 18px;
-}
-
-#subtopics {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.2s ease-out;
 }
 
 .help-item {

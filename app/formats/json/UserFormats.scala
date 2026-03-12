@@ -3,7 +3,6 @@ package formats.json
 import models.user._
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-
 import java.time.OffsetDateTime
 
 object UserFormats {
@@ -12,7 +11,8 @@ object UserFormats {
       (JsPath \ "username").read[String] and
       (JsPath \ "email").read[String] and
       (JsPath \ "role").read[String] and
-      (JsPath \ "community_service").read[Boolean]
+      (JsPath \ "community_service").read[Boolean] and
+      (JsPath \ "infra3d_access").read[Boolean]
   )(SidewalkUserWithRole.apply _)
 
   implicit val sidewalkUserWithRoleWrites: Writes[SidewalkUserWithRole] = (
@@ -20,7 +20,8 @@ object UserFormats {
       (JsPath \ "username").write[String] and
       (JsPath \ "email").write[String] and
       (JsPath \ "role").write[String] and
-      (JsPath \ "community_service").write[Boolean]
+      (JsPath \ "community_service").write[Boolean] and
+      (JsPath \ "infra3d_access").write[Boolean]
   )(unlift(SidewalkUserWithRole.unapply))
 
   implicit val userStatsWrites: Writes[UserStatsForAdminPage] = (

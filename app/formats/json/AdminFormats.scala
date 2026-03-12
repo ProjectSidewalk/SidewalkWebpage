@@ -8,12 +8,12 @@ import models.validation.ValidationCount
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import service.TimeInterval.TimeInterval
-
 import java.time.OffsetDateTime
 
 object AdminFormats {
   case class UserRoleSubmission(userId: String, roleId: String)
   case class UserQualitySubmission(userId: String, userQualityManual: Option[Boolean])
+  case class UserInfra3dAccess(userId: String, access: Boolean)
   case class TaskFlagsByDateSubmission(userId: String, date: OffsetDateTime, flag: String, state: Boolean)
   case class TaskFlagSubmission(auditTaskId: Int, flag: String, state: Boolean) {
     require(flag == "low_quality" || flag == "incomplete" || flag == "stale")
@@ -28,6 +28,11 @@ object AdminFormats {
     (JsPath \ "user_id").read[String] and
       (JsPath \ "quality").readNullable[Boolean]
   )(UserQualitySubmission.apply _)
+
+  implicit val userInfra3dAccessReads: Reads[UserInfra3dAccess] = (
+    (JsPath \ "user_id").read[String] and
+      (JsPath \ "access").read[Boolean]
+  )(UserInfra3dAccess.apply _)
 
   implicit val taskFlagsByDateSubmissionReads: Reads[TaskFlagsByDateSubmission] = (
     (JsPath \ "userId").read[String] and
