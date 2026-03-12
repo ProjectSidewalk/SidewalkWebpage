@@ -1,4 +1,4 @@
-function AdminUser(username, userId, serviceHoursUser) {
+function AdminUser(username, userId, serviceHoursUser, infra3dAccess) {
     // Initialize datepicker calendars for setting flags.
     const d = new Date();
     d.setDate(d.getDate() + 1);
@@ -42,6 +42,43 @@ function AdminUser(username, userId, serviceHoursUser) {
             });
     }
     $('#user-quality-dropdown').on('click', 'a', updateUserQuality);
+
+    // Displays checkbox for user infra3D access.
+    if (infra3dAccess) {
+        $("#check-infra3d-access").prop("checked", true);
+    } else {
+        $("#check-infra3d-access").prop("checked", false);
+    }
+
+    // Updates user's infra3D access when the checkbox is clicked.
+    $("#check-infra3d-access").click(function() {
+        const isChecked = $(this).is(":checked");
+        setInfra3dAccess(isChecked);
+    });
+
+    // PUT request to update user's infra3D access.
+    function setInfra3dAccess(isChecked) {
+        const data = {
+            'user_id': userId,
+            'access': isChecked
+        };
+        return fetch('/adminapi/setInfra3dAccess', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        })
+            .then((response) => response.json())
+            .then(result => {
+                // Only someone with infra3D access can grant it, so an error may be returned.
+                if (result.status === 'Error') throw(result.message);
+                alert("infra3D access updated successfully.");
+            })
+            .catch(error => {
+                console.error(error);
+                alert('Error updating infra3D access: ' + error);
+                return undefined;
+            });
+    }
 
     /**
      * Perform an AJAX call (PUT request) to modify all of a specified flag for the user before a specified date.
@@ -127,7 +164,7 @@ function AdminUser(username, userId, serviceHoursUser) {
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: `/updateVolunteerStatus?userId=${userId}&communityService=${isChecked}`,
-            method: 'POST',
+            method: 'PUT',
             dataType: 'json',
             success: function(result) {
                 console.log("Volunteer status updated successfully.");

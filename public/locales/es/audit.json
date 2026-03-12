@@ -187,7 +187,9 @@
                 "cart": "carro (<tag-underline>;</tag-underline>)",
                 "drainage": "drenaje (<tag-underline>,</tag-underline>)",
                 "electrical-box": "caja eléctrica (<tag-underline>.</tag-underline>)",
-                "too-dirty-cluttered": "demasiado sucio/desordenado (<tag-underline>y</tag-underline>)"
+                "too-dirty-cluttered": "demasiado sucio/desordenado (<tag-underline>y</tag-underline>)",
+                "yellow-box-accessibility-features-not-visible": "Cuadro amarillo, funciones de accesibilidad no visibles (<tag-underline>z</tag-underline>)",
+                "bollard": "noray (<tag-underline>/</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Transitable",

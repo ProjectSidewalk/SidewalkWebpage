@@ -196,18 +196,15 @@ class MapillaryViewer extends PanoViewer {
         });
     }
 
-    setLocation = async (latLng, excludedPanos = new Set()) => {
-        // Search for images near the coordinates.
-        // Docs for how to filter images: https://www.mapillary.com/developer/api-documentation#image
-        const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
-        // TODO don't send accessToken in the URL: https://www.mapillary.com/developer/api-documentation#authentication
-        // TODO start by asking for a smaller area, then move larger if we find nothing. Getting an error if requesting too many images.
-        // TODO should be able to use this to find (or decide on our own) links if we want.
-        // NOTE The 'limit' API param doesn't do what it says. Including it can make the API return no images when the
-        //      limit is set to something greater than 0 and we get images if we exclude the limit param. Don't use it!
-
+    /**
+     * Creates a bounding box around the given point with given radius, and creates a URL to fetch images in the box.
+     *
+     * @param {turf.Point} centerPoint The center of the output bounding box
+     * @param {number} radius A distance (in km) to extend from the center point in each direction
+     * @returns {string} A URL that can be called to fetch Mapillary images within the bounding box
+     */
+    #createPanoFetchUrl = (centerPoint, radius) => {
         // Create a bounding box using to search for imagery.
-        const centerPoint = turf.point([latLng.lng, latLng.lat]);
         let boundingBox = [
             turf.destination(centerPoint, radius, 270).geometry.coordinates[0], // West
             turf.destination(centerPoint, radius, 180).geometry.coordinates[1], // South
@@ -217,16 +214,47 @@ class MapillaryViewer extends PanoViewer {
 
         const params = new URLSearchParams({
             access_token: this.viewer._navigator._api._data._accessToken,
-            fields: 'id,geometry,computed_geometry,captured_at,sequence,width,camera_type,computed_rotation,detections.value',
+            fields: 'id,geometry,computed_geometry,captured_at,sequence,width,camera_type,computed_rotation',
             is_pano: 'true',
             bbox: boundingBox,
         });
-        const url = `https://graph.mapillary.com/images?${params.toString()}`;
+
+        return `https://graph.mapillary.com/images?${params.toString()}`;
+    };
+
+    setLocation = async (latLng, excludedPanos = new Set()) => {
+        // Search for images near the coordinates.
+        // Docs for how to filter images: https://www.mapillary.com/developer/api-documentation#image
+        let radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
+        // TODO don't send accessToken in the URL: https://www.mapillary.com/developer/api-documentation#authentication
+        // TODO should be able to use this to find (or decide on our own) links if we want.
+        // NOTE The 'limit' API param doesn't do what it says. Including it can make the API return no images when the
+        //      limit is set to something greater than 0 and we get images if we exclude the limit param. Don't use it!
+        const centerPoint = turf.point([latLng.lng, latLng.lat]);
+        let success = false;
+        let url;
+        let data;
 
         try {
-            const response = await fetch(url);
-            const data = await response.json();
-            console.log(data);
+            while (!success && radius > 0) {
+                url = this.#createPanoFetchUrl(centerPoint, radius);
+                const response = await fetch(url);
+                data = await response.json();
+                console.log(data);
+
+                if (data.data && data.data.length > 0) {
+                    success = true;
+                } else if (data.data && data.data.length === 0) {
+                    throw new Error('No images found near this location');
+                } else if (data.error && data.error.code === 1) {
+                    // If there were too many images in the bounding box, API fails. Try with a smaller area.
+                    radius -= 0.01;
+                } else if (data.error) {
+                    throw new Error(data.error.message);
+                } else {
+                    throw new Error(JSON.stringify(data));
+                }
+            }
 
             if (data.data && data.data.length > 0) {
                 // Find image that is closest to the input lat/lng that isn't in the excluded list.
@@ -244,12 +272,19 @@ class MapillaryViewer extends PanoViewer {
                     }
                 }
 
+                // Load the pano. Say that it failed if it doesn't work after 10 seconds.
+                // TODO If the pano fails to load, we should try the next closest pano. Getting an issue where the pano
+                //      with ID 859880776211217 never loads, but there are plenty of others at that location.
                 this.changingPanoOurselves = true;
-                return await this.viewer.moveTo(closestPano.id).then(this._getPanoramaCallback);
+                return await Promise.race([
+                    this.viewer.moveTo(closestPano.id).then(this._getPanoramaCallback),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out')), 10000))
+                ]).catch(() => {
+                    console.error('Failed to load pano: ', closestPano.id);
+                    throw new Error('Failed to load pano: ', closestPano.id);
+                });
             } else {
-                if (data.data && data.data.length === 0) throw new Error('No images found near this location');
-                else if (data.error) throw new Error(data.error.message);
-                else throw new Error(JSON.stringify(data));
+                throw new Error(JSON.stringify(data));
             }
         } catch (error) {
             console.error('Error moving to location:', error);

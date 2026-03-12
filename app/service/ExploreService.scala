@@ -160,7 +160,12 @@ class ExploreServiceImpl @Inject() (
     def getExploreDataAction = for {
       // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
       // routeId was supplied, then the function should return None and the user is not sent on a specific route.
-      userRoute: Option[UserRoute] <- setUpPossibleUserRoute(routeId, userId, resumeRoute)
+      // However, region or street id params take precedence.
+      userRoute: Option[UserRoute] <- if (regionId.isEmpty && streetEdgeId.isEmpty) {
+        setUpPossibleUserRoute(routeId, userId, resumeRoute)
+      } else {
+        DBIO.successful(None)
+      }
       routeOption: Option[Route]   <- userRoute
         .map(ur => routeTable.getRoute(ur.routeId))
         .getOrElse(DBIO.successful(None))

@@ -17,7 +17,7 @@
     "occlusion": "Trottoir nicht sichtbar",
     "no-sidewalk": "kein Trottoir",
     "crosswalk": "Markierter Fussgängerstreifen",
-    "signal": "Fussgänger&shy;lichtsignal",
+    "signal": "Fussgänger:&shy;innensignal",
     "other": "Andere",
     "surface-problems": "Oberflächen&shy;probleme",
     "sign-up": "Registrieren",
@@ -137,7 +137,8 @@
         "drainage": "Drainage",
         "electrical box": "Schaltkasten",
         "too dirty/cluttered": "zu schmutzig/unordentlich",
-        "yellow box, accessibility features not visible": "gelbe Box, Funktionen nicht sichtbar"
+        "yellow box, accessibility features not visible": "gelbe Box, Funktionen nicht sichtbar",
+        "bollard": "Poller"
     },
     "gsv-info": {
         "details-title": "Details",
@@ -152,6 +153,7 @@
         "pano-date": "$t(common:image-capture-date)",
         "pano-address": "Adresse",
         "view-in-gsv": "Ansicht in Google Street View",
+        "view-in-mapillary": "Ansicht in Mapillary",
         "city": "Stadt",
         "copied-to-clipboard": "Daten wurden in Zwischenablage kopiert"
     },
@@ -181,7 +183,7 @@
             },
             "slide-2": {
                 "title": "Gehwege für Wohnhäuser",
-                "description": "Auf Gehwegen für Wohnhäuser sollten <b>keine</b> fehlenden Trottoirabsenkungen beschriftet werden."
+                "description": "Auf Gehwegen in Wohngebieten sollten <b>keine</b> fehlenden Trottoirabsenkungen beschriftet werden."
             },
             "slide-3": {
                 "title": "Nicht auf dem Gehweg",
@@ -189,7 +191,7 @@
             },
             "slide-4": {
                 "title": "$t(common:no-sidewalk)",
-                "description": "Bei Kreuzungen <b>ohne Trottoir</b> sollte die Beschriftung für kein Trottoir verwendet werden und nicht die Beschriftung für fehlende Trottoirabsenkungen."
+                "description": "Bei Kreuzungen <b>ohne Trottoir</b> sollte die Beschriftung für ein fehlendes Trottoir verwendet werden und nicht die Beschriftung für fehlende Trottoirabsenkungen."
             }
         },
         "obstacle": {
@@ -231,11 +233,11 @@
             },
             "slide-2": {
                 "title": "Verkehrsinsel",
-                "description": "Eine Verkehrsinsel, welche die beiden Verkehrsrichtungen trennt, und nicht für Fussgänger:innen gedacht ist, sollte <b>nicht</b> als kein Trottoir beschriftet werden."
+                "description": "Eine Verkehrsinsel, welche die beiden Verkehrsrichtungen trennt, und nicht für Fussgänger:innen vorgesehen ist, sollte <b>nicht</b> mit einem “kein Trottoir”-Schild beschriftet werden."
             },
             "slide-3": {
                 "title": "Trottoir",
-                "description": "Hier ist ein Trottoir vorhanden. Es sollte <b>nicht</b> mit kein Trottoir beschriftet werden."
+                "description": "Hier ist ein Trottoir vorhanden. Es sollte <b>nicht</b> mit “kein Trottoir” beschriftet werden."
             }
         },
         "crosswalk": {
@@ -249,17 +251,17 @@
             },
             "slide-3": {
                 "title": "Haltelinien",
-                "description": "Haltelinien für Autos sollten nicht als Markierter Fussgängerstreifen beschriftet werden."
+                "description": "Haltelinien für Autos sollten nicht als markierte Fussgänger:innenstreifen beschriftet werden."
             },
             "slide-4": {
                 "title": "Strassenschwellen",
-                "description": "Strassenschwellen sollten nicht als Markierter Fussgängerstreifen beschriftet werden."
+                "description": "Bremsschwellen sollten nicht als markierte Fussgänger:innenstreifen beschriftet werden."
             }
         },
         "signal": {
             "slide-1": {
                 "title": "{{- labelType}}",
-                "description": "Ein Fussgängerlichtsignal zeigt an, wann Fussgänger:innen die Strasse sicher überqueren können und bietet genügend Zeit, um dies zu tun.<br><br>Einige dieser Signale werden durch ein Anforderungsgerät auf Hüfthöhe aktiviert."
+                "description": "Ein Fussgänger:innensignal zeigt an, wann Fussgänger:innen die Strasse sicher überqueren können und bietet genügend Zeit, um dies zu tun.<br><br>Einige dieser Signale werden durch ein Anforderungsgerät auf Hüfthöhe aktiviert."
             },
             "slide-2": {
                 "title": "Beschilderung",
@@ -271,7 +273,7 @@
             },
             "slide-4": {
                 "title": "Lichtsignal für Fahrzeuge",
-                "description": "Dieses Lichtsignal ist nur für Fahrzeuge und nicht für Fussgänger:innen."
+                "description": "Dieses Lichtsignal ist nur für Fahrzeuge vorgesehen und sollte nicht als “Fussgänger:innensignal” markiert werden."
             }
         }
     }

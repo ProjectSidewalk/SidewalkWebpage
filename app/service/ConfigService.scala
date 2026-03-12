@@ -13,7 +13,6 @@ import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
-
 import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.duration.Duration

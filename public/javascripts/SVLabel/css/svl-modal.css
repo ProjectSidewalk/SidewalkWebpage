@@ -1,4 +1,4 @@
-##modal-comment-holder {
+#modal-comment-holder {
     position: absolute;
     left: 0;
     top: 0;
@@ -99,7 +99,6 @@
 
 .modal-foreground .btn-primary {
     color: white;
-    background: #3182bd;
     cursor: pointer;
     border: 1px solid transparent;
     font-size: 14pt;

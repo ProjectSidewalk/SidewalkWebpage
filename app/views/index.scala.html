@@ -41,7 +41,11 @@
                         @Messages("landing.start.exploring") @currentCity.cityNameShort
                     </a>
                     <br><br>
-                    <span class="header-text">@Html(Messages("landing.new.deployment"))</span>
+                    <span class="header-text">
+                        <a id="new-deployment-link" class="header-link" href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank">
+                            @Html(Messages("landing.new.deployment"))
+                        </a>
+                    </span>
                     <br>
                     @if(mapathonLink.isDefined) {
                         <span class="header-text">

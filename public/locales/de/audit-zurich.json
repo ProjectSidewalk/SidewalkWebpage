@@ -2,6 +2,7 @@
     "center-ui": {
         "context-menu": {
             "tag": {
+                "pole": "Pfosten/Verkehrsschild/Strassen<tag-underline>l</tag-underline>aterne",
                 "APS": "t<tag-underline>a</tag-underline>ktil-hörbare Box"
             }
         }

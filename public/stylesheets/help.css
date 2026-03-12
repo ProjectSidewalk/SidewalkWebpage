@@ -70,10 +70,6 @@ figure figcaption {
     border-bottom: 1px solid #ddd;
 }
 
-.help ul#questions-list li:hover {
-    /*background-color: #eee;*/
-}
-
 .help table {
     font-size: 14px;
 }

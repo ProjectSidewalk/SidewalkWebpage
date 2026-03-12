@@ -223,21 +223,25 @@ function UtilitiesMisc (JSON) {
                         keyChar: '[',
                         text: i18next.t('center-ui.context-menu.tag.mailbox')
                     },
-                    'utility cabinet' : {
+                    'utility cabinet': {
                         keyChar: ']',
                         text: i18next.t('center-ui.context-menu.tag.utility-cabinet')
                     },
-                    'cart' : {
+                    'cart': {
                         keyChar: ';',
                         text: i18next.t('center-ui.context-menu.tag.cart')
                     },
-                    'drainage' : {
+                    'drainage': {
                         keyChar: ',',
                         text: i18next.t('center-ui.context-menu.tag.drainage')
                     },
-                    'electrical box' : {
+                    'electrical box': {
                         keyChar: '.',
                         text: i18next.t('center-ui.context-menu.tag.electrical-box')
+                    },
+                    'bollard': {
+                        keyChar: '/',
+                        text: i18next.t('center-ui.context-menu.tag.bollard')
                     }
                 }
             },

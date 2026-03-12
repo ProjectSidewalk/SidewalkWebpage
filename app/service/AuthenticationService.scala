@@ -10,7 +10,6 @@ import play.silhouette.api.services.IdentityService
 import play.silhouette.api.util.{PasswordHasher, PasswordInfo}
 import play.silhouette.impl.exceptions.{IdentityNotFoundException, InvalidPasswordException}
 import play.silhouette.impl.providers.CredentialsProvider.ID
-
 import java.security.MessageDigest
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -46,6 +45,7 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def removeToken(id: String): Future[Int]
   def cleanAuthTokens: Future[Int]
   def setCommunityServiceStatus(userId: String, newCommServiceStatus: Boolean): Future[Int]
+  def setInfra3dAccess(userId: String, newAccess: Boolean): Future[Int]
   def updateRole(userId: String, newRole: String): Future[Int]
 }
 
@@ -115,7 +115,9 @@ class AuthenticationServiceImpl @Inject() (
 
       isUserAvailable(username, email).flatMap {
         case true =>
-          Future.successful(SidewalkUserWithRole(UUID.randomUUID().toString, username, email, "Anonymous", false))
+          Future.successful(
+            SidewalkUserWithRole(UUID.randomUUID().toString, username, email, "Anonymous", false, false)
+          )
         case false => tryGenerateUser()
       }
     }
@@ -160,7 +162,7 @@ class AuthenticationServiceImpl @Inject() (
       loginInfoId: Long <- loginInfoTable.insert(DBLoginInfo(0, providerId, user.email.toLowerCase))
       _                 <- userLoginInfoTable.insert(UserLoginInfo(0, user.userId, loginInfoId))
       _ <- userPasswordInfoTable.insert(UserPasswordInfo(0, pwInfo.hasher, pwInfo.password, pwInfo.salt, loginInfoId))
-      _ <- userRoleTable.addRole(user.userId, user.role, user.communityService)
+      _ <- userRoleTable.addRole(user.userId, user.role, user.communityService, user.infra3dAccess)
       _ <- userStatTable.insert(user.userId)
     } yield user
     db.run(dbActions.transactionally)
@@ -324,4 +326,7 @@ class AuthenticationServiceImpl @Inject() (
 
   def setCommunityServiceStatus(userId: String, newCommServiceStatus: Boolean): Future[Int] =
     db.run(userRoleTable.updateCommunityService(userId, newCommServiceStatus))
+
+  def setInfra3dAccess(userId: String, newAccess: Boolean): Future[Int] =
+    db.run(userRoleTable.updateInfra3dAccess(userId, newAccess))
 }

@@ -137,7 +137,8 @@
         "drainage": "drenaje",
         "electrical box": "caja eléctrica",
         "too dirty/cluttered": "demasiado sucio/desordenado",
-        "yellow box, accessibility features not visible": "Cuadro amarillo, funciones de accesibilidad no visibles"
+        "yellow box, accessibility features not visible": "Cuadro amarillo, funciones de accesibilidad no visibles",
+        "bollard": "noray"
     },
     "gsv-info": {
         "details-title": "Detalles",
@@ -152,6 +153,7 @@
         "pano-date": "$t(common:image-capture-date)",
         "pano-address": "Dirección",
         "view-in-gsv": "Ver en Google Street View",
+        "view-in-mapillary": "Ver en Mapillary",
         "city": "Ciudad",
         "copied-to-clipboard": "¡Datos copiados a su portapapeles!"
     },

@@ -136,7 +136,8 @@
         "drainage": "drainage",
         "electrical box": "elektrische doos",
         "too dirty/cluttered": "te vuil/rommelig",
-        "yellow box, accessibility features not visible": "gele kader, toegankelijkheidsfuncties niet zichtbaar"
+        "yellow box, accessibility features not visible": "gele kader, toegankelijkheidsfuncties niet zichtbaar",
+        "bollard": "paaltje"
     },
     "gsv-info": {
         "details-title": "Details",
@@ -151,6 +152,7 @@
         "pano-date": "$t(common:image-capture-date)",
         "pano-address": "Adres",
         "view-in-gsv": "Bekijken in Google Streetview",
+        "view-in-mapillary": "Bekijken in Mapillary",
         "city": "Stad",
         "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
     },

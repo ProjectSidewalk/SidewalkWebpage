@@ -249,6 +249,9 @@
                             <th class="col-md">High quality</th>
                             <th class="col-md">High quality manual</th>
                             <th class="col-md">Volunteer</th>
+                            @if(commonData.imagerySource == PanoSource.Infra3d) {
+                                <th class="col-md">infra3D access</th>
+                            }
                         </tr>
                         <tr>
                             <td>@profileUser.username</td>
@@ -269,6 +272,9 @@
                                 </div>
                             </td>
                             <td><input type="checkbox" id="check-volunteer"></td>
+                            @if(commonData.imagerySource == PanoSource.Infra3d) {
+                                <td><input type="checkbox" id="check-infra3d-access"></td>
+                            }
                         </tr>
                     </table>
                 </div>
@@ -435,7 +441,7 @@
             const accessToken = "@commonData.imageryAccessToken";
             await Progress(_, $, '@commonData.mapboxApiKey', viewerType, accessToken, '@profileUser.userId', @admin);
             @if(admin) {
-                AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService);
+                AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService, @profileUser.infra3dAccess);
                 $('#label-table').dataTable();
             }
 

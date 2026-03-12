@@ -2,6 +2,7 @@
     "center-ui": {
         "context-menu": {
             "tag": {
+                "pole": "po<tag-underline>l</tag-underline>e / traffic sign / lamppost",
                 "APS": "tactile-<tag-underline>a</tag-underline>udible box"
             }
         }

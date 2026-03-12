@@ -137,7 +137,8 @@
         "drainage": "drainage",
         "electrical box": "electrical box",
         "too dirty/cluttered": "too dirty/cluttered",
-        "yellow box, accessibility features not visible": "yellow box, accessibility features not visible"
+        "yellow box, accessibility features not visible": "yellow box, accessibility features not visible",
+        "bollard": "bollard"
     },
     "gsv-info": {
         "details-title": "Details",
@@ -152,6 +153,7 @@
         "pano-date": "$t(common:image-capture-date)",
         "pano-address": "Address",
         "view-in-gsv": "View in Google Street View",
+        "view-in-mapillary": "View in Mapillary",
         "city": "City",
         "copied-to-clipboard": "Data copied to your clipboard!"
     },

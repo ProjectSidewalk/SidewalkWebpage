@@ -18,7 +18,6 @@ import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import service._
-
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.concurrent.ThreadPoolExecutor
@@ -423,6 +422,37 @@ class AdminController @Inject() (
                     cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
                     Ok(Json.obj("new_user_quality" -> newQuality))
                   case None => BadRequest(Json.obj("status" -> "Error", "message" -> "Likely an excluded user"))
+                }
+            }
+          case None =>
+            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "No user has this user_id")))
+        }
+      }
+    )
+  }
+
+  /**
+   * Updates infra3d_access column in the database for the given user.
+   */
+  def setInfra3dAccess = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
+    val submission = request.body.validate[UserInfra3dAccess]
+    submission.fold(
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => {
+        authenticationService.findByUserId(submission.userId) flatMap {
+          case Some(user) =>
+            if (user.role == "Owner") {
+              Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Owner access can't be changed")))
+            } else if (!request.identity.infra3dAccess) {
+              Future.successful(
+                BadRequest(Json.obj("status" -> "Error", "message" -> "Lacking permission to grant access"))
+              )
+            } else {
+              authenticationService
+                .setInfra3dAccess(submission.userId, submission.access)
+                .map { rowsUpdated =>
+                  if (rowsUpdated > 0) Ok(Json.obj("message" -> "infra3D access updated successfully"))
+                  else BadRequest(Json.obj("error" -> "Failed to update infra3D access"))
                 }
             }
           case None =>

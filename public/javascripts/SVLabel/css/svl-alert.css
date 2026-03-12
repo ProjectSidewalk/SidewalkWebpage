@@ -48,6 +48,6 @@
     padding: 6px 10px;
 }
 
-.page-alert-holder a {
-    color: black;
+#page-alert-close {
+    cursor: pointer;
 }

@@ -73,6 +73,15 @@ a {
     color: #0d6efd;
 }
 
+/* Replacing bootstrap 3 colors with bootstrap 5, which have a better color contrast. */
+body {
+    color: #222222;
+}
+.btn-primary {
+    background-color: #0D6EFD;
+    border: #0D6EFD;
+}
+
 
 /*
  * Custom styles
@@ -103,6 +112,12 @@ a {
     display: inline;
     margin-top: 4px;
     margin-left: 8px;
+}
+
+/* Overriding bootstrap settings for city list for now because the list is so long */
+#nav-city-menu>li>a {
+    padding: 2px 16px;
+    font-size: 12px;
 }
 
 #nav-language-menu {
