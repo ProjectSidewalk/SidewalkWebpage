@@ -281,7 +281,7 @@ object ApiFormats {
     s"${l.labelId},${l.panoId},${l.labelTypeId},${l.agreeCount},${l.disagreeCount},${l.unsureCount}," +
       s"${formatOptionForCSV(l.panoWidth)},${formatOptionForCSV(l.panoHeight)},${l.panoX},${l.panoY}," +
       s"${l.canvasWidth},${l.canvasHeight},${l.canvasX},${l.canvasY},${l.zoom},${l.heading},${l.pitch}," +
-      s"${l.cameraHeading},${l.cameraPitch}"
+      s"${l.cameraHeading},${l.cameraPitch},${l.cameraRoll.map(_.toString).getOrElse("NA")}"
   }
 
   // Just uses implicit convert defined below.
@@ -305,8 +305,9 @@ object ApiFormats {
       (__ \ "zoom").write[Double] and
       (__ \ "heading").write[Float] and
       (__ \ "pitch").write[Float] and
-      (__ \ "camera_heading").write[Float] and
-      (__ \ "camera_pitch").write[Float]
+      (__ \ "camera_heading").write[Double] and
+      (__ \ "camera_pitch").write[Double] and
+      (__ \ "camera_roll").writeNullable[Double]
   )(unlift(LabelCVMetadata.unapply))
 
   private def labelTypeStatToCSVRow(l: LabelTypeStat): String = {
@@ -318,10 +319,11 @@ object ApiFormats {
       (__ \ "has_labels").write[Boolean] and
       (__ \ "width").writeNullable[Int] and
       (__ \ "height").writeNullable[Int] and
-      (__ \ "lat").writeNullable[Float] and
-      (__ \ "lng").writeNullable[Float] and
-      (__ \ "camera_heading").writeNullable[Float] and
-      (__ \ "camera_pitch").writeNullable[Float] and
+      (__ \ "lat").writeNullable[Double] and
+      (__ \ "lng").writeNullable[Double] and
+      (__ \ "camera_heading").writeNullable[Double] and
+      (__ \ "camera_pitch").writeNullable[Double] and
+      (__ \ "camera_roll").writeNullable[Double] and
       (__ \ "source").write[PanoSource.Value]
   )(unlift(PanoDataSlim.unapply))
 }

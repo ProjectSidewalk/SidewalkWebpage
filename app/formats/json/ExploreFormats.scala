@@ -87,10 +87,11 @@ object ExploreFormats {
       height: Option[Int],
       tileWidth: Option[Int],
       tileHeight: Option[Int],
-      lat: Option[Float],
-      lng: Option[Float],
-      cameraHeading: Option[Float],
-      cameraPitch: Option[Float],
+      lat: Option[Double],
+      lng: Option[Double],
+      cameraHeading: Option[Double],
+      cameraPitch: Option[Double],
+      cameraRoll: Option[Double],
       links: Seq[PanoLinkSubmission],
       copyright: Option[String],
       history: Seq[PanoDate]
@@ -294,10 +295,11 @@ object ExploreFormats {
       (JsPath \ "height").readNullable[Int] and
       (JsPath \ "tile_width").readNullable[Int] and
       (JsPath \ "tile_height").readNullable[Int] and
-      (JsPath \ "lat").readNullable[Float] and
-      (JsPath \ "lng").readNullable[Float] and
-      (JsPath \ "camera_heading").readNullable[Float] and
-      (JsPath \ "camera_pitch").readNullable[Float] and
+      (JsPath \ "lat").readNullable[Double] and
+      (JsPath \ "lng").readNullable[Double] and
+      (JsPath \ "camera_heading").readNullable[Double] and
+      (JsPath \ "camera_pitch").readNullable[Double] and
+      (JsPath \ "camera_roll").readNullable[Double] and
       (JsPath \ "links").read[Seq[PanoLinkSubmission]] and
       (JsPath \ "copyright").readNullable[String] and
       (JsPath \ "history").read[Seq[PanoDate]]

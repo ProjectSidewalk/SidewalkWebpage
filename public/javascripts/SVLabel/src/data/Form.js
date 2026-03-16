@@ -162,6 +162,7 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
                 lng: panoData.lng,
                 camera_heading: panoData.cameraHeading,
                 camera_pitch: panoData.cameraPitch,
+                camera_roll: panoData.cameraRoll,
                 links: links,
                 copyright: panoData.copyright || null,
                 history: history

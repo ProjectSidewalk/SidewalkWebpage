@@ -161,12 +161,13 @@ class ExploreServiceImpl @Inject() (
       // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
       // routeId was supplied, then the function should return None and the user is not sent on a specific route.
       // However, region or street id params take precedence.
-      userRoute: Option[UserRoute] <- if (regionId.isEmpty && streetEdgeId.isEmpty) {
-        setUpPossibleUserRoute(routeId, userId, resumeRoute)
-      } else {
-        DBIO.successful(None)
-      }
-      routeOption: Option[Route]   <- userRoute
+      userRoute: Option[UserRoute] <-
+        if (regionId.isEmpty && streetEdgeId.isEmpty) {
+          setUpPossibleUserRoute(routeId, userId, resumeRoute)
+        } else {
+          DBIO.successful(None)
+        }
+      routeOption: Option[Route] <- userRoute
         .map(ur => routeTable.getRoute(ur.routeId))
         .getOrElse(DBIO.successful(None))
 
@@ -472,12 +473,12 @@ class ExploreServiceImpl @Inject() (
         _                   <-
           if (panoExists) {
             panoDataTable.updateFromExplore(pano.panoId, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch,
-              expired = false, currTime, Some(currTime))
+              pano.cameraRoll, expired = false, currTime, Some(currTime))
           } else {
             panoDataTable.insert(
               PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
-                pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, expired = false, currTime,
-                Some(currTime), currTime, pano.source)
+                pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll,
+                expired = false, currTime, Some(currTime), currTime, pano.source)
             )
           }
       } yield {

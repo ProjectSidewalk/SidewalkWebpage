@@ -158,10 +158,10 @@ case class ResumeLabelMetadata(
     labelData: Label,
     labelType: String,
     pointData: LabelPoint,
-    panoLat: Option[Float],
-    panoLng: Option[Float],
-    cameraHeading: Option[Float],
-    cameraPitch: Option[Float],
+    panoLat: Option[Double],
+    panoLng: Option[Double],
+    cameraHeading: Option[Double],
+    cameraPitch: Option[Double],
     panoWidth: Option[Int],
     panoHeight: Option[Int]
 )
@@ -184,8 +184,9 @@ case class LabelCVMetadata(
     zoom: Double,
     heading: Float,
     pitch: Float,
-    cameraHeading: Float,
-    cameraPitch: Float
+    cameraHeading: Double,
+    cameraPitch: Double,
+    cameraRoll: Option[Double]
 ) extends StreamingApiType {
   def toJson: JsValue  = ApiFormats.labelCVMetadataToJSON(this)
   def toCsvRow: String = ApiFormats.labelCVMetadataToCSVRow(this)
@@ -193,7 +194,7 @@ case class LabelCVMetadata(
 object LabelCVMetadata {
   val csvHeader: String = "Label ID,Panorama ID,Label Type ID,Agree Count,Disagree Count,Unsure Count,Panorama Width," +
     "Panorama Height,Panorama X,Panorama Y,Canvas Width,Canvas Height,Canvas X,Canvas Y,Zoom,Heading,Pitch," +
-    "Camera Heading,Camera Pitch\n"
+    "Camera Heading,Camera Pitch,Camera Roll\n"
 }
 
 case class LabelDataForAi(labelId: Int, labelTypeId: Int, labelPoint: LabelPoint, panoData: PanoData)
@@ -228,8 +229,8 @@ case class LabelValidationMetadata(
     userValidation: Option[Int],
     aiValidation: Option[Int],
     tags: Seq[String],
-    cameraLat: Option[Float],
-    cameraLng: Option[Float],
+    cameraLat: Option[Double],
+    cameraLng: Option[Double],
     aiTags: Option[Seq[String]],
     aiGenerated: Boolean
 ) extends BasicLabelMetadata
@@ -324,8 +325,8 @@ object LabelTable {
       Option[Int],                      // userValidation
       Option[Int],                      // aiValidation
       List[String],                     // tags
-      Option[Float],                    // cameraLat
-      Option[Float],                    // cameraLng
+      Option[Double],                   // cameraLat
+      Option[Double],                   // cameraLng
       Option[List[String]],             // aiTags
       Boolean                           // aiGenerated
   )
@@ -347,8 +348,8 @@ object LabelTable {
       Rep[Option[Int]],                                     // userValidation
       Rep[Option[Int]],                                     // aiValidation
       Rep[List[String]],                                    // tags
-      Rep[Option[Float]],                                   // cameraLat
-      Rep[Option[Float]],                                   // cameraLng
+      Rep[Option[Double]],                                  // cameraLat
+      Rep[Option[Double]],                                  // cameraLng
       Rep[Option[List[String]]],                            // aiTags
       Rep[Boolean]                                          // aiGenerated
   )
@@ -365,25 +366,26 @@ object LabelTable {
   // Type alias for the tuple representation of LabelCVMetadata.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
   type LabelCVMetadataTuple = (
-      Int,         // labelId
-      String,      // panoId
-      Int,         // labelTypeId
-      Int,         // agreeCount
-      Int,         // disagreeCount
-      Int,         // unsureCount
-      Option[Int], // panoWidth
-      Option[Int], // panoHeight
-      Int,         // panoX
-      Int,         // panoY
-      Int,         // canvasWidth
-      Int,         // canvasHeight
-      Int,         // canvasX
-      Int,         // canvasY
-      Double,      // zoom
-      Float,       // heading
-      Float,       // pitch
-      Float,       // cameraHeading
-      Float        // cameraPitch
+      Int,           // labelId
+      String,        // panoId
+      Int,           // labelTypeId
+      Int,           // agreeCount
+      Int,           // disagreeCount
+      Int,           // unsureCount
+      Option[Int],   // panoWidth
+      Option[Int],   // panoHeight
+      Int,           // panoX
+      Int,           // panoY
+      Int,           // canvasWidth
+      Int,           // canvasHeight
+      Int,           // canvasX
+      Int,           // canvasY
+      Double,        // zoom
+      Float,         // heading
+      Float,         // pitch
+      Double,        // cameraHeading
+      Double,        // cameraPitch
+      Option[Double] // cameraRoll
   )
 
   /**
@@ -453,6 +455,7 @@ object LabelTable {
       panoHeight = r.nextIntOption(),
       cameraHeading = r.nextDoubleOption(),
       cameraPitch = r.nextDoubleOption(),
+      cameraRoll = r.nextDoubleOption(),
       latitude = r.nextDouble(),
       longitude = r.nextDouble()
     )
@@ -891,7 +894,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // Priority ordering algorithm is described in the method comment, max score is 276.
     val _labelInfoSorted = _labelInfoWithAiData
       .sortBy {
-        case (l, lp, gd, us, at, labelType, regionId, isAiUser, aiv, laa) => {
+        case (l, lp, pd, us, at, labelType, regionId, isAiUser, aiv, laa) => {
           // A label gets 150 if the labeler as < 50 of their labels validated (and this label needs a validation).
           val needsValidationScore =
             Case.If(us.ownLabelsValidated < 50 && l.correct.isEmpty && !at.lowQuality && !at.stale).Then(150d).Else(0d)
@@ -917,12 +920,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         }
       }
       // Select only the columns needed for the LabelValidationMetadata class.
-      .map { case (l, lp, gd, us, at, labelType, regionId, isAiUser, laa, aiv) =>
+      .map { case (l, lp, pd, us, at, labelType, regionId, isAiUser, laa, aiv) =>
         (
           l.labelId,
           labelType,
           l.panoId,
-          gd.captureDate,
+          pd.captureDate,
           l.timeCreated,
           lp.lat,
           lp.lng,
@@ -936,8 +939,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           Option.empty[Int].bind, // userValidation, always None bc we only show labels they haven't already validated.
           aiv.map(_.validationResult), // aiValidation, if it exists.
           l.tags,
-          gd.lat,
-          gd.lng,
+          pd.lat,
+          pd.lng,
           // Include AI tags if requested.
           if (includeAiTags) laa.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
           else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
@@ -1482,6 +1485,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              pano_data.height AS pano_height,
              pano_data.camera_heading,
              pano_data.camera_pitch,
+             pano_data.camera_roll,
              label_point.lat,
              label_point.lng
       FROM label
@@ -1995,8 +1999,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lp.zoom,
       _lp.heading,
       _lp.pitch,
-      _pd.cameraHeading.asColumnOf[Float],
-      _pd.cameraPitch.asColumnOf[Float]
+      _pd.cameraHeading.asColumnOf[Double],
+      _pd.cameraPitch.asColumnOf[Double],
+      _pd.cameraRoll
     )).sortBy(_._1).result
   }
 }

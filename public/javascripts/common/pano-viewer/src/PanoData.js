@@ -10,6 +10,7 @@ class PanoData {
      * @param {number} params.lng Longitude of the camera
      * @param {number} params.cameraHeading Heading of the camera in degrees, with respect to true north
      * @param {number} params.cameraPitch Pitch of the camera in degrees, with respect to the horizon
+     * @param {number} [params.cameraRoll] Roll of the camera in degrees
      * @param {number} params.width Width of the image in pixels
      * @param {number} params.height Height of the image in pixels
      * @param {number} [params.tileWidth] Width of the tiles that make up the image in pixels
@@ -39,7 +40,7 @@ class PanoData {
         }
 
         // Validate numeric parameters.
-        const numericParams = ['lat', 'lng', 'cameraHeading', 'cameraPitch', 'width', 'height'];
+        const numericParams = ['lat', 'lng', 'cameraHeading', 'cameraPitch', 'cameraRoll', 'width', 'height'];
         numericParams.forEach(param => {
             if (typeof params[param] !== 'number' || isNaN(params[param])) {
                 throw new Error(`${param} must be a valid number`);
@@ -59,6 +60,7 @@ class PanoData {
             lng: params.lng,
             cameraHeading: params.cameraHeading,
             cameraPitch: params.cameraPitch,
+            cameraRoll: params.cameraRoll,
             width: params.width,
             height: params.height,
             // If tileWidth/tileHeight not provided, assume that there is no tiling and just use full width/height.

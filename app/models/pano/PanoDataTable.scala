@@ -19,10 +19,11 @@ case class PanoData(
     tileHeight: Option[Int],
     captureDate: String,
     copyright: Option[String],
-    lat: Option[Float],
-    lng: Option[Float],
-    cameraHeading: Option[Float],
-    cameraPitch: Option[Float],
+    lat: Option[Double],
+    lng: Option[Double],
+    cameraHeading: Option[Double],
+    cameraPitch: Option[Double],
+    cameraRoll: Option[Double],
     expired: Boolean,
     lastViewed: OffsetDateTime,
     panoHistorySaved: Option[OffsetDateTime],
@@ -43,10 +44,11 @@ case class PanoDataSlim(
     hasLabels: Boolean,
     width: Option[Int],
     height: Option[Int],
-    lat: Option[Float],
-    lng: Option[Float],
-    cameraHeading: Option[Float],
-    cameraPitch: Option[Float],
+    lat: Option[Double],
+    lng: Option[Double],
+    cameraHeading: Option[Double],
+    cameraPitch: Option[Double],
+    cameraRoll: Option[Double],
     source: PanoSource
 )
 
@@ -58,10 +60,11 @@ class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
   def tileHeight: Rep[Option[Int]]                  = column[Option[Int]]("tile_height")
   def captureDate: Rep[String]                      = column[String]("capture_date")
   def copyright: Rep[Option[String]]                = column[Option[String]]("copyright")
-  def lat: Rep[Option[Float]]                       = column[Option[Float]]("lat")
-  def lng: Rep[Option[Float]]                       = column[Option[Float]]("lng")
-  def cameraHeading: Rep[Option[Float]]             = column[Option[Float]]("camera_heading")
-  def cameraPitch: Rep[Option[Float]]               = column[Option[Float]]("camera_pitch")
+  def lat: Rep[Option[Double]]                      = column[Option[Double]]("lat")
+  def lng: Rep[Option[Double]]                      = column[Option[Double]]("lng")
+  def cameraHeading: Rep[Option[Double]]            = column[Option[Double]]("camera_heading")
+  def cameraPitch: Rep[Option[Double]]              = column[Option[Double]]("camera_pitch")
+  def cameraRoll: Rep[Option[Double]]               = column[Option[Double]]("camera_roll")
   def expired: Rep[Boolean]                         = column[Boolean]("expired")
   def lastViewed: Rep[OffsetDateTime]               = column[OffsetDateTime]("last_viewed")
   def panoHistorySaved: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("pano_history_saved")
@@ -69,7 +72,7 @@ class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
   def source: Rep[PanoSource]                       = column[PanoSource]("source")
 
   def * = (panoId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng, cameraHeading, cameraPitch,
-    expired, lastViewed, panoHistorySaved, lastChecked, source) <>
+    cameraRoll, expired, lastViewed, panoHistorySaved, lastChecked, source) <>
     ((PanoData.apply _).tupled, PanoData.unapply)
 }
 
@@ -94,7 +97,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
       .on(_.panoId === _.panoId)
       .distinctOn(_._1.panoId)
       .map { case (g, l) =>
-        (g.panoId, l.isDefined, g.width, g.height, g.lat, g.lng, g.cameraHeading, g.cameraPitch, g.source)
+        (g.panoId, l.isDefined, g.width, g.height, g.lat, g.lng, g.cameraHeading, g.cameraPitch, g.cameraRoll, g.source)
       }
       .result
       .map(_.map(PanoDataSlim.tupled))
@@ -162,19 +165,20 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    */
   def updateFromExplore(
       panoId: String,
-      lat: Option[Float],
-      lng: Option[Float],
-      heading: Option[Float],
-      pitch: Option[Float],
+      lat: Option[Double],
+      lng: Option[Double],
+      heading: Option[Double],
+      pitch: Option[Double],
+      roll: Option[Double],
       expired: Boolean,
       lastViewed: OffsetDateTime,
       panoHistorySaved: Option[OffsetDateTime]
   ): DBIO[Int] = {
     val q = for {
       pano <- panoDataRecords if pano.panoId === panoId
-    } yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.expired, pano.lastViewed,
+    } yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll, pano.expired, pano.lastViewed,
       pano.panoHistorySaved, pano.lastChecked)
-    q.update((lat, lng, heading, pitch, expired, lastViewed, panoHistorySaved, lastViewed))
+    q.update((lat, lng, heading, pitch, roll, expired, lastViewed, panoHistorySaved, lastViewed))
   }
 
   /**

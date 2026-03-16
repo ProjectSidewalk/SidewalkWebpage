@@ -104,6 +104,7 @@ class GsvViewer extends PanoViewer {
             lng: newPanoData.data.location.latLng.lng(),
             cameraHeading: newPanoData.data.tiles.originHeading,
             cameraPitch: -newPanoData.data.tiles.originPitch,
+            // TODO can we find a camera roll?
             address: newPanoData.data.location.shortDescription,
             copyright: newPanoData.data.copyright,
             history: []

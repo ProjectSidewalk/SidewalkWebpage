@@ -146,6 +146,8 @@ class MapillaryViewer extends PanoViewer {
             this.currCenter = newCenter;
             this.currVerticalFov = newFov;
 
+            const pitchAndRoll = this.extractPitchRoll(this.currImage.rotation);
+
             // To get various info about the pano -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Image/
             // TODO merged, might want to record whether it's been merged thru sfm
             // TODO qualityScore is interesting: A number between zero and one determining the quality of the image. Blurriness, .......
@@ -160,10 +162,8 @@ class MapillaryViewer extends PanoViewer {
                 lat: this.currImage.lngLat.lat,
                 lng: this.currImage.lngLat.lng,
                 cameraHeading: this.currImage.compassAngle,
-                // TODO I think that we have camera pitch in renderCamera.camera.position.z. But actually seems really
-                //      important when it comes to Mapillary images... And that info should be available in the
-                //      renderCamera.camera.up vector.
-                cameraPitch: 0,
+                cameraPitch: pitchAndRoll.pitch,
+                cameraRoll: pitchAndRoll.roll,
                 copyright: this.currImage.creatorUsername,
                 history: [] // TODO could use /images endpoint to fill this. But can also see history in the UI https://www.mapillary.com/app/user/uwrapid?lat=47.66374856411&lng=-122.28224790652&z=17&x=0.5871305676894112&y=0.5159912788583514&zoom=0&panos=true&focus=photo&pKey=134748085384999&my_coverage=false&user_coverage=false
             }
@@ -214,6 +214,45 @@ class MapillaryViewer extends PanoViewer {
 
         return `https://graph.mapillary.com/images?${params.toString()}`;
     };
+
+    /**
+     * Extracts camera pitch and roll from a Mapillary image's rotation vector.
+     *
+     * Mapillary's coordinate system: X=East, Y=North, Z=Up.
+     * The image.rotation is an axis-angle vector representing the world-to-camera transform.
+     * Camera frame: +Z=forward, -Y=up, +X=right.
+     *
+     * NOTE I've tested that the pitch/roll values seem to be correct by transforming the original image like so:
+     * $ ffmpeg -i my-image.jpeg -vf "v360=e:e:pitch=-extractedPitch:roll=-extractedRoll" my-image-rotated.jpeg
+     *
+     * @param {number[]} rotation - The image.rotation axis-angle vector [rx, ry, rz].
+     * @returns {{ pitch: number, roll: number }} Pitch and roll in degrees.
+     *   Pitch: positive=looking up, negative=looking down.
+     *   Roll: positive=camera tilted clockwise (from photographer's perspective).
+     */
+    extractPitchRoll = (rotation) => {
+        // Invert the rotation to get camera-to-world.
+        const invR = [-rotation[0], -rotation[1], -rotation[2]];
+        const axis = new THREE.Vector3(...invR);
+        const angle = axis.length();
+        if (angle > 0) axis.normalize();
+        const matrix = new THREE.Matrix4().makeRotationAxis(axis, angle);
+
+        // Camera forward is [0,0,1]; camera up is [0,-1,0].
+        const viewDir = new THREE.Vector3(0, 0, 1).applyMatrix4(matrix);
+        const upDir = new THREE.Vector3(0, -1, 0).applyMatrix4(matrix);
+
+        // Pitch: elevation of viewing direction (Z=up in world frame).
+        const pitch = Math.asin(Math.max(-1, Math.min(1, viewDir.z))) * (180 / Math.PI);
+
+        // Roll: rotation of camera up-vector around the viewing axis, relative to the expected "level" up direction.
+        const worldUp = new THREE.Vector3(0, 0, 1);
+        const right = new THREE.Vector3().crossVectors(viewDir, worldUp).normalize();
+        const expectedUp = new THREE.Vector3().crossVectors(right, viewDir).normalize();
+        const roll = Math.atan2(upDir.dot(right), upDir.dot(expectedUp)) * (180 / Math.PI);
+
+        return { pitch, roll };
+    }
 
     setLocation = async (latLng, excludedPanos = new Set()) => {
         // Search for images near the coordinates.
