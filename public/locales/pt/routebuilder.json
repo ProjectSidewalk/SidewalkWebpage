@@ -1,0 +1,6 @@
+{
+    "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
+    "hover-add-street": "Clique na rua para começar a construir sua rota.",
+    "copied-to-clipboard": "Coiado para a área de transferência!",
+    "one-neighborhood-warning": "As rotas só podem ter ruas de um unico bairro nesse momento."
+}
