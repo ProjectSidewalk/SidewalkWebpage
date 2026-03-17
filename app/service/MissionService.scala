@@ -21,7 +21,7 @@ trait MissionService {
   def updateExploreProgressOnly(
       userId: String,
       missionId: Int,
-      distanceProgress: Float,
+      distanceProgress: Double,
       auditTaskId: Option[Int]
   ): DBIO[Option[Mission]]
   def resumeOrCreateNewAuditOnboardingMission(userId: String): DBIO[Option[Mission]]
@@ -84,7 +84,7 @@ class MissionServiceImpl @Inject() (
       userId: String,
       regionId: Int,
       missionId: Int,
-      distanceProgress: Float,
+      distanceProgress: Double,
       auditTaskId: Option[Int],
       skipped: Boolean
   ): DBIO[Option[Mission]] = {
@@ -100,7 +100,7 @@ class MissionServiceImpl @Inject() (
   def updateExploreProgressOnly(
       userId: String,
       missionId: Int,
-      distanceProgress: Float,
+      distanceProgress: Double,
       auditTaskId: Option[Int]
   ): DBIO[Option[Mission]] = {
     queryMissionTableExploreMissions(
@@ -147,7 +147,7 @@ class MissionServiceImpl @Inject() (
       regionId: Option[Int],
       retakingTutorial: Option[Boolean],
       missionId: Option[Int],
-      distanceProgress: Option[Float],
+      distanceProgress: Option[Double],
       auditTaskId: Option[Int],
       skipped: Option[Boolean]
   ): DBIO[Option[Mission]] = {
@@ -229,19 +229,19 @@ class MissionServiceImpl @Inject() (
       .getCurrentMissionInRegion(aiUserId, regionId)
       .flatMap {
         case Some(incompleteMission) => DBIO.successful(incompleteMission)
-        case _                       => missionTable.createNextAuditMission(aiUserId, Float.PositiveInfinity, regionId)
+        case _                       => missionTable.createNextAuditMission(aiUserId, Double.PositiveInfinity, regionId)
       }
   }
 
   /**
    * Get the suggested distance in meters for the next mission this user does in this region.
    */
-  private def getNextAuditMissionDistance(userId: String, regionId: Int): DBIO[Float] = {
+  private def getNextAuditMissionDistance(userId: String, regionId: Int): DBIO[Double] = {
     for {
-      distRemaining: Float   <- auditTaskTable.getUnauditedDistance(userId, regionId)
+      distRemaining: Double  <- auditTaskTable.getUnauditedDistance(userId, regionId)
       completedInRegion: Int <- missionTable.selectCompletedExploreMissions(userId, regionId).map(_.length)
     } yield {
-      val naiveMissionDist: Float =
+      val naiveMissionDist: Double =
         if (completedInRegion >= distancesForFirstAuditMissions.length)
           distanceForLaterMissions
         else
@@ -428,7 +428,7 @@ class MissionServiceImpl @Inject() (
         } else {
           if (missionProgress.distanceProgress.isEmpty)
             logger.error("Received null distance progress for audit mission.")
-          val distProgress: Float      = missionProgress.distanceProgress.get
+          val distProgress: Double     = missionProgress.distanceProgress.get
           val auditTaskId: Option[Int] = missionProgress.auditTaskId
 
           if (missionProgress.completed) {

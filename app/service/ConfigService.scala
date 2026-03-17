@@ -13,6 +13,7 @@ import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
+
 import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.duration.Duration
@@ -126,7 +127,7 @@ trait ConfigService {
   def getCityName(lang: Lang): String
   def getAiTagSuggestionsEnabled: Boolean
   def getPanoSource: PanoSource
-  def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Float): Future[Int]
+  def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Double): Future[Int]
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T]
   def getCommonPageData(lang: Lang): Future[CommonPageData]
 }
@@ -551,7 +552,7 @@ class ConfigServiceImpl @Inject() (
    * @param timeSpent     Total time spent on those contributions in seconds.
    * @return Response code from the API request.
    */
-  def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Float): Future[Int] = {
+  def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Double): Future[Int] = {
     // Make API call, logging any errors.
     ws.url("https://scistarter.org/api/participation/hashed/project-sidewalk")
       .withQueryStringParameters("key" -> config.get[String]("scistarter-api-key"))

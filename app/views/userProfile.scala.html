@@ -375,7 +375,7 @@
                                 <td class="col-md-2">@mission.missionType</td>
                                 <td class="col-md-1">@mission.regionId.map(_.toString).getOrElse("N/A")</td>
                                 <td class="col-md-2">@mission.regionName.getOrElse("N/A")</td>
-                                <td class="col-md-2">@("%1.1f".format(mission.distanceMeters.getOrElse(0F))) / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) * 3.28084F)} / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) / 1609.344051499F)}</td>
+                                <td class="col-md-2">@("%1.1f".format(mission.distanceMeters.getOrElse(0d))) / @{"%1.1f".format(mission.distanceMeters.getOrElse(0d) * 3.28084d)} / @{"%1.1f".format(mission.distanceMeters.getOrElse(0d) / 1609.344051499d)}</td>
                                 <td class="col-md-1">@mission.labelsValidated.getOrElse(0)</td>
                                 <td class="col-md-3 timestamp">@mission.missionEnd</td>
                             </tr>

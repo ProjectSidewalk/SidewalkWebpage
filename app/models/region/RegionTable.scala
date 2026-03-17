@@ -8,6 +8,7 @@ import models.utils.MyPostgresProfile.api._
 import models.utils.{LatLngBBox, MyPostgresProfile}
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+
 import javax.inject._
 import scala.concurrent.ExecutionContext
 
@@ -141,7 +142,7 @@ class RegionTable @Inject() (
    * @param latLngs Seq of lat/lng pairs to find the closest region for.
    * @return Seq of region_ids that are the closest region to the corresponding lat/lng in the input Seq.
    */
-  def getRegionIdClosestToLatLngs(latLngs: Seq[(Float, Float)]): DBIO[Seq[Int]] = {
+  def getRegionIdClosestToLatLngs(latLngs: Seq[(Double, Double)]): DBIO[Seq[Int]] = {
     if (latLngs.isEmpty) {
       DBIO.successful(Seq.empty)
     } else {

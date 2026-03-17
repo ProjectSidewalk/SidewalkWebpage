@@ -61,8 +61,8 @@ case class LabelLocation(
     auditTaskId: Int,
     panoId: String,
     labelType: String,
-    lat: Float,
-    lng: Float,
+    lat: Double,
+    lng: Double,
     correct: Option[Boolean],
     hasValidations: Boolean
 )
@@ -71,8 +71,8 @@ case class LabelForLabelMap(
     labelId: Int,
     auditTaskId: Int,
     labelType: String,
-    lat: Float,
-    lng: Float,
+    lat: Double,
+    lng: Double,
     correct: Option[Boolean],
     hasValidations: Boolean,
     aiValidation: Option[Int],
@@ -83,19 +83,14 @@ case class LabelForLabelMap(
 )
 
 case class TagCount(labelType: String, tag: String, count: Int)
-case class LabelSeverityStats(
-    n: Int,
-    nWithSeverity: Option[Int],
-    severityMean: Option[Float],
-    severitySD: Option[Float]
-)
-case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float], nWithValidation: Int)
+case class LabelSevStats(n: Int, nWithSeverity: Option[Int], severityMean: Option[Double], severitySD: Option[Double])
+case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Double], nWithValidation: Int)
 case class AiConcurrence(aiYesHumanConcurs: Int, aiYesHumanDiffers: Int, aiNoHumanDiffers: Int, aiNoHumanConcurs: Int)
 case class ProjectSidewalkStats(
     launchDate: String,
     avgTimestampLast100Labels: Option[OffsetDateTime],
-    kmExplored: Float,
-    kmExploreNoOverlap: Float,
+    kmExplored: Double,
+    kmExploreNoOverlap: Double,
     nUsers: Int,
     nExplorers: Int,
     nValidators: Int,
@@ -107,7 +102,7 @@ case class ProjectSidewalkStats(
     nLabelsWithSeverity: Int,
     avgLabelTimestamp: Option[OffsetDateTime],
     avgImageAgeByLabel: Option[Duration],
-    severityByLabelType: Map[String, LabelSeverityStats],
+    severityByLabelType: Map[String, LabelSevStats],
     nValidations: Int,
     accuracyByLabelType: Map[String, LabelAccuracy],
     aiPerformance: Map[String, Map[String, AiConcurrence]]
@@ -182,8 +177,8 @@ case class LabelCVMetadata(
     canvasX: Int,
     canvasY: Int,
     zoom: Double,
-    heading: Float,
-    pitch: Float,
+    heading: Double,
+    pitch: Double,
     cameraHeading: Double,
     cameraPitch: Double,
     cameraRoll: Option[Double]
@@ -217,8 +212,8 @@ case class LabelValidationMetadata(
     panoId: String,
     imageCaptureDate: String,
     timestamp: OffsetDateTime,
-    lat: Float,
-    lng: Float,
+    lat: Double,
+    lng: Double,
     pov: POV,
     canvasXY: LocationXY,
     severity: Option[Int],
@@ -313,8 +308,8 @@ object LabelTable {
       String,                           // panoId
       String,                           // imageCaptureDate
       OffsetDateTime,                   // timestamp
-      Option[Float],                    // lat
-      Option[Float],                    // lng
+      Option[Double],                   // lat
+      Option[Double],                   // lng
       (Double, Double, Double),         // pov (heading, pitch, zoom)
       (Int, Int),                       // canvasXY (x, y)
       Option[Int],                      // severity
@@ -336,8 +331,8 @@ object LabelTable {
       Rep[String],                                          // panoId
       Rep[String],                                          // imageCaptureDate
       Rep[OffsetDateTime],                                  // timestamp
-      Rep[Option[Float]],                                   // lat
-      Rep[Option[Float]],                                   // lng
+      Rep[Option[Double]],                                  // lat
+      Rep[Option[Double]],                                  // lng
       (Rep[Double], Rep[Double], Rep[Double]),              // pov (heading, pitch, zoom)
       (Rep[Int], Rep[Int]),                                 // canvasXY (x, y)
       Rep[Option[Int]],                                     // severity
@@ -381,8 +376,8 @@ object LabelTable {
       Int,           // canvasX
       Int,           // canvasY
       Double,        // zoom
-      Float,         // heading
-      Float,         // pitch
+      Double,        // heading
+      Double,        // pitch
       Double,        // cameraHeading
       Double,        // cameraPitch
       Option[Double] // cameraRoll
@@ -570,8 +565,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     ProjectSidewalkStats(
       r.nextString(),
       r.nextOffsetDateTimeOption(),
-      r.nextFloat(),
-      r.nextFloat(),
+      r.nextDouble(),
+      r.nextDouble(),
       r.nextInt(),
       r.nextInt(),
       r.nextInt(),
@@ -584,29 +579,29 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextOffsetDateTimeOption(),
       r.nextDurationOption(),
       Map(
-        CurbRamp.name   -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        NoCurbRamp.name -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        Obstacle.name   -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
+        CurbRamp.name   -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
+        NoCurbRamp.name -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
+        Obstacle.name   -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
         SurfaceProblem.name ->
-          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        NoSidewalk.name -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        Crosswalk.name  -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        Signal.name     -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        Occlusion.name  -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        Other.name      -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption())
+          LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
+        NoSidewalk.name -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
+        Crosswalk.name  -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
+        Signal.name     -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
+        Occlusion.name  -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
+        Other.name      -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption())
       ),
       r.nextInt(),
       Map(
-        "Overall"           -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        CurbRamp.name       -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        NoCurbRamp.name     -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        Obstacle.name       -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        SurfaceProblem.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        NoSidewalk.name     -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        Crosswalk.name      -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        Signal.name         -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        Occlusion.name      -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        Other.name          -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt())
+        "Overall"           -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        CurbRamp.name       -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        NoCurbRamp.name     -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        Obstacle.name       -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        SurfaceProblem.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        NoSidewalk.name     -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        Crosswalk.name      -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        Signal.name         -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        Occlusion.name      -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        Other.name          -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt())
       ),
       Map(
         "Overall" -> Map(
@@ -1204,14 +1199,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       }
     }
 
-    // Filter for labels along the given route. Distance experimentally set to 0.0005 degrees. Would like to switch to
-    // different SRID and use meters: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3655.
+    // Filter for labels along the given route. Distance experimentally set to 30 meters.
     val _labelsNearRoute = if (routeIds.nonEmpty) {
       (for {
         _rs <- routeStreets if _rs.routeId inSetBind routeIds
         _se <- streets if _rs.streetEdgeId === _se.streetEdgeId
         _l  <- _labelsFilteredByAiValidation if _se.streetEdgeId === _l._2 ||
-          _se.geom.distance(makePoint(_l._6.asColumnOf[Double], _l._5.asColumnOf[Double]).setSRID(4326)) < 0.0005f
+          _se.geom.distanceSphereD(makePoint(_l._6.asColumnOf[Double], _l._5.asColumnOf[Double]).setSRID(4326)) < 30d
       } yield _l).distinct
     } else {
       _labelsFilteredByAiValidation
@@ -1305,12 +1299,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Select street_edge_id of street closest to lat/lng position.
    */
-  def getStreetEdgeIdClosestToLatLng(lat: Float, lng: Float): DBIO[Int] = {
+  def getStreetEdgeIdClosestToLatLng(lat: Double, lng: Double): DBIO[Int] = {
     streets
       .filterNot(_.deleted)
-      .map(s =>
-        (s.streetEdgeId, s.geom.distance(makePoint(lng.asColumnOf[Double], lat.asColumnOf[Double]).setSRID(4326)))
-      )
+      .map(s => (s.streetEdgeId, s.geom.distanceSphereD(makePoint(lng.bind, lat.bind).setSRID(4326))))
       .sortBy(_._2)
       .map(_._1)
       .take(1)

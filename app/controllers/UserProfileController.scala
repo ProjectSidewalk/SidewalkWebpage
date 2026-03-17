@@ -116,7 +116,7 @@ class UserProfileController @Inject() (
                 "type"     -> "Feature",
                 "geometry" -> Json.obj(
                   "type"        -> "Point",
-                  "coordinates" -> Json.arr(label.lng.toDouble, label.lat.toDouble)
+                  "coordinates" -> Json.arr(label.lng, label.lat)
                 ),
                 "properties" -> Json.obj(
                   "audit_task_id"   -> label.auditTaskId,
@@ -205,14 +205,14 @@ class UserProfileController @Inject() (
     val userId: String = request.identity.userId
 
     // Get distance audited by the user. Convert meters to km if using metric system, to miles if using IS.
-    val auditedDistance: Future[Float] = userService
+    val auditedDistance: Future[Double] = userService
       .getDistanceAudited(userId)
       .map(auditedDistance => {
-        if (Messages("measurement.system") == "metric") auditedDistance / 1000f
+        if (Messages("measurement.system") == "metric") auditedDistance / 1000d
         else auditedDistance * METERS_TO_MILES
       })
-    val labelCount: Future[Int]         = userService.countLabelsFromUser(userId)
-    val accuracy: Future[Option[Float]] = userService.getUserAccuracy(userId)
+    val labelCount: Future[Int]          = userService.countLabelsFromUser(userId)
+    val accuracy: Future[Option[Double]] = userService.getUserAccuracy(userId)
 
     // Run in parallel and return the results as a JSON object.
     for {

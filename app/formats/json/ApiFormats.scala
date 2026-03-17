@@ -29,18 +29,18 @@ object ApiFormats {
       (__ \ "deleted").write[Boolean]
   )(unlift(Region.unapply))
 
-  implicit val labelSeverityStatsWrites: Writes[LabelSeverityStats] = (
+  implicit val labelSeverityStatsWrites: Writes[LabelSevStats] = (
     (__ \ "count").write[Int] and
       (__ \ "count_with_severity").write[Option[Int]] and
-      (__ \ "severity_mean").write[Option[Float]] and
-      (__ \ "severity_sd").write[Option[Float]]
-  )(unlift(LabelSeverityStats.unapply))
+      (__ \ "severity_mean").write[Option[Double]] and
+      (__ \ "severity_sd").write[Option[Double]]
+  )(unlift(LabelSevStats.unapply))
 
   implicit val labelAccuracyWrites: Writes[LabelAccuracy] = (
     (__ \ "validated").write[Int] and
       (__ \ "agreed").write[Int] and
       (__ \ "disagreed").write[Int] and
-      (__ \ "accuracy").writeNullable[Float] and
+      (__ \ "accuracy").writeNullable[Double] and
       (__ \ "has_a_validation").write[Int]
   )(unlift(LabelAccuracy.unapply))
 
@@ -303,8 +303,8 @@ object ApiFormats {
       (__ \ "canvas_x").write[Int] and
       (__ \ "canvas_y").write[Int] and
       (__ \ "zoom").write[Double] and
-      (__ \ "heading").write[Float] and
-      (__ \ "pitch").write[Float] and
+      (__ \ "heading").write[Double] and
+      (__ \ "pitch").write[Double] and
       (__ \ "camera_heading").write[Double] and
       (__ \ "camera_pitch").write[Double] and
       (__ \ "camera_roll").writeNullable[Double]
