@@ -42,7 +42,7 @@ class PanoData {
         // Validate numeric parameters.
         const numericParams = ['lat', 'lng', 'cameraHeading', 'cameraPitch', 'cameraRoll', 'width', 'height'];
         numericParams.forEach(param => {
-            if (typeof params[param] !== 'number' || isNaN(params[param])) {
+            if (params[param] !== undefined && (typeof params[param] !== 'number' || isNaN(params[param]))) {
                 throw new Error(`${param} must be a valid number`);
             }
         });
