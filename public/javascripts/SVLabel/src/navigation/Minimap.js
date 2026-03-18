@@ -37,9 +37,6 @@ class Minimap {
         };
         this.#map = new Map(document.getElementById('minimap'), mapOptions);
 
-        // Add listener to the PanoViewer to update observed area on the minimap when zoom changes.
-        svl.panoViewer.addListener('zoom_changed', this.handlerZoomChange);
-
         // Return a promise that resolves once the map is idle (and therefore fully initialized).
         return new Promise((resolve) => {
             const listener = google.maps.event.addListener(this.#map, 'idle', async () => {
@@ -73,16 +70,6 @@ class Minimap {
      */
     getMap() {
         return this.#map;
-    }
-
-    /**
-     * Callback for zoom update; updates the observed area view.
-     */
-     handlerZoomChange() {
-        if ("observedArea" in svl) { svl.observedArea.update(); }
-
-        // TODO it makes more sense for this to be tracked from PanoManager (when we setPov), but might need this if we enable scroll zoom.
-        svl.tracker.push("Zoom_Changed");
     }
 
     /**
