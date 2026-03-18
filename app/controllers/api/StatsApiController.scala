@@ -37,9 +37,9 @@ class StatsApiController @Inject() (
    */
   def getUserApiStats(
       minLabels: Option[Int],
-      minMetersExplored: Option[Float],
+      minMetersExplored: Option[Double],
       highQualityOnly: Option[Boolean],
-      minAccuracy: Option[Float],
+      minAccuracy: Option[Double],
       filetype: Option[String]
   ) = silhouette.UserAwareAction.async { implicit request =>
     // Use the updated service method that applies filters at the service level.

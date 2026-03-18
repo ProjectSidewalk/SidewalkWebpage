@@ -248,6 +248,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         svl.panoManager.disablePanning();
         svl.canvas.disableLabeling();
         svl.keyboard.setStatus("disableKeyboard", true);
+        disableWalking();
     }
 
     /**

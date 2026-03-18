@@ -9,6 +9,8 @@ import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
 import org.n52.jackson.datatype.jts.JtsModule
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json._
+import slick.ast.TypedType
+import slick.lifted.ExtensionMethods
 
 trait MyPostgresProfile
     extends ExPostgresProfile
@@ -58,6 +60,23 @@ trait MyPostgresProfile
     implicit val multiPolygonWrites: Writes[MultiPolygon] = geometryWrites.contramap(identity)
     implicit val lineStringWrites: Writes[LineString]     = geometryWrites.contramap(identity)
     implicit val pointWrites: Writes[Point]               = geometryWrites.contramap(identity)
+
+    /**
+     * Extension methods that correct slick-pg's spatial measurement return types from Float to Double, matching
+     * PostGIS's actual `double precision` returns. For any new function we want to add, just copy from
+     * PgPostGISExtensions.scala and change from Float to Double.
+     */
+    implicit class GeometryDoubleMeasurements[G1 <: Geometry, P1](val c: Rep[P1]) extends ExtensionMethods[G1, P1] {
+      implicit protected def b1Type: TypedType[G1] = implicitly[TypedType[Geometry]].asInstanceOf[TypedType[G1]]
+
+      def lengthD[R](implicit om: o#to[Double, R]): Rep[R] = om.column(GeomLibrary.Length, n)
+
+      def distanceSphereD[P2, R](geom: Rep[P2])(implicit om: o#to[Double, R]): Rep[R] =
+        om.column(GeomLibrary.DistanceSphere, n, geom.toNode)
+
+      def azimuthD[P2, R](geom: Rep[P2])(implicit om: o#to[Double, R]): Rep[R] =
+        om.column(GeomLibrary.Azimuth, n, geom.toNode)
+    }
 
     // New mapper for Seq[ExcludedTag] stored as JSONB.
     implicit val excludedTagListMapper: DriverJdbcType[Seq[ExcludedTag]] =

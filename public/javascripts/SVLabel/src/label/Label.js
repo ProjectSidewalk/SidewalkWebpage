@@ -10,11 +10,11 @@ function Label(params) {
 
     var googleMarker;
 
-    // Parameters determined from a series of linear regressions. Here links to the analysis and relevant Github issues:
+    // Parameters determined from a series of linear regressions. Here links to the analysis and relevant GitHub issues:
     // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
     // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2374
     // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2362
-    var LATLNG_ESTIMATION_PARAMS = {
+    const LATLNG_ESTIMATION_PARAMS = {
         1: {
             headingIntercept: -51.2401711,
             headingCanvasXSlope: 0.1443374,
@@ -37,9 +37,9 @@ function Label(params) {
             distanceCanvasYSlope: 0.0011071
         }
     };
-    var HOVER_INFO_HEIGHT = 20;
+    const HOVER_INFO_HEIGHT = 20;
 
-    var properties = {
+    const properties = {
         labelId: 'DefaultValue',
         auditTaskId: undefined,
         missionId: undefined,
@@ -67,16 +67,16 @@ function Label(params) {
         crop: undefined
     };
 
-    var status = {
+    const status = {
         deleted : false,
         hoverInfoVisibility : 'visible',
         visibility : 'visible'
     };
 
-    var hoverInfoProperties = util.misc.getSeverityDescription();
+    const hoverInfoProperties = util.misc.getSeverityDescription();
 
     function _init(param) {
-        for (var attrName in param) {
+        for (const attrName in param) {
             if (param.hasOwnProperty(attrName) && properties.hasOwnProperty(attrName)) {
                 properties[attrName] = param[attrName];
             }
@@ -355,31 +355,42 @@ function Label(params) {
     function toLatLng() {
         if (!properties.labelLat) {
             // Estimate the latlng point from the camera position and the heading when point cloud data isn't available.
-            var panoLat = getProperty("panoLat");
-            var panoLng = getProperty("panoLng");
-            var heading = getProperty("originalPov").heading;
-            // TODO rounding here could definitely throw things off!!
-            var zoom = Math.round(getProperty("originalPov").zoom); // Need to round specifically for Safari.
-            var canvasX = getProperty('originalCanvasXY').x;
-            var canvasY = getProperty('originalCanvasXY').y;
-            var panoY = getProperty('panoXY').y;
-            var panoHeight = getProperty('panoHeight');
+            const panoLat = getProperty("panoLat");
+            const panoLng = getProperty("panoLng");
+            const heading = getProperty("originalPov").heading;
+            const canvasX = getProperty('originalCanvasXY').x;
+            const canvasY = getProperty('originalCanvasXY').y;
+            const panoY = getProperty('panoXY').y;
+            const panoHeight = getProperty('panoHeight');
+
             // Estimate heading diff and distance from pano using output from a regression analysis.
             // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
-            var estHeadingDiff =
-                LATLNG_ESTIMATION_PARAMS[zoom].headingIntercept +
-                LATLNG_ESTIMATION_PARAMS[zoom].headingCanvasXSlope * canvasX;
-            var estDistanceFromPanoKm = Math.max(0,
-                LATLNG_ESTIMATION_PARAMS[zoom].distanceIntercept +
-                LATLNG_ESTIMATION_PARAMS[zoom].distancePanoYSlope * (panoHeight / 2 - panoY) +
-                LATLNG_ESTIMATION_PARAMS[zoom].distanceCanvasYSlope * canvasY
+            // Note that the regression analysis was done when our zoom levels were discrete integers. We now allow zoom
+            // to be noninteger, so we're doing a linear interpolation between the params at the two zoom levels.
+            const minZoom = Math.min(svl.zoomControl.getProperty('minZoomLevel'));
+            const maxZoom = Math.min(svl.zoomControl.getProperty('maxZoomLevel'));
+            const zoom = Math.min(maxZoom, Math.max(minZoom, getProperty("originalPov").zoom));
+
+            const floor = LATLNG_ESTIMATION_PARAMS[Math.floor(zoom)];
+            const ceiling = LATLNG_ESTIMATION_PARAMS[Math.ceil(zoom)];
+            const t = zoom - Math.floor(zoom); // 0 when floor === ceiling.
+
+            const headingIntercept = util.math.lerp(floor.headingIntercept, ceiling.headingIntercept, t);
+            const headingCanvasXSlope = util.math.lerp(floor.headingCanvasXSlope, ceiling.headingCanvasXSlope, t);
+            const distanceIntercept = util.math.lerp(floor.distanceIntercept, ceiling.distanceIntercept, t);
+            const distancePanoYSlope = util.math.lerp(floor.distancePanoYSlope, ceiling.distancePanoYSlope, t);
+            const distanceCanvasYSlope = util.math.lerp(floor.distanceCanvasYSlope, ceiling.distanceCanvasYSlope, t);
+
+            const estHeadingDiff = headingIntercept + headingCanvasXSlope * canvasX;
+            const estDistanceFromPanoKm = Math.max(0,
+                distanceIntercept + distancePanoYSlope * (panoHeight / 2 - panoY) + distanceCanvasYSlope * canvasY
             ) / 1000.0;
-            var estHeading = heading + estHeadingDiff;
-            var startPoint = turf.point([panoLng, panoLat]);
+            const estHeading = heading + estHeadingDiff;
+            const startPoint = turf.point([panoLng, panoLat]);
 
             // Use the pano location, distance from pano estimate, and heading estimate, calculate label location.
-            var destination = turf.destination(startPoint, estDistanceFromPanoKm, estHeading, { units: 'kilometers' });
-            var latlng = {
+            const destination = turf.destination(startPoint, estDistanceFromPanoKm, estHeading, { units: 'kilometers' });
+            const latlng = {
                 lat: destination.geometry.coordinates[1],
                 lng: destination.geometry.coordinates[0],
                 latLngComputationMethod: 'approximation2'

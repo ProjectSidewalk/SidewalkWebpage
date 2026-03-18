@@ -48,7 +48,7 @@ class PanoManager {
     async #init(panoViewerType, viewerAccessToken, params = {}, errorParams) {
         let panoOptions = {
             accessToken: viewerAccessToken,
-            linksControl: false // We create our own navigation arrows.
+            defaultNavigation: false // We create our own navigation arrows.
         };
 
         // Add the starting location to panoOptions.

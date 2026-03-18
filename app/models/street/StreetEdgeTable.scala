@@ -45,10 +45,10 @@ case class StreetLabelStats(
 case class StreetEdge(
     streetEdgeId: Int,
     geom: LineString,
-    x1: Float,
-    y1: Float,
-    x2: Float,
-    y2: Float,
+    x1: Double,
+    y1: Double,
+    x2: Double,
+    y2: Double,
     wayType: String,
     deleted: Boolean,
     timestamp: Option[OffsetDateTime]
@@ -58,10 +58,10 @@ case class StreetEdgeInfo(val street: StreetEdge, osmId: Long, regionId: Int, va
 class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge") {
   def streetEdgeId: Rep[Int]                 = column[Int]("street_edge_id", O.PrimaryKey)
   def geom                                   = column[LineString]("geom")
-  def x1: Rep[Float]                         = column[Float]("x1")
-  def y1: Rep[Float]                         = column[Float]("y1")
-  def x2: Rep[Float]                         = column[Float]("x2")
-  def y2: Rep[Float]                         = column[Float]("y2")
+  def x1: Rep[Double]                        = column[Double]("x1")
+  def y1: Rep[Double]                        = column[Double]("y1")
+  def x2: Rep[Double]                        = column[Double]("x2")
+  def y2: Rep[Double]                        = column[Double]("y2")
   def wayType: Rep[String]                   = column[String]("way_type")
   def deleted: Rep[Boolean]                  = column[Boolean]("deleted", O.Default(false))
   def timestamp: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("timestamp")
@@ -87,10 +87,10 @@ class StreetEdgeTable @Inject() (
       StreetEdge(
         r.nextInt(),
         r.nextGeometry[LineString](),
-        r.nextFloat(),
-        r.nextFloat(),
-        r.nextFloat(),
-        r.nextFloat(),
+        r.nextDouble(),
+        r.nextDouble(),
+        r.nextDouble(),
+        r.nextDouble(),
         r.nextString(),
         r.nextBoolean(),
         r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC))
@@ -139,15 +139,15 @@ class StreetEdgeTable @Inject() (
   /**
    * Get the total street distance in meters.
    */
-  def totalStreetDistance: DBIO[Float] = {
-    streetEdgesWithoutDeleted.map(_.geom.transform(26918).length).sum.result.map(x => x.getOrElse(0.0f))
+  def totalStreetDistance: DBIO[Double] = {
+    streetEdgesWithoutDeleted.map(_.geom.transform(26918).lengthD).sum.result.map(x => x.getOrElse(0.0d))
   }
 
   /**
    * Get the total street distance in meters for all streets that have been audited.
    * @param highQualityOnly if true, only count high quality audits.
    */
-  def auditedStreetDistance(highQualityOnly: Boolean = false): DBIO[Float] = {
+  def auditedStreetDistance(highQualityOnly: Boolean = false): DBIO[Double] = {
     val filteredTasks = if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks
 
     // Get the street edges that have been audited.
@@ -157,14 +157,14 @@ class StreetEdgeTable @Inject() (
     } yield _edges
 
     // Get length of each street segment, sum the lengths, and convert from meters to miles.
-    edges.distinctOn(_.streetEdgeId).map(_.geom.transform(26918).length).sum.getOrElse(0f).result
+    edges.distinctOn(_.streetEdgeId).map(_.geom.transform(26918).lengthD).sum.getOrElse(0d).result
   }
 
   /**
    * Get the total street distance in meters for all streets that have been audited, grouped by role.
    * @param highQualityOnly if true, only count high quality audits.
    */
-  def auditedStreetDistanceByRole(highQualityOnly: Boolean = false): DBIO[Map[String, Float]] = {
+  def auditedStreetDistanceByRole(highQualityOnly: Boolean = false): DBIO[Map[String, Double]] = {
     val filteredTasks = if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks
 
     // Group by role and sum distance of distinct street edges.
@@ -176,7 +176,7 @@ class StreetEdgeTable @Inject() (
     } yield (_role._2, _edges.streetEdgeId, _edges.geom))
       .distinctOn(x => (x._1, x._2)) // Distinct by role and street_edge_id since we can't do it within the groupBy.
       .groupBy(x => x._1)
-      .map { case (role, rows) => (role, rows.map(_._3.transform(26918).length).sum.getOrElse(0f)) }
+      .map { case (role, rows) => (role, rows.map(_._3.transform(26918).lengthD).sum.getOrElse(0d)) }
       .result
       .map(_.toMap)
   }
@@ -187,7 +187,7 @@ class StreetEdgeTable @Inject() (
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    * @return The total distance audited by all users in miles.
    */
-  def auditedStreetDistanceOverTime(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[Float] = {
+  def auditedStreetDistanceOverTime(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[Double] = {
     // Filter by the given time interval.
     val tasksEndedInTimeInterval = timeInterval match {
       case TimeInterval.Today => auditTasks.filter(a => a.taskEnd > OffsetDateTime.now().minusDays(1))
@@ -199,17 +199,17 @@ class StreetEdgeTable @Inject() (
       .join(tasksEndedInTimeInterval)
       .on(_.streetEdgeId === _.streetEdgeId)
       .filter { case (street, task) => street.deleted === false && task.completed === true }
-      .map { case (street, task) => street.geom.transform(26918).length }
+      .map { case (street, task) => street.geom.transform(26918).lengthD }
       .sum
       .result
-      .map(_.getOrElse(0.0f))
+      .map(_.getOrElse(0.0d))
   }
 
   /**
    * Computes distances of the city audited by date.
    * @return Dates and the distance of newly audited streets on those dates in meters.
    */
-  def streetDistanceCompletionRateByDate: DBIO[Seq[(OffsetDateTime, Float)]] = {
+  def streetDistanceCompletionRateByDate: DBIO[Seq[(OffsetDateTime, Double)]] = {
     completedAuditTasks
       // Get date of earliest completed audit of each street.
       .groupBy(_.streetEdgeId)
@@ -219,7 +219,7 @@ class StreetEdgeTable @Inject() (
       .on(_._1 === _.streetEdgeId)
       // Group by date and sum the distances.
       .groupBy(_._1._2)
-      .map { case (date, rows) => (date, rows.map(_._2.geom.transform(26918).length).sum.getOrElse(0f)) }
+      .map { case (date, rows) => (date, rows.map(_._2.geom.transform(26918).lengthD).sum.getOrElse(0d)) }
       // Set the date to no longer be an option (it's forced to an option when calling .min above).
       .result
       .map(_.collect { case (Some(date), dist) => (date, dist) })
@@ -434,10 +434,12 @@ class StreetEdgeTable @Inject() (
    * @param streetEdgeId The ID of the street edge to calculate the direction for
    * @return A DBIO action that returns an Option containing the azimuth in radians
    */
-  def directionFromStart(streetEdgeId: Int): DBIO[Option[Float]] = {
-    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).map { street =>
-      street.geom.startPoint.azimuth(street.geom.pointN(2))
-    }.result.headOption
+  def directionFromStart(streetEdgeId: Int): DBIO[Option[Double]] = {
+    streetEdgesWithoutDeleted
+      .filter(_.streetEdgeId === streetEdgeId)
+      .map { street => street.geom.startPoint.azimuthD(street.geom.pointN(2)) }
+      .result
+      .headOption
   }
 
   /**
@@ -445,9 +447,11 @@ class StreetEdgeTable @Inject() (
    * @param streetEdgeId The ID of the street edge to calculate the direction for
    * @return A DBIO action that returns an Option containing the azimuth in radians
    */
-  def directionFromEnd(streetEdgeId: Int): DBIO[Option[Float]] = {
-    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).map { street =>
-      street.geom.endPoint.azimuth(street.geom.pointN(street.geom.nPoints - 1))
-    }.result.headOption
+  def directionFromEnd(streetEdgeId: Int): DBIO[Option[Double]] = {
+    streetEdgesWithoutDeleted
+      .filter(_.streetEdgeId === streetEdgeId)
+      .map { street => street.geom.endPoint.azimuthD(street.geom.pointN(street.geom.nPoints - 1)) }
+      .result
+      .headOption
   }
 }

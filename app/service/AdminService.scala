@@ -33,10 +33,10 @@ case class StreetCountsData(
     withOverlap: Map[TimeInterval, Int]
 )
 case class StreetDistanceData(
-    total: Float,
-    audited: Map[String, Float],
-    auditedHighQualityOnly: Map[String, Float],
-    withOverlap: Map[TimeInterval, Float]
+    total: Double,
+    audited: Map[String, Double],
+    auditedHighQualityOnly: Map[String, Double],
+    withOverlap: Map[TimeInterval, Double]
 )
 case class CoverageData(streetCounts: StreetCountsData, streetDistance: StreetDistanceData)
 
@@ -63,7 +63,7 @@ trait AdminService {
   def getValidationCountStats: Future[Seq[ValidationCount]]
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]]
   def getUserStatsForAdminPage: Future[Seq[UserStatsForAdminPage]]
-  def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Float)]]
+  def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Double)]]
   def updateUserStatTable(cutoffTime: OffsetDateTime): Future[Int]
 }
 
@@ -115,7 +115,7 @@ class AdminServiceImpl @Inject() (
     db.run(for {
       currRegion: Option[Region]              <- userCurrentRegionTable.getCurrentRegion(userId)
       completedAudits: Int                    <- auditTaskTable.countCompletedAuditsForUser(userId)
-      hoursWorked: Float                      <- auditTaskInteractionTable.getHoursAuditingAndValidating(userId)
+      hoursWorked: Double                     <- auditTaskInteractionTable.getHoursAuditingAndValidating(userId)
       userStats: Option[UserStat]             <- userStatTable.getStatsFromUserId(userId)
       completedMissions: Seq[RegionalMission] <- missionTable.selectCompletedRegionalMission(userId)
       comments: Seq[AuditTaskComment]         <- auditTaskCommentTable.all(userId)
@@ -127,22 +127,22 @@ class AdminServiceImpl @Inject() (
   def getCoverageData: Future[CoverageData] = {
     val ALL_ROLES = Seq("All", "Registered", "Anonymous", "Turker", "Researcher")
     db.run(for {
-      totalStreetCount: Int                 <- streetService.getStreetCountDBIO
-      auditedStreetCount: Int               <- streetEdgeTable.countDistinctAuditedStreets()
-      auditedStreetCountHQ: Int             <- streetEdgeTable.countDistinctAuditedStreets(highQualityOnly = true)
-      auditCountByRole: Map[String, Int]    <- streetEdgeTable.countDistinctAuditedStreetsByRole()
-      auditCountByRoleHQ: Map[String, Int]  <- streetEdgeTable.countDistinctAuditedStreetsByRole(highQualityOnly = true)
-      auditCountAllTime: Int                <- auditTaskTable.countCompletedAudits()
-      auditCountPastWeek: Int               <- auditTaskTable.countCompletedAudits(TimeInterval.Week)
-      auditCountToday: Int                  <- auditTaskTable.countCompletedAudits(TimeInterval.Today)
-      totalStreetDist: Float                <- streetService.getTotalStreetDistanceDBIO
-      auditedDist: Float                    <- streetEdgeTable.auditedStreetDistance()
-      auditedDistHQ: Float                  <- streetEdgeTable.auditedStreetDistance(highQualityOnly = true)
-      auditedDistByRole: Map[String, Float] <- streetEdgeTable.auditedStreetDistanceByRole()
-      auditedDistByRoleHQ: Map[String, Float] <- streetEdgeTable.auditedStreetDistanceByRole(highQualityOnly = true)
-      auditedDistAllTime: Float               <- streetEdgeTable.auditedStreetDistanceOverTime()
-      auditedDistPastWeek: Float              <- streetEdgeTable.auditedStreetDistanceOverTime(TimeInterval.Week)
-      auditedDistToday: Float                 <- streetEdgeTable.auditedStreetDistanceOverTime(TimeInterval.Today)
+      totalStreetCount: Int                <- streetService.getStreetCountDBIO
+      auditedStreetCount: Int              <- streetEdgeTable.countDistinctAuditedStreets()
+      auditedStreetCountHQ: Int            <- streetEdgeTable.countDistinctAuditedStreets(highQualityOnly = true)
+      auditCountByRole: Map[String, Int]   <- streetEdgeTable.countDistinctAuditedStreetsByRole()
+      auditCountByRoleHQ: Map[String, Int] <- streetEdgeTable.countDistinctAuditedStreetsByRole(highQualityOnly = true)
+      auditCountAllTime: Int               <- auditTaskTable.countCompletedAudits()
+      auditCountPastWeek: Int              <- auditTaskTable.countCompletedAudits(TimeInterval.Week)
+      auditCountToday: Int                 <- auditTaskTable.countCompletedAudits(TimeInterval.Today)
+      totalStreetDist: Double              <- streetService.getTotalStreetDistanceDBIO
+      auditedDist: Double                  <- streetEdgeTable.auditedStreetDistance()
+      auditedDistHQ: Double                <- streetEdgeTable.auditedStreetDistance(highQualityOnly = true)
+      auditedDistByRole: Map[String, Double]   <- streetEdgeTable.auditedStreetDistanceByRole()
+      auditedDistByRoleHQ: Map[String, Double] <- streetEdgeTable.auditedStreetDistanceByRole(highQualityOnly = true)
+      auditedDistAllTime: Double               <- streetEdgeTable.auditedStreetDistanceOverTime()
+      auditedDistPastWeek: Double              <- streetEdgeTable.auditedStreetDistanceOverTime(TimeInterval.Week)
+      auditedDistToday: Double                 <- streetEdgeTable.auditedStreetDistanceOverTime(TimeInterval.Today)
     } yield {
       // Make sure that each role has a value in all maps, default to 0.
       val fullAuditCountByRole: Map[String, Int] = ALL_ROLES.map { role =>
@@ -151,11 +151,11 @@ class AdminServiceImpl @Inject() (
       val fullAuditCountByRoleHQ: Map[String, Int] = ALL_ROLES.map { role =>
         role -> (if (role == "All") auditedStreetCountHQ else auditCountByRoleHQ.getOrElse(role, 0))
       }.toMap
-      val fullAuditedDistByRole: Map[String, Float] = ALL_ROLES.map { role =>
-        role -> (if (role == "All") auditedDist else auditedDistByRole.getOrElse(role, 0f)) * METERS_TO_MILES
+      val fullAuditedDistByRole: Map[String, Double] = ALL_ROLES.map { role =>
+        role -> (if (role == "All") auditedDist else auditedDistByRole.getOrElse(role, 0d)) * METERS_TO_MILES
       }.toMap
-      val fullAuditedDistByRoleHQ: Map[String, Float] = ALL_ROLES.map { role =>
-        role -> (if (role == "All") auditedDistHQ else auditedDistByRoleHQ.getOrElse(role, 0f)) * METERS_TO_MILES
+      val fullAuditedDistByRoleHQ: Map[String, Double] = ALL_ROLES.map { role =>
+        role -> (if (role == "All") auditedDistHQ else auditedDistByRoleHQ.getOrElse(role, 0d)) * METERS_TO_MILES
       }.toMap
 
       CoverageData(
@@ -363,11 +363,11 @@ class AdminServiceImpl @Inject() (
         val otherValidatedAgreed = otherValidatedCounts._2
 
         val ownValidatedAgreedPct =
-          if (ownValidatedTotal == 0) 0f
+          if (ownValidatedTotal == 0) 0d
           else ownValidatedAgreed * 1.0 / ownValidatedTotal
 
         val otherValidatedAgreedPct =
-          if (otherValidatedTotal == 0) 0f
+          if (otherValidatedTotal == 0) 0d
           else otherValidatedAgreed * 1.0 / otherValidatedTotal
 
         UserStatsForAdminPage(
@@ -393,17 +393,17 @@ class AdminServiceImpl @Inject() (
   /**
    * Gets the street distance completion rate by date. This is the cumulative distance of all streets audited.
    */
-  def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Float)]] = {
+  def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Double)]] = {
     db.run(for {
-      distancesByDate: Seq[(OffsetDateTime, Float)] <- streetEdgeTable.streetDistanceCompletionRateByDate
-      totalDist: Float                              <- streetService.getTotalStreetDistanceDBIO
+      distancesByDate: Seq[(OffsetDateTime, Double)] <- streetEdgeTable.streetDistanceCompletionRateByDate
+      totalDist: Double                              <- streetService.getTotalStreetDistanceDBIO
     } yield {
       // Get the cumulative distance over time.
       val cumDistsPerDay: Seq[(OffsetDateTime, Double)] =
         distancesByDate.map { var dist = 0.0; pair => { dist += pair._2; (pair._1, dist) } }
 
       // Calculate the completion percentage for each day.
-      cumDistsPerDay.map(pair => (pair._1, (100.0 * pair._2 / totalDist).toFloat))
+      cumDistsPerDay.map(pair => (pair._1, (100.0 * pair._2 / totalDist)))
     })
   }
 

@@ -8,6 +8,7 @@ import models.validation.ValidationCount
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import service.TimeInterval.TimeInterval
+
 import java.time.OffsetDateTime
 
 object AdminFormats {
@@ -64,7 +65,7 @@ object AdminFormats {
   )(unlift(UserCount.unapply))
 
   implicit val contributionTimeStatWrites: Writes[ContributionTimeStat] = (
-    (__ \ "time").write[Option[Float]] and
+    (__ \ "time").write[Option[Double]] and
       (__ \ "stat").write[String] and
       (__ \ "time_interval").write[TimeInterval]
   )(unlift(ContributionTimeStat.unapply))
@@ -114,12 +115,12 @@ object AdminFormats {
     val features: Seq[JsObject] = interactions.filter(_.lat.isDefined).sortBy(_.timestamp).map { interaction =>
       val geom = Json.obj(
         "type"        -> "Point",
-        "coordinates" -> Json.arr(interaction.lng.get.toDouble, interaction.lat.get.toDouble)
+        "coordinates" -> Json.arr(interaction.lng.get, interaction.lat.get)
       )
       val properties = if (interaction.labelType.isEmpty) {
         Json.obj(
           "panoId"    -> interaction.panoId,
-          "heading"   -> interaction.heading.get.toDouble,
+          "heading"   -> interaction.heading.get,
           "pitch"     -> interaction.pitch,
           "zoom"      -> interaction.zoom,
           "timestamp" -> interaction.timestamp,
@@ -129,7 +130,7 @@ object AdminFormats {
       } else {
         Json.obj(
           "panoId"    -> interaction.panoId,
-          "heading"   -> interaction.heading.get.toDouble,
+          "heading"   -> interaction.heading.get,
           "pitch"     -> interaction.pitch,
           "zoom"      -> interaction.zoom,
           "timestamp" -> interaction.timestamp,

@@ -57,9 +57,9 @@ class RegionCompletionTable @Inject() (protected val dbConfigProvider: DatabaseC
    */
   def updateAuditedDistance(streetEdgeId: Int): DBIO[Int] = {
     for {
-      distToAdd: Float <- streetsWithoutDeleted
+      distToAdd: Double <- streetsWithoutDeleted
         .filter(_.streetEdgeId === streetEdgeId)
-        .map(_.geom.transform(26918).length)
+        .map(_.geom.transform(26918).lengthD)
         .result
         .head
       regionId: Int <- streetEdgeRegion

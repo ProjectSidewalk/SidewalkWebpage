@@ -21,12 +21,12 @@ import scala.concurrent.ExecutionContext
 case class UserStat(
     userStatId: Int,
     userId: String,
-    metersAudited: Float,
-    labelsPerMeter: Option[Float],
+    metersAudited: Double,
+    labelsPerMeter: Option[Double],
     highQuality: Boolean,
     highQualityManual: Option[Boolean],
     ownLabelsValidated: Int,
-    accuracy: Option[Float],
+    accuracy: Option[Double],
     excluded: Boolean
 )
 
@@ -50,11 +50,11 @@ case class UserStatsForAdminPage(
 case class UserStatApi(
     userId: String,
     labels: Int,
-    metersExplored: Float,
-    labelsPerMeter: Option[Float],
+    metersExplored: Double,
+    labelsPerMeter: Option[Double],
     highQuality: Boolean,
     highQualityManual: Option[Boolean],
-    labelAccuracy: Option[Float],
+    labelAccuracy: Option[Double],
     validatedLabels: Int,
     validationsReceived: Int,
     labelsValidatedCorrect: Int,
@@ -99,20 +99,20 @@ case class LeaderboardStat(
     username: String,
     labelCount: Int,
     missionCount: Int,
-    distanceMeters: Float,
-    accuracy: Option[Float],
-    score: Float
+    distanceMeters: Double,
+    accuracy: Option[Double],
+    score: Double
 )
 
 class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
   def userStatId: Rep[Int]                    = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]                     = column[String]("user_id")
-  def metersAudited: Rep[Float]               = column[Float]("meters_audited")
-  def labelsPerMeter: Rep[Option[Float]]      = column[Option[Float]]("labels_per_meter")
+  def metersAudited: Rep[Double]              = column[Double]("meters_audited")
+  def labelsPerMeter: Rep[Option[Double]]     = column[Option[Double]]("labels_per_meter")
   def highQuality: Rep[Boolean]               = column[Boolean]("high_quality")
   def highQualityManual: Rep[Option[Boolean]] = column[Option[Boolean]]("high_quality_manual")
   def ownLabelsValidated: Rep[Int]            = column[Int]("own_labels_validated")
-  def accuracy: Rep[Option[Float]]            = column[Option[Float]]("accuracy")
+  def accuracy: Rep[Option[Double]]           = column[Option[Double]]("accuracy")
   def excluded: Rep[Boolean]                  = column[Boolean]("excluded")
 
   override def * = (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual,
@@ -140,17 +140,17 @@ class UserStatTable @Inject() (
 
   private val auditMissions = missionTable.filter(_.missionTypeId === MissionTypeTable.missionTypeToId("audit"))
 
-  private val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
+  private val LABEL_PER_METER_THRESHOLD: Double = 0.0375
 
   implicit val userStatApiConverter: GetResult[UserStatApi] = GetResult[UserStatApi](r =>
     UserStatApi(
       r.nextString(),
       r.nextInt(),
-      r.nextFloat(),
-      r.nextFloatOption(),
+      r.nextDouble(),
+      r.nextDoubleOption(),
       r.nextBoolean(),
       r.nextBooleanOption(),
-      r.nextFloatOption(),
+      r.nextDoubleOption(),
       r.nextInt(),
       r.nextInt(),
       r.nextInt(),
@@ -239,13 +239,13 @@ class UserStatTable @Inject() (
       .join(streetEdgeTable)
       .on(_._1.streetEdgeId === _.streetEdgeId)
       .groupBy(_._1._1.userId)
-      .map(x => (x._1, x._2.map(_._2.geom.transform(26918).length).sum))
+      .map(x => (x._1, x._2.map(_._2.geom.transform(26918).lengthD).sum))
       .result
-      .flatMap { auditedDists: Seq[(String, Option[Float])] =>
+      .flatMap { auditedDists: Seq[(String, Option[Double])] =>
         // Update the meters_audited column in the user_stat table.
         val updateActions = auditedDists.map { case (userId, auditedDist) =>
           val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.metersAudited
-          updateQuery.update(auditedDist.getOrElse(0f))
+          updateQuery.update(auditedDist.getOrElse(0d))
         }
         DBIO.sequence(updateActions).map(_ => ())
       }
@@ -288,14 +288,14 @@ class UserStatTable @Inject() (
       .map { case ((_stat, _userId), _count) =>
         // Calculate labels_per_meter. If no meters audited, just set to NULL.
         val newLabelsPerMeter = Case
-          .If(_stat.metersAudited > 0f)
-          .Then(_count.map(_._2).ifNull(0.asColumnOf[Int]).asColumnOf[Option[Float]] / _stat.metersAudited)
-          .Else(Option.empty[Float].bind)
+          .If(_stat.metersAudited > 0d)
+          .Then(_count.map(_._2).ifNull(0.asColumnOf[Int]).asColumnOf[Option[Double]] / _stat.metersAudited)
+          .Else(Option.empty[Double].bind)
 
         (_userId, newLabelsPerMeter)
       }
       .result
-      .flatMap { labelFreqs: Seq[(String, Option[Float])] =>
+      .flatMap { labelFreqs: Seq[(String, Option[Double])] =>
         // Update the labels_per_meter column in the user_stat table.
         val updateActions = labelFreqs.map { case (userId, labelingFreq) =>
           val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.labelsPerMeter
@@ -333,8 +333,8 @@ class UserStatTable @Inject() (
           OR (accuracy IS NOT NULL AND new_accuracy IS NULL)
           OR (accuracy IS NOT NULL AND new_accuracy IS NOT NULL AND ROUND(accuracy::NUMERIC, 3) <> ROUND(new_accuracy::NUMERIC, 3));
     """
-      .as[(String, Int, Option[Float])]
-      .flatMap { usersToUpdate: Seq[(String, Int, Option[Float])] =>
+      .as[(String, Int, Option[Double])]
+      .flatMap { usersToUpdate: Seq[(String, Int, Option[Double])] =>
         // Update the own_labels_validated and accuracy columns in the user_stat table.
         val updateActions = usersToUpdate.map { case (userId, validatedCount, accuracy) =>
           val updateQuery =
@@ -366,8 +366,8 @@ class UserStatTable @Inject() (
           !x.excluded &&                              // false if excluded=true
           x.highQualityManual.getOrElse(true) && (    // false if high_quality_manual=false
             x.highQualityManual.getOrElse(false) || ( // true if high_quality_manual set to true
-              (x.metersAudited === 0f || x.labelsPerMeter.getOrElse(5f) > LABEL_PER_METER_THRESHOLD)
-                && (x.accuracy.getOrElse(1.0f) > 0.6f.asColumnOf[Float] || x.ownLabelsValidated < 50.asColumnOf[Int])
+              (x.metersAudited === 0d || x.labelsPerMeter.getOrElse(5d) > LABEL_PER_METER_THRESHOLD)
+                && (x.accuracy.getOrElse(1.0d) > 0.6f.asColumnOf[Double] || x.ownLabelsValidated < 50.asColumnOf[Int])
             )
           )
         }
@@ -409,8 +409,8 @@ class UserStatTable @Inject() (
           (
             x.userId,
             x.highQualityManual.getOrElse(false) || (
-              (x.metersAudited === 0f || x.labelsPerMeter.getOrElse(5f) > LABEL_PER_METER_THRESHOLD)
-                && (x.accuracy.getOrElse(1.0f) > 0.6f.asColumnOf[Float] || x.ownLabelsValidated < 50.asColumnOf[Int])
+              (x.metersAudited === 0d || x.labelsPerMeter.getOrElse(5d) > LABEL_PER_METER_THRESHOLD)
+                && (x.accuracy.getOrElse(1.0d) > 0.6d.asColumnOf[Double] || x.ownLabelsValidated < 50.asColumnOf[Int])
             )
           )
         }
@@ -451,7 +451,7 @@ class UserStatTable @Inject() (
     (for {
       _userStat <- userStats
       _mission  <- auditMissions if _mission.userId === _userStat.userId
-      if _userStat.metersAudited > 0f
+      if _userStat.metersAudited > 0d
       if _mission.missionEnd > cutoffTime
     } yield _userStat.userId).groupBy(x => x).map(_._1)
   }
@@ -484,7 +484,7 @@ class UserStatTable @Inject() (
       timePeriod: String = "overall",
       byTeam: Boolean = false,
       teamId: Option[Int] = None,
-      streetDistance: Float
+      streetDistance: Double
   ): DBIO[Seq[LeaderboardStat]] = {
     val statStartTime = timePeriod.toLowerCase() match {
       case "overall" => """TIMESTAMP 'epoch'"""
@@ -571,7 +571,7 @@ class UserStatTable @Inject() (
       ) "accuracy" ON label_counts.#$groupingColName = accuracy.#$groupingColName
       ORDER BY score DESC;
     """
-      .as[(String, Int, Int, Float, Option[Float], Float)]
+      .as[(String, Int, Int, Double, Option[Double], Double)]
       .map(_.map { stat =>
         // Run the query and, if it's not a team name, remove the "@X.Y" from usernames that are just email addresses.
         if (!byTeam && isValidEmail(stat._1))
@@ -788,9 +788,9 @@ class UserStatTable @Inject() (
    */
   def getStatsForApiWithFilters(
       minLabels: Option[Int] = None,
-      minMetersExplored: Option[Float] = None,
+      minMetersExplored: Option[Double] = None,
       highQualityOnly: Boolean = false,
-      minAccuracy: Option[Float] = None
+      minAccuracy: Option[Double] = None
   ): DBIO[Seq[UserStatApi]] = {
     // Construct the SQL query with dynamic WHERE clauses based on filter parameters.
     val minLabelsClause   = minLabels.map(min => s"AND COALESCE(label_counts.labels, 0) >= $min").getOrElse("")
@@ -962,6 +962,6 @@ class UserStatTable @Inject() (
    * @return DBIO action that returns the number of rows inserted (should be 1)
    */
   def insert(userId: String): DBIO[Int] = {
-    userStats += UserStat(0, userId, 0f, None, highQuality = true, None, 0, None, excluded = false)
+    userStats += UserStat(0, userId, 0d, None, highQuality = true, None, 0, None, excluded = false)
   }
 }

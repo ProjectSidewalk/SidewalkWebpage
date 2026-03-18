@@ -18,10 +18,10 @@ case class AuditTaskInteraction(
     missionId: Int,
     action: String,
     panoId: Option[String],
-    lat: Option[Float],
-    lng: Option[Float],
-    heading: Option[Float],
-    pitch: Option[Float],
+    lat: Option[Double],
+    lng: Option[Double],
+    heading: Option[Double],
+    pitch: Option[Double],
     zoom: Option[Double],
     note: Option[String],
     temporaryLabelId: Option[Int],
@@ -34,22 +34,22 @@ case class InteractionWithLabel(
     missionId: Int,
     action: String,
     panoId: Option[String],
-    lat: Option[Float],
-    lng: Option[Float],
-    heading: Option[Float],
-    pitch: Option[Float],
+    lat: Option[Double],
+    lng: Option[Double],
+    heading: Option[Double],
+    pitch: Option[Double],
     zoom: Option[Int],
     note: Option[String],
     timestamp: OffsetDateTime,
     labelId: Option[Int],
     labelType: Option[String],
-    labelLat: Option[Float],
-    labelLng: Option[Float],
+    labelLat: Option[Double],
+    labelLng: Option[Double],
     canvasX: Int,
     canvasY: Int
 )
 
-case class ContributionTimeStat(time: Option[Float], stat: String, timeInterval: TimeInterval) {
+case class ContributionTimeStat(time: Option[Double], stat: String, timeInterval: TimeInterval) {
   require(Seq("explore_total", "validate_total", "explore_per_100m").contains(stat.toLowerCase()))
 }
 
@@ -60,10 +60,10 @@ class AuditTaskInteractionTableDef(tag: slick.lifted.Tag)
   def missionId: Rep[Int]                = column[Int]("mission_id")
   def action: Rep[String]                = column[String]("action")
   def panoId: Rep[Option[String]]        = column[Option[String]]("pano_id")
-  def lat: Rep[Option[Float]]            = column[Option[Float]]("lat")
-  def lng: Rep[Option[Float]]            = column[Option[Float]]("lng")
-  def heading: Rep[Option[Float]]        = column[Option[Float]]("heading")
-  def pitch: Rep[Option[Float]]          = column[Option[Float]]("pitch")
+  def lat: Rep[Option[Double]]           = column[Option[Double]]("lat")
+  def lng: Rep[Option[Double]]           = column[Option[Double]]("lng")
+  def heading: Rep[Option[Double]]       = column[Option[Double]]("heading")
+  def pitch: Rep[Option[Double]]         = column[Option[Double]]("pitch")
   def zoom: Rep[Option[Double]]          = column[Option[Double]]("zoom")
   def note: Rep[Option[String]]          = column[Option[String]]("note")
   def temporaryLabelId: Rep[Option[Int]] = column[Option[Int]]("temporary_label_id")
@@ -86,10 +86,10 @@ class AuditTaskInteractionSmallTableDef(tag: slick.lifted.Tag)
   def missionId: Rep[Int]                = column[Int]("mission_id")
   def action: Rep[String]                = column[String]("action")
   def panoId: Rep[Option[String]]        = column[Option[String]]("pano_id")
-  def lat: Rep[Option[Float]]            = column[Option[Float]]("lat")
-  def lng: Rep[Option[Float]]            = column[Option[Float]]("lng")
-  def heading: Rep[Option[Float]]        = column[Option[Float]]("heading")
-  def pitch: Rep[Option[Float]]          = column[Option[Float]]("pitch")
+  def lat: Rep[Option[Double]]           = column[Option[Double]]("lat")
+  def lng: Rep[Option[Double]]           = column[Option[Double]]("lng")
+  def heading: Rep[Option[Double]]       = column[Option[Double]]("heading")
+  def pitch: Rep[Option[Double]]         = column[Option[Double]]("pitch")
   def zoom: Rep[Option[Double]]          = column[Option[Double]]("zoom")
   def note: Rep[Option[String]]          = column[Option[String]]("note")
   def temporaryLabelId: Rep[Option[Int]] = column[Option[Int]]("temporary_label_id")
@@ -115,8 +115,6 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
 ) extends AuditTaskInteractionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  implicit val floatConverter: GetResult[Float] = GetResult(r => r.nextFloat())
-
   implicit val interactionWithLabelConverter: GetResult[InteractionWithLabel] = GetResult[InteractionWithLabel](r => {
     InteractionWithLabel(
       r.nextLong(),                                                          // audit_task_interaction_id
@@ -124,17 +122,17 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
       r.nextInt(),                                                           // mission_id
       r.nextString(),                                                        // action
       r.nextStringOption(),                                                  // pano_id
-      r.nextFloatOption(),                                                   // lat
-      r.nextFloatOption(),                                                   // lng
-      r.nextFloatOption(),                                                   // heading
-      r.nextFloatOption(),                                                   // pitch
+      r.nextDoubleOption(),                                                  // lat
+      r.nextDoubleOption(),                                                  // lng
+      r.nextDoubleOption(),                                                  // heading
+      r.nextDoubleOption(),                                                  // pitch
       r.nextIntOption(),                                                     // zoom
       r.nextStringOption(),                                                  // note
       OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC), // timestamp
       r.nextIntOption(),                                                     // label_id
       r.nextStringOption(),                                                  // label_type
-      r.nextFloatOption(),                                                   // label_lat
-      r.nextFloatOption(),                                                   // label_lng
+      r.nextDoubleOption(),                                                  // label_lat
+      r.nextDoubleOption(),                                                  // label_lng
       r.nextInt(),                                                           // canvas_x
       r.nextInt()                                                            // canvas_y
     )
@@ -200,7 +198,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
    * get the difference between each consecutive timestamp, filter out the timestamp diffs that are greater than five
    * minutes, and then sum those time diffs.
    */
-  def getHoursAuditingAndValidating(userId: String): DBIO[Float] = {
+  def getHoursAuditingAndValidating(userId: String): DBIO[Double] = {
     sql"""
       SELECT CAST(extract( second from SUM(diff) ) / 60 +
              extract( minute from SUM(diff) ) +
@@ -230,7 +228,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
           ) timestamps
       ) time_diffs
       WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
-    """.as[Float].head
+    """.as[Double].head
   }
 
   /**
@@ -260,7 +258,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
           WHERE #$timeIntervalFilter
       ) "time_diffs"
       WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';
-    """.as[Option[Float]].head.map(hours => ContributionTimeStat(hours, "explore_total", timeInterval))
+    """.as[Option[Double]].head.map(hours => ContributionTimeStat(hours, "explore_total", timeInterval))
   }
 
   /**
@@ -290,7 +288,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
           WHERE #$timeIntervalFilter
       ) "time_diffs"
       WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';
-    """.as[Option[Float]].head.map(hours => ContributionTimeStat(hours, "validate_total", timeInterval))
+    """.as[Option[Double]].head.map(hours => ContributionTimeStat(hours, "validate_total", timeInterval))
   }
 
   /**
@@ -333,7 +331,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
           WHERE user_stat.meters_audited > $metersFilter
               AND audit_times.minutes_audited > $minutesFilter
       ) AS filtered_data;
-    """.as[Option[Float]].head.map(minutes => ContributionTimeStat(minutes, "explore_per_100m", timeInterval))
+    """.as[Option[Double]].head.map(minutes => ContributionTimeStat(minutes, "explore_per_100m", timeInterval))
   }
 
   /**
@@ -352,7 +350,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
    * @param timeRangeStartLabelId Label_id for the label whose `time_created` field marks the start of the time range.
    * @param timeRangeEnd A timestamp representing the end of the time range; should be the time when a label was placed.
    */
-  def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): DBIO[Float] = {
+  def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): DBIO[Double] = {
     sql"""
       SELECT extract( epoch FROM SUM(diff) ) AS seconds_contributed
       FROM (
@@ -369,6 +367,6 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
           )
       ) "time_diffs"
       WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';
-    """.as[Float].head
+    """.as[Double].head
   }
 }

@@ -90,7 +90,7 @@ trait ExploreService {
    * @param userId The user_id of the user who submitted the data.
    */
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue]
-  def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float]
+  def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Double]
   def selectTasksInRoute(userRouteId: Int): Future[Seq[NewTask]]
 
   /**
@@ -161,12 +161,13 @@ class ExploreServiceImpl @Inject() (
       // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
       // routeId was supplied, then the function should return None and the user is not sent on a specific route.
       // However, region or street id params take precedence.
-      userRoute: Option[UserRoute] <- if (regionId.isEmpty && streetEdgeId.isEmpty) {
-        setUpPossibleUserRoute(routeId, userId, resumeRoute)
-      } else {
-        DBIO.successful(None)
-      }
-      routeOption: Option[Route]   <- userRoute
+      userRoute: Option[UserRoute] <-
+        if (regionId.isEmpty && streetEdgeId.isEmpty) {
+          setUpPossibleUserRoute(routeId, userId, resumeRoute)
+        } else {
+          DBIO.successful(None)
+        }
+      routeOption: Option[Route] <- userRoute
         .map(ur => routeTable.getRoute(ur.routeId))
         .getOrElse(DBIO.successful(None))
 
@@ -241,7 +242,7 @@ class ExploreServiceImpl @Inject() (
             .updateExploreProgressOnly(
               userId,
               mission.missionId,
-              mission.distanceProgress.getOrElse(0f),
+              mission.distanceProgress.getOrElse(0d),
               task.get.auditTaskId
             )
             .flatMap(_ => missionTable.getMission(mission.missionId).map(_.get))
@@ -419,7 +420,7 @@ class ExploreServiceImpl @Inject() (
     val pointGeom: Option[Point]    = for {
       _lat <- point.lat
       _lng <- point.lng
-    } yield gf.createPoint(new Coordinate(_lng.toDouble, _lat.toDouble))
+    } yield gf.createPoint(new Coordinate(_lng, _lat))
 
     for {
       // Use label's lat/lng to determine street_edge_id. If lat/lng isn't defined, use audit_task's as backup.
@@ -472,12 +473,12 @@ class ExploreServiceImpl @Inject() (
         _                   <-
           if (panoExists) {
             panoDataTable.updateFromExplore(pano.panoId, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch,
-              expired = false, currTime, Some(currTime))
+              pano.cameraRoll, expired = false, currTime, Some(currTime))
           } else {
             panoDataTable.insert(
               PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
-                pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, expired = false, currTime,
-                Some(currTime), currTime, pano.source)
+                pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll,
+                expired = false, currTime, Some(currTime), currTime, pano.source)
             )
           }
       } yield {
@@ -549,14 +550,14 @@ class ExploreServiceImpl @Inject() (
       data.labels.map { label =>
         // Calculate the label's lat/lng and theoretical user's heading/pitch from its panoX/panoY coordinates.
         val pov = PanoDataService.calculatePovFromPanoXY(label.panoX, label.panoY, pano.width.get, pano.height.get,
-          pano.cameraHeading.get.toDouble)
+          pano.cameraHeading.get)
         val canvasX = LabelPointTable.canvasWidth / 2
         val canvasY = LabelPointTable.canvasHeight / 2
-        val latLng  = PanoDataService.toLatLng(pano.lat.get.toDouble, pano.lng.get.toDouble, pov.heading, pov.zoom,
-          canvasX, canvasY, label.panoY, pano.height.get)
+        val latLng  = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, pov.heading, pov.zoom, canvasX, canvasY,
+          label.panoY, pano.height.get)
         for {
           // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
-          streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(latLng._1.toFloat, latLng._2.toFloat)
+          streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(latLng._1, latLng._2)
           regionId     <- streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId).map(_.get.regionId)
           missionId    <- missionService.resumeOrCreateNewAiExploreMission(regionId).map(_.missionId)
           auditTaskId  <- resumeOrCreateNewAiAuditTask(missionId, streetEdgeId)
@@ -564,8 +565,8 @@ class ExploreServiceImpl @Inject() (
 
           // Create and insert the label and label_point entries.
           labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
-            heading = pov.heading.toFloat, pitch = pov.pitch.toFloat, pov.zoom, lat = Some(latLng._1.toFloat),
-            lng = Some(latLng._2.toFloat), computationMethod = Some("approximation2"))
+            heading = pov.heading, pitch = pov.pitch, pov.zoom, lat = Some(latLng._1), lng = Some(latLng._2),
+            computationMethod = Some("approximation2"))
           labelSubmission: LabelSubmission = LabelSubmission(
             panoId = pano.panoId,
             panoSource = pano.source,
@@ -673,7 +674,7 @@ class ExploreServiceImpl @Inject() (
     }.transactionally)
   }
 
-  def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float] =
+  def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Double] =
     db.run(auditTaskInteractionTable.secondsSpentAuditing(userId, timeRangeStartLabelId, timeRangeEnd))
 
   def selectTasksInRoute(userRouteId: Int): Future[Seq[NewTask]] =

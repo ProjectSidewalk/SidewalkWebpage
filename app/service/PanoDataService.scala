@@ -321,15 +321,15 @@ class PanoDataServiceImpl @Inject() (
   def getImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]] = {
     db.run(for {
       streetOption: Option[StreetEdge] <- streetEdgeTable.getStreet(streetEdgeId)
-      startDir: Option[Float]          <- streetEdgeTable.directionFromStart(streetEdgeId)
-      endDir: Option[Float]            <- streetEdgeTable.directionFromEnd(streetEdgeId)
+      startDir: Option[Double]         <- streetEdgeTable.directionFromStart(streetEdgeId)
+      endDir: Option[Double]           <- streetEdgeTable.directionFromEnd(streetEdgeId)
     } yield {
       streetOption.fold(Seq.empty[String]) { street =>
         val startPoint: Point = street.geom.getStartPoint
         val endPoint: Point   = street.geom.getEndPoint
         Seq(
-          startDir.map(sd => getImageUrlFromLatLng(startPoint.getY, startPoint.getX, Math.toDegrees(sd.toDouble))),
-          endDir.map(ed => getImageUrlFromLatLng(endPoint.getY, endPoint.getX, Math.toDegrees(ed.toDouble)))
+          startDir.map(sd => getImageUrlFromLatLng(startPoint.getY, startPoint.getX, Math.toDegrees(sd))),
+          endDir.map(ed => getImageUrlFromLatLng(endPoint.getY, endPoint.getX, Math.toDegrees(ed)))
         ).flatten
       }
     })

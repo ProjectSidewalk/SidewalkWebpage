@@ -362,7 +362,7 @@
                         </div>
                     </div>
                     <div id="user-control-layer" class="window-streetview" style="z-index: 0;">
-                        <div id="view-control-layer" class="window-streetview" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 1;">
+                        <div id="view-control-layer" class="window-streetview" style="cursor: url(/assets/images/icons/openhand.cur) 4 4, move; z-index: 1;">
                             <div id="nav-arrows-container">
                                 <svg width="220" height="220" viewbox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
                                     <g id="arrow-group" transform-origin="center">
@@ -668,6 +668,7 @@
         <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
         <script src='@assets.path("javascripts/lib/infra3dapi-1.7.0.js")'></script>
     } else if (commonData.imagerySource == PanoSource.Mapillary) {
+        <script src='@assets.path("javascripts/lib/three-0.160.1-min.js")'></script>
         <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
         <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
     }

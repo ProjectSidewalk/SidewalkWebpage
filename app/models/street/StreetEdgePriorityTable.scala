@@ -49,16 +49,16 @@ class StreetEdgePriorityTable @Inject() (
     (streetEdgePriorities returning streetEdgePriorities.map(_.streetEdgePriorityId)) += streetEdgePriority
   }
 
-  def auditedStreetDistanceUsingPriority: DBIO[Float] = {
+  def auditedStreetDistanceUsingPriority: DBIO[Double] = {
     // Get the lengths of all the audited street edges.
     val edgeLengths = for {
       se  <- streetEdgesWithoutDeleted
       sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
       if sep.priority < 1.0d
-    } yield se.geom.transform(26918).length
+    } yield se.geom.transform(26918).lengthD
 
     // Sum the lengths and convert from meters to miles.
-    edgeLengths.sum.result.map(x => x.getOrElse(0.0f))
+    edgeLengths.sum.result.map(x => x.getOrElse(0.0d))
   }
 
   /**

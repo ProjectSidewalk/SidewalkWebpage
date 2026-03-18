@@ -61,8 +61,8 @@ case class LabelLocation(
     auditTaskId: Int,
     panoId: String,
     labelType: String,
-    lat: Float,
-    lng: Float,
+    lat: Double,
+    lng: Double,
     correct: Option[Boolean],
     hasValidations: Boolean
 )
@@ -71,8 +71,8 @@ case class LabelForLabelMap(
     labelId: Int,
     auditTaskId: Int,
     labelType: String,
-    lat: Float,
-    lng: Float,
+    lat: Double,
+    lng: Double,
     correct: Option[Boolean],
     hasValidations: Boolean,
     aiValidation: Option[Int],
@@ -83,19 +83,14 @@ case class LabelForLabelMap(
 )
 
 case class TagCount(labelType: String, tag: String, count: Int)
-case class LabelSeverityStats(
-    n: Int,
-    nWithSeverity: Option[Int],
-    severityMean: Option[Float],
-    severitySD: Option[Float]
-)
-case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float], nWithValidation: Int)
+case class LabelSevStats(n: Int, nWithSeverity: Option[Int], severityMean: Option[Double], severitySD: Option[Double])
+case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Double], nWithValidation: Int)
 case class AiConcurrence(aiYesHumanConcurs: Int, aiYesHumanDiffers: Int, aiNoHumanDiffers: Int, aiNoHumanConcurs: Int)
 case class ProjectSidewalkStats(
     launchDate: String,
     avgTimestampLast100Labels: Option[OffsetDateTime],
-    kmExplored: Float,
-    kmExploreNoOverlap: Float,
+    kmExplored: Double,
+    kmExploreNoOverlap: Double,
     nUsers: Int,
     nExplorers: Int,
     nValidators: Int,
@@ -107,7 +102,7 @@ case class ProjectSidewalkStats(
     nLabelsWithSeverity: Int,
     avgLabelTimestamp: Option[OffsetDateTime],
     avgImageAgeByLabel: Option[Duration],
-    severityByLabelType: Map[String, LabelSeverityStats],
+    severityByLabelType: Map[String, LabelSevStats],
     nValidations: Int,
     accuracyByLabelType: Map[String, LabelAccuracy],
     aiPerformance: Map[String, Map[String, AiConcurrence]]
@@ -158,10 +153,10 @@ case class ResumeLabelMetadata(
     labelData: Label,
     labelType: String,
     pointData: LabelPoint,
-    panoLat: Option[Float],
-    panoLng: Option[Float],
-    cameraHeading: Option[Float],
-    cameraPitch: Option[Float],
+    panoLat: Option[Double],
+    panoLng: Option[Double],
+    cameraHeading: Option[Double],
+    cameraPitch: Option[Double],
     panoWidth: Option[Int],
     panoHeight: Option[Int]
 )
@@ -182,10 +177,11 @@ case class LabelCVMetadata(
     canvasX: Int,
     canvasY: Int,
     zoom: Double,
-    heading: Float,
-    pitch: Float,
-    cameraHeading: Float,
-    cameraPitch: Float
+    heading: Double,
+    pitch: Double,
+    cameraHeading: Double,
+    cameraPitch: Double,
+    cameraRoll: Option[Double]
 ) extends StreamingApiType {
   def toJson: JsValue  = ApiFormats.labelCVMetadataToJSON(this)
   def toCsvRow: String = ApiFormats.labelCVMetadataToCSVRow(this)
@@ -193,7 +189,7 @@ case class LabelCVMetadata(
 object LabelCVMetadata {
   val csvHeader: String = "Label ID,Panorama ID,Label Type ID,Agree Count,Disagree Count,Unsure Count,Panorama Width," +
     "Panorama Height,Panorama X,Panorama Y,Canvas Width,Canvas Height,Canvas X,Canvas Y,Zoom,Heading,Pitch," +
-    "Camera Heading,Camera Pitch\n"
+    "Camera Heading,Camera Pitch,Camera Roll\n"
 }
 
 case class LabelDataForAi(labelId: Int, labelTypeId: Int, labelPoint: LabelPoint, panoData: PanoData)
@@ -216,8 +212,8 @@ case class LabelValidationMetadata(
     panoId: String,
     imageCaptureDate: String,
     timestamp: OffsetDateTime,
-    lat: Float,
-    lng: Float,
+    lat: Double,
+    lng: Double,
     pov: POV,
     canvasXY: LocationXY,
     severity: Option[Int],
@@ -228,8 +224,8 @@ case class LabelValidationMetadata(
     userValidation: Option[Int],
     aiValidation: Option[Int],
     tags: Seq[String],
-    cameraLat: Option[Float],
-    cameraLng: Option[Float],
+    cameraLat: Option[Double],
+    cameraLng: Option[Double],
     aiTags: Option[Seq[String]],
     aiGenerated: Boolean
 ) extends BasicLabelMetadata
@@ -312,8 +308,8 @@ object LabelTable {
       String,                           // panoId
       String,                           // imageCaptureDate
       OffsetDateTime,                   // timestamp
-      Option[Float],                    // lat
-      Option[Float],                    // lng
+      Option[Double],                   // lat
+      Option[Double],                   // lng
       (Double, Double, Double),         // pov (heading, pitch, zoom)
       (Int, Int),                       // canvasXY (x, y)
       Option[Int],                      // severity
@@ -324,8 +320,8 @@ object LabelTable {
       Option[Int],                      // userValidation
       Option[Int],                      // aiValidation
       List[String],                     // tags
-      Option[Float],                    // cameraLat
-      Option[Float],                    // cameraLng
+      Option[Double],                   // cameraLat
+      Option[Double],                   // cameraLng
       Option[List[String]],             // aiTags
       Boolean                           // aiGenerated
   )
@@ -335,8 +331,8 @@ object LabelTable {
       Rep[String],                                          // panoId
       Rep[String],                                          // imageCaptureDate
       Rep[OffsetDateTime],                                  // timestamp
-      Rep[Option[Float]],                                   // lat
-      Rep[Option[Float]],                                   // lng
+      Rep[Option[Double]],                                  // lat
+      Rep[Option[Double]],                                  // lng
       (Rep[Double], Rep[Double], Rep[Double]),              // pov (heading, pitch, zoom)
       (Rep[Int], Rep[Int]),                                 // canvasXY (x, y)
       Rep[Option[Int]],                                     // severity
@@ -347,8 +343,8 @@ object LabelTable {
       Rep[Option[Int]],                                     // userValidation
       Rep[Option[Int]],                                     // aiValidation
       Rep[List[String]],                                    // tags
-      Rep[Option[Float]],                                   // cameraLat
-      Rep[Option[Float]],                                   // cameraLng
+      Rep[Option[Double]],                                  // cameraLat
+      Rep[Option[Double]],                                  // cameraLng
       Rep[Option[List[String]]],                            // aiTags
       Rep[Boolean]                                          // aiGenerated
   )
@@ -365,25 +361,26 @@ object LabelTable {
   // Type alias for the tuple representation of LabelCVMetadata.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
   type LabelCVMetadataTuple = (
-      Int,         // labelId
-      String,      // panoId
-      Int,         // labelTypeId
-      Int,         // agreeCount
-      Int,         // disagreeCount
-      Int,         // unsureCount
-      Option[Int], // panoWidth
-      Option[Int], // panoHeight
-      Int,         // panoX
-      Int,         // panoY
-      Int,         // canvasWidth
-      Int,         // canvasHeight
-      Int,         // canvasX
-      Int,         // canvasY
-      Double,      // zoom
-      Float,       // heading
-      Float,       // pitch
-      Float,       // cameraHeading
-      Float        // cameraPitch
+      Int,           // labelId
+      String,        // panoId
+      Int,           // labelTypeId
+      Int,           // agreeCount
+      Int,           // disagreeCount
+      Int,           // unsureCount
+      Option[Int],   // panoWidth
+      Option[Int],   // panoHeight
+      Int,           // panoX
+      Int,           // panoY
+      Int,           // canvasWidth
+      Int,           // canvasHeight
+      Int,           // canvasX
+      Int,           // canvasY
+      Double,        // zoom
+      Double,        // heading
+      Double,        // pitch
+      Double,        // cameraHeading
+      Double,        // cameraPitch
+      Option[Double] // cameraRoll
   )
 
   /**
@@ -453,6 +450,7 @@ object LabelTable {
       panoHeight = r.nextIntOption(),
       cameraHeading = r.nextDoubleOption(),
       cameraPitch = r.nextDoubleOption(),
+      cameraRoll = r.nextDoubleOption(),
       latitude = r.nextDouble(),
       longitude = r.nextDouble()
     )
@@ -567,8 +565,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     ProjectSidewalkStats(
       r.nextString(),
       r.nextOffsetDateTimeOption(),
-      r.nextFloat(),
-      r.nextFloat(),
+      r.nextDouble(),
+      r.nextDouble(),
       r.nextInt(),
       r.nextInt(),
       r.nextInt(),
@@ -581,29 +579,29 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextOffsetDateTimeOption(),
       r.nextDurationOption(),
       Map(
-        CurbRamp.name   -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        NoCurbRamp.name -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        Obstacle.name   -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
+        CurbRamp.name   -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
+        NoCurbRamp.name -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
+        Obstacle.name   -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
         SurfaceProblem.name ->
-          LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        NoSidewalk.name -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        Crosswalk.name  -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        Signal.name     -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        Occlusion.name  -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption()),
-        Other.name      -> LabelSeverityStats(r.nextInt(), r.nextIntOption(), r.nextFloatOption(), r.nextFloatOption())
+          LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
+        NoSidewalk.name -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
+        Crosswalk.name  -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
+        Signal.name     -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
+        Occlusion.name  -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
+        Other.name      -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption())
       ),
       r.nextInt(),
       Map(
-        "Overall"           -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        CurbRamp.name       -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        NoCurbRamp.name     -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        Obstacle.name       -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        SurfaceProblem.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        NoSidewalk.name     -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        Crosswalk.name      -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        Signal.name         -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        Occlusion.name      -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt()),
-        Other.name          -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextInt())
+        "Overall"           -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        CurbRamp.name       -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        NoCurbRamp.name     -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        Obstacle.name       -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        SurfaceProblem.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        NoSidewalk.name     -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        Crosswalk.name      -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        Signal.name         -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        Occlusion.name      -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
+        Other.name          -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt())
       ),
       Map(
         "Overall" -> Map(
@@ -891,7 +889,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // Priority ordering algorithm is described in the method comment, max score is 276.
     val _labelInfoSorted = _labelInfoWithAiData
       .sortBy {
-        case (l, lp, gd, us, at, labelType, regionId, isAiUser, aiv, laa) => {
+        case (l, lp, pd, us, at, labelType, regionId, isAiUser, aiv, laa) => {
           // A label gets 150 if the labeler as < 50 of their labels validated (and this label needs a validation).
           val needsValidationScore =
             Case.If(us.ownLabelsValidated < 50 && l.correct.isEmpty && !at.lowQuality && !at.stale).Then(150d).Else(0d)
@@ -917,12 +915,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         }
       }
       // Select only the columns needed for the LabelValidationMetadata class.
-      .map { case (l, lp, gd, us, at, labelType, regionId, isAiUser, laa, aiv) =>
+      .map { case (l, lp, pd, us, at, labelType, regionId, isAiUser, laa, aiv) =>
         (
           l.labelId,
           labelType,
           l.panoId,
-          gd.captureDate,
+          pd.captureDate,
           l.timeCreated,
           lp.lat,
           lp.lng,
@@ -936,8 +934,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           Option.empty[Int].bind, // userValidation, always None bc we only show labels they haven't already validated.
           aiv.map(_.validationResult), // aiValidation, if it exists.
           l.tags,
-          gd.lat,
-          gd.lng,
+          pd.lat,
+          pd.lng,
           // Include AI tags if requested.
           if (includeAiTags) laa.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
           else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
@@ -1201,14 +1199,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       }
     }
 
-    // Filter for labels along the given route. Distance experimentally set to 0.0005 degrees. Would like to switch to
-    // different SRID and use meters: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3655.
+    // Filter for labels along the given route. Distance experimentally set to 30 meters.
     val _labelsNearRoute = if (routeIds.nonEmpty) {
       (for {
         _rs <- routeStreets if _rs.routeId inSetBind routeIds
         _se <- streets if _rs.streetEdgeId === _se.streetEdgeId
         _l  <- _labelsFilteredByAiValidation if _se.streetEdgeId === _l._2 ||
-          _se.geom.distance(makePoint(_l._6.asColumnOf[Double], _l._5.asColumnOf[Double]).setSRID(4326)) < 0.0005f
+          _se.geom.distanceSphereD(makePoint(_l._6.asColumnOf[Double], _l._5.asColumnOf[Double]).setSRID(4326)) < 30d
       } yield _l).distinct
     } else {
       _labelsFilteredByAiValidation
@@ -1302,12 +1299,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Select street_edge_id of street closest to lat/lng position.
    */
-  def getStreetEdgeIdClosestToLatLng(lat: Float, lng: Float): DBIO[Int] = {
+  def getStreetEdgeIdClosestToLatLng(lat: Double, lng: Double): DBIO[Int] = {
     streets
       .filterNot(_.deleted)
-      .map(s =>
-        (s.streetEdgeId, s.geom.distance(makePoint(lng.asColumnOf[Double], lat.asColumnOf[Double]).setSRID(4326)))
-      )
+      .map(s => (s.streetEdgeId, s.geom.distanceSphereD(makePoint(lng.bind, lat.bind).setSRID(4326))))
       .sortBy(_._2)
       .map(_._1)
       .take(1)
@@ -1482,6 +1477,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              pano_data.height AS pano_height,
              pano_data.camera_heading,
              pano_data.camera_pitch,
+             pano_data.camera_roll,
              label_point.lat,
              label_point.lng
       FROM label
@@ -1995,8 +1991,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lp.zoom,
       _lp.heading,
       _lp.pitch,
-      _pd.cameraHeading.asColumnOf[Float],
-      _pd.cameraPitch.asColumnOf[Float]
+      _pd.cameraHeading.asColumnOf[Double],
+      _pd.cameraPitch.asColumnOf[Double],
+      _pd.cameraRoll
     )).sortBy(_._1).result
   }
 }
