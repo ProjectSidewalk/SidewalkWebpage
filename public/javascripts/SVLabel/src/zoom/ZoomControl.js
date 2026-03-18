@@ -340,7 +340,7 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
     self.enableZoomIn = enableZoomIn;
     self.enableZoomOut = enableZoomOut;
     self.getStatus = getStatus;
-    self.getProperties = getProperty; // Todo. Change getProperties to getProperty.
+    self.getProperty = getProperty;
     self.getZoomInUI = getZoomInUI;
     self.getZoomOutUI = getZoomOutUI;
     self.lockDisableZoomIn = lockDisableZoomIn;

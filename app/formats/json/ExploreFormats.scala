@@ -30,10 +30,10 @@ object ExploreFormats {
   case class InteractionSubmission(
       action: String,
       panoId: Option[String],
-      lat: Option[Float],
-      lng: Option[Float],
-      heading: Option[Float],
-      pitch: Option[Float],
+      lat: Option[Double],
+      lng: Option[Double],
+      heading: Option[Double],
+      pitch: Option[Double],
       zoom: Option[Double],
       note: Option[String],
       temporaryLabelId: Option[Int],
@@ -44,11 +44,11 @@ object ExploreFormats {
       panoY: Int,
       canvasX: Int,
       canvasY: Int,
-      heading: Float,
-      pitch: Float,
+      heading: Double,
+      pitch: Double,
       zoom: Double,
-      lat: Option[Float],
-      lng: Option[Float],
+      lat: Option[Double],
+      lng: Option[Double],
       computationMethod: Option[String]
   )
   case class LabelSubmission(
@@ -70,8 +70,8 @@ object ExploreFormats {
       taskStart: OffsetDateTime,
       auditTaskId: Option[Int],
       completed: Option[Boolean],
-      currentLat: Float,
-      currentLng: Float,
+      currentLat: Double,
+      currentLng: Double,
       startPointReversed: Boolean,
       currentMissionStart: Option[Point],
       lastPriorityUpdateTime: OffsetDateTime,
@@ -87,17 +87,18 @@ object ExploreFormats {
       height: Option[Int],
       tileWidth: Option[Int],
       tileHeight: Option[Int],
-      lat: Option[Float],
-      lng: Option[Float],
-      cameraHeading: Option[Float],
-      cameraPitch: Option[Float],
+      lat: Option[Double],
+      lng: Option[Double],
+      cameraHeading: Option[Double],
+      cameraPitch: Option[Double],
+      cameraRoll: Option[Double],
       links: Seq[PanoLinkSubmission],
       copyright: Option[String],
       history: Seq[PanoDate]
   )
   case class AuditMissionProgress(
       missionId: Int,
-      distanceProgress: Option[Float],
+      distanceProgress: Option[Double],
       regionId: Int,
       completed: Boolean,
       auditTaskId: Option[Int],
@@ -141,8 +142,8 @@ object ExploreFormats {
       (__ \ "task_start").write[OffsetDateTime] and
       (__ \ "task_end").write[OffsetDateTime] and
       (__ \ "completed").write[Boolean] and
-      (__ \ "current_lat").write[Float] and
-      (__ \ "current_lng").write[Float] and
+      (__ \ "current_lat").write[Double] and
+      (__ \ "current_lng").write[Double] and
       (__ \ "start_point_reversed").write[Boolean] and
       (__ \ "current_mission_id").writeNullable[Int] and
       (__ \ "current_mission_start").writeNullable[Point] and
@@ -157,10 +158,10 @@ object ExploreFormats {
       (__ \ "mission_id").write[Int] and
       (__ \ "action").write[String] and
       (__ \ "pano_id").writeNullable[String] and
-      (__ \ "lat").writeNullable[Float] and
-      (__ \ "lng").writeNullable[Float] and
-      (__ \ "heading").writeNullable[Float] and
-      (__ \ "pitch").writeNullable[Float] and
+      (__ \ "lat").writeNullable[Double] and
+      (__ \ "lng").writeNullable[Double] and
+      (__ \ "heading").writeNullable[Double] and
+      (__ \ "pitch").writeNullable[Double] and
       (__ \ "zoom").writeNullable[Double] and
       (__ \ "note").writeNullable[String] and
       (__ \ "temporary_label_id").writeNullable[Int] and
@@ -224,10 +225,10 @@ object ExploreFormats {
   implicit val interactionSubmissionReads: Reads[InteractionSubmission] = (
     (JsPath \ "action").read[String] and
       (JsPath \ "pano_id").readNullable[String] and
-      (JsPath \ "lat").readNullable[Float] and
-      (JsPath \ "lng").readNullable[Float] and
-      (JsPath \ "heading").readNullable[Float] and
-      (JsPath \ "pitch").readNullable[Float] and
+      (JsPath \ "lat").readNullable[Double] and
+      (JsPath \ "lng").readNullable[Double] and
+      (JsPath \ "heading").readNullable[Double] and
+      (JsPath \ "pitch").readNullable[Double] and
       (JsPath \ "zoom").readNullable[Double] and
       (JsPath \ "note").readNullable[String] and
       (JsPath \ "temporary_label_id").readNullable[Int] and
@@ -239,11 +240,11 @@ object ExploreFormats {
       (JsPath \ "pano_y").read[Int] and
       (JsPath \ "canvas_x").read[Int] and
       (JsPath \ "canvas_y").read[Int] and
-      (JsPath \ "heading").read[Float] and
-      (JsPath \ "pitch").read[Float] and
+      (JsPath \ "heading").read[Double] and
+      (JsPath \ "pitch").read[Double] and
       (JsPath \ "zoom").read[Double] and
-      (JsPath \ "lat").readNullable[Float] and
-      (JsPath \ "lng").readNullable[Float] and
+      (JsPath \ "lat").readNullable[Double] and
+      (JsPath \ "lng").readNullable[Double] and
       (JsPath \ "computation_method").readNullable[String]
   )(LabelPointSubmission.apply _)
 
@@ -267,8 +268,8 @@ object ExploreFormats {
       (JsPath \ "task_start").read[OffsetDateTime] and
       (JsPath \ "audit_task_id").readNullable[Int] and
       (JsPath \ "completed").readNullable[Boolean] and
-      (JsPath \ "current_lat").read[Float] and
-      (JsPath \ "current_lng").read[Float] and
+      (JsPath \ "current_lat").read[Double] and
+      (JsPath \ "current_lng").read[Double] and
       (JsPath \ "start_point_reversed").read[Boolean] and
       (JsPath \ "current_mission_start").readNullable[Point] and
       (JsPath \ "last_priority_update_time").read[OffsetDateTime] and
@@ -294,10 +295,11 @@ object ExploreFormats {
       (JsPath \ "height").readNullable[Int] and
       (JsPath \ "tile_width").readNullable[Int] and
       (JsPath \ "tile_height").readNullable[Int] and
-      (JsPath \ "lat").readNullable[Float] and
-      (JsPath \ "lng").readNullable[Float] and
-      (JsPath \ "camera_heading").readNullable[Float] and
-      (JsPath \ "camera_pitch").readNullable[Float] and
+      (JsPath \ "lat").readNullable[Double] and
+      (JsPath \ "lng").readNullable[Double] and
+      (JsPath \ "camera_heading").readNullable[Double] and
+      (JsPath \ "camera_pitch").readNullable[Double] and
+      (JsPath \ "camera_roll").readNullable[Double] and
       (JsPath \ "links").read[Seq[PanoLinkSubmission]] and
       (JsPath \ "copyright").readNullable[String] and
       (JsPath \ "history").read[Seq[PanoDate]]
@@ -305,7 +307,7 @@ object ExploreFormats {
 
   implicit val auditMissionProgressReads: Reads[AuditMissionProgress] = (
     (JsPath \ "mission_id").read[Int] and
-      (JsPath \ "distance_progress").readNullable[Float] and
+      (JsPath \ "distance_progress").readNullable[Double] and
       (JsPath \ "region_id").read[Int] and
       (JsPath \ "completed").read[Boolean] and
       (JsPath \ "audit_task_id").readNullable[Int] and

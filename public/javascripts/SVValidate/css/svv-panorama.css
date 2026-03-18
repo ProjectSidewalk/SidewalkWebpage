@@ -32,7 +32,7 @@
     left: 0;
     top: 0;
     overflow: hidden;
-    cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move;
+    cursor: url(/assets/images/icons/openhand.cur) 4 4, move;
     z-index: 2;
 
     /* http://stackoverflow.com/questions/8942805/chrome-bug-cursor-changes-on-mouse-down-move */

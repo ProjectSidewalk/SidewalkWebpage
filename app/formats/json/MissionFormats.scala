@@ -16,8 +16,8 @@ object MissionFormats {
       (__ \ "completed").write[Boolean] and
       (__ \ "pay").write[Double] and
       (__ \ "paid").write[Boolean] and
-      (__ \ "distance_meters").writeNullable[Float] and
-      (__ \ "distance_progress").writeNullable[Float] and
+      (__ \ "distance_meters").writeNullable[Double] and
+      (__ \ "distance_progress").writeNullable[Double] and
       (__ \ "region_id").writeNullable[Int] and
       (__ \ "labels_validated").writeNullable[Int] and
       (__ \ "labels_progress").writeNullable[Int] and

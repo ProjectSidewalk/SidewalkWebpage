@@ -333,7 +333,7 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
     function attachEventHandlers() {
         // GSV custom handles cursor on '.widget-scene' element. We need to be more specific than that to override.
         function handlerViewControlLayerMouseDown(e) {
-            $('.widget-scene-canvas').css('cursor', 'url(/assets/javascripts/SVLabel/img/cursors/closedhand.cur) 4 4, move');
+            $('.widget-scene-canvas').css('cursor', 'url(/assets/images/icons/closedhand.cur) 4 4, move');
         }
 
         function handlerViewControlLayerMouseUp(e) {

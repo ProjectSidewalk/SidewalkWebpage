@@ -24,8 +24,8 @@ case class AuditTask(
     taskStart: OffsetDateTime,
     taskEnd: OffsetDateTime,
     completed: Boolean,
-    currentLat: Float,
-    currentLng: Float,
+    currentLat: Double,
+    currentLng: Double,
     startPointReversed: Boolean,
     currentMissionId: Option[Int],
     currentMissionStart: Option[Point],
@@ -36,8 +36,8 @@ case class AuditTask(
 case class NewTask(
     edgeId: Int,
     geom: LineString,
-    currentLng: Float,
-    currentLat: Float,
+    currentLng: Double,
+    currentLat: Double,
     wayType: String,             // OSM road type (residential, trunk, etc.).
     startPointReversed: Boolean, // Notes if we start at x1,y1 instead of x2,y2.
     taskStart: OffsetDateTime,
@@ -76,8 +76,8 @@ class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "au
   def taskStart: Rep[OffsetDateTime]          = column[OffsetDateTime]("task_start")
   def taskEnd: Rep[OffsetDateTime]            = column[OffsetDateTime]("task_end")
   def completed: Rep[Boolean]                 = column[Boolean]("completed")
-  def currentLat: Rep[Float]                  = column[Float]("current_lat")
-  def currentLng: Rep[Float]                  = column[Float]("current_lng")
+  def currentLat: Rep[Double]                 = column[Double]("current_lat")
+  def currentLng: Rep[Double]                 = column[Double]("current_lng")
   def startPointReversed: Rep[Boolean]        = column[Boolean]("start_point_reversed")
   def currentMissionId: Rep[Option[Int]]      = column[Option[Int]]("current_mission_id")
   def currentMissionStart: Rep[Option[Point]] = column[Option[Point]]("current_mission_start")
@@ -317,28 +317,28 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
   /**
    * Gets total distance audited by a user in meters.
    */
-  def getDistanceAudited(userId: String): DBIO[Float] = {
+  def getDistanceAudited(userId: String): DBIO[Double] = {
     completedTasks
       .filter(_.userId === userId)
       .join(streetEdges)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .map(_._2.geom.transform(26918).length)
+      .map(_._2.geom.transform(26918).lengthD)
       .sum
-      .getOrElse(0f)
+      .getOrElse(0d)
       .result
   }
 
   /**
    * Get the sum of the line distance of all streets in the region that the user has not audited.
    */
-  def getUnauditedDistance(userId: String, regionId: Int): DBIO[Float] = {
+  def getUnauditedDistance(userId: String, regionId: Int): DBIO[Double] = {
     getStreetEdgeRegionsNotAuditedQuery(userId, regionId)
       .join(streetEdgesWithoutDeleted)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .map(_._2.geom.transform(26918).length)
+      .map(_._2.geom.transform(26918).lengthD)
       .sum
       .result
-      .map(_.getOrElse(0f))
+      .map(_.getOrElse(0d))
   }
 
   /**
@@ -575,8 +575,8 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
   def updateTaskProgress(
       auditTaskId: Int,
       timestamp: OffsetDateTime,
-      lat: Float,
-      lng: Float,
+      lat: Double,
+      lng: Double,
       missionId: Int,
       currMissionStart: Option[Point]
   ): DBIO[Int] = {

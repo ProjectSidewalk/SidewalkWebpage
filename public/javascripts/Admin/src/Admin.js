@@ -88,32 +88,32 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
     // Takes an array of objects and the name of a property of the objects, returns summary stats for that property.
     function getSummaryStats(data, col, options) {
         options = options || {};
-        var excludeResearchers = options.excludeResearchers || false;
+        const excludeResearchers = options.excludeResearchers || false;
 
-        var sum = 0;
-        var filteredData = [];
-        for (var j = 0; j < data.length; j++) {
+        let sum = 0;
+        const filteredData = [];
+        for (let j = 0; j < data.length; j++) {
             if (!excludeResearchers || !isResearcherRole(data[j].role)) {
                 sum += data[j][col];
                 filteredData.push(data[j])
             }
         }
-        var mean = sum / filteredData.length;
-        var i = filteredData.length / 2;
+        const mean = sum / filteredData.length;
+        const i = filteredData.length / 2;
         filteredData.sort(function(a, b) {return (a[col] > b[col]) ? 1 : ((b[col] > a[col]) ? -1 : 0);} );
 
-        var median = 0;
-        var max = 0;
-        var min = 0;
+        let median = 0;
+        let max = 0;
+        let min = 0;
 
         if (filteredData.length > 0) { // Prevent errors in development where there may be no data
-            median = (filteredData.length / 2) % 1 == 0 ? (filteredData[i - 1][col] + filteredData[i][col]) / 2 : filteredData[Math.floor(i)][col];
+            median = (filteredData.length / 2) % 1 === 0 ? (filteredData[i - 1][col] + filteredData[i][col]) / 2 : filteredData[Math.floor(i)][col];
             min = filteredData[0][col];
             max = filteredData[filteredData.length-1][col];
         }
 
-        var std = 0;
-        for(var k = 0; k < filteredData.length; k++) {
+        let std = 0;
+        for (let k = 0; k < filteredData.length; k++) {
             std += Math.pow(filteredData[k][col] - mean, 2);
         }
         std /= filteredData.length;
@@ -125,19 +125,18 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
     // takes in some data, summary stats, and optional arguments, and outputs the spec for a vega-lite chart
     function getVegaLiteHistogram(data, mean, median, options) {
         options = options || {};
-        var xAxisTitle = options.xAxisTitle || "TODO, fill in x-axis title";
-        var yAxisTitle = options.yAxisTitle || "Counts";
-        var height = options.height || 300;
-        var width = options.width || 600;
-        var col = options.col || "count"; // most graphs we are making are made of up counts
-        var xDomain = options.xDomain || [0, data[data.length-1][col]];
-        var binStep = options.binStep || 1;
-        var legendOffset = options.legendOffset || 0;
-        var excludeResearchers = options.excludeResearchers || false;
+        const xAxisTitle = options.xAxisTitle || "TODO, fill in x-axis title";
+        const yAxisTitle = options.yAxisTitle || "Counts";
+        const height = options.height || 300;
+        const width = options.width || 600;
+        const col = options.col || "count"; // most graphs we are making are made of up counts
+        const xDomain = options.xDomain || [0, data[data.length-1][col]];
+        const binStep = options.binStep || 1;
+        const legendOffset = options.legendOffset || 0;
+        const excludeResearchers = options.excludeResearchers || false;
 
-        // var transformList = excludeResearchers ? [{"filter": "!datum.is_researcher"}] : [];
-        var nonResearcherRoles = ['Registered', 'Anonymous', 'Turker'];
-        var transformList = excludeResearchers ? [{"filter": {"field": "role", "oneOf": nonResearcherRoles}}] : [];
+        const nonResearcherRoles = ['Registered', 'Anonymous', 'Turker'];
+        const transformList = excludeResearchers ? [{"filter": {"field": "role", "oneOf": nonResearcherRoles}}] : [];
 
         return {
             "height": height,
@@ -261,13 +260,13 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
                 self.analyticsMap = m[0];
             });
 
-            var opt = {
+            const opt = {
                 "mode": "vega-lite",
                 "actions": false
             };
 
             $.getJSON("/adminapi/completionRateByDate", function (data) {
-                var chart = {
+                const chart = {
                     "data": {"values": data, "format": {"type": "json"}},
                     "config": {
                         "axis": {
@@ -319,12 +318,12 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
                         }
                     ]
                 };
-                vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
+                vega.embed("#completion-progress-chart", chart, opt);
             });
 
             $.getJSON('/adminapi/labelTags', function(tagCountData) {
-                var subPlotHeight = 175;
-                var subPlotWidth = 250;
+                const subPlotHeight = 175;
+                const subPlotWidth = 250;
 
                 for (let item of tagCountData) {
                     if (item.tag.length > 15) {
@@ -332,7 +331,7 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
                     }
                 }
 
-                var chart1 = {
+                const chart1 = {
                     "hconcat": [
                         {
                             "height": subPlotHeight,
@@ -370,7 +369,7 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
                     ]
                 };
 
-                var chart2 = {
+                const chart2 = {
                     "hconcat": [
                         {
                             "height": subPlotHeight,
@@ -408,50 +407,50 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
                     ]
                 };
 
-                vega.embed("#tag-usage-histograms", chart1, opt, function(error, results) {});
-                vega.embed("#tag-usage-histograms2", chart2, opt, function(error, results) {});
+                vega.embed("#tag-usage-histograms", chart1, opt);
+                vega.embed("#tag-usage-histograms2", chart2, opt);
             });
 
             $.getJSON('/adminapi/labels/all', function (data) {
-                for (var i = 0; i < data.features.length; i++) {
+                for (let i = 0; i < data.features.length; i++) {
                     data.features[i].label_type = data.features[i].properties.label_type;
                     data.features[i].severity = data.features[i].properties.severity;
                 }
-                var curbRamps = data.features.filter(function(label) {return label.properties.label_type === "CurbRamp"});
-                var noCurbRamps = data.features.filter(function(label) {return label.properties.label_type === "NoCurbRamp"});
-                var obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
-                var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
-                var crosswalks = data.features.filter(function(label) {return label.properties.label_type === "Crosswalk"});
+                const curbRamps = data.features.filter(function(label) {return label.properties.label_type === "CurbRamp"});
+                const noCurbRamps = data.features.filter(function(label) {return label.properties.label_type === "NoCurbRamp"});
+                const obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
+                const surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
+                const crosswalks = data.features.filter(function(label) {return label.properties.label_type === "Crosswalk"});
 
-                var curbRampStats = getSummaryStats(curbRamps, "severity");
+                const curbRampStats = getSummaryStats(curbRamps, "severity");
                 $("#curb-ramp-mean").html((curbRampStats.mean).toFixed(2));
                 $("#curb-ramp-std").html((curbRampStats.std).toFixed(2));
 
-                var noCurbRampStats = getSummaryStats(noCurbRamps, "severity");
+                const noCurbRampStats = getSummaryStats(noCurbRamps, "severity");
                 $("#missing-ramp-mean").html((noCurbRampStats.mean).toFixed(2));
                 $("#missing-ramp-std").html((noCurbRampStats.std).toFixed(2));
 
-                var obstacleStats = getSummaryStats(obstacles, "severity");
+                const obstacleStats = getSummaryStats(obstacles, "severity");
                 $("#obstacle-mean").html((obstacleStats.mean).toFixed(2));
                 $("#obstacle-std").html((obstacleStats.std).toFixed(2));
 
-                var surfaceProblemStats = getSummaryStats(surfaceProblems, "severity");
+                const surfaceProblemStats = getSummaryStats(surfaceProblems, "severity");
                 $("#surface-mean").html((surfaceProblemStats.mean).toFixed(2));
                 $("#surface-std").html((surfaceProblemStats.std).toFixed(2));
 
-                var crosswalkStats = getSummaryStats(crosswalks, "severity");
+                const crosswalkStats = getSummaryStats(crosswalks, "severity");
                 $("#crosswalk-mean").html((crosswalkStats.mean).toFixed(2));
                 $("#crosswalk-std").html((crosswalkStats.std).toFixed(2));
 
-                var allData = data.features;
-                var allDataStats = getSummaryStats(allData, "severity");
+                const allData = data.features;
+                const allDataStats = getSummaryStats(allData, "severity");
                 $("#labels-mean").html((allDataStats.mean).toFixed(2));
                 $("#labels-std").html((allDataStats.std).toFixed(2));
 
-                var subPlotHeight = 155; // Before, it was 150
-                var subPlotWidth = 220; // Before, it was 130
+                const subPlotHeight = 155; // Before, it was 150
+                const subPlotWidth = 220; // Before, it was 130
 
-                var chart = {
+                const chart = {
                     "hconcat": [
                         {
                             "height": subPlotHeight,
@@ -494,7 +493,7 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
                     }
                 };
 
-                var chart2 = {
+                const chart2 = {
                     "hconcat": [
                         {
                             "height": subPlotHeight,
@@ -526,22 +525,22 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
                     }
                 };
 
-                vega.embed("#severity-histograms", chart, opt, function(error, results) {});
-                vega.embed("#severity-histograms2", chart2, opt, function(error, results) {});
+                vega.embed("#severity-histograms", chart, opt);
+                vega.embed("#severity-histograms2", chart2, opt);
             });
 
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
                 // Determine height of the chart based on the number of neighborhoods.
-                var chartHeight = 150 + (data.length * 30);
+                const chartHeight = 150 + (data.length * 30);
 
                 // Make charts showing neighborhood completion rate.
-                for (var j = 0; j < data.length; j++) {
+                for (let j = 0; j < data.length; j++) {
                     data[j].rate *= 100.0; // change from proportion to percent
                 }
-                var stats = getSummaryStats(data, "rate");
+                const stats = getSummaryStats(data, "rate");
                 $("#neighborhood-std").html((stats.std).toFixed(2) + "%");
 
-                var coverageRateChartSortedByCompletion = {
+                const coverageRateChartSortedByCompletion = {
                     "width": 700,
                     "height": chartHeight,
                     "data": {
@@ -566,7 +565,7 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
                     }
                 };
 
-                var coverageRateChartSortedAlphabetically = {
+                const coverageRateChartSortedAlphabetically = {
                     "width": 700,
                     "height": chartHeight,
                     "data": {
@@ -590,46 +589,47 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
                         "axis": {"titleFontSize": 16, "labelFontSize": 13}
                     }
                 };
-                vega.embed("#neighborhood-completion-rate", coverageRateChartSortedByCompletion, opt, function(error, results) {});
+                vega.embed("#neighborhood-completion-rate", coverageRateChartSortedByCompletion, opt);
 
                 document.getElementById("neighborhood-completion-sort-button").addEventListener("click", function() {
-                    vega.embed("#neighborhood-completion-rate", coverageRateChartSortedByCompletion, opt, function(error, results) {});
+                    vega.embed("#neighborhood-completion-rate", coverageRateChartSortedByCompletion, opt);
                 });
                 document.getElementById("neighborhood-alphabetical-sort-button").addEventListener("click", function() {
-                    vega.embed("#neighborhood-completion-rate", coverageRateChartSortedAlphabetically, opt, function(error, results) {});
+                    vega.embed("#neighborhood-completion-rate", coverageRateChartSortedAlphabetically, opt);
                 });
 
-                var histOpts = {col: "rate", xAxisTitle:"Neighborhood Completion (%)", xDomain:[0, 100],
-                                width:400, height:250, binStep:10};
-                var coverageRateHist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
+                const histOpts = {
+                    col: "rate", xAxisTitle:"Neighborhood Completion (%)", xDomain:[0, 100], width:400, height:250, binStep:10
+                };
+                const coverageRateHist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
-                vega.embed("#neighborhood-completed-distance", coverageRateHist, opt, function(error, results) {});
+                vega.embed("#neighborhood-completed-distance", coverageRateHist, opt);
 
             });
             $.getJSON('/adminapi/validationCounts', function (data) {
                 // Must have 50+ labels validated. Also removing AI user.
-                var filteredData = data.filter(function(x) { return x.count >= 50 && x.role !== 'AI'; })
+                const filteredData = data.filter(function(x) { return x.count >= 50 && x.role !== 'AI'; })
 
                 // Convert to percentages.
-                var pcts = filteredData.map(function (x) { return { count: (x.agreed / x.count) * 100 }; });
+                const pcts = filteredData.map(function (x) { return { count: (x.agreed / x.count) * 100 }; });
 
-                var stats = getSummaryStats(pcts, "count");
+                const stats = getSummaryStats(pcts, "count");
                 $("#validation-agreed-std").html((stats.std).toFixed(2) + " %");
 
-                var histOpts = { xAxisTitle:"User Accuracy (%)", xDomain:[0, 100], binStep:5 };
-                var coverageRateHist = getVegaLiteHistogram(pcts, stats.mean, stats.median, histOpts);
-                vega.embed("#validation-agreed", coverageRateHist, opt, function(error, results) {});
+                const histOpts = { xAxisTitle:"User Accuracy (%)", xDomain:[0, 100], binStep:5 };
+                const coverageRateHist = getVegaLiteHistogram(pcts, stats.mean, stats.median, histOpts);
+                vega.embed("#validation-agreed", coverageRateHist, opt);
 
             });
             $.getJSON("/contribution/auditCounts/all", function (data) {
-                var stats = getSummaryStats(data, "count");
+                const stats = getSummaryStats(data, "count");
 
                 $("#audit-std").html((stats.std).toFixed(2) + " Street Audits");
 
-                var histOpts = {xAxisTitle:"# Street Audits per Day", xDomain:[0, stats.max], width:250, binStep:50, legendOffset:-80};
-                var hist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
+                const histOpts = {xAxisTitle:"# Street Audits per Day", xDomain:[0, stats.max], width:250, binStep:50, legendOffset:-80};
+                const hist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
-                var chart = {
+                const chart = {
                     "data": {"values": data},
                     "hconcat": [
                         {
@@ -684,16 +684,16 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
                         }
                     }
                 };
-                vega.embed("#audit-count-chart", chart, opt, function(error, results) {});
+                vega.embed("#audit-count-chart", chart, opt);
             });
             $.getJSON("/userapi/labelCounts/all", function (data) {
-                var stats = getSummaryStats(data, "count");
+                const stats = getSummaryStats(data, "count");
                 $("#label-std").html((stats.std).toFixed(2) + " Labels");
 
-                var histOpts = {xAxisTitle:"# Labels per Day", xDomain:[0, stats.max], width:250, binStep:200, legendOffset:-80};
-                var hist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
+                const histOpts = {xAxisTitle:"# Labels per Day", xDomain:[0, stats.max], width:250, binStep:200, legendOffset:-80};
+                const hist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
-                var chart = {
+                const chart = {
                     "data": {"values": data},
                     "hconcat": [
                         {
@@ -748,16 +748,16 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
                         }
                     }
                 };
-                vega.embed("#label-count-chart", chart, opt, function(error, results) { });
+                vega.embed("#label-count-chart", chart, opt);
             });
             $.getJSON("/userapi/validationCounts/all", function (data) {
-                var stats = getSummaryStats(data, "count");
+                const stats = getSummaryStats(data, "count");
                 $("#validation-std").html((stats.std).toFixed(2) + " Validations");
 
-                var histOpts = {xAxisTitle:"# Validations per Day", xDomain:[0, stats.max], width:250, binStep:200, legendOffset:-80};
-                var hist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
+                const histOpts = {xAxisTitle:"# Validations per Day", xDomain:[0, stats.max], width:250, binStep:200, legendOffset:-80};
+                const hist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
-                var chart = {
+                const chart = {
                     "data": {"values": data},
                     "hconcat": [
                         {
@@ -812,274 +812,274 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
                         }
                     }
                 };
-                vega.embed("#validation-count-chart", chart, opt, function(error, results) {});
+                vega.embed("#validation-count-chart", chart, opt);
             });
             $.getJSON("/adminapi/userMissionCounts", function (data) {
-                var allData = data.filter(user => user.role !== 'AI');
-                var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
-                var anonData = allData.filter(user => user.role === 'Anonymous');
-                var turkerData = allData.filter(user => user.role === 'Turker');
+                const allData = data.filter(user => user.role !== 'AI');
+                const regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
+                const anonData = allData.filter(user => user.role === 'Anonymous');
+                const turkerData = allData.filter(user => user.role === 'Turker');
 
-                var allStats = getSummaryStats(allData, "count");
-                var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers: true});
-                var regStats = getSummaryStats(regData, "count");
-                var regFilteredStats = getSummaryStats(regData, "count", {excludeResearchers: true});
-                var turkerStats = getSummaryStats(turkerData, "count");
-                var anonStats = getSummaryStats(anonData, "count");
+                const allStats = getSummaryStats(allData, "count");
+                const allFilteredStats = getSummaryStats(allData, "count", { excludeResearchers: true });
+                const regStats = getSummaryStats(regData, "count");
+                const regFilteredStats = getSummaryStats(regData, "count", { excludeResearchers: true });
+                const turkerStats = getSummaryStats(turkerData, "count");
+                const anonStats = getSummaryStats(anonData, "count");
 
                 $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
                 $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
                 $("#turker-missions-std").html((turkerStats.std).toFixed(2) + " Missions");
                 $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
 
-                var allHistOpts = {
+                const allHistOpts = {
                     xAxisTitle: "# Missions per User (all)", xDomain: [0, allStats.max], width: 187,
                     binStep: 15, legendOffset: -80
                 };
-                var allFilteredHistOpts = {
+                const allFilteredHistOpts = {
                     xAxisTitle: "# Missions per User (all)", xDomain: [0, allFilteredStats.max],
                     width: 187, binStep: 15, legendOffset: -80, excludeResearchers: true
                 };
-                var regHistOpts = {
+                const regHistOpts = {
                     xAxisTitle: "# Missions per Registered User", xDomain: [0, regStats.max], width: 187,
                     binStep: 10, legendOffset: -80
                 };
-                var regFilteredHistOpts = {
+                const regFilteredHistOpts = {
                     xAxisTitle: "# Missions per Registered User", width: 187, legendOffset: -80,
                     xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 10
                 };
-                var turkerHistOpts = {
+                const turkerHistOpts = {
                     xAxisTitle: "# Missions per Turker User", xDomain: [0, turkerStats.max], width: 187,
                     binStep: 15, legendOffset: -80
                 };
-                var anonHistOpts = {
+                const anonHistOpts = {
                     xAxisTitle: "# Missions per Anon User", xDomain: [0, anonStats.max], width: 187,
                     binStep: 1, legendOffset: -80
                 };
 
-                var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
-                var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
-                var regChart = getVegaLiteHistogram(regData, regStats.mean, regStats.median, regHistOpts);
-                var regFilteredChart = getVegaLiteHistogram(regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
-                var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
-                var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
+                const allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
+                const allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
+                const regChart = getVegaLiteHistogram(regData, regStats.mean, regStats.median, regHistOpts);
+                const regFilteredChart = getVegaLiteHistogram(regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
+                const turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
+                const anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
-                // Only includes charts with data as charts with no data prevent all charts from rendering.
-                var combinedChart = {"hconcat": []};
-                var combinedChartFiltered = {"hconcat": []};
+                // Only includes charts with data, because charts with no data prevent all charts from rendering.
+                const combinedChart = { "hconcat": [] };
+                const combinedChartFiltered = { "hconcat": [] };
 
                 [allChart, regChart, turkerChart, anonChart].forEach(element => {
-                    if (element.data.values.length > 0) {
-                        combinedChart.hconcat.push(element);
-                    }
+                    if (element.data.values.length > 0) combinedChart.hconcat.push(element);
                 });
 
                 [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
-                    if (element.data.values.length > 0) {
-                        combinedChartFiltered.hconcat.push(element);
-                    }
+                    if (element.data.values.length > 0) combinedChartFiltered.hconcat.push(element);
                 });
 
-                vega.embed("#mission-count-chart", combinedChartFiltered, opt, function (error, results) { });
+                if (combinedChartFiltered.hconcat.length > 0) {
+                    vega.embed("#mission-count-chart", combinedChartFiltered, opt);
+                }
 
-                var checkbox = document.getElementById("mission-count-include-researchers-checkbox").addEventListener("click", function (cb) {
-                    if (cb.srcElement.checked) {
+                document.getElementById("mission-count-include-researchers-checkbox").addEventListener("click", function (cb) {
+                    if (cb.target.checked) {
                         $("#missions-std").html((allStats.std).toFixed(2) + " Missions");
                         $("#reg-missions-std").html((regStats.std).toFixed(2) + " Missions");
-                        vega.embed("#mission-count-chart", combinedChart, opt, function (error, results) {
-                        });
+                        if (combinedChart.hconcat.length > 0) {
+                            vega.embed("#mission-count-chart", combinedChart, opt);
+                        }
                     } else {
                         $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
                         $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
-                        vega.embed("#mission-count-chart", combinedChartFiltered, opt, function (error, results) {
-                        });
+                        if (combinedChartFiltered.hconcat.length > 0) {
+                            vega.embed("#mission-count-chart", combinedChartFiltered, opt);
+                        }
                     }
                 });
             });
             $.getJSON("/adminapi/labelCounts", function (data) {
-                var allData = data.filter(user => user.role !== 'AI');
-                var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
-                var turkerData = allData.filter(user => user.role === 'Turker');
-                var anonData = allData.filter(user => user.role === 'Anonymous');
+                const allData = data.filter(user => user.role !== 'AI');
+                const regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
+                const turkerData = allData.filter(user => user.role === 'Turker');
+                const anonData = allData.filter(user => user.role === 'Anonymous');
 
-                var allStats = getSummaryStats(allData, "count");
-                var allFilteredStats = getSummaryStats(allData, "count", { excludeResearchers: true });
-                var regStats = getSummaryStats(regData, "count");
-                var regFilteredStats = getSummaryStats(regData, "count", { excludeResearchers: true });
-                var turkerStats = getSummaryStats(turkerData, "count");
-                var anonStats = getSummaryStats(anonData, "count");
+                const allStats = getSummaryStats(allData, "count");
+                const allFilteredStats = getSummaryStats(allData, "count", { excludeResearchers: true });
+                const regStats = getSummaryStats(regData, "count");
+                const regFilteredStats = getSummaryStats(regData, "count", { excludeResearchers: true });
+                const turkerStats = getSummaryStats(turkerData, "count");
+                const anonStats = getSummaryStats(anonData, "count");
 
                 $("#all-labels-std").html((allFilteredStats.std).toFixed(2) + " Labels");
                 $("#reg-labels-std").html((regFilteredStats.std).toFixed(2) + " Labels");
                 $("#turker-labels-std").html((turkerStats.std).toFixed(2) + " Labels");
                 $("#anon-labels-std").html((anonStats.std).toFixed(2) + " Labels");
 
-                var allHistOpts = {
+                const allHistOpts = {
                     xAxisTitle: "# Labels per User (all)", xDomain: [0, allStats.max], width: 187,
                     binStep: 500, legendOffset: -80
                 };
-                var allFilteredHistOpts = {
+                const allFilteredHistOpts = {
                     xAxisTitle: "# Labels per User (all)", xDomain: [0, allFilteredStats.max],
                     width: 187, binStep: 500, legendOffset: -80, excludeResearchers: true
                 };
-                var regHistOpts = {
+                const regHistOpts = {
                     xAxisTitle: "# Labels per Registered User", xDomain: [0, regStats.max], width: 187,
                     binStep: 500, legendOffset: -80
                 };
-                var regFilteredHistOpts = {
+                const regFilteredHistOpts = {
                     xAxisTitle: "# Labels per Registered User", width: 187, legendOffset: -80,
                     xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 500
                 };
-                var turkerHistOpts = {
+                const turkerHistOpts = {
                     xAxisTitle: "# Labels per Turker User", xDomain: [0, turkerStats.max], width: 187,
                     binStep: 500, legendOffset: -80
                 };
-                var anonHistOpts = {
+                const anonHistOpts = {
                     xAxisTitle: "# Labels per Anon User", xDomain: [0, anonStats.max],
                     width: 187, legendOffset: -80, binStep: 2
                 };
 
-                var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
-                var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
-                var regChart = getVegaLiteHistogram(regData, regStats.mean, regStats.median, regHistOpts);
-                var regFilteredChart = getVegaLiteHistogram(regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
-                var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
-                var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
+                const allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
+                const allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
+                const regChart = getVegaLiteHistogram(regData, regStats.mean, regStats.median, regHistOpts);
+                const regFilteredChart = getVegaLiteHistogram(regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
+                const turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
+                const anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
-                // Only includes charts with data as charts with no data prevent all charts from rendering.
-                var combinedChart = {"hconcat": []};
-                var combinedChartFiltered = {"hconcat": []};
+                // Only includes charts with data, because charts with no data prevent all charts from rendering.
+                const combinedChart = { "hconcat": [] };
+                const combinedChartFiltered = { "hconcat": [] };
 
                 [allChart, regChart, turkerChart, anonChart].forEach(element => {
-                    if (element.data.values.length > 0) {
-                        combinedChart.hconcat.push(element);
-                    }
+                    if (element.data.values.length > 0) combinedChart.hconcat.push(element);
                 });
 
                 [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
-                    if (element.data.values.length > 0) {
-                        combinedChartFiltered.hconcat.push(element);
-                    }
+                    if (element.data.values.length > 0) combinedChartFiltered.hconcat.push(element);
                 });
 
-                vega.embed("#label-count-hist", combinedChartFiltered, opt, function (error, results) { });
+                if (combinedChartFiltered.hconcat.length > 0) {
+                    vega.embed("#label-count-hist", combinedChartFiltered, opt);
+                }
 
-                var checkbox = document.getElementById("label-count-include-researchers-checkbox").addEventListener("click", function (cb) {
-                    if (cb.srcElement.checked) {
+                document.getElementById("label-count-include-researchers-checkbox").addEventListener("click", function (cb) {
+                    if (cb.target.checked) {
                         $("#all-labels-std").html((allStats.std).toFixed(2) + " Labels");
                         $("#reg-labels-std").html((regStats.std).toFixed(2) + " Labels");
-                        vega.embed("#label-count-hist", combinedChart, opt, function (error, results) {
-                        });
+                        if (combinedChart.hconcat.length > 0) {
+                            vega.embed("#label-count-hist", combinedChart, opt);
+                        }
                     } else {
                         $("#all-labels-std").html((allFilteredStats.std).toFixed(2) + " Labels");
                         $("#reg-labels-std").html((regFilteredStats.std).toFixed(2) + " Labels");
-                        vega.embed("#label-count-hist", combinedChartFiltered, opt, function (error, results) {
-                        });
+                        if (combinedChartFiltered.hconcat.length > 0) {
+                            vega.embed("#label-count-hist", combinedChartFiltered, opt);
+                        }
                     }
                 });
             });
             $.getJSON("/adminapi/validationCounts", function (data) {
-                var allData = data.filter(user => user.role !== 'AI');
-                var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
-                var turkerData = allData.filter(user => user.role === 'Turker');
-                var anonData = allData.filter(user => user.role === 'Anonymous');
+                const allData = data.filter(user => user.role !== 'AI');
+                const regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
+                const turkerData = allData.filter(user => user.role === 'Turker');
+                const anonData = allData.filter(user => user.role === 'Anonymous');
 
-                var allStats = getSummaryStats(allData, "count");
-                var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers: true});
-                var regStats = getSummaryStats(regData, "count");
-                var regFilteredStats = getSummaryStats(regData, "count", {excludeResearchers: true});
-                var turkerStats = getSummaryStats(turkerData, "count");
-                var anonStats = getSummaryStats(anonData, "count");
+                const allStats = getSummaryStats(allData, "count");
+                const allFilteredStats = getSummaryStats(allData, "count", { excludeResearchers: true });
+                const regStats = getSummaryStats(regData, "count");
+                const regFilteredStats = getSummaryStats(regData, "count", { excludeResearchers: true });
+                const turkerStats = getSummaryStats(turkerData, "count");
+                const anonStats = getSummaryStats(anonData, "count");
 
                 $("#all-validation-std").html((allFilteredStats.std).toFixed(2) + " labels");
                 $("#reg-validation-std").html((regFilteredStats.std).toFixed(2) + " labels");
                 $("#turker-validation-std").html((turkerStats.std).toFixed(2) + " labels");
                 $("#anon-validation-std").html((anonStats.std).toFixed(2) + " labels");
 
-                var allHistOpts = {
+                const allHistOpts = {
                     xAxisTitle: "# Labels Validated per User (all)", xDomain: [0, allStats.max], width: 187,
                     binStep: 50, legendOffset: -80
                 };
-                var allFilteredHistOpts = {
+                const allFilteredHistOpts = {
                     xAxisTitle: "# Labels Validated per User (all)", xDomain: [0, allFilteredStats.max],
                     width: 187, binStep: 50, legendOffset: -80, excludeResearchers: true
                 };
-                var regHistOpts = {
+                const regHistOpts = {
                     xAxisTitle: "# Labels Validated per Registered User", xDomain: [0, regStats.max], width: 187,
                     binStep: 50, legendOffset: -80
                 };
-                var regFilteredHistOpts = {
+                const regFilteredHistOpts = {
                     xAxisTitle: "# Labels Validated per Registered User", width: 187, legendOffset: -80,
                     xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 50
                 };
-                var turkerHistOpts = {
+                const turkerHistOpts = {
                     xAxisTitle: "# Labels Validated per Turker User", xDomain: [0, turkerStats.max], width: 187,
                     binStep: 50, legendOffset: -80
                 };
-                var anonHistOpts = {
+                const anonHistOpts = {
                     xAxisTitle: "# Labels Validated per Anon User", xDomain: [0, anonStats.max],
                     width: 187, legendOffset: -80, binStep: 2
                 };
 
-                var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
-                var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
-                var regChart = getVegaLiteHistogram(regData, regStats.mean, regStats.median, regHistOpts);
-                var regFilteredChart = getVegaLiteHistogram(regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
-                var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
-                var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
+                const allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
+                const allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
+                const regChart = getVegaLiteHistogram(regData, regStats.mean, regStats.median, regHistOpts);
+                const regFilteredChart = getVegaLiteHistogram(regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
+                const turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
+                const anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
-                // Only includes charts with data as charts with no data prevent all charts from rendering.
-                var combinedChart = {"hconcat": []};
-                var combinedChartFiltered = {"hconcat": []};
+                // Only includes charts with data, because charts with no data prevent all charts from rendering.
+                const combinedChart = { "hconcat": [] };
+                const combinedChartFiltered = { "hconcat": [] };
 
                 [allChart, regChart, turkerChart, anonChart].forEach(element => {
-                    if (element.data.values.length > 0) {
-                        combinedChart.hconcat.push(element);
-                    }
+                    if (element.data.values.length > 0) combinedChart.hconcat.push(element);
                 });
 
                 [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
-                    if (element.data.values.length > 0) {
-                        combinedChartFiltered.hconcat.push(element);
-                    }
+                    if (element.data.values.length > 0) combinedChartFiltered.hconcat.push(element);
                 });
 
-                vega.embed("#validation-count-hist", combinedChartFiltered, opt, function (error, results) { });
+                if (combinedChartFiltered.hconcat.length > 0) {
+                    vega.embed("#validation-count-hist", combinedChartFiltered, opt);
+                }
 
-                var checkbox = document.getElementById("validation-count-include-researchers-checkbox").addEventListener("click", function (cb) {
-                    if (cb.srcElement.checked) {
+                document.getElementById("validation-count-include-researchers-checkbox").addEventListener("click", function (cb) {
+                    if (cb.target.checked) {
                         $("#all-validation-std").html((allStats.std).toFixed(2) + " Validations");
                         $("#reg-validation-std").html((regStats.std).toFixed(2) + " Validations");
-                        vega.embed("#validation-count-hist", combinedChart, opt, function (error, results) {
-                        });
+                        if (combinedChart.hconcat.length > 0) {
+                            vega.embed("#validation-count-hist", combinedChart, opt);
+                        }
                     } else {
                         $("#all-validation-std").html((allFilteredStats.std).toFixed(2) + " Validations");
                         $("#reg-validation-std").html((regFilteredStats.std).toFixed(2) + " Validations");
-                        vega.embed("#validation-count-hist", combinedChartFiltered, opt, function (error, results) {
-                        });
+                        if (combinedChartFiltered.hconcat.length > 0) {
+                            vega.embed("#validation-count-hist", combinedChartFiltered, opt);
+                        }
                     }
                 });
             });
             $.getJSON("/adminapi/allSignInCounts", function (data) {
-                var stats = getSummaryStats(data, "count");
-                var filteredStats = getSummaryStats(data, "count", {excludeResearchers:true});
-                var histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5, xDomain:[0, stats.max]};
-                var histFilteredOpts = {xAxisTitle:"# Logins per Registered User", xDomain:[0, filteredStats.max],
+                const stats = getSummaryStats(data, "count");
+                const filteredStats = getSummaryStats(data, "count", {excludeResearchers:true});
+                const histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5, xDomain:[0, stats.max]};
+                const histFilteredOpts = {xAxisTitle:"# Logins per Registered User", xDomain:[0, filteredStats.max],
                                         excludeResearchers:true};
 
-                var chart = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
-                var filteredChart = getVegaLiteHistogram(data, filteredStats.mean, filteredStats.median, histFilteredOpts);
+                const chart = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
+                const filteredChart = getVegaLiteHistogram(data, filteredStats.mean, filteredStats.median, histFilteredOpts);
 
                 $("#login-count-std").html((filteredStats.std).toFixed(2) + " Logins");
-                vega.embed("#login-count-chart", filteredChart, opt, function(error, results) {});
+                vega.embed("#login-count-chart", filteredChart, opt);
 
-                var checkbox = document.getElementById("login-count-include-researchers-checkbox").addEventListener("click", function(cb) {
-                    if (cb.srcElement.checked) {
+                document.getElementById("login-count-include-researchers-checkbox").addEventListener("click", function(cb) {
+                    if (cb.target.checked) {
                         $("#login-count-std").html((stats.std).toFixed(2) + " Logins");
-                        vega.embed("#login-count-chart", chart, opt, function (error, results) {});
+                        vega.embed("#login-count-chart", chart, opt);
                     } else {
                         $("#login-count-std").html((filteredStats.std).toFixed(2) + " Logins");
-                        vega.embed("#login-count-chart", filteredChart, opt, function(error, results) {});
+                        vega.embed("#login-count-chart", filteredChart, opt);
                     }
                 });
             });
@@ -1119,13 +1119,13 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
     });
 
     function changeRole(e) {
-        var userId = $(e.target).parent() // <li>
+        const userId = $(e.target).parent() // <li>
             .parent() // <ul>
             .siblings('button')
             .attr('id')
             .substring("userRoleDropdown".length); // userId is stored in id of dropdown
-        var newRole = e.target.innerText;
-        var data = {
+        const newRole = e.target.innerText;
+        const data = {
             'user_id': userId,
             'role_id': newRole
         };
@@ -1138,9 +1138,9 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
             dataType: 'json',
             success: function (result) {
                 // Change dropdown button to reflect new role.
-                var button = $('#userRoleDropdown' + result.user_id);
-                var buttonContents = button.html();
-                var newRole = result.role;
+                const button = $('#userRoleDropdown' + result.user_id);
+                const buttonContents = button.html();
+                const newRole = result.role;
                 button.html(buttonContents.replace(/Registered|Turker|Researcher|Administrator|Anonymous/g, newRole));
             },
             error: function (result) {
@@ -1150,13 +1150,13 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
     }
 
     function changeTeam(e) {
-        var userId = $(e.target).parent() // <li>
+        const userId = $(e.target).parent() // <li>
             .parent() // <ul>
             .siblings('button')
             .attr('id')
             .substring("userTeamDropdown".length); // userId is stored in id of dropdown.
-        var teamId = parseInt(e.target.getAttribute('data-team-id'));
-        var teamName = e.target.innerText;
+        const teamId = parseInt(e.target.getAttribute('data-team-id'));
+        const teamName = e.target.innerText;
 
         $.ajax({
             async: true,
@@ -1164,7 +1164,7 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
             method: 'PUT',
             success: function (result) {
                 // Change dropdown button to reflect new team.
-                var button = document.getElementById(`userTeamDropdown${result.user_id}`);
+                const button = document.getElementById(`userTeamDropdown${result.user_id}`);
                 button.childNodes[0].nodeValue = ` ${teamName} `;
             },
             error: function (result) {
@@ -1174,14 +1174,14 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
     }
 
     function changeTeamStatus(e) {
-        var teamId = $(e.target).parent() // <li>
+        const teamId = $(e.target).parent() // <li>
             .parent() // <ul>
             .siblings('button')
             .attr('id')
             .substring("statusDropdown".length); // teamId is stored in id of dropdown.
 
-        var newStatus = e.target.innerText === 'Open';
-        var data = {
+        const newStatus = e.target.innerText === 'Open';
+        const data = {
             'open': newStatus
         };
 
@@ -1194,7 +1194,7 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
             dataType: 'json',
             success: function(result) {
                 // Change dropdown button to reflect new status.
-                var button = document.getElementById(`statusDropdown${result.team_id}`);
+                const button = document.getElementById(`statusDropdown${result.team_id}`);
                 button.childNodes[0].nodeValue = ` ${newStatus === true ? 'Open' : 'Closed'} `;
             },
             error: function(xhr, status, error) {
@@ -1204,14 +1204,14 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
     }
 
     function changeTeamVisibility(e) {
-        var teamId = $(e.target).parent() // <li>
+        const teamId = $(e.target).parent() // <li>
             .parent() // <ul>
             .siblings('button')
             .attr('id')
             .substring("visibilityDropdown".length); // teamId is stored in id of dropdown.
 
-        var newVisibility = e.target.innerText === 'Visible';
-        var data = {
+        const newVisibility = e.target.innerText === 'Visible';
+        const data = {
             'visible': newVisibility
         };
 
@@ -1224,7 +1224,7 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
             dataType: 'json',
             success: function(result) {
                 // Change dropdown button to reflect new visibility.
-                var button = document.getElementById(`visibilityDropdown${result.team_id}`);
+                const button = document.getElementById(`visibilityDropdown${result.team_id}`);
                 button.childNodes[0].nodeValue = ` ${newVisibility === true ? 'Visible' : 'Hidden'} `;
             },
             error: function(xhr, status, error) {

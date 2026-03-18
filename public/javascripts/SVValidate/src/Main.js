@@ -27,8 +27,10 @@ function Main (param) {
             'Signal': param.tagList.filter(t => t.label_type_id === 10)
         }
         svv.ui = {};
+        svv.ui.holder = $('.tool-ui');
 
         svv.ui.validationMenu = {};
+        svv.ui.validationMenu.holder = $('#validation-menu-holder');
         svv.ui.validationMenu.header = $('#main-validate-header');
 
         svv.ui.validationMenu.yesButton = $('#validate-yes-button');
@@ -104,6 +106,8 @@ function Main (param) {
         };
 
         svv.ui.viewer = {};
+        svv.ui.viewer.holder = $('#svv-application-holder');
+        svv.ui.viewer.controlLayer = $('#view-control-layer');
         svv.ui.viewer.dateHolder = $('#svv-panorama-date-holder');
         svv.ui.viewer.date = $('#svv-panorama-date');
     }

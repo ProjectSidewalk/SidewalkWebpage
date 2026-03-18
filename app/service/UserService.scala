@@ -22,15 +22,15 @@ case class UserProfileData(
     userTeam: Option[Team],
     allTeams: Seq[Team],
     missionCount: Int,
-    auditedDistance: Float,
+    auditedDistance: Double,
     labelCount: Int,
     validationCount: Int,
-    accuracy: Option[Float]
+    accuracy: Option[Double]
 )
 case class AdminUserProfileData(
     currentRegion: Option[Region],
     numCompletedAudits: Int,
-    hoursWorked: Float,
+    hoursWorked: Double,
     userStats: UserStat,
     completedMissions: Seq[RegionalMission],
     exploreComments: Seq[AuditTaskComment]
@@ -39,9 +39,9 @@ case class AdminUserProfileData(
 @ImplementedBy(classOf[UserServiceImpl])
 trait UserService {
   def getUserProfileData(userId: String, metricSystem: Boolean): Future[UserProfileData]
-  def getDistanceAudited(userId: String): Future[Float]
+  def getDistanceAudited(userId: String): Future[Double]
   def countLabelsFromUser(userId: String): Future[Int]
-  def getUserAccuracy(userId: String): Future[Option[Float]]
+  def getUserAccuracy(userId: String): Future[Option[Double]]
 
   /**
    * Updates the high_quality_manual column for the given user. If None, recalculates stats and updates high_quality.
@@ -61,7 +61,7 @@ trait UserService {
       byTeam: Boolean = false,
       userIdForTeam: Option[String] = None
   ): Future[Seq[LeaderboardStat]]
-  def getHoursAuditingAndValidating(userId: String): Future[Float]
+  def getHoursAuditingAndValidating(userId: String): Future[Double]
   def getAuditedStreets(userId: String): Future[Seq[StreetEdge]]
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]]
   def updateTaskFlag(auditTaskId: Int, flag: String, state: Boolean): Future[Int]
@@ -94,13 +94,13 @@ class UserServiceImpl @Inject() (
       userTeam: Option[Team] <- userTeamTable.getTeam(userId)
       teams: Seq[Team]       <- teamTable.getAllTeams
       missionCount: Int <- missionTable.countCompletedMissions(userId, includeOnboarding = true, includeSkipped = false)
-      auditedDistanceMeters: Float <- auditTaskTable.getDistanceAudited(userId)
-      labelCount: Int              <- labelTable.countLabelsFromUser(userId)
-      valCount: Int                <- labelValidationTable.countValidations(userId)
-      accuracy: Option[Float]      <- labelValidationTable.getUserAccuracy(userId)
+      auditedDistanceMeters: Double <- auditTaskTable.getDistanceAudited(userId)
+      labelCount: Int               <- labelTable.countLabelsFromUser(userId)
+      valCount: Int                 <- labelValidationTable.countValidations(userId)
+      accuracy: Option[Double]      <- labelValidationTable.getUserAccuracy(userId)
     } yield {
-      val auditedDistance: Float = {
-        if (metricSystem) auditedDistanceMeters / 1000f
+      val auditedDistance: Double = {
+        if (metricSystem) auditedDistanceMeters / 1000d
         else auditedDistanceMeters * METERS_TO_MILES
       }
       UserProfileData(userId, userTeam, teams, missionCount, auditedDistance, labelCount, valCount, accuracy)
@@ -139,11 +139,11 @@ class UserServiceImpl @Inject() (
     } yield rowsUpdated
   }
 
-  def getDistanceAudited(userId: String): Future[Float] = db.run(auditTaskTable.getDistanceAudited(userId))
+  def getDistanceAudited(userId: String): Future[Double] = db.run(auditTaskTable.getDistanceAudited(userId))
 
   def countLabelsFromUser(userId: String): Future[Int] = db.run(labelTable.countLabelsFromUser(userId))
 
-  def getUserAccuracy(userId: String): Future[Option[Float]] = db.run(labelValidationTable.getUserAccuracy(userId))
+  def getUserAccuracy(userId: String): Future[Option[Double]] = db.run(labelValidationTable.getUserAccuracy(userId))
 
   def getUserTeam(userId: String): Future[Option[Team]] = db.run(userTeamTable.getTeam(userId))
 
@@ -177,12 +177,12 @@ class UserServiceImpl @Inject() (
         case Some(userId) => userTeamTable.getTeam(userId).map(_.map(_.teamId))
         case None         => DBIO.successful(None)
       }
-      streetDist: Float           <- streetService.getTotalStreetDistanceDBIO
+      streetDist: Double          <- streetService.getTotalStreetDistanceDBIO
       stats: Seq[LeaderboardStat] <- userStatTable.getLeaderboardStats(n, timePeriod, byTeam, teamId, streetDist)
     } yield stats)
   }
 
-  def getHoursAuditingAndValidating(userId: String): Future[Float] =
+  def getHoursAuditingAndValidating(userId: String): Future[Double] =
     db.run(auditTaskInteractionTable.getHoursAuditingAndValidating(userId))
 
   def getAuditedStreets(userId: String): Future[Seq[StreetEdge]] = db.run(auditTaskTable.getAuditedStreets(userId))

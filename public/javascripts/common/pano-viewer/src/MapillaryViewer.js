@@ -1,13 +1,6 @@
 /**
  * Mapillary implementation of the panorama viewer.
  * Docs: https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer
- *
- * Some functions that might be useful, but I'm not sure what they do quite yet
- * https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#getcenter
- * https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#project -- this one should take a lat/lng and give us canvas pixel coordinates
- * https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#unproject -- this one should take canvas pixel coordinates and give us lat/lng
- * https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#projectfrombasic -- I think goes from pano_x/y to canvas pixel coordinates?
- * https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#unprojecttobasic -- I think goes from canvas pixel coordinates to pano_x/y?
  */
 class MapillaryViewer extends PanoViewer {
     constructor() {
@@ -31,14 +24,14 @@ class MapillaryViewer extends PanoViewer {
     async initialize(canvasElem, panoOptions = {}) {
         // TODO Need to define a set of options and then find a nice way to map them onto viewer-specific configs.
         let disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
-        let clickToGo = 'clickToGo' in panoOptions ? panoOptions.clickToGo : false;
+        let defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
         let panoOpts = {
             accessToken: panoOptions.accessToken,
             container: canvasElem.id,
             component: {
                 bearing: !disableDefaultUi, // Shows heading viewer orb thing
                 cache: false, // TODO should make this true on Explore
-                direction: clickToGo, // Shows Mapillary's navigation arrows
+                direction: defaultNavigation, // Shows Mapillary's navigation arrows
                 keyboard: false,
                 marker: true, // TODO "Enable an interface for showing 3D markers in the viewer"
                 tag: true, // TODO "Enable an interface for drawing 2D geometries on top of images"
@@ -104,13 +97,13 @@ class MapillaryViewer extends PanoViewer {
             }
         }));
 
-        // If clickToGo is enabled, we need a pano_changed listener to record the pano metadata after moving.
-        if (clickToGo) {
+        // If defaultNavigation is enabled, we need a pano_changed listener to record the pano metadata after moving.
+        if (defaultNavigation) {
             this.addListener('pano_changed', this.updateImageData);
         }
 
         // Can even set the width of the nav arrows? https://mapillary.github.io/mapillary-js/api/interfaces/component.DirectionConfiguration/
-        // TODO Might want to do that in clickToGo actually... They're kinda big.
+        // TODO Might want to do that in defaultNavigation actually... They're kinda big.
     }
 
     getPanoId = () => {
@@ -153,6 +146,8 @@ class MapillaryViewer extends PanoViewer {
             this.currCenter = newCenter;
             this.currVerticalFov = newFov;
 
+            const pitchAndRoll = this.extractPitchRoll(this.currImage.rotation);
+
             // To get various info about the pano -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Image/
             // TODO merged, might want to record whether it's been merged thru sfm
             // TODO qualityScore is interesting: A number between zero and one determining the quality of the image. Blurriness, .......
@@ -167,10 +162,8 @@ class MapillaryViewer extends PanoViewer {
                 lat: this.currImage.lngLat.lat,
                 lng: this.currImage.lngLat.lng,
                 cameraHeading: this.currImage.compassAngle,
-                // TODO I think that we have camera pitch in renderCamera.camera.position.z. But actually seems really
-                //      important when it comes to Mapillary images... And that info should be available in the
-                //      renderCamera.camera.up vector.
-                cameraPitch: 0,
+                cameraPitch: pitchAndRoll.pitch,
+                cameraRoll: pitchAndRoll.roll,
                 copyright: this.currImage.creatorUsername,
                 history: [] // TODO could use /images endpoint to fill this. But can also see history in the UI https://www.mapillary.com/app/user/uwrapid?lat=47.66374856411&lng=-122.28224790652&z=17&x=0.5871305676894112&y=0.5159912788583514&zoom=0&panos=true&focus=photo&pKey=134748085384999&my_coverage=false&user_coverage=false
             }
@@ -222,6 +215,45 @@ class MapillaryViewer extends PanoViewer {
         return `https://graph.mapillary.com/images?${params.toString()}`;
     };
 
+    /**
+     * Extracts camera pitch and roll from a Mapillary image's rotation vector.
+     *
+     * Mapillary's coordinate system: X=East, Y=North, Z=Up.
+     * The image.rotation is an axis-angle vector representing the world-to-camera transform.
+     * Camera frame: +Z=forward, -Y=up, +X=right.
+     *
+     * NOTE I've tested that the pitch/roll values seem to be correct by transforming the original image like so:
+     * $ ffmpeg -i my-image.jpeg -vf "v360=e:e:pitch=-extractedPitch:roll=-extractedRoll" my-image-rotated.jpeg
+     *
+     * @param {number[]} rotation - The image.rotation axis-angle vector [rx, ry, rz].
+     * @returns {{ pitch: number, roll: number }} Pitch and roll in degrees.
+     *   Pitch: positive=looking up, negative=looking down.
+     *   Roll: positive=camera tilted clockwise (from photographer's perspective).
+     */
+    extractPitchRoll = (rotation) => {
+        // Invert the rotation to get camera-to-world.
+        const invR = [-rotation[0], -rotation[1], -rotation[2]];
+        const axis = new THREE.Vector3(...invR);
+        const angle = axis.length();
+        if (angle > 0) axis.normalize();
+        const matrix = new THREE.Matrix4().makeRotationAxis(axis, angle);
+
+        // Camera forward is [0,0,1]; camera up is [0,-1,0].
+        const viewDir = new THREE.Vector3(0, 0, 1).applyMatrix4(matrix);
+        const upDir = new THREE.Vector3(0, -1, 0).applyMatrix4(matrix);
+
+        // Pitch: elevation of viewing direction (Z=up in world frame).
+        const pitch = Math.asin(Math.max(-1, Math.min(1, viewDir.z))) * (180 / Math.PI);
+
+        // Roll: rotation of camera up-vector around the viewing axis, relative to the expected "level" up direction.
+        const worldUp = new THREE.Vector3(0, 0, 1);
+        const right = new THREE.Vector3().crossVectors(viewDir, worldUp).normalize();
+        const expectedUp = new THREE.Vector3().crossVectors(right, viewDir).normalize();
+        const roll = Math.atan2(upDir.dot(right), upDir.dot(expectedUp)) * (180 / Math.PI);
+
+        return { pitch, roll };
+    }
+
     setLocation = async (latLng, excludedPanos = new Set()) => {
         // Search for images near the coordinates.
         // Docs for how to filter images: https://www.mapillary.com/developer/api-documentation#image
@@ -230,22 +262,29 @@ class MapillaryViewer extends PanoViewer {
         // TODO should be able to use this to find (or decide on our own) links if we want.
         // NOTE The 'limit' API param doesn't do what it says. Including it can make the API return no images when the
         //      limit is set to something greater than 0 and we get images if we exclude the limit param. Don't use it!
+        // NOTE I found at least one situation where where duplicate images had been uploaded under different users.
+        //      The `captured_at` fields were identical, so maybe that could be used to weed out duplicates if this
+        //      becomes an issue? I haven't checked that the capture time is consistently different between consecutive
+        //      panos though, so I don't want to start doing that filtering without more testing.
         const centerPoint = turf.point([latLng.lng, latLng.lat]);
         let success = false;
-        let url;
         let data;
+        let potentialPanos;
 
         try {
             while (!success && radius > 0) {
-                url = this.#createPanoFetchUrl(centerPoint, radius);
+                const url = this.#createPanoFetchUrl(centerPoint, radius);
                 const response = await fetch(url);
                 data = await response.json();
                 console.log(data);
 
-                if (data.data && data.data.length > 0) {
-                    success = true;
-                } else if (data.data && data.data.length === 0) {
-                    throw new Error('No images found near this location');
+                if (data.data) {
+                    potentialPanos = data.data.filter(pano => !excludedPanos.has(pano.id));
+                    if (potentialPanos.length > 0) {
+                        success = true;
+                    } else {
+                        throw new Error('No images found near this location');
+                    }
                 } else if (data.error && data.error.code === 1) {
                     // If there were too many images in the bounding box, API fails. Try with a smaller area.
                     radius -= 0.01;
@@ -256,14 +295,14 @@ class MapillaryViewer extends PanoViewer {
                 }
             }
 
-            if (data.data && data.data.length > 0) {
+            if (potentialPanos && potentialPanos.length > 0) {
                 // Find image that is closest to the input lat/lng that isn't in the excluded list.
                 // TODO we could take into account recency, resolution, etc here as well!
-                let closestPano = data.data.filter(pano => !excludedPanos.has(pano.id))[0];
+                let closestPano = potentialPanos[0];
                 let currGeom = closestPano.computed_geometry ? closestPano.computed_geometry : closestPano.geometry;
                 let closestDist = turf.distance(centerPoint, turf.point(currGeom.coordinates));
-                for (let i = 1; i < data.data.length; i++) {
-                    const currPano = data.data[i];
+                for (let i = 1; i < potentialPanos.length; i++) {
+                    const currPano = potentialPanos[i];
                     currGeom = currPano.computed_geometry ? currPano.computed_geometry : currPano.geometry;
                     const currDist = turf.distance(centerPoint, turf.point(currGeom.coordinates));
                     if (currDist < closestDist) {

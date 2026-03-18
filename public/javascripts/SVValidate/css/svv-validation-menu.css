@@ -13,6 +13,12 @@
     gap: 20px;
 }
 
+.validate-disabled {
+    opacity: 0.6;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
 .validation-menu-section {
     display: none; /* Initially hidden, sections shown when validation buttons are clicked. */
 }

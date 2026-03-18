@@ -30,8 +30,8 @@ case class LabelValidation(
     // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
     canvasX: Option[Int],
     canvasY: Option[Int],
-    heading: Float,
-    pitch: Float,
+    heading: Double,
+    pitch: Double,
     zoom: Double,
     canvasHeight: Int,
     canvasWidth: Int,
@@ -69,8 +69,8 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
   def missionId: Rep[Int]                 = column[Int]("mission_id")
   def canvasX: Rep[Option[Int]]           = column[Option[Int]]("canvas_x")
   def canvasY: Rep[Option[Int]]           = column[Option[Int]]("canvas_y")
-  def heading: Rep[Float]                 = column[Float]("heading")
-  def pitch: Rep[Float]                   = column[Float]("pitch")
+  def heading: Rep[Double]                = column[Double]("heading")
+  def pitch: Rep[Double]                  = column[Double]("pitch")
   def zoom: Rep[Double]                   = column[Double]("zoom")
   def canvasHeight: Rep[Int]              = column[Int]("canvas_height")
   def canvasWidth: Rep[Int]               = column[Int]("canvas_width")
@@ -169,7 +169,7 @@ class LabelValidationTable @Inject() (
    * if 10 of the user's labels have been validated. A label is considered validated if it has either more agree
    * votes than disagree votes, or more disagree votes than agree votes.
    */
-  def getUserAccuracy(userId: String): DBIO[Option[Float]] = {
+  def getUserAccuracy(userId: String): DBIO[Option[Double]] = {
     sql"""
       SELECT CASE WHEN validated_count > 9 THEN accuracy ELSE NULL END AS accuracy
       FROM (
@@ -179,7 +179,7 @@ class LabelValidationTable @Inject() (
           WHERE label.deleted = FALSE
               AND label.tutorial = FALSE
               AND label.user_id = $userId
-      ) "accuracy_subquery";""".as[Option[Float]].map(_.headOption.flatten)
+      ) "accuracy_subquery";""".as[Option[Double]].map(_.headOption.flatten)
   }
 
   /**

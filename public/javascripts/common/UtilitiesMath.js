@@ -43,6 +43,18 @@ function haversine(latLng1, latLng2) {
 }
 util.math.haversine = haversine;
 
+/**
+ * Linearly interpolates between two values.
+ * @param {number} a Start value
+ * @param {number} b End value
+ * @param {number} t Interpolation factor (0–1)
+ * @returns {number} Interpolated result
+ */
+function lerp(a, b, t) {
+    return a + t * (b - a);
+}
+util.math.lerp = lerp;
+
 function roundToTwentyFive(num) { return Math.round(num / 25) * 25; }
 util.math.roundToTwentyFive = roundToTwentyFive;
 

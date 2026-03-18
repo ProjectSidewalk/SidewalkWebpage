@@ -3,7 +3,7 @@
  */
 function PanoOverlay () {
     const self = this;
-    const viewControlLayer = $('#view-control-layer');
+    const viewControlLayer = svv.ui.viewer.controlLayer;
     let panningDisabled = false;
 
     // Mouse status and mouse event callback functions.
@@ -35,7 +35,7 @@ function PanoOverlay () {
      */
     function handlerViewControlLayerMouseDown(e) {
         mouseStatus.isLeftDown = true;
-        viewControlLayer.css("cursor", "url(/assets/javascripts/SVLabel/img/cursors/closedhand.cur) 4 4, move");
+        viewControlLayer.css("cursor", "url(/assets/images/icons/closedhand.cur) 4 4, move");
 
         // This is necessary for supporting touch devices, because there is no mouse hover.
         mouseStatus.prevX = mouseposition(e, this).x;
@@ -47,7 +47,7 @@ function PanoOverlay () {
      * @param e
      */
     function handlerViewControlLayerMouseUp(e) {
-        viewControlLayer.css("cursor", "url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move");
+        viewControlLayer.css("cursor", "url(/assets/images/icons/openhand.cur) 4 4, move");
         mouseStatus.isLeftDown = false;
     }
 
@@ -56,7 +56,7 @@ function PanoOverlay () {
      * @param e
      */
     function handlerViewControlLayerMouseLeave(e) {
-        viewControlLayer.css("cursor", "url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move");
+        viewControlLayer.css("cursor", "url(/assets/images/icons/openhand.cur) 4 4, move");
         mouseStatus.isLeftDown = false;
     }
 

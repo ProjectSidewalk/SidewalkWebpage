@@ -359,9 +359,9 @@ class ValidateController @Inject() (
     val eligibleUser: Boolean = RoleTable.SCISTARTER_ROLES.contains(user.role)
     if (data.validations.nonEmpty && config.get[String]("environment-type") == "prod" && eligibleUser) {
       // Cap time for each validation at 1 minute.
-      val timeSpent: Float = data.validations.map { l =>
+      val timeSpent: Double = data.validations.map { l =>
         Math.min(ChronoUnit.MILLIS.between(l.startTimestamp, l.endTimestamp), 60000)
-      }.sum / 1000f
+      }.sum / 1000d
       configService.sendSciStarterContributions(user.email, data.validations.length, timeSpent)
     }
 

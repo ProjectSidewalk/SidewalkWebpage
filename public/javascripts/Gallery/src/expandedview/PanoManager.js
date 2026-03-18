@@ -64,14 +64,14 @@ class PanoManager {
         const panoOptions = {
             accessToken: viewerAccessToken,
             scrollwheel: true,
-            clickToGo: true
+            defaultNavigation: true
         };
 
         sg.panoViewer = await panoViewerType.create(this.panoCanvas, panoOptions);
 
         sg.panoViewer.addListener('pano_changed', () => {
             // We always want to update panoId when pano changes (as it is possible the pano changes
-            // for a reason OTHER THAN a user clicking on a card - for example, using clickToGo on the pano).
+            // for a reason OTHER THAN a user clicking on a card - for example, using navigation on the pano).
             if (this.labelMarker !== undefined) {
                 if (this.labelMarker.panoId === sg.panoViewer.getPanoId()) {
                     // We've moved to a pano with an ID that matches the current label to show, so we render the label.

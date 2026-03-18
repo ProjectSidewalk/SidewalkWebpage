@@ -70,8 +70,8 @@ class RegionServiceImpl @Inject() (
           val regionsQuery = streetsInRegion.groupBy(_._1).map { case (regionId, group) =>
             (
               regionId,
-              group.map(_._2.length).sum.getOrElse(0.0f),                                    // total distance
-              group.map(s => Case.If(s._3).Then(s._2.length).Else(0.0f)).sum.getOrElse(0.0f) // audited distance
+              group.map(_._2.lengthD).sum.getOrElse(0.0d),                                    // total distance
+              group.map(s => Case.If(s._3).Then(s._2.lengthD).Else(0.0d)).sum.getOrElse(0.0d) // audited distance
             )
           }
 
@@ -80,14 +80,12 @@ class RegionServiceImpl @Inject() (
             .joinLeft(regionsQuery)
             .on(_.regionId === _._1)
             .map { case (region, regionData) =>
-              (region.regionId, regionData.map(_._2).getOrElse(0.0f), regionData.map(_._3).getOrElse(0.0f))
+              (region.regionId, regionData.map(_._2).getOrElse(0.0d), regionData.map(_._3).getOrElse(0.0d))
             }
 
           for {
             regions     <- includingEmptyRegionsQuery.result
-            insertCount <- (regionCompletions ++= regions
-              .map(r => RegionCompletion(r._1, r._2.toDouble, r._3.toDouble)))
-              .map(_.getOrElse(0))
+            insertCount <- (regionCompletions ++= regions.map(RegionCompletion.tupled)).map(_.getOrElse(0))
           } yield insertCount
         } else {
           DBIO.successful(0) // If the table is already initialized, 0 rows inserted.

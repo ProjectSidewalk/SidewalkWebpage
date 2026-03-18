@@ -17,16 +17,19 @@ class GsvViewer extends PanoViewer {
         this.streetViewService = await new StreetViewService();
 
         // Set GSV panorama options.
+        let defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
         const defaults = {
             addressControl: false,
-            clickToGo: false,
+            clickToGo: defaultNavigation,
             disableDefaultUI: true,
             motionTracking: false,
             motionTrackingControl: false,
             panControl: false,
             scrollwheel: false,
             showRoadLabels: false,
-            zoomControl: false
+            zoomControl: false,
+
+            defaultNavigation: defaultNavigation // If true, we show Google's clickToGo navigation.
         };
         const panoOpts = { ...defaults, ...panoOptions };
         this.gsvPano = await new StreetViewPanorama(canvasElem, panoOpts);
@@ -67,8 +70,8 @@ class GsvViewer extends PanoViewer {
         }
         this.gsvPano.addListener('pov_changed', povChangeListener);
 
-        // If clickToGo is enabled, we need a pano_changed listener to record the pano metadata after moving.
-        if (panoOpts.clickToGo) {
+        // If defaultNavigation is enabled, we need a pano_changed listener to record the pano metadata after moving.
+        if (panoOpts.defaultNavigation) {
             this.addListener('pano_changed', () => {
                 return this.streetViewService.getPanorama({ pano: this.gsvPano.pano }).then(this.#updateCurrPanoData);
             });
@@ -101,6 +104,7 @@ class GsvViewer extends PanoViewer {
             lng: newPanoData.data.location.latLng.lng(),
             cameraHeading: newPanoData.data.tiles.originHeading,
             cameraPitch: -newPanoData.data.tiles.originPitch,
+            // TODO can we find a camera roll?
             address: newPanoData.data.location.shortDescription,
             copyright: newPanoData.data.copyright,
             history: []

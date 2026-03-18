@@ -14,11 +14,11 @@ case class ValidationTaskInteraction(
     missionId: Option[Int],
     action: String,
     panoId: Option[String],
-    lat: Option[Float],
-    lng: Option[Float],
-    heading: Option[Float],
-    pitch: Option[Float],
-    zoom: Option[Float],
+    lat: Option[Double],
+    lng: Option[Double],
+    heading: Option[Double],
+    pitch: Option[Double],
+    zoom: Option[Double],
     note: Option[String],
     timestamp: OffsetDateTime,
     source: UiSource
@@ -30,11 +30,11 @@ class ValidationTaskInteractionTableDef(tag: slick.lifted.Tag)
   def missionId: Rep[Option[Int]]           = column[Option[Int]]("mission_id")
   def action: Rep[String]                   = column[String]("action")
   def panoId: Rep[Option[String]]           = column[Option[String]]("pano_id")
-  def lat: Rep[Option[Float]]               = column[Option[Float]]("lat")
-  def lng: Rep[Option[Float]]               = column[Option[Float]]("lng")
-  def heading: Rep[Option[Float]]           = column[Option[Float]]("heading")
-  def pitch: Rep[Option[Float]]             = column[Option[Float]]("pitch")
-  def zoom: Rep[Option[Float]]              = column[Option[Float]]("zoom")
+  def lat: Rep[Option[Double]]              = column[Option[Double]]("lat")
+  def lng: Rep[Option[Double]]              = column[Option[Double]]("lng")
+  def heading: Rep[Option[Double]]          = column[Option[Double]]("heading")
+  def pitch: Rep[Option[Double]]            = column[Option[Double]]("pitch")
+  def zoom: Rep[Option[Double]]             = column[Option[Double]]("zoom")
   def note: Rep[Option[String]]             = column[Option[String]]("note")
   def timestamp: Rep[OffsetDateTime]        = column[OffsetDateTime]("timestamp")
   def source: Rep[UiSource]                 = column[UiSource]("source")

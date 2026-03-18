@@ -61,12 +61,12 @@
                                     <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters * 3.28)} ft</td>
                                 }
                             }
-                            @if(stat.accuracy.getOrElse(0.00f) * 100 < 10) {
+                            @if(stat.accuracy.getOrElse(0.00d) * 100 < 10) {
                                 <td class="leaderboard-table-font accuracy-cell">@Messages("not.applicable.abbr")
                                     <span class="accuracy-tooltip">@Messages("leaderboard.tooltip.accuracy")</span>
                                 </td>
                             } else {
-                                <td class="leaderboard-table-font">@{"%.1f".format(stat.accuracy.getOrElse(0.00f) * 100)}%</td>
+                                <td class="leaderboard-table-font">@{"%.1f".format(stat.accuracy.getOrElse(0.00d) * 100)}%</td>
                             }
                         </tr>
                     }
@@ -111,12 +111,12 @@
                                         <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters * 3.28)} ft</td>
                                     }
                                 }
-                                @if(stat.accuracy.getOrElse(0.00f) * 100 < 10) {
+                                @if(stat.accuracy.getOrElse(0.00d) * 100 < 10) {
                                     <td class="leaderboard-table-font accuracy-cell">@Messages("not.applicable.abbr")
                                         <span class="accuracy-tooltip">@Messages("leaderboard.tooltip.accuracy")</span>
                                     </td>
                                 } else {
-                                    <td class="leaderboard-table-font">@{"%.1f".format(stat.accuracy.getOrElse(0.00f) * 100)}%</td>
+                                    <td class="leaderboard-table-font">@{"%.1f".format(stat.accuracy.getOrElse(0.00d) * 100)}%</td>
                                 }
                             </tr>
                         }
@@ -169,12 +169,12 @@
                                         <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters * 3.28)} ft</td>
                                     }
                                 }
-                                @if(stat.accuracy.getOrElse(0.00f) * 100 < 10) {
+                                @if(stat.accuracy.getOrElse(0.00d) * 100 < 10) {
                                     <td class="leaderboard-table-font accuracy-cell">@Messages("not.applicable.abbr")
                                         <span class="accuracy-tooltip">@Messages("leaderboard.tooltip.accuracy")</span>
                                     </td>
                                 } else {
-                                    <td class="leaderboard-table-font">@{"%.1f".format(stat.accuracy.getOrElse(0.00f) * 100)}%</td>
+                                    <td class="leaderboard-table-font">@{"%.1f".format(stat.accuracy.getOrElse(0.00d) * 100)}%</td>
                                 }
                             </tr>
                         }
@@ -228,12 +228,12 @@
                                     <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters * 3.28)} ft</td>
                                 }
                             }
-                            @if(stat.accuracy.getOrElse(0.00f) * 100 < 10) {
+                            @if(stat.accuracy.getOrElse(0.00d) * 100 < 10) {
                                 <td class="leaderboard-table-font accuracy-cell">@Messages("not.applicable.abbr")
                                     <span class="accuracy-tooltip">@Messages("leaderboard.tooltip.accuracy")</span>
                                 </td>
                             } else {
-                                <td class="leaderboard-table-font">@{"%.1f".format(stat.accuracy.getOrElse(0.00f) * 100)}%</td>
+                                <td class="leaderboard-table-font">@{"%.1f".format(stat.accuracy.getOrElse(0.00d) * 100)}%</td>
                             }
                             </tr>
                         }
