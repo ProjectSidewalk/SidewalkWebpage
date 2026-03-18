@@ -21,7 +21,7 @@
     height: 683px; /* We override this when using CSS zoom. */
     width: 100%;
     background: white;
-    z-index: 10;
+    z-index: 11;
     display: none; /* Will be later set to flex by JS after rendering. */
     flex-shrink: 0;
     justify-content: flex-start;
