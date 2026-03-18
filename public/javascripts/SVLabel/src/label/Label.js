@@ -366,7 +366,7 @@ function Label(params) {
             // Estimate heading diff and distance from pano using output from a regression analysis.
             // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
             // Note that the regression analysis was done when our zoom levels were discrete integers. We now allow zoom
-            // to be non-integer, so we're doing a linear interpolation between the params at the two zoom levels.
+            // to be noninteger, so we're doing a linear interpolation between the params at the two zoom levels.
             const minZoom = Math.min(svl.zoomControl.getProperty('minZoomLevel'));
             const maxZoom = Math.min(svl.zoomControl.getProperty('maxZoomLevel'));
             const zoom = Math.min(maxZoom, Math.max(minZoom, getProperty("originalPov").zoom));
