@@ -37,7 +37,7 @@
     border: 5px solid black;
 
     border-radius: 3px 3px 3px 3px;
-    z-index: 4;
+    z-index: 10;
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
 }
