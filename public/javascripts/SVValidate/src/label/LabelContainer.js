@@ -114,6 +114,13 @@ async function LabelContainer(labelList) {
      * Renders the current label on the pano, updating the UI accordingly.
      */
     async function renderCurrentLabel() {
+        // Prevent UI interaction and show that we're working on loading the next label.
+        svv.ui.validationMenu.holder.addClass('validate-disabled');
+        svv.ui.viewer.holder.addClass('validate-disabled');
+        svv.ui.holder.css('cursor', 'wait');
+        if (svv.keyboard) svv.keyboard.disableKeyboard();
+
+        // Render the new pano and the label on it, updating the surrounding UI given the new label's info.
         currLabel.setProperty('startTimestamp', new Date());
         if (currLabelIndex > 0) { svv.undoValidation.enableUndo(); }
         await svv.panoManager.setPanorama(currLabel.getAuditProperty('panoId'));
@@ -121,6 +128,15 @@ async function LabelContainer(labelList) {
         svv.validationMenu.resetMenu(currLabel);
         if (svv.adminVersion) svv.adminInfo.updateAdminInfo(currLabel);
         svv.panoManager.renderPanoMarker(currLabel);
+
+        // Re-enable UI interaction now that everything has loaded. Also need to invalidate the cached cursor so that it
+        // will reset, which is why we attach a timestamp to it below.
+        svv.ui.validationMenu.holder.removeClass('validate-disabled');
+        svv.ui.viewer.holder.removeClass('validate-disabled');
+        svv.ui.holder.css('cursor', '');
+        svv.ui.viewer.controlLayer.css('cursor', 'url(/assets/images/icons/openhand.cur?' + Date.now() + ') 4 4, move');
+        if (svv.keyboard) svv.keyboard.enableKeyboard();
+
     }
 
     /**
