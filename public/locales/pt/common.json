@@ -1,1 +1,278 @@
-{ }
+{
+  "measurement-system": "métrica",
+  "mapbox-language-code": "pt",
+  "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Clique aqui</a> para explorar esta rua!",
+  "admin-clear-play-cache": "Cache de reprodução limpo com sucesso",
+  "unit-distance-abbreviation": "km",
+  "unit-abbreviation-mission-distance": "m",
+  "unit-distance": "quilômetros",
+  "format-number": "{{val, number}}",
+  "agree": "Concordo",
+  "disagree": "Discordo",
+  "unsure": "Não tenho certeza",
+  "curb-ramp": "Rampa de Meio-fio",
+  "no-curb-ramp": "Rampa de Meio-fio Ausente",
+  "obstacle": "Obstáculo no Caminho",
+  "surface-problem": "Problema de Superfície",
+  "occlusion": "Não Consigo Ver a Calçada",
+  "no-sidewalk": "Sem Calçada",
+  "crosswalk": "Faixa de Pedestres Marcada",
+  "signal": "Sinal de Pedestre",
+  "other": "Outro",
+  "surface-problems": "Problemas de Superfície",
+  "sign-up": "Registrar",
+  "sign-in": "Entrar",
+  "complete": "completo",
+  "map": {
+    "distance-left": "Apenas {{n}} quilômetros restantes!",
+    "distance-left-one-unit": "Apenas 1 quilômetro restante!",
+    "less-than-one-unit-left": "Menos de um quilômetro restante!",
+    "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Clique aqui</a> para ajudar a terminar este bairro",
+    "thanks": "Obrigado por toda a sua ajuda!",
+    "100-percent-complete": "100% Completo!",
+    "percent-complete": "{{percent}}% Completo"
+  },
+  "cities-map": {
+    "explore": "Explorar {{cityName}}",
+    "loading-stats": "Carregando estatísticas...",
+    "private-deployment": "Implementação Privada"
+  },
+  "errors": {
+    "title": "Ops, não há mais imagens disponíveis para este rótulo.",
+    "explanation": "Estamos tendo problemas para acessar o site que fornece esta imagem, ou a imagem foi removida.",
+    "explore-street": "Explore a rua</a> novamente para usar imagens mais recentes!"
+  },
+  "severity": "Gravidade",
+  "severity-example-tooltip-1": "Exemplo de gravidade baixa",
+  "severity-example-tooltip-2": "Exemplo de gravidade média",
+  "severity-example-tooltip-3": "Exemplo de gravidade alta",
+  "no-severity": "Uma classificação de gravidade não foi fornecida para este rótulo",
+  "unsupported": "Este tipo de rótulo não possui níveis de gravidade significativos",
+  "tags": "Etiquetas",
+  "description": "Descrição",
+  "no-description": "Sem descrição",
+  "comments": "Comentários do Validador",
+  "none": "Nenhum",
+  "image-capture-date": "Data de Captura da Imagem",
+  "labeled": "Rotulado",
+  "yes": "Sim",
+  "no": "Não",
+  "ai-disclaimer": "A IA analisou este rótulo e votou \"$t({{aiVal}})\"; no entanto, a IA pode cometer erros. Por favor, faça sua própria avaliação.",
+  "ai-generated-label-tooltip": "Este rótulo foi gerado por IA. A IA pode cometer erros, então por favor faça sua própria avaliação.",
+  "tag": {
+    "narrow": "estreito",
+    "points into traffic": "aponta para o cruzamento",
+    "missing tactile warning": "aviso tátil ausente",
+    "tactile warning": "aviso tátil",
+    "steep": "íngreme",
+    "not enough landing space": "espaço de desembarque insuficiente",
+    "not level with street": "não nivelado com a rua",
+    "surface problem": "problema de superfície",
+    "debris / pooled water": "detritos / água acumulada",
+    "parallel lines": "faixa dupla",
+    "alternate route present": "rota alternativa presente",
+    "no alternate route": "sem rota alternativa",
+    "unclear if needed": "não está claro se é necessário",
+    "trash/recycling can": "lata de lixo/reciclagem",
+    "fire hydrant": "hidrante",
+    "pole": "poste",
+    "tree": "árvore",
+    "vegetation": "vegetação",
+    "parked car": "carro estacionado",
+    "parked bike": "bicicleta estacionada",
+    "construction": "construção",
+    "sign": "placa",
+    "garage entrance": "entrada de garagem",
+    "stairs": "escadas",
+    "street vendor": "vendedor ambulante",
+    "litter/garbage": "lixo/resíduos",
+    "parked scooter/motorcycle": "scooter/motocicleta estacionada",
+    "bumpy": "irregular",
+    "uneven/slanted": "desnivelado/inclinado",
+    "cracks": "rachaduras",
+    "grass": "grama",
+    "narrow sidewalk": "calçada estreita",
+    "brick/cobblestone": "tijolo/paralelepípedo",
+    "very broken": "muito quebrado",
+    "rail/tram track": "trilho de trem/bonde",
+    "sand/gravel": "lama/areia/cascalho",
+    "uncovered manhole": "bueiro descoberto",
+    "ends abruptly": "termina abruptamente",
+    "street has a sidewalk": "rua tem calçada",
+    "street has no sidewalks": "rua não tem calçadas",
+    "gravel/dirt road": "estrada de cascalho/terra",
+    "shared pedestrian/car space": "espaço compartilhado pedestre/carro",
+    "height difference": "diferença de altura",
+    "paint fading": "pintura desbotada",
+    "broken surface": "superfície quebrada",
+    "uneven surface": "superfície irregular",
+    "no pedestrian priority": "sem prioridade para pedestres",
+    "very long crossing": "travessia muito longa",
+    "level with sidewalk": "nivelado com a calçada",
+    "button waist height": "botão na altura da cintura",
+    "APS": "botões tátil-audíveis",
+    "one button": "um botão",
+    "two buttons": "dois botões",
+    "hard to reach buttons": "botões difíceis de alcançar",
+    "missing crosswalk": "faixa de pedestres marcada ausente",
+    "no bus stop access": "sem acesso à parada de ônibus",
+    "pedestrian lane marking": "marcação de faixa de pedestres",
+    "covered walkway": "passarela coberta",
+    "too close to traffic": "muito perto do trânsito",
+    "utility panel": "painel de serviços públicos",
+    "outdoor dining area": "área de refeições ao ar livre",
+    "mailbox": "caixa de correio",
+    "debris": "detritos",
+    "not aligned with crosswalk": "não alinhado com a faixa de pedestres",
+    "utility cabinet": "armário de serviços públicos",
+    "cycle lane- protection from traffic": "ciclovia: proteção contra o trânsito",
+    "cycle lane- no protection from traffic": "ciclovia: sem proteção contra o trânsito",
+    "cycle lane- surface problem": "ciclovia: problema de superfície",
+    "cycle lane- faded paint": "ciclovia: pintura desbotada",
+    "cycle lane- debris / pooled water": "ciclovia: detritos / água acumulada",
+    "cycle lane- parked car": "ciclovia: carro estacionado",
+    "cycle box": "área de espera para ciclistas",
+    "not visible": "não visível",
+    "cart": "carrinho",
+    "drainage": "drenagem",
+    "electrical box": "caixa elétrica",
+    "too dirty/cluttered": "muito sujo/desordenado",
+    "yellow box, accessibility features not visible": "caixa amarela, recursos de acessibilidade não visíveis"
+  },
+  "gsv-info": {
+    "details-title": "Detalhes",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "panorama-id": "ID do Panorama",
+    "street-id": "ID da Rua",
+    "google-street-view": "Google Street View",
+    "region-id": "ID da Região",
+    "label-id": "ID do Rótulo",
+    "label-date": "$t(common:labeled)",
+    "pano-date": "$t(common:image-capture-date)",
+    "pano-address": "Endereço",
+    "view-in-gsv": "Ver no Google Street View",
+    "city": "Cidade",
+    "copied-to-clipboard": "Dados copiados para a área de transferência!"
+  },
+  "mission-start-tutorial": {
+    "example-type-label-correct": "EXEMPLO CORRETO",
+    "label-type-subtitle": "Por que isso está errado?",
+    "label-on-image-title-correct": "Rótulo correto",
+    "start-mission": "Iniciar missão",
+    "curb-ramp": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Rampas de meio-fio permitem que as pessoas façam a transição da calçada para a rua. Elas devem existir em todos os cruzamentos transitáveis."
+      },
+      "slide-2": {
+        "title": "Entrada de garagem",
+        "description": "Entradas de garagem <b>não</b> são rampas de meio-fio. Elas são projetadas para veículos e não para pedestres. Entradas de garagem <b>não devem</b> ser rotuladas como Rampas de Meio-fio."
+      },
+      "slide-3": {
+        "title": "Garagem",
+        "description": "Entradas de garagem <b>não são</b> rampas de meio-fio. Entradas de garagem <b>não devem</b> ser rotuladas como Rampas de Meio-fio."
+      }
+    },
+    "no-curb-ramp": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Cruzamentos de calçadas devem ter rampas de meio-fio—idealmente duas por esquina. Se uma esquina tem calçada mas não tem rampa de meio-fio, coloque o rótulo Rampa de Meio-fio Ausente onde você acha que uma rampa de meio-fio deveria existir."
+      },
+      "slide-2": {
+        "title": "Caminhos residenciais",
+        "description": "Caminhos residenciais <b>não</b> devem ser rotulados como Rampas de Meio-fio Ausentes."
+      },
+      "slide-3": {
+        "title": "Não está no caminho de pedestres",
+        "description": "Rampas de meio-fio não são necessárias em caminhos <b>não</b> destinados à passagem de pedestres."
+      },
+      "slide-4": {
+        "title": "$t(common:no-sidewalk)",
+        "description": "Para esquinas <b>sem calçadas</b>, use o rótulo Sem Calçada em vez do rótulo Rampa de Meio-fio Ausente."
+      }
+    },
+    "obstacle": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Obstáculos são barreiras que impedem <b>caminhos de pedestres</b> para pessoas que usam cadeiras de rodas, andadores ou outros dispositivos de mobilidade.<br><br>Nem todos os hidrantes, postes e placas são obstáculos — apenas aqueles que claramente obstruem caminhos de pedestres."
+      },
+      "slide-2": {
+        "title": "Espaço amplo para manobrar",
+        "description": "A motocicleta está estacionada ao lado; há espaço amplo para pedestres no espaço restante da calçada."
+      },
+      "slide-3": {
+        "title": "Obstáculo não está na calçada",
+        "description": "Este cone de trânsito <b>não</b> está em um caminho de pedestres, então não deve ser marcado como Obstáculo.<br><br> Marque apenas obstáculos em calçadas, faixas de pedestres e outros caminhos de pedestres."
+      },
+      "slide-4": {
+        "title": "Objeto em movimento",
+        "description": "O carro parece estar em movimento na imagem e não deve ser rotulado como Obstáculo."
+      }
+    },
+    "surface-problem": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Se algo na superfície da calçada ou faixa de pedestres tornaria <b>desconfortável ou impossível atravessar,</b> deve ser rotulado como Problema de Superfície."
+      },
+      "slide-2": {
+        "title": "Azulejos normais de calçada",
+        "description": "Azulejos normais de calçada (sem lacunas, rachaduras ou saliências) não são problemas de superfície."
+      },
+      "slide-3": {
+        "title": "Não está no caminho de pedestres",
+        "description": "Este cascalho <b>não está</b> em um caminho de pedestres, então não deve ser marcado como Problema de Superfície.<br><br>Marque apenas problemas de superfície em calçadas, faixas de pedestres e outros caminhos de pedestres."
+      }
+    },
+    "no-sidewalk": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Se o lado de uma rua não tem calçada, por favor marque com um rótulo <b>Sem Calçada</b>."
+      },
+      "slide-2": {
+        "title": "Canteiro central",
+        "description": "Um canteiro central que separa duas direções de tráfego e não é destinado a pedestres <b>não deve</b> ser rotulado como Sem Calçada."
+      },
+      "slide-3": {
+        "title": "Pavimento",
+        "description": "Há uma calçada aqui. <b>Não</b> deve ser marcado como Sem Calçada."
+      }
+    },
+    "crosswalk": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Uma faixa de pedestres é um espaço legalmente definido para atravessar uma estrada.<br><br>Faixas de pedestres são frequentemente indicadas por <b>linhas tracejadas paralelas.</b>"
+      },
+      "slide-2": {
+        "title": "Sem indicador visual",
+        "description": "Travessias sem indicador visual <b>não</b> devem ser rotuladas como Faixas de Pedestres Marcadas."
+      },
+      "slide-3": {
+        "title": "Linha de parada",
+        "description": "Linhas de parada para carros não devem ser rotuladas como Faixas de Pedestres Marcadas."
+      },
+      "slide-4": {
+        "title": "Lombada",
+        "description": "Lombadas não devem ser rotuladas como Faixas de Pedestres Marcadas."
+      }
+    },
+    "signal": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Um semáforo de pedestre indica quando os pedestres podem atravessar a rua e fornece tempo para que o façam com segurança.<br><br> Alguns semáforos de pedestres são ativados por um botão de acionamento para pedestres na altura da cintura."
+      },
+      "slide-2": {
+        "title": "Sinalização",
+        "description": "Esta placa não indica quando os pedestres podem atravessar a rua."
+      },
+      "slide-3": {
+        "title": "Poste",
+        "description": "Este poste não mostra sinalização de trânsito para pedestres."
+      },
+      "slide-4": {
+        "title": "Semáforo para veículos",
+        "description": "Este semáforo é apenas para veículos, não para pedestres."
+      }
+    }
+  }
+}
