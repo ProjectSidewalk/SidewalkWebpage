@@ -78,7 +78,6 @@ class Peg {
      */
     setLocation(location) {
         this.marker.position = new this.LatLng(location.lat, location.lng);
-        this.marker.position = this.marker.map.getCenter();
     }
 
     /**
