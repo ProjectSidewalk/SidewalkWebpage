@@ -97,6 +97,12 @@ function Keyboard(validationMenuUi) {
         checkIfTextAreaSelected();
 
         // Handle the various keyboard shortcuts.
+        // Enter submits validation regardless of whether a text box is focused.
+        if (!status.disableKeyboard && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
+            e.preventDefault();
+            validationMenuUi.submitButton.click();
+        }
+
         if (!status.disableKeyboard && !status.addingComment) {
             svv.labelVisibilityControl.hideTagsAndDeleteButton();
             switch (e.code) {
