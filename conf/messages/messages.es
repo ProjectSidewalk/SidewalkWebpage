@@ -53,6 +53,7 @@ username = Nombre de usuario/a
 loading = Cargando...
 loading.encouragement = ¡Hagámoslo!
 submit = Enviar
+submit.shortcut = Enviar (<u>s</u>)
 test.server.warning.message = <strong>¡ADVERTENCIA!</strong> ¡Estás en un servidor de prueba! ¡Tus datos no se guardarán! Si desea que sus datos se guarden, utilice el sitio principal
 dont.show.again = No mostrar de nuevo
 

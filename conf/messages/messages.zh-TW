@@ -53,6 +53,7 @@ username = 使用者名稱
 loading = 讀取中...
 loading.encouragement = 讓我們來做吧!
 submit = 送出
+submit.shortcut = <u>S</u>送出
 test.server.warning.message = <strong>警告！</strong> 您目前在使用測試版伺服器！您的資料將不會被儲存！若您希望資料被儲存，請使用正式版伺服器。
 dont.show.again = 不再顯示
 

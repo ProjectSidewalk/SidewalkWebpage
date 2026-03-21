@@ -53,6 +53,7 @@ username = Benutzername
 loading = Laden...
 loading.encouragement = Los geht''s!
 submit = Übermitteln
+submit.shortcut = Übermitteln (<u>s</u>)
 test.server.warning.message = <strong>ACHTUNG!</strong> Sie befinden sich auf einem Testserver! Ihre Daten werden nicht gespeichert. Wenn Sie Ihre Daten speichern möchten, nutzen Sie bitte unsere Hauptseite
 dont.show.again = Nicht erneut anzeigen.
 
