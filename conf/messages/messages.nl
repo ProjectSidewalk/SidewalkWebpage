@@ -40,6 +40,7 @@ ok = OK
 cancel = Annuleer
 undo = Ongedaan maken
 back = Rug
+back.shortcut = Rug (<u>b</u>)
 error = Error!
 yes.caps = Ja
 yes.caps.shortcut = Ja (<u>y</u>)

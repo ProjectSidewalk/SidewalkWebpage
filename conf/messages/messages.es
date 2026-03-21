@@ -40,6 +40,7 @@ ok = OK
 cancel = Cancelar
 undo = Deshacer
 back = Atrás
+back.shortcut = Atrás (<u>b</u>)
 error = ¡Error!
 yes.caps = Sí
 yes.caps.shortcut = Sí (<u>y</u>)

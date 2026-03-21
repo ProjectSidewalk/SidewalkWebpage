@@ -40,6 +40,7 @@ ok = 確認
 cancel = 取消
 undo = 撤銷
 back = 後退
+back.shortcut = <u>B</u>後退
 error = 錯誤！
 yes.caps = 是
 yes.caps.shortcut = <u>Y</u>是

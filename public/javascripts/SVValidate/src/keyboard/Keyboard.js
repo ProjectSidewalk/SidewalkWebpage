@@ -134,6 +134,12 @@ function Keyboard(validationMenuUi) {
                 case 'KeyS':
                     validationMenuUi.submitButton.click();
                     break;
+                // Undo the last validation.
+                case 'KeyB':
+                    if (svv.undoValidation.canUndo()) {
+                        svv.ui.undoValidation.undoButton.click();
+                    }
+                    break;
                 // Zoom in on 'Z', zoom out on 'Shift+Z'.
                 case 'KeyZ':
                     if (e.shiftKey) {
