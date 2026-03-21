@@ -1,0 +1,10 @@
+{
+    "is-correct": "Esse rótulo esta correto?",
+    "label-type": "Tipo de Rótulo",
+    "validations": "Validação",
+    "ai-validation": "Validação de IA",
+    "ai-val-included": "$t(common:{{aiVal}}) (incluido na contagem anterior)",
+    "add-comment": "Adicione comentários aqui...",
+    "submit-comment": "Enviar comentários",
+    "comment-submitted": "Comentários Enviados"
+}

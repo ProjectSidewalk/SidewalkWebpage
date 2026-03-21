@@ -87,6 +87,7 @@ lang.name.es = Español
 lang.name.nl = Nederlandse
 lang.name.de = Deutsch
 lang.name.zh-TW = 繁體中文
+lang.name.pt-BR = Português
 
 ##
 ## Text that requires non-English translations. Using this file until we add those translations.

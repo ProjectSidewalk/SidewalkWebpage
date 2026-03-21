@@ -1,0 +1,382 @@
+measurement.system = metric
+label.type = Tipo de Rótulo
+legend = Legenda
+severity = Severidade
+curb.ramp = Rampa de calçada
+curb.ramps = Rampas de calçadas
+missing.ramp = Rampa de calçada ausente
+missing.ramps = Rampas de calçadas ausente
+obstacle = Obstáculo no caminho
+obstacles = Obstáculos no caminho
+surface.problem = Problema de superfície
+surface.problems = Problemas de superfície
+no.sidewalk = Sem Calçada
+crosswalk = Faixa de Pedestres Sinalizada
+signal = Sinalização para Pedestres
+occlusion = Não é possível ver a calçada
+other = Outro
+low = Baixo
+medium = Médio
+high = Alto
+rating = Classificação
+validated.correct = Validado corretamente
+validated.incorrect = Validado incorretamente
+unvalidated = Não Validado
+audited.street = Rua Auditada
+unaudited.street = Rua NÃO Auditada
+not.applicable.abbr = N/A
+feedback = Opinião
+feedback.tooltip = Compartilhe suas ideias conosco
+validations = Validações
+labels = rótulos
+labels.caps = Rótulos
+label.icon.alt = Ícone minimalista do mapa com um grande marcador de destino
+accuracy = precisão
+accuracy.caps = Precisão
+accuracy.icon.alt = Alvo com uma seta no centro
+dist.metric.abbr = km
+distance.icon.alt = Ícone mostrando um caminho curvo até o destino
+ok = OK
+cancel = Cancelar
+undo = Desfazer
+back = Voltar
+error = Erro!
+yes.caps = Sim
+yes.caps.shortcut = Sim (<u>y</u>)
+no.caps = Não
+no.caps.shortcut = <u>N</u>ão
+unsure.caps = Não tenho certeza
+unsure.caps.shortcut = Não tenho certeza (<u>u</u>)
+thanks = Obrigado!
+username = Nome de usuário
+loading = Carregando...
+loading.encouragement = Vamos lá!
+submit = Enviar
+test.server.warning.message = <strong>AVISO!</strong> Você está em um servidor de teste! Seus dados não serão salvos! Se quiser que seus dados sejam salvos, utilize o site principal
+dont.show.again = Não mostrar novamente
+
+press.key = Pressione a tecla "{0}"
+press.keys = Pressione as teclas "{0}"
+feedback.title = Alguma opinião? Encontrou algo confuso? Viu algum bug?<br>Envie seus comentários!
+feedback.submitted = Comentários enviados
+
+city.state = {0}, {1}
+
+state.name.pennsylvania = Pensilvânia
+state.name.new-jersey = Nova Jersey
+state.name.california = Califórnia
+state.name.south-carolina = Carolina do Sul
+state.name.new-york = Nova York
+
+navbar.explore = Explorar
+navbar.validate = Validar
+navbar.howto = Como rotular
+navbar.api = API
+navbar.tools = Ferramentas
+navbar.labelmap = Mapa de etiquetas
+navbar.help = Ajuda
+navbar.leaderboard = Classificação
+navbar.your.city.here = Sua cidade aqui
+navbar.retake.tutorial = Refazer tutorial
+navbar.signin = Entrar
+navbar.signout = Sair
+navbar.dashboard = Seu painel
+navbar.admin = Administrador
+navbar.expert.validate = Validação de especialista
+navbar.city = Cidade
+navbar.lang.aria = Opções de idioma
+navbar.lang.icon.alt = ícone de idiomas
+navbar.servicehours = Informação voluntária
+navbar.timecheck = Verificação de tempo
+navbar.cities = Cidades
+
+landing.create.path = Vamos criar um caminho para todos
+landing.start.exploring = Começar a explorar
+landing.new.deployment = <a id="new-deployment-link" class="header-link" href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank">Clique aqui</a> para aprender como implementar o Project Sidewalk na sua cidade.
+landing.mapathon = Mora em {0}? Passe em <a id="mapathonLink" class="other-city-link header-link" href="{1}" target="_blank">um evento "mapathon" na sua região!</a>.
+landing.how.you.help = Como você pode ajudar
+landing.how.you.help.content = Explore virtualmente as ruas da cidade em {0} para encontrar e marcar problemas de acessibilidade em três passos simples — tudo no conforto da sua casa.
+landing.how.you.help.explore = EXPLORAR
+landing.how.you.help.find = ENCONTRAR PROBLEMAS
+landing.how.you.help.assess = AVALIAR A SEVERIDADE
+landing.video.title = O que é o Project Sidewalk?
+landing.video.watch = Assistir agora
+landing.choropleth.title = Escolha um bairro
+landing.choropleth.content = Escolha um bairro para explorar abaixo ou clique no botão <a href="/explore">"Explorar"</a> e você receberá um bairro automaticamente!
+landing.choropleth.legend = Percentual do bairro concluído
+landing.stats.title = Seu trabalho está fazendo a diferença
+landing.stats.content.unfinished.partial = Usuários como você já mapearam {0} quilômetros de {1} — isso representa {2}% da área alvo da cidade!
+landing.stats.content.unfinished.full = Usuários como você já mapearam {0} quilômetros de {1} — isso representa {2}% da cidade!
+landing.stats.content.finished.partial = Conseguimos! Usuários como você mapearam todos os {0} quilômetros da área alvo em {1}. No entanto, ainda não terminamos. Quanto mais usuários contribuírem, melhor será a qualidade dos dados. Então comece a explorar hoje!
+landing.stats.content.finished.full = Conseguimos! Usuários como você mapearam todos os {0} quilômetros de {1}. No entanto, ainda não terminamos. Quanto mais usuários contribuírem, melhor será a qualidade dos dados. Então comece a explorar hoje!
+landing.stats.percent.partial = da área alvo mapeada
+landing.stats.percent.full = de {0} mapeado
+landing.stats.distance = quilômetros cobertos
+landing.stats.labels = etiquetas
+landing.stats.validations = validações
+landing.ml.title = O que fazemos com suas etiquetas
+landing.ml.content = Suas etiquetas são usadas para melhorar o planejamento urbano, criar ferramentas de mapeamento acessíveis e treinar algoritmos de aprendizado de máquina para encontrar automaticamente problemas de acessibilidade.
+landing.ml.gif.machine.labels = etiquetas da máquina
+landing.ml.gif.you = você
+landing.ml.gif.user.labels = etiquetas dos usuários
+landing.ml.gif.better.city.planning = melhor planejamento urbano
+landing.ml.gif.better.temporal.tracking = melhor acompanhamento ao longo do tempo
+landing.ml.gif.interactive.visualization.tools = ferramentas de visualização interativas
+landing.ml.gif.smarter.routing = rotas mais inteligentes
+landing.ml.gif.machine.learning = aprendizado de máquina
+landing.ml.gif.outcomes = resultados
+landing.ml.gif.explain.alt = GIF explicando os resultados do crowdsourcing e do aprendizado de máquina no Project Sidewalk
+landing.deployment.map.title = Explore outras cidades
+landing.deployment.map.subtitle = Clique em um círculo abaixo para explorar outras cidades do Project Sidewalk!
+landing.collaborators.title = Colaboradores
+landing.collaborators.logo.makeability.alt = Logotipo do Makeability Lab
+landing.collaborators.logo.uic.alt = Logotipo do Institute on Disability and Human Development da University of Illinois Chicago
+landing.collaborators.logo.liga.peatonal.alt = Logotipo da Liga Peatonal
+landing.collaborators.logo.open.columbus.alt = Logotipo do Open Columbus
+landing.collaborators.logo.world.enabled.alt = Logotipo do World Enabled
+landing.collaborators.logo.city.of.amsterdam.alt = Logotipo da Cidade de Amsterdã
+landing.collaborators.logo.amsterdam.intelligence.alt = Logotipo do Amsterdam Intelligence
+landing.collaborators.logo.public.nudge.alt = Logotipo do Public Nudge
+landing.clouds.alt = Nuvens brancas cobrindo parcialmente a imagem acima, com estatísticas exibidas sobre as nuvens.
+landing.skyline1.png.alt = Uma ilustração de um cruzamento com pessoas atravessando a rua.
+landing.skyline2.png.alt = Uma ilustração de um cruzamento com pessoas atravessando a rua. Uma bandeira com as cores da bandeira do México aparece ao fundo.
+landing.skyline-seattle.png.alt = Uma ilustração mostrando o horizonte de Seattle, Washington.
+
+footer.about = Sobre nós
+footer.terms = Termos de uso
+footer.help = Ajuda
+footer.guide = Guia de rotulagem
+footer.developer = DESENVOLVEDOR
+footer.api = API do Sidewalk
+footer.connect = CONECTE-SE
+footer.email = Envie um e-mail
+footer.funding = TEMOS ORGULHO DE SER FINANCIADOS POR
+footer.award = Prêmio <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id="nsf-link">#1302338</a> <br> e <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id="nsf-link">#2125087</a>
+footer.designed.operated = O Project Sidewalk é projetado e operado pelo <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> da <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
+footer.version = Versão {0} | Última atualização: <span class="timestamp date">{1}</span>
+
+audit.tutorial.welcome.1 = No <span class="bold">Project Sidewalk,</span> você viajará virtualmente pelas cidades completando missões para encontrar e rotular características e problemas de acessibilidade no ambiente, incluindo:
+audit.tutorial.welcome.2 = Começaremos com um breve tutorial interativo.
+audit.tutorial.welcome.3 = Vamos começar!
+audit.tutorial.welcome.4 = Já fez o tutorial? Já tem uma conta? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Entre</a> agora ou <a value="Skip" class="onboarding-transition-trigger">pule o tutorial.</a>
+audit.tutorial.accessible = <span style="color:limegreen">Acessível</span>
+audit.tutorial.inaccessible = <span style="color:red">Inacessível</span>
+audit.tutorial.examples.curb.ramp = <span style="color:limegreen">Rampas de calçada</span> ajudam usuários de cadeira de rodas a subir e descer das calçadas
+audit.tutorial.examples.missing.ramp = Usuários de cadeira de rodas não conseguem movimentar-se pelas calçadas quando <span style="color:#ff0066">faltam rampas.</span>
+audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Obstáculos</span> bloqueiam o caminho de usuários de cadeira de rodas
+audit.tutorial.examples.surface.problem = Calçadas com <span style="color:orange">problemas na superfície</span> podem não ser transitáveis
+audit.tutorial.end.1 = Ótimo! Você aprendeu a usar a interface! Agora vá em frente e <span class="bold">rotule os seguintes atributos de acessibilidade nas imagens do Street View</span> que afetam significativamente a forma como usuários de cadeira de rodas se deslocam pela cidade:
+audit.tutorial.end.2 = Mais uma vez, obrigado por <span class="bold">tornar o mundo mais acessível para todos!</span>
+audit.tutorial.examples = Exemplos de atributos de acessibilidade: rampas de calçada, rampas de calçada ausentes, obstáculos no caminho e problemas na superfície.
+
+audit.ribbon.find.and.label = Encontre e rotule o seguinte
+audit.ribbon.curb.ramp.labels = RÓTULOS DE RAMPA DE CALÇADA
+audit.ribbon.sidewalk.labels = RÓTULOS DE CALÇADA
+audit.ribbon.other.labels = OUTROS RÓTULOS DE ACESSIBILIDADE
+audit.ribbon.explore = <u>E</u>xplorar
+audit.ribbon.curb.ramp = Rampa de <u>c</u>alçada
+audit.ribbon.missing.ramp = Rampa de calçada ausente (<u>M</u>)
+audit.ribbon.obstacle = <u>O</u>bstáculo no caminho
+audit.ribbon.surface.problem = Problema na <u>s</u>uperfície
+audit.ribbon.no.sidewalk = Sem calçada (<u>N</u>)
+audit.ribbon.crosswalk = Faixa de pedestres marcada (<u>W</u>)
+audit.ribbon.signal = Semáforo de <u>p</u>edestres
+audit.ribbon.other = Outro
+audit.ribbon.occlusion = Não consigo ver a calçada (<u>B</u>)
+
+audit.left.ui.zoom.in = Aumentar <u>Z</u>oom
+audit.left.ui.zoom.out = Diminuir Zoom
+audit.left.ui.sound = Som
+audit.left.ui.stuck = Travado
+audit.left.ui.stuck.tooltip = Vamos tentar fazê-lo voltar à sua missão
+
+audit.right.ui.overall.stats = Estatísticas Gerais
+audit.right.ui.current.neighborhood = Bairro Atual
+audit.right.ui.distance = quilômetros
+
+audit.center.ui.tags.header = Adicionar etiquetas
+audit.center.ui.tags.info = Adicione etiquetas aos seus rótulos para enriquecer os dados com informações úteis. Passe o mouse sobre as tags para ver exemplos.
+audit.center.ui.severity.header = Avaliar Severidade
+audit.center.ui.severity.info = Faça o possível para avaliar o quanto o obstáculo ou característica identificada dificulta o acesso de pedestres.
+audit.center.ui.description.header = Descreva (opcional)
+audit.center.ui.description.placeholder = Descrição
+
+audit.mission.complete.labels.title = Rótulos da missão
+audit.mission.complete.progress.mission.you = Você explorou nesta missão
+audit.mission.complete.progress.neighborhood.others = Outros exploraram neste bairro
+audit.mission.complete.legend.this.mission = Esta Missão
+audit.mission.complete.legend.previous.missions = Missões Anteriores
+
+audit.survey.title = Por favor, participe desta pesquisa única sobre o <i>Project Sidewalk</i>
+audit.survey.enjoyment.question = Quanto você está gostando de usar o <i>Project Sidewalk</i>?
+audit.survey.enjoyment.option.1 = Muito entediante
+audit.survey.enjoyment.option.2 = Entediante
+audit.survey.enjoyment.option.3 = Neutro
+audit.survey.enjoyment.option.4 = Agradável
+audit.survey.enjoyment.option.5 = Muito agradável
+audit.survey.difficulty.question = Quão fácil ou difícil é usar o <i>Project Sidewalk</i>?
+audit.survey.difficulty.option.1 = Muito difícil
+audit.survey.difficulty.option.2 = Difícil
+audit.survey.difficulty.option.3 = Neutro
+audit.survey.difficulty.option.4 = Fácil
+audit.survey.difficulty.option.5 = Muito fácil
+audit.survey.performance.question = Como você avalia seu desempenho nas tarefas de rotulagem?
+audit.survey.performance.option.1 = Ruim
+audit.survey.performance.option.2 = Regular
+audit.survey.performance.option.3 = Bom
+audit.survey.performance.option.4 = Muito bom
+audit.survey.performance.option.5 = Excelente
+audit.survey.rationale.question = Por que você escolheu contribuir com o <i>Project Sidewalk</i>?
+audit.survey.feedback.question = Você tem algum feedback, ideia de design ou pergunta?
+
+validate.comment.placeholder = Adicione um comentário opcional
+validate.why.not = Por quê não?
+validate.why.unsure = Por que 'Não tenho certeza'?
+validate.add.own.reason = Ou adicione seu próprio motivo
+validate.skip.reason = Motivo para pular
+validate.suggestions = Sugestões
+validate.ai.disclaimer = As sugestões de etiquetas são feitas por IA, não são completas e podem estar incorretas
+validate.mission.complete.category = Categoria
+validate.mission.complete.your.overall.total = Seu total no geral
+
+authenticate.email = Endereço de e-mail
+authenticate.password = Senha
+authenticate.remember.me = Mantenha-me conectado
+authenticate.new = É novo aqui? <a href="#" id="form-open-sign-up">Cadastre-se!</a>
+authenticate.non.member = Não é membro? <a href="{0}">Cadastre-se agora</a>
+authenticate.confirm.password = Confirmar senha
+authenticate.service.hours.title = Você pretende solicitar que seu trabalho no Project Sidewalk seja contado como horas de serviço comunitário/voluntariado?
+authenticate.terms = Você concorda com nossos <a target="_blank" href="/terms">Termos de Uso e Política de Privacidade</a>
+authenticate.signup = Cadastre-se
+authenticate.signup.new.account = Crie uma nova conta
+authenticate.has.account = Já tem uma conta? <a href="#" id="form-open-sign-in">Entrar</a>
+authenticate.is.member = Já é membro? <a href="{0}">Entrar agora</a>
+authenticate.signin.with.credentials = Entrar com suas credenciais
+
+user.exists = E-mail já existe
+authenticate.error.username.exists = Nome de usuário já existe
+authenticate.error.username.invalid = Nomes de usuário não podem conter ", '', <, >, &
+authenticate.error.password.mismatch = Senhas não correspondem
+authenticate.error.invalid.credentials = Credenciais inválidas!
+
+reset.pw.forgot.title = Esqueceu sua senha?
+reset.pw.forgot.submit.email = Digite seu e-mail e enviaremos um link para redefinir sua senha.
+
+reset.pw.email.hello = Olá {0},
+reset.pw.email.reset.title = Redefinir a senha da sua conta Project Sidewalk
+reset.pw.email.send.link = Enviar e-mail
+reset.pw.email.reset.pw.sent = Um e-mail para redefinir sua senha foi enviado.
+reset.pw.email.reset.request.message = Você solicitou recentemente a redefinição da senha da sua conta Project Sidewalk. Clique no link abaixo para redefinir sua senha:
+reset.pw.email.reset.not.requested = Se você não solicitou a redefinição da senha, por favor ignore esta mensagem ou nos envie um e-mail para nos informar.
+reset.pw.email.reset.valid.duration = Esta redefinição de senha será válida pelos próximos 60 minutos
+reset.pw.email.signature = Equipe do Project Sidewalk
+
+reset.pw.submit.new.pw = Digite sua nova senha.
+reset.pw.message = Redefinir senha
+reset.pw.successful = Senha redefinida!
+reset.pw.invalid.reset.link = Link de redefinição inválido
+
+dashboard.current.team.greeting = Equipe: {0}
+dashboard.leave.team = Sair da equipe: {0}
+dashboard.create.team = Criar uma equipe
+dashboard.join.team = Entrar em uma equipe!
+dashboard.total.distance.explored = Distância total explorada
+dashboard.number.completed.missions = Número de missões concluídas
+dashboard.number.of.labels = Número de etiquetas
+dashboard.missions = Missões
+dashboard.your.missions = Suas missões
+dashboard.distance = Distância
+dashboard.mission.icon.alt = Usuário de cadeira de rodas segurando uma bandeira
+dashboard.validation.icon.alt = Lista de verificação ao lado de um lápis
+dashboard.accuracy.icon.tooltip = Sua precisão de rotulagem. Se N/A aparecer, significa que ainda não há etiquetas suficientes suas validadas por outros usuários.
+dashboard.achievements = Conquistas
+dashboard.first = primeiro
+dashboard.second = segundo
+dashboard.third = terceiro
+dashboard.fourth = quarto
+dashboard.fifth = quinto
+dashboard.mission.badge = distintivo de {0} missões
+dashboard.distance.badge = distintivo de {0} de distância
+dashboard.label.badge = distintivo de {0} etiquetas
+dashboard.validation.badge = distintivo de {0} validações
+dashboard.mistakes.header = Seus erros recentes de rotulagem
+dashboard.mistakes.tooltip = Esses erros foram determinados por outros usuários na página de validação. Às vezes erros acontecem durante a validação e frequentemente há variações nessas avaliações.
+dashboard.mistakes.tooltip.alt = Ícone de ponto de interrogação para dica de ajuda.
+dashboard.team.title = Criar uma nova equipe
+dashboard.team.name = Nome da equipe
+dashboard.team.description = Descrição da equipe (opcional)
+dashboard.team.button = Criar equipe
+
+labeling.guide.curb.ramp.summary = Uma rampa de calçada é uma pequena rampa que corta ou conecta o meio-fio à calçada. Uma rampa de calçada acessível é aquela que oferece uma rota acessível para pessoas com mobilidade reduzida fazerem a transição com segurança entre a calçada com meio-fio e a via, ou vice-versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Rotule todas as rampas de calçada, independentemente de haver problemas ou não.
+labeling.guide.obstacle.summary = Obstáculos são objetos que estão diretamente no caminho de uma rota de pedestres, bloqueando a passagem. A ADA (Americans with Disabilities Act) exige um "espaço livre no piso ou no solo" ao longo das rotas acessíveis de pedestres. Isso permite que pedestres, especialmente aqueles que usam andadores ou cadeiras de rodas, permaneçam com segurança na calçada ou na faixa de pedestres. Sair do caminho para evitar um obstáculo pode ser impossível ou pode causar desequilíbrio, tropeços ou outros riscos.
+labeling.guide.surface.problem.summary = Um problema na superfície é um problema que causaria uma experiência irregular ou desconfortável para alguém usando cadeira de rodas ou outros dispositivos de assistência. Se algo na superfície dificultar ou impedir a travessia, deve ser rotulado como Problema na Superfície. Para problemas na superfície que cobrem uma área grande, coloque um rótulo de Problema na Superfície no início do problema e continue colocando rótulos a cada poucos metros (aproximadamente 1 por panorama) até o final do problema.
+labeling.guide.no.sidewalk.summary = Você deve colocar um rótulo de Sem Calçada a partir do ponto onde a calçada termina e continuar colocando rótulos a cada poucos metros (aproximadamente 1 por panorama) até chegar a um ponto onde a calçada comece novamente.
+labeling.guide.occlusion.summary = Às vezes a visão da calçada está completamente bloqueada. Nesses casos, você deve colocar um rótulo "Não é possível ver a calçada". Isso deve ser usado raramente, então utilize esse rótulo apenas quando uma calçada, rampa ou outro problema de acessibilidade não puder ser visto de nenhum ângulo devido a obstruções, como carros.
+
+admin.clear.play.cache = Limpar cache do Play
+
+leaderboard.overall.title = Classificação geral
+leaderboard.weekly.title = Classificação semanal
+leaderboard.inter.team.title = Classificação das equipes
+leaderboard.team.title = Classificação de {0}
+leaderboard.overall.detail = Os líderes são calculados com base em seus rótulos, distância e precisão
+leaderboard.team.detail = Top 10 maiores contribuidores de {0}
+leaderboard.header.team = Equipe
+leaderboard.header.labels = Rótulos
+leaderboard.header.missions = Missões
+leaderboard.header.distance = Distância
+leaderboard.tooltip.accuracy = A precisão é exibida apenas se pelo menos 10 de seus rótulos tiverem sido validados
+leaderboard.tooltip.weekly.reset = As estatísticas são reiniciadas todas as segundas-feiras às 4 horas da manhã (hora de Brasília)
+leaderboard.encouragement = Quer entrar no Top 10? <a id="encouragement-link" href="/explore"><u>Comece a explorar!</u></a>
+leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Cadastre-se</u></a> para acompanhar seu progresso!
+leaderboard.encouragement.no.team = Quer melhorar sua precisão? Leia nosso <a id="encouragement-link" href="{0}" target="_blank"><u>guia de rotulagem</u></a> e veja sueus rótulos incorretos recentes no <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>seu painel</u></a>
+
+gallery = Galeria
+gallery.filter.by = Filtrar por
+gallery.tags = Etiquetas
+gallery.all = Todos os tipos de rótulos
+gallery.labels.not.found = Nenhum resultado encontrado. <a href="/explore">Comece a explorar</a> para contribuir com mais dados!
+gallery.cards = Os rótulos são ordenadas aleatoriamente com base nos filtros selecionados
+gallery.clear.filters = Limpar filtros
+
+routebuilder.name = RouteBuilder
+routebuilder.welcome = Bem-vindo ao RouteBuilder
+routebuilder.intro.content = Melhorando a acessibilidade no bairro de sua escolha criando, explorando e compartilhando sua própria rota!
+routebuilder.intro.instruction = Clique em uma rua para começar a construir sua rota.
+routebuilder.creating.route = Criando rota
+routebuilder.route.length = Comprimento da rota
+routebuilder.editing.route = Editando rota
+routebuilder.add.street.icon.alt = Ícone de marcador de mapa com um sinal de mais no centro
+routebuilder.add.street.instruction = Clique nas ruas do mapa para adicioná-las à sua rota.
+routebuilder.reverse.street.icon.alt = Duas setas formando um círculo indicando reversão
+routebuilder.reverse.street.instruction = Clique uma vez em qualquer rua adicionada para inverter a direção.
+routebuilder.delete.street.icon.alt = Uma lixeira com um X
+routebuilder.delete.street.instruction = Clique duas vezes em qualquer rua adicionada para removê-la da rota.
+routebuilder.save.route.instruction = Para finalizar a criação, clique em "Salvar rota"
+routebuilder.save = Salvar rota
+routebuilder.delete.route.icon.alt = Um círculo laranja com um ponto de exclamação branco no centro
+routebuilder.not.saved = A rota não foi salva.
+routebuilder.not.saved.explanation = Você não poderá recuperar esta rota posteriormente.
+routebuilder.delete.route = Excluir rota
+routebuilder.saved.icon.alt = Um círculo verde com um símbolo de verificação branco no centro
+routebuilder.saved = Rota salva!
+routebuilder.explore.route = Explorar esta rota
+routebuilder.view.in.labelmap = Ver no mapa de rótulos
+routebuilder.build.another.route = Criar outra rota
+routebuilder.share.title = Salve este link para acesso futuro:
+routebuilder.copy.link = Copiar link
+routebuilder.share.warning = Você não poderá acessar esta rota sem o link.
+
+footer.logo.nsf.alt = Logotipo da National Science Foundation
+footer.logo.google.alt = Logotipo do Google
+footer.logo.sloan.alt = Logotipo da Alfred P. Sloan Foundation
+footer.logo.pactrans.alt = Logotipo do Pacific Northwest Transportation Consortium (PacTrans)
+footer.logo.create.alt = Logotipo do Center for Research and Education on Accessible Technology and Experiences (CREATE)
+
+cities.dashboard.cities = Cidades com implantação
+cities.dashboard.distance = Ruas exploradas
+cities.dashboard.cities.icon.alt = Usuário de cadeira de rodas do logotipo do Project Sidewalk segurando uma bandeira
+cities.dashboard.cta.title = Leve o Project Sidewalk para a sua cidade!
+cities.dashboard.cta.content = Interessado em mapear acessibilidade na sua comunidade? <br/> Estamos sempre procurando novos parceiros para ajudar a transformar o futuro da acessibilidade urbana.
+cities.dashboard.cta.button = Saiba como implementar
+cities.dashboard.cta.logo.alt = O logotipo do Project Sidewalk com o texto projectsidewalk.org
