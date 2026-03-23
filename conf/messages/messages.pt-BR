@@ -62,11 +62,24 @@ feedback.submitted = Comentários enviados
 
 city.state = {0}, {1}
 
-state.name.pennsylvania = Pensilvânia
+city.name.cdmx = Cidade do México
+city.name.validation-study = Estudo de Validação
+city.name.taipei = Taipé
+city.name.new-taipei-tw = Nova Taipé
+city.name.niagara-falls-ny = Cataratas do Niágara
+
 state.name.new-jersey = Nova Jersey
-state.name.california = Califórnia
 state.name.south-carolina = Carolina do Sul
 state.name.new-york = Nova York
+
+country.name.usa = EUA
+country.name.mexico = México
+country.name.netherlands = Holanda
+country.name.switzerland = Suíça
+country.name.new-zealand = Nova Zelândia
+country.name.ecuador = Equador
+country.name.canada = Canadá
+country.name.india = Índia
 
 navbar.explore = Explorar
 navbar.validate = Validar
