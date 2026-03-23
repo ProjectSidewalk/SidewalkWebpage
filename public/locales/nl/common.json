@@ -1,5 +1,6 @@
 {
     "measurement-system": "metric",
+    "mapbox-language-code": "en",
     "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Klik hier</a> om de straat te verkennen!",
     "admin-clear-play-cache": "Cache succesvol gewist",
     "unit-distance-abbreviation": "km",

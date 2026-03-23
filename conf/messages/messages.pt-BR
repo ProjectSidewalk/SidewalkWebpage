@@ -40,6 +40,7 @@ ok = OK
 cancel = Cancelar
 undo = Desfazer
 back = Voltar
+back.shortcut = Voltar (<u>B</u>)
 error = Erro!
 yes.caps = Sim
 yes.caps.shortcut = Sim (<u>y</u>)
@@ -52,6 +53,7 @@ username = Nome de usuário
 loading = Carregando...
 loading.encouragement = Vamos lá!
 submit = Enviar
+submit.shortcut = Enviar (<u>S</u>)
 test.server.warning.message = <strong>AVISO!</strong> Você está em um servidor de teste! Seus dados não serão salvos! Se quiser que seus dados sejam salvos, utilize o site principal
 dont.show.again = Não mostrar novamente
 
