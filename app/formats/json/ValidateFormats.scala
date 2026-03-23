@@ -32,11 +32,11 @@ object ValidateFormats {
       action: String,
       missionId: Option[Int],
       panoId: Option[String],
-      lat: Option[Float],
-      lng: Option[Float],
-      heading: Option[Float],
-      pitch: Option[Float],
-      zoom: Option[Float],
+      lat: Option[Double],
+      lng: Option[Double],
+      heading: Option[Double],
+      pitch: Option[Double],
+      zoom: Option[Double],
       note: Option[String],
       timestamp: OffsetDateTime
   )
@@ -51,8 +51,8 @@ object ValidateFormats {
       comment: Option[ValidationCommentSubmission],
       canvasX: Option[Int],
       canvasY: Option[Int],
-      heading: Float,
-      pitch: Float,
+      heading: Double,
+      pitch: Double,
       zoom: Double,
       canvasHeight: Int,
       canvasWidth: Int,
@@ -92,8 +92,8 @@ object ValidateFormats {
       newTags: List[String],
       canvasX: Option[Int],
       canvasY: Option[Int],
-      heading: Float,
-      pitch: Float,
+      heading: Double,
+      pitch: Double,
       zoom: Double,
       canvasHeight: Int,
       canvasWidth: Int,
@@ -133,11 +133,11 @@ object ValidateFormats {
     (JsPath \ "action").read[String] and
       (JsPath \ "mission_id").readNullable[Int] and
       (JsPath \ "pano_id").readNullable[String] and
-      (JsPath \ "lat").readNullable[Float] and
-      (JsPath \ "lng").readNullable[Float] and
-      (JsPath \ "heading").readNullable[Float] and
-      (JsPath \ "pitch").readNullable[Float] and
-      (JsPath \ "zoom").readNullable[Float] and
+      (JsPath \ "lat").readNullable[Double] and
+      (JsPath \ "lng").readNullable[Double] and
+      (JsPath \ "heading").readNullable[Double] and
+      (JsPath \ "pitch").readNullable[Double] and
+      (JsPath \ "zoom").readNullable[Double] and
       (JsPath \ "note").readNullable[String] and
       (JsPath \ "timestamp").read[OffsetDateTime]
   )(InteractionSubmission.apply _)
@@ -153,8 +153,8 @@ object ValidateFormats {
       (JsPath \ "comment").readNullable[ValidationCommentSubmission] and
       (JsPath \ "canvas_x").readNullable[Int] and
       (JsPath \ "canvas_y").readNullable[Int] and
-      (JsPath \ "heading").read[Float] and
-      (JsPath \ "pitch").read[Float] and
+      (JsPath \ "heading").read[Double] and
+      (JsPath \ "pitch").read[Double] and
       (JsPath \ "zoom").read[Double] and
       (JsPath \ "canvas_height").read[Int] and
       (JsPath \ "canvas_width").read[Int] and
@@ -204,8 +204,8 @@ object ValidateFormats {
       (JsPath \ "new_tags").read[List[String]] and
       (JsPath \ "canvas_x").readNullable[Int] and
       (JsPath \ "canvas_y").readNullable[Int] and
-      (JsPath \ "heading").read[Float] and
-      (JsPath \ "pitch").read[Float] and
+      (JsPath \ "heading").read[Double] and
+      (JsPath \ "pitch").read[Double] and
       (JsPath \ "zoom").read[Double] and
       (JsPath \ "canvas_height").read[Int] and
       (JsPath \ "canvas_width").read[Int] and

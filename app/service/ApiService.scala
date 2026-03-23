@@ -19,6 +19,7 @@ import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
 import slick.sql.SqlStreamingAction
+
 import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
@@ -127,9 +128,9 @@ trait ApiService {
    */
   def getUserStats(
       minLabels: Option[Int] = None,
-      minMetersExplored: Option[Float] = None,
+      minMetersExplored: Option[Double] = None,
       highQualityOnly: Boolean = false,
-      minAccuracy: Option[Float] = None
+      minAccuracy: Option[Double] = None
   ): Future[Seq[UserStatApi]]
 
   def getOverallStats(filterLowQuality: Boolean): Future[ProjectSidewalkStats]
@@ -240,9 +241,9 @@ class ApiServiceImpl @Inject() (
 
   def getUserStats(
       minLabels: Option[Int] = None,
-      minMetersExplored: Option[Float] = None,
+      minMetersExplored: Option[Double] = None,
       highQualityOnly: Boolean = false,
-      minAccuracy: Option[Float] = None
+      minAccuracy: Option[Double] = None
   ): Future[Seq[UserStatApi]] = {
     // Uses the database-level filtering method for improved performance.
     db.run(userStatTable.getStatsForApiWithFilters(minLabels, minMetersExplored, highQualityOnly, minAccuracy))

@@ -13,6 +13,7 @@ import play.api.mvc._
 import play.silhouette.api.Silhouette
 import play.silhouette.api.actions.SecuredRequest
 import service._
+
 import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
@@ -68,8 +69,8 @@ class ApplicationController @Inject() (
             commonData                   <- configService.getCommonPageData(request2Messages.lang)
             openStatus: String           <- configService.getOpenStatus
             mapathonLink: Option[String] <- configService.getMapathonEventLink
-            auditedDist: Float           <- streetService.getAuditedStreetDistance(metric)
-            streetDist: Float            <- streetService.getTotalStreetDistance(metric)
+            auditedDist: Double          <- streetService.getAuditedStreetDistance(metric)
+            streetDist: Double           <- streetService.getTotalStreetDistance(metric)
             labelCount: Int              <- labelService.countLabels
             valCount: Int                <- validationService.countHumanValidations
           } yield {
@@ -220,8 +221,8 @@ class ApplicationController @Inject() (
     implicit request: SecuredRequest[DefaultEnv, AnyContent] =>
       val isMobile: Boolean = ControllerUtils.isMobile(request)
       for {
-        commonData       <- configService.getCommonPageData(request2Messages.lang)
-        timeSpent: Float <- userService.getHoursAuditingAndValidating(request.identity.userId)
+        commonData        <- configService.getCommonPageData(request2Messages.lang)
+        timeSpent: Double <- userService.getHoursAuditingAndValidating(request.identity.userId)
       } yield {
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_TimeCheck")
         Ok(views.html.timeCheck(commonData, request.identity, isMobile, timeSpent))

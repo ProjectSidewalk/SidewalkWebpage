@@ -104,32 +104,38 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
             }
         }
 
-        if (!status.disableKeyboard && !status.focusOnTextField) {
+        if (!status.disableKeyboard && !status.focusOnTextField && !e.ctrlKey) {
             // Switch labeling mode. e: Walk, c: CurbRamp, m: NoCurbRamp, o: Obstacle, s: SurfaceProblem: n: NoSidewalk,
             // w: Crosswalk, p: Signal, b: Occlusion.
             for (const mode of ['Walk'].concat(util.misc.VALID_LABEL_TYPES_WITHOUT_OTHER)) {
                 if (e.key.toUpperCase() === util.misc.getLabelDescriptions(mode)['keyChar']) {
                     if (mode !== 'Walk') _closeContextMenu(e.keyCode);
                     ribbon.modeSwitch(mode);
-                    svl.tracker.push("KeyboardShortcut_ModeSwitch_" + mode, { keyCode: e.keyCode });
+                    svl.tracker.push('KeyboardShortcut_ModeSwitch_' + mode, { keyCode: e.keyCode });
                 }
+            }
+
+            // Escape exits Labeling Mode back to Explore Mode (context menu open case is handled above).
+            if (e.key === 'Escape' && !contextMenu.isOpen()) {
+                ribbon.backToWalk();
+                svl.tracker.push('KeyboardShortcut_ModeSwitch_Walk', { keyCode: e.keyCode });
             }
 
             // Zooming in/out.
             if (e.code === 'KeyZ') {
                 // Close the context menu whenever we zoom.
                 if (contextMenu.isOpen()) {
-                    svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                    svl.tracker.push('KeyboardShortcut_CloseContextMenu');
                     contextMenu.hide();
                 }
 
                 // Zoom in or out depending on whether shift is down.
                 if (e.shiftKey) {
                     zoomControl.zoomOut();
-                    svl.tracker.push("KeyboardShortcut_ZoomOut", { keyCode: e.keyCode });
+                    svl.tracker.push('KeyboardShortcut_ZoomOut', { keyCode: e.keyCode });
                 } else {
                     zoomControl.zoomIn();
-                    svl.tracker.push("KeyboardShortcut_ZoomIn", { keyCode: e.keyCode });
+                    svl.tracker.push('KeyboardShortcut_ZoomIn', { keyCode: e.keyCode });
                 }
             }
 
@@ -138,21 +144,21 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
                 let targetLabel = contextMenu.getTargetLabel();
 
                 // Rating severity. Can use either number keys or numpad keys.
-                if (["1", "2", "3"].includes(e.key) && targetLabel && !contextMenu.isRatingSeverityDisabled()) {
-                    const severity = Number(e.key); // "1" - "3"
+                if (['1', '2', '3'].includes(e.key) && targetLabel && !contextMenu.isRatingSeverityDisabled()) {
+                    const severity = Number(e.key); // '1' - '3'
                     contextMenu.checkRadioButton(severity);
                     targetLabel.setProperty('severity', severity);
-                    svl.tracker.push("KeyboardShortcut_Severity_" + severity, { keyCode: e.keyCode });
+                    svl.tracker.push('KeyboardShortcut_Severity_' + severity, { keyCode: e.keyCode });
                     svl.canvas.clear().render();
                 }
 
                 // Adding/removing tags.
                 if (targetLabel && !contextMenu.isTaggingDisabled()) {
-                    var labelType = targetLabel.getProperty('labelType');
-                    var tags = contextMenu.labelTags.filter(tag => tag.label_type === labelType);
+                    const labelType = targetLabel.getProperty('labelType');
+                    const tags = contextMenu.labelTags.filter(tag => tag.label_type === labelType);
                     for (const tag of tags) {
                         if (e.key.toUpperCase() === util.misc.getLabelDescriptions(labelType)['tagInfo'][tag.tag]['keyChar']) {
-                            $('.tag-id-' + tag.tag_id).first().trigger("click", { lowLevelLogging: false });
+                            $('.tag-id-' + tag.tag_id).first().trigger('click', { lowLevelLogging: false });
                         }
                     }
                 }

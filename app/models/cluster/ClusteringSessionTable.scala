@@ -28,8 +28,8 @@ case class LabelToCluster(
     panoId: String,
     labelId: Int,
     labelType: String,
-    lat: Float,
-    lng: Float,
+    lat: Double,
+    lng: Double,
     severity: Option[Int]
 )
 
@@ -100,8 +100,8 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
   // Get labels that should be in the API. Labels from high quality users that haven't been explicitly marked as
   // incorrect should be included, plus labels from low quality users that have been explicitly marked as correct.
   def labelsForApiQuery: Query[
-    (Rep[Int], Rep[String], Rep[String], Rep[Int], Rep[String], Rep[Float], Rep[Float], Rep[Option[Int]]),
-    (Int, String, String, Int, String, Float, Float, Option[Int]),
+    (Rep[Int], Rep[String], Rep[String], Rep[Int], Rep[String], Rep[Double], Rep[Double], Rep[Option[Int]]),
+    (Int, String, String, Int, String, Double, Double, Option[Int]),
     Seq
   ] = for {
     m   <- missions
@@ -115,7 +115,7 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
     if r.deleted === false
     if l.correct || (us.highQuality && l.correct.isEmpty && !at.lowQuality)
     if lp.lat.isDefined && lp.lng.isDefined
-  } yield (ser.regionId, us.userId, l.panoId, l.labelId, lt.labelType, lp.lat.ifNull(-1f), lp.lng.ifNull(-1f),
+  } yield (ser.regionId, us.userId, l.panoId, l.labelId, lt.labelType, lp.lat.ifNull(-1d), lp.lng.ifNull(-1d),
     l.severity)
 
   def getRegionsToCluster: DBIO[Seq[Int]] = {

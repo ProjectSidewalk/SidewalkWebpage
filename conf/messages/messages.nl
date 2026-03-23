@@ -40,6 +40,7 @@ ok = OK
 cancel = Annuleer
 undo = Ongedaan maken
 back = Rug
+back.shortcut = Rug (<u>b</u>)
 error = Error!
 yes.caps = Ja
 yes.caps.shortcut = Ja (<u>y</u>)
@@ -52,6 +53,7 @@ username = Gebruikersnaam
 loading = Laden...
 loading.encouragement = Let''s go!
 submit = Dien in
+submit.shortcut = Dien in (<u>s</u>)
 test.server.warning.message = <strong>WAARSCHUWING!</strong> U bevindt zich op een testserver! Uw gegevens worden niet opgeslagen! Als u wilt dat uw gegevens worden opgeslagen, gebruik dan de hoofdsite
 dont.show.again = Laat niet opnieuw zien
 
@@ -319,7 +321,6 @@ labeling.guide.surface.problem.summary = Een oppervlakteprobleem is een probleem
 labeling.guide.no.sidewalk.summary = Je moet een No Sidewalk-label plaatsen vanaf waar het trottoir eindigt, en vervolgens om de paar meter (ongeveer 1 per panorama) labels blijven plaatsen totdat je een plaats bereikt waar het trottoir opnieuw begint.
 labeling.guide.occlusion.summary = Soms is het zicht op het trottoir volledig geblokkeerd. In deze gevallen moet je een label "Can''t See the Sidewalk" plaatsen. Dit mag zelden worden gebruikt, dus plaats het label "Het trottoir is niet zichtbaar" alleen wanneer een trottoir, oprit of ander toegankelijkheidsprobleem niet vanuit elke hoek kan worden bekeken vanwege obstakels, zoals auto''s.
 
-dist.metric.abbr = km
 admin.clear.play.cache = Wis Play cache
 
 leaderboard.overall.title = Algemeen klassement

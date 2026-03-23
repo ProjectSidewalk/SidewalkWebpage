@@ -262,7 +262,7 @@ class ExploreController @Inject() (
                   returnData.newLabels.map(_._1).min,
                   returnData.newLabels.map(_._5).max
                 )
-                .flatMap { timeSpent: Float =>
+                .flatMap { timeSpent: Double =>
                   configService.sendSciStarterContributions(user.email, returnData.newLabels.length, timeSpent)
                 }
             }

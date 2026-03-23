@@ -16,7 +16,7 @@ function Keyboard(expandedView) {
      * @private
      */
     function _documentKeyUp(e) {
-        if (e.key) {
+        if (e.key && !e.ctrlKey) {
             switch (e.key.toUpperCase()) {
                 case "ARROWLEFT":
                     if (expandedView.open && !expandedView.leftArrowDisabled) {

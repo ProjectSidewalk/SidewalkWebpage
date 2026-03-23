@@ -1,7 +1,7 @@
 package models.utils
 
 object CommonUtils {
-  val METERS_TO_MILES: Float = 0.000621371f
+  val METERS_TO_MILES: Double = 0.000621371d
 
   // NOTE need to update ui_source enum in postgres as well if changing this Enumeration.
   object UiSource extends Enumeration {

@@ -17,9 +17,9 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[StreetServiceImpl])
 trait StreetService {
   def getStreetCountDBIO: DBIO[Int]
-  def getTotalStreetDistanceDBIO: DBIO[Float]
-  def getTotalStreetDistance(metric: Boolean): Future[Float]
-  def getAuditedStreetDistance(metric: Boolean): Future[Float]
+  def getTotalStreetDistanceDBIO: DBIO[Double]
+  def getTotalStreetDistance(metric: Boolean): Future[Double]
+  def getAuditedStreetDistance(metric: Boolean): Future[Double]
   def recalculateStreetPriority: Future[Seq[Int]]
   def saveRoute(route: NewRoute, userId: String): Future[Int]
   def selectStreetsWithAuditStatus(
@@ -45,23 +45,24 @@ class StreetServiceImpl @Inject() (
 
   def getStreetCountDBIO: DBIO[Int] = configService.cachedDBIO[Int]("streetCount")(streetEdgeTable.streetCount)
 
-  def getTotalStreetDistanceDBIO: DBIO[Float] =
-    configService.cachedDBIO[Float]("totalStreetDistance")(streetEdgeTable.totalStreetDistance)
+  def getTotalStreetDistanceDBIO: DBIO[Double] =
+    configService.cachedDBIO[Double]("totalStreetDistance")(streetEdgeTable.totalStreetDistance)
 
-  def getTotalStreetDistance(metric: Boolean): Future[Float] = {
+  def getTotalStreetDistance(metric: Boolean): Future[Double] = {
     db.run(getTotalStreetDistanceDBIO).map { dist =>
       if (metric) {
-        dist * 0.001f // Meters to kilometers.
+        dist * 0.001d // Meters to kilometers.
       } else {
-        dist * 0.000621371f // Meters to miles.
+        dist * 0.000621371d // Meters to miles.
       }
     }
   }
 
-  def getAuditedStreetDistance(metric: Boolean): Future[Float] = {
-    val auditedDist: Future[Float] = cacheApi.getOrElseUpdate[Float]("auditedStreetDistanceUsingPriority", 30.minutes) {
-      db.run(streetEdgePriorityTable.auditedStreetDistanceUsingPriority)
-    }
+  def getAuditedStreetDistance(metric: Boolean): Future[Double] = {
+    val auditedDist: Future[Double] =
+      cacheApi.getOrElseUpdate[Double]("auditedStreetDistanceUsingPriority", 30.minutes) {
+        db.run(streetEdgePriorityTable.auditedStreetDistanceUsingPriority)
+      }
 
     auditedDist.map { dist =>
       if (metric) {

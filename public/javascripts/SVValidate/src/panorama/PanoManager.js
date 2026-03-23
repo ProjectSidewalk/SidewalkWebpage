@@ -25,7 +25,7 @@ class PanoManager {
         const panoOptions = {
             accessToken: viewerAccessToken,
             startPanoId: startPanoId,
-            linksControl: false,
+            defaultNavigation: false,
             scrollwheel: isMobile()
         };
 
@@ -108,7 +108,7 @@ class PanoManager {
         if (!this.#bottomLinksClickable && bottomLinks.length > 3) {
             this.#bottomLinksClickable = true;
             bottomLinks[0].remove(); // Remove GSV keyboard shortcuts link.
-            $('#view-control-layer').append($(bottomLinks[1]).parent().parent()); // Makes remaining links clickable.
+            svv.ui.viewer.controlLayer.append($(bottomLinks[1]).parent().parent()); // Makes remaining links clickable.
         }
 
         google.maps.event.removeListener(this.#linksListener);

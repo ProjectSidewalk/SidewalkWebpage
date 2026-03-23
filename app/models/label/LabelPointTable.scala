@@ -15,11 +15,11 @@ case class LabelPoint(
     panoY: Int,
     canvasX: Int,
     canvasY: Int,
-    heading: Float,
-    pitch: Float,
+    heading: Double,
+    pitch: Double,
     zoom: Double,
-    lat: Option[Float],
-    lng: Option[Float],
+    lat: Option[Double],
+    lng: Option[Double],
     geom: Option[Point],
     computationMethod: Option[String]
 )
@@ -31,11 +31,11 @@ class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "
   def panoY: Rep[Int]                        = column[Int]("pano_y")
   def canvasX: Rep[Int]                      = column[Int]("canvas_x")
   def canvasY: Rep[Int]                      = column[Int]("canvas_y")
-  def heading: Rep[Float]                    = column[Float]("heading")
-  def pitch: Rep[Float]                      = column[Float]("pitch")
+  def heading: Rep[Double]                   = column[Double]("heading")
+  def pitch: Rep[Double]                     = column[Double]("pitch")
   def zoom: Rep[Double]                      = column[Double]("zoom")
-  def lat: Rep[Option[Float]]                = column[Option[Float]]("lat")
-  def lng: Rep[Option[Float]]                = column[Option[Float]]("lng")
+  def lat: Rep[Option[Double]]               = column[Option[Double]]("lat")
+  def lng: Rep[Option[Double]]               = column[Option[Double]]("lng")
   def geom: Rep[Option[Point]]               = column[Option[Point]]("geom")
   def computationMethod: Rep[Option[String]] = column[Option[String]]("computation_method")
 
@@ -52,8 +52,6 @@ class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "
 object LabelPointTable {
   val canvasHeight: Int = 480
   val canvasWidth: Int  = 720
-  val alphaX: Float     = 4.6f
-  val alphaY: Float     = -4.65f
 }
 
 @ImplementedBy(classOf[LabelPointTable])

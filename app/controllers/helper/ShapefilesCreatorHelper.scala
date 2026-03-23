@@ -266,9 +266,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "taskId:Integer,"         // Audit task ID
       + "missionId:Integer,"      // Mission ID
       + "imageDate:String,"       // Image capture date
-      + "heading:Double,"         // Heading angle
-      + "pitch:Double,"           // Pitch angle
-      + "zoom:Integer,"           // Zoom level
+      + "pov:String,"             // { heading: Double, pitch: Double, zoom: Double }
       + "canvasX:Integer,"        // Canvas X position
       + "canvasY:Integer,"        // Canvas Y position
       + "canvasWdth:Integer,"     // Canvas width
@@ -279,6 +277,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "panoHeight:Integer,"     // Panorama height
       + "cameraHdng:Double,"      // Camera heading
       + "cameraPtch:Double,"      // Camera pitch
+      + "cameraRoll:Double,"      // Camera roll
       + "imageUrl:String"         // Pano URL
     )
 
@@ -313,9 +312,13 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.auditTaskId.orNull)
       featureBuilder.add(label.missionId.orNull)
       featureBuilder.add(label.imageCaptureDate.orNull)
-      featureBuilder.add(label.heading.orNull)
-      featureBuilder.add(label.pitch.orNull)
-      featureBuilder.add(label.zoom.orNull)
+
+      // Combine heading/pitch/zoom into a single field so that we don't hit max number of fields.
+      val povString: Option[String] = (label.heading, label.pitch, label.zoom) match {
+        case (Some(heading), Some(pitch), Some(zoom)) => Some(s"""{"heading":$heading,"pitch":$pitch,"zoom":$zoom""")
+        case _                                        => None
+      }
+      featureBuilder.add(povString.orNull)
       featureBuilder.add(label.canvasX.orNull)
       featureBuilder.add(label.canvasY.orNull)
       featureBuilder.add(label.canvasWidth.orNull)
@@ -326,6 +329,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.panoHeight.orNull)
       featureBuilder.add(label.cameraHeading.orNull)
       featureBuilder.add(label.cameraPitch.orNull)
+      featureBuilder.add(label.cameraRoll.orNull)
       featureBuilder.add(label.imageUrl)
 
       featureBuilder.buildFeature(null)
@@ -364,7 +368,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "nDisagree:Integer,"      // Disagree count
       + "nUnsure:Integer,"        // Unsure count
       + "clusterSze:Integer,"     // Cluster size
-      + "userIds:String"          // User IDs
+      + "userIds:String,"         // User IDs
+      + "tagCounts:String"        // Tag counts as JSON
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -387,7 +392,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(cluster.disagreeCount)
       featureBuilder.add(cluster.unsureCount)
       featureBuilder.add(cluster.clusterSize)
-      featureBuilder.add(cluster.userIds.mkString("[", ",", "]"))
+      featureBuilder.add(Json.stringify(Json.toJson(cluster.userIds)))
+      featureBuilder.add(Json.stringify(Json.toJson(cluster.tagCounts)))
 
       featureBuilder.buildFeature(null)
     }
@@ -444,6 +450,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "pano_height:Integer,"    // Panorama height
       + "camera_heading:Double,"  // Camera heading
       + "camera_pitch:Double,"    // Camera pitch
+      + "camera_roll:Double,"     // Camera pitch
       + "image_url:String"        // Pano URL
     )
 
@@ -487,6 +494,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.panoHeight.map(Integer.valueOf).orNull)
       featureBuilder.add(label.cameraHeading.orNull)
       featureBuilder.add(label.cameraPitch.orNull)
+      featureBuilder.add(label.cameraRoll.orNull)
       featureBuilder.add(label.imageUrl)
       featureBuilder.buildFeature(null)
     }
@@ -735,6 +743,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "unsure_count:Integer,"    // Unsure count
       + "cluster_size:Integer,"    // Cluster size
       + "user_ids:String,"         // User IDs as JSON array string
+      + "tag_counts:String,"       // Tag counts as JSON object string
       + "labels:String"            // Raw labels (if included) as JSON string
     )
 
@@ -757,10 +766,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(cluster.disagreeCount)
       featureBuilder.add(cluster.unsureCount)
       featureBuilder.add(cluster.clusterSize)
-
-      // Format user IDs as a JSON array string.
-      val userIdsStr = cluster.userIds.map(id => s""""$id"""").mkString(",")
-      featureBuilder.add(s"[$userIdsStr]")
+      featureBuilder.add(Json.stringify(Json.toJson(cluster.userIds)))
+      featureBuilder.add(Json.stringify(Json.toJson(cluster.tagCounts)))
 
       // Add raw labels if they exist, formatted as JSON string.
       val labelsStr = cluster.labels match {

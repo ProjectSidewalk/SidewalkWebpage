@@ -33,7 +33,7 @@ class Infra3dViewer extends PanoViewer {
             map_expand: !disableDefaultUi, // Only used if show_mapWindow is true
             show_cockpit: !disableDefaultUi,
 
-            clickToGo: false, // If true, we show infra3D viewer's navigation arrows
+            defaultNavigation: false, // If true, we show infra3D viewer's navigation arrows
             zoomControl: true,
         };
         panoOpts = { ...panoOpts, ...panoOptions };
@@ -48,7 +48,7 @@ class Infra3dViewer extends PanoViewer {
         });
 
         // Handle a few other configs that need to be handled after initialization.
-        if (panoOpts.linksControl === false) {
+        if (panoOpts.defaultNavigation === false) {
             this.hideNavigationArrows();
         }
         if (panoOpts.zoomControl === false) {
@@ -83,8 +83,8 @@ class Infra3dViewer extends PanoViewer {
         this.viewer._sdk_viewer.on('nodechanged', panoChangeListener);
         this.viewer.on('panorotationchanged', povChangeListener);
 
-        // If clickToGo is enabled, we need a pano_changed listener to record the pano metadata after moving.
-        if (panoOpts.clickToGo) {
+        // If defaultNavigation is enabled, we need a pano_changed listener to record the pano metadata after moving.
+        if (panoOpts.defaultNavigation) {
             this.addListener('pano_changed', (node) => {
                 return this.#finishRecordingMetadata(node);
             });
@@ -197,6 +197,7 @@ class Infra3dViewer extends PanoViewer {
                 lng: node.frame.longitude,
                 cameraHeading: this._getHeading(node.frame.omega, node.frame.phi),
                 cameraPitch: this._getPitch(node.frame.omega, node.frame.phi),
+                // TODO can we find a camera roll?
                 copyright: 'City of Zurich and iNovitas AG',
                 history: [] // No history to pull from for Infra3D right now.
             }

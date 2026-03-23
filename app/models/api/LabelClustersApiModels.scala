@@ -89,6 +89,7 @@ object RawLabelInClusterDataForApi {
  * @param unsureCount Total number of users who were unsure about labels in this cluster
  * @param clusterSize Number of labels in this cluster
  * @param userIds List of user IDs who contributed labels to this cluster
+ * @param tagCounts Map of tag names to the number of labels in the cluster with that tag
  * @param labels Optional list of raw labels in this cluster (only included if requested)
  * @param avgLatitude The geographic latitude coordinate of the cluster center (centroid)
  * @param avgLongitude The geographic longitude coordinate of the cluster center (centroid)
@@ -108,6 +109,7 @@ case class LabelClusterForApi(
     unsureCount: Int,
     clusterSize: Int,
     userIds: Seq[String],
+    tagCounts: Map[String, Int],
     labels: Option[Seq[RawLabelInClusterDataForApi]],
     avgLatitude: Double,
     avgLongitude: Double
@@ -137,7 +139,8 @@ case class LabelClusterForApi(
       "disagree_count"         -> disagreeCount,
       "unsure_count"           -> unsureCount,
       "cluster_size"           -> clusterSize,
-      "users"                  -> userIds
+      "users"                  -> userIds,
+      "tag_counts"             -> tagCounts
     )
 
     // Add labels to properties if they exist.
@@ -173,6 +176,7 @@ case class LabelClusterForApi(
       unsureCount.toString,
       clusterSize.toString,
       escapeCsvField(userIds.mkString("[", ",", "]")),
+      escapeCsvField(Json.stringify(Json.toJson(tagCounts))),
       // We don't include the raw labels in CSV format as it would be too complex.
       avgLatitude.toString,
       avgLongitude.toString
@@ -192,5 +196,5 @@ object LabelClusterForApi {
    */
   val csvHeader: String = "label_cluster_id,label_type,street_edge_id,osm_way_id,region_id,region_name," +
     "avg_image_capture_date,avg_label_date,median_severity,agree_count,disagree_count,unsure_count,cluster_size," +
-    "users,avg_latitude,avg_longitude\n"
+    "users,tag_counts,avg_latitude,avg_longitude\n"
 }

@@ -18,6 +18,7 @@ import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import service._
+
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.concurrent.ThreadPoolExecutor
@@ -127,7 +128,7 @@ class AdminController @Inject() (
             "type"     -> "Feature",
             "geometry" -> Json.obj(
               "type"        -> "Point",
-              "coordinates" -> Json.arr(label.lng.toDouble, label.lat.toDouble)
+              "coordinates" -> Json.arr(label.lng, label.lat)
             ),
             "properties" -> Json.obj(
               "audit_task_id"     -> label.auditTaskId,
@@ -178,7 +179,7 @@ class AdminController @Inject() (
               "type"     -> "Feature",
               "geometry" -> Json.obj(
                 "type"        -> "Point",
-                "coordinates" -> Json.arr(label.lng.toDouble, label.lat.toDouble)
+                "coordinates" -> Json.arr(label.lng, label.lat)
               ),
               "properties" -> Json.obj(
                 "label_id"          -> label.labelId,

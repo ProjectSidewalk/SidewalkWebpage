@@ -99,6 +99,7 @@ object LabelValidationSummaryForApi {
  * @param panoHeight Optional height of the panorama
  * @param cameraHeading Optional camera heading in degrees
  * @param cameraPitch Optional camera pitch in degrees
+ * @param cameraRoll Optional camera roll in degrees
  */
 case class LabelDataForApi(
     labelId: Int,
@@ -134,7 +135,8 @@ case class LabelDataForApi(
     panoWidth: Option[Int],
     panoHeight: Option[Int],
     cameraHeading: Option[Double],
-    cameraPitch: Option[Double]
+    cameraPitch: Option[Double],
+    cameraRoll: Option[Double]
 ) extends StreamingApiType {
 
   /**
@@ -224,6 +226,7 @@ case class LabelDataForApi(
         "pano_height"        -> panoHeight,
         "camera_heading"     -> cameraHeading,
         "camera_pitch"       -> cameraPitch,
+        "camera_roll"        -> cameraRoll,
         "image_url"          -> imageUrl // Include the direct pano URL
       )
     )
@@ -274,6 +277,7 @@ case class LabelDataForApi(
       panoHeight.map(_.toString).getOrElse(""),
       cameraHeading.map(_.toString).getOrElse(""),
       cameraPitch.map(_.toString).getOrElse(""),
+      cameraRoll.map(_.toString).getOrElse(""),
       escapeCsvField(imageUrl),
       latitude.toString,
       longitude.toString
@@ -294,7 +298,7 @@ object LabelDataForApi {
   val csvHeader: String = "label_id,user_id,pano_id,label_type,severity,tags,description,time_created,street_edge_id," +
     "osm_way_id,neighborhood,correct,agree_count,disagree_count,unsure_count,validations,audit_task_id,mission_id," +
     "image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height,pano_x,pano_y,pano_width," +
-    "pano_height,camera_heading,camera_pitch,image_url,latitude,longitude\n"
+    "pano_height,camera_heading,camera_pitch,camera_roll,image_url,latitude,longitude\n"
 
   /**
    * Implicit JSON writer for LabelData that uses the toJson method.

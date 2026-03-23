@@ -83,17 +83,36 @@ function ObservedArea(uiMinimap) {
     }
 
     /**
+     * Converts a latitude and longitude to pixel xy-coordinates.
+     * @param {{lat: number, lng: number}} latLng
+     * @returns {{x: number, y: number}}
+     */
+    function latLngToPixel(latLng) {
+        const projection = svl.minimap.getMap().getProjection();
+        const bounds = svl.minimap.getMap().getBounds();
+        const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
+        const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
+        const scale = Math.pow(2, svl.minimap.getMap().getZoom());
+        const worldPoint = projection.fromLatLngToPoint(latLng);
+        return {
+            x: Math.floor((worldPoint.x - bottomLeft.x) * scale),
+            y: Math.floor((worldPoint.y - topRight.y) * scale)
+        };
+    }
+
+    /**
      * Renders the fog of war.
      */
     function renderFogOfWar() {
         fogOfWarCtx.fillRect(0, 0, width, height);
         fogOfWarCtx.globalCompositeOperation = 'destination-out';
         for (const observedArea of observedAreas) {
+            const center = latLngToPixel(observedArea.latLng);
             fogOfWarCtx.beginPath();
             if (observedArea.maxAngle - observedArea.minAngle < 360) {
-                fogOfWarCtx.moveTo(width / 2, height / 2);
+                fogOfWarCtx.moveTo(center.x, center.y);
             }
-            fogOfWarCtx.arc(width / 2, height / 2, radius,
+            fogOfWarCtx.arc(center.x, center.y, radius,
                 toRadians(observedArea.minAngle - 90), toRadians(observedArea.maxAngle - 90));
                 fogOfWarCtx.fill();
         }

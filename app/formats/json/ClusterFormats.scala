@@ -40,8 +40,8 @@ object ClusterFormats {
       (JsPath \ "pano_id").write[String] and
       (JsPath \ "label_id").write[Int] and
       (JsPath \ "label_type").write[String] and
-      (JsPath \ "lat").write[Float] and
-      (JsPath \ "lng").write[Float] and
+      (JsPath \ "lat").write[Double] and
+      (JsPath \ "lng").write[Double] and
       (JsPath \ "severity").write[Option[Int]]
   )(unlift(LabelToCluster.unapply))
 }

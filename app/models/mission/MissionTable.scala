@@ -19,7 +19,7 @@ case class RegionalMission(
     missionType: String,
     regionId: Option[Int],
     regionName: Option[String],
-    distanceMeters: Option[Float],
+    distanceMeters: Option[Double],
     labelsValidated: Option[Int],
     missionEnd: OffsetDateTime
 )
@@ -33,8 +33,8 @@ case class Mission(
     completed: Boolean,
     pay: Double,
     paid: Boolean,
-    distanceMeters: Option[Float],
-    distanceProgress: Option[Float],
+    distanceMeters: Option[Double],
+    distanceProgress: Option[Double],
     regionId: Option[Int],
     labelsValidated: Option[Int],
     labelsProgress: Option[Int],
@@ -44,22 +44,22 @@ case class Mission(
 )
 
 class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
-  def missionId: Rep[Int]                  = column[Int]("mission_id", O.PrimaryKey, O.AutoInc)
-  def missionTypeId: Rep[Int]              = column[Int]("mission_type_id")
-  def userId: Rep[String]                  = column[String]("user_id")
-  def missionStart: Rep[OffsetDateTime]    = column[OffsetDateTime]("mission_start")
-  def missionEnd: Rep[OffsetDateTime]      = column[OffsetDateTime]("mission_end")
-  def completed: Rep[Boolean]              = column[Boolean]("completed")
-  def pay: Rep[Double]                     = column[Double]("pay")
-  def paid: Rep[Boolean]                   = column[Boolean]("paid")
-  def distanceMeters: Rep[Option[Float]]   = column[Option[Float]]("distance_meters")
-  def distanceProgress: Rep[Option[Float]] = column[Option[Float]]("distance_progress")
-  def regionId: Rep[Option[Int]]           = column[Option[Int]]("region_id")
-  def labelsValidated: Rep[Option[Int]]    = column[Option[Int]]("labels_validated")
-  def labelsProgress: Rep[Option[Int]]     = column[Option[Int]]("labels_progress")
-  def labelTypeId: Rep[Option[Int]]        = column[Option[Int]]("label_type_id")
-  def skipped: Rep[Boolean]                = column[Boolean]("skipped")
-  def currentAuditTaskId: Rep[Option[Int]] = column[Option[Int]]("current_audit_task_id")
+  def missionId: Rep[Int]                   = column[Int]("mission_id", O.PrimaryKey, O.AutoInc)
+  def missionTypeId: Rep[Int]               = column[Int]("mission_type_id")
+  def userId: Rep[String]                   = column[String]("user_id")
+  def missionStart: Rep[OffsetDateTime]     = column[OffsetDateTime]("mission_start")
+  def missionEnd: Rep[OffsetDateTime]       = column[OffsetDateTime]("mission_end")
+  def completed: Rep[Boolean]               = column[Boolean]("completed")
+  def pay: Rep[Double]                      = column[Double]("pay")
+  def paid: Rep[Boolean]                    = column[Boolean]("paid")
+  def distanceMeters: Rep[Option[Double]]   = column[Option[Double]]("distance_meters")
+  def distanceProgress: Rep[Option[Double]] = column[Option[Double]]("distance_progress")
+  def regionId: Rep[Option[Int]]            = column[Option[Int]]("region_id")
+  def labelsValidated: Rep[Option[Int]]     = column[Option[Int]]("labels_validated")
+  def labelsProgress: Rep[Option[Int]]      = column[Option[Int]]("labels_progress")
+  def labelTypeId: Rep[Option[Int]]         = column[Option[Int]]("label_type_id")
+  def skipped: Rep[Boolean]                 = column[Boolean]("skipped")
+  def currentAuditTaskId: Rep[Option[Int]]  = column[Option[Int]]("current_audit_task_id")
 
   def * = (missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters,
     distanceProgress, regionId, labelsValidated, labelsProgress, labelTypeId, skipped, currentAuditTaskId) <> (
@@ -85,8 +85,8 @@ class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
  */
 object MissionTable {
   // Distances for first few missions: 250 ft, 250 ft, then 500 ft for all remaining.
-  val distancesForFirstAuditMissions: Seq[Float] = Seq(76.2f, 76.2f)
-  val distanceForLaterMissions: Float            = 152.4f // 500 ft
+  val distancesForFirstAuditMissions: Seq[Double] = Seq(76.2d, 76.2d)
+  val distanceForLaterMissions: Double            = 152.4d // 500 ft
 
   // Number of labels for each type of validation mission
   val normalValidationMissionLength: Int   = 10
@@ -275,10 +275,10 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    *
    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
    */
-  def createNextAuditMission(userId: String, distance: Float, regionId: Int): DBIO[Mission] = {
+  def createNextAuditMission(userId: String, distance: Double, regionId: Int): DBIO[Mission] = {
     val now: OffsetDateTime = OffsetDateTime.now
     val newMission = Mission(0, missionTypeToId("audit"), userId, now, now, completed = false, 0d, paid = false,
-      Some(distance), Some(0.0.toFloat), Some(regionId), None, None, None, skipped = false, None)
+      Some(distance), Some(0d), Some(regionId), None, None, None, skipped = false, None)
     (missions returning missions) += newMission
   }
 
@@ -362,20 +362,20 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    *
    * @return Int number of rows updated (should always be 1 if successful, 0 otherwise).
    */
-  def updateExploreProgress(missionId: Int, distanceProgress: Float, auditTaskId: Option[Int]): DBIO[Int] = {
+  def updateExploreProgress(missionId: Int, distanceProgress: Double, auditTaskId: Option[Int]): DBIO[Int] = {
     val now: OffsetDateTime = OffsetDateTime.now
     missions
       .filter(_.missionId === missionId)
       .map(_.distanceMeters)
       .result
-      .flatMap { missionList: Seq[Option[Float]] =>
+      .flatMap { missionList: Seq[Option[Double]] =>
         missionList.head match {
           case Some(missionDistance) =>
             val missionToUpdate = for {
               m <- missions if m.missionId === missionId
             } yield (m.distanceProgress, m.missionEnd, m.currentAuditTaskId)
 
-            if (~=(distanceProgress, missionDistance, precision = 0.00001f)) {
+            if (~=(distanceProgress, missionDistance, precision = 0.00001d)) {
               missionToUpdate.update((Some(missionDistance), now, auditTaskId))
             } else if (distanceProgress < missionDistance) {
               missionToUpdate.update((Some(distanceProgress), now, auditTaskId))
@@ -414,10 +414,10 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     } yield updateResult
   }
 
-  // Approximate equality check for Floats
+  // Approximate equality check for Doubles
   // https://alvinalexander.com/scala/how-to-compare-floating-point-numbers-in-scala-float-double
-  def ~=(x: Float, y: Float, precision: Float): Boolean = { // Approximate equality check for Floats
-    val diff: Float = x - y
+  def ~=(x: Double, y: Double, precision: Double): Boolean = { // Approximate equality check for Doubles
+    val diff: Double = x - y
     if (diff.abs < precision) true else false
   }
 }
