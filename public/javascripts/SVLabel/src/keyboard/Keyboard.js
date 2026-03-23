@@ -104,7 +104,7 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
             }
         }
 
-        if (!status.disableKeyboard && !status.focusOnTextField) {
+        if (!status.disableKeyboard && !status.focusOnTextField && !e.ctrlKey) {
             // Switch labeling mode. e: Walk, c: CurbRamp, m: NoCurbRamp, o: Obstacle, s: SurfaceProblem: n: NoSidewalk,
             // w: Crosswalk, p: Signal, b: Occlusion.
             for (const mode of ['Walk'].concat(util.misc.VALID_LABEL_TYPES_WITHOUT_OTHER)) {

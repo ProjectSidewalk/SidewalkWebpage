@@ -103,7 +103,7 @@ function Keyboard(validationMenuUi) {
             validationMenuUi.submitButton.click();
         }
 
-        if (!status.disableKeyboard && !status.addingComment) {
+        if (!status.disableKeyboard && !status.addingComment && !e.ctrlKey) {
             svv.labelVisibilityControl.hideTagsAndDeleteButton();
             switch (e.code) {
                 // Validate yes/agree.
