@@ -383,7 +383,6 @@ labeling.guide.surface.problem.summary = 鋪面問題是那種會導致輪椅或
 labeling.guide.no.sidewalk.summary = 建議您從人行道結束的地方開始設置「無人行道」標籤，並於每幾公尺持續設置標籤，一直到人行道再次出現處。。
 labeling.guide.occlusion.summary = 有時候，從街道景照片看往人行道的視線完全被阻擋了，在這種情況下，您可以標記「看不見人行道」。這種情況應該不常見到，因此請只在當人行道、路緣斜坡或其他可及性問題，受阻礙物體（例如路邊停車）遮蔽而無法從任何角度觀察到時，才標記為「看不見人行道」。
 
-dist.metric.abbr = 公里
 admin.clear.play.cache = 清除快取
 
 leaderboard.overall.title = 總體排行榜
