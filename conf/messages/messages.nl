@@ -40,6 +40,7 @@ ok = OK
 cancel = Annuleer
 undo = Ongedaan maken
 back = Rug
+back.shortcut = Rug (<u>b</u>)
 error = Error!
 yes.caps = Ja
 yes.caps.shortcut = Ja (<u>y</u>)
@@ -52,6 +53,7 @@ username = Gebruikersnaam
 loading = Laden...
 loading.encouragement = Let''s go!
 submit = Dien in
+submit.shortcut = Dien in (<u>s</u>)
 test.server.warning.message = <strong>WAARSCHUWING!</strong> U bevindt zich op een testserver! Uw gegevens worden niet opgeslagen! Als u wilt dat uw gegevens worden opgeslagen, gebruik dan de hoofdsite
 dont.show.again = Laat niet opnieuw zien
 

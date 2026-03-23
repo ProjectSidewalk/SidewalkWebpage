@@ -40,6 +40,7 @@ function UndoValidation (uiUndo) {
 
     uiUndo.undoButton.on('click', undo);
 
+    self.canUndo = () => !status.disableUndo;
     self.enableUndo = enableUndo;
     self.disableUndo = disableUndo;
 

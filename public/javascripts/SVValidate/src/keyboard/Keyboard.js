@@ -97,7 +97,13 @@ function Keyboard(validationMenuUi) {
         checkIfTextAreaSelected();
 
         // Handle the various keyboard shortcuts.
-        if (!status.disableKeyboard && !status.addingComment) {
+        // Enter submits validation regardless of whether a text box is focused.
+        if (!status.disableKeyboard && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
+            e.preventDefault();
+            validationMenuUi.submitButton.click();
+        }
+
+        if (!status.disableKeyboard && !status.addingComment && !e.ctrlKey) {
             svv.labelVisibilityControl.hideTagsAndDeleteButton();
             switch (e.code) {
                 // Validate yes/agree.
@@ -127,6 +133,12 @@ function Keyboard(validationMenuUi) {
                 // Submit the validation.
                 case 'KeyS':
                     validationMenuUi.submitButton.click();
+                    break;
+                // Undo the last validation.
+                case 'KeyB':
+                    if (svv.undoValidation.canUndo()) {
+                        svv.ui.undoValidation.undoButton.click();
+                    }
                     break;
                 // Zoom in on 'Z', zoom out on 'Shift+Z'.
                 case 'KeyZ':

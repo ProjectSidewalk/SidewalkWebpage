@@ -54,7 +54,6 @@ object ExploreFormats {
   case class LabelSubmission(
       panoId: String,
       panoSource: PanoSource,
-      auditTaskId: Int,
       labelType: String,
       deleted: Boolean,
       severity: Option[Int],
@@ -251,7 +250,6 @@ object ExploreFormats {
   implicit val labelSubmissionReads: Reads[LabelSubmission] = (
     (JsPath \ "pano_id").read[String] and
       (JsPath \ "pano_source").read[PanoSource.Value] and
-      (JsPath \ "audit_task_id").read[Int] and
       (JsPath \ "label_type").read[String] and
       (JsPath \ "deleted").read[Boolean] and
       (JsPath \ "severity").readNullable[Int] and
