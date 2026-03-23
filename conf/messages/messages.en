@@ -40,6 +40,7 @@ ok = OK
 cancel = Cancel
 undo = Undo
 back = Back
+back.shortcut = <u>B</u>ack
 error = Error!
 yes.caps = Yes
 yes.caps.shortcut = <u>Y</u>es
@@ -52,6 +53,7 @@ username = Username
 loading = Loading...
 loading.encouragement = Let''s do this!
 submit = Submit
+submit.shortcut = <u>S</u>ubmit
 test.server.warning.message = <strong>WARNING!</strong> You are on a test server! Your data will not be saved! If you would like your data to be saved, please use the main site
 dont.show.again = Don''t show again
 
