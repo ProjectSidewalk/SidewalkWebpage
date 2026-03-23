@@ -85,21 +85,18 @@ function Form (labelContainer, missionModel, missionContainer, panoStore, taskCo
             let prop = label.getProperties();
             const labelLatLng = label.toLatLng();
             const tempLabelId = label.getProperty('temporaryLabelId');
-            const auditTaskId = label.getProperty('auditTaskId');
             const panoData = panoStore.getPanoData(prop.panoId);
 
             // If this label is a new label, get the timestamp of its creation from the corresponding interaction.
             const associatedInteraction = data.interactions.find(interaction =>
                 interaction.action === 'LabelingCanvas_FinishLabeling'
-                && interaction.temporary_label_id === tempLabelId
-                && interaction.audit_task_id === auditTaskId);
+                && interaction.temporary_label_id === tempLabelId);
             const timeCreated = associatedInteraction ? associatedInteraction.timestamp : null;
 
             let temp = {
                 deleted : label.isDeleted(),
                 label_type : label.getLabelType(),
                 temporary_label_id: tempLabelId,
-                audit_task_id: auditTaskId,
                 pano_id: prop.panoId,
                 pano_source: panoData.getProperty('source'),
                 severity: label.getProperty('severity'),

@@ -570,7 +570,6 @@ class ExploreServiceImpl @Inject() (
           labelSubmission: LabelSubmission = LabelSubmission(
             panoId = pano.panoId,
             panoSource = pano.source,
-            auditTaskId = auditTaskId,
             labelType = data.labelType,
             deleted = false,
             temporaryLabelId = tempLabelId,
