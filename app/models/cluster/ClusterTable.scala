@@ -150,6 +150,10 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     val avgLatitude  = r.nextDouble()
     val avgLongitude = r.nextDouble()
 
+    // Parse tag counts JSON object into a Map (e.g., {"narrow": 2} -> Map("narrow" -> 2)).
+    val tagCounts =
+      r.nextStringOption().map { tagCountsJson => Json.parse(tagCountsJson).as[Map[String, Int]] }.getOrElse(Map.empty)
+
     // Parse labels if included (only when includeRawLabels=true).
     val labels = if (r.hasMoreColumns) {
       r.nextStringOption().map { labelsJson =>
@@ -165,7 +169,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       regionId = regionId, regionName = regionName, avgImageCaptureDate = avgImageCaptureDate,
       avgLabelDate = avgLabelDate, medianSeverity = medianSeverity, agreeCount = agreeCount,
       disagreeCount = disagreeCount, unsureCount = unsureCount, clusterSize = clusterSize, userIds = userIds,
-      labels = labels, avgLatitude = avgLatitude, avgLongitude = avgLongitude
+      tagCounts = tagCounts, labels = labels, avgLatitude = avgLatitude, avgLongitude = avgLongitude
     )
   }
 
@@ -317,6 +321,21 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         |INNER JOIN label ON cluster_label.label_id = label.label_id
         |GROUP BY cluster.cluster_id""".stripMargin
 
+    // Aggregate tag counts for each cluster as a JSON object (e.g., {"missing tactile warning": 2, "narrow": 1}).
+    // Tags are stored as a TEXT[] array on the label table; unnest to count occurrences across labels in each cluster.
+    val tagCounts =
+      """SELECT cluster.cluster_id AS cluster_id,
+        |       COALESCE(jsonb_object_agg(tag_counts.tag, tag_counts.cnt) FILTER (WHERE tag_counts.tag IS NOT NULL), '{}') AS tag_counts
+        |FROM cluster
+        |LEFT JOIN (
+        |    SELECT cluster_label.cluster_id, t.tag, COUNT(*) AS cnt
+        |    FROM cluster_label
+        |    INNER JOIN label ON cluster_label.label_id = label.label_id
+        |    CROSS JOIN LATERAL unnest(label.tags) AS t(tag)
+        |    GROUP BY cluster_label.cluster_id, t.tag
+        |) tag_counts ON cluster.cluster_id = tag_counts.cluster_id
+        |GROUP BY cluster.cluster_id""".stripMargin
+
     // Select the average image date and number of images for each cluster.
     val imageCaptureDatesAndUserIds =
       """SELECT capture_dates.cluster_id AS cluster_id,
@@ -352,7 +371,8 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
           validation_counts.label_count AS cluster_size,
           image_capture_dates.users_list,
           ST_Y(cluster.geom) AS lat,
-          ST_X(cluster.geom) AS lng
+          ST_X(cluster.geom) AS lng,
+          cluster_tag_counts.tag_counts
     FROM cluster
     INNER JOIN label_type ON cluster.label_type_id = label_type.label_type_id
     INNER JOIN street_edge ON cluster.street_edge_id = street_edge.street_edge_id
@@ -361,6 +381,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     INNER JOIN osm_way_street_edge ON cluster.street_edge_id = osm_way_street_edge.street_edge_id
     INNER JOIN (${validationCounts}) validation_counts ON cluster.cluster_id = validation_counts.cluster_id
     INNER JOIN (${imageCaptureDatesAndUserIds}) image_capture_dates ON cluster.cluster_id = image_capture_dates.cluster_id
+    INNER JOIN (${tagCounts}) cluster_tag_counts ON cluster.cluster_id = cluster_tag_counts.cluster_id
     WHERE ${whereClause}
     ORDER BY cluster.cluster_id
     """
@@ -406,7 +427,8 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
             base_query.cluster_size,
             base_query.users_list,
             base_query.lat,
-            base_query.lng
+            base_query.lng,
+            base_query.tag_counts
       """
     }
 
