@@ -321,7 +321,6 @@ labeling.guide.surface.problem.summary = Een oppervlakteprobleem is een probleem
 labeling.guide.no.sidewalk.summary = Je moet een No Sidewalk-label plaatsen vanaf waar het trottoir eindigt, en vervolgens om de paar meter (ongeveer 1 per panorama) labels blijven plaatsen totdat je een plaats bereikt waar het trottoir opnieuw begint.
 labeling.guide.occlusion.summary = Soms is het zicht op het trottoir volledig geblokkeerd. In deze gevallen moet je een label "Can''t See the Sidewalk" plaatsen. Dit mag zelden worden gebruikt, dus plaats het label "Het trottoir is niet zichtbaar" alleen wanneer een trottoir, oprit of ander toegankelijkheidsprobleem niet vanuit elke hoek kan worden bekeken vanwege obstakels, zoals auto''s.
 
-dist.metric.abbr = km
 admin.clear.play.cache = Wis Play cache
 
 leaderboard.overall.title = Algemeen klassement

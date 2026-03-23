@@ -324,7 +324,6 @@ labeling.guide.surface.problem.summary = Ein Oberflächenproblem ist ein Problem
 labeling.guide.no.sidewalk.summary = Sie sollten die Beschriftung für kein Trottoir dort beginnen, wo das Trottoir endet und dann alle paar Meter eine Beschriftung hinzufügen (ca. 1 pro Bild) bis zum Punkt, wo das Trottoir wieder beginnt.
 labeling.guide.occlusion.summary = Manchmal ist die Sicht auf das Trottoir vollständig versperrt. Solche Fälle sind mit der Beschriftung "Trottoir nicht sichtbar" zu beschriften. Diese Beschriftung sollte selten verwendet werden. Nutzen Sie sie darum nur, wenn ein Trottoir, eine Trottoirabsenkung oder ein anderes Zugänglichkeitsproblem aufgrund von Hindernissen, wie zum Beispiel Autos, aus keinem anderen Blickwinkel sichtbar ist.
 
-dist.metric.abbr = km
 admin.clear.play.cache = Play-Cache leeren
 
 leaderboard.overall.title = Gesamte Bestenliste
