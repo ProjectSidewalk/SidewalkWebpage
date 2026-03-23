@@ -368,7 +368,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "nDisagree:Integer,"      // Disagree count
       + "nUnsure:Integer,"        // Unsure count
       + "clusterSze:Integer,"     // Cluster size
-      + "userIds:String"          // User IDs
+      + "userIds:String,"         // User IDs
+      + "tagCounts:String"        // Tag counts as JSON
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -391,7 +392,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(cluster.disagreeCount)
       featureBuilder.add(cluster.unsureCount)
       featureBuilder.add(cluster.clusterSize)
-      featureBuilder.add(cluster.userIds.mkString("[", ",", "]"))
+      featureBuilder.add(Json.stringify(Json.toJson(cluster.userIds)))
+      featureBuilder.add(Json.stringify(Json.toJson(cluster.tagCounts)))
 
       featureBuilder.buildFeature(null)
     }
@@ -741,6 +743,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "unsure_count:Integer,"    // Unsure count
       + "cluster_size:Integer,"    // Cluster size
       + "user_ids:String,"         // User IDs as JSON array string
+      + "tag_counts:String,"       // Tag counts as JSON object string
       + "labels:String"            // Raw labels (if included) as JSON string
     )
 
@@ -763,10 +766,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(cluster.disagreeCount)
       featureBuilder.add(cluster.unsureCount)
       featureBuilder.add(cluster.clusterSize)
-
-      // Format user IDs as a JSON array string.
-      val userIdsStr = cluster.userIds.map(id => s""""$id"""").mkString(",")
-      featureBuilder.add(s"[$userIdsStr]")
+      featureBuilder.add(Json.stringify(Json.toJson(cluster.userIds)))
+      featureBuilder.add(Json.stringify(Json.toJson(cluster.tagCounts)))
 
       // Add raw labels if they exist, formatted as JSON string.
       val labelsStr = cluster.labels match {
