@@ -110,6 +110,9 @@ city.name.tucson-az = 圖森
 city.name.paterson-nj = 帕特森
 city.name.richmond-va = 列治文
 city.name.fort-wayne-in = 韋恩堡
+city.name.virden-il = 維爾登
+city.name.gainesville-fl = 蓋恩斯維爾
+city.name.sao-paulo-brazil = 聖保羅
 
 state.name.oregon = 奧勒岡州
 state.name.washington = 華盛頓州
@@ -126,6 +129,7 @@ state.name.new-york = 紐約
 state.name.arizona = 亞利桑那
 state.name.virginia = 維吉尼亞州
 state.name.indiana = 印第安納州
+state.name.florida = 佛羅裡達
 
 country.name.usa = 美國
 country.name.mexico = 墨西哥
@@ -137,6 +141,7 @@ country.name.ecuador = 厄瓜多
 country.name.canada = 加拿大
 country.name.india = 印度
 country.name.chile = 智利
+country.name.brazil = 巴西
 
 navbar.explore = 探索
 navbar.validate = 檢核

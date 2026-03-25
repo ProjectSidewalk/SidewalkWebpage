@@ -52,6 +52,9 @@ city.name.paterson-nj = Paterson
 city.name.staging = Zurich Infra3d
 city.name.richmond-va = Richmond
 city.name.fort-wayne-in = Fort Wayne
+city.name.virden-il = Virden
+city.name.gainesville-fl = Gainesville
+city.name.sao-paulo-brazil = São Paulo
 
 state.name.oregon = Oregon
 state.name.washington = Washington
@@ -68,6 +71,7 @@ state.name.new-york = New York
 state.name.arizona = Arizona
 state.name.virginia = Virginia
 state.name.indiana = Indiana
+state.name.florida = Florida
 
 country.name.usa = USA
 country.name.mexico = Mexico
@@ -79,6 +83,7 @@ country.name.ecuador = Ecuador
 country.name.canada = Canada
 country.name.india = India
 country.name.chile = Chile
+country.name.brazil = Brazil
 
 lang.name.en-US = US English
 lang.name.en-NZ = NZ English
