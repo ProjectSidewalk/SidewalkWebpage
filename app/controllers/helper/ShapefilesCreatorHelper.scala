@@ -359,6 +359,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     + "nDisagree:Integer,"      // Disagree count
     + "nUnsure:Integer,"        // Unsure count
     + "clusterSze:Integer,"     // Cluster size
+    + "labelIds:String,"        // Label IDs as comma-separated list
     + "userIds:String,"         // User IDs
     + "tagCounts:String"        // Tag counts as JSON
   )
@@ -383,6 +384,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     featureBuilder.add(cluster.disagreeCount)
     featureBuilder.add(cluster.unsureCount)
     featureBuilder.add(cluster.clusterSize)
+    featureBuilder.add(Json.stringify(Json.toJson(cluster.labelIds)))
     featureBuilder.add(Json.stringify(Json.toJson(cluster.userIds)))
     featureBuilder.add(Json.stringify(Json.toJson(cluster.tagCounts)))
     featureBuilder.buildFeature(null)
@@ -537,41 +539,42 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * @return Path to the created GeoPackage file, or None if creation failed
    */
   def createLabelClusterGeopackage(
-                                    source: Source[LabelClusterForApi, _],
-                                    outputFile: String,
-                                    batchSize: Int
-                                  ): Future[Option[Path]] = {
+      source: Source[LabelClusterForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
     val clusterFeatureType: SimpleFeatureType = DataUtilities.createType(
       "label_clusters",
       "the_geom:Point:srid=4326,"  // the geometry attribute: Point type
-        + "cluster_id:Integer,"      // Cluster ID
-        + "label_type:String,"       // Label type
-        + "street_edge_id:Integer,"  // Street edge ID
-        + "osm_way_id:String,"       // OSM way ID (as String to avoid Long issues)
-        + "region_id:Integer,"       // Region ID
-        + "region_name:String,"      // Region name
-        + "avg_image_date:String,"   // Average image capture date
-        + "avg_label_date:String,"   // Average label date
-        + "median_severity:Integer," // Median severity
-        + "agree_count:Integer,"     // Agree count
-        + "disagree_count:Integer,"  // Disagree count
-        + "unsure_count:Integer,"    // Unsure count
-        + "cluster_size:Integer,"    // Cluster size
-        + "user_ids:String,"         // User IDs as JSON array string
-        + "tag_counts:String"        // Tag counts as JSON object string
+      + "cluster_id:Integer,"      // Cluster ID
+      + "label_type:String,"       // Label type
+      + "street_edge_id:Integer,"  // Street edge ID
+      + "osm_way_id:String,"       // OSM way ID (as String to avoid Long issues)
+      + "region_id:Integer,"       // Region ID
+      + "region_name:String,"      // Region name
+      + "avg_image_date:String,"   // Average image capture date
+      + "avg_label_date:String,"   // Average label date
+      + "median_severity:Integer," // Median severity
+      + "agree_count:Integer,"     // Agree count
+      + "disagree_count:Integer,"  // Disagree count
+      + "unsure_count:Integer,"    // Unsure count
+      + "cluster_size:Integer,"    // Cluster size
+      + "label_ids:String,"        // Label IDs as comma-separated list
+      + "user_ids:String,"         // User IDs as JSON array string
+      + "tag_counts:String"        // Tag counts as JSON object string
     )
 
     val labelFeatureType: SimpleFeatureType = DataUtilities.createType(
       "raw_labels",
       "the_geom:Point:srid=4326," // the geometry attribute: Point type
-        + "label_id:Integer,"       // Label ID
-        + "cluster_id:Integer,"     // Parent cluster ID
-        + "user_id:String,"         // User ID
-        + "pano_id:String,"         // Panorama ID
-        + "severity:Integer,"       // Severity
-        + "time_created:String,"    // Creation timestamp
-        + "correct:String,"         // Validation correctness
-        + "image_date:String"       // Image capture date
+      + "label_id:Integer,"       // Label ID
+      + "cluster_id:Integer,"     // Parent cluster ID
+      + "user_id:String,"         // User ID
+      + "pano_id:String,"         // Panorama ID
+      + "severity:Integer,"       // Severity
+      + "time_created:String,"    // Creation timestamp
+      + "correct:String,"         // Validation correctness
+      + "image_date:String"       // Image capture date
     )
 
     val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
@@ -616,6 +619,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
             clusterBuilder.add(cluster.disagreeCount)
             clusterBuilder.add(cluster.unsureCount)
             clusterBuilder.add(cluster.clusterSize)
+            clusterBuilder.add(Json.stringify(Json.toJson(cluster.labelIds)))
             clusterBuilder.add(Json.stringify(Json.toJson(cluster.userIds)))
             clusterBuilder.add(Json.stringify(Json.toJson(cluster.tagCounts)))
             clusterFeatures.add(clusterBuilder.buildFeature(null))
