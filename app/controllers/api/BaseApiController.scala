@@ -12,9 +12,10 @@ import play.api.http.ContentTypes
 import play.api.libs.json.Json
 import play.api.mvc.Result
 
-import java.io.BufferedInputStream
+import java.io.{BufferedInputStream, File}
 import java.nio.file.{Files, Path}
 import java.time.OffsetDateTime
+import java.util.zip.{ZipEntry, ZipOutputStream}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.math._
 
@@ -114,6 +115,36 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       Ok.chunked(csvSource, inline.getOrElse(false), Some(filename))
         .as("text/csv")
         .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$filename")
+    )
+  }
+
+  /**
+   * Zips multiple CSV files together and streams the resulting ZIP archive as a response.
+   *
+   * @param files A sequence of (file path, entry name) pairs for each CSV file to include in the ZIP.
+   * @param baseFileName The base name for the ZIP file (without extension).
+   * @return A Result containing the zipped CSV files as a downloadable response.
+   */
+  protected def zipAndStreamCsvFiles(files: Seq[(Path, String)], baseFileName: String): Future[Result] = {
+    val zipPath = new File(s"$baseFileName.zip").toPath
+    val zipOut  = new ZipOutputStream(Files.newOutputStream(zipPath))
+
+    files.foreach { case (filePath, entryName) =>
+      zipOut.putNextEntry(new ZipEntry(entryName))
+      Files.copy(filePath, zipOut)
+      zipOut.closeEntry()
+      Files.deleteIfExists(filePath)
+    }
+    zipOut.close()
+
+    val zipSource = StreamConverters
+      .fromInputStream(() => new BufferedInputStream(Files.newInputStream(zipPath)))
+      .mapMaterializedValue(_.map { _ => Files.deleteIfExists(zipPath) })
+
+    Future.successful(
+      Ok.chunked(zipSource)
+        .as("application/zip")
+        .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
     )
   }
 

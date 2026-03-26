@@ -66,10 +66,39 @@ case class RawLabelInClusterDataForApi(
 )
 
 /**
- * Companion object for RawLabelInClusterDataForApi containing JSON formatter.
+ * Companion object for RawLabelInClusterDataForApi containing JSON formatter and CSV utilities.
  */
 object RawLabelInClusterDataForApi {
   implicit val clusterLabelDataWrites: Writes[RawLabelInClusterDataForApi] = Json.writes[RawLabelInClusterDataForApi]
+
+  /**
+   * CSV header for raw labels within clusters. Includes label_cluster_id to link back to the parent cluster.
+   */
+  val csvHeader: String = "label_cluster_id,label_id,user_id,pano_id,severity,time_created," +
+    "latitude,longitude,correct,image_capture_date\n"
+
+  /**
+   * Converts a raw label (the minimal version for cluster API) to a CSV row string, prefixed with parent cluster ID.
+   *
+   * @param clusterId The ID of the parent label cluster.
+   * @param label The raw label data to convert.
+   * @return A comma-separated string representing this label's data.
+   */
+  def toCsvRow(clusterId: Int, label: RawLabelInClusterDataForApi): String = {
+    val fields = Seq(
+      clusterId.toString,
+      label.labelId.toString,
+      escapeCsvField(label.userId),
+      escapeCsvField(label.panoId),
+      label.severity.map(_.toString).getOrElse(""),
+      label.timeCreated.toString,
+      label.latitude.toString,
+      label.longitude.toString,
+      label.correct.map(_.toString).getOrElse(""),
+      label.imageCaptureDate.getOrElse("")
+    )
+    fields.mkString(",")
+  }
 }
 
 /**
