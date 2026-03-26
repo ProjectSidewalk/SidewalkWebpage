@@ -144,8 +144,9 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     val unsureCount    = r.nextInt()
     val clusterSize    = r.nextInt()
 
-    // Parse user IDs and remove duplicates.
-    val userIds = r.nextString().split(",").toSeq.distinct
+    // Parse comma-separated label IDs and user IDs.
+    val labelIds = r.nextString().split(",").map(_.toInt).toSeq
+    val userIds  = r.nextString().split(",").toSeq
 
     val avgLatitude  = r.nextDouble()
     val avgLongitude = r.nextDouble()
@@ -168,8 +169,8 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       labelClusterId = labelClusterId, labelType = labelType, streetEdgeId = streetEdgeId, osmWayId = osmWayId,
       regionId = regionId, regionName = regionName, avgImageCaptureDate = avgImageCaptureDate,
       avgLabelDate = avgLabelDate, medianSeverity = medianSeverity, agreeCount = agreeCount,
-      disagreeCount = disagreeCount, unsureCount = unsureCount, clusterSize = clusterSize, userIds = userIds,
-      tagCounts = tagCounts, labels = labels, avgLatitude = avgLatitude, avgLongitude = avgLongitude
+      disagreeCount = disagreeCount, unsureCount = unsureCount, clusterSize = clusterSize, labelIds = labelIds,
+      userIds = userIds, tagCounts = tagCounts, labels = labels, avgLatitude = avgLatitude, avgLongitude = avgLongitude
     )
   }
 
@@ -308,14 +309,16 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     // Combine all conditions.
     val whereClause = whereConditions.mkString(" AND ")
 
-    // Sum the validations counts, average date, and the number of the labels that make up each cluster.
-    val validationCounts =
+    // Aggregate per-label data for each cluster: validation counts, dates, label IDs, and user IDs.
+    val labelAggregates =
       """SELECT cluster.cluster_id AS cluster_id,
         |       SUM(label.agree_count) AS agree_count,
         |       SUM(label.disagree_count) AS disagree_count,
         |       SUM(label.unsure_count) AS unsure_count,
         |       TO_TIMESTAMP(AVG(extract(epoch from label.time_created))) AS avg_label_date,
-        |       COUNT(label.label_id) AS label_count
+        |       COUNT(label.label_id) AS label_count,
+        |       array_to_string(array_agg(label.label_id ORDER BY label.label_id), ',') AS label_ids,
+        |       array_to_string(array_agg(DISTINCT label.user_id ORDER BY label.user_id), ',') AS users_list
         |FROM cluster
         |INNER JOIN cluster_label ON cluster.cluster_id = cluster_label.cluster_id
         |INNER JOIN label ON cluster_label.label_id = label.label_id
@@ -336,16 +339,13 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         |) tag_counts ON cluster.cluster_id = tag_counts.cluster_id
         |GROUP BY cluster.cluster_id""".stripMargin
 
-    // Select the average image date and number of images for each cluster.
-    val imageCaptureDatesAndUserIds =
+    // Compute the average image capture date per cluster by first averaging per pano, then averaging those.
+    val avgImageCaptureDates =
       """SELECT capture_dates.cluster_id AS cluster_id,
-        |       TO_TIMESTAMP(AVG(EXTRACT(epoch from capture_dates.capture_date))) AS avg_capture_date,
-        |       COUNT(capture_dates.capture_date) AS image_count,
-        |       string_agg(capture_dates.users_list, ',') AS users_list
+        |       TO_TIMESTAMP(AVG(EXTRACT(epoch from capture_dates.capture_date))) AS avg_capture_date
         |FROM (
         |    SELECT cluster.cluster_id,
-        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from TO_DATE(pano_data.capture_date, 'YYYY-MM')))) AS capture_date,
-        |           array_to_string(array_agg(DISTINCT label.user_id), ',') AS users_list
+        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from TO_DATE(pano_data.capture_date, 'YYYY-MM')))) AS capture_date
         |    FROM cluster
         |    INNER JOIN cluster_label ON cluster.cluster_id = cluster_label.cluster_id
         |    INNER JOIN label ON cluster_label.label_id = label.label_id
@@ -362,14 +362,15 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
           osm_way_street_edge.osm_way_id,
           street_edge_region.region_id,
           region.name AS region_name,
-          image_capture_dates.avg_capture_date AS avg_image_capture_date,
-          validation_counts.avg_label_date,
+          avg_image_capture_dates.avg_capture_date AS avg_image_capture_date,
+          label_aggregates.avg_label_date,
           cluster.severity,
-          validation_counts.agree_count,
-          validation_counts.disagree_count,
-          validation_counts.unsure_count,
-          validation_counts.label_count AS cluster_size,
-          image_capture_dates.users_list,
+          label_aggregates.agree_count,
+          label_aggregates.disagree_count,
+          label_aggregates.unsure_count,
+          label_aggregates.label_count AS cluster_size,
+          label_aggregates.label_ids,
+          label_aggregates.users_list,
           ST_Y(cluster.geom) AS lat,
           ST_X(cluster.geom) AS lng,
           cluster_tag_counts.tag_counts
@@ -379,8 +380,8 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
     INNER JOIN region ON street_edge_region.region_id = region.region_id
     INNER JOIN osm_way_street_edge ON cluster.street_edge_id = osm_way_street_edge.street_edge_id
-    INNER JOIN (${validationCounts}) validation_counts ON cluster.cluster_id = validation_counts.cluster_id
-    INNER JOIN (${imageCaptureDatesAndUserIds}) image_capture_dates ON cluster.cluster_id = image_capture_dates.cluster_id
+    INNER JOIN (${labelAggregates}) label_aggregates ON cluster.cluster_id = label_aggregates.cluster_id
+    INNER JOIN (${avgImageCaptureDates}) avg_image_capture_dates ON cluster.cluster_id = avg_image_capture_dates.cluster_id
     INNER JOIN (${tagCounts}) cluster_tag_counts ON cluster.cluster_id = cluster_tag_counts.cluster_id
     WHERE ${whereClause}
     ORDER BY cluster.cluster_id
@@ -425,6 +426,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
             base_query.disagree_count,
             base_query.unsure_count,
             base_query.cluster_size,
+            base_query.label_ids,
             base_query.users_list,
             base_query.lat,
             base_query.lng,
