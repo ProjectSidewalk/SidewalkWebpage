@@ -2,15 +2,18 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
-import models.api.{ApiError, LabelClusterFiltersForApi, LabelClusterForApi}
+import models.api.{ApiError, LabelClusterFiltersForApi, LabelClusterForApi, RawLabelInClusterDataForApi}
 import models.utils.LatLngBBox
+import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko.util.ByteString
 import play.api.i18n.Lang.logger
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
 import play.silhouette.api.Silhouette
 import service.{ApiService, ConfigService}
 
+import java.nio.file.Files
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -36,7 +39,7 @@ class LabelClustersApiController @Inject() (
     apiService: ApiService,
     configService: ConfigService,
     shapefileCreator: ShapefilesCreatorHelper
-)(implicit ec: ExecutionContext)
+)(implicit ec: ExecutionContext, mat: Materializer)
     extends BaseApiController(cc) {
 
   /**
@@ -170,8 +173,56 @@ class LabelClustersApiController @Inject() (
 
             // Output data in the appropriate file format.
             filetype match {
+              case Some("csv") if filters.includeRawLabels =>
+                // When raw labels are included, create two CSVs (clusters + labels) zipped together.
+                val clusterCsvPath = Files.createTempFile(baseFileName + "_clusters", ".csv")
+                val labelCsvPath   = Files.createTempFile(baseFileName + "_labels", ".csv")
+                val clusterWriter  = Files.newBufferedWriter(clusterCsvPath)
+                val labelWriter    = Files.newBufferedWriter(labelCsvPath)
+
+                clusterWriter.write(LabelClusterForApi.csvHeader)
+                labelWriter.write(RawLabelInClusterDataForApi.csvHeader)
+
+                dbDataStream
+                  .grouped(DEFAULT_BATCH_SIZE)
+                  .runForeach { batch =>
+                    batch.foreach { cluster =>
+                      clusterWriter.write(cluster.toCsvRow)
+                      clusterWriter.write("\n")
+                      cluster.labels.foreach { labelsList =>
+                        labelsList.foreach { label =>
+                          labelWriter.write(RawLabelInClusterDataForApi.toCsvRow(cluster.labelClusterId, label))
+                          labelWriter.write("\n")
+                        }
+                      }
+                    }
+                  }
+                  .flatMap { _ =>
+                    clusterWriter.close()
+                    labelWriter.close()
+                    zipAndStreamCsvFiles(
+                      Seq(
+                        (clusterCsvPath, baseFileName + "_clusters.csv"),
+                        (labelCsvPath, baseFileName + "_labels.csv")
+                      ),
+                      baseFileName
+                    )
+                  }
               case Some("csv") =>
                 outputCSV(dbDataStream, LabelClusterForApi.csvHeader, inline, baseFileName + ".csv")
+              case Some("shapefile") if filters.includeRawLabels =>
+                // When raw labels are included, create both clusters and labels shapefiles in the ZIP.
+                shapefileCreator
+                  .createLabelClusterShapefileWithLabels(dbDataStream, baseFileName, DEFAULT_BATCH_SIZE)
+                  .map {
+                    case Some(p) =>
+                      val zipSrc: Source[ByteString, Future[Boolean]] = shapefileCreator.zipShapefile(p, baseFileName)
+                      Ok.chunked(zipSrc)
+                        .as("application/zip")
+                        .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
+                    case None =>
+                      InternalServerError("Failed to create shapefile")
+                  }
               case Some("shapefile") =>
                 outputShapefile(
                   dbDataStream,

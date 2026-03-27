@@ -1,6 +1,6 @@
 package controllers.helper
 
-import models.api.{LabelClusterForApi, LabelDataForApi, StreetDataForApi}
+import models.api.{LabelClusterForApi, LabelDataForApi, RawLabelInClusterDataForApi, StreetDataForApi}
 import models.computation.{RegionScore, StreetScore}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
@@ -32,6 +32,33 @@ import scala.jdk.CollectionConverters.MapHasAsJava
  */
 @Singleton
 class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: Materializer) {
+
+  /**
+   * Writes a batch of features to a feature store inside a transaction.
+   *
+   * @param featureStore The feature store to write to.
+   * @param features The list of features to write.
+   * @param rethrow If true, rethrows exceptions after rollback. If false, logs and swallows them.
+   */
+  private def writeFeatureBatch(
+      featureStore: SimpleFeatureStore,
+      features: java.util.ArrayList[SimpleFeature],
+      rethrow: Boolean = false
+  ): Unit = {
+    val transaction = new DefaultTransaction("create")
+    try {
+      featureStore.setTransaction(transaction)
+      featureStore.addFeatures(DataUtilities.collection(features))
+      transaction.commit()
+    } catch {
+      case e: Exception =>
+        transaction.rollback()
+        if (rethrow) throw e
+        else logger.error(s"Error writing features: ${e.getMessage}", e)
+    } finally {
+      transaction.close()
+    }
+  }
 
   /**
    * Creates a geopackage from the given source, saving it as outputFile.
@@ -82,19 +109,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
             features.add(feature)
           }
 
-          // Add this batch of features to the GeoPackage in a transaction.
-          val transaction = new DefaultTransaction("create")
-          try {
-            featureStore.setTransaction(transaction)
-            featureStore.addFeatures(DataUtilities.collection(features))
-            transaction.commit()
-          } catch {
-            case e: Exception =>
-              transaction.rollback()
-              logger.error(s"Error creating GeoPackage: ${e.getMessage}", e)
-          } finally {
-            transaction.close()
-          }
+          writeFeatureBatch(featureStore, features)
         }
         .map { _ =>
           // Return the file path for the GeoPackage.
@@ -154,28 +169,17 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       source
         .grouped(batchSize)
         .runForeach { batch =>
-          val transaction = new DefaultTransaction("create")
-          try {
-            featureStore.setTransaction(transaction)
-            features.clear()
+          features.clear()
 
-            // Create a feature from each data point in this batch and add it to the ArrayList.
-            batch.foreach { x =>
-              featureBuilder.reset()
-              val feature: SimpleFeature = buildFeature(x, featureBuilder)
-              features.add(feature)
-            }
-
-            // Add this batch of features to the shapefile in a transaction.
-            featureStore.addFeatures(DataUtilities.collection(features))
-            transaction.commit()
-          } catch {
-            case e: Exception =>
-              transaction.rollback()
-              throw e
-          } finally {
-            transaction.close()
+          // Create a feature from each data point in this batch and add it to the ArrayList.
+          batch.foreach { x =>
+            featureBuilder.reset()
+            val feature: SimpleFeature = buildFeature(x, featureBuilder)
+            features.add(feature)
           }
+
+          // Add this batch of features to the shapefile in a transaction.
+          writeFeatureBatch(featureStore, features, rethrow = true)
         }
         .map { _ =>
           // Output the file path for the shapefile.
@@ -338,6 +342,54 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
   }
 
+  // Shared schema used by both createLabelClusterShapefile and createLabelClusterShapefileWithLabels.
+  private val clusterShapefileFeatureType: SimpleFeatureType = DataUtilities.createType(
+    "Location",
+    "the_geom:Point:srid=4326," // the geometry attribute: Point type
+    + "clusterId:Integer,"      // Cluster ID
+    + "labelType:String,"       // Label type
+    + "streetId:Integer,"       // Street edge ID
+    + "osmWayId:String,"        // OSM way ID
+    + "regionId:Integer,"       // Region ID
+    + "regionName:String,"      // Region name
+    + "avgImgDate:String,"      // Average image capture date
+    + "avgLblDate:String,"      // Average label date
+    + "severity:Integer,"       // Severity
+    + "nAgree:Integer,"         // Agree count
+    + "nDisagree:Integer,"      // Disagree count
+    + "nUnsure:Integer,"        // Unsure count
+    + "clusterSze:Integer,"     // Cluster size
+    + "labelIds:String,"        // Label IDs as comma-separated list
+    + "userIds:String,"         // User IDs
+    + "tagCounts:String"        // Tag counts as JSON
+  )
+
+  // Shared builder used by both createLabelClusterShapefile and createLabelClusterShapefileWithLabels.
+  private def buildClusterShapefileFeature(
+      cluster: LabelClusterForApi,
+      featureBuilder: SimpleFeatureBuilder,
+      geometryFactory: GeometryFactory
+  ): SimpleFeature = {
+    featureBuilder.add(geometryFactory.createPoint(new Coordinate(cluster.avgLongitude, cluster.avgLatitude)))
+    featureBuilder.add(cluster.labelClusterId)
+    featureBuilder.add(cluster.labelType)
+    featureBuilder.add(cluster.streetEdgeId)
+    featureBuilder.add(cluster.osmWayId.toString)
+    featureBuilder.add(cluster.regionId)
+    featureBuilder.add(cluster.regionName)
+    featureBuilder.add(cluster.avgImageCaptureDate.map(_.toString).orNull)
+    featureBuilder.add(cluster.avgLabelDate.map(_.toString).orNull)
+    featureBuilder.add(cluster.medianSeverity.map(Integer.valueOf).orNull)
+    featureBuilder.add(cluster.agreeCount)
+    featureBuilder.add(cluster.disagreeCount)
+    featureBuilder.add(cluster.unsureCount)
+    featureBuilder.add(cluster.clusterSize)
+    featureBuilder.add(Json.stringify(Json.toJson(cluster.labelIds)))
+    featureBuilder.add(Json.stringify(Json.toJson(cluster.userIds)))
+    featureBuilder.add(Json.stringify(Json.toJson(cluster.tagCounts)))
+    featureBuilder.buildFeature(null)
+  }
+
   /**
    * Creates a shapefile from LabelClusterForApi objects.
    *
@@ -351,54 +403,283 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = {
-    // Define the feature type schema for LabelClusterForApi
-    val featureType: SimpleFeatureType = DataUtilities.createType(
+    val geometryFactory = JTSFactoryFinder.getGeometryFactory
+    createGeneralShapefile(
+      source,
+      outputFile,
+      batchSize,
+      clusterShapefileFeatureType,
+      (cluster, fb) => buildClusterShapefileFeature(cluster, fb, geometryFactory)
+    )
+  }
+
+  /**
+   * Creates shapefile(s) from LabelClusterForApi objects. When raw labels are included in the cluster data, a second
+   * shapefile for the raw labels is also created.
+   *
+   * @param source Stream of LabelClusterForApi objects
+   * @param outputFile Base filename for the output file (without extension)
+   * @param batchSize Number of features to process in each batch
+   * @return Paths to the created shapefile(s), or None if creation failed
+   */
+  def createLabelClusterShapefileWithLabels(
+      source: Source[LabelClusterForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Seq[Path]]] = {
+    val labelFeatureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
       "the_geom:Point:srid=4326," // the geometry attribute: Point type
-      + "clusterId:Integer,"      // Cluster ID
-      + "labelType:String,"       // Label type
-      + "streetId:Integer,"       // Street edge ID
-      + "osmWayId:String,"        // OSM way ID
-      + "regionId:Integer,"       // Region ID
-      + "regionName:String,"      // Region name
-      + "avgImgDate:String,"      // Average image capture date
-      + "avgLblDate:String,"      // Average label date
+      + "labelId:Integer,"        // Label ID
+      + "clusterId:Integer,"      // Parent cluster ID
+      + "userId:String,"          // User ID
+      + "panoId:String,"          // Panorama ID
       + "severity:Integer,"       // Severity
-      + "nAgree:Integer,"         // Agree count
-      + "nDisagree:Integer,"      // Disagree count
-      + "nUnsure:Integer,"        // Unsure count
-      + "clusterSze:Integer,"     // Cluster size
-      + "userIds:String,"         // User IDs
-      + "tagCounts:String"        // Tag counts as JSON
+      + "timeCreate:String,"      // Creation timestamp
+      + "correct:String,"         // Validation correctness
+      + "imageDate:String"        // Image capture date
     )
 
-    val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
+    val clusterShapefilePath: Path = new File(outputFile + ".shp").toPath
+    val labelShapefilePath: Path   = new File(outputFile + "_labels.shp").toPath
+    val geometryFactory            = JTSFactoryFinder.getGeometryFactory
 
-    def buildFeature(cluster: LabelClusterForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
-      // Add the geometry (Point)
-      featureBuilder.add(geometryFactory.createPoint(new Coordinate(cluster.avgLongitude, cluster.avgLatitude)))
+    try {
+      // Set up clusters shapefile.
+      val clusterDataStoreFactory = new ShapefileDataStoreFactory()
+      val clusterDataStore        = clusterDataStoreFactory.createNewDataStore(
+        Map("url" -> clusterShapefilePath.toUri.toURL, "create spatial index" -> java.lang.Boolean.FALSE).asJava
+      )
+      clusterDataStore.createSchema(clusterShapefileFeatureType)
+      val clusterStore =
+        clusterDataStore.getFeatureSource(clusterDataStore.getTypeNames()(0)).asInstanceOf[SimpleFeatureStore]
+      val clusterBuilder  = new SimpleFeatureBuilder(clusterShapefileFeatureType)
+      val clusterFeatures = new java.util.ArrayList[SimpleFeature](batchSize)
 
-      // Add all attributes
-      featureBuilder.add(cluster.labelClusterId)
-      featureBuilder.add(cluster.labelType)
-      featureBuilder.add(cluster.streetEdgeId)
-      featureBuilder.add(cluster.osmWayId.toString)
-      featureBuilder.add(cluster.regionId)
-      featureBuilder.add(cluster.regionName)
-      featureBuilder.add(cluster.avgImageCaptureDate.map(_.toString).orNull)
-      featureBuilder.add(cluster.avgLabelDate.map(_.toString).orNull)
-      featureBuilder.add(cluster.medianSeverity.map(Integer.valueOf).orNull)
-      featureBuilder.add(cluster.agreeCount)
-      featureBuilder.add(cluster.disagreeCount)
-      featureBuilder.add(cluster.unsureCount)
-      featureBuilder.add(cluster.clusterSize)
-      featureBuilder.add(Json.stringify(Json.toJson(cluster.userIds)))
-      featureBuilder.add(Json.stringify(Json.toJson(cluster.tagCounts)))
+      // Collect raw labels to write a second shapefile after processing clusters.
+      val allRawLabels = new java.util.ArrayList[(Int, RawLabelInClusterDataForApi)]()
+      var hasRawLabels = false
 
-      featureBuilder.buildFeature(null)
+      source
+        .grouped(batchSize)
+        .runForeach { batch =>
+          clusterFeatures.clear()
+          batch.foreach { cluster =>
+            clusterBuilder.reset()
+            clusterFeatures.add(buildClusterShapefileFeature(cluster, clusterBuilder, geometryFactory))
+
+            // Collect raw labels.
+            cluster.labels.foreach { labelsList =>
+              hasRawLabels = true
+              labelsList.foreach(label => allRawLabels.add((cluster.labelClusterId, label)))
+            }
+          }
+          writeFeatureBatch(clusterStore, clusterFeatures, rethrow = true)
+        }
+        .map { _ =>
+          clusterDataStore.dispose()
+
+          // Write the raw labels shapefile if any labels were collected.
+          if (hasRawLabels && !allRawLabels.isEmpty) {
+            val labelDataStoreFactory = new ShapefileDataStoreFactory()
+            val labelDataStore        = labelDataStoreFactory.createNewDataStore(
+              Map("url" -> labelShapefilePath.toUri.toURL, "create spatial index" -> java.lang.Boolean.FALSE).asJava
+            )
+            labelDataStore.createSchema(labelFeatureType)
+            val labelStore =
+              labelDataStore.getFeatureSource(labelDataStore.getTypeNames()(0)).asInstanceOf[SimpleFeatureStore]
+            val labelBuilder  = new SimpleFeatureBuilder(labelFeatureType)
+            val labelFeatures = new java.util.ArrayList[SimpleFeature](batchSize)
+
+            val labelIter = allRawLabels.iterator()
+            while (labelIter.hasNext) {
+              labelFeatures.clear()
+              var count = 0
+              while (labelIter.hasNext && count < batchSize) {
+                val (clusterId, label) = labelIter.next()
+                labelBuilder.reset()
+                labelBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
+                labelBuilder.add(label.labelId)
+                labelBuilder.add(clusterId)
+                labelBuilder.add(label.userId)
+                labelBuilder.add(label.panoId)
+                labelBuilder.add(label.severity.map(Integer.valueOf).orNull)
+                labelBuilder.add(label.timeCreated.toString)
+                labelBuilder.add(label.correct.map(_.toString).orNull)
+                labelBuilder.add(label.imageCaptureDate.orNull)
+                labelFeatures.add(labelBuilder.buildFeature(null))
+                count += 1
+              }
+              writeFeatureBatch(labelStore, labelFeatures, rethrow = true)
+            }
+            labelDataStore.dispose()
+            Some(Seq(clusterShapefilePath, labelShapefilePath))
+          } else {
+            Some(Seq(clusterShapefilePath))
+          }
+        }
+        .recover { case e: Exception =>
+          clusterDataStore.dispose()
+          logger.error(s"Error creating shapefile: ${e.getMessage}", e)
+          None
+        }
+    } catch {
+      case e: Exception =>
+        logger.error(s"Error setting up shapefile: ${e.getMessage}", e)
+        Future.successful(None)
     }
+  }
 
-    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  /**
+   * Creates a GeoPackage file from LabelClusterForApi objects.
+   *
+   * @param source Stream of LabelClusterForApi objects
+   * @param outputFile Base filename for the output file (without extension)
+   * @param batchSize Number of features to process in each batch
+   * @return Path to the created GeoPackage file, or None if creation failed
+   */
+  def createLabelClusterGeopackage(
+      source: Source[LabelClusterForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val clusterFeatureType: SimpleFeatureType = DataUtilities.createType(
+      "label_clusters",
+      "the_geom:Point:srid=4326,"  // the geometry attribute: Point type
+      + "cluster_id:Integer,"      // Cluster ID
+      + "label_type:String,"       // Label type
+      + "street_edge_id:Integer,"  // Street edge ID
+      + "osm_way_id:String,"       // OSM way ID (as String to avoid Long issues)
+      + "region_id:Integer,"       // Region ID
+      + "region_name:String,"      // Region name
+      + "avg_image_date:String,"   // Average image capture date
+      + "avg_label_date:String,"   // Average label date
+      + "median_severity:Integer," // Median severity
+      + "agree_count:Integer,"     // Agree count
+      + "disagree_count:Integer,"  // Disagree count
+      + "unsure_count:Integer,"    // Unsure count
+      + "cluster_size:Integer,"    // Cluster size
+      + "label_ids:String,"        // Label IDs as comma-separated list
+      + "user_ids:String,"         // User IDs as JSON array string
+      + "tag_counts:String"        // Tag counts as JSON object string
+    )
+
+    val labelFeatureType: SimpleFeatureType = DataUtilities.createType(
+      "raw_labels",
+      "the_geom:Point:srid=4326," // the geometry attribute: Point type
+      + "label_id:Integer,"       // Label ID
+      + "cluster_id:Integer,"     // Parent cluster ID
+      + "user_id:String,"         // User ID
+      + "pano_id:String,"         // Panorama ID
+      + "severity:Integer,"       // Severity
+      + "time_created:String,"    // Creation timestamp
+      + "correct:String,"         // Validation correctness
+      + "image_date:String"       // Image capture date
+    )
+
+    val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
+
+    try {
+      val params = Map(
+        GeoPkgDataStoreFactory.DBTYPE.key   -> "geopkg",
+        GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
+      ).asJava
+      val dataStore: DataStore = DataStoreFinder.getDataStore(params)
+
+      // Create both schemas.
+      dataStore.createSchema(clusterFeatureType)
+
+      val clusterTypeName = dataStore.getTypeNames()(0)
+      val clusterStore    = dataStore.getFeatureSource(clusterTypeName).asInstanceOf[SimpleFeatureStore]
+      val clusterBuilder  = new SimpleFeatureBuilder(clusterFeatureType)
+      val clusterFeatures = new java.util.ArrayList[SimpleFeature](batchSize)
+
+      // Collect raw labels to write as a second layer after the clusters.
+      val allRawLabels    = new java.util.ArrayList[(Int, RawLabelInClusterDataForApi)]()
+      val geometryFactory = JTSFactoryFinder.getGeometryFactory
+      var hasRawLabels    = false
+
+      source
+        .grouped(batchSize)
+        .runForeach { batch =>
+          clusterFeatures.clear()
+          batch.foreach { cluster =>
+            clusterBuilder.reset()
+            clusterBuilder.add(geometryFactory.createPoint(new Coordinate(cluster.avgLongitude, cluster.avgLatitude)))
+            clusterBuilder.add(cluster.labelClusterId)
+            clusterBuilder.add(cluster.labelType)
+            clusterBuilder.add(cluster.streetEdgeId)
+            clusterBuilder.add(cluster.osmWayId.toString)
+            clusterBuilder.add(cluster.regionId)
+            clusterBuilder.add(cluster.regionName)
+            clusterBuilder.add(cluster.avgImageCaptureDate.orNull)
+            clusterBuilder.add(cluster.avgLabelDate.orNull)
+            clusterBuilder.add(cluster.medianSeverity.map(Integer.valueOf).orNull)
+            clusterBuilder.add(cluster.agreeCount)
+            clusterBuilder.add(cluster.disagreeCount)
+            clusterBuilder.add(cluster.unsureCount)
+            clusterBuilder.add(cluster.clusterSize)
+            clusterBuilder.add(Json.stringify(Json.toJson(cluster.labelIds)))
+            clusterBuilder.add(Json.stringify(Json.toJson(cluster.userIds)))
+            clusterBuilder.add(Json.stringify(Json.toJson(cluster.tagCounts)))
+            clusterFeatures.add(clusterBuilder.buildFeature(null))
+
+            // Collect raw labels for the second layer.
+            cluster.labels.foreach { labelsList =>
+              hasRawLabels = true
+              labelsList.foreach(label => allRawLabels.add((cluster.labelClusterId, label)))
+            }
+          }
+
+          writeFeatureBatch(clusterStore, clusterFeatures)
+        }
+        .flatMap { _ =>
+          // Write the raw labels layer if the raw labels were included.
+          if (hasRawLabels && !allRawLabels.isEmpty) {
+            dataStore.createSchema(labelFeatureType)
+            val labelTypeName = "raw_labels"
+            val labelStore    = dataStore.getFeatureSource(labelTypeName).asInstanceOf[SimpleFeatureStore]
+            val labelBuilder  = new SimpleFeatureBuilder(labelFeatureType)
+            val labelFeatures = new java.util.ArrayList[SimpleFeature](batchSize)
+
+            // Write raw labels in batches.
+            val labelIter = allRawLabels.iterator()
+            while (labelIter.hasNext) {
+              labelFeatures.clear()
+              var count = 0
+              while (labelIter.hasNext && count < batchSize) {
+                val (clusterId, label) = labelIter.next()
+                labelBuilder.reset()
+                labelBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
+                labelBuilder.add(label.labelId)
+                labelBuilder.add(clusterId)
+                labelBuilder.add(label.userId)
+                labelBuilder.add(label.panoId)
+                labelBuilder.add(label.severity.map(Integer.valueOf).orNull)
+                labelBuilder.add(label.timeCreated.toString)
+                labelBuilder.add(label.correct.map(_.toString).orNull)
+                labelBuilder.add(label.imageCaptureDate.orNull)
+                labelFeatures.add(labelBuilder.buildFeature(null))
+                count += 1
+              }
+
+              writeFeatureBatch(labelStore, labelFeatures)
+            }
+          }
+
+          dataStore.dispose()
+          Future.successful(Some(geopackagePath))
+        }
+        .recover { case e: Exception =>
+          dataStore.dispose()
+          logger.error(s"Error creating GeoPackage: ${e.getMessage}", e)
+          None
+        }
+    } catch {
+      case e: Exception =>
+        logger.error(s"Error setting up GeoPackage: ${e.getMessage}", e)
+        Future.successful(None)
+    }
   }
 
   /**
@@ -705,76 +986,6 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(s"[$userIdsStr]")
       featureBuilder.add(street.firstLabelDate.map(_.toString).orNull)
       featureBuilder.add(street.lastLabelDate.map(_.toString).orNull)
-
-      featureBuilder.buildFeature(null)
-    }
-
-    createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
-  }
-
-  /**
-   * Creates a GeoPackage file from LabelClusterForApi objects.
-   *
-   * @param source Stream of LabelClusterForApi objects
-   * @param outputFile Base filename for the output file (without extension)
-   * @param batchSize Number of features to process in each batch
-   * @return Path to the created GeoPackage file, or None if creation failed
-   */
-  def createLabelClusterGeopackage(
-      source: Source[LabelClusterForApi, _],
-      outputFile: String,
-      batchSize: Int
-  ): Future[Option[Path]] = {
-    // Define the feature type schema.
-    val featureType: SimpleFeatureType = DataUtilities.createType(
-      "label_clusters",
-      "the_geom:Point:srid=4326,"  // the geometry attribute: Point type
-      + "cluster_id:Integer,"      // Cluster ID
-      + "label_type:String,"       // Label type
-      + "street_edge_id:Integer,"  // Street edge ID
-      + "osm_way_id:String,"       // OSM way ID (as String to avoid Long issues)
-      + "region_id:Integer,"       // Region ID
-      + "region_name:String,"      // Region name
-      + "avg_image_date:String,"   // Average image capture date
-      + "avg_label_date:String,"   // Average label date
-      + "median_severity:Integer," // Median severity
-      + "agree_count:Integer,"     // Agree count
-      + "disagree_count:Integer,"  // Disagree count
-      + "unsure_count:Integer,"    // Unsure count
-      + "cluster_size:Integer,"    // Cluster size
-      + "user_ids:String,"         // User IDs as JSON array string
-      + "tag_counts:String,"       // Tag counts as JSON object string
-      + "labels:String"            // Raw labels (if included) as JSON string
-    )
-
-    val geometryFactory = JTSFactoryFinder.getGeometryFactory
-    def buildFeature(cluster: LabelClusterForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
-      // Add the geometry (Point).
-      featureBuilder.add(geometryFactory.createPoint(new Coordinate(cluster.avgLongitude, cluster.avgLatitude)))
-
-      // Add all attributes.
-      featureBuilder.add(cluster.labelClusterId)
-      featureBuilder.add(cluster.labelType)
-      featureBuilder.add(cluster.streetEdgeId)
-      featureBuilder.add(cluster.osmWayId.toString) // Convert Long to String.
-      featureBuilder.add(cluster.regionId)
-      featureBuilder.add(cluster.regionName)
-      featureBuilder.add(cluster.avgImageCaptureDate.orNull)
-      featureBuilder.add(cluster.avgLabelDate.orNull)
-      featureBuilder.add(cluster.medianSeverity.map(Integer.valueOf).orNull)
-      featureBuilder.add(cluster.agreeCount)
-      featureBuilder.add(cluster.disagreeCount)
-      featureBuilder.add(cluster.unsureCount)
-      featureBuilder.add(cluster.clusterSize)
-      featureBuilder.add(Json.stringify(Json.toJson(cluster.userIds)))
-      featureBuilder.add(Json.stringify(Json.toJson(cluster.tagCounts)))
-
-      // Add raw labels if they exist, formatted as JSON string.
-      val labelsStr = cluster.labels match {
-        case Some(labelsList) => Json.stringify(Json.toJson(labelsList))
-        case None             => null
-      }
-      featureBuilder.add(labelsStr)
 
       featureBuilder.buildFeature(null)
     }
