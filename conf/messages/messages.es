@@ -87,6 +87,7 @@ country.name.switzerland = Suiza
 country.name.taiwan = Taiwán
 country.name.new-zealand = Nueva Zelanda
 country.name.canada = Canadá
+country.name.brazil = Brasil
 
 navbar.explore = Explorar
 navbar.validate = Validar

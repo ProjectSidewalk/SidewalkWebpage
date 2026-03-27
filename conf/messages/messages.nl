@@ -75,6 +75,7 @@ country.name.netherlands = Nederland
 country.name.switzerland = Zwitserland
 country.name.new-zealand = Nieuw-Zeeland
 country.name.chile = Chili
+country.name.brazil = Brazilië
 
 navbar.explore = Ontdekken
 navbar.validate = Bevestigen

@@ -73,6 +73,7 @@ city.name.niagara-falls-ny = Cataratas do Niágara
 state.name.new-jersey = Nova Jersey
 state.name.south-carolina = Carolina do Sul
 state.name.new-york = Nova York
+state.name.florida = Flórida
 
 country.name.usa = EUA
 country.name.mexico = México
@@ -82,6 +83,7 @@ country.name.new-zealand = Nova Zelândia
 country.name.ecuador = Equador
 country.name.canada = Canadá
 country.name.india = Índia
+country.name.brazil = Brasil
 
 navbar.explore = Explorar
 navbar.validate = Validar

@@ -79,6 +79,7 @@ state.name.new-york = NY
 state.name.arizona = AZ
 state.name.virginia = VA
 state.name.indiana = IN
+state.name.florida = FL
 
 navbar.explore = Explore
 navbar.validate = Validate
