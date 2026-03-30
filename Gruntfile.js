@@ -19,6 +19,7 @@ module.exports = function(grunt) {
             },
             dist_progress: {
                 src: [
+                    'public/javascripts/common/AiLabelIndicator.js',
                     'public/javascripts/Admin/src/*.js',
                     'public/javascripts/SVValidate/src/util/*.js',
                     'public/javascripts/common/PanoMarker.js',
