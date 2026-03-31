@@ -401,7 +401,6 @@
         }
     </div>
 
-    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
     @if(commonData.imagerySource == PanoSource.Infra3d) {
         <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
         <script src='@assets.path("javascripts/lib/infra3dapi-1.7.0.js")'></script>
@@ -410,6 +409,7 @@
         <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
         <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
     }
+    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
     <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
     <script src='@assets.path("javascripts/Progress/build/Progress.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-3.20.0.js")'></script>
