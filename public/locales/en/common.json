@@ -147,6 +147,8 @@
         "panorama-id": "Panorama ID",
         "street-id": "Street ID",
         "google-street-view": "Google Street View",
+        "mapillary": "Mapillary",
+        "infra3d": "infra3D",
         "region-id": "Region ID",
         "label-id": "Label ID",
         "label-date": "$t(common:labeled)",

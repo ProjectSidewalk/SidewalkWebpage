@@ -24,6 +24,10 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, userMap) 
     };
 
     async function _resetModal() {
+        let viewerTypeHeader;
+        if (viewerType === GsvViewer) viewerTypeHeader = i18next.t('common:gsv-info.google-street-view');
+        else if (viewerType === MapillaryViewer) viewerTypeHeader = i18next.t('common:gsv-info.mapillary');
+        else if (viewerType === Infra3dViewer) viewerTypeHeader = i18next.t('common:gsv-info.infra3d');
         let modalText =
             '<div class="modal fade" id="label-modal" tabindex="-1" role="dialog" aria-labelledby="modal-label">' +
                 '<div class="modal-dialog" role="document" style="width: 570px">' +
@@ -97,8 +101,8 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, userMap) 
                                         '<td id="pano-id" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
-                                        `<th>${i18next.t('common:gsv-info.google-street-view')}</th>` +
-                                        '<td id="view-in-gsv" colspan="3"></td>' +
+                                        `<th>${viewerTypeHeader}</th>` +
+                                        '<td id="use-external-viewer" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
                                         `<th>${i18next.t('common:gsv-info.latitude')}</th>` +
@@ -274,7 +278,7 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, userMap) 
         self.modalTask = self.modal.find("#task");
         self.modalPrevValidations = self.modal.find("#prev-validations");
         self.modalPanoId = self.modal.find('#pano-id');
-        self.modalPanoLink = self.modal.find('#view-in-gsv');
+        self.modalPanoLink = self.modal.find('#use-external-viewer');
         self.modalLat = self.modal.find('#lat');
         self.modalLng = self.modal.find('#lng');
         self.modalLabelId = self.modal.find("#label-id");
@@ -590,6 +594,7 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, userMap) 
 
         // Pass a callback function that fills in the pano lat/lng.
         // TODO we're going to replace this in a future redesign, including in the same place as on all other UIs.
+        self.modalPanoLink.parent().hide();
         const panoCallback = function () {
             const lat = self.panoManager.panoViewer.getPosition().lat;
             const lng = self.panoManager.panoViewer.getPosition().lng;
@@ -600,12 +605,20 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, userMap) 
             if (self.panoManager.panoViewer.getViewerType() === 'gsv') {
                 const href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelMetadata.pano_id}&heading=${labelPov.heading}&pitch=${labelPov.pitch}`;
                 self.modalPanoLink.html(`<a target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
-                self.modalPanoLink.children(":first").attr('href', href);
-            } else {
-                self.modalPanoLink.parent().hide();
+                self.modalPanoLink.children(':first').attr('href', href);
+                self.modalPanoLink.parent().show();
+            } else if (self.panoManager.panoViewer.getViewerType() === 'mapillary') {
+                self.modalPanoLink.parent().show();
+                // TODO would like to include zoom parameter too, but we would get that info async from the viewer.
+                const center = self.panoManager.panoViewer.currCenter;
+                const href = `https://www.mapillary.com/app/?pKey=${labelMetadata.pano_id}&focus=photo&x=${center[0]}&y=${center[1]}`;
+                self.modalPanoLink.html(`<a target="_blank">${i18next.t(`common:gsv-info.view-in-mapillary`)}</a>`);
+                self.modalPanoLink.children(':first').attr('href', href);
             }
         };
-        self.panoManager.setPano(labelMetadata.pano_id, labelPov).then(panoCallback);
+        self.panoManager.setPano(labelMetadata.pano_id, labelPov, labelMetadata.crop_url).then((panoLoaded) => {
+            if (panoLoaded) panoCallback();
+        });
 
         self.validationCounts['Agree'] = labelMetadata['num_agree'];
         self.validationCounts['Disagree'] = labelMetadata['num_disagree'];

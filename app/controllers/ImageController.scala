@@ -15,13 +15,13 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ImageController @Inject() (cc: CustomControllerComponents, configService: service.ConfigService)(implicit
+class ImageController @Inject() (cc: CustomControllerComponents, panoDataService: service.PanoDataService)(implicit
     ec: ExecutionContext
 ) extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 
   // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
-  private val CROPS_DIR_NAME = configService.getCropDirectory
+  private val CROPS_DIR_NAME = panoDataService.getCropDirectory
 
   // 2x the actual size of the pano window as retina screen can give us 2x the pixel density.
   val CROP_WIDTH  = 1440

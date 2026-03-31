@@ -66,7 +66,28 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
             'padding-bottom': '15px'
         })[0];
 
+        self.fallbackContainer = $('<div id="pano-fallback-container">').css({
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            display: 'none'
+        })[0];
+        self.fallbackImage = $('<img id="pano-fallback-image">').css({
+            width: '100%',
+            height: '100%',
+            'object-fit': 'cover'
+        })[0];
+        self.fallbackMarker = $('<img id="pano-fallback-marker">').css({
+            position: 'absolute',
+            width: '20px',
+            height: '20px',
+            transform: 'translate(-50%, -50%)',
+            display: 'none'
+        })[0];
+        $(self.fallbackContainer).append(self.fallbackImage, self.fallbackMarker);
+
         self.svHolder.append($(self.panoCanvas));
+        self.svHolder.append($(self.fallbackContainer));
         self.svHolder.append($(self.panoNotAvailable));
         self.svHolder.append($(self.panoNotAvailableDetails));
         self.svHolder.append($(self.panoNotAvailableAuditSuggestion));
@@ -107,11 +128,18 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
      * Sets the panorama ID and POV from label metadata.
      * @param panoId
      * @param {{heading: number, pitch: number, zoom: number}} pov
+     * @param {string|null} cropUrl URL for the screenshot fallback image, if available.
      */
-    async function setPano(panoId, pov) {
+    async function setPano(panoId, pov, cropUrl) {
+        self.cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
         self.svHolder.css('visibility', 'hidden'); // Hide until we've finished rendering.
-        return self.panoViewer.setPano(panoId).then(() => _panoSuccessCallback(pov), _panoFailureCallback).then(() => {
+        let panoLoaded = false;
+        return self.panoViewer.setPano(panoId).then(
+            () => { panoLoaded = true; return _panoSuccessCallback(pov); },
+            _panoFailureCallback
+        ).then(() => {
             self.svHolder.css('visibility', 'visible');
+            return panoLoaded;
         });
     }
 
@@ -122,8 +150,9 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
      * @private
      */
     async function _panoSuccessCallback(targetPov) {
-        // Show the pano, hide the error messages.
+        // Show the pano, hide the fallback image and error messages.
         $(self.panoCanvas).css('display', 'block');
+        $(self.fallbackContainer).css('display', 'none');
         $(self.panoNotAvailable).css('display', 'none');
         $(self.panoNotAvailableDetails).css('display', 'none');
         $(self.panoNotAvailableAuditSuggestion).css('display', 'none');
@@ -149,14 +178,37 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
      * @private
      */
     async function _panoFailureCallback(error) {
-        $(self.svHolder).css('height', '');
-        $(self.panoNotAvailable).text(i18next.t("common:errors.title"));
         $(self.panoCanvas).css('display', 'none');
-        $(self.panoNotAvailable).css('display', 'block');
-        $(self.panoNotAvailableDetails).css('display', 'block');
-        if (self.label) $("#explore-street").attr('href', '/explore?streetEdgeId=' + self.label['streetEdgeId']);
-        $(self.panoNotAvailableAuditSuggestion).css('display', 'block');
-        $(self.buttonHolder).css('display', 'none');
+        if (self.cropUrl) {
+            // Show the screenshot as a fallback instead of the error message.
+            $(self.fallbackImage).attr('src', self.cropUrl);
+            $(self.fallbackContainer).css('display', 'block');
+            // Position the label icon on the fallback image.
+            if (self.label && icons[self.label.label_type]) {
+                const leftPercent = 100 * self.label.canvasX / self.label.originalCanvasWidth;
+                const topPercent = 100 * self.label.canvasY / self.label.originalCanvasHeight;
+                $(self.fallbackMarker).attr('src', icons[self.label.label_type]).css({
+                    left: `${leftPercent}%`,
+                    top: `${topPercent}%`,
+                    display: 'block'
+                });
+            } else {
+                $(self.fallbackMarker).css('display', 'none');
+            }
+            $(self.panoNotAvailable).css('display', 'none');
+            $(self.panoNotAvailableDetails).css('display', 'none');
+            $(self.panoNotAvailableAuditSuggestion).css('display', 'none');
+            $(self.buttonHolder).css('display', 'block');
+        } else {
+            $(self.svHolder).css('height', '');
+            $(self.fallbackContainer).css('display', 'none');
+            $(self.panoNotAvailable).text(i18next.t("common:errors.title"));
+            $(self.panoNotAvailable).css('display', 'block');
+            $(self.panoNotAvailableDetails).css('display', 'block');
+            if (self.label) $("#explore-street").attr('href', '/explore?streetEdgeId=' + self.label['streetEdgeId']);
+            $(self.panoNotAvailableAuditSuggestion).css('display', 'block');
+            $(self.buttonHolder).css('display', 'none');
+        }
         return Promise.resolve();
     }
 

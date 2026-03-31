@@ -14,7 +14,6 @@ import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
 
-import java.io.File
 import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.duration.Duration
@@ -128,7 +127,6 @@ trait ConfigService {
   def getCityName(lang: Lang): String
   def getAiTagSuggestionsEnabled: Boolean
   def getPanoSource: PanoSource
-  def getCropDirectory: String
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Double): Future[Int]
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T]
   def getCommonPageData(lang: Lang): Future[CommonPageData]
@@ -583,9 +581,6 @@ class ConfigServiceImpl @Inject() (
   def getAiTagSuggestionsEnabled: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$getCityId")
 
   def getPanoSource: PanoSource = PanoSource.withName(config.get[String](s"city-params.pano-viewer-type.$getCityId"))
-
-  def getCropDirectory: String =
-    config.get[String]("cropped.image.directory") + File.separator + config.get[String]("city-id")
 
   // Uses Play's cache API to cache the result of a DBIO.
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T] = {

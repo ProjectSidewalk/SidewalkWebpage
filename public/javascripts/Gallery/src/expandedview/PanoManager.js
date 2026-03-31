@@ -112,6 +112,7 @@ class PanoManager {
 
         // Show the pano, hide the error messages.
         $(this.panoCanvas).css('display', 'block');
+        this.svHolder.find('#gallery-validation-button-holder').css('display', 'flex');
         $(this.panoNotAvailable).css('display', 'none');
         $(this.panoNotAvailableDetails).css('display', 'none');
         return Promise.resolve(panoData);
@@ -128,6 +129,7 @@ class PanoManager {
         $(this.svHolder).css('height', '');
         $(this.panoNotAvailable).text(i18next.t('common:errors.title'));
         $(this.panoCanvas).css('display', 'none');
+        this.svHolder.find('#gallery-validation-button-holder').css('display', 'none');
         $(this.panoNotAvailable).css('display', 'block');
         $(this.panoNotAvailableDetails).css('display', 'block');
         return Promise.resolve();

@@ -26,7 +26,7 @@ class MapillaryViewer extends PanoViewer {
         let disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
         let defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
         let panoOpts = {
-            dataProvider: new MapillaryChunkedDataProvider({ accessToken: panoOptions.accessToken }),
+            dataProvider: createMapillaryChunkedDataProvider({ accessToken: panoOptions.accessToken }),
             container: canvasElem.id,
             component: {
                 bearing: !disableDefaultUi, // Shows heading viewer orb thing

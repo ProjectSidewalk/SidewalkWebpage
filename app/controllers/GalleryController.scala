@@ -29,7 +29,6 @@ class GalleryController @Inject() (
     configService: ConfigService,
     labelService: LabelService,
     panoDataService: PanoDataService,
-    imageController: ImageController,
     galleryTaskInteractionTable: GalleryTaskInteractionTable,
     galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable,
     regionService: RegionService
