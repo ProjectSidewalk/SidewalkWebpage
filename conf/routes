@@ -161,6 +161,7 @@ POST    /saveRoute                                      controllers.RouteBuilder
 
 # Images
 POST    /saveImage                                      controllers.ImageController.saveImage
+GET     /cropImage/:labelType/:labelId                  controllers.ImageController.serveCropImage(labelType: String, labelId: Int)
 
 # AI
 POST    /ai/analyzeScene                                controllers.AiController.analyzeScene()

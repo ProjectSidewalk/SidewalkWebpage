@@ -7,7 +7,6 @@ import models.label.LabelTable._
 import models.label.LabelTypeEnum.labelTypeToId
 import models.label.{Tag, _}
 import models.mission.{Mission, MissionTable}
-import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
 import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.UiSource
@@ -97,6 +96,7 @@ trait LabelService {
 @Singleton
 class LabelServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
+    config: play.api.Configuration,
     configService: ConfigService,
     panoDataService: PanoDataService,
     labelTable: LabelTable,
@@ -109,6 +109,16 @@ class LabelServiceImpl @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
+
+  private val cropsDirName: String =
+    config.get[String]("cropped.image.directory") + java.io.File.separator + config.get[String]("city-id")
+
+  private def cropExists(labelId: Int, labelType: String): Boolean = {
+    val file = new java.io.File(
+      cropsDirName + java.io.File.separator + labelType + java.io.File.separator + "crop_" + labelId + ".png"
+    )
+    file.exists()
+  }
 
   def countLabels: Future[Int] = db.run(labelTable.countLabels)
 
@@ -202,13 +212,14 @@ class LabelServiceImpl @Inject() (
   ): Future[Seq[LabelValidationMetadata]] = {
     val viewer: PanoSource = configService.getPanoSource
 
-    // If a label type is specified, get labels for that type. Otherwise, get labels for all types.
+    // If a label type is specified, get labels for that type. Otherwise, get labels for all types. Include useCrops so
+    // that labels with expired or non-Google imagery are still included if a local crop exists.
     if (labelType.isDefined) {
       findValidLabelsForType(
-        viewer,
         labelTable.getGalleryLabelsQuery(viewer, labelType.get, loadedLabelIds, valOptions, regionIds, severity, tags,
           aiValOptions, userId),
         randomize = true,
+        useCrops = true,
         n
       )
     } else {
@@ -217,10 +228,10 @@ class LabelServiceImpl @Inject() (
       Future
         .sequence(LabelTypeEnum.primaryLabelTypes.map { labelType =>
           findValidLabelsForType(
-            viewer,
             labelTable.getGalleryLabelsQuery(viewer, labelType, loadedLabelIds, valOptions, regionIds, severity, tags,
               aiValOptions, userId),
             randomize = true,
+            useCrops = true,
             nPerType
           )
         })
@@ -254,28 +265,28 @@ class LabelServiceImpl @Inject() (
   ): Future[Seq[LabelValidationMetadata]] = {
     // TODO can we make this and the Gallery queries transactions to prevent label dupes?
     findValidLabelsForType(
-      viewer,
       labelTable.retrieveLabelListForValidationQuery(userId, viewer, labelTypeId,
         configService.getAiTagSuggestionsEnabled, userIds, regionIds, unvalidatedOnly, skippedLabelId),
       randomize = true,
+      useCrops = false,
       n
     )
   }
 
   /**
    * Query labels from the db in batches until we have enough labels that have imagery available. Works recursively.
-   * @param viewer The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param labelQuery Query to get labels from the db.
    * @param randomize Whether to randomize the label order or not.
+   * @param useCrops If true, local static crop of pano around the label also works as well as an API call.
    * @param remaining Number of labels remaining to get.
    * @param batchNumber Batch number we're on, used to paginate the query.
    * @param accumulator Accumulator of labels we've found so far.
    * @param tupleConverter Implicit converter to convert the tuple from the db to the appropriate case class.
    */
   private def findValidLabelsForType[A <: BasicLabelMetadata, TupleRep, Tuple](
-      viewer: PanoSource,
       labelQuery: Query[TupleRep, Tuple, Seq],
       randomize: Boolean,
+      useCrops: Boolean,
       remaining: Int,
       batchNumber: Int = 0,
       accumulator: Seq[A] = Seq.empty
@@ -292,20 +303,17 @@ class LabelServiceImpl @Inject() (
           // Randomize the labels to prevent similar labels in a mission.
           val shuffledLabels: Seq[A] = if (randomize) scala.util.Random.shuffle(labels) else labels
 
-          // Check each of those labels for GSV imagery in parallel. Only doing the check for GSV imagery for now.
-          // TODO maybe we include viewer in BasicLabelMetadata and sort it out in checkImageryBatch() instead?
-          val imageryCheck: Future[Seq[A]] =
-            if (viewer == PanoSource.Gsv) checkImageryBatch(shuffledLabels) else Future.successful(shuffledLabels)
-          imageryCheck.flatMap { validLabels =>
+          // Check for valid imagery in parallel.
+          checkImageryBatch(shuffledLabels, useCrops).flatMap { validLabels =>
             if (validLabels.isEmpty) {
               Future.successful(accumulator) // No more valid labels found.
             } else {
               // Add the valid labels to the accumulator and recurse.
               val newValidLabels = validLabels.take(remaining)
               findValidLabelsForType(
-                viewer,
                 labelQuery,
                 randomize,
+                useCrops,
                 remaining - newValidLabels.size,
                 batchNumber + 1,
                 accumulator ++ newValidLabels
@@ -316,16 +324,31 @@ class LabelServiceImpl @Inject() (
     }
   }
 
-  // Checks each label in a batch for GSV imagery in parallel.
-  private def checkImageryBatch[A <: BasicLabelMetadata](labels: Seq[A]): Future[Seq[A]] = {
-    Future
-      .traverse(labels) { label =>
-        panoDataService.panoExists(label.panoId).map {
-          case Some(true) => Some(label)
-          case _          => None
+  // Checks each label in a batch for imagery availability. When useCrops is true, labels with a locally-saved crop
+  // image are accepted without querying the API; only labels lacking a crop are checked. When useCrops is false, all
+  // labels are checked via panoExists(), which returns Some(false) for non-GSV labels.
+  private def checkImageryBatch[A <: BasicLabelMetadata](labels: Seq[A], useCrops: Boolean): Future[Seq[A]] = {
+    if (useCrops) {
+      // Partition: labels with local crops pass immediately; the rest are checked via panoExists().
+      val (withCrop, withoutCrop) = labels.partition(l => cropExists(l.labelId, l.labelType))
+      Future
+        .traverse(withoutCrop) { label =>
+          panoDataService.panoExists(label.panoId, label.panoSource).map {
+            case Some(true) => Some(label)
+            case _          => None
+          }
         }
-      }
-      .map(_.flatten)
+        .map(results => withCrop ++ results.flatten)
+    } else {
+      Future
+        .traverse(labels) { label =>
+          panoDataService.panoExists(label.panoId, label.panoSource).map {
+            case Some(true) => Some(label)
+            case _          => None
+          }
+        }
+        .map(_.flatten)
+    }
   }
 
   /**
@@ -503,9 +526,9 @@ class LabelServiceImpl @Inject() (
     Future
       .sequence(labelTypes.map { labelType =>
         findValidLabelsForType(
-          PanoSource.Gsv,
           labelTable.getValidatedLabelsForUserQuery(userId, labelType),
           randomize = false,
+          useCrops = false,
           nPerType
         )
           .map(labels => (labelType, labels))

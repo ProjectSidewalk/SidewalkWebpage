@@ -213,7 +213,7 @@ class AiServiceImpl @Inject() (
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")
             // Most common failure is for expired imagery, so do that check and mark it as expired here.
-            Await.result(panoDataService.panoExists(labelData.panoData.panoId), 5.seconds)
+            Await.result(panoDataService.panoExists(labelData.panoData.panoId, labelData.panoData.source), 5.seconds)
             None
           }
         } catch {

@@ -1,12 +1,13 @@
 /**
  * A Card module.
  * @param params properties of the associated label.
- * @param imageUrl google maps static image url for label.
+ * @param cropUrl Locally-saved crop image url, or null if no crop exists.
+ * @param gsvImageUrl Google Street View static image url, or null if non-GSV imagery.
  * @param expandedView ExpandedView object; used to update the expanded view when modifying a card.
  * @returns {Card}
  * @constructor
  */
-function Card(params, imageUrl, expandedView) {
+function Card(params, cropUrl, gsvImageUrl, expandedView) {
     const self = this;
 
     // UI card element.
@@ -56,7 +57,8 @@ function Card(params, imageUrl, expandedView) {
 
     // Status to determine if static imagery has been loaded.
     let status = {
-        imageFetched: false
+        imageFetched: false,
+        imageSource: cropUrl ? 'crop' : 'api'
     };
 
     // The label icon to be placed on the static pano image.
@@ -167,6 +169,7 @@ function Card(params, imageUrl, expandedView) {
         }
         imageHolder.appendChild(markerWrapper);
         imageHolder.appendChild(panoImage);
+
         card.appendChild(cardInfo);
         validationMenu = new ValidationMenu(self, $(imageHolder), expandedView, false);
     }
@@ -212,17 +215,29 @@ function Card(params, imageUrl, expandedView) {
     }
 
     /**
-     * Loads the pano image from url.
+     * Loads the image, preferring the crop. Falls back to GSV if the crop fails.
      */
     function loadImage() {
         return new Promise(resolve => {
             if (!status.imageFetched) {
-                let img = panoImage;
+                const img = panoImage;
+                const primaryUrl = cropUrl || gsvImageUrl;
+                const fallbackUrl = cropUrl ? gsvImageUrl : null;
                 img.onload = () => {
                     status.imageFetched = true;
                     resolve(true);
                 };
-                img.src = imageUrl;
+                img.onerror = () => {
+                    if (fallbackUrl) {
+                        // Primary failed; try the other source.
+                        status.imageSource = cropUrl ? 'api' : 'crop';
+                        img.onerror = () => resolve(false); // Prevent infinite loop.
+                        img.src = fallbackUrl;
+                    } else {
+                        resolve(false);
+                    }
+                };
+                img.src = primaryUrl;
             } else {
                 resolve(true);
             }
@@ -313,11 +328,19 @@ function Card(params, imageUrl, expandedView) {
         return imageId
     }
 
+    /**
+     * Returns the current image source: 'api' or 'crop'.
+     */
+    function getImageSource() {
+        return status.imageSource;
+    }
+
     self.getLabelId = getLabelId;
     self.getLabelType = getLabelType;
     self.getProperties = getProperties;
     self.getProperty = getProperty;
     self.getStatus = getStatus;
+    self.getImageSource = getImageSource;
     self.loadImage = loadImage;
     self.render = render;
     self.setProperty = setProperty;

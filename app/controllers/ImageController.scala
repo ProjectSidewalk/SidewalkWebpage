@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base._
+import models.label.LabelTypeEnum
 import play.api.libs.json._
 import play.api.mvc.{AnyContent, Request}
 import play.api.{Configuration, Logger}
@@ -11,10 +12,10 @@ import java.io._
 import java.util.Base64
 import javax.imageio.ImageIO
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ImageController @Inject() (cc: CustomControllerComponents, config: Configuration)
+class ImageController @Inject() (cc: CustomControllerComponents, config: Configuration)(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 
@@ -68,6 +69,26 @@ class ImageController @Inject() (cc: CustomControllerComponents, config: Configu
       val result = file.mkdirs()
       if (!result) {
         logger.error("Error creating directory: " + CROPS_DIR_NAME)
+      }
+    }
+  }
+
+  /** Checks whether a crop image file exists for the given label. */
+  def cropExists(labelId: Int, labelType: String): Boolean = {
+    val file = new File(CROPS_DIR_NAME + File.separator + labelType + File.separator + "crop_" + labelId + ".png")
+    file.exists()
+  }
+
+  /** Serves a previously-saved crop image for a label. */
+  def serveCropImage(labelType: String, labelId: Int) = cc.securityService.SecuredAction { _ =>
+    if (!LabelTypeEnum.validLabelTypes.contains(labelType)) {
+      Future.successful(BadRequest("Invalid label type"))
+    } else {
+      val file = new File(CROPS_DIR_NAME + File.separator + labelType + File.separator + "crop_" + labelId + ".png")
+      if (file.exists()) {
+        Future.successful(Ok.sendFile(file, inline = true).as("image/png"))
+      } else {
+        Future.successful(NotFound("Crop image not found"))
       }
     }
   }

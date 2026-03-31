@@ -29,6 +29,7 @@ class GalleryController @Inject() (
     configService: ConfigService,
     labelService: LabelService,
     panoDataService: PanoDataService,
+    imageController: ImageController,
     galleryTaskInteractionTable: GalleryTaskInteractionTable,
     galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable,
     regionService: RegionService
@@ -114,12 +115,18 @@ class GalleryController @Inject() (
         labelService
           .getGalleryLabels(n, labelType, loadedLabels, valOptions, regionIds, severities, tags, aiValOptions, userId)
           .map { labels =>
-            val jsonList: Seq[JsObject] = labels.map(l =>
+            val jsonList: Seq[JsObject] = labels.map { l =>
+              val cropUrl: Option[String] =
+                if (imageController.cropExists(l.labelId, l.labelType))
+                  Some(s"/cropImage/${l.labelType}/${l.labelId}")
+                else None
               Json.obj(
-                "label"    -> LabelFormats.validationLabelMetadataToJson(l),
-                "imageUrl" -> panoDataService.getImageUrl(l.panoId, l.pov.heading, l.pov.pitch, l.pov.zoom)
+                "label"       -> LabelFormats.validationLabelMetadataToJson(l),
+                "cropUrl"     -> cropUrl,
+                "gsvImageUrl" -> panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch,
+                  l.pov.zoom)
               )
-            )
+            }
             val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)
             Ok(labelList)
           }

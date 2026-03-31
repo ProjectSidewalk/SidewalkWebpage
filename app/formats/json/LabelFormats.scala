@@ -184,7 +184,7 @@ object LabelFormats {
     )
   }
 
-  def labelMetadataUserDashToJson(label: LabelMetadataUserDash, imageUrl: String): JsObject = {
+  def labelMetadataUserDashToJson(label: LabelMetadataUserDash, imageUrl: Option[String]): JsObject = {
     Json.obj(
       "label_id"          -> label.labelId,
       "pano_id"           -> label.panoId,

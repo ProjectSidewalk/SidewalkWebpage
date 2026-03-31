@@ -3,7 +3,8 @@ package service
 import com.google.inject.ImplementedBy
 import formats.json.PanoFormats.PanoHistorySubmission
 import models.label.{LabelPointTable, POV}
-import models.pano.{PanoDataSlim, PanoDataTable, PanoHistory, PanoHistoryTable}
+import models.pano.PanoSource.PanoSource
+import models.pano._
 import models.street.StreetEdge
 import models.utils.{CommonUtils, MyPostgresProfile}
 import org.locationtech.jts.geom.Point
@@ -148,9 +149,9 @@ object PanoDataService {
 @ImplementedBy(classOf[PanoDataServiceImpl])
 trait PanoDataService {
   def getInfra3dToken: Future[String]
-  def panoExists(panoId: String): Future[Option[Boolean]]
-  def getImageUrl(panoId: String, heading: Double, pitch: Double, zoom: Double): String
-  def getImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
+  def panoExists(panoId: String, panoSource: PanoSource): Future[Option[Boolean]]
+  def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String]
+  def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
   def getAllPanos: Future[Seq[PanoDataSlim]]
   def checkForImagery: Future[String]
@@ -171,7 +172,8 @@ class PanoDataServiceImpl @Inject() (
 
   private val logger = Logger(this.getClass)
 
-  // Grab secret from ENV variable.
+  // Grab API key and secret from ENV variable.
+  val googleApiKey: String    = config.get[String]("google-maps-api-key")
   val secretKeyString: String = config.get[String]("google-maps-secret")
 
   // Decode secret key as Byte[].
@@ -212,12 +214,11 @@ class PanoDataServiceImpl @Inject() (
    * @param panoId  Panorama ID
    * @return        True if the panorama exists, false otherwise
    */
-  def panoExists(panoId: String): Future[Option[Boolean]] = {
-    val url =
-      s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$panoId&key=${config.get[String]("google-maps-api-key")}"
-    val signedUrl = signUrl(url)
+  def panoExists(panoId: String, panoSource: PanoSource): Future[Option[Boolean]] = {
+    if (panoSource != PanoSource.Gsv) return Future.successful(Some(false))
 
-    ws.url(signedUrl)
+    val url = signUrl(s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$panoId&key=$googleApiKey")
+    ws.url(url)
       .withRequestTimeout(5.seconds)
       .get()
       .flatMap { response =>
@@ -273,20 +274,23 @@ class PanoDataServiceImpl @Inject() (
    * More information here: https://developers.google.com/maps/documentation/streetview/intro
    *
    * @param panoId Id of gsv pano.
+   * @param panoSrc The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
    * @param heading Compass heading of the camera.
    * @param pitch Up or down angle of the camera relative to the vehicle.
    * @param zoom Zoom level of the canvas (for fov calculation).
    * @return Image URL that represents the background of the label.
    */
-  def getImageUrl(panoId: String, heading: Double, pitch: Double, zoom: Double): String = {
+  def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String] = {
+    if (panoSrc != PanoSource.Gsv) return None
+
     val url = "https://maps.googleapis.com/maps/api/streetview?" +
       "pano=" + panoId +
       "&size=" + LabelPointTable.canvasWidth + "x" + LabelPointTable.canvasHeight +
       "&heading=" + heading +
       "&pitch=" + pitch +
       "&fov=" + getFov(zoom) +
-      "&key=" + config.get[String]("google-maps-api-key")
-    signUrl(url)
+      "&key=" + googleApiKey
+    Some(signUrl(url))
   }
 
   /**
@@ -299,7 +303,7 @@ class PanoDataServiceImpl @Inject() (
    * @param heading Compass heading of the camera
    * @return GSV Static API URL for the given location and heading
    */
-  def getImageUrlFromLatLng(lat: Double, lng: Double, heading: Double): String = {
+  def getGsvImageUrlFromLatLng(lat: Double, lng: Double, heading: Double): String = {
     val url = "https://maps.googleapis.com/maps/api/streetview?" +
       "location=" + lat + "," + lng +
       "&radius=40" + // Search as far as 40 meters from the given lat/lng, same as we use on the frontend
@@ -309,7 +313,7 @@ class PanoDataServiceImpl @Inject() (
       "&pitch=-10" + // Default pitch of -10 degrees, facing slightly downwards towards the ground
       "&fov=90" +
       "&return_error_code=true" +
-      "&key=" + config.get[String]("google-maps-api-key")
+      "&key=" + googleApiKey
     signUrl(url)
   }
 
@@ -318,7 +322,7 @@ class PanoDataServiceImpl @Inject() (
    * @param streetEdgeId ID of the street edge to get image URLs for
    * @return A sequence of image URLs for the start and end points of the street edge
    */
-  def getImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]] = {
+  def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]] = {
     db.run(for {
       streetOption: Option[StreetEdge] <- streetEdgeTable.getStreet(streetEdgeId)
       startDir: Option[Double]         <- streetEdgeTable.directionFromStart(streetEdgeId)
@@ -328,8 +332,8 @@ class PanoDataServiceImpl @Inject() (
         val startPoint: Point = street.geom.getStartPoint
         val endPoint: Point   = street.geom.getEndPoint
         Seq(
-          startDir.map(sd => getImageUrlFromLatLng(startPoint.getY, startPoint.getX, Math.toDegrees(sd))),
-          endDir.map(ed => getImageUrlFromLatLng(endPoint.getY, endPoint.getX, Math.toDegrees(ed)))
+          startDir.map(sd => getGsvImageUrlFromLatLng(startPoint.getY, startPoint.getX, Math.toDegrees(sd))),
+          endDir.map(ed => getGsvImageUrlFromLatLng(endPoint.getY, endPoint.getX, Math.toDegrees(ed)))
         ).flatten
       }
     })
@@ -379,8 +383,9 @@ class PanoDataServiceImpl @Inject() (
         logger.info(s"Checking ${expiredPanoIdsToCheck.length} expired panos.")
 
         // Run the panoExists function to check for imagery, then log some stats.
-        Future.traverse(panoIdsToCheck ++ expiredPanoIdsToCheck) { panoId => panoExists(panoId) }.map { responses =>
-          s"Not expired: ${responses.count(_ == Some(true))}. Expired: ${responses.count(_ == Some(false))}. Errors: ${responses.count(_.isEmpty)}."
+        Future.traverse(panoIdsToCheck ++ expiredPanoIdsToCheck) { panoId => panoExists(panoId, PanoSource.Gsv) }.map {
+          responses =>
+            s"Not expired: ${responses.count(_ == Some(true))}. Expired: ${responses.count(_ == Some(false))}. Errors: ${responses.count(_.isEmpty)}."
         }
       }
     ).flatten

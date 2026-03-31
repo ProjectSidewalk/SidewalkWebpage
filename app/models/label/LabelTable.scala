@@ -118,6 +118,7 @@ trait BasicLabelMetadata {
   val labelId: Int
   val labelType: String
   val panoId: String
+  val panoSource: PanoSource
   val pov: POV
 }
 
@@ -197,6 +198,7 @@ case class LabelDataForAi(labelId: Int, labelTypeId: Int, labelPoint: LabelPoint
 case class LabelMetadataUserDash(
     labelId: Int,
     panoId: String,
+    panoSource: PanoSource,
     pov: POV,
     canvasX: Int,
     canvasY: Int,
@@ -210,6 +212,7 @@ case class LabelValidationMetadata(
     labelId: Int,
     labelType: String,
     panoId: String,
+    panoSource: PanoSource,
     imageCaptureDate: String,
     timestamp: OffsetDateTime,
     lat: Double,
@@ -281,10 +284,11 @@ object LabelTable {
   // Type aliases for the tuple representation of LabelMetadataUserDash and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
   type LabelMetadataUserDashTuple =
-    (Int, String, (Double, Double, Double), Int, Int, String, OffsetDateTime, Option[String])
+    (Int, String, PanoSource, (Double, Double, Double), Int, Int, String, OffsetDateTime, Option[String])
   type LabelMetadataUserDashTupleRep = (
       Rep[Int],                                // labelId
       Rep[String],                             // panoId
+      Rep[PanoSource],                         // panoSource
       (Rep[Double], Rep[Double], Rep[Double]), // pov (heading, pitch, zoom)
       Rep[Int],                                // canvasX
       Rep[Int],                                // canvasY
@@ -297,7 +301,7 @@ object LabelTable {
   implicit val labelMetadataUserDashConverter: TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] =
     new TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] {
       def fromTuple(t: LabelMetadataUserDashTuple): LabelMetadataUserDash =
-        LabelMetadataUserDash(t._1, t._2, POV.tupled(t._3), t._4, t._5, t._6, t._7, t._8)
+        LabelMetadataUserDash(t._1, t._2, t._3, POV.tupled(t._4), t._5, t._6, t._7, t._8, t._9)
     }
 
   // Type aliases for the tuple representation of LabelValidationMetadata and queries for them.
@@ -306,6 +310,7 @@ object LabelTable {
       Int,                              // labelId
       String,                           // labelType
       String,                           // panoId
+      PanoSource,                       // panoSource
       String,                           // imageCaptureDate
       OffsetDateTime,                   // timestamp
       Option[Double],                   // lat
@@ -329,6 +334,7 @@ object LabelTable {
       Rep[Int],                                             // labelId
       Rep[String],                                          // labelType
       Rep[String],                                          // panoId
+      Rep[PanoSource],                                      // panoSource
       Rep[String],                                          // imageCaptureDate
       Rep[OffsetDateTime],                                  // timestamp
       Rep[Option[Double]],                                  // lat
@@ -353,8 +359,8 @@ object LabelTable {
   implicit val labelValidationMetadataConverter: TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] =
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
       def fromTuple(t: LabelValidationMetadataTuple): LabelValidationMetadata = LabelValidationMetadata(
-        t._1, t._2, t._3, t._4, t._5, t._6.get, t._7.get, POV.tupled(t._8), LocationXY.tupled(t._9), t._10, t._11,
-        t._12, t._13, LabelValidationInfo.tupled(t._14), t._15, t._16, t._17, t._18, t._19, t._20, t._21
+        t._1, t._2, t._3, t._4, t._5, t._6, t._7.get, t._8.get, POV.tupled(t._9), LocationXY.tupled(t._10), t._11,
+        t._12, t._13, t._14, LabelValidationInfo.tupled(t._15), t._16, t._17, t._18, t._19, t._20, t._21, t._22
       )
     }
 
@@ -920,6 +926,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           l.labelId,
           labelType,
           l.panoId,
+          pd.source,
           pd.captureDate,
           l.timeCreated,
           lp.lat,
@@ -1062,6 +1069,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       lb.labelId,
       labelType,
       lb.panoId,
+      pd.source,
       pd.captureDate,
       lb.timeCreated,
       lp.lat,
@@ -1131,6 +1139,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     } yield (
       _lb.labelId,
       _lb.panoId,
+      _pd.source,
       (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom.asColumnOf[Double]),
       _lp.canvasX,
       _lp.canvasY,

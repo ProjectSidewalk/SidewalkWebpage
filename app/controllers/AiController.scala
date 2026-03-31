@@ -83,8 +83,8 @@ class AiController @Inject() (
     val prompt = generatePrompt(wayType, cityName)
 
     for {
-      gsvImageUrls   <- panoDataService.getImageUrlsForStreet(streetEdgeId) // Get image URLs for the street
-      imageObjects   <- fetchAndEncodeImages(gsvImageUrls)                  // Fetch and encode images
+      gsvImageUrls   <- panoDataService.getGsvImageUrlsForStreet(streetEdgeId) // Get image URLs for the street
+      imageObjects   <- fetchAndEncodeImages(gsvImageUrls) // Fetch and encode images
       geminiResponse <- sendToGeminiApi(prompt, imageObjects)               // Send to Gemini API
     } yield {
       val activity = s"Analyzing street $streetEdgeId with URLs: ${gsvImageUrls.mkString(", ")}"
