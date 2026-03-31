@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import formats.json.PanoFormats.PanoHistorySubmission
-import models.label.{LabelPointTable, POV}
+import models.label.{LabelPointTable, LabelTypeEnum, POV}
 import models.pano.PanoSource.PanoSource
 import models.pano._
 import models.street.StreetEdge
@@ -155,6 +155,7 @@ trait PanoDataService {
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
   def getAllPanos: Future[Seq[PanoDataSlim]]
   def checkForImagery: Future[String]
+  def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean
 }
 
 @Singleton
@@ -164,6 +165,7 @@ class PanoDataServiceImpl @Inject() (
     cacheApi: AsyncCacheApi,
     ws: WSClient,
     implicit val ec: ExecutionContext,
+    configService: ConfigService,
     panoDataTable: PanoDataTable,
     panoHistoryTable: PanoHistoryTable,
     streetEdgeTable: models.street.StreetEdgeTable
@@ -181,6 +183,8 @@ class PanoDataServiceImpl @Inject() (
 
   // Get an HMAC-SHA1 signing key from the raw key bytes.
   val sha1Key: SecretKeySpec = new SecretKeySpec(secretKey, "HmacSHA1")
+
+  private val cropsDirName: String = configService.getCropDirectory
 
   def getInfra3dToken: Future[String] = {
     // Token expires after 60 minutes, so we don't need to get a new token every time.
@@ -389,5 +393,13 @@ class PanoDataServiceImpl @Inject() (
         }
       }
     ).flatten
+  }
+
+  /** Checks whether a crop image file exists for the given label. */
+  def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean = {
+    val file = new java.io.File(
+      cropsDirName + java.io.File.separator + labelType.name + java.io.File.separator + "crop_" + labelId + ".png"
+    )
+    file.exists()
   }
 }

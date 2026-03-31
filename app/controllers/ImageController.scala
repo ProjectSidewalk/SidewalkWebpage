@@ -2,9 +2,9 @@ package controllers
 
 import controllers.base._
 import models.label.LabelTypeEnum
+import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{AnyContent, Request}
-import play.api.{Configuration, Logger}
 
 import java.awt.Image
 import java.awt.image.BufferedImage
@@ -15,12 +15,13 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ImageController @Inject() (cc: CustomControllerComponents, config: Configuration)(implicit ec: ExecutionContext)
-    extends CustomBaseController(cc) {
+class ImageController @Inject() (cc: CustomControllerComponents, configService: service.ConfigService)(implicit
+    ec: ExecutionContext
+) extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 
   // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
-  val CROPS_DIR_NAME = config.get[String]("cropped.image.directory") + File.separator + config.get[String]("city-id")
+  private val CROPS_DIR_NAME = configService.getCropDirectory
 
   // 2x the actual size of the pano window as retina screen can give us 2x the pixel density.
   val CROP_WIDTH  = 1440
@@ -71,12 +72,6 @@ class ImageController @Inject() (cc: CustomControllerComponents, config: Configu
         logger.error("Error creating directory: " + CROPS_DIR_NAME)
       }
     }
-  }
-
-  /** Checks whether a crop image file exists for the given label. */
-  def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean = {
-    val file = new File(CROPS_DIR_NAME + File.separator + labelType.name + File.separator + "crop_" + labelId + ".png")
-    file.exists()
   }
 
   /** Serves a previously-saved crop image for a label. */

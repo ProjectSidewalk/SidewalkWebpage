@@ -117,7 +117,7 @@ class GalleryController @Inject() (
           .map { labels =>
             val jsonList: Seq[JsObject] = labels.map { l =>
               val cropUrl: Option[String] =
-                if (imageController.cropExists(l.labelId, l.labelType))
+                if (panoDataService.cropExists(l.labelId, l.labelType))
                   Some(s"/cropImage/${l.labelType.name}/${l.labelId}")
                 else None
               Json.obj(

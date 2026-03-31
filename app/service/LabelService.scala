@@ -96,7 +96,6 @@ trait LabelService {
 @Singleton
 class LabelServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
-    config: play.api.Configuration,
     configService: ConfigService,
     panoDataService: PanoDataService,
     labelTable: LabelTable,
@@ -109,16 +108,6 @@ class LabelServiceImpl @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
-
-  private val cropsDirName: String =
-    config.get[String]("cropped.image.directory") + java.io.File.separator + config.get[String]("city-id")
-
-  private def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean = {
-    val file = new java.io.File(
-      cropsDirName + java.io.File.separator + labelType.name + java.io.File.separator + "crop_" + labelId + ".png"
-    )
-    file.exists()
-  }
 
   def countLabels: Future[Int] = db.run(labelTable.countLabels)
 
@@ -330,7 +319,7 @@ class LabelServiceImpl @Inject() (
   private def checkImageryBatch[A <: BasicLabelMetadata](labels: Seq[A], useCrops: Boolean): Future[Seq[A]] = {
     if (useCrops) {
       // Partition: labels with local crops pass immediately; the rest are checked via panoExists().
-      val (withCrop, withoutCrop) = labels.partition(l => cropExists(l.labelId, l.labelType))
+      val (withCrop, withoutCrop) = labels.partition(l => panoDataService.cropExists(l.labelId, l.labelType))
       Future
         .traverse(withoutCrop) { label =>
           panoDataService.panoExists(label.panoId, label.panoSource).map {
