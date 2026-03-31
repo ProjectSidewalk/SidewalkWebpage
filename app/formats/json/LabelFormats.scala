@@ -93,7 +93,7 @@ object LabelFormats {
   ): JsObject = {
     Json.obj(
       "label_id"           -> labelMetadata.labelId,
-      "label_type"         -> labelMetadata.labelType,
+      "label_type"         -> labelMetadata.labelType.name,
       "pano_id"            -> labelMetadata.panoId,
       "image_capture_date" -> labelMetadata.imageCaptureDate,
       "label_timestamp"    -> labelMetadata.timestamp,
@@ -193,7 +193,7 @@ object LabelFormats {
       "zoom"              -> label.pov.zoom,
       "canvas_x"          -> label.canvasX,
       "canvas_y"          -> label.canvasY,
-      "label_type"        -> label.labelType,
+      "label_type"        -> label.labelType.name,
       "time_validated"    -> label.timeValidated,
       "validator_comment" -> label.validatorComment,
       "image_url"         -> imageUrl

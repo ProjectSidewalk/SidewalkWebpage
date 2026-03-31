@@ -113,9 +113,9 @@ class LabelServiceImpl @Inject() (
   private val cropsDirName: String =
     config.get[String]("cropped.image.directory") + java.io.File.separator + config.get[String]("city-id")
 
-  private def cropExists(labelId: Int, labelType: String): Boolean = {
+  private def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean = {
     val file = new java.io.File(
-      cropsDirName + java.io.File.separator + labelType + java.io.File.separator + "crop_" + labelId + ".png"
+      cropsDirName + java.io.File.separator + labelType.name + java.io.File.separator + "crop_" + labelId + ".png"
     )
     file.exists()
   }

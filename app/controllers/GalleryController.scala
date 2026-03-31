@@ -118,7 +118,7 @@ class GalleryController @Inject() (
             val jsonList: Seq[JsObject] = labels.map { l =>
               val cropUrl: Option[String] =
                 if (imageController.cropExists(l.labelId, l.labelType))
-                  Some(s"/cropImage/${l.labelType}/${l.labelId}")
+                  Some(s"/cropImage/${l.labelType.name}/${l.labelId}")
                 else None
               Json.obj(
                 "label"       -> LabelFormats.validationLabelMetadataToJson(l),

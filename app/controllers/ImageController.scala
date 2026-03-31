@@ -63,7 +63,7 @@ class ImageController @Inject() (cc: CustomControllerComponents, config: Configu
   }
 
   // Creates the base directory for the crops if it doesn't exist. Uses subdirectories /<city-id>/<label-type>.
-  def initializeDirIfNeeded(labelType: String): Unit = {
+  private def initializeDirIfNeeded(labelType: String): Unit = {
     val file = new File(CROPS_DIR_NAME + File.separator + labelType)
     if (!file.exists()) {
       val result = file.mkdirs()
@@ -74,15 +74,17 @@ class ImageController @Inject() (cc: CustomControllerComponents, config: Configu
   }
 
   /** Checks whether a crop image file exists for the given label. */
-  def cropExists(labelId: Int, labelType: String): Boolean = {
-    val file = new File(CROPS_DIR_NAME + File.separator + labelType + File.separator + "crop_" + labelId + ".png")
+  def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean = {
+    val file = new File(CROPS_DIR_NAME + File.separator + labelType.name + File.separator + "crop_" + labelId + ".png")
     file.exists()
   }
 
   /** Serves a previously-saved crop image for a label. */
   def serveCropImage(labelType: String, labelId: Int) = cc.securityService.SecuredAction { _ =>
     if (!LabelTypeEnum.validLabelTypes.contains(labelType)) {
-      Future.successful(BadRequest("Invalid label type"))
+      Future.successful(
+        BadRequest(s"Invalid label type provided: $labelType. Valid label types are: ${LabelTypeEnum.validLabelTypes.mkString(", ")}.")
+      )
     } else {
       val file = new File(CROPS_DIR_NAME + File.separator + labelType + File.separator + "crop_" + labelId + ".png")
       if (file.exists()) {

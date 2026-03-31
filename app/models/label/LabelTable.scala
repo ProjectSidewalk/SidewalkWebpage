@@ -116,7 +116,7 @@ case class LabelCount(count: Int, timeInterval: TimeInterval, labelType: String)
 // Defines some common fields for a label metadata, which allows us to create generic functions using these fields.
 trait BasicLabelMetadata {
   val labelId: Int
-  val labelType: String
+  val labelType: LabelTypeEnum.Base
   val panoId: String
   val panoSource: PanoSource
   val pov: POV
@@ -202,7 +202,7 @@ case class LabelMetadataUserDash(
     pov: POV,
     canvasX: Int,
     canvasY: Int,
-    labelType: String,
+    labelType: LabelTypeEnum.Base,
     timeValidated: OffsetDateTime,
     validatorComment: Option[String]
 ) extends BasicLabelMetadata
@@ -210,7 +210,7 @@ case class LabelMetadataUserDash(
 // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
 case class LabelValidationMetadata(
     labelId: Int,
-    labelType: String,
+    labelType: LabelTypeEnum.Base,
     panoId: String,
     panoSource: PanoSource,
     imageCaptureDate: String,
@@ -301,7 +301,7 @@ object LabelTable {
   implicit val labelMetadataUserDashConverter: TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] =
     new TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] {
       def fromTuple(t: LabelMetadataUserDashTuple): LabelMetadataUserDash =
-        LabelMetadataUserDash(t._1, t._2, t._3, POV.tupled(t._4), t._5, t._6, t._7, t._8, t._9)
+        LabelMetadataUserDash(t._1, t._2, t._3, POV.tupled(t._4), t._5, t._6, LabelTypeEnum.byName(t._7), t._8, t._9)
     }
 
   // Type aliases for the tuple representation of LabelValidationMetadata and queries for them.
@@ -359,8 +359,9 @@ object LabelTable {
   implicit val labelValidationMetadataConverter: TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] =
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
       def fromTuple(t: LabelValidationMetadataTuple): LabelValidationMetadata = LabelValidationMetadata(
-        t._1, t._2, t._3, t._4, t._5, t._6, t._7.get, t._8.get, POV.tupled(t._9), LocationXY.tupled(t._10), t._11,
-        t._12, t._13, t._14, LabelValidationInfo.tupled(t._15), t._16, t._17, t._18, t._19, t._20, t._21, t._22
+        t._1, LabelTypeEnum.byName(t._2), t._3, t._4, t._5, t._6, t._7.get, t._8.get, POV.tupled(t._9),
+        LocationXY.tupled(t._10), t._11, t._12, t._13, t._14, LabelValidationInfo.tupled(t._15), t._16, t._17, t._18,
+        t._19, t._20, t._21, t._22
       )
     }
 
