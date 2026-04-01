@@ -172,9 +172,11 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
      * Performs the actions needed to open the expanded view.
      */
     function openExpandedView() {
-        // Load the pano and then render the label.
-        self.panoManager.setPano(self.refCard.getProperty('pano_id'), self.refCard.getProperty('pov'))
-            .then(() => { self.panoManager.renderLabel(self.label) });
+        // Load the pano and then render the label. Pass crop URL and label for fallback if pano fails.
+        self.panoManager.setPano(
+            self.refCard.getProperty('pano_id'), self.refCard.getProperty('pov'),
+            self.refCard.getCropUrl(), self.label
+        ).then((panoData) => { if (panoData) self.panoManager.renderLabel(self.label); });
 
         // Update the text various fields shown below the pano.
         resetExpandedView();

@@ -335,6 +335,7 @@ function Card(params, cropUrl, gsvImageUrl, expandedView) {
         return status.imageSource;
     }
 
+    self.getCropUrl = function() { return cropUrl; };
     self.getLabelId = getLabelId;
     self.getLabelType = getLabelType;
     self.getProperties = getProperties;
