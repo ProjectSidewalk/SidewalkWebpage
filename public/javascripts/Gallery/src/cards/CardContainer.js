@@ -352,7 +352,7 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
                 sg.ui.cardFilter.wrapper.css('position', 'fixed');
                 sg.ui.cardFilter.wrapper.css('top', '');
                 uiCardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
-                sg.scrollStatus.stickySidebar = true;
+                imagePromises.length >= 6 ? sg.scrollStatus.stickySidebar = true : sg.scrollStatus.stickySidebar = false;
                 sg.cardFilter.enable();
             });
         } else {
