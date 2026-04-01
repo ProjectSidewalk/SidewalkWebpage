@@ -1031,7 +1031,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _ser <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
       _ur  <- userRoles if _us.userId === _ur.userId
       _r   <- roleTable if _ur.roleId === _r.roleId
-      if _pd.expired === false
       if _pd.source === viewer
       if _lp.lat.isDefined && _lp.lng.isDefined
       if _lt.labelTypeId === labelType.id
