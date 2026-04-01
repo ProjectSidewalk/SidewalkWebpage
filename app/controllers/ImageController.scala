@@ -1,9 +1,10 @@
 package controllers
 
 import controllers.base._
+import models.label.LabelTypeEnum
+import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{AnyContent, Request}
-import play.api.{Configuration, Logger}
 
 import java.awt.Image
 import java.awt.image.BufferedImage
@@ -11,15 +12,16 @@ import java.io._
 import java.util.Base64
 import javax.imageio.ImageIO
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ImageController @Inject() (cc: CustomControllerComponents, config: Configuration)
-    extends CustomBaseController(cc) {
+class ImageController @Inject() (cc: CustomControllerComponents, panoDataService: service.PanoDataService)(implicit
+    ec: ExecutionContext
+) extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 
   // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
-  val CROPS_DIR_NAME = config.get[String]("cropped.image.directory") + File.separator + config.get[String]("city-id")
+  private val CROPS_DIR_NAME = panoDataService.getCropDirectory
 
   // 2x the actual size of the pano window as retina screen can give us 2x the pixel density.
   val CROP_WIDTH  = 1440
@@ -62,12 +64,28 @@ class ImageController @Inject() (cc: CustomControllerComponents, config: Configu
   }
 
   // Creates the base directory for the crops if it doesn't exist. Uses subdirectories /<city-id>/<label-type>.
-  def initializeDirIfNeeded(labelType: String): Unit = {
+  private def initializeDirIfNeeded(labelType: String): Unit = {
     val file = new File(CROPS_DIR_NAME + File.separator + labelType)
     if (!file.exists()) {
       val result = file.mkdirs()
       if (!result) {
         logger.error("Error creating directory: " + CROPS_DIR_NAME)
+      }
+    }
+  }
+
+  /** Serves a previously-saved crop image for a label. */
+  def serveCropImage(labelType: String, labelId: Int) = cc.securityService.SecuredAction { _ =>
+    if (!LabelTypeEnum.validLabelTypes.contains(labelType)) {
+      Future.successful(
+        BadRequest(s"Invalid label type provided: $labelType. Valid label types are: ${LabelTypeEnum.validLabelTypes.mkString(", ")}.")
+      )
+    } else {
+      val file = new File(CROPS_DIR_NAME + File.separator + labelType + File.separator + "crop_" + labelId + ".png")
+      if (file.exists()) {
+        Future.successful(Ok.sendFile(file, inline = true).as("image/png"))
+      } else {
+        Future.successful(NotFound("Crop image not found"))
       }
     }
   }

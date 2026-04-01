@@ -30,7 +30,8 @@ class PanoManager {
             this.svHolder.css('position', 'relative');
         }
 
-        // Pano will be added to panoCanvas.
+        // TODO all this stuff below is following what we did in GsvLabelView.js, but we shouldn't be creating all of
+        //      this in JS. Needs to be rewritten using better coding practices.
         this.panoCanvas = $("<div id='pano'>").css({
             position: 'relative',
             top: '0px',
@@ -48,7 +49,28 @@ class PanoManager {
                 'padding-bottom': '15px'
             })[0];
 
+        this.fallbackContainer = $('<div id="pano-fallback-container">').css({
+            position: 'relative',
+            width: '100%',
+            height: '60vh',
+            display: 'none'
+        })[0];
+        this.fallbackImage = $('<img id="pano-fallback-image">').css({
+            width: '100%',
+            height: '100%',
+            'object-fit': 'cover'
+        })[0];
+        this.fallbackMarker = $('<img id="pano-fallback-marker">').addClass('icon-outline').css({
+            position: 'absolute',
+            width: '20px',
+            height: '20px',
+            transform: 'translate(-50%, -50%)',
+            display: 'none'
+        })[0];
+        $(this.fallbackContainer).append(this.fallbackImage, this.fallbackMarker);
+
         this.svHolder.append($(this.panoCanvas));
+        this.svHolder.append($(this.fallbackContainer));
         this.svHolder.append($(this.panoNotAvailable));
         this.svHolder.append($(this.panoNotAvailableDetails));
     }
@@ -88,12 +110,21 @@ class PanoManager {
      * Sets the panorama ID and POV from label metadata.
      * @param {string} panoId
      * @param {{heading: number, pitch: number, zoom: number}} pov
+     * @param {string} [cropUrl] URL for the screenshot fallback image, if available.
+     * @param {AdminPanoramaLabel} [label] Label info for positioning the marker on the fallback image.
      * @returns {Promise<PanoData>}
      */
-    async setPano(panoId, pov) {
+    async setPano(panoId, pov, cropUrl, label) {
+        this.cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
+        this.fallbackLabel = label || null;
         this.svHolder.css('visibility', 'hidden');
+
+        // Can't leave the canvas as disaply: none if we want the pano to successfully load.
+        $(this.panoCanvas).css('display', 'block');
+        $(this.fallbackContainer).css('display', 'none');
+
         return sg.panoViewer.setPano(panoId).then(this.#panoSuccessCallback, this.#panoFailureCallback).then((panoData) => {
-            sg.panoViewer.setPov(pov);
+            if (panoData) sg.panoViewer.setPov(pov);
             this.svHolder.css('visibility', 'visible');
             return panoData;
         });
@@ -110,26 +141,52 @@ class PanoManager {
         const panoId = panoData.getPanoId();
         sg.panoStore.addPanoMetadata(panoId, panoData);
 
-        // Show the pano, hide the error messages.
+        // Show the pano, hide the fallback image and error messages.
         $(this.panoCanvas).css('display', 'block');
+        $(this.fallbackContainer).css('display', 'none');
+        this.svHolder.find('#gallery-validation-button-holder').css('display', 'flex');
         $(this.panoNotAvailable).css('display', 'none');
         $(this.panoNotAvailableDetails).css('display', 'none');
         return Promise.resolve(panoData);
     }
 
     /**
-     * Shows an error message if the pano fails to load.
+     * Show local cropped image if pano fails to load, or an error message if neither is available.
      * @param {Error} error
      * @returns {Promise<void>}
      * @private
      */
     #panoFailureCallback = async (error) => {
         console.error('failed to load pano!', error);
-        $(this.svHolder).css('height', '');
-        $(this.panoNotAvailable).text(i18next.t('common:errors.title'));
         $(this.panoCanvas).css('display', 'none');
-        $(this.panoNotAvailable).css('display', 'block');
-        $(this.panoNotAvailableDetails).css('display', 'block');
+        if (this.cropUrl) {
+            // Show the screenshot as a fallback instead of the error message.
+            $(this.fallbackImage).attr('src', this.cropUrl);
+            $(this.fallbackContainer).css('display', 'block');
+            // Position the label icon on the fallback image.
+            if (this.fallbackLabel && PanoManager.icons[this.fallbackLabel.label_type]) {
+                const label = this.fallbackLabel;
+                const leftPercent = 100 * label.canvasX / label.originalCanvasWidth;
+                const topPercent = 100 * label.canvasY / label.originalCanvasHeight;
+                $(this.fallbackMarker).attr('src', PanoManager.icons[label.label_type]).css({
+                    left: `${leftPercent}%`,
+                    top: `${topPercent}%`,
+                    display: 'block'
+                });
+            } else {
+                $(this.fallbackMarker).css('display', 'none');
+            }
+            this.svHolder.find('#gallery-validation-button-holder').css('display', 'flex');
+            $(this.panoNotAvailable).css('display', 'none');
+            $(this.panoNotAvailableDetails).css('display', 'none');
+        } else {
+            $(this.svHolder).css('height', '');
+            $(this.fallbackContainer).css('display', 'none');
+            $(this.panoNotAvailable).text(i18next.t('common:errors.title'));
+            this.svHolder.find('#gallery-validation-button-holder').css('display', 'none');
+            $(this.panoNotAvailable).css('display', 'block');
+            $(this.panoNotAvailableDetails).css('display', 'block');
+        }
         return Promise.resolve();
     }
 

@@ -146,6 +146,8 @@
         "longitude": "經度",
         "panorama-id": "全景圖編號",
         "google-street-view": "Google街景",
+        "mapillary": "Mapillary",
+        "infra3d": "infra3D",
         "street-id": "街道編號",
         "region-id": "區域編號",
         "label-id": "標籤編號",

@@ -165,7 +165,7 @@
                     <tr>
                         <td><code>includeRawLabels</code></td>
                         <td><code>boolean</code></td>
-                        <td>Whether to include detailed information about the individual raw labels that make up each cluster. Default: <code>false</code>. Setting to <code>true</code> will increase response size substantially. Not available when using <code>filetype=csv</code></td>
+                        <td>Whether to include detailed information about the individual raw labels that make up each cluster. Default: <code>false</code>. Setting to <code>true</code> will increase response size substantially. To request all possible fields related to the raw labels, use the <a href="@routes.ApiDocsController.rawLabels">Raw Labels API</a>.
                     </tr>
                     <tr>
                         <td><code>clusterSize</code></td>
@@ -241,6 +241,7 @@
                 "disagree_count": 2,
                 "unsure_count": 0,
                 "cluster_size": 5,
+                "label_ids": [8, 12, 14, 19, 27],
                 "users": [
                     "18b26a38-24ab-402d-a64e-158fc0bb8a8a",
                     "53ad4d79-9a7b-4d3c-a753-63bbfca34c9b"
@@ -295,6 +296,7 @@
                 "disagree_count": 0,
                 "unsure_count": 1,
                 "cluster_size": 3,
+                "label_ids": [31, 35, 42],
                 "users": [
                     "8af92eb8-fb84-4aa6-9539-abc95216dcd7",
                     "be481045-4448-42ae-bbac-3455ce914202",
@@ -348,6 +350,11 @@
                         <td><code>properties.cluster_size</code></td>
                         <td><code>integer</code></td>
                         <td>Number of individual labels that make up this cluster. Higher numbers generally indicate higher confidence in the existence of the feature.</td>
+                    </tr>
+                    <tr>
+                        <td><code>properties.label_ids</code></td>
+                        <td><code>array[integer]</code></td>
+                        <td>Array of raw label IDs that make up this cluster. Can be used to cross-reference with the <a href="@routes.ApiDocsController.rawLabels">Raw Labels API</a>.</td>
                     </tr>
 
                         <!-- Location Context -->
@@ -419,7 +426,7 @@
                     <tr>
                         <td><code>properties.labels</code></td>
                         <td><code>array</code></td>
-                        <td>Array of raw label objects that make up this cluster. Only included if <code>includeRawLabels=true</code> is specified in the request. Each object contains core information about the individual label including its ID, user ID, severity, coordinates, and validation status.</td>
+                        <td>Array of raw label objects that make up this cluster. Only included if <code>includeRawLabels=true</code> is specified in the request. Each object contains core information about the individual label including its ID, user ID, severity, coordinates, and validation status. To request all possible fields related to the raw labels, use the <a href="/api-docs/rawLabels">Raw Labels API</a></td>
                     </tr>
                 </tbody>
             </table>
@@ -427,18 +434,22 @@
 
         <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
         <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus <code>avg_latitude</code> and <code>avg_longitude</code> columns derived from the geometry. CRS is WGS84 (EPSG:4326).</p>
-        <pre tabindex="0"><code class="language-csv">label_cluster_id,label_type,street_edge_id,osm_way_id,region_id,region_name,avg_image_capture_date,avg_label_date,median_severity,agree_count,disagree_count,unsure_count,cluster_size,users,tag_counts,avg_latitude,avg_longitude
-124,CurbRamp,951,11584845,8,Teaneck Community Charter School,2012-08-15T00:00:00Z,2023-06-20T14:32:45Z,1,18,2,0,5,"[18b26a38-24ab-402d-a64e-158fc0bb8a8a,53ad4d79-9a7b-4d3c-a753-63bbfca34c9b]","{""points into street"":2,""missing tactile warning"":1}",40.8839912414551,-74.0243606567383
-125,NoCurbRamp,952,11566031,8,Teaneck Community Charter School,2012-08-15T00:00:00Z,2023-06-22T11:12:24Z,3,9,0,1,3,"[8af92eb8-fb84-4aa6-9539-abc95216dcd7,be481045-4448-42ae-bbac-3455ce914202,549187e0-82c9-4014-a48d-31f18083d575]","{}",40.8839416503906,-74.0243835449219
+        <pre tabindex="0"><code class="language-csv">label_cluster_id,label_type,street_edge_id,osm_way_id,region_id,region_name,avg_image_capture_date,avg_label_date,median_severity,agree_count,disagree_count,unsure_count,cluster_size,label_ids,users,tag_counts,avg_latitude,avg_longitude
+124,CurbRamp,951,11584845,8,Teaneck Community Charter School,2012-08-15T00:00:00Z,2023-06-20T14:32:45Z,1,18,2,0,5,"[8,12,14,19,27]","[18b26a38-24ab-402d-a64e-158fc0bb8a8a,53ad4d79-9a7b-4d3c-a753-63bbfca34c9b]","{""points into street"":2,""missing tactile warning"":1}",40.8839912414551,-74.0243606567383
+125,NoCurbRamp,952,11566031,8,Teaneck Community Charter School,2012-08-15T00:00:00Z,2023-06-22T11:12:24Z,3,9,0,1,3,"[31,35,42]","[8af92eb8-fb84-4aa6-9539-abc95216dcd7,be481045-4448-42ae-bbac-3455ce914202,549187e0-82c9-4014-a48d-31f18083d575]","{}",40.8839416503906,-74.0243835449219
 ...</code></pre>
 
-        <p>Note: The <code>labels</code> array is not included in the CSV output even when <code>includeRawLabels=true</code> is specified, as the nested data structure is not suitable for the CSV format.</p>
+        <p>When <code>includeRawLabels=true</code> is specified with <code>filetype=csv</code>, the response will be a ZIP archive containing two CSV files:</p>
+        <ul>
+            <li><code>*_clusters.csv</code> — The label clusters data (same format as above).</li>
+            <li><code>*_labels.csv</code> — The individual raw labels, with a <code>label_cluster_id</code> column to link each label back to its parent cluster. Columns: <code>label_cluster_id</code>, <code>label_id</code>, <code>user_id</code>, <code>pano_id</code>, <code>severity</code>, <code>time_created</code>, <code>latitude</code>, <code>longitude</code>, <code>correct</code>, <code>image_capture_date</code>.</li>
+        </ul>
 
         <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-        <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). </p>
+        <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). When <code>includeRawLabels=true</code> is specified, the ZIP will contain a second set of Shapefile components with a <code>_labels</code> suffix, representing the individual raw labels as a separate layer.</p>
 
         <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
-        <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage file (<code>.gpkg</code>). This is an open standard format based on SQLite that contains both geometry and attributes in a single file, generally without the field name limitations of Shapefiles. CRS is typically WGS84 (EPSG:4326). </p>
+        <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage file (<code>.gpkg</code>). This is an open standard format based on SQLite that contains both geometry and attributes in a single file, generally without the field name limitations of Shapefiles. CRS is typically WGS84 (EPSG:4326). When <code>includeRawLabels=true</code> is specified, the GeoPackage will contain a second layer named <code>raw_labels</code> in addition to the <code>label_clusters</code> layer.</p>
 
         <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
         <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>

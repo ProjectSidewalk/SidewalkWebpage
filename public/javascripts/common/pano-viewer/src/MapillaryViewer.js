@@ -26,7 +26,7 @@ class MapillaryViewer extends PanoViewer {
         let disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
         let defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
         let panoOpts = {
-            accessToken: panoOptions.accessToken,
+            dataProvider: createMapillaryChunkedDataProvider({ accessToken: panoOptions.accessToken }),
             container: canvasElem.id,
             component: {
                 bearing: !disableDefaultUi, // Shows heading viewer orb thing
@@ -314,14 +314,7 @@ class MapillaryViewer extends PanoViewer {
                 // Load the pano. Say that it failed if it doesn't work after 10 seconds.
                 // TODO If the pano fails to load, we should try the next closest pano. Getting an issue where the pano
                 //      with ID 859880776211217 never loads, but there are plenty of others at that location.
-                this.changingPanoOurselves = true;
-                return await Promise.race([
-                    this.viewer.moveTo(closestPano.id).then(this._getPanoramaCallback),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out')), 10000))
-                ]).catch(() => {
-                    console.error('Failed to load pano: ', closestPano.id);
-                    throw new Error('Failed to load pano: ', closestPano.id);
-                });
+                return await this.setPano(closestPano.id);
             } else {
                 throw new Error(JSON.stringify(data));
             }
@@ -333,7 +326,13 @@ class MapillaryViewer extends PanoViewer {
 
     setPano = async (panoId) => {
         this.changingPanoOurselves = true;
-        return this.viewer.moveTo(panoId).then(this._getPanoramaCallback);
+        return Promise.race([
+            this.viewer.moveTo(panoId).then(this._getPanoramaCallback),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out')), 8000))
+        ]).catch(() => {
+            console.error('Failed to load pano: ', closestPano.id);
+            throw new Error('Failed to load pano: ', closestPano.id);
+        });
     }
 
     getLinkedPanos = () => {

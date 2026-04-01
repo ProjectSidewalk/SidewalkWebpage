@@ -146,6 +146,8 @@
         "longitude": "Lengtegraad",
         "panorama-id": "Panorama-ID",
         "google-street-view": "Google Street View",
+        "mapillary": "Mapillary",
+        "infra3d": "infra3D",
         "street-id": "Straat-ID",
         "region-id": "Regio-ID",
         "label-id": "Etiket-ID",

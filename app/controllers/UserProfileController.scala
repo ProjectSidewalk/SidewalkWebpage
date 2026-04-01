@@ -150,9 +150,9 @@ class UserProfileController @Inject() (
           labelService.getRecentValidatedLabelsForUser(userId, labelTypes, n).map { validations =>
             val validationJson = Json.toJson(labelTypes.map { labelType =>
               labelType.name -> validations(labelType).map { l =>
-                val imageUrl: String =
-                  panoDataService.getImageUrl(l.panoId, l.pov.heading, l.pov.pitch, l.pov.zoom)
-                labelMetadataUserDashToJson(l, imageUrl)
+                val gsvImageUrl: Option[String] =
+                  panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
+                labelMetadataUserDashToJson(l, gsvImageUrl)
               }
             }.toMap)
             Ok(validationJson)

@@ -210,7 +210,7 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
      * @param {*} callback Function to be called when labels arrive.
      */
     function fetchLabels(labelTypeId, n, validationOptions, loadedLabels, neighborhoods, severities, tags, aiValidationOptions, callback) {
-        var url = "/label/labels";
+        const url = "/label/labels";
         let data = {
             label_type_id: labelTypeId,
             n: n,
@@ -230,15 +230,12 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
             dataType: "json",
             success: function(data) {
                 if ("labelsOfType" in data) {
-                    let labels = data.labelsOfType
-                    let card;
+                    const labels = data.labelsOfType;
                     for (let i = 0; i < labels.length; i++) {
-                        let labelProp = labels[i];
-                        if ("label" in labelProp && "imageUrl" in labelProp) {
-                            card = new Card(labelProp.label, labelProp.imageUrl, expandedView);
-                            self.push(card);
-                            loadedLabelIds.add(card.getLabelId());
-                        }
+                    const labelProp = labels[i];
+                        const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl, expandedView);
+                        self.push(card);
+                        loadedLabelIds.add(card.getLabelId());
                     }
                     if (callback) callback();
                 }
