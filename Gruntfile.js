@@ -95,6 +95,7 @@ module.exports = function(grunt) {
                     'public/javascripts/common/pano-viewer/src/PanoUtilities.js',
                     'public/javascripts/common/pano-viewer/src/PanoViewer.js',
                     'public/javascripts/common/pano-viewer/src/GsvViewer.js',
+                    'public/javascripts/common/pano-viewer/src/MapillaryChunkedDataProvider.js',
                     'public/javascripts/common/pano-viewer/src/MapillaryViewer.js',
                     'public/javascripts/common/pano-viewer/src/Infra3dViewer.js'
                 ],

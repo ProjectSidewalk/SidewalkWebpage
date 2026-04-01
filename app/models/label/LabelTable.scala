@@ -116,8 +116,9 @@ case class LabelCount(count: Int, timeInterval: TimeInterval, labelType: String)
 // Defines some common fields for a label metadata, which allows us to create generic functions using these fields.
 trait BasicLabelMetadata {
   val labelId: Int
-  val labelType: String
+  val labelType: LabelTypeEnum.Base
   val panoId: String
+  val panoSource: PanoSource
   val pov: POV
 }
 
@@ -134,7 +135,7 @@ case class LabelMetadata(
     userId: String,
     username: String,
     timestamp: OffsetDateTime,
-    labelType: String,
+    labelType: LabelTypeEnum.Base,
     severity: Option[Int],
     description: Option[String],
     userValidation: Option[Int],
@@ -143,7 +144,8 @@ case class LabelMetadata(
     tags: List[String],
     lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean),
     comments: Option[Seq[String]],
-    aiGenerated: Boolean
+    aiGenerated: Boolean,
+    expired: Boolean
 )
 
 // Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
@@ -197,10 +199,11 @@ case class LabelDataForAi(labelId: Int, labelTypeId: Int, labelPoint: LabelPoint
 case class LabelMetadataUserDash(
     labelId: Int,
     panoId: String,
+    panoSource: PanoSource,
     pov: POV,
     canvasX: Int,
     canvasY: Int,
-    labelType: String,
+    labelType: LabelTypeEnum.Base,
     timeValidated: OffsetDateTime,
     validatorComment: Option[String]
 ) extends BasicLabelMetadata
@@ -208,8 +211,9 @@ case class LabelMetadataUserDash(
 // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
 case class LabelValidationMetadata(
     labelId: Int,
-    labelType: String,
+    labelType: LabelTypeEnum.Base,
     panoId: String,
+    panoSource: PanoSource,
     imageCaptureDate: String,
     timestamp: OffsetDateTime,
     lat: Double,
@@ -281,10 +285,11 @@ object LabelTable {
   // Type aliases for the tuple representation of LabelMetadataUserDash and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
   type LabelMetadataUserDashTuple =
-    (Int, String, (Double, Double, Double), Int, Int, String, OffsetDateTime, Option[String])
+    (Int, String, PanoSource, (Double, Double, Double), Int, Int, String, OffsetDateTime, Option[String])
   type LabelMetadataUserDashTupleRep = (
       Rep[Int],                                // labelId
       Rep[String],                             // panoId
+      Rep[PanoSource],                         // panoSource
       (Rep[Double], Rep[Double], Rep[Double]), // pov (heading, pitch, zoom)
       Rep[Int],                                // canvasX
       Rep[Int],                                // canvasY
@@ -297,7 +302,7 @@ object LabelTable {
   implicit val labelMetadataUserDashConverter: TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] =
     new TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] {
       def fromTuple(t: LabelMetadataUserDashTuple): LabelMetadataUserDash =
-        LabelMetadataUserDash(t._1, t._2, POV.tupled(t._3), t._4, t._5, t._6, t._7, t._8)
+        LabelMetadataUserDash(t._1, t._2, t._3, POV.tupled(t._4), t._5, t._6, LabelTypeEnum.byName(t._7), t._8, t._9)
     }
 
   // Type aliases for the tuple representation of LabelValidationMetadata and queries for them.
@@ -306,6 +311,7 @@ object LabelTable {
       Int,                              // labelId
       String,                           // labelType
       String,                           // panoId
+      PanoSource,                       // panoSource
       String,                           // imageCaptureDate
       OffsetDateTime,                   // timestamp
       Option[Double],                   // lat
@@ -329,6 +335,7 @@ object LabelTable {
       Rep[Int],                                             // labelId
       Rep[String],                                          // labelType
       Rep[String],                                          // panoId
+      Rep[PanoSource],                                      // panoSource
       Rep[String],                                          // imageCaptureDate
       Rep[OffsetDateTime],                                  // timestamp
       Rep[Option[Double]],                                  // lat
@@ -353,8 +360,9 @@ object LabelTable {
   implicit val labelValidationMetadataConverter: TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] =
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
       def fromTuple(t: LabelValidationMetadataTuple): LabelValidationMetadata = LabelValidationMetadata(
-        t._1, t._2, t._3, t._4, t._5, t._6.get, t._7.get, POV.tupled(t._8), LocationXY.tupled(t._9), t._10, t._11,
-        t._12, t._13, LabelValidationInfo.tupled(t._14), t._15, t._16, t._17, t._18, t._19, t._20, t._21
+        t._1, LabelTypeEnum.byName(t._2), t._3, t._4, t._5, t._6, t._7.get, t._8.get, POV.tupled(t._9),
+        LocationXY.tupled(t._10), t._11, t._12, t._13, t._14, LabelValidationInfo.tupled(t._15), t._16, t._17, t._18,
+        t._19, t._20, t._21, t._22
       )
     }
 
@@ -548,7 +556,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextString(),
       r.nextString(),
       OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC),
-      r.nextString(),
+      LabelTypeEnum.byName(r.nextString()),
       r.nextIntOption(),
       r.nextStringOption(),
       r.nextIntOption(), // userValidation
@@ -557,6 +565,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextString().split(",").filter(_.nonEmpty).toList,
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
       r.nextStringOption().filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toSeq),
+      r.nextBoolean(),
       r.nextBoolean()
     )
   }
@@ -749,7 +758,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              at.incomplete,
              at.stale,
              comment.comments,
-             r.role = 'AI' AS ai_generated
+             r.role = 'AI' AS ai_generated,
+             pano_data.expired
       FROM label AS lb1
       INNER JOIN pano_data ON lb1.pano_id = pano_data.pano_id
       INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
@@ -920,6 +930,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           l.labelId,
           labelType,
           l.panoId,
+          pd.source,
           pd.captureDate,
           l.timeCreated,
           lp.lat,
@@ -1062,6 +1073,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       lb.labelId,
       labelType,
       lb.panoId,
+      pd.source,
       pd.captureDate,
       lb.timeCreated,
       lp.lat,
@@ -1131,6 +1143,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     } yield (
       _lb.labelId,
       _lb.panoId,
+      _pd.source,
       (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom.asColumnOf[Double]),
       _lp.canvasX,
       _lp.canvasY,
