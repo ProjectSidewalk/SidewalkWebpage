@@ -118,6 +118,11 @@ class PanoManager {
         this.cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
         this.fallbackLabel = label || null;
         this.svHolder.css('visibility', 'hidden');
+
+        // Can't leave the canvas as disaply: none if we want the pano to successfully load.
+        $(this.panoCanvas).css('display', 'block');
+        $(this.fallbackContainer).css('display', 'none');
+
         return sg.panoViewer.setPano(panoId).then(this.#panoSuccessCallback, this.#panoFailureCallback).then((panoData) => {
             if (panoData) sg.panoViewer.setPov(pov);
             this.svHolder.css('visibility', 'visible');
