@@ -107,7 +107,7 @@ class PanoViewer {
     /**
      * Sets the panorama to the location closest to the specified lat/lng.
      * @param {{lat: number, lng: number}} latLng The desired location to move to.
-     * @param {Set<string>} [excludedPanos=new Set()] Set of pano IDs that are not valid images to move to.
+     * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to.
      * @returns {Promise<PanoData>} The panorama data object. Rejects if closest image is in excludedPanos or none found.
      */
     async setLocation(latLng, excludedPanos = new Set()) {

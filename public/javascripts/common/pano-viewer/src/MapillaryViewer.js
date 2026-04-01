@@ -205,6 +205,7 @@ class MapillaryViewer extends PanoViewer {
             turf.destination(centerPoint, radius, 0).geometry.coordinates[1]    // North
         ];
 
+        // Parameters listed here: https://www.mapillary.com/developer/api-documentation#image
         const params = new URLSearchParams({
             access_token: this.viewer._navigator._api._data._accessToken,
             fields: 'id,geometry,computed_geometry,captured_at,sequence,width,camera_type,computed_rotation',
@@ -262,14 +263,15 @@ class MapillaryViewer extends PanoViewer {
         // TODO should be able to use this to find (or decide on our own) links if we want.
         // NOTE The 'limit' API param doesn't do what it says. Including it can make the API return no images when the
         //      limit is set to something greater than 0 and we get images if we exclude the limit param. Don't use it!
-        // NOTE I found at least one situation where where duplicate images had been uploaded under different users.
-        //      The `captured_at` fields were identical, so maybe that could be used to weed out duplicates if this
-        //      becomes an issue? I haven't checked that the capture time is consistently different between consecutive
-        //      panos though, so I don't want to start doing that filtering without more testing.
         const centerPoint = turf.point([latLng.lng, latLng.lat]);
         let success = false;
         let data;
         let potentialPanos;
+
+        // Build sets of excluded pano IDs and captured_at timestamps. Mapillary has an issue where duplicate images
+        // can exist with different IDs but the same captured_at, so we filter on both.
+        const excludedPanoIds = new Set([...excludedPanos].map(p => p.getPanoId()));
+        const excludedTimestamps = new Set([...excludedPanos].map(p => p.getProperty('captureDate').valueOf()));
 
         try {
             while (!success && radius > 0) {
@@ -279,7 +281,9 @@ class MapillaryViewer extends PanoViewer {
                 console.log(data);
 
                 if (data.data) {
-                    potentialPanos = data.data.filter(pano => !excludedPanos.has(pano.id));
+                    potentialPanos = data.data
+                        .filter(pano => !excludedPanoIds.has(pano.id) && !excludedTimestamps.has(pano.captured_at));
+
                     if (potentialPanos.length > 0) {
                         success = true;
                     } else {
@@ -299,11 +303,11 @@ class MapillaryViewer extends PanoViewer {
                 // Find image that is closest to the input lat/lng that isn't in the excluded list.
                 // TODO we could take into account recency, resolution, etc here as well!
                 let closestPano = potentialPanos[0];
-                let currGeom = closestPano.computed_geometry ? closestPano.computed_geometry : closestPano.geometry;
+                let currGeom = closestPano.computed_geometry || closestPano.geometry;
                 let closestDist = turf.distance(centerPoint, turf.point(currGeom.coordinates));
                 for (let i = 1; i < potentialPanos.length; i++) {
                     const currPano = potentialPanos[i];
-                    currGeom = currPano.computed_geometry ? currPano.computed_geometry : currPano.geometry;
+                    currGeom = currPano.computed_geometry || currPano.geometry;
                     const currDist = turf.distance(centerPoint, turf.point(currGeom.coordinates));
                     if (currDist < closestDist) {
                         closestPano = currPano;
@@ -330,8 +334,8 @@ class MapillaryViewer extends PanoViewer {
             this.viewer.moveTo(panoId).then(this._getPanoramaCallback),
             new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out')), 8000))
         ]).catch(() => {
-            console.error('Failed to load pano: ', closestPano.id);
-            throw new Error('Failed to load pano: ', closestPano.id);
+            console.error('Failed to load pano: ', panoId);
+            throw new Error('Failed to load pano: ', panoId);
         });
     }
 

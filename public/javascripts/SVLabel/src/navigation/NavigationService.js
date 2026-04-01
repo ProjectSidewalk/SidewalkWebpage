@@ -361,17 +361,17 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         let remainder = turf.cleanCoords(turf.lineSlice(startLatLng, streetEndpoint, streetEdge));
         let currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
 
-        // Save the current pano ID as one that you're stuck at.
-        const currentPano = svl.panoViewer.getPanoId();
+        // Save the current pano as one that you're stuck at.
+        const currentPano = svl.panoStore.getPanoData(svl.panoViewer.getPanoId());
         _stuckPanos.add(currentPano);
 
         // Set how far to move forward along the street for each new attempt at finding imagery to 10 meters.
         const DIST_INCREMENT = 0.01;
 
         let successCallback = function() {
-            // Save current pano ID as one that doesn't work in case they try to move before clicking 'stuck' again.
+            // Save current pano as one that doesn't work in case they try to move before clicking 'stuck' again.
             const newPanoId = svl.panoViewer.getPanoId();
-            _stuckPanos.add(newPanoId);
+            _stuckPanos.add(svl.panoStore.getPanoData(newPanoId));
             _updateUiAfterMove();
             return Promise.resolve(newPanoId);
         }

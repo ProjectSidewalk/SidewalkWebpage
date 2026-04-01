@@ -142,13 +142,14 @@ class GsvViewer extends PanoViewer {
     /**
      * A callback to getPanorama() that packages the data into a PanoData object. Resolves when pano has done loading.
      * @param {object} newPanoData The pano data returned from StreetViewService.getPanorama()
-     * @param {Set<string>} [excludedPanos=new Set()] Set of pano IDs that are not valid images to move to.
+     * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to.
      * @returns {Promise<PanoData>} The PanoData object created from newPanoData
      * @private
      */
     #getPanoramaCallback = async (newPanoData, excludedPanos = new Set()) => {
         // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing.
-        if (excludedPanos.has(newPanoData.data.location.pano)) {
+        const excludedPanoIds = new Set([...excludedPanos].map(p => p.getPanoId()));
+        if (excludedPanoIds.has(newPanoData.data.location.pano)) {
             throw new Error(`Excluded pano: ${newPanoData.data.location.pano}`);
         }
 
