@@ -77,7 +77,7 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
             height: '100%',
             'object-fit': 'cover'
         })[0];
-        self.fallbackMarker = $('<img id="pano-fallback-marker">').css({
+        self.fallbackMarker = $('<img id="pano-fallback-marker">').addClass('icon-outline').css({
             position: 'absolute',
             width: '20px',
             height: '20px',
@@ -129,18 +129,23 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
      * @param panoId
      * @param {{heading: number, pitch: number, zoom: number}} pov
      * @param {string|null} cropUrl URL for the screenshot fallback image, if available.
+     * @param {boolean} expired Whether the panorama imagery is known to be expired.
      */
-    async function setPano(panoId, pov, cropUrl) {
+    async function setPano(panoId, pov, cropUrl, expired = false) {
         self.cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
         self.svHolder.css('visibility', 'hidden'); // Hide until we've finished rendering.
         let panoLoaded = false;
-        return self.panoViewer.setPano(panoId).then(
-            () => { panoLoaded = true; return _panoSuccessCallback(pov); },
-            _panoFailureCallback
-        ).then(() => {
-            self.svHolder.css('visibility', 'visible');
-            return panoLoaded;
-        });
+        // If the imagery is expired and we have a fallback image, skip the pano API call.
+        if (expired && self.cropUrl) {
+            await _panoFailureCallback();
+        } else {
+            await self.panoViewer.setPano(panoId).then(
+                () => { panoLoaded = true; return _panoSuccessCallback(pov); },
+                _panoFailureCallback
+            );
+        }
+        self.svHolder.css('visibility', 'visible');
+        return panoLoaded;
     }
 
     /**

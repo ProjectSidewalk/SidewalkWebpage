@@ -7,7 +7,7 @@ import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin}
-import models.label.{LabelMetadata, LabelTypeEnum}
+import models.label.LabelMetadata
 import models.user.{RoleTable, SidewalkUserWithRole}
 import models.validation.LabelValidationTable
 import org.apache.pekko.actor.ActorSystem
@@ -54,9 +54,10 @@ class AdminController @Inject() (
 
   /** Returns a JsObject with "crop_url" set to the crop image path if the crop exists, or null otherwise. */
   private def cropUrlJson(metadata: LabelMetadata): JsObject = {
-    val cropUrl: Option[String] = LabelTypeEnum.byName.get(metadata.labelType).collect {
-      case lt if panoDataService.cropExists(metadata.labelId, lt) => s"/cropImage/${lt.name}/${metadata.labelId}"
-    }
+    val cropUrl: Option[String] =
+      if (panoDataService.cropExists(metadata.labelId, metadata.labelType))
+        Some(s"/cropImage/${metadata.labelType.name}/${metadata.labelId}")
+      else None
     Json.obj("crop_url" -> cropUrl)
   }
 

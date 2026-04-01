@@ -8,6 +8,8 @@ import play.api.libs.json._
 import java.time.OffsetDateTime
 
 object LabelFormats {
+  implicit val labelTypeEnumWrites: Writes[LabelTypeEnum.Base] = Writes(lt => JsString(lt.name))
+
   implicit val labelWrites: Writes[Label] = (
     (__ \ "label_id").write[Int] and
       (__ \ "audit_task_id").write[Int] and
@@ -62,30 +64,33 @@ object LabelFormats {
     }
   }
 
-  implicit val labelMetadataWrites: Writes[LabelMetadata] = (
-    (__ \ "label_id").write[Int] and
-      (__ \ "pano_id").write[String] and
-      (__ \ "tutorial").write[Boolean] and
-      (__ \ "image_capture_date").write[String] and
-      (__ \ "pov").write[POV] and
-      (__ \ "canvas_location").write[LocationXY] and
-      (__ \ "audit_task_id").write[Int] and
-      (__ \ "street_edge_id").write[Int] and
-      (__ \ "region_id").write[Int] and
-      (__ \ "user_id").write[String] and
-      (__ \ "username").write[String] and
-      (__ \ "timestamp").write[OffsetDateTime] and
-      (__ \ "label_type").write[String] and
-      (__ \ "severity").write[Option[Int]] and
-      (__ \ "description").write[Option[String]] and
-      (__ \ "user_validation").write[Option[Int]] and
-      (__ \ "ai_validation").write[Option[Int]] and
-      (__ \ "validations").write[Map[String, Int]] and
-      (__ \ "tags").write[List[String]] and
-      (__ \ "low_quality_incomplete_stale_flags").write[(Boolean, Boolean, Boolean)] and
-      (__ \ "comments").write[Option[Seq[String]]] and
-      (__ \ "ai_generated").write[Boolean]
-  )(unlift(LabelMetadata.unapply))
+  implicit val labelMetadataWrites: Writes[LabelMetadata] = Writes { m =>
+    Json.obj(
+      "label_id"                           -> m.labelId,
+      "pano_id"                            -> m.panoId,
+      "tutorial"                           -> m.tutorial,
+      "image_capture_date"                 -> m.imageCaptureDate,
+      "pov"                                -> m.pov,
+      "canvas_location"                    -> m.canvasXY,
+      "audit_task_id"                      -> m.auditTaskId,
+      "street_edge_id"                     -> m.streetEdgeId,
+      "region_id"                          -> m.regionId,
+      "user_id"                            -> m.userId,
+      "username"                           -> m.username,
+      "timestamp"                          -> m.timestamp,
+      "label_type"                         -> m.labelType,
+      "severity"                           -> m.severity,
+      "description"                        -> m.description,
+      "user_validation"                    -> m.userValidation,
+      "ai_validation"                      -> m.aiValidation,
+      "validations"                        -> m.validations,
+      "tags"                               -> m.tags,
+      "low_quality_incomplete_stale_flags" -> m.lowQualityIncompleteStaleFlags,
+      "comments"                           -> m.comments,
+      "ai_generated"                       -> m.aiGenerated,
+      "expired"                            -> m.expired
+    )
+  }
 
   def validationLabelMetadataToJson(
       labelMetadata: LabelValidationMetadata,
@@ -148,7 +153,7 @@ object LabelFormats {
       "street_edge_id"     -> labelMetadata.streetEdgeId,
       "region_id"          -> labelMetadata.regionId,
       "timestamp"          -> labelMetadata.timestamp,
-      "label_type"         -> labelMetadata.labelType,
+      "label_type"         -> labelMetadata.labelType.name,
       "severity"           -> labelMetadata.severity,
       "description"        -> labelMetadata.description,
       "user_validation"    -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
@@ -158,7 +163,8 @@ object LabelFormats {
       "num_unsure"         -> labelMetadata.validations("unsure"),
       "comments"           -> labelMetadata.comments,
       "tags"               -> labelMetadata.tags,
-      "ai_generated"       -> labelMetadata.aiGenerated
+      "ai_generated"       -> labelMetadata.aiGenerated,
+      "expired"            -> labelMetadata.expired
     )
   }
 

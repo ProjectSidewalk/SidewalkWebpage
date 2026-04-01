@@ -135,7 +135,7 @@ case class LabelMetadata(
     userId: String,
     username: String,
     timestamp: OffsetDateTime,
-    labelType: String,
+    labelType: LabelTypeEnum.Base,
     severity: Option[Int],
     description: Option[String],
     userValidation: Option[Int],
@@ -144,7 +144,8 @@ case class LabelMetadata(
     tags: List[String],
     lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean),
     comments: Option[Seq[String]],
-    aiGenerated: Boolean
+    aiGenerated: Boolean,
+    expired: Boolean
 )
 
 // Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
@@ -555,7 +556,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextString(),
       r.nextString(),
       OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC),
-      r.nextString(),
+      LabelTypeEnum.byName(r.nextString()),
       r.nextIntOption(),
       r.nextStringOption(),
       r.nextIntOption(), // userValidation
@@ -564,6 +565,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextString().split(",").filter(_.nonEmpty).toList,
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
       r.nextStringOption().filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toSeq),
+      r.nextBoolean(),
       r.nextBoolean()
     )
   }
@@ -756,7 +758,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              at.incomplete,
              at.stale,
              comment.comments,
-             r.role = 'AI' AS ai_generated
+             r.role = 'AI' AS ai_generated,
+             pano_data.expired
       FROM label AS lb1
       INNER JOIN pano_data ON lb1.pano_id = pano_data.pano_id
       INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id

@@ -616,7 +616,7 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, userMap) 
                 self.modalPanoLink.children(':first').attr('href', href);
             }
         };
-        self.panoManager.setPano(labelMetadata.pano_id, labelPov, labelMetadata.crop_url).then((panoLoaded) => {
+        self.panoManager.setPano(labelMetadata.pano_id, labelPov, labelMetadata.crop_url, labelMetadata.expired).then((panoLoaded) => {
             if (panoLoaded) panoCallback();
         });
 
