@@ -217,6 +217,57 @@ class MapillaryViewer extends PanoViewer {
     };
 
     /**
+     * Scores a candidate Mapillary image for selection, balancing multiple factors.
+     *
+     * @param {Object} pano Raw pano object from the Mapillary API response.
+     * @param {turf.Point} centerPoint The target location we're trying to move to.
+     * @param {turf.Point|null} currentPos Our current position (null on initial load).
+     * @param {string|null} currentSequenceId The sequence ID of the current image (null on initial load).
+     * @returns {number} A score between 0 and 1 where higher is better.
+     */
+    #scorePano = (pano, centerPoint, currentPos, currentSequenceId) => {
+        const geom = pano.computed_geometry || pano.geometry;
+        const panoPoint = turf.point(geom.coordinates);
+        const distToTarget = turf.distance(centerPoint, panoPoint, { units: 'meters' });
+
+        // Distance to target (dominant factor). Exponential decay with 10m scale.
+        // At 0m → 1.0, at 10m → 0.37, at 25m → 0.08.
+        const distanceScore = Math.exp(-distToTarget / 10);
+
+        // Resolution: linear scale, capped at 16384px wide.
+        // Common values: 2048 → 0.13, 5376 → 0.33, 8192 → 0.50, 12288 → 0.75, 16384 → 1.0.
+        const resolutionScore = Math.min(pano.width / 16384, 1);
+
+        // Recency: exponential decay by age in years, 3-year scale.
+        // Fresh → 1.0, 3yr old → 0.37, 6yr → 0.14.
+        const ageYears = (Date.now() - pano.captured_at) / (365.25 * 24 * 3600 * 1000);
+        const recencyScore = Math.exp(-ageYears / 3);
+
+        // Sequence continuity: prefer staying in the current sequence for smoother navigation.
+        const sequenceScore = (currentSequenceId && pano.sequence === currentSequenceId) ? 1 : 0;
+
+        // Progress: penalize images that are "backwards" relative to the goal direction. An image is backwards if the
+        // bearing from current position to it is >90° off from the bearing to the goal. Images that overshoot past the
+        // goal are still considered forward progress.
+        let progressScore = 1;
+        if (currentPos) {
+            const bearingToGoal = turf.bearing(currentPos, centerPoint);
+            const bearingToPano = turf.bearing(currentPos, panoPoint);
+            let angleDiff = Math.abs(bearingToGoal - bearingToPano);
+            if (angleDiff > 180) angleDiff = 360 - angleDiff;
+            if (angleDiff > 90) {
+                progressScore = 0;
+            }
+        }
+
+        return 0.50 * distanceScore
+             + 0.20 * resolutionScore
+             + 0.20 * recencyScore
+             + 0.05 * sequenceScore
+             + 0.05 * progressScore;
+    };
+
+    /**
      * Extracts camera pitch and roll from a Mapillary image's rotation vector.
      *
      * Mapillary's coordinate system: X=East, Y=North, Z=Up.
@@ -300,25 +351,25 @@ class MapillaryViewer extends PanoViewer {
             }
 
             if (potentialPanos && potentialPanos.length > 0) {
-                // Find image that is closest to the input lat/lng that isn't in the excluded list.
-                // TODO we could take into account recency, resolution, etc here as well!
-                let closestPano = potentialPanos[0];
-                let currGeom = closestPano.computed_geometry || closestPano.geometry;
-                let closestDist = turf.distance(centerPoint, turf.point(currGeom.coordinates));
+                // Score each candidate image, balancing proximity, resolution, recency, sequence continuity, and
+                // forward progress toward the goal location.
+                const currentPos = this.currImage ? turf.point([this.currImage.lngLat.lng, this.currImage.lngLat.lat]) : null;
+                const currentSequenceId = this.currImage ? this.currImage.sequenceId : null;
+
+                let bestPano = potentialPanos[0];
+                let bestScore = this.#scorePano(bestPano, centerPoint, currentPos, currentSequenceId);
                 for (let i = 1; i < potentialPanos.length; i++) {
-                    const currPano = potentialPanos[i];
-                    currGeom = currPano.computed_geometry || currPano.geometry;
-                    const currDist = turf.distance(centerPoint, turf.point(currGeom.coordinates));
-                    if (currDist < closestDist) {
-                        closestPano = currPano;
-                        closestDist = currDist;
+                    const score = this.#scorePano(potentialPanos[i], centerPoint, currentPos, currentSequenceId);
+                    if (score > bestScore) {
+                        bestPano = potentialPanos[i];
+                        bestScore = score;
                     }
                 }
 
                 // Load the pano. Say that it failed if it doesn't work after 10 seconds.
                 // TODO If the pano fails to load, we should try the next closest pano. Getting an issue where the pano
                 //      with ID 859880776211217 never loads, but there are plenty of others at that location.
-                return await this.setPano(closestPano.id);
+                return await this.setPano(bestPano.id);
             } else {
                 throw new Error(JSON.stringify(data));
             }
