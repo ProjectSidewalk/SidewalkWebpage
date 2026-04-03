@@ -225,11 +225,10 @@ class MapillaryViewer extends PanoViewer {
      *
      * @param {Object} pano Raw pano object from the Mapillary API response.
      * @param {turf.Point} centerPoint The target location we're trying to move to.
-     * @param {turf.Point|null} currentPos Our current position (null on initial load).
      * @param {string|null} currentSequenceId The sequence ID of the current image (null on initial load).
      * @returns {number} A score between 0 and 1 where higher is better.
      */
-    #scorePano = (pano, centerPoint, currentPos, currentSequenceId) => {
+    #scorePano = (pano, centerPoint, currentSequenceId) => {
         const geom = pano.computed_geometry || pano.geometry;
         const panoPoint = turf.point(geom.coordinates);
         const distToTarget = turf.distance(centerPoint, panoPoint, { units: 'meters' });
@@ -242,33 +241,18 @@ class MapillaryViewer extends PanoViewer {
         // Common values: 2048 → 0.13, 5376 → 0.33, 8192 → 0.50, 12288 → 0.75, 16384 → 1.0.
         const resolutionScore = Math.min(pano.width / 16384, 1);
 
-        // Recency: exponential decay by age in years, 3-year scale.
-        // Fresh → 1.0, 3yr old → 0.37, 6yr → 0.14.
+        // Recency: exponential decay by age in years, 5-year scale.
+        // Fresh → 1.0, 3yr old → 0.55, 8yr → 0.20.
         const ageYears = (Date.now() - pano.captured_at) / (365.25 * 24 * 3600 * 1000);
-        const recencyScore = Math.exp(-ageYears / 3);
+        const recencyScore = Math.exp(-ageYears / 5);
 
         // Sequence continuity: prefer staying in the current sequence for smoother navigation.
         const sequenceScore = (currentSequenceId && pano.sequence === currentSequenceId) ? 1 : 0;
 
-        // Progress: penalize images that are "backwards" relative to the goal direction. An image is backwards if the
-        // bearing from current position to it is >90° off from the bearing to the goal. Images that overshoot past the
-        // goal are still considered forward progress.
-        let progressScore = 1;
-        if (currentPos) {
-            const bearingToGoal = turf.bearing(currentPos, centerPoint);
-            const bearingToPano = turf.bearing(currentPos, panoPoint);
-            let angleDiff = Math.abs(bearingToGoal - bearingToPano);
-            if (angleDiff > 180) angleDiff = 360 - angleDiff;
-            if (angleDiff > 90) {
-                progressScore = 0;
-            }
-        }
-
-        return 0.50 * distanceScore
-             + 0.20 * resolutionScore
-             + 0.20 * recencyScore
-             + 0.05 * sequenceScore
-             + 0.05 * progressScore;
+        return 0.45 * distanceScore
+             + 0.25 * resolutionScore
+             + 0.25 * recencyScore
+             + 0.05 * sequenceScore;
     };
 
     /**
@@ -311,10 +295,9 @@ class MapillaryViewer extends PanoViewer {
     }
 
     setLocation = async (latLng, excludedPanos = new Set()) => {
-        const centerPoint = turf.point([latLng.lng, latLng.lat]);
+        const center = turf.point([latLng.lng, latLng.lat]);
         const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
-        const currentPos = this.currImage ? turf.point([this.currImage.lngLat.lng, this.currImage.lngLat.lat]) : null;
-        const currentSequenceId = this.currImage ? this.currImage.sequenceId : null;
+        const currSequenceId = this.currImage ? this.currImage.sequenceId : null;
 
         // Build sets of excluded pano IDs and captured_at timestamps. Mapillary has an issue where duplicate images
         // can exist with different IDs but the same captured_at, so we filter on both.
@@ -324,18 +307,14 @@ class MapillaryViewer extends PanoViewer {
         try {
             // Use a prefetched result if one exists near this location, otherwise fetch from the API and cache it.
             // If the prefetch yields no viable candidates (e.g. all excluded), fall back to a fresh API call.
-            const prefetch = this.#findNearestPrefetch(centerPoint);
-            let panos = await (prefetch ?? this.#storePrefetch(centerPoint, radius)).promise;
-            let bestPano = this.#selectBestPano(
-                panos, excludedPanoIds, excludedTimestamps, centerPoint, currentPos, currentSequenceId
-            );
+            const prefetch = this.#findNearestPrefetch(center);
+            let panos = await (prefetch ?? this.#storePrefetch(center, radius)).promise;
+            let bestPano = this.#selectBestPano(panos, excludedPanoIds, excludedTimestamps, center, currSequenceId);
 
             if (!bestPano && prefetch) {
                 // Making fresh API call. Store the results in case they're useful later as well.
-                panos = await this.#storePrefetch(centerPoint, radius).promise;
-                bestPano = this.#selectBestPano(
-                    panos, excludedPanoIds, excludedTimestamps, centerPoint, currentPos, currentSequenceId
-                );
+                panos = await this.#storePrefetch(center, radius).promise;
+                bestPano = this.#selectBestPano(panos, excludedPanoIds, excludedTimestamps, center, currSequenceId);
             }
 
             if (!bestPano) {
@@ -446,11 +425,10 @@ class MapillaryViewer extends PanoViewer {
      * @param {Set<string>} excludedPanoIds Pano IDs to exclude.
      * @param {Set<number>} excludedTimestamps Capture timestamps to exclude (handles duplicate Mapillary images).
      * @param {turf.Point} centerPoint The target location.
-     * @param {turf.Point|null} currentPos Our current position (null on initial load).
      * @param {string|null} currentSequenceId The sequence ID of the current image (null on initial load).
      * @returns {Object|null} The best candidate pano, or null if none are viable.
      */
-    #selectBestPano = (panos, excludedPanoIds, excludedTimestamps, centerPoint, currentPos, currentSequenceId) => {
+    #selectBestPano = (panos, excludedPanoIds, excludedTimestamps, centerPoint, currentSequenceId) => {
         const candidates = panos.filter(
             pano => !excludedPanoIds.has(pano.id) && !excludedTimestamps.has(pano.captured_at)
         );
@@ -458,7 +436,7 @@ class MapillaryViewer extends PanoViewer {
         let bestPano = null;
         let bestScore = -1;
         for (const pano of candidates) {
-            const score = this.#scorePano(pano, centerPoint, currentPos, currentSequenceId);
+            const score = this.#scorePano(pano, centerPoint, currentSequenceId);
             if (score > bestScore) {
                 bestPano = pano;
                 bestScore = score;
@@ -471,7 +449,7 @@ class MapillaryViewer extends PanoViewer {
         this.changingPanoOurselves = true;
         return Promise.race([
             this.viewer.moveTo(panoId).then(this._getPanoramaCallback),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out')), 10000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out')), 12000))
         ]).catch(() => {
             console.error('Failed to load pano: ', panoId);
             throw new Error('Failed to load pano: ', panoId);
