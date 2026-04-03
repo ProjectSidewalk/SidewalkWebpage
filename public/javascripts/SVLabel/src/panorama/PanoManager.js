@@ -295,7 +295,7 @@ class PanoManager {
     /**
      * Sets the panorama ID. Adds a callback function that will record pano metadata and update the date text field.
      * @param {{lat: number, lng: number}} latLng The desired location to move to.
-     * @param {Set<string>} [excludedPanos=new Set()] Set of pano IDs that are not valid images to move to.
+     * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to.
      * @returns {Promise<PanoData>}
      */
     async setLocation(latLng, excludedPanos = new Set()) {

@@ -145,12 +145,13 @@ class Infra3dViewer extends PanoViewer {
     /**
      * If the new pano we arrived at is in the excluded list, go back to the previous one and throw an error.
      * @param {PanoData} newPanoData The pano data for the new panorama
-     * @param {Set<string>} [excludedPanos=new Set()] Set of pano IDs that are not valid images to move to
+     * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to
      * @returns {Promise<PanoData>} Rejects with error if new pano in excluded list; resolves with pano data otherwise
      */
     #filterExcludedPanos = (newPanoData, excludedPanos) => {
         // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing.
-        if (excludedPanos.has(newPanoData.getPanoId())) {
+        const excludedPanoIds = new Set([...excludedPanos].map(p => p.getPanoId()));
+        if (excludedPanoIds.has(newPanoData.getPanoId())) {
             return this.setPano(this.prevNode.frame.id).then(() => {
                 throw new Error(`Excluded pano: ${newPanoData.getPanoId()}`);
             });

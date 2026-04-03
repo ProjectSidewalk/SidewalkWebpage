@@ -27,6 +27,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
 
     const END_OF_STREET_THRESHOLD = 25; // Distance from the endpoint of the street when we consider it complete (meters).
     const moveDelay = 800; // Move delay prevents users from spamming through a mission.
+    const DIST_INCREMENT = 0.01; // Distance to move forward along the street on each imagery search attempt (km).
 
     function _init() {
         self.properties = properties; // Make properties public.
@@ -167,6 +168,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         svl.taskContainer.setCurrentTask(task);
         svl.taskContainer.setNextTaskAfterJump(null);
         enableWalking();
+
         await moveForward();
         svl.panoManager.setPovToRouteDirection();
         svl.jumpModel.triggerUserClickJumpMessage();
@@ -197,6 +199,12 @@ function NavigationService (neighborhoodModel, uiStreetview) {
                 } else if (!task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, { units: 'kilometers' })) {
                     // If jumping to a new place, record what the next task will be.
                     svl.taskContainer.setNextTaskAfterJump(nextTask);
+                }
+
+                if (nextTask) {
+                    // Clear prefetch cache from the previous street and start prefetching for the new street.
+                    svl.panoViewer.clearPrefetchCache();
+                    prefetchAlongStreet(nextTask.getFeature());
                 }
 
                 // Show message to the user instructing them to label the current location.
@@ -342,6 +350,22 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     }
 
     /**
+     * Prefetches Mapillary images for all potential goal points along a street. Fires off requests asynchronously so
+     * that subsequent setLocation() calls can skip the API round-trip. Safe to call multiple times for the same street
+     * — prefetchLocation() deduplicates requests, so only the first call actually fires API requests.
+     * @param {turf.Feature<turf.LineString>} streetGeometry A Turf LineString of the full street geometry.
+     */
+    function prefetchAlongStreet(streetGeometry) {
+        const totalLength = turf.length(streetGeometry); // km
+        let dist = 0;
+        while (dist <= totalLength) {
+            const point = turf.along(streetGeometry, dist);
+            svl.panoViewer.prefetchLocation({ lat: point.geometry.coordinates[1], lng: point.geometry.coordinates[0] });
+            dist += DIST_INCREMENT;
+        }
+    }
+
+    /**
      * Attempts to move the user forward by incrementally checking for imagery every few meters along the route.
      */
     async function moveForward() {
@@ -361,17 +385,29 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         let remainder = turf.cleanCoords(turf.lineSlice(startLatLng, streetEndpoint, streetEdge));
         let currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
 
-        // Save the current pano ID as one that you're stuck at.
-        const currentPano = svl.panoViewer.getPanoId();
+        // Prefetch images for the full street geometry. Using the full street (not just the remainder) ensures the
+        // sampled points are identical on every moveForward() call, so the dedup in prefetchLocation() makes this
+        // effectively a no-op after the first call on a given street.
+        prefetchAlongStreet(streetEdge);
+
+        // If the user is already near their furthest point, bump currLoc one step forward so we search for imagery
+        // that's actually ahead rather than cycling through other panos clustered at the current location.
+        // If they've wandered away from the route, keep currLoc at getFurthestPointReached() to bring them back.
+        const currPosition = svl.panoViewer.getPosition();
+        const distFromFurthest = turf.distance(turf.point([currPosition.lng, currPosition.lat]), startLatLng, { units: 'meters' });
+        if (distFromFurthest <= svl.STREETVIEW_MAX_DISTANCE && turf.length(remainder, { units: 'kilometers' }) > DIST_INCREMENT) {
+            remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, DIST_INCREMENT, streetEndpoint));
+            currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
+        }
+
+        // Save the current pano as one that you're stuck at.
+        const currentPano = svl.panoStore.getPanoData(svl.panoViewer.getPanoId());
         _stuckPanos.add(currentPano);
 
-        // Set how far to move forward along the street for each new attempt at finding imagery to 10 meters.
-        const DIST_INCREMENT = 0.01;
-
         let successCallback = function() {
-            // Save current pano ID as one that doesn't work in case they try to move before clicking 'stuck' again.
+            // Save current pano as one that doesn't work in case they try to move before clicking 'stuck' again.
             const newPanoId = svl.panoViewer.getPanoId();
-            _stuckPanos.add(newPanoId);
+            _stuckPanos.add(svl.panoStore.getPanoData(newPanoId));
             _updateUiAfterMove();
             return Promise.resolve(newPanoId);
         }
@@ -479,6 +515,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     self.switchToLabelingMode = switchToLabelingMode;
     self.switchToExploreMode = switchToExploreMode;
     self.setLabelBeforeJumpState = setLabelBeforeJumpState;
+    self.prefetchAlongStreet = prefetchAlongStreet;
     self.moveForward = moveForward;
     self.moveToPano = moveToPano;
     self.moveToLinkedPano = moveToLinkedPano;
