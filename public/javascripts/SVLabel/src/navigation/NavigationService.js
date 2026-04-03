@@ -354,7 +354,6 @@ function NavigationService (neighborhoodModel, uiStreetview) {
      * that subsequent setLocation() calls can skip the API round-trip. Safe to call multiple times for the same street
      * — prefetchLocation() deduplicates requests, so only the first call actually fires API requests.
      * @param {turf.Feature<turf.LineString>} streetGeometry A Turf LineString of the full street geometry.
-     * @private
      */
     function prefetchAlongStreet(streetGeometry) {
         const totalLength = turf.length(streetGeometry); // km
@@ -385,6 +384,21 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         // Remove the part of the street geometry that you've already passed using lineSlice.
         let remainder = turf.cleanCoords(turf.lineSlice(startLatLng, streetEndpoint, streetEdge));
         let currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
+
+        // Prefetch images for the full street geometry. Using the full street (not just the remainder) ensures the
+        // sampled points are identical on every moveForward() call, so the dedup in prefetchLocation() makes this
+        // effectively a no-op after the first call on a given street.
+        prefetchAlongStreet(streetEdge);
+
+        // If the user is already near their furthest point, bump currLoc one step forward so we search for imagery
+        // that's actually ahead rather than cycling through other panos clustered at the current location.
+        // If they've wandered away from the route, keep currLoc at getFurthestPointReached() to bring them back.
+        const currPosition = svl.panoViewer.getPosition();
+        const distFromFurthest = turf.distance(turf.point([currPosition.lng, currPosition.lat]), startLatLng, { units: 'meters' });
+        if (distFromFurthest <= svl.STREETVIEW_MAX_DISTANCE && turf.length(remainder, { units: 'kilometers' }) > DIST_INCREMENT) {
+            remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, DIST_INCREMENT, streetEndpoint));
+            currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
+        }
 
         // Save the current pano as one that you're stuck at.
         const currentPano = svl.panoStore.getPanoData(svl.panoViewer.getPanoId());
