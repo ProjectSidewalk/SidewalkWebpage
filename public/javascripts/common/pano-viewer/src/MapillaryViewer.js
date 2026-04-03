@@ -19,6 +19,10 @@ class MapillaryViewer extends PanoViewer {
 
         // A function to update image metadata after a pano change; only used if move happens thru Mapillary nav arrows.
         this.updateImageData = undefined;
+
+        // Prefetched image search results, keyed by location. Each entry is { centerPoint, promise: Promise<Array> }.
+        // Call prefetchLocation() to populate, clearPrefetchCache() to reset between streets.
+        this.prefetchedSearches = [];
     }
 
     async initialize(canvasElem, panoOptions = {}) {
@@ -307,17 +311,10 @@ class MapillaryViewer extends PanoViewer {
     }
 
     setLocation = async (latLng, excludedPanos = new Set()) => {
-        // Search for images near the coordinates.
-        // Docs for how to filter images: https://www.mapillary.com/developer/api-documentation#image
-        let radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
-        // TODO don't send accessToken in the URL: https://www.mapillary.com/developer/api-documentation#authentication
-        // TODO should be able to use this to find (or decide on our own) links if we want.
-        // NOTE The 'limit' API param doesn't do what it says. Including it can make the API return no images when the
-        //      limit is set to something greater than 0 and we get images if we exclude the limit param. Don't use it!
         const centerPoint = turf.point([latLng.lng, latLng.lat]);
-        let success = false;
-        let data;
-        let potentialPanos;
+        const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
+        const currentPos = this.currImage ? turf.point([this.currImage.lngLat.lng, this.currImage.lngLat.lat]) : null;
+        const currentSequenceId = this.currImage ? this.currImage.sequenceId : null;
 
         // Build sets of excluded pano IDs and captured_at timestamps. Mapillary has an issue where duplicate images
         // can exist with different IDs but the same captured_at, so we filter on both.
@@ -325,65 +322,156 @@ class MapillaryViewer extends PanoViewer {
         const excludedTimestamps = new Set([...excludedPanos].map(p => p.getProperty('captureDate').valueOf()));
 
         try {
-            while (!success && radius > 0) {
-                const url = this.#createPanoFetchUrl(centerPoint, radius);
-                const response = await fetch(url);
-                data = await response.json();
-                console.log(data);
+            // Use a prefetched result if one exists near this location, otherwise fetch from the API and cache it.
+            // If the prefetch yields no viable candidates (e.g. all excluded), fall back to a fresh API call.
+            const prefetch = this.#findNearestPrefetch(centerPoint);
+            let panos = await (prefetch ?? this.#storePrefetch(centerPoint, radius)).promise;
+            let bestPano = this.#selectBestPano(
+                panos, excludedPanoIds, excludedTimestamps, centerPoint, currentPos, currentSequenceId
+            );
 
-                if (data.data) {
-                    potentialPanos = data.data
-                        .filter(pano => !excludedPanoIds.has(pano.id) && !excludedTimestamps.has(pano.captured_at));
-
-                    if (potentialPanos.length > 0) {
-                        success = true;
-                    } else {
-                        throw new Error('No images found near this location');
-                    }
-                } else if (data.error && data.error.code === 1) {
-                    // If there were too many images in the bounding box, API fails. Try with a smaller area.
-                    radius -= 0.01;
-                } else if (data.error) {
-                    throw new Error(data.error.message);
-                } else {
-                    throw new Error(JSON.stringify(data));
-                }
+            if (!bestPano && prefetch) {
+                // Making fresh API call. Store the results in case they're useful later as well.
+                panos = await this.#storePrefetch(centerPoint, radius).promise;
+                bestPano = this.#selectBestPano(
+                    panos, excludedPanoIds, excludedTimestamps, centerPoint, currentPos, currentSequenceId
+                );
             }
 
-            if (potentialPanos && potentialPanos.length > 0) {
-                // Score each candidate image, balancing proximity, resolution, recency, sequence continuity, and
-                // forward progress toward the goal location.
-                const currentPos = this.currImage ? turf.point([this.currImage.lngLat.lng, this.currImage.lngLat.lat]) : null;
-                const currentSequenceId = this.currImage ? this.currImage.sequenceId : null;
-
-                let bestPano = potentialPanos[0];
-                let bestScore = this.#scorePano(bestPano, centerPoint, currentPos, currentSequenceId);
-                for (let i = 1; i < potentialPanos.length; i++) {
-                    const score = this.#scorePano(potentialPanos[i], centerPoint, currentPos, currentSequenceId);
-                    if (score > bestScore) {
-                        bestPano = potentialPanos[i];
-                        bestScore = score;
-                    }
-                }
-
-                // Load the pano. Say that it failed if it doesn't work after 10 seconds.
-                // TODO If the pano fails to load, we should try the next closest pano. Getting an issue where the pano
-                //      with ID 859880776211217 never loads, but there are plenty of others at that location.
-                return await this.setPano(bestPano.id);
-            } else {
-                throw new Error(JSON.stringify(data));
+            if (!bestPano) {
+                throw new Error('No images found near this location');
             }
+
+            // Load the pano. Say that it failed if it doesn't work after 10 seconds.
+            // TODO If the pano fails to load, we should try the next closest pano. Getting an issue where the pano
+            //      with ID 859880776211217 never loads, but there are plenty of others at that location.
+            return await this.setPano(bestPano.id);
         } catch (error) {
             console.error('Error moving to location:', error);
             throw error;
         }
     }
 
+    /**
+     * Prefetches images near a location so that a subsequent setLocation() call can skip the API round-trip.
+     * Safe to call multiple times — skips the fetch if a nearby prefetch already exists.
+     * Call clearPrefetchCache() when moving to a new street.
+     *
+     * @param {{lat: number, lng: number}} latLng The location to prefetch images for.
+     */
+    prefetchLocation = (latLng) => {
+        const centerPoint = turf.point([latLng.lng, latLng.lat]);
+        const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0;
+        if (!this.#findNearestPrefetch(centerPoint)) {
+            this.#storePrefetch(centerPoint, radius);
+        }
+    }
+
+    /**
+     * Creates a prefetch entry for the given location, stores it, and returns it.
+     *
+     * @param {turf.Point} centerPoint
+     * @param {number} radius Search radius in kilometers.
+     * @returns {{ centerPoint: turf.Point, promise: Promise<Array> }}
+     */
+    #storePrefetch = (centerPoint, radius) => {
+        const entry = { centerPoint, promise: this.#fetchImages(centerPoint, radius) };
+        this.prefetchedSearches.push(entry);
+        return entry;
+    };
+
+    /**
+     * Clears all prefetched image search results. Should be called when the user moves to a new street.
+     */
+    clearPrefetchCache = () => {
+        this.prefetchedSearches = [];
+    }
+
+    /**
+     * Finds the nearest prefetched search result to the given point, if one is close enough to be useful.
+     *
+     * @param {turf.Point} centerPoint The target location.
+     * @returns {{ centerPoint: turf.Point, promise: Promise<Array> }|null}
+     */
+    #findNearestPrefetch = (centerPoint) => {
+        let nearest = null;
+        let nearestDist = Infinity;
+        for (const entry of this.prefetchedSearches) {
+            const dist = turf.distance(centerPoint, entry.centerPoint, { units: 'kilometers' });
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearest = entry;
+            }
+        }
+        // Only use the prefetch if the target is within 5 meters of a fetched location.
+        return nearestDist < 0.005 ? nearest : null;
+    };
+
+    /**
+     * Fetches Mapillary images near the given point, retrying with smaller radii if the API returns too many results.
+     *
+     * @param {turf.Point} centerPoint The center of the search area.
+     * @param {number} radius The search radius in kilometers.
+     * @returns {Promise<Array>} Raw pano objects from the Mapillary API.
+     */
+    #fetchImages = async (centerPoint, radius) => {
+        // Docs for how to filter images: https://www.mapillary.com/developer/api-documentation#image
+        // TODO don't send accessToken in the URL: https://www.mapillary.com/developer/api-documentation#authentication
+        // NOTE The 'limit' API param doesn't do what it says. Including it can make the API return no images when the
+        //      limit is set to something greater than 0 and we get images if we exclude the limit param. Don't use it!
+        while (radius > 0) {
+            const url = this.#createPanoFetchUrl(centerPoint, radius);
+            const response = await fetch(url);
+            const data = await response.json();
+            console.log(data);
+
+            if (data.data) {
+                return data.data;
+            } else if (data.error && data.error.code === 1) {
+                // If there were too many images in the bounding box, API fails. Try with a smaller area.
+                radius -= 0.01;
+            } else if (data.error) {
+                throw new Error(data.error.message);
+            } else {
+                throw new Error(JSON.stringify(data));
+            }
+        }
+        return [];
+    };
+
+    /**
+     * Filters and scores a list of candidate panos, returning the best one (or null if none are viable).
+     *
+     * @param {Array} panos Raw pano objects from the Mapillary API.
+     * @param {Set<string>} excludedPanoIds Pano IDs to exclude.
+     * @param {Set<number>} excludedTimestamps Capture timestamps to exclude (handles duplicate Mapillary images).
+     * @param {turf.Point} centerPoint The target location.
+     * @param {turf.Point|null} currentPos Our current position (null on initial load).
+     * @param {string|null} currentSequenceId The sequence ID of the current image (null on initial load).
+     * @returns {Object|null} The best candidate pano, or null if none are viable.
+     */
+    #selectBestPano = (panos, excludedPanoIds, excludedTimestamps, centerPoint, currentPos, currentSequenceId) => {
+        const candidates = panos.filter(
+            pano => !excludedPanoIds.has(pano.id) && !excludedTimestamps.has(pano.captured_at)
+        );
+
+        let bestPano = null;
+        let bestScore = -1;
+        for (const pano of candidates) {
+            const score = this.#scorePano(pano, centerPoint, currentPos, currentSequenceId);
+            if (score > bestScore) {
+                bestPano = pano;
+                bestScore = score;
+            }
+        }
+        return bestPano;
+    };
+
     setPano = async (panoId) => {
         this.changingPanoOurselves = true;
         return Promise.race([
             this.viewer.moveTo(panoId).then(this._getPanoramaCallback),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out')), 8000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out')), 10000))
         ]).catch(() => {
             console.error('Failed to load pano: ', panoId);
             throw new Error('Failed to load pano: ', panoId);

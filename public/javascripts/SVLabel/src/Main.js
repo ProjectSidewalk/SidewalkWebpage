@@ -328,6 +328,9 @@ function Main (params) {
         var distance = svl.taskContainer.getCompletedTaskDistance();
         svl.statusFieldNeighborhood.setAuditedDistance(distance, unit);
         svl.statusFieldOverall.setNeighborhoodAuditedDistance(distance);
+
+        // Prefetch Mapillary data on images along the street to improve load times for images along the street.
+        svl.navigationService.prefetchAlongStreet(svl.taskContainer.getCurrentTask().getFeature())
     }
 
     // This is a callback function that is executed after every loading process is done.

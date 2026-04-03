@@ -115,6 +115,19 @@ class PanoViewer {
     }
 
     /**
+     * Prefetches images near a location to reduce latency on a subsequent setLocation() call.
+     * No-op by default; override in subclasses that support prefetching.
+     * @param {{lat: number, lng: number}} latLng
+     */
+    prefetchLocation(latLng) {}
+
+    /**
+     * Clears all prefetched image search results. Call when moving to a new street.
+     * No-op by default; override in subclasses that support prefetching.
+     */
+    clearPrefetchCache() {}
+
+    /**
      * Moves the current panorama to the specified panorama ID.
      * @param panoId The panorama ID to set.
      * @returns {Promise<PanoData>} The panorama data object.
