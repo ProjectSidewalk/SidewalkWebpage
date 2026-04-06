@@ -15,6 +15,7 @@ GET     /labelingGuide/surfaceProblems                  controllers.ApplicationC
 GET     /labelingGuide/obstacles                        controllers.ApplicationController.labelingGuideObstacles
 GET     /labelingGuide/noSidewalk                       controllers.ApplicationController.labelingGuideNoSidewalk
 GET     /labelingGuide/occlusion                        controllers.ApplicationController.labelingGuideOcclusion
+GET     /mobileLanding                                  controllers.ApplicationController.mobileLanding
 GET     /mobile                                         controllers.ValidateController.mobileValidate(neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
 GET     /leaderboard                                    controllers.ApplicationController.leaderboard
 GET     /serviceHoursInstructions                       controllers.ApplicationController.serviceHoursInstructions

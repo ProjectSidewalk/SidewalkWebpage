@@ -60,7 +60,7 @@ class ApplicationController @Inject() (
           cc.loggingService.insert(user.userId, ipAddress, request.uri, timestamp)
           Future.successful(Redirect("/"))
         } else if (isMobile) {
-          Future.successful(Redirect("/mobile"))
+          Future.successful(Redirect("/mobileLanding"))
         } else {
           cc.loggingService.insert(user.userId, ipAddress, "Visit_Index", timestamp)
           // Get names and URLs for other cities so we can link to them on landing page.
@@ -80,6 +80,18 @@ class ApplicationController @Inject() (
             )
           }
         }
+    }
+  }
+
+  def mobileLanding = cc.securityService.SecuredAction { implicit request =>
+    val user: SidewalkUserWithRole = request.identity
+    cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileLanding")
+    for {
+      commonData      <- configService.getCommonPageData(request2Messages.lang)
+      labelCount: Int <- labelService.countLabels
+      valCount: Int   <- validationService.countHumanValidations
+    } yield {
+      Ok(views.html.mobileLanding("Project Sidewalk", commonData, user, labelCount, valCount))
     }
   }
 

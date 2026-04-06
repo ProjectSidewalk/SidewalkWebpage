@@ -1,0 +1,328 @@
+/* CSS for mobile landing page */
+
+/* Slim sticky header */
+#mobile-landing-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+#mobile-landing-logo-header {
+    height: 36px;
+    width: auto;
+}
+
+.mobile-header-signin {
+    font-family: Raleway, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    color: #2d2a3f;
+    text-decoration: none;
+}
+
+.mobile-header-signin:hover,
+.mobile-header-signin:focus {
+    color: #2d2a3f;
+    text-decoration: underline;
+}
+
+/* Slightly smaller variant for the hero CTA so it doesn't compete with the tagline */
+#mobile-hero-cta-btn {
+    font-size: 13px;
+    padding: 10px 28px;
+}
+
+/* Hero section */
+#mobile-landing-hero {
+    background-image: url('../assets/psmockup.jpg');
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    padding: 60px 24px 50px;
+    text-align: center;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#mobile-landing-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-color: rgba(192, 190, 207, 0.5);
+}
+
+/* Stack children on top of the overlay */
+#mobile-landing-hero > * {
+    position: relative;
+}
+
+#mobile-landing-tagline {
+    font-family: Raleway-bold, sans-serif;
+    font-size: 30px;
+    font-weight: bold;
+    color: #fff;
+    line-height: 1.2;
+    letter-spacing: 0.04em;
+    margin: 0 0 28px;
+}
+
+/* CTA button — matches the desktop .body-start-btn style */
+.mobile-landing-cta-btn {
+    display: inline-block;
+    background-color: rgba(251, 215, 139, 1);
+    border-radius: 10px;
+    border: 0;
+    color: #2d2a3f;
+    font-family: Raleway, sans-serif;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 12px 36px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+}
+
+.mobile-landing-cta-btn:hover,
+.mobile-landing-cta-btn:focus {
+    background-color: #fcecbe;
+    color: #2d2a3f;
+    text-decoration: none;
+}
+
+.mobile-landing-cta-btn:active {
+    position: relative;
+    top: 1px;
+}
+
+/* Shared section wrapper */
+.mobile-landing-section {
+    padding: 40px 20px;
+    text-align: center;
+}
+
+/* Section titles */
+.mobile-section-title {
+    font-family: Raleway, sans-serif;
+    font-size: 26px;
+    font-weight: bold;
+    color: #2d2a3f;
+    line-height: 1.2;
+    margin-bottom: 14px;
+}
+
+.mobile-section-subtitle {
+    font-family: adelle-regular, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+    letter-spacing: 0.06em;
+    color: #2d2a3f;
+    margin: 0 auto 28px;
+    max-width: 520px;
+}
+
+/* Impact flow — narrative chain showing why validation matters */
+#mobile-impact-flow {
+    list-style: none;
+    padding: 0;
+    margin: 0 auto;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.mobile-impact-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    position: relative;
+    padding-bottom: 28px;
+}
+
+/* Connector line between steps */
+.mobile-impact-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 23px;
+    top: 52px;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, #58ceab, #e0dde8);
+}
+
+.mobile-impact-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: #f0faf6;
+    border: 2px solid #58ceab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.mobile-impact-caption {
+    font-family: adelle-regular, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #2d2a3f;
+    margin: 0;
+    padding-top: 10px;
+    text-align: left;
+}
+
+/* Stats section */
+#mobile-landing-stats {
+    background-color: rgba(249, 241, 227, 1);
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.mobile-stats-subtitle {
+    font-family: adelle-regular, sans-serif;
+    font-size: 14px;
+    line-height: 1.7;
+    letter-spacing: 0.05em;
+    color: #555;
+    margin: 8px auto 0;
+    max-width: 400px;
+}
+
+#mobile-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    max-width: 360px;
+    margin: 24px auto 0;
+}
+
+.mobile-stat-number {
+    display: block;
+    font-family: Raleway-extrabold, sans-serif;
+    font-size: 36px;
+    font-weight: bold;
+    color: #2d2a3f;
+    line-height: 1.1;
+}
+
+.mobile-stat-label {
+    display: block;
+    font-family: Raleway, sans-serif;
+    font-size: 13px;
+    color: #555;
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+}
+
+/* Collaborators section */
+#mobile-collaborators {
+    padding: 40px 20px;
+    background: white;
+    text-align: center;
+}
+
+.mobile-collaborators-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 20px 36px;
+    margin-top: 24px;
+}
+
+.mobile-collaborator-image {
+    width: 110px;
+}
+
+.mobile-collaborator-image img {
+    width: 100%;
+    height: auto;
+}
+
+/* Laptop CTA section */
+#mobile-laptop-cta {
+    background-color: #f0eef8;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.mobile-laptop-icon {
+    font-size: 40px;
+    margin-bottom: 16px;
+    line-height: 1;
+}
+
+/* Bottom CTA section */
+#mobile-landing-bottom-cta {
+    background-color: #2d2a3f;
+    padding: 48px 24px 0;
+    text-align: center;
+}
+
+.mobile-cta-heading {
+    font-family: Raleway-bold, sans-serif;
+    font-size: 26px;
+    font-weight: bold;
+    color: #fff;
+    margin: 0 0 12px;
+    line-height: 1.2;
+}
+
+.mobile-cta-subtext {
+    font-family: adelle-regular, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.82);
+    margin: 0 auto 28px;
+    max-width: 440px;
+}
+
+#mobile-cta-footer-info {
+    margin-top: 52px;
+    padding-bottom: 0;
+    font-family: Raleway, sans-serif;
+    font-size: 11px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+#mobile-cta-footer-info a {
+    color: rgba(255, 255, 255, 0.45);
+    text-decoration: underline;
+}
+
+/* Responsive: wider screens (landscape phone / tablet) */
+@media (min-width: 540px) {
+    #mobile-landing-tagline {
+        font-size: 38px;
+    }
+
+    .mobile-section-title {
+        font-size: 32px;
+    }
+
+    #mobile-stats-grid {
+        max-width: 440px;
+        gap: 32px;
+    }
+
+    .mobile-stat-number {
+        font-size: 46px;
+    }
+
+    .mobile-collaborator-image {
+        width: 130px;
+    }
+}
