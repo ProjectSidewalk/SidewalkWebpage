@@ -1,10 +1,11 @@
 package controllers
 
 import controllers.base._
+import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseURL
 import forms._
 import models.auth.{DefaultEnv, WithAdminOrIsUser}
-import models.user.SidewalkUserWithRole
+import models.user.{SidewalkUserWithRole, UserUtm, UserUtmTable}
 import net.ceedubs.ficus.Ficus._
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, Json}
@@ -16,6 +17,7 @@ import play.silhouette.api.exceptions.ProviderException
 import play.silhouette.api.util.{Clock, PasswordHasher}
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import play.silhouette.impl.providers.CredentialsProvider
+
 import java.util.UUID
 import javax.inject._
 import scala.concurrent.duration.FiniteDuration
@@ -29,6 +31,7 @@ class UserController @Inject() (
     val silhouette: Silhouette[DefaultEnv],
     configService: service.ConfigService,
     authenticationService: service.AuthenticationService,
+    userUtmTable: UserUtmTable,
     passwordHasher: PasswordHasher,
     clock: Clock,
     mailerClient: MailerClient
@@ -334,13 +337,27 @@ class UserController @Inject() (
           user          <- authenticationService.createUser(newAnonUser, loginInfo.providerID, pwInfo, oldUserId = None)
           authenticator <- silhouette.env.authenticatorService.create(loginInfo)
           value         <- silhouette.env.authenticatorService.init(authenticator)
-          result        <- silhouette.env.authenticatorService.embed(value, Redirect(url, qString))
+          // Strip UTM params from redirect to avoid double-capture in index().
+          qStringNoUtm = qString.filterNot { case (k, _) => k.startsWith("utm_") }
+          result <- silhouette.env.authenticatorService.embed(value, Redirect(url, qStringNoUtm))
         } yield {
           // Log the anon sign-up along with url and query string of the page they came from.
           val activityStr =
             if (qString.isEmpty) s"""AnonAutoSignUp_url="$url""""
             else s"""AnonAutoSignUp_url="$url?${qString.map { case (k, v) => k + "=" + v.mkString }.mkString("&")}""""
           cc.loggingService.insert(user.userId, request.ipAddress, activityStr)
+
+          // Save UTM parameters if present. UTM params are stripped from the redirect URL (line above) to avoid
+          // double-capture when index() also checks for UTM params on returning users.
+          if (ControllerUtils.hasUtmParams(qString)) {
+            val flat = qString.map { case (k, v) => k -> v.mkString }
+            userUtmTable.insert(
+              UserUtm(
+                0, user.userId, flat.get("utm_source"), flat.get("utm_medium"), flat.get("utm_campaign"),
+                flat.get("utm_content"), flat.get("utm_term"), configService.getCityId, java.time.OffsetDateTime.now
+              )
+            )
+          }
 
           silhouette.env.eventBus.publish(SignUpEvent(user, request))
           silhouette.env.eventBus.publish(LoginEvent(user, request))
