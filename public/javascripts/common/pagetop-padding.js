@@ -9,7 +9,12 @@ function checkIfPaddingNeeded(){
         window.location.pathname === "/labelingGuide/occlusion"){
 
         document.body.style.paddingTop = "60px";
-    } else if (window.location.pathname === "/signInMobile" || window.location.pathname === "/signUpMobile") {
+    } else if (window.location.pathname === "/signInMobile" || window.location.pathname === "/signUpMobile" || window.location.pathname === "/mobileLanding") {
         document.body.style.paddingTop = "0px";
+
+        // Remove the remaining padding for the mobile landing page, since there's a pseudo navbar there.
+        if (window.location.pathname === "/mobileLanding") {
+            document.documentElement.style.paddingTop = "0px";
+        }
     }
 }
