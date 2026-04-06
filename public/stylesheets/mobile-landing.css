@@ -40,10 +40,8 @@
 
 /* Hero section */
 #mobile-landing-hero {
-    background-image: url('../assets/psmockup.jpg');
-    background-size: cover;
-    background-position: center;
     position: relative;
+    overflow: hidden;
     padding: 60px 24px 50px;
     text-align: center;
     min-height: 280px;
@@ -53,16 +51,27 @@
     justify-content: center;
 }
 
+#mobile-hero-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+}
+
 #mobile-landing-hero::before {
     content: '';
     position: absolute;
     inset: 0;
-    background-color: rgba(192, 190, 207, 0.5);
+    background-color: rgba(192, 190, 207, 0.4);
+    z-index: 1;
 }
 
-/* Stack children on top of the overlay */
-#mobile-landing-hero > * {
+/* Stack children on top of the overlay (video excluded — it stays absolute) */
+#mobile-landing-hero > *:not(#mobile-hero-video) {
     position: relative;
+    z-index: 2;
 }
 
 #mobile-landing-tagline {

@@ -21,8 +21,13 @@
         }
     </header>
 
-    <!-- Hero section with background image, tagline, and CTA -->
+    <!-- Hero section with background video, tagline, and CTA -->
     <section id="mobile-landing-hero">
+        <video id="mobile-hero-video" autoplay muted loop playsinline
+               poster='@assets.path("assets/psmockup.jpg")'>
+            <source src='@assets.path("assets/mainvideo.webm")' type="video/webm">
+            <source src='@assets.path("assets/mainvideo.mp4")' type="video/mp4">
+        </video>
         <h1 id="mobile-landing-tagline">@Messages("landing.create.path")</h1>
         <a class="mobile-landing-cta-btn" id="mobile-hero-cta-btn" href="/mobile"
            onclick='window.logWebpageActivity("Click_module=StartValidating_location=MobileLanding")'>
