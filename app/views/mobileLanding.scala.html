@@ -5,6 +5,7 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
+@formatNumber(n: Int) = @{java.text.NumberFormat.getInstance(messages.lang.toLocale).format(n)}
 
 @common.main(commonData, title, url = "/mobileLanding") {
     <link rel="stylesheet" href='@assets.path("stylesheets/mobile-landing.css")'>
@@ -70,11 +71,11 @@
         <p class="mobile-stats-subtitle">@Messages("landing.mobile.stats.content")</p>
         <div id="mobile-stats-grid">
             <div class="mobile-stat">
-                <span class="mobile-stat-number">@labelCount</span>
+                <span class="mobile-stat-number">@formatNumber(labelCount)</span>
                 <span class="mobile-stat-label">@Messages("landing.stats.labels")</span>
             </div>
             <div class="mobile-stat">
-                <span class="mobile-stat-number">@valCount</span>
+                <span class="mobile-stat-number">@formatNumber(valCount)</span>
                 <span class="mobile-stat-label">@Messages("landing.stats.validations")</span>
             </div>
         </div>
