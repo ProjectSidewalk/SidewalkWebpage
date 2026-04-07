@@ -45,9 +45,14 @@ psql -v ON_ERROR_STOP=1 -U sidewalk -d sidewalk <<-'EOSQL'
         END IF;
         GRANT CONNECT ON DATABASE sidewalk TO readonly_user;
 
-        -- Grant SELECT on all sidewalk schemas, with default privileges for each schema's owner.
+        -- Grant SELECT on sidewalk_login (owned by the sidewalk role).
+        GRANT USAGE ON SCHEMA sidewalk_login TO readonly_user;
+        GRANT SELECT ON ALL TABLES IN SCHEMA sidewalk_login TO readonly_user;
+        ALTER DEFAULT PRIVILEGES FOR ROLE sidewalk IN SCHEMA sidewalk_login GRANT SELECT ON TABLES TO readonly_user;
+
+        -- Grant SELECT on per-city schemas (each owned by a role matching the schema name).
         FOR schema_name IN
-            SELECT nspname FROM pg_namespace WHERE nspname LIKE 'sidewalk_%'
+            SELECT nspname FROM pg_namespace WHERE nspname LIKE 'sidewalk_%' AND nspname != 'sidewalk_login'
         LOOP
             EXECUTE format('GRANT USAGE ON SCHEMA %I TO readonly_user', schema_name);
             EXECUTE format('GRANT SELECT ON ALL TABLES IN SCHEMA %I TO readonly_user', schema_name);
