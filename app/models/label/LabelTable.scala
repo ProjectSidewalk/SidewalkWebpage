@@ -143,10 +143,12 @@ case class LabelMetadata(
     validations: Map[String, Int],
     tags: List[String],
     lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean),
-    comments: Option[Seq[String]],
+    comments: Seq[LabelComment],
     aiGenerated: Boolean,
     expired: Boolean
 )
+
+case class LabelComment(username: String, comment: String)
 
 // Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
 case class AdminValidationData(labelId: Int, username: String, previousValidations: Seq[(String, Int)])
@@ -564,7 +566,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextString().split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextString().split(",").filter(_.nonEmpty).toList,
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
-      r.nextStringOption().filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toSeq),
+      r.nextStringOption().map { json =>
+        play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
+          LabelComment((obj \ "username").as[String], (obj \ "comment").as[String])
+        }
+      }.getOrElse(Seq.empty),
       r.nextBoolean(),
       r.nextBoolean()
     )
@@ -795,8 +801,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           WHERE role.role = 'AI'
       ) AS ai_val ON lb1.label_id = ai_val.label_id
       LEFT JOIN (
-          SELECT label_id, string_agg(comment, ':') AS comments
+          SELECT label_id,
+                 json_agg(json_build_object('username', username, 'comment', comment) ORDER BY timestamp)::text AS comments
           FROM validation_task_comment
+          INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id
           GROUP BY label_id
        ) AS comment ON lb1.label_id = comment.label_id
       WHERE #$labelFilter

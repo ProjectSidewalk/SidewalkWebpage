@@ -6,5 +6,7 @@
     "ai-val-included": "$t(common:{{aiVal}}) (inbegrepen in bovenstaande telling)",
     "add-comment": "Voeg opmerking hier toe...",
     "submit-comment": "Opmerking",
+    "comment": "Opmerking",
+    "comments": "Opmerkingen",
     "comment-submitted": "Commentaar ingediend"
 }

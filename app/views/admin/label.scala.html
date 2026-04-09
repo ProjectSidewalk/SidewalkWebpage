@@ -21,6 +21,9 @@
         <div style="height: 237px;"></div> <!-- Just included to fill the page by default at usual zoom. -->
     </div>
 
+    @common.labelPopup(admin = isAdmin)
+    <link href='@assets.path("stylesheets/labelPopup.css")' rel="stylesheet"/>
+
     <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
     <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
@@ -42,7 +45,7 @@
             const imagerySrc = "@commonData.imagerySource.toString";
             const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
             const accessToken = "@commonData.imageryAccessToken";
-            const gsvLabelView = await AdminGSVLabelView(@isAdmin, viewerType, accessToken, false);
+            const gsvLabelView = await AdminGSVLabelView(@isAdmin, viewerType, accessToken, "@currentCity.cityNameShort", "@user.username");
             const labelSearch = AdminLabelSearch(@isAdmin, gsvLabelView, 'LabelSearchPage');
             await labelSearch.adminGSVLabelView.showLabel(parseInt("@labelId"), 'LabelSearchPage');
         });

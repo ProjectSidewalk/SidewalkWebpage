@@ -86,7 +86,7 @@ object LabelFormats {
       "validations"                        -> m.validations,
       "tags"                               -> m.tags,
       "low_quality_incomplete_stale_flags" -> m.lowQualityIncompleteStaleFlags,
-      "comments"                           -> m.comments,
+      "comments"                           -> m.comments.map(_.comment),
       "ai_generated"                       -> m.aiGenerated,
       "expired"                            -> m.expired
     )
@@ -139,7 +139,7 @@ object LabelFormats {
   }
 
   // Has the label metadata excluding a few admin-only fields.
-  def labelMetadataWithValidationToJson(labelMetadata: LabelMetadata): JsObject = {
+  def labelMetadataWithValidationToJson(labelMetadata: LabelMetadata, currUserId: String): JsObject = {
     Json.obj(
       "label_id"           -> labelMetadata.labelId,
       "pano_id"            -> labelMetadata.panoId,
@@ -161,19 +161,25 @@ object LabelFormats {
       "num_agree"          -> labelMetadata.validations("agree"),
       "num_disagree"       -> labelMetadata.validations("disagree"),
       "num_unsure"         -> labelMetadata.validations("unsure"),
-      "comments"           -> labelMetadata.comments,
+      "comments"           -> labelMetadata.comments.map(_.comment),
       "tags"               -> labelMetadata.tags,
       "ai_generated"       -> labelMetadata.aiGenerated,
-      "expired"            -> labelMetadata.expired
+      "expired"            -> labelMetadata.expired,
+      "from_current_user"  -> (labelMetadata.userId == currUserId)
     )
   }
 
-  def labelMetadataWithValidationToJsonAdmin(labelMetadata: LabelMetadata, adminData: AdminValidationData): JsObject = {
+  def labelMetadataWithValidationToJsonAdmin(
+      labelMetadata: LabelMetadata,
+      adminData: AdminValidationData,
+      currUserId: String
+  ): JsObject = {
     // Start with normal metadata, then add the admin-only fields.
-    labelMetadataWithValidationToJson(labelMetadata) ++ Json.obj(
+    labelMetadataWithValidationToJson(labelMetadata, currUserId) ++ Json.obj(
       "audit_task_id" -> labelMetadata.auditTaskId,
       "user_id"       -> labelMetadata.userId,
       "username"      -> labelMetadata.username,
+      "comments"      -> labelMetadata.comments.map(c => Json.obj("username" -> c.username, "comment" -> c.comment)),
       "low_quality"   -> labelMetadata.lowQualityIncompleteStaleFlags._1,
       "incomplete"    -> labelMetadata.lowQualityIncompleteStaleFlags._2,
       "stale"         -> labelMetadata.lowQualityIncompleteStaleFlags._3,

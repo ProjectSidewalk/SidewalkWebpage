@@ -23,6 +23,7 @@ module.exports = function(grunt) {
                     'public/javascripts/Admin/src/*.js',
                     'public/javascripts/SVValidate/src/util/*.js',
                     'public/javascripts/common/PanoMarker.js',
+                    'public/javascripts/common/PanoInfoPopover.js',
                     'public/javascripts/Progress/src/*.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                 ],
@@ -34,6 +35,7 @@ module.exports = function(grunt) {
                     'public/javascripts/Admin/src/*.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/PanoMarker.js',
+                    'public/javascripts/common/PanoInfoPopover.js',
                 ],
                 dest: 'public/javascripts/Admin/build/Admin.js'
             },

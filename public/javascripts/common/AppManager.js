@@ -170,6 +170,11 @@ class AppManager {
                     }
                 }
             }
+
+            // Localize any static [data-i18n] markup on the page now that translations are loaded.
+            if (typeof window.localizeSubtree === 'function') {
+                window.localizeSubtree(document.body);
+            }
         });
     }
 

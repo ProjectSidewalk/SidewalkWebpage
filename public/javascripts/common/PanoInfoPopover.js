@@ -17,9 +17,13 @@
  * @param {function} viewPanoLogging Function that adds the View in GSV click to the appropriate logs.
  * @param {function} [labelId] Optional function that returns the Label ID.
  * @param {function} [labelDate] Optional function that returns the Label's date as a moment object.
+ * @param {string|HTMLElement} [popoverContainer='body'] Element (or selector) the Bootstrap popover should be appended
+ *        to. Override when the trigger lives inside a native <dialog> (top layer) so the popover renders above the
+ *        backdrop instead of behind it.
  * @returns {PanoInfoPopover} Popover object, holding popover title, content, info button HTML, and update values method
  */
-function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, cityName, whiteIcon, infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate) {
+function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, cityName, whiteIcon, infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate, popoverContainer) {
+    if (popoverContainer === undefined) popoverContainer = 'body';
     const self = this;
 
     function _init() {
@@ -70,8 +74,8 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
         self.infoButton.classList.add('popover-element');
         self.infoButton.id = 'gsv-info-button';
         self.infoButton.alt = i18next.t('common:gsv-info.details-title');
-        if (whiteIcon) self.infoButton.src = '/assets/images/icons/pano_info_btn_white.svg';
-        else self.infoButton.src = '/assets/images/icons/pano_info_btn.png';
+        if (whiteIcon) self.infoButton.src = '/assets/images/icons/info-button-white.svg';
+        else self.infoButton.src = '/assets/images/icons/info-button.svg';
         self.infoButton.setAttribute('data-toggle', 'popover');
 
         container.append(self.infoButton);
@@ -80,7 +84,7 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
         $('#gsv-info-button').popover({
             html: true,
             placement: 'top',
-            container: 'body',
+            container: popoverContainer,
             title: self.titleBox.innerHTML,
             content: self.popoverContent.innerHTML
         }).on('click', updateVals).on('shown.bs.popover', () => {
@@ -159,10 +163,15 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
             panoLink.attr('href', `https://www.mapillary.com/app/?pKey=${currPanoId}&focus=photo&x=${center[0]}&y=${center[1]}`);
         }
 
-        // Position popover.
+        // Position popover. When popoverContainer isn't body (e.g. a native <dialog>), the popover is positioned
+        // relative to that container's padding-box, so we subtract the container's offset.
         let infoPopover = $('.popover');
         let infoRect = self.infoButton.getBoundingClientRect();
-        let xpos = infoRect.x + (infoRect.width / 2) - (infoPopover.width() / 2);
+        let containerEl = popoverContainer === 'body'
+            ? document.body
+            : (typeof popoverContainer === 'string' ? document.querySelector(popoverContainer) : popoverContainer);
+        let containerRect = containerEl.getBoundingClientRect();
+        let xpos = (infoRect.x - containerRect.left) + (infoRect.width / 2) - (infoPopover.width() / 2);
         infoPopover.css('left', `${xpos}px`);
 
         // Set the popover zoom to the same zoom as the Explore/Validate page.

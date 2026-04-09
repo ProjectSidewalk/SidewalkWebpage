@@ -1,4 +1,4 @@
-async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
+async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken, cityName, currentUsername) {
     const self = {};
     const $loadingGif = $('#page-loading');
     const legendTable = document.getElementById('legend-table');
@@ -20,7 +20,7 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
         neighborhoodTooltip: 'completionRate',
         logClicks: false
     };
-    self.adminGSVLabelView = await AdminGSVLabelView(true, viewerType, viewerAccessToken, false);
+    self.adminGSVLabelView = await AdminGSVLabelView(true, viewerType, viewerAccessToken, cityName, currentUsername);
     const mapTabMapParams = {
         mapName: 'admin-labelmap-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',

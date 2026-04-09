@@ -289,12 +289,13 @@ class AdminController @Inject() (
    * Get metadata for a given label ID (for admins; includes personal identifiers like username).
    */
   def getAdminLabelData(labelId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    labelService.getSingleLabelMetadata(labelId, request.identity.userId).flatMap {
+    val userId: String = request.identity.userId
+    labelService.getSingleLabelMetadata(labelId, userId).flatMap {
       case Some(metadata) =>
         labelService
           .getExtraAdminValidateData(Seq(labelId))
           .map(adminData => {
-            Ok(labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++ cropUrlJson(metadata))
+            Ok(labelMetadataWithValidationToJsonAdmin(metadata, adminData.head, userId) ++ cropUrlJson(metadata))
           })
       case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
     }
@@ -304,8 +305,9 @@ class AdminController @Inject() (
    * Get metadata for a given label ID (excludes personal identifiers like username).
    */
   def getLabelData(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
-    labelService.getSingleLabelMetadata(labelId, request.identity.userId).map {
-      case Some(metadata) => Ok(labelMetadataWithValidationToJson(metadata) ++ cropUrlJson(metadata))
+    val userId: String = request.identity.userId
+    labelService.getSingleLabelMetadata(labelId, userId).map {
+      case Some(metadata) => Ok(labelMetadataWithValidationToJson(metadata, userId) ++ cropUrlJson(metadata))
       case None           => NotFound(s"No label found with ID: $labelId")
     }
   }

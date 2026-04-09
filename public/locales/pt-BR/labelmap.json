@@ -6,5 +6,7 @@
     "ai-val-included": "$t(common:{{aiVal}}) (incluido na contagem anterior)",
     "add-comment": "Adicione comentários aqui...",
     "submit-comment": "Enviar comentários",
+    "comment": "Comentário",
+    "comments": "Comentários",
     "comment-submitted": "Comentários Enviados"
 }
