@@ -61,7 +61,7 @@ function AdminTask(params) {
                 currentTimestamp = featuresData[0].properties.timestamp;
 
                 // Initialize the pano.
-                if (!self.panoManager) self.panoManager = await AdminPanorama($('#svholder')[0], null, true, params.viewerType, params.viewerAccessToken);
+                if (!self.panoManager) self.panoManager = await PopupPanoManager($('#svholder')[0], null, true, params.viewerType, params.viewerAccessToken);
                 self.panoManager.setPano(featuresData[0].properties.panoId, {
                     heading: featuresData[0].properties.heading,
                     pitch: featuresData[0].properties.pitch,
@@ -131,7 +131,11 @@ function AdminTask(params) {
                 // Update the pano POV.
                 if (currPano === null || currPano !== action.properties.panoId) {
                     currPano = action.properties.panoId;
-                    self.panoManager.setPano(action.properties.panoId, action.properties.heading, action.properties.pitch, action.properties.zoom);
+                    self.panoManager.setPano(action.properties.panoId, {
+                        heading: action.properties.heading,
+                        pitch: action.properties.pitch,
+                        zoom: action.properties.zoom
+                    });
                 } else {
                     self.panoManager.panoViewer.setPov({
                         heading: action.properties.heading,
@@ -153,12 +157,22 @@ function AdminTask(params) {
                     renderedLabels.features.push({ type: 'Feature', properties: label, geometry: { type: 'Point', coordinates: label.coordinates }});
                     map.getSource('labels').setData(renderedLabels);
 
-                    const adminPanoramaLabel = AdminPanoramaLabel(
-                        label.label_id, label.label_type, label.canvasX, label.canvasY,
-                        util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
-                        action.properties.heading, action.properties.pitch, action.properties.zoom
-                    );
-                    self.panoManager.renderLabel(adminPanoramaLabel);
+                    // Plain-object label shape consumed by PopupPanoManager. See LabelPopup.js for full field shape.
+                    const popupLabel = {
+                        labelId: label.label_id,
+                        label_type: label.label_type,
+                        canvasX: label.canvasX,
+                        canvasY: label.canvasY,
+                        originalCanvasWidth: util.EXPLORE_CANVAS_WIDTH,
+                        originalCanvasHeight: util.EXPLORE_CANVAS_HEIGHT,
+                        pov: {
+                            heading: action.properties.heading,
+                            pitch: action.properties.pitch,
+                            zoom: action.properties.zoom
+                        },
+                        aiGenerated: false
+                    };
+                    self.panoManager.renderLabel(popupLabel);
                 }
 
                 // Update the UI for time elapsed.

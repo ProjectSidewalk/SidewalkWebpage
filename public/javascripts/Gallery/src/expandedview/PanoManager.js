@@ -111,7 +111,7 @@ class PanoManager {
      * @param {string} panoId
      * @param {{heading: number, pitch: number, zoom: number}} pov
      * @param {string} [cropUrl] URL for the screenshot fallback image, if available.
-     * @param {AdminPanoramaLabel} [label] Label info for positioning the marker on the fallback image.
+     * @param {object} [label] Label info for positioning the marker on the fallback image.
      * @returns {Promise<PanoData>}
      */
     async setPano(panoId, pov, cropUrl, label) {
@@ -192,7 +192,7 @@ class PanoManager {
 
     /**
      * Renders a PanoMarker (label) onto Google Streetview Panorama.
-     * @param {AdminPanoramaLabel} label
+     * @param {object} label
      * @returns {void}
      */
     renderLabel(label) {

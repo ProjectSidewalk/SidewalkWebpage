@@ -1,6 +1,9 @@
 /**
- * AdminPanorama is a class that handles the Google Street View panorama.
- * TODO so much of this code is a copy of code that's elsewhere. Need to combine a bunch into a shared module.
+ * PopupPanoManager wraps a PanoViewer for the label popup (LabelPopup.js). It manages init, pano-load + fallback image,
+ * label markers, and POV calculations.
+ *
+ * TODO so much of this code is a copy of code that's elsewhere (SVLabel/SVValidate/Gallery PanoManagers).
+ *
  * @param svHolder One single DOM element.
  * @param buttonHolder DOM element that holds the validation buttons.
  * @param admin Boolean value that indicates if the user is an admin.
@@ -9,9 +12,9 @@
  * @returns {{className: string}}
  * @constructor
  */
-async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAccessToken) {
-    var self = {
-        className: "AdminPanorama",
+async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewerAccessToken) {
+    const self = {
+        className: "PopupPanoManager",
         label: undefined,
         labelMarkers: [],
         panoId: undefined,
@@ -19,7 +22,7 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
         admin: admin
     };
 
-    var icons = {
+    const icons = {
         CurbRamp : '/assets/images/icons/AdminTool_CurbRamp.png',
         NoCurbRamp : '/assets/images/icons/AdminTool_NoCurbRamp.png',
         Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
@@ -223,7 +226,9 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
 
     /**
      * Renders a PanoMarker (label) onto a Streetview Panorama.
-     * @param {AdminPanoramaLabel} label
+     * @param {object} label Plain-object label shape produced by LabelPopup / Admin.Task / Admin.CommentPopup.
+     *   Expected fields: labelId, label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight, pov,
+     *   streetEdgeId, oldSeverity, newSeverity, oldTags, newTags, aiGenerated.
      * @returns void
      */
     function renderLabel(label) {

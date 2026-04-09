@@ -166,7 +166,7 @@
                 differentiateUnauditedStreets: true,
                 interactiveStreets: true,
                 uiSource: 'LabelMap',
-                popupLabelViewer: await AdminGSVLabelView(false, viewerType, accessToken, "@currentCity.cityNameShort", "@user.username"),
+                popupLabelViewer: await LabelPopup(false, viewerType, accessToken, "@currentCity.cityNameShort", "@user.username"),
                 differentiateExpiredLabels: true
             };
             params.neighborhoodsURL = new URL('/neighborhoods', window.location.origin);

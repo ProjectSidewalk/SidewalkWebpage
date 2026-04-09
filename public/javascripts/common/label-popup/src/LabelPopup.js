@@ -12,7 +12,7 @@
  * @param {string} [currUsername] Username of the current viewer. Used (in admin mode) to identify comments from this user
  * @returns {Promise<object>} Resolves once the pano viewer has been initialized.
  */
-async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, cityName, currUsername) {
+async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUsername) {
     const self = {};
     self.admin = admin;
     self.source = undefined; // Set in showLabel().
@@ -27,7 +27,7 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, cityName,
 
     const dialog = document.getElementById('label-modal');
     if (!dialog) {
-        throw new Error('AdminGSVLabelView: #label-modal not found. Did you include common.labelPopup() on the page?');
+        throw new Error('LabelPopup: #label-modal not found. Did you include common.labelPopup() on the page?');
     }
 
     // Field references — populated in _init().
@@ -56,7 +56,7 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, cityName,
         // showLabel() calls just toggle the dialog open without re-initializing.
         dialog.classList.add('label-popup--initializing');
         dialog.showModal();
-        self.panoManager = await AdminPanorama(
+        self.panoManager = await PopupPanoManager(
             els.svHolder,
             els.validationSection,
             admin,
@@ -236,7 +236,6 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, cityName,
      */
     function _handleData(meta) {
         currentLabelMeta = meta;
-        console.log(currentLabelMeta);
 
         // Read-only mode for the viewer's own labels — no validating, no commenting. The CSS class hides the pano
         // vote overlay + comment row and turns off the count-icon click affordance; `self.readonly` is also checked
@@ -246,12 +245,24 @@ async function AdminGSVLabelView(admin, viewerType, viewerAccessToken, cityName,
 
         const labelPov = { heading: meta.heading, pitch: meta.pitch, zoom: meta.zoom };
 
-        const adminPanoramaLabel = AdminPanoramaLabel(
-            meta.label_id, meta.label_type, meta.canvas_x, meta.canvas_y,
-            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
-            labelPov, meta.street_edge_id, meta.severity, meta.tags, meta.ai_generated
-        );
-        self.panoManager.setLabel(adminPanoramaLabel);
+        // Plain-object label shape consumed by PopupPanoManager. The old/new severity + tags split exists so the
+        // popup can track edits to those fields against the original values from the API payload.
+        const popupLabel = {
+            labelId: meta.label_id,
+            label_type: meta.label_type,
+            canvasX: meta.canvas_x,
+            canvasY: meta.canvas_y,
+            originalCanvasWidth: util.EXPLORE_CANVAS_WIDTH,
+            originalCanvasHeight: util.EXPLORE_CANVAS_HEIGHT,
+            pov: labelPov,
+            streetEdgeId: meta.street_edge_id,
+            oldSeverity: meta.severity,
+            newSeverity: meta.severity,
+            oldTags: meta.tags,
+            newTags: meta.tags,
+            aiGenerated: meta.ai_generated
+        };
+        self.panoManager.setLabel(popupLabel);
         self.panoManager.setPano(meta.pano_id, labelPov, meta.crop_url, meta.expired);
 
         // Validation counts + AI validation.
