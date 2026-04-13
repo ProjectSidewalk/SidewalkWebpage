@@ -138,7 +138,7 @@ function Card(params, cropUrl, gsvImageUrl) {
         let cardValidationInfo = document.createElement('div');
         cardValidationInfo.className = 'card-validation-info';
         self.validationInfoDisplay = new ValidationInfoDisplay(
-            cardValidationInfo, properties.val_counts['Agree'], properties.val_counts['Disagree'], properties.ai_validation, false
+            cardValidationInfo, properties.val_counts['Agree'], properties.val_counts['Disagree'], properties.ai_validation
         );
         cardData.appendChild(cardValidationInfo);
 

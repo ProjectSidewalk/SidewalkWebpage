@@ -196,6 +196,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 .validation-info-content {
     display: flex;
     flex-direction: row;
+    gap: 8px;
 }
 
 .validation-section-content {
@@ -214,35 +215,25 @@ with respect to the image holder. This allows the validation menu to be placed o
     position: relative;
     display: flex;
     flex-direction: row;
+    align-items: center;
+    height: 100%;
+    gap: 2px;
 }
 
 .validation-info-count {
     display: flex;
-    width: 60%;
+    flex: 1;
     height: 100%;
     flex-direction: column;
     justify-content: center;
 }
 
+/* The validation SVGs have ~30% internal whitespace in their viewBox, so size
+   them to fill the section height rather than using the old PNG-based width %. */
 .validation-info-image {
-    width: 50%;
-    margin: 2%;
-}
-
-/* The AI icon is positioned to partially overlap the thumps up/down icons. */
-.ai-icon {
-    position: absolute;
-    top: -43%;
-    left: -16%;
-    height: 75%;
-}
-
-.ai-tooltip {
-    width: 200px;
-}
-
-.validation-info-thumbs-down {
-    margin-top: 5%;
+    height: 100%;
+    width: auto;
+    flex: 0 0 auto;
 }
 
 .validation-button, .validation-button-selected {
