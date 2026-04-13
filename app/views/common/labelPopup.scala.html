@@ -1,156 +1,16 @@
 @*
- * Markup for the label popup dialog used on labelMap, admin/label, dashboard, etc.
+ * Modal-popup wrapper around the label detail view. Includes the inner content partial inside a
+ * native <dialog> with the `.label-detail` styling.
+ *
+ * Used by: LabelMap, the User Dashboard, admin/label, admin/index. Each host page also imports the
+ * stylesheet (`labelDetail.css`) and instantiates the JS controller via `LabelPopup(...)`.
  *@
 @(admin: Boolean = false)(implicit assets: AssetsFinder)
 
-@* Smiley-frown SVG symbols referenced by `<use>` below. None of the pages that include labelPopup also include
-   common.icons, so there's no symbol-id collision risk. *@
+@* Smiley-frown SVG symbols referenced by `<use>` inside the partial. None of the pages that include
+   labelPopup also include common.icons, so there's no symbol-id collision risk. *@
 @common.icons()
 
-<dialog id="label-modal" class="label-popup" aria-labelledby="label-popup-title">
-    <header class="label-popup__header">
-        <h2 class="label-popup__title" id="label-popup-title"><!-- populated by JS --></h2>
-        <button type="button" class="label-popup__close" aria-label="Close" data-action="close-label-popup">
-            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-        </button>
-    </header>
-
-    <div class="label-popup__pano-wrap">
-        <div id="sv-holder-label" class="label-popup__pano"></div>
-        @* Hover overlay with Agree/Disagree/Unsure buttons, mirroring Gallery's expanded view. *@
-        <div class="label-popup__pano-overlay" id="pano-overlay-validation" role="group" aria-label="Validate label">
-            <button type="button"
-                    class="label-popup__pano-overlay-button label-popup__pano-overlay-button--agree"
-                    id="pano-overlay-agree-button"
-                    data-action="validate"
-                    data-result="Agree"
-                    data-i18n="common:agree">Agree</button>
-            <button type="button"
-                    class="label-popup__pano-overlay-button label-popup__pano-overlay-button--disagree"
-                    id="pano-overlay-disagree-button"
-                    data-action="validate"
-                    data-result="Disagree"
-                    data-i18n="common:disagree">Disagree</button>
-            <button type="button"
-                    class="label-popup__pano-overlay-button label-popup__pano-overlay-button--unsure"
-                    id="pano-overlay-unsure-button"
-                    data-action="validate"
-                    data-result="Unsure"
-                    data-i18n="common:unsure">Unsure</button>
-        </div>
-    </div>
-
-    <div class="label-popup__meta-row">
-        <div class="label-popup__meta-cell">
-            <span data-i18n="common:labeled">Labeled</span> :
-            <span id="timestamp" class="label-popup__meta-value"></span>
-            @* PanoInfoPopover appends its info button into this container on init. *@
-            <span id="label-popup-info-button-host" class="label-popup__info-button-host"></span>
-        </div>
-        <div class="label-popup__meta-cell">
-            <span data-i18n="common:image-capture-date">Image Capture Date</span> :
-            <span id="image-capture-date" class="label-popup__meta-value"></span>
-        </div>
-    </div>
-
-    <div class="label-popup__columns">
-        <section class="label-popup__col label-popup__col--validations" id="validation-input-holder">
-            <h3 class="label-popup__col-title" data-i18n="labelmap:validations">Validations</h3>
-            @* Validation count display. Each icon's `src` is swapped by JS between the four variants — outline /
-               filled / outline-ai / filled-ai — depending on whether the user (filled) and/or the AI (ai badge)
-               validated this option. The base URL for the icon files is provided via `data-icon-base` so JS doesn't
-               need to know the assets' path. *@
-            <div class="label-popup__vote-display" data-icon-base='@assets.path("images/icons/validation/")'>
-                <button type="button" id="validation-agree-button" class="label-popup__vote" aria-label="Agree">
-                    <img id="validation-agree-icon" src='@assets.path("images/icons/validation/agree-outline.svg")' alt="" class="label-popup__vote-icon">
-                    <span class="label-popup__vote-count" id="validation-agree-count">0</span>
-                </button>
-                <button type="button" id="validation-disagree-button" class="label-popup__vote" aria-label="Disagree">
-                    <img id="validation-disagree-icon" src='@assets.path("images/icons/validation/disagree-outline.svg")' alt="" class="label-popup__vote-icon">
-                    <span class="label-popup__vote-count" id="validation-disagree-count">0</span>
-                </button>
-                <button type="button" id="validation-unsure-button" class="label-popup__vote" aria-label="Unsure">
-                    <img id="validation-unsure-icon" src='@assets.path("images/icons/validation/unsure-outline.svg")' alt="" class="label-popup__vote-icon">
-                    <span class="label-popup__vote-count" id="validation-unsure-count">0</span>
-                </button>
-            </div>
-        </section>
-        <section class="label-popup__col label-popup__col--severity">
-            <h3 class="label-popup__col-title" data-i18n="common:severity">Severity</h3>
-            <div class="label-popup__severity-faces" id="severity" role="img" aria-label="Severity">
-                @* Smiley-frown icons reference the symbols defined in common.icons() (included above). *@
-                <div class="label-popup__face label-popup__face--low" data-severity="1">
-                    <svg viewBox="0 0 150 150" aria-hidden="true" focusable="false"><use xlink:href="#smiley-frown-1"></use></svg>
-                    <span class="label-popup__face-label" data-i18n="common:low">Low</span>
-                </div>
-                <div class="label-popup__face label-popup__face--medium" data-severity="3">
-                    <svg viewBox="0 0 150 150" aria-hidden="true" focusable="false"><use xlink:href="#smiley-frown-2"></use></svg>
-                    <span class="label-popup__face-label" data-i18n="common:medium">Medium</span>
-                </div>
-                <div class="label-popup__face label-popup__face--high" data-severity="5">
-                    <svg viewBox="0 0 150 150" aria-hidden="true" focusable="false"><use xlink:href="#smiley-frown-3"></use></svg>
-                    <span class="label-popup__face-label" data-i18n="common:high">High</span>
-                </div>
-            </div>
-        </section>
-
-        <section class="label-popup__col label-popup__col--tags">
-            <h3 class="label-popup__col-title" data-i18n="common:tags">Tags</h3>
-            <div class="label-popup__tags" id="tags"></div>
-        </section>
-    </div>
-
-    <div class="label-popup__comment-row">
-        <input type="text"
-               id="comment-textarea"
-               class="label-popup__comment-input"
-               data-i18n-placeholder="labelmap:add-comment"
-               placeholder="Add comment here..">
-        <button type="button"
-                id="comment-button"
-                class="label-popup__comment-submit"
-                data-action="submit-comment"
-                data-i18n="labelmap:comment">Comment</button>
-        <span class="label-popup__comment-confirmation"
-              id="comment-confirmation"
-              role="status"
-              aria-live="polite"
-              hidden
-              data-i18n="labelmap:comment-submitted">Comment submitted</span>
-    </div>
-
-    <p class="label-popup__description-row">
-        <strong data-i18n="common:description">Description</strong> :
-        <span id="label-description"></span>
-    </p>
-
-    <section class="label-popup__comments-section">
-        <h3 class="label-popup__col-title" data-i18n="labelmap:comments">Comments</h3>
-        <div id="validator-comments" class="label-popup__validator-comments"></div>
-    </section>
-
-    @if(admin) {
-        <details class="label-popup__details label-popup__details--admin" open>
-            <summary class="label-popup__details-summary">Admin info</summary>
-            <dl class="label-popup__details-list">
-                <dt>Username</dt>
-                <dd id="admin-username"></dd>
-                <dt>Audit Task ID</dt>
-                <dd id="task"></dd>
-                <dt>Previous Validations</dt>
-                <dd id="prev-validations"></dd>
-            </dl>
-            <div class="label-popup__flag-controls">
-                <h4>Manually set work quality for street</h4>
-                <p>Click on a button to apply or remove that flag from the <b>audit task</b> (street) the label belongs to. Incomplete means they didn't finish or didn't use all label types. Stale means imagery is out of date.</p>
-                <div class="label-popup__flag-buttons">
-                    <button type="button" id="flag-low-quality-button" class="label-popup__flag-button" data-flag="low_quality">Low Quality</button>
-                    <button type="button" id="flag-incomplete-button" class="label-popup__flag-button" data-flag="incomplete">Incomplete</button>
-                    <button type="button" id="flag-stale-button" class="label-popup__flag-button" data-flag="stale">Stale</button>
-                </div>
-            </div>
-        </details>
-    }
+<dialog id="label-modal" class="label-detail" aria-label="Label details">
+    @common.labelDetail(admin = admin)
 </dialog>

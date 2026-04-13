@@ -295,7 +295,7 @@ class AdminController @Inject() (
         labelService
           .getExtraAdminValidateData(Seq(labelId))
           .map(adminData => {
-            Ok(labelMetadataWithValidationToJsonAdmin(metadata, adminData.head, userId) ++ cropUrlJson(metadata))
+            Ok(labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++ cropUrlJson(metadata))
           })
       case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
     }
@@ -307,7 +307,7 @@ class AdminController @Inject() (
   def getLabelData(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
     val userId: String = request.identity.userId
     labelService.getSingleLabelMetadata(labelId, userId).map {
-      case Some(metadata) => Ok(labelMetadataWithValidationToJson(metadata, userId) ++ cropUrlJson(metadata))
+      case Some(metadata) => Ok(labelMetadataWithValidationToJson(metadata) ++ cropUrlJson(metadata))
       case None           => NotFound(s"No label found with ID: $labelId")
     }
   }

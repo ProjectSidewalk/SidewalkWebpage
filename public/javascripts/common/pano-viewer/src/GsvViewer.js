@@ -272,4 +272,8 @@ class GsvViewer extends PanoViewer {
     showNavigationArrows = () => {
         return this.gsvPano.set('linksControl', true);
     };
+
+    resize = () => {
+        google.maps.event.trigger(this.gsvPano, 'resize');
+    };
 }

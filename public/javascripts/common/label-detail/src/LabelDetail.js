@@ -1,19 +1,39 @@
 /**
- * Controller for the label popup dialog used on LabelMap, the User Dashboard, and various Admin UIs.
+ * LabelDetail — host-agnostic controller for the label detail view.
  *
- * Markup lives in `app/views/common/labelPopup.scala.html` (included on each host page); this module only
- * handles wiring: opening/closing the native <dialog>, fetching label metadata, populating fields,
- * and submitting validations / comments / admin flags.
+ * Two hosts use this:
+ *   - LabelPopup wrapper (label-popup.js): mounts inside a <dialog id="label-modal" class="label-detail">.
+ *   - Gallery's expanded view (Gallery/.../ExpandedView.js): mounts inline inside a <div class="label-detail label-detail--inline">.
  *
- * @param {boolean} admin If true, this is an admin UI, so additional info can be shown.
- * @param {typeof PanoViewer} viewerType The type of pano viewer to initialize.
- * @param {string} viewerAccessToken An access token used to request images for the pano viewer.
- * @param {string} [cityName] Current city name (used by PanoInfoPopover's clipboard-copy).
- * @param {string} [currUsername] Username of the current viewer. Used (in admin mode) to identify comments from this user
+ * The controller scopes all DOM queries to `root` and never touches the document outside of it. Multiple instances on
+ * different pages cannot collide. The host is responsible for ensuring that `root` is laid out (visible in the DOM with
+ * non-zero dimensions) before LabelDetail() is called, because the pano viewer needs to measure its container at init.
+ *
+ * @param {HTMLElement} root The host element containing the labelDetail markup (see labelDetail.scala.html).
+ * @param {object} opts
+ * @param {boolean} opts.admin If true, this is an admin UI, so additional info can be shown.
+ * @param {typeof PanoViewer} opts.viewerType The type of pano viewer to initialize.
+ * @param {string} opts.viewerAccessToken An access token used to request images for the pano viewer.
+ * @param {string} [opts.cityName] Current city name (used by PanoInfoPopover's clipboard-copy).
+ * @param {string} [opts.currUsername] Username of the current viewer. Used to identify comments from this user.
+ * @param {HTMLElement} [opts.popoverContainer] Optional container for the PanoInfoPopover. Pass the dialog
+ *     element when hosting inside a <dialog>, so the popover renders inside the top layer instead of behind
+ *     the modal backdrop. Defaults to `root`.
+ * @param {(action: 'Agree'|'Disagree'|'Unsure', meta: object) => void} [opts.onVote] Optional callback fired after a
+ *      vote is successfully submitted. Hosts use this to sync upstream UI (e.g. recolor a Gallery card after the user
+ *      vote from inside the expanded view).
+ * @param {string} [opts.panoOverlaySource] Source string recorded when the user votes via the pano overlay buttons.
+ *      Overrides the source passed to showLabel(). Defaults to that source if omitted.
+ * @param {string} [opts.voteColumnSource] Source string recorded when the user votes via the column vote
+ *     buttons. Overrides the source passed to showLabel(). Defaults to that source if omitted.
  * @returns {Promise<object>} Resolves once the pano viewer has been initialized.
  */
-async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUsername) {
+async function LabelDetail(root, opts) {
     const self = {};
+    const {
+        admin, viewerType, viewerAccessToken, cityName, currUsername,
+        popoverContainer, onVote, panoOverlaySource, voteColumnSource
+    } = opts;
     self.admin = admin;
     self.source = undefined; // Set in showLabel().
     self.readonly = false;   // Set per-label in _handleData() based on meta.from_current_user.
@@ -25,13 +45,8 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
     const RESULT_OPTIONS = { Agree: 1, Disagree: 2, Unsure: 3 };
     const FLAG_NAMES = ['low_quality', 'incomplete', 'stale'];
 
-    const dialog = document.getElementById('label-modal');
-    if (!dialog) {
-        throw new Error('LabelPopup: #label-modal not found. Did you include common.labelPopup() on the page?');
-    }
-
     // Field references — populated in _init().
-    const $ = (sel) => dialog.querySelector(sel);
+    const $ = (sel) => root.querySelector(sel);
     const els = {};
 
     self.validationCounts = { Agree: null, Disagree: null, Unsure: null };
@@ -51,31 +66,26 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
         _cacheElements();
         _wireHandlers();
 
-        // The pano viewer needs a visible host element on init (Mapillary in particular). Open the dialog inside an
-        // "initializing" class that hides both the dialog and its ::backdrop, init the viewer, then close. Future
-        // showLabel() calls just toggle the dialog open without re-initializing.
-        dialog.classList.add('label-popup--initializing');
-        dialog.showModal();
+        // Pano viewer needs a visible host element on init. The wrapping host (LabelPopup or Gallery) is responsible
+        // for ensuring this is the case before constructing LabelDetail.
         self.panoManager = await PopupPanoManager(
             els.svHolder,
-            els.validationSection,
+            els.panoOverlay,
             admin,
             viewerType,
             viewerAccessToken
         );
-        dialog.close();
-        dialog.classList.remove('label-popup--initializing');
 
         _initInfoPopover();
     }
 
     /**
-     * Mounts a PanoInfoPopover into #label-popup-info-button-host. Accessor closures read from `currentLabelMeta`,
-     * which is updated on every showLabel() call. The popover must be appended to the dialog (not the body) so it
-     * renders inside the native <dialog> top layer instead of behind the modal backdrop.
+     * Mounts a PanoInfoPopover into the .label-detail__info-button-host span. Accessor closures read from
+     * `currentLabelMeta`, which is updated on every showLabel() call. The popover's container can be
+     * overridden via `opts.popoverContainer` so the popup host can keep the popover in the dialog's top layer.
      */
     function _initInfoPopover() {
-        const host = $('#label-popup-info-button-host');
+        const host = $('.label-detail__info-button-host');
         if (!host) return;
 
         const noopLog = () => {};
@@ -87,7 +97,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
             () => currentLabelMeta && currentLabelMeta.street_edge_id,
             () => currentLabelMeta && currentLabelMeta.region_id,
             () => currentLabelMeta && moment(new Date(currentLabelMeta.image_capture_date)),
-            () => null, // pano address — not exposed in the label metadata payload
+            () => self.panoManager.panoViewer.currPanoData.getProperty('address'),
             () => self.panoManager.getPov(),
             cityName || '',
             false,         // whiteIcon
@@ -96,96 +106,87 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
             noopLog,       // viewPanoLogging
             () => currentLabelMeta && currentLabelMeta.label_id,
             () => currentLabelMeta && moment(new Date(currentLabelMeta.timestamp)),
-            dialog         // popoverContainer — keep popover in the dialog's top layer
+            popoverContainer || root
         );
     }
 
     /**
-     * Records jQuery references to elements within the popup. We use those references to update when showing labels.
+     * Caches element references inside the host root. We use these to update content when showing labels.
      * @private
      */
     function _cacheElements() {
-        els.svHolder           = $('#sv-holder-label');
-        els.validationSection  = $('#validation-input-holder');
-        els.title              = $('#label-popup-title');
-        els.timestamp          = $('#timestamp');
-        els.imageDate          = $('#image-capture-date');
-        els.severity           = $('#severity');
-        els.tags               = $('#tags');
-        els.description        = $('#label-description');
-        els.validatorComments  = $('#validator-comments');
-        els.commentInput       = $('#comment-textarea');
-        els.commentButton      = $('#comment-button');
-        els.commentConfirm     = $('#comment-confirmation');
+        els.svHolder           = $('.label-detail__pano');
+        els.panoWrap           = $('.label-detail__pano-wrap');
+        els.panoOverlay        = $('.label-detail__pano-overlay');
+        els.title              = $('.label-detail__title');
+        els.timestamp          = $('.label-detail__timestamp');
+        els.imageDate          = $('.label-detail__image-capture-date');
+        els.severity           = $('.label-detail__severity-faces');
+        els.tags               = $('.label-detail__tags');
+        els.description        = $('.label-detail__description');
+        els.validatorComments  = $('.label-detail__validator-comments');
+        els.commentInput       = $('.label-detail__comment-input');
+        els.commentButton      = $('.label-detail__comment-submit');
+        els.commentConfirm     = $('.label-detail__comment-confirmation');
 
-        // Validation count display: <img> elements whose `src` is swapped between the four icon variants (outline /
-        // filled / outline-ai / filled-ai). The base URL for the icon files is read from a data attribute on the
-        // container so JS doesn't need to know the assets' path.
-        const voteDisplay = dialog.querySelector('.label-popup__vote-display');
+        // Validation count display: <img> elements whose `src` is swapped between the four icon variants
+        // (outline / filled / outline-ai / filled-ai). The base URL for the icon files is read from a data
+        // attribute on the container so JS doesn't need to know the assets' path.
+        const voteDisplay = root.querySelector('.label-detail__vote-display');
         self.iconBase = voteDisplay ? voteDisplay.dataset.iconBase : '';
+        const voteEl = (variant, child) => root.querySelector(`.label-detail__vote--${variant} ${child}`);
         els.voteIcons = {
-            Agree:    $('#validation-agree-icon'),
-            Disagree: $('#validation-disagree-icon'),
-            Unsure:   $('#validation-unsure-icon')
+            Agree:    voteEl('agree',    '.label-detail__vote-icon'),
+            Disagree: voteEl('disagree', '.label-detail__vote-icon'),
+            Unsure:   voteEl('unsure',   '.label-detail__vote-icon')
         };
         els.voteButtons = {
-            Agree:    $('#validation-agree-button'),
-            Disagree: $('#validation-disagree-button'),
-            Unsure:   $('#validation-unsure-button')
+            Agree:    root.querySelector('.label-detail__vote--agree'),
+            Disagree: root.querySelector('.label-detail__vote--disagree'),
+            Unsure:   root.querySelector('.label-detail__vote--unsure')
+        };
+        els.voteCounts = {
+            Agree:    voteEl('agree',    '.label-detail__vote-count'),
+            Disagree: voteEl('disagree', '.label-detail__vote-count'),
+            Unsure:   voteEl('unsure',   '.label-detail__vote-count')
         };
         // Hover-reveal overlay buttons on the pano. Both these and the column buttons fire a vote.
         els.panoOverlayButtons = {
-            Agree:    $('#pano-overlay-agree-button'),
-            Disagree: $('#pano-overlay-disagree-button'),
-            Unsure:   $('#pano-overlay-unsure-button')
-        };
-        els.panoWrap = dialog.querySelector('.label-popup__pano-wrap');
-        els.voteCounts = {
-            Agree:    $('#validation-agree-count'),
-            Disagree: $('#validation-disagree-count'),
-            Unsure:   $('#validation-unsure-count')
+            Agree:    root.querySelector('.label-detail__pano-overlay-button--agree'),
+            Disagree: root.querySelector('.label-detail__pano-overlay-button--disagree'),
+            Unsure:   root.querySelector('.label-detail__pano-overlay-button--unsure')
         };
 
         if (admin) {
-            els.adminUsername     = $('#admin-username');
-            els.adminTask         = $('#task');
-            els.adminPrevVals     = $('#prev-validations');
+            els.adminUsername = $('.label-detail__admin-username');
+            els.adminTask     = $('.label-detail__admin-task');
+            els.adminPrevVals = $('.label-detail__admin-prev-validations');
             els.flagButtons = {
-                low_quality: $('#flag-low-quality-button'),
-                incomplete:  $('#flag-incomplete-button'),
-                stale:       $('#flag-stale-button')
+                low_quality: $('.label-detail__flag-button[data-flag="low_quality"]'),
+                incomplete:  $('.label-detail__flag-button[data-flag="incomplete"]'),
+                stale:       $('.label-detail__flag-button[data-flag="stale"]')
             };
         }
     }
 
     /**
-     * Adds event listeners to the various buttons on the label popup.
+     * Adds event listeners to buttons inside the host root. The host wrapper is responsible for the
+     * close button (popup closes the dialog; gallery hides the inline panel) and for prev/next paging
+     * (gallery only). LabelDetail just emits the close event via the data-action attribute.
      * @private
      */
     function _wireHandlers() {
-        // Close button + ESC + backdrop click.
-        dialog.querySelector('[data-action="close-label-popup"]').addEventListener('click', () => dialog.close());
-        dialog.addEventListener('click', (e) => {
-            // Click outside the dialog box (i.e. on the backdrop) closes it. We compare against the bounding rect
-            // rather than e.target===dialog because clicks on the dialog's own padding also have e.target===dialog
-            // and shouldn't dismiss.
-            if (e.target !== dialog) return;
-            const r = dialog.getBoundingClientRect();
-            const inside = r.top <= e.clientY && e.clientY <= r.bottom
-                && r.left <= e.clientX && e.clientX <= r.right;
-            if (!inside) dialog.close();
-        });
-
-        const voteHandler = (action) => () => {
+        // buttonSource overrides self.source for this specific button group; falls back to self.source if null.
+        const voteHandler = (action, buttonSource) => () => {
             if (self.readonly) return;
             if (self.prevAction !== action) {
                 _setVoteButtonsDisabled(true);
-                _validateLabel(action);
+                _validateLabel(action, buttonSource || self.source);
             }
         };
         for (const action of Object.keys(els.panoOverlayButtons)) {
-            els.panoOverlayButtons[action].addEventListener('click', voteHandler(action));
-            els.voteButtons[action].addEventListener('click', voteHandler(action));
+            els.panoOverlayButtons[action].addEventListener('click', voteHandler(action, panoOverlaySource));
+            els.voteButtons[action].addEventListener('click', voteHandler(action, voteColumnSource));
         }
 
         els.commentInput.addEventListener('input', () => {
@@ -209,17 +210,24 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
     // ───────────────────────────────────────────────────────────────────
 
     /**
-     * Requests data on the label, shows it on the pano, and fills in the popup with the label's metadata.
-     * @param {number} labelId  The ID of the label to show.
-     * @param {string} source   The UI that created the popup (recorded with validations).
+     * Shows the given label. Accepts either a label id (in which case the metadata is fetched from the server) or a
+     * pre-built meta object (in which case it's rendered directly — used by Gallery, which already has the data in
+     * memory from its initial fetch).
+     *
+     * @param {number|object} idOrMeta Either a label id (number) to fetch, or a pre-built meta object.
+     * @param {string} source The UI that created the popup (recorded with validations).
      */
-    async function showLabel(labelId, source) {
+    async function showLabel(idOrMeta, source) {
         self.source = source;
         _resetVoteButtonStyles();
         self.panoManager.clearLabels();
 
-        if (!dialog.open) dialog.showModal();
+        if (typeof idOrMeta === 'object' && idOrMeta !== null) {
+            _handleData(idOrMeta);
+            return;
+        }
 
+        const labelId = idOrMeta;
         const url = admin ? `/adminapi/label/id/${labelId}` : `/label/id/${labelId}`;
         const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
         if (!response.ok) {
@@ -230,23 +238,22 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
     }
 
     /**
-     * Populates the popup with the label metadata fetched in showLabel()
-     * @param {object} meta The label metadata payload from /label/id/:id (or /adminapi/label/id/:id in admin mode).
+     * Populates the view with the label metadata fetched (or passed in directly) by showLabel().
+     * @param {object} meta The label metadata payload.
      * @private
      */
     function _handleData(meta) {
         currentLabelMeta = meta;
 
-        // Read-only mode for the viewer's own labels — no validating, no commenting. The CSS class hides the pano
-        // vote overlay + comment row and turns off the count-icon click affordance; `self.readonly` is also checked
-        // by the click handlers as a safety net.
+        // Read-only mode for the user's own labels — no validating/commenting.
         self.readonly = !!meta.from_current_user;
-        dialog.classList.toggle('label-popup--readonly', self.readonly);
+        root.classList.toggle('label-detail--readonly', self.readonly);
+        _setReadonlyState(self.readonly);
 
         const labelPov = { heading: meta.heading, pitch: meta.pitch, zoom: meta.zoom };
 
-        // Plain-object label shape consumed by PopupPanoManager. The old/new severity + tags split exists so the
-        // popup can track edits to those fields against the original values from the API payload.
+        // Plain-object label shape consumed by PopupPanoManager. The old/new severity + tags split exists so
+        // the popup can track edits to those fields against the original values from the API payload.
         const popupLabel = {
             labelId: meta.label_id,
             label_type: meta.label_type,
@@ -291,25 +298,25 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
 
         // Tag pills.
         els.tags.replaceChildren();
-        els.tags.classList.remove('label-popup__empty');
+        els.tags.classList.remove('label-detail__empty');
         if (meta.tags && meta.tags.length) {
             for (const tag of meta.tags) {
                 const pill = document.createElement('span');
-                pill.className = 'label-popup__tag';
+                pill.className = 'label-detail__tag';
                 pill.textContent = i18next.t(`common:tag.${tag.replace(/:/g, '-')}`);
                 els.tags.appendChild(pill);
             }
         } else {
-            els.tags.classList.add('label-popup__empty');
+            els.tags.classList.add('label-detail__empty');
             els.tags.textContent = i18next.t('common:none');
         }
 
         // Description.
         if (meta.description != null) {
-            els.description.classList.remove('label-popup__empty');
+            els.description.classList.remove('label-detail__empty');
             els.description.textContent = meta.description;
         } else {
-            els.description.classList.add('label-popup__empty');
+            els.description.classList.add('label-detail__empty');
             els.description.textContent = i18next.t('common:no-description');
         }
 
@@ -317,14 +324,11 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
         els.timestamp.textContent = moment(new Date(meta.timestamp)).format('LL, LT');
         els.imageDate.textContent = moment(new Date(meta.image_capture_date)).format('MMMM YYYY');
 
-        // Validator comments. Admin endpoint returns objects {username, comment}; non-admin returns bare strings.
-        // Stash on `self` so _submitComment() can append after a successful POST.
+        // Validator comments. Admin endpoint returns objects {username, comment}; non-admin returns bare
+        // strings. Stash on `self` so _submitComment() can append after a successful POST.
         self.comments = meta.comments || [];
-        // Index of the current user's comment in self.comments, if any. The backend deletes any previous comment from
-        // the same (user, label, mission) before inserting a new one, so we mirror that on the frontend by replacing
-        // rather than appending. In admin mode we can find an existing comment by username on initial load. In
-        // non-admin mode comments are bare strings with no usernames, so we can only track the user's own comment
-        // after they submit one in this session.
+        // Index of the current user's comment in self.comments, if any. The backend replaces comments rather than just
+        // adding new ones, so we mirror that here (but in non-admin, who added comments, so we just always append).
         self.myCommentIdx = -1;
         if (admin && currUsername) {
             self.myCommentIdx = self.comments.findIndex(c => c && c.username === currUsername);
@@ -373,11 +377,13 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
     // ───────────────────────────────────────────────────────────────────
 
     /**
-     * POSTs a validation for the current label to /labelmap/validate, then updates the count and validation display.
+     * POSTs a validation for the current label to /labelmap/validate, then updates the count and validation
+     * display. Fires opts.onVote after a successful submission so hosts can sync upstream UI.
      * @param {'Agree'|'Disagree'|'Unsure'} action
+     * @param {string} source The UI source string to record with this validation.
      * @private
      */
-    function _validateLabel(action) {
+    function _validateLabel(action, source) {
         const validationTimestamp = new Date();
         const canvasWidth  = self.panoManager.svHolder.width();
         const canvasHeight = self.panoManager.svHolder.height();
@@ -405,7 +411,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
             canvas_width: canvasWidth,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
-            source: self.source,
+            source: source,
             undone: false,
             redone: action !== self.prevAction
         };
@@ -419,6 +425,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
             _updateVoteCount(action);
             _highlightVote(action);
             _setVoteButtonsDisabled(false);
+            if (typeof onVote === 'function') onVote(action, currentLabelMeta);
         }).catch((err) => {
             console.error(err);
             _setVoteButtonsDisabled(false);
@@ -460,7 +467,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
         for (const [key, btn] of Object.entries(els.panoOverlayButtons)) {
             btn.classList.toggle('is-selected', key === action);
         }
-        // Border on the pano wrap reflects the current validation, like Gallery's expanded view.
+        // Border on the pano wrap reflects the current validation.
         if (els.panoWrap) {
             els.panoWrap.classList.remove('is-agree', 'is-disagree', 'is-unsure');
             if (action) els.panoWrap.classList.add(`is-${action.toLowerCase()}`);
@@ -471,11 +478,38 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
     function _resetVoteButtonStyles() {
         for (const btn of Object.values(els.panoOverlayButtons)) {
             btn.classList.remove('is-selected');
-            btn.disabled = false;
+            if (!self.readonly) btn.disabled = false;
         }
         if (els.panoWrap) {
             els.panoWrap.classList.remove('is-agree', 'is-disagree', 'is-unsure');
         }
+    }
+
+    /**
+     * Toggles the disabled state + tooltip on interactive elements when viewing your own label.
+     * @param {boolean} readonly
+     * @private
+     */
+    function _setReadonlyState(readonly) {
+        const tip = readonly ? i18next.t('labelmap:own-label-disabled') : '';
+
+        // Pano overlay buttons.
+        for (const btn of Object.values(els.panoOverlayButtons)) {
+            btn.disabled = readonly;
+            btn.title = tip;
+        }
+
+        // Validation column buttons.
+        for (const btn of Object.values(els.voteButtons)) {
+            btn.disabled = readonly;
+            btn.title = tip;
+        }
+
+        // Comment input and submit button.
+        els.commentInput.disabled = readonly;
+        els.commentInput.title = tip;
+        els.commentButton.disabled = readonly;
+        els.commentButton.title = tip;
     }
 
     /**
@@ -503,7 +537,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
      * @private
      */
     function _renderSeverity(severity) {
-        const faces = els.severity.querySelectorAll('.label-popup__face');
+        const faces = els.severity.querySelectorAll('.label-detail__face');
         const selectedIdx = severity ? severity - 1 : -1;
         faces.forEach((face, i) => face.classList.toggle('is-selected', i === selectedIdx));
     }
@@ -518,9 +552,9 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
      */
     function _renderComments() {
         els.validatorComments.replaceChildren();
-        els.validatorComments.classList.remove('label-popup__empty');
+        els.validatorComments.classList.remove('label-detail__empty');
         if (!self.comments || self.comments.length === 0) {
-            els.validatorComments.classList.add('label-popup__empty');
+            els.validatorComments.classList.add('label-detail__empty');
             els.validatorComments.textContent = i18next.t('common:none');
             return;
         }
@@ -578,9 +612,9 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
             els.commentConfirm.hidden = false;
             setTimeout(() => { els.commentConfirm.hidden = true; }, 1500);
 
-            // Update the visible list. Admin views render objects with a username; non-admin views render bare
-            // comment strings. Replace the user's existing comment (if any) rather than appending — the backend
-            // deletes prior comments from the same user before inserting, so the visible list should match.
+            // Update the visible list. Admin views render objects with a username; non-admin views render bare comment
+            // strings. Replace the user's existing comment (if any) rather than appending — the backend deletes prior
+            // comments from the same user before inserting, so the visible list should match.
             if (!self.comments) self.comments = [];
             const newEntry = admin ? { username: body.username, comment } : comment;
             if (self.myCommentIdx >= 0 && self.myCommentIdx < self.comments.length) {
@@ -602,8 +636,8 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
     // ───────────────────────────────────────────────────────────────────
 
     /**
-     * Sets or clears one of the admin task flags (low_quality / incomplete / stale) on the current label's audit
-     * task via /adminapi/setTaskFlag, then re-renders the flag buttons to reflect the new state.
+     * Sets or clears one of the admin task flags (low_quality / incomplete / stale) on the current label's
+     * audit task via /adminapi/setTaskFlag, then re-renders the flag buttons to reflect the new state.
      * @param {'low_quality'|'incomplete'|'stale'} flag
      * @param {boolean} state
      * @private

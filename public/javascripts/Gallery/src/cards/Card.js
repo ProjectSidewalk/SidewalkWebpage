@@ -3,11 +3,10 @@
  * @param params properties of the associated label.
  * @param cropUrl Locally-saved crop image url, or null if no crop exists.
  * @param gsvImageUrl Google Street View static image url, or null if non-GSV imagery.
- * @param expandedView ExpandedView object; used to update the expanded view when modifying a card.
  * @returns {Card}
  * @constructor
  */
-function Card(params, cropUrl, gsvImageUrl, expandedView) {
+function Card(params, cropUrl, gsvImageUrl) {
     const self = this;
 
     // UI card element.
@@ -38,7 +37,9 @@ function Card(params, cropUrl, gsvImageUrl, expandedView) {
         user_validation: undefined,
         ai_validation: undefined,
         tags: [],
-        ai_generated: false
+        ai_generated: false,
+        comments: [],
+        from_current_user: false
     };
 
     // Paths to label icon images.
@@ -171,7 +172,7 @@ function Card(params, cropUrl, gsvImageUrl, expandedView) {
         imageHolder.appendChild(panoImage);
 
         card.appendChild(cardInfo);
-        validationMenu = new ValidationMenu(self, $(imageHolder), expandedView, false);
+        validationMenu = new ValidationMenu(self, $(imageHolder));
     }
 
     /**
@@ -293,8 +294,7 @@ function Card(params, cropUrl, gsvImageUrl, expandedView) {
     }
 
     /**
-     * Updates metadata and visuals based on a new validation from the user.
-     *
+     * Updates metadata and visuals on the small card based on a new validation from the user.
      * @param newUserValidation
      */
     function updateUserValidation(newUserValidation) {
@@ -304,19 +304,9 @@ function Card(params, cropUrl, gsvImageUrl, expandedView) {
             properties.val_counts[newUserValidation] += 1;
             properties.user_validation = newUserValidation;
 
-            // Update the validation displays.
+            // Update the small card's validation displays.
             self.validationInfoDisplay.updateValCounts(properties.val_counts['Agree'], properties.val_counts['Disagree']);
             self.validationMenu.showValidationOnCard(newUserValidation);
-
-            // If this card matches the one in expanded view, update the validation displays there as well.
-            const expandedViewRefCard = expandedView.getReferenceCard();
-            if (expandedViewRefCard && expandedViewRefCard.getLabelId() === properties.label_id) {
-                expandedView.validationInfoDisplay.updateValCounts(
-                    properties.val_counts['Agree'],
-                    properties.val_counts['Disagree']
-                );
-                expandedView.validationMenu.showValidationOnExpandedView(newUserValidation);
-            }
         }
     }
 

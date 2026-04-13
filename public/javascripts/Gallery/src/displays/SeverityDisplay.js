@@ -4,10 +4,10 @@
  *
  * @param {HTMLElement} container The DOM element that contains the display
  * @param {number} severity The severity to display
- * @param {boolean} isExpandedView a toggle to determine if this SeverityDisplay is in an expanded view, or in a card
+ * @param {string} labelType
  * @returns {SeverityDisplay} the generated object
  */
-function SeverityDisplay(container, severity, labelType, isExpandedView= false) {
+function SeverityDisplay(container, severity, labelType) {
     const self = this;
     self.severity = severity;
     self.severityContainer = container;
@@ -20,20 +20,11 @@ function SeverityDisplay(container, severity, labelType, isExpandedView= false) 
 
     let circles = [];
     function _init() {
-        // Set the different classes and ids depending on whether the severity display is in expanded view or in a card.
-        let severityCircleClass = isExpandedView ? 'expanded-view-severity-circle' : 'severity-circle';
-
         let holder = document.createElement('div');
         holder.className = 'label-severity-content';
 
         let title = document.createElement('div');
         title.className = 'label-severity-header';
-        if (isExpandedView) {
-            // Add bold weight. Find better way to do this.
-            title.classList.add('expanded-view-severity-header');
-            // Centers tooltip.
-            holder.classList.add('expanded-view-severity-content')
-        }
 
         title.innerText = `${i18next.t("severity")}`;
         // If no severity rating, gray out title.
@@ -46,34 +37,17 @@ function SeverityDisplay(container, severity, labelType, isExpandedView= false) 
         // We do so by darkening a number of circles from the left equal to the severity. For example, if the severity
         // is 2, we will darken the left 2 circles.
         for (let i = 1; i <= 3; i++) {
-
-            let $severityCircle;
-
-            if (isExpandedView) {
-                $severityCircle = $(`.severity-filter-image.template.severity-${i}`).clone().removeClass('template');
-            } else {
-                $severityCircle = $('<div></div>');
-            }
-            $severityCircle.addClass(severityCircleClass);
+            let $severityCircle = $('<div></div>');
+            $severityCircle.addClass('severity-circle');
 
             if (unsupported || severity == null) {
-                // Create grayed out empty circles/smileys.
-                if (isExpandedView) {
-                    $severityCircle.addClass('expanded-view-no-severity');
-                } else {
-                    $severityCircle.addClass('no-severity-circle');
-                }
+                // Create grayed out empty circles.
+                $severityCircle.addClass('no-severity-circle');
                 circles.push($severityCircle);
             } else {
                 // Create severity circle elements.
-                if (isExpandedView) {
-                    if (i <= severity) { // Filled in smileys.
-                        $severityCircle.addClass('highlight');
-                    }
-                } else {
-                    if (i <= severity) { // Fills in circles.
-                        $severityCircle.attr('id', 'current-severity');
-                    }
+                if (i <= severity) { // Fills in circles.
+                    $severityCircle.attr('id', 'current-severity');
                 }
             }
             circles.push($severityCircle);

@@ -55,6 +55,7 @@ case class LabelValidationInfo(agreeCount: Int, disagreeCount: Int, unsureCount:
 case class POV(heading: Double, pitch: Double, zoom: Double)
 case class Dimensions(width: Int, height: Int)
 case class LocationXY(x: Int, y: Int)
+case class LatLng(lat: Double, lng: Double)
 
 case class LabelLocation(
     labelId: Int,
@@ -145,7 +146,8 @@ case class LabelMetadata(
     lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean),
     comments: Seq[LabelComment],
     aiGenerated: Boolean,
-    expired: Boolean
+    expired: Boolean,
+    fromCurrentUser: Boolean
 )
 
 case class LabelComment(username: String, comment: String)
@@ -218,8 +220,7 @@ case class LabelValidationMetadata(
     panoSource: PanoSource,
     imageCaptureDate: String,
     timestamp: OffsetDateTime,
-    lat: Double,
-    lng: Double,
+    location: LatLng,
     pov: POV,
     canvasXY: LocationXY,
     severity: Option[Int],
@@ -230,10 +231,11 @@ case class LabelValidationMetadata(
     userValidation: Option[Int],
     aiValidation: Option[Int],
     tags: Seq[String],
-    cameraLat: Option[Double],
-    cameraLng: Option[Double],
+    cameraLocation: Option[LatLng],
     aiTags: Option[Seq[String]],
-    aiGenerated: Boolean
+    aiGenerated: Boolean,
+    comments: Seq[LabelComment] = Seq.empty,
+    fromCurrentUser: Boolean = false
 ) extends BasicLabelMetadata
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
@@ -316,8 +318,7 @@ object LabelTable {
       PanoSource,                       // panoSource
       String,                           // imageCaptureDate
       OffsetDateTime,                   // timestamp
-      Option[Double],                   // lat
-      Option[Double],                   // lng
+      (Option[Double], Option[Double]), // location (lat, lng)
       (Double, Double, Double),         // pov (heading, pitch, zoom)
       (Int, Int),                       // canvasXY (x, y)
       Option[Int],                      // severity
@@ -328,10 +329,11 @@ object LabelTable {
       Option[Int],                      // userValidation
       Option[Int],                      // aiValidation
       List[String],                     // tags
-      Option[Double],                   // cameraLat
-      Option[Double],                   // cameraLng
+      (Option[Double], Option[Double]), // cameraLocation (lat, lng)
       Option[List[String]],             // aiTags
-      Boolean                           // aiGenerated
+      Boolean,                          // aiGenerated
+      Option[String],                   // comments (JSON-aggregated)
+      Boolean                           // fromCurrentUser
   )
   type LabelValidationMetadataTupleRep = (
       Rep[Int],                                             // labelId
@@ -340,8 +342,7 @@ object LabelTable {
       Rep[PanoSource],                                      // panoSource
       Rep[String],                                          // imageCaptureDate
       Rep[OffsetDateTime],                                  // timestamp
-      Rep[Option[Double]],                                  // lat
-      Rep[Option[Double]],                                  // lng
+      (Rep[Option[Double]], Rep[Option[Double]]),           // location (lat, lng)
       (Rep[Double], Rep[Double], Rep[Double]),              // pov (heading, pitch, zoom)
       (Rep[Int], Rep[Int]),                                 // canvasXY (x, y)
       Rep[Option[Int]],                                     // severity
@@ -352,19 +353,48 @@ object LabelTable {
       Rep[Option[Int]],                                     // userValidation
       Rep[Option[Int]],                                     // aiValidation
       Rep[List[String]],                                    // tags
-      Rep[Option[Double]],                                  // cameraLat
-      Rep[Option[Double]],                                  // cameraLng
+      (Rep[Option[Double]], Rep[Option[Double]]),           // cameraLocation (lat, lng)
       Rep[Option[List[String]]],                            // aiTags
-      Rep[Boolean]                                          // aiGenerated
+      Rep[Boolean],                                         // aiGenerated
+      Rep[Option[String]],                                  // comments (JSON-aggregated)
+      Rep[Boolean]                                          // fromCurrentUser
   )
 
   // Define an implicit conversion from the tuple representation to the case class.
   implicit val labelValidationMetadataConverter: TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] =
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
       def fromTuple(t: LabelValidationMetadataTuple): LabelValidationMetadata = LabelValidationMetadata(
-        t._1, LabelTypeEnum.byName(t._2), t._3, t._4, t._5, t._6, t._7.get, t._8.get, POV.tupled(t._9),
-        LocationXY.tupled(t._10), t._11, t._12, t._13, t._14, LabelValidationInfo.tupled(t._15), t._16, t._17, t._18,
-        t._19, t._20, t._21, t._22
+        labelId = t._1,
+        labelType = LabelTypeEnum.byName(t._2),
+        panoId = t._3,
+        panoSource = t._4,
+        imageCaptureDate = t._5,
+        timestamp = t._6,
+        location = LatLng(t._7._1.get, t._7._2.get),
+        pov = POV.tupled(t._8),
+        canvasXY = LocationXY.tupled(t._9),
+        severity = t._10,
+        description = t._11,
+        streetEdgeId = t._12,
+        regionId = t._13,
+        validationInfo = LabelValidationInfo.tupled(t._14),
+        userValidation = t._15,
+        aiValidation = t._16,
+        tags = t._17,
+        cameraLocation = (t._18._1, t._18._2) match {
+          case (Some(lat), Some(lng)) => Some(LatLng(lat, lng))
+          case _                      => None
+        },
+        aiTags = t._19,
+        aiGenerated = t._20,
+        comments = t._21
+          .map { json =>
+            play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
+              LabelComment((obj \ "username").as[String], (obj \ "comment").as[String])
+            }
+          }
+          .getOrElse(Seq.empty),
+        fromCurrentUser = t._22
       )
     }
 
@@ -477,6 +507,17 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   val gf: GeometryFactory = JTSFactoryFinder.getGeometryFactory
 
+  /**
+   * Slick mapping for the label_comments_agg VIEW, which pre-aggregates validation comments per label via json_agg.
+   * Each row contains a label_id and a JSON array string of {username, comment} objects.
+   */
+  private class LabelCommentsAggTableDef(tag: Tag) extends Table[(Int, Option[String])](tag, "label_comments_agg") {
+    def labelId: Rep[Int]             = column[Int]("label_id")
+    def comments: Rep[Option[String]] = column[Option[String]]("comments")
+    def *                             = (labelId, comments)
+  }
+  private val commentsAggregated = TableQuery[LabelCommentsAggTableDef]
+
   val labelsUnfiltered       = TableQuery[LabelTableDef]
   val auditTasks             = TableQuery[AuditTaskTableDef]
   val panoData               = TableQuery[PanoDataTableDef]
@@ -566,11 +607,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextString().split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextString().split(",").filter(_.nonEmpty).toList,
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
-      r.nextStringOption().map { json =>
-        play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
-          LabelComment((obj \ "username").as[String], (obj \ "comment").as[String])
+      r.nextStringOption()
+        .map { json =>
+          play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
+            LabelComment((obj \ "username").as[String], (obj \ "comment").as[String])
+          }
         }
-      }.getOrElse(Seq.empty),
+        .getOrElse(Seq.empty),
+      r.nextBoolean(),
       r.nextBoolean(),
       r.nextBoolean()
     )
@@ -719,6 +763,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // Optional filter to only get labels placed by the given user.
     val labelerFilter: String = if (labelerId.isDefined) s"""u.user_id = '${labelerId.get}'""" else "TRUE"
 
+    // Whether the label was placed by the current user (used to prevent self-validation).
+    val fromCurrentUserExpr: String = if (validatorId.isDefined) s"""u.user_id = '${validatorId.get}'""" else "FALSE"
+
     // Optionally include the given user's validation info for each label in the userValidation field.
     val validatorJoin: String =
       if (validatorId.isDefined) {
@@ -765,7 +812,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              at.stale,
              comment.comments,
              r.role = 'AI' AS ai_generated,
-             pano_data.expired
+             pano_data.expired,
+             #$fromCurrentUserExpr AS from_current_user
       FROM label AS lb1
       INNER JOIN pano_data ON lb1.pano_id = pano_data.pano_id
       INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
@@ -941,8 +989,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           pd.source,
           pd.captureDate,
           l.timeCreated,
-          lp.lat,
-          lp.lng,
+          (lp.lat, lp.lng),
           (lp.heading.asColumnOf[Double], lp.pitch.asColumnOf[Double], lp.zoom.asColumnOf[Double]),
           (lp.canvasX, lp.canvasY),
           l.severity,
@@ -953,12 +1000,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           Option.empty[Int].bind, // userValidation, always None bc we only show labels they haven't already validated.
           aiv.map(_.validationResult), // aiValidation, if it exists.
           l.tags,
-          pd.lat,
-          pd.lng,
+          (pd.lat, pd.lng),
           // Include AI tags if requested.
           if (includeAiTags) laa.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
           else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
-          isAiUser
+          isAiUser,
+          None.asInstanceOf[Option[String]].asColumnOf[Option[String]], // Comments not needed for validation rn.
+          false.bind
         )
       }
 
@@ -1071,11 +1119,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       query
     }
 
-    // Join with user validations.
+    // Join with user validations and pre-aggregated comments.
     val _userValidations       = labelValidations.filter(_.userId === userId)
     val _labelInfoWithUserVals = for {
-      ((lb, lp, pd, labelType, regionId, isAiUser, aiv), uv) <-
-        _labelsFilteredByAiValidation.joinLeft(_userValidations).on(_._1.labelId === _.labelId)
+      (((lb, lp, pd, labelType, regionId, isAiUser, aiv), uv), comments) <-
+        _labelsFilteredByAiValidation
+          .joinLeft(_userValidations)
+          .on(_._1.labelId === _.labelId)
+          .joinLeft(commentsAggregated)
+          .on(_._1._1.labelId === _.labelId)
     } yield (
       lb.labelId,
       labelType,
@@ -1083,8 +1135,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       pd.source,
       pd.captureDate,
       lb.timeCreated,
-      lp.lat,
-      lp.lng,
+      (lp.lat, lp.lng),
       (lp.heading.asColumnOf[Double], lp.pitch.asColumnOf[Double], lp.zoom),
       (lp.canvasX, lp.canvasY),
       lb.severity,
@@ -1095,11 +1146,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       uv.map(_.validationResult),  // userValidation
       aiv.map(_.validationResult), // aiValidation
       lb.tags,
-      pd.lat,
-      pd.lng,
+      (pd.lat, pd.lng),
       // Placeholder for AI tags, since we don't show those on Gallery right now.
       None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
-      isAiUser
+      isAiUser,
+      comments.flatMap(_.comments), // pre-aggregated comments string from VIEW
+      lb.userId === userId.bind
     )
 
     // Remove duplicates if needed and randomize.

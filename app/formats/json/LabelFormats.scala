@@ -102,10 +102,10 @@ object LabelFormats {
       "pano_id"            -> labelMetadata.panoId,
       "image_capture_date" -> labelMetadata.imageCaptureDate,
       "label_timestamp"    -> labelMetadata.timestamp,
-      "lat"                -> labelMetadata.lat,
-      "lng"                -> labelMetadata.lng,
-      "camera_lat"         -> labelMetadata.cameraLat,
-      "camera_lng"         -> labelMetadata.cameraLng,
+      "lat"                -> labelMetadata.location.lat,
+      "lng"                -> labelMetadata.location.lng,
+      "camera_lat"         -> labelMetadata.cameraLocation.map(_.lat),
+      "camera_lng"         -> labelMetadata.cameraLocation.map(_.lng),
       "heading"            -> labelMetadata.pov.heading,
       "pitch"              -> labelMetadata.pov.pitch,
       "zoom"               -> labelMetadata.pov.zoom,
@@ -124,6 +124,8 @@ object LabelFormats {
       "tags"               -> labelMetadata.tags,
       "ai_tags"            -> labelMetadata.aiTags,
       "ai_generated"       -> labelMetadata.aiGenerated,
+      "comments"           -> labelMetadata.comments.map(_.comment),
+      "from_current_user"  -> labelMetadata.fromCurrentUser,
       "admin_data"         -> adminData.map(ad =>
         Json.obj(
           "username"             -> ad.username,
@@ -139,7 +141,7 @@ object LabelFormats {
   }
 
   // Has the label metadata excluding a few admin-only fields.
-  def labelMetadataWithValidationToJson(labelMetadata: LabelMetadata, currUserId: String): JsObject = {
+  def labelMetadataWithValidationToJson(labelMetadata: LabelMetadata): JsObject = {
     Json.obj(
       "label_id"           -> labelMetadata.labelId,
       "pano_id"            -> labelMetadata.panoId,
@@ -165,17 +167,16 @@ object LabelFormats {
       "tags"               -> labelMetadata.tags,
       "ai_generated"       -> labelMetadata.aiGenerated,
       "expired"            -> labelMetadata.expired,
-      "from_current_user"  -> (labelMetadata.userId == currUserId)
+      "from_current_user"  -> labelMetadata.fromCurrentUser
     )
   }
 
   def labelMetadataWithValidationToJsonAdmin(
       labelMetadata: LabelMetadata,
-      adminData: AdminValidationData,
-      currUserId: String
+      adminData: AdminValidationData
   ): JsObject = {
     // Start with normal metadata, then add the admin-only fields.
-    labelMetadataWithValidationToJson(labelMetadata, currUserId) ++ Json.obj(
+    labelMetadataWithValidationToJson(labelMetadata) ++ Json.obj(
       "audit_task_id" -> labelMetadata.auditTaskId,
       "user_id"       -> labelMetadata.userId,
       "username"      -> labelMetadata.username,

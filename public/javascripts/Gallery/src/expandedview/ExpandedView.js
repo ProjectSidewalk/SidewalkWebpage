@@ -1,87 +1,142 @@
 /**
- * An ExpandedView element that provides extended information about a label, along with placing a label in a Panorama
- * to aid the user in contextualizing the location of labels.
+ * Gallery ExpandedView — inline wrapper around the shared LabelDetail controller.
  *
- * @param {jQuery} uiModal The container for the ExpandedView in the DOM
- * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
- * @param {string} viewerAccessToken An access token used to request images for the pano viewer
- * @returns
+ * Hosts LabelDetail inside a `.label-detail.label-detail--inline` container. Manages open/close visibility, prev/next
+ * paging, thumbnail highlighting, card transparency, and syncing validation results back onto the small cards.
+ *
+ * @param {jQuery} uiModal The `.gallery-expanded-view` container element.
+ * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
+ * @param {string} viewerAccessToken An access token used to request images for the pano viewer.
+ * @returns {Promise<ExpandedView>}
  */
 async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
 
     const self = this;
 
     const cardsPerPage = 9;
-    const unselectedCardClassName = "expanded-view-background-card";
-
-    // Observes the card container so that once cards are rendered (added to DOM), we can reopen the expanded view.
-    // We need this because the prev/next page actions are asynchronous (they query the backend), so before reopening
-    // the expanded view on a new page, we need to make sure the cards have actually been rendered in gallery view.
-    const observer = new MutationObserver((mutationsList, observer) => {
-        for (let mutation of mutationsList) {
-            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                // We check to make sure that the mutation effects the childList (adding/removing child nodes) of the
-                // card container and that cards (child nodes) were added in the mutation, indicating the cards have
-                // been rendered.
-
-                uiModal.css('visibility', 'visible');
-                uiModal.css('position', 'relative');
-                $('.grid-container').css("grid-template-columns", "1fr 5fr");
-
-                // Sets/Updates the label being displayed in the expanded view.
-                updateExpandedViewCardByIndex(self.cardIndex);
-
-                // Stop observing.
-                observer.disconnect();
-                break; // No need to check all mutation events?
-            }
-        }
-    });
+    const unselectedCardClassName = 'expanded-view-background-card';
+    const root = uiModal[0]; // Unwrap jQuery to get the DOM element for LabelDetail.
 
     /**
-     * Initialization function for the ExpandedView. Serves to bind the DOM elements of the ExpandedView to class
-     * variables for future access when populating the fields. It also instantiates the panorama in the specified
-     * location of the ExpandedView.
+     * Initialization: instantiate LabelDetail inside the host root, then wire up close and paging buttons.
      */
     async function _init() {
         self.open = false;
-        self.panoHolder = $('.actual-pano');
-        self.tags = $('.gallery-expanded-view-info-tags');
-        self.timestamps = $('.gallery-expanded-view-info-timestamps');
-        self.severity = $('.gallery-expanded-view-info-severity');
-        self.validation_info = $('.gallery-expanded-view-info-validation');
-        self.description = $('.gallery-expanded-view-info-description');
-        self.header = $('.gallery-expanded-view-header');
-        self.panoManager = await PanoManager.create(self.panoHolder[0], panoViewerType, viewerAccessToken);
-        self.closeButton = $('.gallery-expanded-view-close');
-        self.leftArrow = $('#prev-label');
-        self.leftArrowDisabled = false;
-        self.rightArrow = $('#next-label');
-        self.rightArrowDisabled = false;
-        self.validation = $('.gallery-modal-validation');
-        self.closeButton.click(closeExpandedViewAndRemoveCardTransparency);
-        self.rightArrow.click(function() { nextLabel(false); });
-        self.leftArrow.click(function() { previousLabel(false); });
         self.cardIndex = -1;
         self.refCard = null;
-        self.validationMenu = new ValidationMenu(null, self.panoHolder, self, true);
+        self.pendingCardIndex = undefined; // Set by nextLabel/previousLabel for cross-page navigation.
 
-        attachEventHandlers();
+        // Initialize the shared LabelDetail controller inside our inline host.
+        self.labelDetail = await LabelDetail(root, {
+            admin: false,
+            viewerType: panoViewerType,
+            viewerAccessToken: viewerAccessToken,
+            cityName: sg.cityName,
+            currUsername: null,
+            popoverContainer: null,
+            onVote: _handleVote,
+            panoOverlaySource: 'GalleryExpandedImage',
+            voteColumnSource: 'GalleryExpandedThumbs'
+        });
+
+        // Expose panoManager for Keyboard.js zoom shortcuts.
+        self.panoManager = self.labelDetail.panoManager;
+
+        // Wire paging buttons.
+        self.leftArrow = root.querySelector('.label-detail__paging--prev');
+        self.rightArrow = root.querySelector('.label-detail__paging--next');
+        self.leftArrowDisabled = false;
+        self.rightArrowDisabled = false;
+        if (self.leftArrow) self.leftArrow.addEventListener('click', () => previousLabel(false));
+        if (self.rightArrow) self.rightArrow.addEventListener('click', () => nextLabel(false));
+
+        // Wire close button.
+        const closeBtn = root.querySelector('[data-action="close-label-detail"]');
+        if (closeBtn) closeBtn.addEventListener('click', closeExpandedViewAndRemoveCardTransparency);
+
+        _attachCursorHandlers();
+    }
+
+    /**
+     * Converts a Gallery Card's properties into the meta object shape that LabelDetail.showLabel() expects.
+     * @param {Card} card
+     * @returns {object} A meta object compatible with LabelDetail._handleData().
+     */
+    function _cardToMeta(card) {
+        const p = card.getProperties();
+        return {
+            label_id: p.label_id,
+            label_type: p.label_type,
+            pano_id: p.pano_id,
+            // Moment objects → raw date strings so LabelDetail can reparse them uniformly.
+            image_capture_date: p.image_capture_date.toISOString(),
+            timestamp: p.label_timestamp.toISOString(),
+            heading: p.heading,
+            pitch: p.pitch,
+            zoom: p.zoom,
+            canvas_x: p.original_canvas_x,
+            canvas_y: p.original_canvas_y,
+            severity: p.severity,
+            description: p.description,
+            street_edge_id: p.street_edge_id,
+            region_id: p.region_id,
+            num_agree: p.val_counts.Agree,
+            num_disagree: p.val_counts.Disagree,
+            num_unsure: p.val_counts.Unsure,
+            user_validation: p.user_validation,
+            ai_validation: p.ai_validation,
+            tags: p.tags,
+            ai_generated: p.ai_generated,
+            crop_url: card.getCropUrl(),
+            from_current_user: p.from_current_user,
+            // Assume pano is available (Gallery cards already loaded successfully).
+            // TODO this isn't always the case since we can load cropped images now.
+            expired: false,
+            comments: p.comments
+        };
+    }
+
+    /**
+     * Called by LabelDetail after a successful validation POST. Syncs the new vote back onto the small card.
+     * @param {'Agree'|'Disagree'|'Unsure'} action
+     */
+    function _handleVote(action) {
+        if (self.refCard) {
+            self.refCard.updateUserValidation(action);
+        }
+    }
+
+    /**
+     * Opens the expanded view for the current refCard by passing the card data to LabelDetail.
+     */
+    function openExpandedView() {
+        // Clear the close-guard so the in-flight pano load is allowed to show once this card's load completes.
+        const panoEl = root.querySelector('.label-detail__pano');
+        if (panoEl) delete panoEl.dataset.closedDuringLoad;
+
+        const meta = _cardToMeta(self.refCard);
+        self.labelDetail.showLabel(meta, 'Gallery');
+
+        // Highlight selected card thumbnail.
+        highlightThumbnail(document.getElementById('gallery_card_' + self.refCard.getLabelId()));
+        self.open = true;
     }
 
     /**
      * Performs the actions to close the expanded view.
-     * NOTE does not remove card transparency. For that, use closeExpandedViewAndRemoveCardTransparency().
+     * NOTE: does not remove card transparency. For that, use closeExpandedViewAndRemoveCardTransparency().
      */
     function closeExpandedView() {
-        // Since we have made the sidebar a "fixed" DOM element, it no longer exists as part of the grid flow. Thus,
-        // when we aren't in expanded view mode, the only thing that is part of the grid is the image-container. We
-        // therefore shouldn't need to divide the grid into columns (changed "0.5fr 3fr" to "none").
-        // Disclaimer: I could be totally wrong lol.
-        $('.grid-container').css("grid-template-columns", "none");
+        $('.grid-container').css('grid-template-columns', 'none');
         uiModal.css('position', 'absolute');
         uiModal.css('visibility', 'hidden');
-        self.panoHolder.css('visibility', 'hidden');
+        // Clear the inline visibility set by PopupPanoManager.setPano() so the parent's visibility:hidden cascades.
+        // Also set a data flag so that if a pano load is still in-flight, it won't reveal itself when it finishes.
+        const panoEl = root.querySelector('.label-detail__pano');
+        if (panoEl) {
+            panoEl.style.visibility = '';
+            panoEl.dataset.closedDuringLoad = 'true';
+        }
         self.open = false;
     }
 
@@ -89,262 +144,171 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
      * Removes transparency from the current page of cards.
      */
     function removeCardTransparency() {
-        let currentPageCards = sg.cardContainer.getCurrentPageCards();
-        for (let card of currentPageCards) {
-            let cardDomEl = document.getElementById("gallery_card_" + card.getLabelId());
-            if (cardDomEl.classList.contains(unselectedCardClassName)) {
+        const currentPageCards = sg.cardContainer.getCurrentPageCards();
+        for (const card of currentPageCards) {
+            const cardDomEl = document.getElementById('gallery_card_' + card.getLabelId());
+            if (cardDomEl && cardDomEl.classList.contains(unselectedCardClassName)) {
                 cardDomEl.classList.remove(unselectedCardClassName);
             }
         }
     }
 
     /**
-     * Closes expanded view and removes transparency from cards on the current page.
-     * Not used when loading a new page of cards.
+     * Closes expanded view, removes transparency from cards, and scrolls the reference card to the top of the viewport.
      */
     function closeExpandedViewAndRemoveCardTransparency() {
+        const cardToScrollTo = self.refCard;
         closeExpandedView();
         removeCardTransparency();
-    }
-
-    /**
-     * Resets the fields of the expanded view.
-     */
-    function resetExpandedView() {
-        self.description.empty();
-        self.validation_info.empty()
-        self.severity.empty();
-        self.timestamps.empty();
-    }
-
-    /**
-     * Populates the information in the expanded view.
-     */
-    function populateExpandedViewDescriptionFields() {
-        const labelProps = self.refCard.getProperties();
-
-        // Add timestamp data for when label was placed and when pano was created.
-        self.labelTimestampData = document.createElement('div');
-        self.labelTimestampData.className = 'label-timestamp';
-        self.labelTimestampData.innerHTML =
-            `<div>${i18next.t('labeled')}: ${labelProps.label_timestamp.format('LL, LT')}</div>`;
-        let panoTimestampData = document.createElement('div');
-        panoTimestampData.className = 'pano-timestamp';
-        panoTimestampData.innerHTML =
-            `<div>${i18next.t('image-capture-date')}: ${labelProps.image_capture_date.format('MMM YYYY')}</div>`;
-        self.timestamps.append(self.labelTimestampData);
-        self.timestamps.append(panoTimestampData);
-
-        // Add info button to the right of the label timestamp.
-        let getPanoId = sg.panoViewer.getPanoId;
-        self.infoPopover = new PanoInfoPopover(
-            self.labelTimestampData, sg.panoViewer, sg.panoViewer.getPosition, getPanoId,
-            function() { return labelProps.street_edge_id; }, function() { return labelProps.region_id; },
-            function() { return labelProps.image_capture_date; },
-            function() { return sg.panoStore.getPanoData(getPanoId()).getProperty('address'); },
-            sg.panoViewer.getPov, sg.cityName, false,
-            function() { sg.tracker.push('PanoInfoButton_Click', { panoId: getPanoId() }); },
-            function() { sg.tracker.push('PanoInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
-            function() { sg.tracker.push('PanoInfoViewInPano_Click', { panoId: getPanoId() }); },
-            function() { return labelProps.label_id; }, function() { return labelProps.label_timestamp; }
-        );
-
-        // Add severity, validation info, and tag display to the expanded view.
-        new SeverityDisplay(self.severity, labelProps.severity, labelProps.label_type, true);
-        self.validationInfoDisplay = new ValidationInfoDisplay(
-            self.validation_info, labelProps.val_counts.Agree, labelProps.val_counts.Disagree, labelProps.ai_validation, true
-        );
-        new TagDisplay(self.tags, labelProps.tags, true);
-        self.validationMenu.addExpandedViewValInfoOnClicks(self.validationInfoDisplay);
-
-        // Add the information about the description of the label to the expanded view.
-        let descriptionHeader = document.createElement('div');
-        descriptionHeader.className = 'expanded-view-description-header';
-        descriptionHeader.innerHTML = i18next.t("description");
-        let descriptionBody = document.createElement('div');
-        descriptionBody.className = 'expanded-view-description-body';
-        descriptionBody.textContent = labelProps.description === null ? i18next.t('no-description') : labelProps.description;
-        self.description.append(descriptionHeader);
-        self.description.append(descriptionBody);
-    }
-
-    /**
-     * Performs the actions needed to open the expanded view.
-     */
-    function openExpandedView() {
-        // Load the pano and then render the label. Pass crop URL and label for fallback if pano fails.
-        self.panoManager.setPano(
-            self.refCard.getProperty('pano_id'), self.refCard.getProperty('pov'),
-            self.refCard.getCropUrl(), self.label
-        ).then((panoData) => { if (panoData) self.panoManager.renderLabel(self.label); });
-
-        // Update the text various fields shown below the pano.
-        resetExpandedView();
-        populateExpandedViewDescriptionFields();
-        self.header.text(i18next.t(util.camelToKebab(self.refCard.getLabelType())));
-
-        // Highlight selected card thumbnail.
-        highlightThumbnail(document.getElementById("gallery_card_" + self.refCard.getLabelId()));
-
-        self.open = true;
-    }
-
-    function highlightThumbnail(galleryCard) {
-        // Reset the sidebar as sticky as the sidebar should never be under the card container
-        // upon opening the expanded view.
-        // Adjust sidebar positioning.
-        sg.ui.cardFilter.wrapper.css('position', 'fixed');
-        sg.ui.cardFilter.wrapper.css('top', '');
-
-        // Adjust card container margin.
-        sg.ui.cardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
-        sg.scrollStatus.stickySidebar = true;
-
-        // Centers the card thumbnail that was selected. If it's the last card, we scroll such that the card is at the
-        // bottom of the visible window.
-        let index = self.cardIndex;
-        let page = sg.cardContainer.getCurrentPage();
-        let totalCards = sg.cardContainer.getCurrentCards().getSize();
-        galleryCard.scrollIntoView({
-            block: (index < page * cardsPerPage - 1 && index < totalCards - 1) ? 'center' : 'end',
-            behavior: 'smooth'
-        });
-
-        // Make sure to remove transparent effect from selected card.
-        if (galleryCard.classList.contains(unselectedCardClassName)) {
-            galleryCard.classList.remove(unselectedCardClassName);
-        }
-
-        // The rest of the cards should be semitransparent.
-        let currentPageCards = sg.cardContainer.getCurrentPageCards();
-        for (let card of currentPageCards) {
-            let cardLabelId = card.getLabelId();
-            if (cardLabelId !== self.refCard.getLabelId()) {
-                let cardDomEl = document.getElementById("gallery_card_" + cardLabelId);
-                if (!cardDomEl.classList.contains(unselectedCardClassName)) {
-                    cardDomEl.classList.add(unselectedCardClassName);
+        if (cardToScrollTo) {
+            requestAnimationFrame(() => {
+                const cardEl = document.getElementById('gallery_card_' + cardToScrollTo.getLabelId());
+                if (cardEl) {
+                    const navbar = document.getElementById('header');
+                    const navbarHeight = navbar ? navbar.offsetHeight : 0;
+                    const cardMarginTop = parseFloat(window.getComputedStyle(cardEl).marginTop) || 0;
+                    const targetScrollY = cardEl.getBoundingClientRect().top + window.scrollY - navbarHeight - cardMarginTop;
+                    window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
                 }
-            }
+            });
         }
-    }
-
-    function getReferenceCard() {
-        return self.refCard;
-    }
-
-    /**
-     * Updates the index of the current label being displayed in the expanded view.
-     *
-     * @param {number} newIndex The new index of the card being displayed
-     */
-    function updateCardIndex(newIndex) {
-        updateExpandedViewCardByIndex(newIndex);
     }
 
     /**
      * Tries to update the current card to the given input index.
-     *
-     * @param {number} index The index of the card to update to
+     * @param {number} index The index of the card to update to.
      */
     function updateExpandedViewCardByIndex(index) {
-        self.leftArrow.prop('disabled', false);
-        self.leftArrowDisabled = false;
-        self.rightArrow.prop('disabled', false);
-        self.rightArrowDisabled = false;
+        if (self.leftArrow) { self.leftArrow.disabled = false; self.leftArrowDisabled = false; }
+        if (self.rightArrow) { self.rightArrow.disabled = false; self.rightArrowDisabled = false; }
         self.cardIndex = index;
         self.refCard = sg.cardContainer.getCardByIndex(self.cardIndex);
-        self.validationMenu.updateReferenceCard(self.refCard);
-        const labelProps = self.refCard.getProperties();
-        self.label = new ExpandedLabel(
-            labelProps.label_id, labelProps.label_type, labelProps.original_canvas_x, labelProps.original_canvas_y,
-            util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, labelProps.pov, labelProps.ai_generated
-        );
 
         openExpandedView();
+
         if (self.cardIndex === 0) {
-            self.leftArrow.prop('disabled', true);
+            if (self.leftArrow) self.leftArrow.disabled = true;
             self.leftArrowDisabled = true;
         }
 
         if (sg.cardContainer.isLastPage()) {
-            let page = sg.cardContainer.getCurrentPage();
-            let lastCardIndex = (page - 1) * cardsPerPage + sg.cardContainer.getCurrentPageCards().length - 1;
+            const page = sg.cardContainer.getCurrentPage();
+            const lastCardIndex = (page - 1) * cardsPerPage + sg.cardContainer.getCurrentPageCards().length - 1;
             if (self.cardIndex === lastCardIndex) {
-                // The current page is the last page and the current card being rendered is the last card on the page.
-                self.rightArrow.prop('disabled', true);
+                if (self.rightArrow) self.rightArrow.disabled = true;
                 self.rightArrowDisabled = true;
             }
         }
     }
 
     /**
+     * Updates the index of the current label being displayed in the expanded view.
+     * @param {number} newIndex The new index of the card being displayed.
+     */
+    function updateCardIndex(newIndex) {
+        updateExpandedViewCardByIndex(newIndex);
+    }
+
+    /**
      * Moves to the next label.
-     * @param keyboardShortcut {boolean} Whether the action came from a keyboard shortcut.
+     * @param {boolean} keyboardShortcut Whether the action came from a keyboard shortcut.
      */
     function nextLabel(keyboardShortcut) {
         sg.tracker.push(`NextLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
-        let page = sg.cardContainer.getCurrentPage();
+        const page = sg.cardContainer.getCurrentPage();
         if (self.cardIndex < page * cardsPerPage - 1) {
-            // Iterate to next card on the page, updating the label being shown in the expanded view to be
-            // that of the next card.
             updateExpandedViewCardByIndex(self.cardIndex + 1);
         } else {
-            // Increment cardIndex now as the observer is ignorant of whether the prev or next arrow was clicked.
             self.cardIndex += 1;
-
-            // Move to the next page as the current card is the last on the page.
+            self.pendingCardIndex = self.cardIndex;
             sg.ui.cardContainer.nextPage.click();
-
-            // The target we will observe.
-            let cardHolder = sg.ui.cardContainer.holder[0];
-
-            // Start observing the target node for configured mutations.
-            observer.observe(cardHolder, { childList: true });
         }
     }
 
     /**
      * Moves to the previous label.
-     * @param keyboardShortcut {boolean} Whether the action came from a keyboard shortcut.
+     * @param {boolean} keyboardShortcut Whether the action came from a keyboard shortcut.
      */
     function previousLabel(keyboardShortcut) {
         sg.tracker.push(`PrevLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
-        let page = sg.cardContainer.getCurrentPage();
+        const page = sg.cardContainer.getCurrentPage();
         if (self.cardIndex > (page - 1) * cardsPerPage) {
-            // Iterate to previous card on the page, updating the label being shown in the expanded view to be
-            // that of the previous card.
             updateExpandedViewCardByIndex(self.cardIndex - 1);
         } else {
-            // Decrement cardIndex now as the observer is ignorant of whether the prev or next arrow was clicked.
             self.cardIndex -= 1;
-
-            // Move to the previous page as the current card is the first on the page.
+            self.pendingCardIndex = self.cardIndex;
             sg.ui.cardContainer.prevPage.click();
-
-            // The target we will observe.
-            let cardHolder = sg.ui.cardContainer.holder[0];
-
-            // Start observing the target node for configured mutations.
-            observer.observe(cardHolder, { childList: true });
         }
     }
 
     /**
-     * Attach any specific event handlers for expanded view contents.
-      */
-    function attachEventHandlers() {
-        // GSV custom handles cursor on '.widget-scene' element. We need to be more specific than that to override.
-        function handlerViewControlLayerMouseDown(e) {
-            $('.widget-scene-canvas').css('cursor', 'url(/assets/images/icons/closedhand.cur) 4 4, move');
-        }
+     * Highlights the selected thumbnail and dims the rest of the cards on the page.
+     * @param {HTMLElement} galleryCard
+     */
+    function highlightThumbnail(galleryCard) {
+        // Reset the sidebar as sticky.
+        sg.ui.cardFilter.wrapper.css('position', 'fixed');
+        sg.ui.cardFilter.wrapper.css('top', '');
+        sg.ui.cardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
+        sg.scrollStatus.stickySidebar = true;
 
-        function handlerViewControlLayerMouseUp(e) {
-            $('.widget-scene-canvas').css('cursor', '');
-        }
+        // Scroll the selected card into view.
+        const index = self.cardIndex;
+        const page = sg.cardContainer.getCurrentPage();
+        const totalCards = sg.cardContainer.getCurrentCards().getSize();
+        galleryCard.scrollIntoView({
+            block: (index < page * cardsPerPage - 1 && index < totalCards - 1) ? 'center' : 'end',
+            behavior: 'smooth'
+        });
 
-        // Google Street View loads inside 'actual-pano' but there is no event triggered after it loads all the components.
-        // So we need to detect it by brute-force.
-        const observer = new MutationObserver((mutations) => {
+        // Remove transparent effect from selected card.
+        galleryCard.classList.remove(unselectedCardClassName);
+
+        // The rest of the cards should be semitransparent.
+        const currentPageCards = sg.cardContainer.getCurrentPageCards();
+        for (const card of currentPageCards) {
+            const cardLabelId = card.getLabelId();
+            if (cardLabelId !== self.refCard.getLabelId()) {
+                const cardDomEl = document.getElementById('gallery_card_' + cardLabelId);
+                if (cardDomEl && !cardDomEl.classList.contains(unselectedCardClassName)) {
+                    cardDomEl.classList.add(unselectedCardClassName);
+                }
+            }
+        }
+    }
+
+    /**
+     * Returns the reference card currently being displayed.
+     * @returns {Card}
+     */
+    function getReferenceCard() {
+        return self.refCard;
+    }
+
+    /**
+     * Called by CardContainer after new cards have been rendered to the DOM. If a cross-page navigation
+     * was pending (i.e., the user clicked next/prev from the last/first card on a page), reopens the
+     * expanded view for the target card on the new page.
+     */
+    function onPageCardsRendered() {
+        if (self.pendingCardIndex === undefined) return;
+        const idx = self.pendingCardIndex;
+        self.pendingCardIndex = undefined;
+        uiModal.css('top', `calc(${$(window).scrollTop()}px + 1vh)`);
+        uiModal.css('visibility', 'visible');
+        uiModal.css('position', 'relative');
+        $('.grid-container').css('grid-template-columns', '1fr 5fr');
+        updateExpandedViewCardByIndex(idx);
+    }
+
+    /**
+     * Sets up cursor handlers for the GSV widget-scene-canvas inside the pano.
+     */
+    function _attachCursorHandlers() {
+        const panoEl = root.querySelector('.label-detail__pano');
+        if (!panoEl) return;
+
+        const cursorObserver = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (mutation.type === 'childList') {
                     mutation.addedNodes.forEach((node) => {
@@ -352,26 +316,35 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
                             node.className &&
                             typeof node.className === 'string' &&
                             node.className.indexOf('widget-scene-canvas') > -1) {
-
-                            // Add event listeners to the new element.
-                            node.addEventListener('mousedown', handlerViewControlLayerMouseDown);
-                            node.addEventListener('mouseup', handlerViewControlLayerMouseUp);
-
-                            observer.disconnect();
+                            node.addEventListener('mousedown', () => {
+                                $(node).css('cursor', 'url(/assets/images/icons/closedhand.cur) 4 4, move');
+                            });
+                            node.addEventListener('mouseup', () => {
+                                $(node).css('cursor', '');
+                            });
+                            cursorObserver.disconnect();
                         }
                     });
                 }
             });
         });
 
-        // Start observing the target node for configured mutations.
-        observer.observe(document.querySelector('.actual-pano'), {
-            childList: true,
-            subtree: true
-        });
+        cursorObserver.observe(panoEl, { childList: true, subtree: true });
     }
 
     await _init();
+
+    /**
+     * Programmatically triggers a validation from the expanded view (used by Keyboard.js shortcuts).
+     * Clicks the corresponding pano overlay button in the LabelDetail markup, which goes through
+     * LabelDetail's normal vote flow (including the onVote callback that syncs back to the card).
+     * @param {'Agree'|'Disagree'|'Unsure'} action
+     */
+    function validate(action) {
+        if (!self.open) return;
+        const btn = root.querySelector(`.label-detail__pano-overlay-button--${action.toLowerCase()}`);
+        if (btn && !btn.disabled) btn.click();
+    }
 
     self.closeExpandedView = closeExpandedView;
     self.updateCardIndex = updateCardIndex;
@@ -379,7 +352,8 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
     self.nextLabel = nextLabel;
     self.previousLabel = previousLabel;
     self.closeExpandedViewAndRemoveCardTransparency = closeExpandedViewAndRemoveCardTransparency;
-
+    self.validate = validate;
+    self.onPageCardsRendered = onPageCardsRendered;
 
     return self;
 }

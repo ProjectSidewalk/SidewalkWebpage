@@ -149,16 +149,12 @@ with respect to the image holder. This allows the validation menu to be placed o
 .label-tags-holder {
     display: flex;
     align-items: center;
+    overflow-y: auto;
     width: 100%;
     flex-direction: row;
     flex-wrap: wrap;
     flex: 1;
     min-width: 0;
-}
-
-.gallery-expanded-view-info-tags .label-tags-holder {
-    align-items: start;
-    overflow-y: auto;
 }
 
 .label-tags-content {
@@ -270,14 +266,6 @@ with respect to the image holder. This allows the validation menu to be placed o
 
 .expanded-view-background-card {
     opacity: 50%;
-}
-
-.expanded-view-no-severity {
-    filter: opacity(0.2);
-}
-
-.expanded-view-severity-content {
-    width: 100%;
 }
 
 .severity-circle {

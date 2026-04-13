@@ -21,9 +21,10 @@ module.exports = function(grunt) {
                 src: [
                     'public/javascripts/common/AiLabelIndicator.js',
                     'public/javascripts/Admin/src/*.js',
-                    // PopupPanoManager must be concatenated before LabelPopup.
-                    'public/javascripts/common/label-popup/src/PopupPanoManager.js',
-                    'public/javascripts/common/label-popup/src/LabelPopup.js',
+                    // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
+                    'public/javascripts/common/label-detail/src/PopupPanoManager.js',
+                    'public/javascripts/common/label-detail/src/LabelDetail.js',
+                    'public/javascripts/common/label-detail/src/LabelPopup.js',
                     'public/javascripts/SVValidate/src/util/*.js',
                     'public/javascripts/common/PanoMarker.js',
                     'public/javascripts/common/PanoInfoPopover.js',
@@ -36,9 +37,10 @@ module.exports = function(grunt) {
                 src: [
                     'public/javascripts/common/AiLabelIndicator.js',
                     'public/javascripts/Admin/src/*.js',
-                    // PopupPanoManager must be concatenated before LabelPopup.
-                    'public/javascripts/common/label-popup/src/PopupPanoManager.js',
-                    'public/javascripts/common/label-popup/src/LabelPopup.js',
+                    // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
+                    'public/javascripts/common/label-detail/src/PopupPanoManager.js',
+                    'public/javascripts/common/label-detail/src/LabelDetail.js',
+                    'public/javascripts/common/label-detail/src/LabelPopup.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/PanoMarker.js',
                     'public/javascripts/common/PanoInfoPopover.js',
@@ -77,6 +79,9 @@ module.exports = function(grunt) {
             dist_gallery: {
                 src: [
                     'public/javascripts/common/AiLabelIndicator.js',
+                    // PopupPanoManager and LabelDetail must be concatenated before ExpandedView.
+                    'public/javascripts/common/label-detail/src/PopupPanoManager.js',
+                    'public/javascripts/common/label-detail/src/LabelDetail.js',
                     'public/javascripts/Gallery/src/cards/*.js',
                     'public/javascripts/Gallery/src/data/*.js',
                     'public/javascripts/Gallery/src/filter/*.js',

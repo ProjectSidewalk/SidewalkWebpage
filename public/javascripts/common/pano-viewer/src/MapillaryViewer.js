@@ -511,4 +511,8 @@ class MapillaryViewer extends PanoViewer {
     showNavigationArrows = () => {
         return this.viewer.activateComponent('direction');
     }
+
+    resize = () => {
+        this.viewer.resize();
+    }
 }

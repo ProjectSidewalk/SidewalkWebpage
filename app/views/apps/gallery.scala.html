@@ -8,7 +8,7 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, title, i18Namespaces = Seq("common", "gallery")) {
+@common.main(commonData, title, i18Namespaces = Seq("common", "gallery", "labelmap")) {
     @if(commonData.imagerySource == PanoSource.Infra3d) {
         <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
         <script src='@assets.path("javascripts/lib/infra3dapi-1.7.0.js")'></script>
@@ -88,25 +88,8 @@
         </div>
         <div id="gallery-content" class="grid-container">
             <div id="image-card-container" class="cards"></div>
-            <div class="gallery-expanded-view">
-                <div class="expanded-view-top-holder">
-                    <div class="gallery-expanded-view-header"></div>
-                    <div class="gallery-expanded-view-close">×</div>
-                </div>
-                <div class="gallery-expanded-view-pano">
-                    <button class="gallery-expanded-view-pano-paging" id="prev-label">&lt</button>
-                    <div class="gallery-expanded-view-pano-display">
-                        <div class="actual-pano"></div>
-                    </div>
-                    <button class="gallery-expanded-view-pano-paging" id="next-label">&gt</button>
-                </div>
-                <div class="gallery-expanded-view-info">
-                    <div class="gallery-expanded-view-info-timestamps"></div>
-                    <div class="gallery-expanded-view-info-severity"></div>
-                    <div class="gallery-expanded-view-info-validation"></div>
-                    <div class="gallery-expanded-view-info-tags"></div>
-                    <div class="gallery-expanded-view-info-description"></div>
-                </div>
+            <div class="gallery-expanded-view label-detail label-detail--inline">
+                @common.labelDetail(withPaging = true)
             </div>
         </div>
     </div>
@@ -153,5 +136,6 @@
         });
     </script>
 
+    <link rel="stylesheet" href='@assets.path("stylesheets/labelDetail.css")'/>
     <link rel="stylesheet" href='@assets.path("javascripts/Gallery/build/Gallery.css")'/>
 }
