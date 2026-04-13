@@ -8,5 +8,6 @@
     "submit-comment": "Enviar comentario",
     "comment": "Comentario",
     "comments": "Comentarios",
-    "comment-submitted": "Comentario enviado"
+    "comment-submitted": "Comentario enviado",
+    "own-label-disabled": "No puedes validar ni comentar tu propia etiqueta"
 }

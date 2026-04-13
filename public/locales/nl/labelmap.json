@@ -8,5 +8,6 @@
     "submit-comment": "Opmerking",
     "comment": "Opmerking",
     "comments": "Opmerkingen",
-    "comment-submitted": "Commentaar ingediend"
+    "comment-submitted": "Commentaar ingediend",
+    "own-label-disabled": "Je kunt je eigen etiket niet valideren of becommentariëren"
 }

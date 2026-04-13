@@ -8,5 +8,6 @@
     "submit-comment": "Submit comment",
     "comment": "Comment",
     "comments": "Comments",
-    "comment-submitted": "Comment Submitted"
+    "comment-submitted": "Comment Submitted",
+    "own-label-disabled": "You cannot validate or comment on your own label"
 }

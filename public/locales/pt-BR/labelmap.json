@@ -8,5 +8,6 @@
     "submit-comment": "Enviar comentários",
     "comment": "Comentário",
     "comments": "Comentários",
-    "comment-submitted": "Comentários Enviados"
+    "comment-submitted": "Comentários Enviados",
+    "own-label-disabled": "Você não pode validar nem comentar seu próprio rótulo"
 }

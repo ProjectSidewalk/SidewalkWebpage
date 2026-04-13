@@ -8,5 +8,6 @@
     "submit-comment": "Kommentar senden",
     "comment": "Kommentar",
     "comments": "Kommentare",
-    "comment-submitted": "Kommentar gesendet"
+    "comment-submitted": "Kommentar gesendet",
+    "own-label-disabled": "Sie können Ihre eigene Beschriftung nicht validieren oder kommentieren"
 }
