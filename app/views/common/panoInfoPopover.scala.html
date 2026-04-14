@@ -1,0 +1,52 @@
+@*
+ * Popover showing panorama/image info for the current label or position.
+ *
+ * Uses the HTML Popover API (popover="manual"). PanoInfoPopover.js locates this element by id="pano-info-popover",
+ * wires up the trigger button, fills the value spans, and calls showPopover() / hidePopover() with JS positioning.
+ *
+ * Include once per page that uses PanoInfoPopover (explore, validate, labelMap, gallery, admin/label). Optional rows
+ * (label-id, label-date) start hidden; PanoInfoPopover.js unhides them at construction time.
+ *@
+@()(implicit assets: AssetsFinder)
+
+<div id="pano-info-popover" class="pano-info-popover" popover="manual">
+    <header class="pano-info-popover__header">
+        <span class="pano-info-popover__title" data-i18n="common:pano-info.details-title">Details</span>
+        <button type="button" class="pano-info-popover__clipboard" aria-label="Copy to clipboard">
+            <img src='@assets.path("images/icons/clipboard_copy.svg")' alt="" aria-hidden="true">
+        </button>
+    </header>
+    <span class="pano-info-popover__copied" role="status" aria-live="polite" hidden
+          data-i18n="common:pano-info.copied-to-clipboard">Data copied to your clipboard!</span>
+    <div class="pano-info-popover__body">
+        <p class="pano-info-popover__row">
+            <strong data-i18n="common:pano-info.image-id">Image ID</strong> :
+            <span class="pano-info-popover__val" data-field="image-id">-</span>
+        </p>
+        <p class="pano-info-popover__row">
+            <strong data-i18n="common:pano-info.latitude">Latitude</strong> :
+            <span class="pano-info-popover__val" data-field="latitude">-</span>
+        </p>
+        <p class="pano-info-popover__row">
+            <strong data-i18n="common:pano-info.longitude">Longitude</strong> :
+            <span class="pano-info-popover__val" data-field="longitude">-</span>
+        </p>
+        <p class="pano-info-popover__row pano-info-popover__row--hidden" data-optional-row="label-id">
+            <strong data-i18n="common:pano-info.label-id">Label ID</strong> :
+            <span class="pano-info-popover__val" data-field="label-id">-</span>
+        </p>
+        <p class="pano-info-popover__row">
+            <strong data-i18n="common:pano-info.street-id">Street ID</strong> :
+            <span class="pano-info-popover__val" data-field="street-id">-</span>
+        </p>
+        <p class="pano-info-popover__row">
+            <strong data-i18n="common:pano-info.region-id">Region ID</strong> :
+            <span class="pano-info-popover__val" data-field="region-id">-</span>
+        </p>
+        <p class="pano-info-popover__row pano-info-popover__row--hidden" data-optional-row="label-date">
+            <strong data-i18n="common:labeled">Labeled</strong> :
+            <span class="pano-info-popover__val" data-field="label-date">-</span>
+        </p>
+        <a class="pano-info-popover__view-link" href="#" target="_blank" rel="noopener noreferrer">-</a>
+    </div>
+</div>

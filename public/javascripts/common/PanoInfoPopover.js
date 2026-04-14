@@ -1,240 +1,254 @@
 /**
- * Displays info about the current panorama.
+ * Displays info about the current panorama using the native HTML Popover API.
  *
- * @param {HTMLElement} container Element where the info button will be displayed
- * @param {PanoViewer} panoViewer PanoViewer object
- * @param {function} coords Function that returns current longitude and latitude coordinates
- * @param {function} panoId Function that returns current panorama ID
- * @param {function} streetEdgeId Function that returns current Street Edge ID
- * @param {function} regionId Function that returns current Region ID
- * @param {function} panoDate Function that returns current pano's capture date as a moment object
- * @param {function} panoAddress Function that returns current pano's address according to GSV, could return null
- * @param {function} pov Function that returns current POV
- * @param {string} cityName Name of the current city
- * @param {boolean} whiteIcon Set to true if using white icon, false if using blue icon.
- * @param {function} infoLogging Function that adds the info button click to the appropriate logs.
- * @param {function} clipboardLogging Function that adds the copy to clipboard click to the appropriate logs.
- * @param {function} viewPanoLogging Function that adds the View in GSV click to the appropriate logs.
- * @param {function} [labelId] Optional function that returns the Label ID.
- * @param {function} [labelDate] Optional function that returns the Label's date as a moment object.
- * @param {string|HTMLElement} [popoverContainer='body'] Element (or selector) the Bootstrap popover should be appended
- *        to. Override when the trigger lives inside a native <dialog> (top layer) so the popover renders above the
- *        backdrop instead of behind it.
- * @returns {PanoInfoPopover} Popover object, holding popover title, content, info button HTML, and update values method
+ * The popover markup lives in app/views/common/panoInfoPopover.scala.html (id="pano-info-popover"). This class finds
+ * that element, wires up the trigger button, fills values on open, and positions the popover above the button using JS.
  */
-function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, cityName, whiteIcon, infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate, popoverContainer) {
-    if (popoverContainer === undefined) popoverContainer = 'body';
-    const self = this;
+class PanoInfoPopover {
+    /** @type {HTMLElement} The popover element. */
+    #popoverEl;
+    /** @type {HTMLImageElement} The info button that triggers the popover. */
+    #infoButton;
 
-    function _init() {
-        // Create popover title bar.
-        self.titleBox = document.createElement('div');
+    /** @type {PanoViewer} */
+    #panoViewer;
+    /** @type {function(): {lat: number, lng: number}} */
+    #coords;
+    /** @type {function(): string} */
+    #panoId;
+    /** @type {function(): number} */
+    #streetEdgeId;
+    /** @type {function(): number} */
+    #regionId;
+    /** @type {function(): object} Moment object */
+    #panoDate;
+    /** @type {function(): string|null} */
+    #panoAddress;
+    /** @type {function(): {heading: number, pitch: number}} */
+    #pov;
+    /** @type {string} */
+    #cityName;
+    /** @type {boolean} */
+    #whiteIcon;
+    /** @type {function()} */
+    #infoLogging;
+    /** @type {function()} */
+    #clipboardLogging;
+    /** @type {function()} */
+    #viewPanoLogging;
+    /** @type {function(): number|undefined} Optional — returns the Label ID. */
+    #labelId;
+    /** @type {function(): object|undefined} Optional — returns the label's timestamp as a moment object. */
+    #labelDate;
 
-        let title = document.createElement('span');
-        title.classList.add('popover-element');
-        title.textContent = i18next.t('common:gsv-info.details-title');
-        self.titleBox.appendChild(title);
+    /**
+     * @param {HTMLElement} container Element where the info button will be appended
+     * @param {PanoViewer} panoViewer PanoViewer object
+     * @param {function} coords Function that returns { lat, lng } for the current position
+     * @param {function} panoId Function that returns the current panorama/image ID
+     * @param {function} streetEdgeId Function that returns the current Street Edge ID
+     * @param {function} regionId Function that returns the current Region ID
+     * @param {function} panoDate Function that returns the current pano's capture date as a moment object
+     * @param {function} panoAddress Function that returns the current pano's address string, or null
+     * @param {function} pov Function that returns the current { heading, pitch }
+     * @param {string} cityName Name of the current city
+     * @param {boolean} whiteIcon True for the white icon variant, false for blue
+     * @param {function} infoLogging Called when the info button is clicked
+     * @param {function} clipboardLogging Called when the clipboard button is clicked
+     * @param {function} viewPanoLogging Called when the view-in-pano link is clicked
+     * @param {function} [labelId] Optional — returns the Label ID
+     * @param {function} [labelDate] Optional — returns the label's timestamp as a moment object
+     */
+    constructor(container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate,
+                panoAddress, pov, cityName, whiteIcon, infoLogging, clipboardLogging,
+                viewPanoLogging, labelId, labelDate) {
+        this.#popoverEl = document.getElementById('pano-info-popover');
+        this.#panoViewer = panoViewer;
+        this.#coords = coords;
+        this.#panoId = panoId;
+        this.#streetEdgeId = streetEdgeId;
+        this.#regionId = regionId;
+        this.#panoDate = panoDate;
+        this.#panoAddress = panoAddress;
+        this.#pov = pov;
+        this.#cityName = cityName;
+        this.#whiteIcon = whiteIcon;
+        this.#infoLogging = infoLogging;
+        this.#clipboardLogging = clipboardLogging;
+        this.#viewPanoLogging = viewPanoLogging;
+        this.#labelId = labelId;
+        this.#labelDate = labelDate;
 
-        let clipboard = document.createElement('img');
-        clipboard.classList.add('popover-element');
-        clipboard.src = '/assets/images/icons/clipboard_copy.png';
-        clipboard.id = 'clipboard';
-        clipboard.setAttribute('data-toggle', 'popover');
+        this.#init(container);
+    }
 
-        self.titleBox.appendChild(clipboard);
-
-        // Create popover content.
-        self.popoverContent = document.createElement('div');
-
-        // Add in container for each info type to the popover.
-        let dataList = document.createElement('ul');
-        dataList.classList.add('list-group', 'list-group-flush', 'gsv-info-list-group');
-
-        addListElement('latitude', dataList);
-        addListElement('longitude', dataList);
-        addListElement('panorama-id', dataList);
-        addListElement('street-id', dataList);
-        addListElement('region-id', dataList);
-        if (labelId) addListElement('label-id', dataList);
-        if (labelDate) addListElement('label-date', dataList);
-
-        self.popoverContent.appendChild(dataList);
-
-        // Create element for a link to the pano in a separate tab. Only implemented for GSV right now.
-        if (panoViewer.getViewerType() !== 'infra3d') {
-            let linkPano = document.createElement('a');
-            linkPano.classList.add('popover-element');
-            linkPano.id = 'pano-link'
-            linkPano.textContent = i18next.t(`common:gsv-info.view-in-${panoViewer.getViewerType()}`);
-            self.popoverContent.appendChild(linkPano);
+    /**
+     * Creates the info button, wires up event listeners, and unhides optional rows.
+     * @param {HTMLElement} container Element where the info button will be appended
+     */
+    #init(container) {
+        if (!this.#popoverEl) {
+            console.error('PanoInfoPopover: #pano-info-popover not found. Include @common.panoInfoPopover() in the view.');
+            return;
         }
 
-        // Create info button and add popover attributes.
-        self.infoButton = document.createElement('img');
-        self.infoButton.classList.add('popover-element');
-        self.infoButton.id = 'gsv-info-button';
-        self.infoButton.alt = i18next.t('common:gsv-info.details-title');
-        if (whiteIcon) self.infoButton.src = '/assets/images/icons/info-button-white.svg';
-        else self.infoButton.src = '/assets/images/icons/info-button.svg';
-        self.infoButton.setAttribute('data-toggle', 'popover');
+        // Create and append the info button to the provided container.
+        this.#infoButton = document.createElement('img');
+        this.#infoButton.id = 'pano-info-button';
+        this.#infoButton.alt = i18next.t('common:pano-info.details-title');
+        this.#infoButton.src = `/assets/images/icons/info-button${this.#whiteIcon ? '-white' : ''}.svg`;
 
-        container.append(self.infoButton);
+        container.append(this.#infoButton);
 
-        // Enable popovers/tooltips and set options.
-        $('#gsv-info-button').popover({
-            html: true,
-            placement: 'top',
-            container: popoverContainer,
-            title: self.titleBox.innerHTML,
-            content: self.popoverContent.innerHTML
-        }).on('click', updateVals).on('shown.bs.popover', () => {
-            // Add popover-element classes to more elements, making it easier to dismiss popover when outside it.
-            $('.popover-title').addClass('popover-element');
-            $('.popover-content').addClass('popover-element');
+        // Unhide optional rows based on which accessors were provided.
+        if (this.#labelId) this.#showOptionalRow('label-id');
+        if (this.#labelDate) this.#showOptionalRow('label-date');
 
-            // Initialize the popover for the clipboard.
-            $('#clipboard').popover({
-                placement: 'top',
-                trigger: 'manual',
-                html: true,
-                content: `<span class="clipboard-tooltip">${i18next.t('common:gsv-info.copied-to-clipboard')}</span>`
-            });
-        });
+        // Hide the view-in-pano link for viewers that have no external URL.
+        if (this.#panoViewer.getViewerType() === 'infra3d') {
+            this.#popoverEl.querySelector('.pano-info-popover__view-link').hidden = true;
+        }
 
-        // Dismiss popover when clicking outside it. Anything without the 'popover-element' class is considered outside.
-        $(document).on('mousedown', (e) => {
-            let tar = $(e.target);
-            if (!tar[0].classList.contains('popover-element')) {
-                $('#gsv-info-button').popover('hide');
+        // Toggle the popover on info button click.
+        this.#infoButton.addEventListener('click', () => {
+            if (this.#popoverEl.matches(':popover-open')) {
+                this.#popoverEl.hidePopover();
+            } else {
+                this.#infoLogging();
+                this.#updateVals();
+                this.#popoverEl.showPopover();
+                this.#positionPopover();
             }
         });
-        // Dismiss popover whenever panorama changes.
-        panoViewer.addListener('pano_changed', () => {
-            $('#gsv-info-button').popover('hide');
+
+        // Light-dismiss: close when clicking outside the popover (but not the trigger button).
+        document.addEventListener('click', (e) => {
+            if (this.#popoverEl.matches(':popover-open')
+                    && !this.#popoverEl.contains(e.target)
+                    && e.target !== this.#infoButton) {
+                this.#popoverEl.hidePopover();
+            }
+        });
+
+        // Close whenever the panorama changes.
+        this.#panoViewer.addListener('pano_changed', () => {
+            if (this.#popoverEl.matches(':popover-open')) this.#popoverEl.hidePopover();
         });
     }
 
     /**
-     * Update the values within the popover.
+     * Unhides an optional row by removing its hidden modifier class.
+     * @param {string} field The data-optional-row attribute value
      */
-    function updateVals() {
-        // Log the click on the info button.
-        infoLogging();
-
-        // Get info values.
-        const currCoords = coords ? coords() : { lat: null, lng: null };
-        const currPanoId = panoId ? panoId() : null;
-        const currStreetEdgeId = streetEdgeId ? streetEdgeId() : null;
-        const currRegionId = regionId ? regionId() : null;
-        const currPanoDate = panoDate ? panoDate().format('MMM YYYY') : null;
-        const currPanoAddress = panoAddress();
-        const currPov = pov ? pov() : {heading: 0, pitch: 0};
-        const currLabelId = labelId ? labelId() : null;
-        const currLabelDate = labelDate ? labelDate().format('LL, LT') : null;
-
-        function changeVals(key, val) {
-            if (!val) {
-                val = 'No Info';
-            } else if (key === "latitude" || key === 'longitude') {
-                val = val.toFixed(8) + '°';
-            }
-            let valSpan = document.getElementById(`${key}-value`);
-            valSpan.textContent = val;
-        }
-        changeVals('latitude', currCoords.lat);
-        changeVals('longitude', currCoords.lng);
-        changeVals('panorama-id', currPanoId);
-        changeVals('street-id', currStreetEdgeId);
-        changeVals('region-id', currRegionId);
-        if (currLabelId) changeVals('label-id', currLabelId);
-        if (currLabelDate) changeVals('label-date', currLabelDate);
-
-        // Create pano link and log the click.
-        let panoLink = $('#pano-link');
-        panoLink.attr('target', '_blank');
-        panoLink.on('click', viewPanoLogging);
-
-        // Set the link depending on the viewer type. We don't have a way to view in an infra3D viewer.
-        if (panoViewer.getViewerType() === 'gsv') {
-            panoLink.attr('href', `https://www.google.com/maps/@?api=1&map_action=pano&pano=${currPanoId}&heading=${currPov.heading}&pitch=${currPov.pitch}`);
-        } else if (panoViewer.getViewerType() === 'mapillary') {
-            // TODO would like to include zoom parameter too, but we would get that info async from the viewer.
-            const center = panoViewer.currCenter;
-            const centerStr = center ? `&x=${center[0]}&y=${center[1]}` : '';
-            panoLink.attr('href', `https://www.mapillary.com/app/?pKey=${currPanoId}&focus=photo${centerStr}`);
-        }
-
-        // Position popover. When popoverContainer isn't body (e.g. a native <dialog>), the popover is positioned
-        // relative to that container's padding-box, so we subtract the container's offset.
-        let infoPopover = $('.popover');
-        let infoRect = self.infoButton.getBoundingClientRect();
-        let containerEl = popoverContainer === 'body'
-            ? document.body
-            : (typeof popoverContainer === 'string' ? document.querySelector(popoverContainer) : popoverContainer);
-        let containerRect = containerEl.getBoundingClientRect();
-        let xpos = (infoRect.x - containerRect.left) + (infoRect.width / 2) - (infoPopover.width() / 2);
-        infoPopover.css('left', `${xpos}px`);
-
-        // Set the popover zoom to the same zoom as the Explore/Validate page.
-        if (typeof svl !== 'undefined' && svl.cssZoom) infoPopover.css('zoom', `${svl.cssZoom}%`);
-        else if (typeof svv !== 'undefined' && svv.cssZoom) infoPopover.css('zoom', `${svv.cssZoom}%`);
-
-        // Copy to clipboard.
-        $('#clipboard').on('click', function(e) {
-            // Log the click on the copy to keyboard button.
-            clipboardLogging();
-
-            let clipboardText = currPanoAddress ? `${i18next.t(`common:gsv-info.pano-address`)}: ${currPanoAddress}\n` : '';
-            clipboardText += `${i18next.t(`common:gsv-info.city`)}: ${cityName}\n` +
-                `${i18next.t(`common:gsv-info.latitude`)}: ${currCoords.lat}°\n` +
-                `${i18next.t(`common:gsv-info.longitude`)}: ${currCoords.lng}°\n` +
-                `${i18next.t(`common:gsv-info.panorama-id`)}: ${currPanoId}\n` +
-                `${i18next.t(`common:gsv-info.street-id`)}: ${currStreetEdgeId}\n` +
-                `${i18next.t(`common:gsv-info.region-id`)}: ${currRegionId}\n` +
-                `${i18next.t(`common:gsv-info.pano-date`)}: ${currPanoDate}\n`;
-            if (currLabelId) clipboardText += `${i18next.t(`common:gsv-info.label-id`)}: ${currLabelId}\n`;
-            if (currLabelDate) clipboardText += `${i18next.t(`common:gsv-info.label-date`)}: ${currLabelDate}\n`;
-            clipboardText += `Pano URL: ${panoLink.attr('href')}`;
-            navigator.clipboard.writeText(clipboardText);
-
-            // The clipboard popover will only show one time until you close and reopen the info button popover. I have
-            // no idea why that's happening, but for some reason it works if you put it in a setTimeout. So I have a one
-            // ms delay before showing the popover. Then it disappears after 1.5 seconds.
-            setTimeout(function() {
-                $(e.target).popover('show');
-                setTimeout(function() {
-                    $(e.target).popover('hide');
-                }, 1500);
-            }, 1);
-        });
+    #showOptionalRow(field) {
+        const row = this.#popoverEl.querySelector(`[data-optional-row="${field}"]`);
+        if (row) row.classList.remove('pano-info-popover__row--hidden');
     }
 
     /**
-     * Creates a key-value pair display within the popover.
-     * @param {string} key Key name of the key-value pair
-     * @param {HTMLElement} dataList List element container to add list item to
+     * Positions the popover above the info button, centered horizontally, clamped to the viewport.
      */
-    function addListElement(key, dataList) {
-        let listElement = document.createElement('li');
-        listElement.classList.add('list-group-item', 'info-list-item', 'popover-element', 'audit-selectable');
+    #positionPopover() {
+        // Apply zoom first so getBoundingClientRect() reflects the zoomed dimensions.
+        if (typeof svl !== 'undefined' && svl.cssZoom) this.#popoverEl.style.zoom = `${svl.cssZoom}%`;
+        else if (typeof svv !== 'undefined' && svv.cssZoom) this.#popoverEl.style.zoom = `${svv.cssZoom}%`;
 
-        let keySpan = document.createElement('span');
-        keySpan.classList.add('info-key', 'popover-element');
-        keySpan.textContent = i18next.t(`common:gsv-info.${key}`);
-        listElement.appendChild(keySpan);
+        const btnRect = this.#infoButton.getBoundingClientRect();
+        const popRect = this.#popoverEl.getBoundingClientRect();
+        const arrowHeight = 9; // matches .pano-info-popover::before border-width
+        const gap = 4;
 
-        let valSpan = document.createElement('span');
-        valSpan.classList.add('info-val', 'popover-element');
-        valSpan.textContent = '-';
-        valSpan.id = `${key}-value`
+        let left = btnRect.left + btnRect.width / 2 - popRect.width / 2;
+        const top = btnRect.top - popRect.height - arrowHeight - gap;
 
-        listElement.appendChild(valSpan);
-        dataList.appendChild(listElement);
+        // Clamp to keep popover within the horizontal viewport bounds.
+        left = Math.max(8, Math.min(left, window.innerWidth - popRect.width - 8));
+
+        this.#popoverEl.style.left = `${Math.round(left)}px`;
+        this.#popoverEl.style.top = `${Math.round(top)}px`;
     }
 
-    _init();
+    /**
+     * Reads the current pano/label state and updates value spans in the popover, then wires the clipboard/view actions.
+     */
+    #updateVals() {
+        const currCoords = this.#coords ? this.#coords() : null;
+        const currPanoId = this.#panoId ? this.#panoId() : null;
+        const currStreetEdgeId = this.#streetEdgeId ? this.#streetEdgeId() : null;
+        const currRegionId = this.#regionId ? this.#regionId() : null;
+        const currPanoDate = this.#panoDate ? this.#panoDate().format('MMM YYYY') : null;
+        const currPanoAddress = this.#panoAddress ? this.#panoAddress() : null;
+        const currPov = this.#pov ? this.#pov() : { heading: 0, pitch: 0 };
+        const currLabelId = this.#labelId ? this.#labelId() : null;
+        const currLabelDate = this.#labelDate ? this.#labelDate().format('LL, LT') : null;
 
-    self.updateVals = updateVals;
+        /**
+         * Sets the text content of a value span identified by [data-field].
+         * @param {string} field The data-field attribute value
+         * @param {string|number|null} val The value to display
+         */
+        const setVal = (field, val) => {
+            const span = this.#popoverEl.querySelector(`[data-field="${field}"]`);
+            if (!span) return;
+            if (val === null || val === undefined || val === false) {
+                span.textContent = 'No Info';
+            } else if (field === 'latitude' || field === 'longitude') {
+                span.textContent = `${val.toFixed(8)}°`;
+            } else {
+                span.textContent = val;
+            }
+        };
 
-    return self;
+        setVal('image-id', currPanoId);
+        setVal('latitude', currCoords ? currCoords.lat : null);
+        setVal('longitude', currCoords ? currCoords.lng : null);
+        if (currLabelId) setVal('label-id', currLabelId);
+        setVal('street-id', currStreetEdgeId);
+        setVal('region-id', currRegionId);
+        if (currLabelDate) setVal('label-date', currLabelDate);
+
+        // Update the view-in-pano link.
+        const viewLink = this.#popoverEl.querySelector('.pano-info-popover__view-link');
+        if (viewLink && !viewLink.hidden) {
+            viewLink.onclick = this.#viewPanoLogging;
+            const viewerType = this.#panoViewer.getViewerType();
+            if (viewerType === 'gsv') {
+                viewLink.href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${currPanoId}`
+                    + `&heading=${currPov.heading}&pitch=${currPov.pitch}`;
+                viewLink.textContent = i18next.t('common:pano-info.view-in-gsv');
+            } else if (viewerType === 'mapillary') {
+                // TODO: include zoom parameter once we can retrieve it synchronously from the viewer.
+                const center = this.#panoViewer.currCenter;
+                const centerStr = center ? `&x=${center[0]}&y=${center[1]}` : '';
+                viewLink.href = `https://www.mapillary.com/app/?pKey=${currPanoId}&focus=photo${centerStr}`;
+                viewLink.textContent = i18next.t('common:pano-info.view-in-mapillary');
+            }
+        }
+
+        // Wire the clipboard button (reassign onclick to capture the latest values).
+        const clipboardBtn = this.#popoverEl.querySelector('.pano-info-popover__clipboard');
+        clipboardBtn.onclick = () => {
+            this.#clipboardLogging();
+
+            let text = currPanoAddress
+                ? `${i18next.t('common:pano-info.pano-address')}: ${currPanoAddress}\n` : '';
+            text += `${i18next.t('common:pano-info.city')}: ${this.#cityName}\n`
+                + `${i18next.t('common:pano-info.latitude')}: ${currCoords ? currCoords.lat : ''}°\n`
+                + `${i18next.t('common:pano-info.longitude')}: ${currCoords ? currCoords.lng : ''}°\n`
+                + `${i18next.t('common:pano-info.image-id')}: ${currPanoId}\n`
+                + `${i18next.t('common:pano-info.street-id')}: ${currStreetEdgeId}\n`
+                + `${i18next.t('common:pano-info.region-id')}: ${currRegionId}\n`
+                + `${i18next.t('common:pano-info.pano-date')}: ${currPanoDate}\n`;
+            if (currLabelId) text += `${i18next.t('common:pano-info.label-id')}: ${currLabelId}\n`;
+            if (currLabelDate) text += `${i18next.t('common:pano-info.label-date')}: ${currLabelDate}\n`;
+            if (viewLink && !viewLink.hidden) text += `Pano URL: ${viewLink.href}`;
+
+            navigator.clipboard.writeText(text);
+
+            // Briefly show the "copied" confirmation message.
+            const copied = this.#popoverEl.querySelector('.pano-info-popover__copied');
+            copied.hidden = false;
+            setTimeout(() => { copied.hidden = true; }, 1500);
+        };
+    }
 }

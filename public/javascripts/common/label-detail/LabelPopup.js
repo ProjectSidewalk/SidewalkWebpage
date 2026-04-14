@@ -30,9 +30,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
         viewerType,
         viewerAccessToken,
         cityName,
-        currUsername,
-        // Keep PanoInfoPopover inside the dialog's top layer so it renders above the modal backdrop.
-        popoverContainer: dialog
+        currUsername
     });
     dialog.close();
     dialog.classList.remove('label-detail--initializing');

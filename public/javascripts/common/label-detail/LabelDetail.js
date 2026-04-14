@@ -16,9 +16,6 @@
  * @param {string} opts.viewerAccessToken An access token used to request images for the pano viewer.
  * @param {string} [opts.cityName] Current city name (used by PanoInfoPopover's clipboard-copy).
  * @param {string} [opts.currUsername] Username of the current viewer. Used to identify comments from this user.
- * @param {HTMLElement} [opts.popoverContainer] Optional container for the PanoInfoPopover. Pass the dialog
- *     element when hosting inside a <dialog>, so the popover renders inside the top layer instead of behind
- *     the modal backdrop. Defaults to `root`.
  * @param {(action: 'Agree'|'Disagree'|'Unsure', meta: object) => void} [opts.onVote] Optional callback fired after a
  *      vote is successfully submitted. Hosts use this to sync upstream UI (e.g. recolor a Gallery card after the user
  *      vote from inside the expanded view).
@@ -31,8 +28,7 @@
 async function LabelDetail(root, opts) {
     const self = {};
     const {
-        admin, viewerType, viewerAccessToken, cityName, currUsername,
-        popoverContainer, onVote, panoOverlaySource, voteColumnSource
+        admin, viewerType, viewerAccessToken, cityName, currUsername, onVote, panoOverlaySource, voteColumnSource
     } = opts;
     self.admin = admin;
     self.source = undefined; // Set in showLabel().
@@ -81,8 +77,7 @@ async function LabelDetail(root, opts) {
 
     /**
      * Mounts a PanoInfoPopover into the .label-detail__info-button-host span. Accessor closures read from
-     * `currentLabelMeta`, which is updated on every showLabel() call. The popover's container can be
-     * overridden via `opts.popoverContainer` so the popup host can keep the popover in the dialog's top layer.
+     * `currentLabelMeta`, which is updated on every showLabel() call.
      */
     function _initInfoPopover() {
         const host = $('.label-detail__info-button-host');
@@ -101,13 +96,11 @@ async function LabelDetail(root, opts) {
             () => panoViewer.currPanoData ? panoViewer.currPanoData.getProperty('address') : null,
             () => currentLabelMeta && { heading: currentLabelMeta.heading, pitch: currentLabelMeta.pitch, zoom: currentLabelMeta.zoom },
             cityName || '',
-            false,         // whiteIcon
-            noopLog,       // infoLogging
-            noopLog,       // clipboardLogging
-            noopLog,       // viewPanoLogging
-            () => currentLabelMeta && currentLabelMeta.label_id,
-            () => currentLabelMeta && moment(new Date(currentLabelMeta.timestamp)),
-            popoverContainer || root
+            false,    // whiteIcon
+            noopLog,  // infoLogging
+            noopLog,  // clipboardLogging
+            noopLog,  // viewPanoLogging
+            () => currentLabelMeta && currentLabelMeta.label_id
         );
     }
 

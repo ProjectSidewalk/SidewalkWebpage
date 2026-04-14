@@ -8,4 +8,6 @@
 
 <dialog id="label-modal" class="label-detail" aria-label="Label details">
     @common.labelDetail(admin = admin)
+    @* Popover must live inside <dialog> so the modal's blocking behavior doesn't suppress its pointer events. *@
+    @common.panoInfoPopover()
 </dialog>

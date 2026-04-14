@@ -143,11 +143,11 @@
         "yellow box, accessibility features not visible": "gelbe Box, Funktionen nicht sichtbar",
         "bollard": "Poller"
     },
-    "gsv-info": {
+    "pano-info": {
         "details-title": "Details",
         "latitude": "Breitengrad",
         "longitude": "Längengrad",
-        "panorama-id": "Panorama ID",
+        "image-id": "Bild-ID",
         "street-id": "Strasse ID",
         "google-street-view": "“Google Street View”",
         "mapillary": "“Mapillary”",

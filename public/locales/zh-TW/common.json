@@ -143,11 +143,11 @@
         "yellow box, accessibility features not visible": "黃色方框，輔助功能不可見",
         "bollard": "繫船柱"
     },
-    "gsv-info": {
+    "pano-info": {
         "details-title": "詳細資訊",
         "latitude": "緯度",
         "longitude": "經度",
-        "panorama-id": "全景圖編號",
+        "image-id": "圖像編號",
         "google-street-view": "Google街景",
         "mapillary": "Mapillary",
         "infra3d": "infra3D",

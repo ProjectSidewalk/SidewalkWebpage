@@ -100,7 +100,7 @@ dialog.label-detail[open]::backdrop {
     width: 100%;
     border: 5px solid transparent;
     border-radius: 6px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     transition: border-color 150ms ease;
 }
 .label-detail__pano-wrap.is-agree    { border-color: #78c9ab; }
@@ -208,7 +208,7 @@ dialog.label-detail[open]::backdrop {
     display: flex;
     gap: 32px;
     align-items: flex-start;
-    margin-bottom: 22px;
+    margin-bottom: 16px;
 }
 
 .label-detail__col-title {
@@ -310,7 +310,7 @@ dialog.label-detail[open]::backdrop {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 22px;
+    margin-bottom: 16px;
 }
 
 .label-detail__comment-input {
@@ -354,7 +354,7 @@ dialog.label-detail[open]::backdrop {
 /* ─── Description / comments ──────────────────────────────────────────── */
 
 .label-detail__description-row {
-    margin: 0 0 22px;
+    margin: 0 0 16px;
     font-size: 14px;
     line-height: 1.4;
 }
@@ -370,7 +370,6 @@ dialog.label-detail[open]::backdrop {
     overscroll-behavior: contain;
 }
 
-.label-detail__comments-section { margin-bottom: 12px; }
 .label-detail__validator-comments {
     max-height: 30px;
     overflow-y: auto;

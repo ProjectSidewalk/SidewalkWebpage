@@ -33,7 +33,6 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
             viewerAccessToken: viewerAccessToken,
             cityName: sg.cityName,
             currUsername: null,
-            popoverContainer: null,
             onVote: _handleVote,
             panoOverlaySource: 'GalleryExpandedImage',
             voteColumnSource: 'GalleryExpandedThumbs'

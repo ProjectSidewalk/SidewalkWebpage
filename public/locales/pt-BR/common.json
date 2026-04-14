@@ -143,11 +143,11 @@
         "yellow box, accessibility features not visible": "caixa amarela, recursos de acessibilidade não visíveis",
         "bollard": "balizador"
     },
-    "gsv-info": {
+    "pano-info": {
         "details-title": "Detalhes",
         "latitude": "Latitude",
         "longitude": "Longitude",
-        "panorama-id": "ID do Panorama",
+        "image-id": "ID da Imagem",
         "street-id": "ID da Rua",
         "google-street-view": "Google Street View",
         "mapillary": "Mapillary",
