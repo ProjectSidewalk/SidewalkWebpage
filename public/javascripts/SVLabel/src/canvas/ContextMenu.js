@@ -30,6 +30,8 @@ function ContextMenu (uiContextMenu) {
     document.addEventListener('mousedown', _handleMouseDown);
     $menuWindow.on('mousedown', _handleMenuWindowMouseDown);
     $severityButtons.on('change', _handleSeverityChange);
+    $radioButtonLabels.on('mouseenter', _handleSeverityHoverEnter);
+    $radioButtonLabels.on('mouseleave', _handleSeverityHoverLeave);
     $descriptionTextBox.on('change', _handleDescriptionTextBoxChange);
     $descriptionTextBox.on('focus', _handleDescriptionTextBoxFocus);
     $descriptionTextBox.on('blur', _handleDescriptionTextBoxBlur);
@@ -127,6 +129,27 @@ function ContextMenu (uiContextMenu) {
             label.setProperty('severity', severity);
             svl.canvas.clear().render();
         }
+    }
+
+    /**
+     * Temporarily shows the hovered severity icon in its filled (selected-state) variant while hovering.
+     */
+    function _handleSeverityHoverEnter() {
+        const sev = Number(this.id.replace('severity-', ''));
+        const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
+        const img = this.querySelector('.severity-icon-img');
+        if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, true);
+    }
+
+    /**
+     * Reverts the hovered severity icon back to its actual selected/unselected state after the hover ends.
+     */
+    function _handleSeverityHoverLeave() {
+        const sev = Number(this.id.replace('severity-', ''));
+        const checkedSev = Number($radioButtonLabels.find('input:checked').val());
+        const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
+        const img = this.querySelector('.severity-icon-img');
+        if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === checkedSev);
     }
 
     function fetchLabelTags(callback) {
