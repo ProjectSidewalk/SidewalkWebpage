@@ -42,19 +42,6 @@ function Card(params, cropUrl, gsvImageUrl) {
         from_current_user: false
     };
 
-    // Paths to label icon images.
-    // TODO: This object should be moved to a util file since it is shared in validation and admin tools as well.
-    let iconImagePaths = {
-        CurbRamp : '/assets/images/icons/AdminTool_CurbRamp.png',
-        NoCurbRamp : '/assets/images/icons/AdminTool_NoCurbRamp.png',
-        Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
-        SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem.png',
-        Other : '/assets/images/icons/AdminTool_Other.png',
-        Occlusion : '/assets/images/icons/AdminTool_Occlusion.png',
-        NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png',
-        Crosswalk : '/assets/images/icons/AdminTool_Crosswalk.png',
-        Signal : '/assets/images/icons/AdminTool_Signal.png'
-    };
 
     // Status to determine if static imagery has been loaded.
     let status = {
@@ -97,7 +84,7 @@ function Card(params, cropUrl, gsvImageUrl) {
         else properties.correctness = "unvalidated";
 
         // Place label icon.
-        labelIcon.src = iconImagePaths[getLabelType()];
+        labelIcon.src = util.misc.getIconImagePaths(getLabelType()).iconImagePath;
         labelIcon.classList.add("label-icon", "label-icon-gallery");
 
         // Create an element for the image in the card.

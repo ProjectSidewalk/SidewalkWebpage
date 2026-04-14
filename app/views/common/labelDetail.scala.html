@@ -4,9 +4,6 @@
  *   - Inline (Gallery expanded view): wrapped in a <div class="label-detail label-detail--inline"> in
  *     gallery.scala.html, with `withPaging = true` to render prev/next arrows around the pano.
  *
- * This partial intentionally does NOT call `common.icons()` (the smiley-frown SVG symbols are referenced via
- * <use> below) — host pages are responsible for including it once. Both popup hosts and gallery already do.
- *
  * All ids that used to live inside the popup partial have been converted to BEM classes
  * (`.label-detail__*`). The JS controller scopes its queries to the host root element so that multiple
  * instances on different pages cannot collide with each other or with arbitrary `id="tags"`/`id="severity"`
@@ -84,19 +81,19 @@
     </section>
     <section class="label-detail__col label-detail__col--severity">
         <h3 class="label-detail__col-title" data-i18n="common:severity">Severity</h3>
+        @* The `src` of each face is rewritten by JS based on the label type (positive vs negative smiley set)
+           and whether the face is selected (filled variant). *@
         <div class="label-detail__severity-faces" role="img" aria-label="Severity">
-            @* Smiley-frown icons reference the symbols defined in common.icons() (host page is responsible
-               for including it). *@
             <div class="label-detail__face label-detail__face--low" data-severity="1">
-                <svg viewBox="0 0 150 150" aria-hidden="true" focusable="false"><use xlink:href="#smiley-frown-1"></use></svg>
+                <img src="" alt="" class="label-detail__face-icon">
                 <span class="label-detail__face-label" data-i18n="common:low">Low</span>
             </div>
-            <div class="label-detail__face label-detail__face--medium" data-severity="3">
-                <svg viewBox="0 0 150 150" aria-hidden="true" focusable="false"><use xlink:href="#smiley-frown-2"></use></svg>
+            <div class="label-detail__face label-detail__face--medium" data-severity="2">
+                <img src="" alt="" class="label-detail__face-icon">
                 <span class="label-detail__face-label" data-i18n="common:medium">Medium</span>
             </div>
-            <div class="label-detail__face label-detail__face--high" data-severity="5">
-                <svg viewBox="0 0 150 150" aria-hidden="true" focusable="false"><use xlink:href="#smiley-frown-3"></use></svg>
+            <div class="label-detail__face label-detail__face--high" data-severity="3">
+                <img src="" alt="" class="label-detail__face-icon">
                 <span class="label-detail__face-label" data-i18n="common:high">High</span>
             </div>
         </div>

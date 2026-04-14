@@ -143,12 +143,20 @@ function ContextMenu (uiContextMenu) {
         })).done(callback);
     }
 
+    /**
+     * Update the severity smiley icons to reflect the current label type (positive vs negative icon set) and which
+     * severity level is currently selected (filled vs outline variant).
+     */
     function updateRadioButtonImages() {
-        $('#severity-radio-holder .severity-level').removeClass('selected');
-
-        // Update the selected radio button image.
-        const $selectedRadioButtonImage = $radioButtonLabels.find("input:checked").closest('.severity-level');
-        $selectedRadioButtonImage.addClass('selected');
+        const holder = document.getElementById('severity-radio-holder');
+        if (!holder) return;
+        const checkedSev = Number($radioButtonLabels.find('input:checked').val());
+        const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
+        holder.querySelectorAll('.severity-level').forEach((level) => {
+            const sev = Number(level.id.replace('severity-', ''));
+            const img = level.querySelector('.severity-icon-img');
+            if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === checkedSev);
+        });
     }
 
     /**

@@ -30,8 +30,8 @@ function LabelDescriptionBox () {
             let $line1 = $('<div class="label-description-box-line-1"></div>');
             $line1.append('<div>' + i18next.t('common:severity') + ': ' +  severity + '</div>');
 
-            // Clone the template SVG element and remove the 'template' class.
-            let $severityImage = $('.severity-image.template.severity-' + severity).clone().removeClass('template');
+            const $severityImage = $('<img class="severity-image" alt="">')
+                .attr('src', util.misc.getSmileyIconPath(severity, label.getAuditProperty('labelType'), true));
             $line1.append($severityImage);
             $(desBox).append($line1);
         }

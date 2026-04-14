@@ -126,14 +126,6 @@ We should allow the pointer events to pass through and behave the same way as th
     pointer-events: none;
 }
 
-.face-outline {
-    stroke: #2D2A3F;
-}
-
-.facial-feature {
-    fill: #2D2A3F;
-}
-
 .ai-icon-marker {
     position: absolute;
     width: clamp(12px, 0.75vw, 16px);

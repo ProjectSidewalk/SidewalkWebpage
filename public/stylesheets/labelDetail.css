@@ -269,23 +269,10 @@ dialog.label-detail[open]::backdrop {
     align-items: center;
     gap: 5px;
 }
-.label-detail__face svg {
+.label-detail__face-icon {
     width: 26px;
     height: 26px;
     display: block;
-    overflow: visible;
-}
-/* Mirrors the Explore context-menu severity icons (svl-context-menu.css). The smiley SVGs come from common.icons().
-   The face outline inherits its fill from the parent <use>; the facial-feature paths are styled directly. */
-.label-detail__face svg use {
-    fill: #fff;
-    stroke: #2D2A3F;
-    transition: fill 120ms ease;
-}
-/* Bare class selector — descendant combinators don't reliably penetrate the <use> shadow tree in all browsers, so we
-   mirror svl-context-menu.css and target .facial-feature globally. */
-.facial-feature {
-    fill: #2D2A3F;
 }
 .label-detail__face-label {
     font-family: "Raleway", sans-serif;
@@ -295,9 +282,6 @@ dialog.label-detail[open]::backdrop {
     text-align: center;
     white-space: nowrap;
 }
-.label-detail__face.is-selected.label-detail__face--low    svg use { fill: #f4db48; }
-.label-detail__face.is-selected.label-detail__face--medium svg use { fill: #ee9d3a; }
-.label-detail__face.is-selected.label-detail__face--high   svg use { fill: #e85f2b; }
 
 /* Tag pills */
 .label-detail__tags {

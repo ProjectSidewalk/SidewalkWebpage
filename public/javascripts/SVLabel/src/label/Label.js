@@ -250,7 +250,7 @@ function Label(params) {
             width = 0,
             labelRows = 1,
             severityImage = new Image(),
-            severitySVGElement,
+            severityImageLoaded = false,
             severityMessage = i18next.t('center-ui.context-menu.severity'),
             labelTypeText = i18next.t('common:' + util.camelToKebab(properties.labelType)).replace('&shy;', ''),
             padding = { left: 12, right: 5, bottom: 0, top: 18 };
@@ -258,8 +258,8 @@ function Label(params) {
         if (hasSeverity) {
             labelRows = 2;
             if (properties.severity !== null) {
-                severitySVGElement = $(`.severity-icon.template.severity-${properties.severity}`).clone().removeClass('template').find('svg');
-                severityImage.src = 'data:image/svg+xml; charset=utf8, ' + encodeURIComponent($(severitySVGElement).prop('outerHTML'));
+                severityImage.src = util.misc.getSmileyIconPath(properties.severity, properties.labelType, true);
+                severityImageLoaded = true;
                 severityMessage = hoverInfoProperties[properties.severity].message;
             }
         }
@@ -275,7 +275,7 @@ function Label(params) {
         // Do additional adjustments on the width to make room for smiley icon.
         if (hasSeverity) {
             secondRow = ctx.measureText(severityMessage).width;
-            if (severitySVGElement !== undefined) {
+            if (severityImageLoaded) {
                 if (firstRow - secondRow > 0 && firstRow - secondRow < 15) {
                     width += 15 - firstRow + secondRow;
                 } else if (firstRow - secondRow < 0) {

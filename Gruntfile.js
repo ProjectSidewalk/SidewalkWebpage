@@ -91,7 +91,8 @@ module.exports = function(grunt) {
                     'public/javascripts/Gallery/src/expandedview/*.js',
                     'public/javascripts/Gallery/src/*.js',
                     'public/javascripts/common/PanoMarker.js',
-                    'public/javascripts/common/PanoInfoPopover.js'
+                    'public/javascripts/common/PanoInfoPopover.js',
+                    'public/javascripts/common/UtilitiesSidewalk.js'
                 ],
                 dest: 'public/javascripts/Gallery/build/Gallery.js'
             },

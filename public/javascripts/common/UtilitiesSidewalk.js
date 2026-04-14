@@ -471,26 +471,30 @@ function UtilitiesMisc (JSON) {
     }
 
     /**
-     * Gets the severity message and severity image location that is displayed on a label tag.
-     * @returns {{1: {message: string, severityImage: string}, 2: {message: string, severityImage: string},
-     *              3: {message: string, severityImage: string}, 4: {message: string, severityImage: string},
-     *              5: {message: string, severityImage: string}}}
+     * Gets the severity message that is displayed in a severity's tooltip.
+     * @returns {{1: {message: string}, 2: {message: string}, 3: {message: string}}}
      */
     function getSeverityDescription() {
         return {
-            1: {
-                message: i18next.t('center-ui.context-menu.tooltip.passable'),
-                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_1_White_Small.png'
-            },
-            2: {
-                message: i18next.t('center-ui.context-menu.tooltip.difficult-to-pass'),
-                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_2_White_Small.png'
-            },
-            3: {
-                message: i18next.t('center-ui.context-menu.tooltip.not-passable'),
-                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_3_White_Small.png'
-            }
+            1: { message: i18next.t('center-ui.context-menu.tooltip.passable') },
+            2: { message: i18next.t('center-ui.context-menu.tooltip.difficult-to-pass') },
+            3: { message: i18next.t('center-ui.context-menu.tooltip.not-passable') }
         };
+    }
+
+    const SMILEY_ICON_BASE = '/assets/images/icons/smileys/';
+    const POSITIVE_LABEL_TYPES = ['CurbRamp', 'Crosswalk'];
+
+    /**
+     * Returns the full asset path for the smiley icon at the given severity and label type.
+     * @param {number} severity - 1 (low), 2 (medium), or 3 (high).
+     * @param {string} labelType - The label type, used to pick positive vs negative icon set.
+     * @param {boolean} selected - Whether to return the filled (selected-state) variant.
+     * @returns {string}
+     */
+    function getSmileyIconPath(severity, labelType, selected) {
+        const set = POSITIVE_LABEL_TYPES.includes(labelType) ? 'positive' : 'negative';
+        return `${SMILEY_ICON_BASE}sev-${severity}-${set}${selected ? '-filled' : ''}.svg`;
     }
 
     /**
@@ -584,6 +588,7 @@ function UtilitiesMisc (JSON) {
     self.getIconImagePaths = getIconImagePaths;
     self.getLabelDescriptions = getLabelDescriptions;
     self.getSeverityDescription = getSeverityDescription;
+    self.getSmileyIconPath = getSmileyIconPath;
     self.getLabelColors = getLabelColors;
     self.reportNoImagery = reportNoImagery;
 

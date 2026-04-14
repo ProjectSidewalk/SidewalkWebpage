@@ -257,13 +257,6 @@
 .severity-image {
     height: 12px;
     width: 12px;
-    display: flex;
+    display: block;
     margin-left: 5px;
 }
-
-.severity-image svg {
-    fill: transparent;
-}
-
-.face-outline { stroke: white; }
-.facial-feature { fill: white; }

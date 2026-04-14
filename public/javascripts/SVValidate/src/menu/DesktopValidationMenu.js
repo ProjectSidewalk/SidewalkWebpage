@@ -440,10 +440,14 @@ function DesktopValidationMenu(menuUI) {
             _addTooltip(severityIcon, tooltipText, tooltipImage);
         }
 
-        // Set the correct severity button as selected.
-        menuUI.severityMenu.find('.severity-level').removeClass('selected');
-        if (severity) {
-            menuUI.severityMenu.find('#severity-button-' + severity).addClass('selected');
+        // Swap the smiley <img> src for each severity level based on label type + selection.
+        const holder = document.getElementById('severity-radio-holder');
+        if (holder) {
+            holder.querySelectorAll('.severity-level').forEach((level) => {
+                const sev = Number(level.dataset.severity);
+                const img = level.querySelector('.severity-icon-img');
+                if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === Number(severity));
+            });
         }
     }
 

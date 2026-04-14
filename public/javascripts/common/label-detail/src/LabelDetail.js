@@ -294,7 +294,7 @@ async function LabelDetail(root, opts) {
         els.title.textContent = `${i18next.t('labelmap:label-type')} : ${labelTypeName}`;
 
         // Severity faces.
-        _renderSeverity(meta.severity);
+        _renderSeverity(meta.severity, meta.label_type);
 
         // Tag pills.
         els.tags.replaceChildren();
@@ -533,13 +533,17 @@ async function LabelDetail(root, opts) {
 
     /**
      * Highlights one of the three severity faces based on the label's numeric severity.
-     * @param {number} [severity]
+     * @param {number} [severity] The label's 1–3 severity, or null for unrated.
+     * @param {string} labelType The label type (drives positive/negative icon set).
      * @private
      */
-    function _renderSeverity(severity) {
-        const faces = els.severity.querySelectorAll('.label-detail__face');
-        const selectedIdx = severity ? severity - 1 : -1;
-        faces.forEach((face, i) => face.classList.toggle('is-selected', i === selectedIdx));
+    function _renderSeverity(severity, labelType) {
+        els.severity.querySelectorAll('.label-detail__face').forEach((face) => {
+            const faceSev = Number(face.dataset.severity);
+            const selected = faceSev === Number(severity);
+            face.classList.toggle('is-selected', selected);
+            face.querySelector('.label-detail__face-icon').src = util.misc.getSmileyIconPath(faceSev, labelType, selected);
+        });
     }
 
     // ───────────────────────────────────────────────────────────────────

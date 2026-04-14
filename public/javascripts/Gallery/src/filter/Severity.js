@@ -3,16 +3,18 @@
  *
  * @param {*} params Properties of severity.
  * @param active A boolean to see if the current severity filter is active.
+ * @param labelType Current gallery label type (drives which smiley set to use).
  * @returns {Severity}
  * @constructor
  */
-function Severity (params, active) {
+function Severity (params, active, labelType) {
     const self = this;
 
     // UI element of the severity container and image.
     let severityElement = null;
     let $severityImage = null;
     let interactionEnabled = false;
+    let currentLabelType = labelType;
 
     let properties = {
         severity: undefined
@@ -32,8 +34,10 @@ function Severity (params, active) {
         severityElement = document.createElement('div');
         severityElement.className = 'severity-filter gallery-filter';
 
-        $severityImage = $(`.severity-filter-image.template.severity-${properties.severity}`).clone().removeClass('template');
-        $severityImage.attr('id', properties.severity);
+        $severityImage = $('<img class="severity-filter-image" alt="">')
+            .addClass('severity-' + properties.severity)
+            .attr('id', properties.severity);
+        _updateIconSrc();
 
         if (filterActive) {
             _showSelected();
@@ -66,12 +70,28 @@ function Severity (params, active) {
         sg.cardFilter.update();
     }
 
+    function _updateIconSrc() {
+        const selected = filterActive || $($severityImage).hasClass('selected');
+        $severityImage.attr('src', util.misc.getSmileyIconPath(properties.severity, currentLabelType, selected));
+    }
+
     function _showSelected() {
         $($severityImage).addClass('selected');
+        _updateIconSrc();
     }
 
     function _showDeselected() {
         $($severityImage).removeClass('selected');
+        _updateIconSrc();
+    }
+
+    /**
+     * Update the label type used to pick the smiley icon set (positive vs negative).
+     * @param {string} newLabelType
+     */
+    function setLabelType(newLabelType) {
+        currentLabelType = newLabelType;
+        _updateIconSrc();
     }
 
     /**
@@ -139,6 +159,7 @@ function Severity (params, active) {
     self.render = render;
     self.disable = disable;
     self.enable = enable;
+    self.setLabelType = setLabelType;
 
     _init(params);
 

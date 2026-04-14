@@ -1,15 +1,10 @@
 @*
- * Modal-popup wrapper around the label detail view. Includes the inner content partial inside a
- * native <dialog> with the `.label-detail` styling.
+ * Modal-popup wrapper around label detail using a native <dialog> with the `.label-detail` styling.
  *
  * Used by: LabelMap, the User Dashboard, admin/label, admin/index. Each host page also imports the
  * stylesheet (`labelDetail.css`) and instantiates the JS controller via `LabelPopup(...)`.
  *@
 @(admin: Boolean = false)(implicit assets: AssetsFinder)
-
-@* Smiley-frown SVG symbols referenced by `<use>` inside the partial. None of the pages that include
-   labelPopup also include common.icons, so there's no symbol-id collision risk. *@
-@common.icons()
 
 <dialog id="label-modal" class="label-detail" aria-label="Label details">
     @common.labelDetail(admin = admin)

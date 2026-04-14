@@ -35,7 +35,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     let currentTags = tagsByType[status.currentLabelType];
 
     // Collection of severities.
-    let severities = new SeverityBucket(initialFilters.severities);
+    let severities = new SeverityBucket(initialFilters.severities, status.currentLabelType);
 
     let validationOptions = new ValidationOptionBucket(initialFilters.validationOptions);
 
@@ -81,6 +81,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
             clearCurrentTags();
             setStatus('currentLabelType', currLabelType);
             currentTags = tagsByType[currLabelType];
+            severities.setLabelType(currLabelType);
             render();
         }
         sg.cardContainer.updateCardsByFilter();
