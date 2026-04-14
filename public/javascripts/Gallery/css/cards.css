@@ -255,6 +255,25 @@ with respect to the image holder. This allows the validation menu to be placed o
     background-color: gray;
 }
 
+/* Read-only mode: the card shows the viewer's own label, so validating isn't allowed. The UI stays in place but
+   appears disabled, matching the Gallery expanded view / LabelMap popup. */
+.gallery-card--readonly #gallery-card-agree-button,
+.gallery-card--readonly #gallery-card-disagree-button,
+.gallery-card--readonly #gallery-card-unsure-button {
+    background-color: #E2E2E2;
+    color: rgba(0, 0, 0, 0.4);
+    cursor: default;
+}
+.gallery-card--readonly .card-validation-info {
+    opacity: 0.5;
+}
+.gallery-card--readonly .validation-section-content {
+    cursor: default;
+}
+.gallery-card--readonly .validation-info-image {
+    pointer-events: none;
+}
+
 .expanded-view-background-card {
     opacity: 50%;
 }

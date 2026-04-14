@@ -39,7 +39,7 @@ function ValidationMenu(referenceCard, gsvImage) {
     const galleryCard = gsvImage.parent();
 
     /**
-     * Adds onClick functions for the validation buttons.
+     * Adds onClick functions for the validation buttons. Read-only for labels contributed by the current user.
      */
     function _init() {
         validationButtons = {
@@ -54,12 +54,30 @@ function ValidationMenu(referenceCard, gsvImage) {
             showValidationOnCard(userValidation);
         }
 
-        // Add onClick functions for the validation buttons.
-        for (const [valKey, button] of Object.entries(validationButtons)) {
-            button.click(validateOnClickOrKeyPress(valKey, false, false));
-        }
+        const readonly = !!refCard.getProperty('from_current_user');
+        if (readonly) {
+            const tip = i18next.t('labelmap:own-label-disabled');
+            galleryCard.addClass('gallery-card--readonly');
 
-        addValidationInfoOnClicks(refCard.validationInfoDisplay);
+            // Disable validation buttons + add tooltip; skip attaching click handlers.
+            for (const button of Object.values(validationButtons)) {
+                button.prop('disabled', true).attr('title', tip);
+            }
+
+            // Add tooltip to thumb containers; skip attaching click handlers. Destroy the bootstrap tooltips on the
+            // inner Agree/Disagree icons so the native readonly tooltip shows on hover instead.
+            const valInfo = refCard.validationInfoDisplay;
+            valInfo.agreeContainer.title = tip;
+            valInfo.disagreeContainer.title = tip;
+            $(valInfo.validationContainer).find('img[data-toggle="tooltip"]').tooltip('destroy');
+        } else {
+            // Add onClick functions for the validation buttons.
+            for (const [valKey, button] of Object.entries(validationButtons)) {
+                button.click(validateOnClickOrKeyPress(valKey, false, false));
+            }
+
+            addValidationInfoOnClicks(refCard.validationInfoDisplay);
+        }
         gsvImage.append(overlay);
     }
 
