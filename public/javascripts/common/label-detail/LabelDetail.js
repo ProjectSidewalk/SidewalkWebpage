@@ -89,16 +89,17 @@ async function LabelDetail(root, opts) {
         if (!host) return;
 
         const noopLog = () => {};
+        const panoViewer = self.panoManager.panoViewer;
         self.infoPopover = new PanoInfoPopover(
             host,
             self.panoManager.panoViewer,
-            () => self.panoManager.panoViewer.getPosition(),
+            () => currentLabelMeta && { lat: currentLabelMeta.camera_lat, lng: currentLabelMeta.camera_lng },
             () => currentLabelMeta && currentLabelMeta.pano_id,
             () => currentLabelMeta && currentLabelMeta.street_edge_id,
             () => currentLabelMeta && currentLabelMeta.region_id,
             () => currentLabelMeta && moment(new Date(currentLabelMeta.image_capture_date)),
-            () => self.panoManager.panoViewer.currPanoData.getProperty('address'),
-            () => self.panoManager.getPov(),
+            () => panoViewer.currPanoData ? panoViewer.currPanoData.getProperty('address') : null,
+            () => currentLabelMeta && { heading: currentLabelMeta.heading, pitch: currentLabelMeta.pitch, zoom: currentLabelMeta.zoom },
             cityName || '',
             false,         // whiteIcon
             noopLog,       // infoLogging

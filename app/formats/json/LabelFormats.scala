@@ -87,6 +87,8 @@ object LabelFormats {
       "tags"                               -> m.tags,
       "low_quality_incomplete_stale_flags" -> m.lowQualityIncompleteStaleFlags,
       "comments"                           -> m.comments.map(_.comment),
+      "camera_lat"                         -> m.cameraLocation.map(_.lat),
+      "camera_lng"                         -> m.cameraLocation.map(_.lng),
       "ai_generated"                       -> m.aiGenerated,
       "expired"                            -> m.expired
     )
@@ -119,14 +121,15 @@ object LabelFormats {
       "agree_count"        -> labelMetadata.validationInfo.agreeCount,
       "disagree_count"     -> labelMetadata.validationInfo.disagreeCount,
       "unsure_count"       -> labelMetadata.validationInfo.unsureCount,
-      "user_validation"    -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
-      "ai_validation"      -> labelMetadata.aiValidation.map(LabelValidationTable.validationOptions.get),
-      "tags"               -> labelMetadata.tags,
-      "ai_tags"            -> labelMetadata.aiTags,
-      "ai_generated"       -> labelMetadata.aiGenerated,
-      "comments"           -> labelMetadata.comments.map(_.comment),
-      "from_current_user"  -> labelMetadata.fromCurrentUser,
-      "admin_data"         -> adminData.map(ad =>
+      "user_validation" -> labelMetadata.validationInfo.userValidation.map(LabelValidationTable.validationOptions.get),
+      "ai_validation"   -> labelMetadata.validationInfo.aiValidation.map(LabelValidationTable.validationOptions.get),
+      "tags"            -> labelMetadata.tags,
+      "ai_tags"         -> labelMetadata.aiTags,
+      "ai_generated"    -> labelMetadata.aiGenerated,
+      "expired"         -> labelMetadata.expired,
+      "comments"        -> labelMetadata.comments.map(_.comment),
+      "from_current_user" -> labelMetadata.fromCurrentUser,
+      "admin_data"        -> adminData.map(ad =>
         Json.obj(
           "username"             -> ad.username,
           "previous_validations" -> ad.previousValidations.map(prevVal =>
@@ -152,6 +155,8 @@ object LabelFormats {
       "zoom"               -> labelMetadata.pov.zoom,
       "canvas_x"           -> labelMetadata.canvasXY.x,
       "canvas_y"           -> labelMetadata.canvasXY.y,
+      "camera_lat"         -> labelMetadata.cameraLocation.map(_.lat),
+      "camera_lng"         -> labelMetadata.cameraLocation.map(_.lng),
       "street_edge_id"     -> labelMetadata.streetEdgeId,
       "region_id"          -> labelMetadata.regionId,
       "timestamp"          -> labelMetadata.timestamp,

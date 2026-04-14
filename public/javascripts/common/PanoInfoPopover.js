@@ -160,7 +160,8 @@ function PanoInfoPopover (container, panoViewer, coords, panoId, streetEdgeId, r
         } else if (panoViewer.getViewerType() === 'mapillary') {
             // TODO would like to include zoom parameter too, but we would get that info async from the viewer.
             const center = panoViewer.currCenter;
-            panoLink.attr('href', `https://www.mapillary.com/app/?pKey=${currPanoId}&focus=photo&x=${center[0]}&y=${center[1]}`);
+            const centerStr = center ? `&x=${center[0]}&y=${center[1]}` : '';
+            panoLink.attr('href', `https://www.mapillary.com/app/?pKey=${currPanoId}&focus=photo${centerStr}`);
         }
 
         // Position popover. When popoverContainer isn't body (e.g. a native <dialog>), the popover is positioned

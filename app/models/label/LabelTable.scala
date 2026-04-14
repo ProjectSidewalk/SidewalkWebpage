@@ -51,7 +51,14 @@ case class Label(
     tags: List[String]
 )
 
-case class LabelValidationInfo(agreeCount: Int, disagreeCount: Int, unsureCount: Int, correct: Option[Boolean])
+case class LabelValidationInfo(
+    agreeCount: Int,
+    disagreeCount: Int,
+    unsureCount: Int,
+    correct: Option[Boolean],
+    userValidation: Option[Int],
+    aiValidation: Option[Int]
+)
 case class POV(heading: Double, pitch: Double, zoom: Double)
 case class Dimensions(width: Int, height: Int)
 case class LocationXY(x: Int, y: Int)
@@ -145,6 +152,7 @@ case class LabelMetadata(
     tags: List[String],
     lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean),
     comments: Seq[LabelComment],
+    cameraLocation: Option[LatLng],
     aiGenerated: Boolean,
     expired: Boolean,
     fromCurrentUser: Boolean
@@ -218,6 +226,7 @@ case class LabelValidationMetadata(
     labelType: LabelTypeEnum.Base,
     panoId: String,
     panoSource: PanoSource,
+    expired: Boolean,
     imageCaptureDate: String,
     timestamp: OffsetDateTime,
     location: LatLng,
@@ -228,8 +237,6 @@ case class LabelValidationMetadata(
     streetEdgeId: Int,
     regionId: Int,
     validationInfo: LabelValidationInfo,
-    userValidation: Option[Int],
-    aiValidation: Option[Int],
     tags: Seq[String],
     cameraLocation: Option[LatLng],
     aiTags: Option[Seq[String]],
@@ -316,6 +323,7 @@ object LabelTable {
       String,                           // labelType
       String,                           // panoId
       PanoSource,                       // panoSource
+      Boolean,                          // expired
       String,                           // imageCaptureDate
       OffsetDateTime,                   // timestamp
       (Option[Double], Option[Double]), // location (lat, lng)
@@ -325,9 +333,7 @@ object LabelTable {
       Option[String],                   // description
       Int,                              // streetEdgeId
       Int,                              // regionId
-      (Int, Int, Int, Option[Boolean]), // validationInfo (agreeCount, disagreeCount, unsureCount, correct)
-      Option[Int],                      // userValidation
-      Option[Int],                      // aiValidation
+      (Int, Int, Int, Option[Boolean], Option[Int], Option[Int]), // validationInfo (agree, disagree, unsure, correct, userVal, aiVal)
       List[String],                     // tags
       (Option[Double], Option[Double]), // cameraLocation (lat, lng)
       Option[List[String]],             // aiTags
@@ -336,28 +342,27 @@ object LabelTable {
       Boolean                           // fromCurrentUser
   )
   type LabelValidationMetadataTupleRep = (
-      Rep[Int],                                             // labelId
-      Rep[String],                                          // labelType
-      Rep[String],                                          // panoId
-      Rep[PanoSource],                                      // panoSource
-      Rep[String],                                          // imageCaptureDate
-      Rep[OffsetDateTime],                                  // timestamp
-      (Rep[Option[Double]], Rep[Option[Double]]),           // location (lat, lng)
-      (Rep[Double], Rep[Double], Rep[Double]),              // pov (heading, pitch, zoom)
-      (Rep[Int], Rep[Int]),                                 // canvasXY (x, y)
-      Rep[Option[Int]],                                     // severity
-      Rep[Option[String]],                                  // description
-      Rep[Int],                                             // streetEdgeId
-      Rep[Int],                                             // regionId
-      (Rep[Int], Rep[Int], Rep[Int], Rep[Option[Boolean]]), // validationInfo (nAgree, nDisagree, nUnsure, correct)
-      Rep[Option[Int]],                                     // userValidation
-      Rep[Option[Int]],                                     // aiValidation
-      Rep[List[String]],                                    // tags
-      (Rep[Option[Double]], Rep[Option[Double]]),           // cameraLocation (lat, lng)
-      Rep[Option[List[String]]],                            // aiTags
-      Rep[Boolean],                                         // aiGenerated
-      Rep[Option[String]],                                  // comments (JSON-aggregated)
-      Rep[Boolean]                                          // fromCurrentUser
+      Rep[Int],                                   // labelId
+      Rep[String],                                // labelType
+      Rep[String],                                // panoId
+      Rep[PanoSource],                            // panoSource
+      Rep[Boolean],                               // expired
+      Rep[String],                                // imageCaptureDate
+      Rep[OffsetDateTime],                        // timestamp
+      (Rep[Option[Double]], Rep[Option[Double]]), // location (lat, lng)
+      (Rep[Double], Rep[Double], Rep[Double]),    // pov (heading, pitch, zoom)
+      (Rep[Int], Rep[Int]),                       // canvasXY (x, y)
+      Rep[Option[Int]],                           // severity
+      Rep[Option[String]],                        // description
+      Rep[Int],                                   // streetEdgeId
+      Rep[Int],                                   // regionId
+      (Rep[Int], Rep[Int], Rep[Int], Rep[Option[Boolean]], Rep[Option[Int]], Rep[Option[Int]]), // validationInfo
+      Rep[List[String]],                                                                        // tags
+      (Rep[Option[Double]], Rep[Option[Double]]), // cameraLocation (lat, lng)
+      Rep[Option[List[String]]],                  // aiTags
+      Rep[Boolean],                               // aiGenerated
+      Rep[Option[String]],                        // comments (JSON-aggregated)
+      Rep[Boolean]                                // fromCurrentUser
   )
 
   // Define an implicit conversion from the tuple representation to the case class.
@@ -368,33 +373,32 @@ object LabelTable {
         labelType = LabelTypeEnum.byName(t._2),
         panoId = t._3,
         panoSource = t._4,
-        imageCaptureDate = t._5,
-        timestamp = t._6,
-        location = LatLng(t._7._1.get, t._7._2.get),
-        pov = POV.tupled(t._8),
-        canvasXY = LocationXY.tupled(t._9),
-        severity = t._10,
-        description = t._11,
-        streetEdgeId = t._12,
-        regionId = t._13,
-        validationInfo = LabelValidationInfo.tupled(t._14),
-        userValidation = t._15,
-        aiValidation = t._16,
-        tags = t._17,
-        cameraLocation = (t._18._1, t._18._2) match {
+        expired = t._5,
+        imageCaptureDate = t._6,
+        timestamp = t._7,
+        location = LatLng(t._8._1.get, t._8._2.get),
+        pov = POV.tupled(t._9),
+        canvasXY = LocationXY.tupled(t._10),
+        severity = t._11,
+        description = t._12,
+        streetEdgeId = t._13,
+        regionId = t._14,
+        validationInfo = LabelValidationInfo(t._15._1, t._15._2, t._15._3, t._15._4, t._15._5, t._15._6),
+        tags = t._16,
+        cameraLocation = (t._17._1, t._17._2) match {
           case (Some(lat), Some(lng)) => Some(LatLng(lat, lng))
           case _                      => None
         },
-        aiTags = t._19,
-        aiGenerated = t._20,
-        comments = t._21
+        aiTags = t._18,
+        aiGenerated = t._19,
+        comments = t._20
           .map { json =>
             play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
               LabelComment((obj \ "username").as[String], (obj \ "comment").as[String])
             }
           }
           .getOrElse(Seq.empty),
-        fromCurrentUser = t._22
+        fromCurrentUser = t._21
       )
     }
 
@@ -614,6 +618,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           }
         }
         .getOrElse(Seq.empty),
+      (r.nextDoubleOption(), r.nextDoubleOption()) match {
+        case (Some(lat), Some(lng)) => Some(LatLng(lat, lng))
+        case _                      => None
+      },
       r.nextBoolean(),
       r.nextBoolean(),
       r.nextBoolean()
@@ -811,6 +819,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              at.incomplete,
              at.stale,
              comment.comments,
+             pano_data.lat AS camera_lat,
+             pano_data.lng AS camera_lng,
              r.role = 'AI' AS ai_generated,
              pano_data.expired,
              #$fromCurrentUserExpr AS from_current_user
@@ -987,6 +997,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           labelType,
           l.panoId,
           pd.source,
+          pd.expired,
           pd.captureDate,
           l.timeCreated,
           (lp.lat, lp.lng),
@@ -996,9 +1007,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           l.description,
           l.streetEdgeId,
           regionId,
-          (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct),
-          Option.empty[Int].bind, // userValidation, always None bc we only show labels they haven't already validated.
-          aiv.map(_.validationResult), // aiValidation, if it exists.
+          // userValidation is always None here bc we only show labels the user hasn't already validated.
+          (
+            l.agreeCount,
+            l.disagreeCount,
+            l.unsureCount,
+            l.correct,
+            Option.empty[Int].bind,
+            aiv.map(_.validationResult)
+          ),
           l.tags,
           (pd.lat, pd.lng),
           // Include AI tags if requested.
@@ -1133,6 +1150,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       labelType,
       lb.panoId,
       pd.source,
+      pd.expired,
       pd.captureDate,
       lb.timeCreated,
       (lp.lat, lp.lng),
@@ -1142,9 +1160,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       lb.description,
       lb.streetEdgeId,
       regionId,
-      (lb.agreeCount, lb.disagreeCount, lb.unsureCount, lb.correct),
-      uv.map(_.validationResult),  // userValidation
-      aiv.map(_.validationResult), // aiValidation
+      (lb.agreeCount, lb.disagreeCount, lb.unsureCount, lb.correct, uv.map(_.validationResult),
+        aiv.map(_.validationResult)),
       lb.tags,
       (pd.lat, pd.lng),
       // Placeholder for AI tags, since we don't show those on Gallery right now.

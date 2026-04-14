@@ -68,6 +68,8 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
             label_id: p.label_id,
             label_type: p.label_type,
             pano_id: p.pano_id,
+            camera_lat: p.camera_lat,
+            camera_lng: p.camera_lng,
             // Moment objects → raw date strings so LabelDetail can reparse them uniformly.
             image_capture_date: p.image_capture_date.toISOString(),
             timestamp: p.label_timestamp.toISOString(),
@@ -89,9 +91,7 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
             ai_generated: p.ai_generated,
             crop_url: card.getCropUrl(),
             from_current_user: p.from_current_user,
-            // Assume pano is available (Gallery cards already loaded successfully).
-            // TODO this isn't always the case since we can load cropped images now.
-            expired: false,
+            expired: p.expired,
             comments: p.comments
         };
     }
