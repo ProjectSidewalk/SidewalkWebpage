@@ -11,7 +11,6 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/src/*/*.js',
                     'public/javascripts/common/PanoMarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/PanoInfoPopover.js',
                     'public/javascripts/common/SpeedLimit.js',
                     'public/javascripts/common/MissionStartTutorial.js'
                 ],
@@ -27,7 +26,6 @@ module.exports = function(grunt) {
                     'public/javascripts/common/label-detail/LabelPopup.js',
                     'public/javascripts/SVValidate/src/util/*.js',
                     'public/javascripts/common/PanoMarker.js',
-                    'public/javascripts/common/PanoInfoPopover.js',
                     'public/javascripts/Progress/src/*.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                 ],
@@ -43,7 +41,6 @@ module.exports = function(grunt) {
                     'public/javascripts/common/label-detail/LabelPopup.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/PanoMarker.js',
-                    'public/javascripts/common/PanoInfoPopover.js',
                 ],
                 dest: 'public/javascripts/Admin/build/Admin.js'
             },
@@ -70,7 +67,6 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/src/zoom/*.js',
                     'public/javascripts/common/PanoMarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/PanoInfoPopover.js',
                     'public/javascripts/common/SpeedLimit.js',
                     'public/javascripts/common/MissionStartTutorial.js'
                 ],
@@ -91,7 +87,6 @@ module.exports = function(grunt) {
                     'public/javascripts/Gallery/src/expandedview/*.js',
                     'public/javascripts/Gallery/src/*.js',
                     'public/javascripts/common/PanoMarker.js',
-                    'public/javascripts/common/PanoInfoPopover.js',
                     'public/javascripts/common/UtilitiesSidewalk.js'
                 ],
                 dest: 'public/javascripts/Gallery/build/Gallery.js'
@@ -111,7 +106,8 @@ module.exports = function(grunt) {
                     'public/javascripts/common/pano-viewer/src/GsvViewer.js',
                     'public/javascripts/common/pano-viewer/src/MapillaryChunkedDataProvider.js',
                     'public/javascripts/common/pano-viewer/src/MapillaryViewer.js',
-                    'public/javascripts/common/pano-viewer/src/Infra3dViewer.js'
+                    'public/javascripts/common/pano-viewer/src/Infra3dViewer.js',
+                    'public/javascripts/common/pano-viewer/src/PanoInfoPopover.js'
                 ],
                 dest: 'public/javascripts/common/pano-viewer/build/pano-viewer.js'
             }
@@ -139,6 +135,13 @@ module.exports = function(grunt) {
             }
         },
         watch : {
+            gruntfile: {
+                files: ['Gruntfile.js'],
+                tasks: ['concat', 'concat_css'],
+                options: {
+                    reload: true
+                }
+            },
             scripts: {
                 files: [
                     'public/javascripts/common/*.js',
