@@ -498,6 +498,7 @@ kbd {
 
 #page-loading {
     position:absolute;
+    z-index: 1;
     max-width:45%;
     max-height:45%;
     top:33%;

@@ -354,7 +354,7 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
                 uiCardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
                 sg.scrollStatus.stickySidebar = true;
                 sg.cardFilter.enable();
-                expandedView.onPageCardsRendered();
+                expandedView && expandedView.onPageCardsRendered();
             });
         } else {
             // TODO: figure out how to better do the toggling of this element.

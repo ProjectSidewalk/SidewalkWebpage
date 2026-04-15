@@ -34,6 +34,7 @@
 .label-detail.label-detail--initializing,
 .label-detail.label-detail--initializing::backdrop {
     visibility: hidden;
+    transition: none;
 }
 
 /* Open / close transition. Requires @starting-style + transition-behavior: allow-discrete. Only applies to the

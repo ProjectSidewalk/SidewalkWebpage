@@ -10,10 +10,13 @@
 
 @common.main(commonData, title, i18Namespaces = Seq("common", "labelmap")) {
     @common.navbar(commonData, Some(user))
+    <div id="page-loading">
+        <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'/>
+    </div>
     <div id="labelmap-choropleth-container" class="container choropleth-container">
         <div id="labelmap-choropleth-holder" class="choropleth-holder">
             <div id="labelmap-choropleth" class="choropleth"></div>
-            <div id="map-label-legend">
+            <div id="map-label-legend" style="visibility: hidden;">
                 <div id="map-legend-title-holder">
                     <label id="map-legend-title">@Messages("legend")</label>
                     <button id="map-legend-minimize-button" class="close" onclick="toggleLegend()">-</button>
@@ -233,6 +236,7 @@
                     }, false);
                     checkbox.disabled = false; // Enable the checkbox now that the map has loaded.
                 });
+                document.getElementById('map-label-legend').style.visibility = 'visible';
 
                 // Add listeners on the sliders.
                 const sliderNotApplicableText = '@Messages("not.applicable.abbr")';

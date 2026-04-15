@@ -33,6 +33,8 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
         currUsername
     });
     dialog.close();
+    // Hold the initializing class through the close transition duration so the fade-out doesn't flash the dialog.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     dialog.classList.remove('label-detail--initializing');
 
     // Close button + backdrop click. ESC is handled natively by <dialog>.

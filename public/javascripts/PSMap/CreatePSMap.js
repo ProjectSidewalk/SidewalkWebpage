@@ -90,9 +90,6 @@ function CreatePSMap($, params) {
                 window.citiesMap.resize();
             }
         });
-
-        // Hide the loading spinner.
-        $('#page-loading').hide();
     });
     return allLoaded;
 
@@ -134,6 +131,9 @@ function CreatePSMap($, params) {
                 newParentElement.appendChild(mapboxLogoElem);
             }
         }
+
+        // From manual testing, it looks best to hide the loading spinner at this point.
+        $('#page-loading').hide();
 
         // Create a promise that resolves when the map has loaded.
         return new Promise((resolve, reject) => {
