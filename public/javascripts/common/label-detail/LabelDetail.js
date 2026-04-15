@@ -181,6 +181,19 @@ async function LabelDetail(root, opts) {
         for (const action of Object.keys(els.panoOverlayButtons)) {
             els.panoOverlayButtons[action].addEventListener('click', voteHandler(action, panoOverlaySource));
             els.voteButtons[action].addEventListener('click', voteHandler(action, voteColumnSource));
+
+            // Hover preview: show the filled icon variant while the pointer is over the vote button.
+            const btn = els.voteButtons[action];
+            const img = els.voteIcons[action];
+            btn.addEventListener('mouseenter', () => {
+                if (self.readonly) return;
+                const ai = self.aiValidation === action ? '-ai' : '';
+                img.src = `${self.iconBase}${action.toLowerCase()}-filled${ai}.svg`;
+            });
+            btn.addEventListener('mouseleave', () => {
+                if (self.readonly) return;
+                _renderVoteIcons();
+            });
         }
 
         els.commentInput.addEventListener('input', () => {

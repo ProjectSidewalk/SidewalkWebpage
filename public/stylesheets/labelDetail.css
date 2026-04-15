@@ -122,6 +122,7 @@ dialog.label-detail[open]::backdrop {
     left: 0;
     right: 0;
     bottom: 0;
+    z-index: 1;
     display: flex;
     gap: 1px;
     pointer-events: none;

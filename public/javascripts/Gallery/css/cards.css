@@ -244,10 +244,15 @@ with respect to the image holder. This allows the validation menu to be placed o
     background-color: white;
     border-style: none;
     color: #2d2a3f;
+    transition: opacity 120ms ease;
 }
 
 .gallery-card:hover .validation-button {
     opacity: 0.75;
+}
+
+.gallery-card:hover .validation-button:hover {
+    opacity: 0.95;
 }
 
 .gallery-card:hover .validation-button-selected {
@@ -266,6 +271,9 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 .gallery-card--readonly .card-validation-info {
     opacity: 0.5;
+}
+.gallery-card--readonly:hover .validation-button:hover {
+    opacity: 0.75; /* No hover bump in readonly: nothing to validate. */
 }
 .gallery-card--readonly .validation-section-content {
     cursor: default;
