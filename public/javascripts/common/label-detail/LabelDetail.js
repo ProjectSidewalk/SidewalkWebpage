@@ -212,7 +212,7 @@ async function LabelDetail(root, opts) {
                 e.stopPropagation();
             }
         });
-        // Same method for swallowing first Escpape, but need to use 'keyup' for Gallery.
+        // Same method for swallowing first Escape, but need to use 'keyup' for Gallery.
         els.commentInput.addEventListener('keyup', (e) => {
             if (e.key === 'Escape') {
                 e.stopPropagation();

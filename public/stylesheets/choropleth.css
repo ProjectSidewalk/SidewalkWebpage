@@ -119,21 +119,18 @@
     stroke: #009902;
 }
 #map-legend-correct img {
-    width: 23px;
-    padding: 3px;
+    width: 22px;
 }
 #map-legend-incorrect img {
-    width: 23px;
-    padding: 3px;
+    width: 22px;
 }
 #map-legend-unsure img {
-    width: 18px;
-    height: 18px;
-    padding: 2px 2px 2px 6px;
+    width: 22px;
+    padding: 0 0 0 4px;
 }
 #map-legend-unvalidated img {
-    width: 14px;
-    padding: 1px 1px 1px 9px;
+    width: 22px;
+    padding: 1px 1px 2px 2px;
 }
 #map-legend-audited-street svg, #map-legend-unaudited-street svg {
     width: 20px;
