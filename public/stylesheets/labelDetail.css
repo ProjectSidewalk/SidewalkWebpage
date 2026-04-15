@@ -105,7 +105,7 @@ dialog.label-detail[open]::backdrop {
 }
 .label-detail__pano-wrap.is-agree    { border-color: #78c9ab; }
 .label-detail__pano-wrap.is-disagree { border-color: #eb734d; }
-.label-detail__pano-wrap.is-unsure   { border-color: #fbd78b; }
+.label-detail__pano-wrap.is-unsure   { border-color: var(--color-asphalt-100); }
 
 .label-detail__pano {
     position: relative;
@@ -154,7 +154,7 @@ dialog.label-detail[open]::backdrop {
 
 .label-detail__pano-overlay-button--agree    { background: #78c9ab; }
 .label-detail__pano-overlay-button--disagree { background: #eb734d; }
-.label-detail__pano-overlay-button--unsure   { background: #fbd78b; }
+.label-detail__pano-overlay-button--unsure   { background: var(--color-asphalt-100); }
 
 .label-detail__pano-overlay-button.is-selected { opacity: 1; }
 

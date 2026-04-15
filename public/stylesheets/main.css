@@ -3,6 +3,20 @@
 * --------------------------------------------------
 */
 
+/* Project Sidewalk color pallete */
+:root {
+    --color-asphalt-100: #D5D3E4;
+    --color-asphalt-200: #9F9DB1;
+    --color-asphalt-300: #615E78;
+    --color-asphalt-400: #424055;
+    --color-asphalt-500: #2D2A3F;
+    --color-asphalt-600: #242232;
+    --color-asphalt-700: #1B1926;
+    --color-asphalt-800: #121119;
+    --color-asphalt-900: #09080D;
+}
+
+
 /* General styles */
 @font-face {
     font-family: adelle-semibold;
