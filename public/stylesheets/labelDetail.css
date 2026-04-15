@@ -473,6 +473,11 @@ dialog.label-detail[open]::backdrop {
     height: 100%;
 }
 
+.label-detail--inline .label-detail__pano-overlay-button {
+    height: 8vh;
+    padding: 1vh 1vh;
+}
+
 /* Paging arrows (only rendered when @withPaging = true). Absolutely positioned just outside the pano-wrap. */
 .label-detail__paging {
     position: absolute;
