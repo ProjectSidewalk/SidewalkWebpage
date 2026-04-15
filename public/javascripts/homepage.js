@@ -210,9 +210,38 @@ window.appManager.ready(function () {
 
 var pausedVideos = {};
 
+/**
+ * Returns a function that invokes fn at most once per `wait` ms, firing on the leading edge.
+ * @param fn {Function} Function to throttle.
+ * @param wait {number} Minimum ms between invocations.
+ */
+function throttle(fn, wait) {
+    let lastCall = 0;
+    return function (...args) {
+        const now = Date.now();
+        if (now - lastCall >= wait) {
+            lastCall = now;
+            fn.apply(this, args);
+        }
+    };
+}
+
+/**
+ * Returns a function that delays invoking fn until `wait` ms have passed since the last call.
+ * @param fn {Function} Function to debounce.
+ * @param wait {number} Ms of inactivity required before fn fires.
+ */
+function debounce(fn, wait) {
+    let timer;
+    return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), wait);
+    };
+}
+
 // Wrappers around lazyPlayVideos().
-var lazyPlayVideosThrottled = _.throttle(lazyPlayVideos, 300);
-var lazyPlayVideosDebounced = _.debounce(lazyPlayVideos, 600);
+var lazyPlayVideosThrottled = throttle(lazyPlayVideos, 300);
+var lazyPlayVideosDebounced = debounce(lazyPlayVideos, 600);
 
 // Triggered when the user scrolls.
 function onScroll() {

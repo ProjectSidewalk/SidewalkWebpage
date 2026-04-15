@@ -1,6 +1,6 @@
 function StatusModel () { }
 
-_.extend(StatusModel.prototype, Backbone.Events);
+Object.assign(StatusModel.prototype, EventMixin);
 
 StatusModel.prototype.setMissionCompletionRate = function (completionRate) {
     this.trigger("StatusFieldMissionProgressBar:setCompletionRate", completionRate);

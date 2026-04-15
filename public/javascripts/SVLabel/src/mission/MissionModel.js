@@ -21,7 +21,7 @@ function MissionModel () {
 
 
 }
-_.extend(MissionModel.prototype, Backbone.Events);
+Object.assign(MissionModel.prototype, EventMixin);
 
 MissionModel.prototype.addAMission = function (mission) {
     this.trigger("MissionContainer:addAMission", mission);
