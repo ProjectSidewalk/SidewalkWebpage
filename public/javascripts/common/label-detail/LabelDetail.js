@@ -200,6 +200,25 @@ async function LabelDetail(root, opts) {
         els.commentInput.addEventListener('input', () => {
             els.commentButton.classList.toggle('is-active', els.commentInput.value.trim().length > 0);
         });
+        els.commentInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (self.readonly) return;
+                const comment = els.commentInput.value.trim();
+                if (comment) _submitComment(comment);
+            } else if (e.key === 'Escape') {
+                // Swallow the first Escape so it only blurs the input. Second esc will close the dialog.
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+        // Same method for swallowing first Escpape, but need to use 'keyup' for Gallery.
+        els.commentInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                els.commentInput.blur();
+            }
+        });
         els.commentButton.addEventListener('click', () => {
             if (self.readonly) return;
             const comment = els.commentInput.value.trim();
