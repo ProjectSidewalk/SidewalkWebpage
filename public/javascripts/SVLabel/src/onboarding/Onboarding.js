@@ -673,11 +673,11 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         var $target = svl.ui.contextMenu.radioButtons;
         var callback = function () {
             if (listener) google.maps.event.removeListener(listener);
-            $target.off("click", callback);
+            $target.off("change", callback);
             contextMenu.disableRatingSeverity();
             next.call(this, state.transition);
         };
-        $target.on("click", callback);
+        $target.on("change", callback);
     }
     function _visitAddTag(state, listener) {
         contextMenu.enableTaggingForTutorialLabel(state.properties.labelNumber);

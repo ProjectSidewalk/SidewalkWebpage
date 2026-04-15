@@ -40,10 +40,11 @@ function ContextMenu (uiContextMenu) {
     $tags.on('click', _handleTagClick);
 
     function checkRadioButton(value) {
+        // Trigger `change` explicitly — `.prop('checked', true)` alone does not fire it.
         uiContextMenu.radioButtons
             .filter(function() { return parseInt(this.value) === value })
-            .prop("checked", true)
-            .trigger("click", { lowLevelLogging: false });
+            .prop('checked', true)
+            .trigger('change', { lowLevelLogging: false });
     }
 
     function getStatus(key) { return status[key]; }
