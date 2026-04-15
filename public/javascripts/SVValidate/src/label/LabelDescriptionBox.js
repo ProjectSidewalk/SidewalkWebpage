@@ -27,11 +27,14 @@ function LabelDescriptionBox () {
         desBox.style['background-color'] = util.misc.getLabelColors(label.getAuditProperty('labelType'));
 
         if (severity && severity != 0) {
+            const labelType = label.getAuditProperty('labelType');
+            const headerKey = util.misc.isPositiveLabelType(labelType) ? 'common:quality' : 'common:severity';
+            const levelKey = util.misc.getRatingLevelKeys(labelType)[severity];
             let $line1 = $('<div class="label-description-box-line-1"></div>');
-            $line1.append('<div>' + i18next.t('common:severity') + ': ' +  severity + '</div>');
+            $line1.append(`<div>${i18next.t(headerKey)}: ${i18next.t(`common:${levelKey}`)}</div>`);
 
-            // Clone the template SVG element and remove the 'template' class.
-            let $severityImage = $('.severity-image.template.severity-' + severity).clone().removeClass('template');
+            const $severityImage = $('<img class="severity-image" alt="">')
+                .attr('src', util.misc.getSmileyIconPath(severity, labelType, true));
             $line1.append($severityImage);
             $(desBox).append($line1);
         }

@@ -147,7 +147,7 @@ async function Main (params) {
                     if (!sg.scrollStatus.stickyExpandedView) sg.scrollStatus.stickyExpandedView = true;
 
                     // Emulate the expanded view being "fixed".
-                    sg.ui.expandedView.container.css('top', $(window).scrollTop());
+                    sg.ui.expandedView.container.css('top', `calc(${$(window).scrollTop()}px + 1vh`);
                 }
             }
         });

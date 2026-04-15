@@ -120,22 +120,22 @@
                                 <td>@Messages("audited.street")</td>
                             </tr>
                             <tr>
-                                <td id="map-legend-correct"><img src='@assets.path("javascripts/SVValidate/img/Checkmark.png")'></td>
+                                <td id="map-legend-correct"><img src='@assets.path("images/icons/validation/agree-filled.svg")'></td>
                                 <td>@Messages("validated.correct")</td>
                                 <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
                             <tr>
-                                <td id="map-legend-incorrect"><img src='@assets.path("javascripts/SVValidate/img/Cross.png")'></td>
+                                <td id="map-legend-incorrect"><img src='@assets.path("images/icons/validation/disagree-filled.svg")'></td>
                                 <td>@Messages("validated.incorrect")</td>
                                 <td><input type="checkbox" id="incorrect" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
                             <tr>
-                                <td id="map-legend-unsure"><img src='@assets.path("images/icons/QuestionMark.png")'></td>
+                                <td id="map-legend-unsure"><img src='@assets.path("images/icons/validation/unsure-filled.svg")'></td>
                                 <td>@Messages("unsure.caps")</td>
                                 <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
                             <tr>
-                                <td id="map-legend-unvalidated"><img src='@assets.path("images/icons/ExclamationMark.png")'></td>
+                                <td id="map-legend-unvalidated"><img src='@assets.path("images/icons/alert-circle.svg")'></td>
                                 <td>@Messages("unvalidated")</td>
                                 <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
@@ -232,7 +232,7 @@
         <div id="mistakes-row" class="row">
             <h2 id="recent-mistakes">@Messages("dashboard.mistakes.header")</h2>
             <span id="mistakes-subheader-display"></span>
-            <img src="@assets.path("images/icons/QuestionMark.png")" class="mistakes-help-tooltip" data-toggle="tooltip" data-placement="top" title="@Messages("dashboard.mistakes.tooltip")" alt="">
+            <img src="@assets.path("images/icons/info-button.svg")" class="mistakes-help-tooltip" data-toggle="tooltip" data-placement="top" title="@Messages("dashboard.mistakes.tooltip")" alt="">
             <div id="mistake-carousels-holder"></div>
         </div>
 
@@ -401,6 +401,9 @@
         }
     </div>
 
+    @common.labelPopup(admin = admin)
+    <link href='@assets.path("stylesheets/labelDetail.css")' rel="stylesheet"/>
+
     @if(commonData.imagerySource == PanoSource.Infra3d) {
         <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
         <script src='@assets.path("javascripts/lib/infra3dapi-1.7.0.js")'></script>
@@ -439,7 +442,7 @@
             const imagerySrc = "@commonData.imagerySource.toString";
             const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
             const accessToken = "@commonData.imageryAccessToken";
-            await Progress(_, $, '@commonData.mapboxApiKey', viewerType, accessToken, '@profileUser.userId', @admin);
+            await Progress(_, $, '@commonData.mapboxApiKey', viewerType, accessToken, '@profileUser.userId', @admin, "@currentCity.cityNameShort", "@user.username");
             @if(admin) {
                 AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService, @profileUser.infra3dAccess);
                 $('#label-table').dataTable();

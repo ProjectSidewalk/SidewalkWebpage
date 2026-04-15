@@ -182,6 +182,14 @@ class PanoViewer {
     }
 
     /**
+     * Notifies the viewer that its container has been resized. Call this after any layout change that affects
+     * the container's dimensions so the viewer can re-measure and re-render at the correct size.
+     * No-op by default; override in subclasses that support a resize API.
+     * @returns {void}
+     */
+    resize() {}
+
+    /**
      * Adds an event listener for the specified event type.
      * @param event One of ['pano_changed', 'pov_changed']
      * @param handler The function to call when the event occurs.

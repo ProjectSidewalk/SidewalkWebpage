@@ -30,6 +30,8 @@ function ContextMenu (uiContextMenu) {
     document.addEventListener('mousedown', _handleMouseDown);
     $menuWindow.on('mousedown', _handleMenuWindowMouseDown);
     $severityButtons.on('change', _handleSeverityChange);
+    $radioButtonLabels.on('mouseenter', _handleSeverityHoverEnter);
+    $radioButtonLabels.on('mouseleave', _handleSeverityHoverLeave);
     $descriptionTextBox.on('change', _handleDescriptionTextBoxChange);
     $descriptionTextBox.on('focus', _handleDescriptionTextBoxFocus);
     $descriptionTextBox.on('blur', _handleDescriptionTextBoxBlur);
@@ -38,10 +40,11 @@ function ContextMenu (uiContextMenu) {
     $tags.on('click', _handleTagClick);
 
     function checkRadioButton(value) {
+        // Trigger `change` explicitly — `.prop('checked', true)` alone does not fire it.
         uiContextMenu.radioButtons
             .filter(function() { return parseInt(this.value) === value })
-            .prop("checked", true)
-            .trigger("click", { lowLevelLogging: false });
+            .prop('checked', true)
+            .trigger('change', { lowLevelLogging: false });
     }
 
     function getStatus(key) { return status[key]; }
@@ -129,6 +132,27 @@ function ContextMenu (uiContextMenu) {
         }
     }
 
+    /**
+     * Temporarily shows the hovered severity icon in its filled (selected-state) variant while hovering.
+     */
+    function _handleSeverityHoverEnter() {
+        const sev = Number(this.id.replace('severity-', ''));
+        const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
+        const img = this.querySelector('.severity-icon-img');
+        if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, true);
+    }
+
+    /**
+     * Reverts the hovered severity icon back to its actual selected/unselected state after the hover ends.
+     */
+    function _handleSeverityHoverLeave() {
+        const sev = Number(this.id.replace('severity-', ''));
+        const checkedSev = Number($radioButtonLabels.find('input:checked').val());
+        const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
+        const img = this.querySelector('.severity-icon-img');
+        if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === checkedSev);
+    }
+
     function fetchLabelTags(callback) {
         $.when($.ajax({
             contentType: 'application/json; charset=utf-8',
@@ -143,12 +167,42 @@ function ContextMenu (uiContextMenu) {
         })).done(callback);
     }
 
+    /**
+     * Update the severity smiley icons to reflect the current label type (positive vs negative icon set) and which
+     * severity level is currently selected (filled vs outline variant).
+     */
     function updateRadioButtonImages() {
-        $('#severity-radio-holder .severity-level').removeClass('selected');
+        const holder = document.getElementById('severity-radio-holder');
+        if (!holder) return;
+        const checkedSev = Number($radioButtonLabels.find('input:checked').val());
+        const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
+        holder.querySelectorAll('.severity-level').forEach((level) => {
+            const sev = Number(level.id.replace('severity-', ''));
+            const img = level.querySelector('.severity-icon-img');
+            if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === checkedSev);
+        });
+    }
 
-        // Update the selected radio button image.
-        const $selectedRadioButtonImage = $radioButtonLabels.find("input:checked").closest('.severity-level');
-        $selectedRadioButtonImage.addClass('selected');
+    /**
+     * Swap the context menu's rating section text based on whether the current label type is a positive type.
+     */
+    function _updateRatingText() {
+        const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
+        const positive = util.misc.isPositiveLabelType(labelType);
+        const headerKey = positive ? 'rate-quality' : 'rate-severity';
+        const infoKey = positive ? 'rate-quality-info' : 'rate-severity-info';
+        const levelKeys = util.misc.getRatingLevelKeys(labelType);
+
+        const $header = $('#severity-header-text');
+        if ($header.length) $header.text(i18next.t(`common:${headerKey}`));
+        const $info = $('#severity-header-info');
+        if ($info.length) {
+            $info.attr('title', i18next.t(`common:${infoKey}`));
+            $info.attr('data-original-title', i18next.t(`common:${infoKey}`));
+        }
+        for (let sev = 1; sev <= 3; sev++) {
+            $(`#severity-${sev} .severity-label`).text(i18next.t(`common:${levelKeys[sev]}`));
+        }
     }
 
     /**
@@ -439,10 +493,11 @@ function ContextMenu (uiContextMenu) {
      * @private
      */
     function _setSeverityTooltips(labelType) {
+        const tooltipKey = util.misc.isPositiveLabelType(labelType) ? 'quality-example-tooltip' : 'severity-example-tooltip';
         for (let sev = 1; sev < 4; sev++) {
             // Add severity tooltips for the current label type if we have images for them.
             util.getImage(`/assets/images/examples/severity/${labelType}_Severity${sev}.png`).then(img => {
-                const tooltipHeader = i18next.t(`common:severity-example-tooltip-${sev}`);
+                const tooltipHeader = i18next.t(`common:${tooltipKey}-${sev}`);
                 const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
                 $(`#severity-${sev}`).tooltip({
                     placement: 'top', html: true, delay: { 'show': 300, 'hide': 10 },
@@ -535,6 +590,7 @@ function ContextMenu (uiContextMenu) {
         }
         if (!['NoSidewalk', 'Signal', 'Occlusion'].includes(labelType)) {
             self.updateRadioButtonImages();
+            _updateRatingText();
             _removePrevSeverityTooltips();
             if (labelType !== 'Other') {
                 _setSeverityTooltips(labelType);

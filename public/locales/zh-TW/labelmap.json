@@ -6,5 +6,8 @@
     "ai-val-included": "$t(common:{{aiVal}})（包含在上面的計數中）",
     "add-comment": "在此新增評論...",
     "submit-comment": "上傳評論",
-    "comment-submitted": "已上傳評論"
+    "comment": "評論",
+    "comments": "評論",
+    "comment-submitted": "已上傳評論",
+    "own-label-disabled": "您無法驗證或評論自己的標記"
 }

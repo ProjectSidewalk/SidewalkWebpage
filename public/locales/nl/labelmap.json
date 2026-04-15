@@ -6,5 +6,8 @@
     "ai-val-included": "$t(common:{{aiVal}}) (inbegrepen in bovenstaande telling)",
     "add-comment": "Voeg opmerking hier toe...",
     "submit-comment": "Opmerking",
-    "comment-submitted": "Commentaar ingediend"
+    "comment": "Opmerking",
+    "comments": "Opmerkingen",
+    "comment-submitted": "Commentaar ingediend",
+    "own-label-disabled": "Je kunt je eigen etiket niet valideren of becommentariëren"
 }

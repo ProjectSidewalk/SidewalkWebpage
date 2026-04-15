@@ -1,6 +1,9 @@
 /**
- * AdminPanorama is a class that handles the Google Street View panorama.
- * TODO so much of this code is a copy of code that's elsewhere. Need to combine a bunch into a shared module.
+ * PopupPanoManager wraps a PanoViewer for the label popup (LabelPopup.js). It manages init, pano-load + fallback image,
+ * label markers, and POV calculations.
+ *
+ * TODO so much of this code is a copy of code that's elsewhere (SVLabel/SVValidate/Gallery PanoManagers).
+ *
  * @param svHolder One single DOM element.
  * @param buttonHolder DOM element that holds the validation buttons.
  * @param admin Boolean value that indicates if the user is an admin.
@@ -9,9 +12,9 @@
  * @returns {{className: string}}
  * @constructor
  */
-async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAccessToken) {
-    var self = {
-        className: "AdminPanorama",
+async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewerAccessToken) {
+    const self = {
+        className: "PopupPanoManager",
         label: undefined,
         labelMarkers: [],
         panoId: undefined,
@@ -19,7 +22,7 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
         admin: admin
     };
 
-    var icons = {
+    const icons = {
         CurbRamp : '/assets/images/icons/AdminTool_CurbRamp.png',
         NoCurbRamp : '/assets/images/icons/AdminTool_NoCurbRamp.png',
         Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
@@ -43,10 +46,11 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
         if (self.svHolder.css('position') !== "absolute" && self.svHolder.css('position') !== "relative")
             self.svHolder.css('position', 'relative');
 
-        // Panorama will be added to panoCanvas
+        // Panorama will be added to panoCanvas. Use 100%/100% so the viewer fills the CSS-driven container
+        // rather than locking in whatever pixel dimensions the element happened to measure at init time.
         self.panoCanvas = $("<div id='pano'>").css({
-            width: self.svHolder.width(),
-            height: self.svHolder.height()
+            width: '100%',
+            height: '100%'
         })[0];
 
         self.panoNotAvailable = $(`<div id='pano-not-avail'>${i18next.t('common:errors.title')}</div>`).css({
@@ -144,7 +148,10 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
                 _panoFailureCallback
             );
         }
-        self.svHolder.css('visibility', 'visible');
+        // Skip showing if the host closed the view while this load was in-flight.
+        if (!self.svHolder[0].dataset.closedDuringLoad) {
+            self.svHolder.css('visibility', 'visible');
+        }
         return panoLoaded;
     }
 
@@ -161,14 +168,14 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
         $(self.panoNotAvailable).css('display', 'none');
         $(self.panoNotAvailableDetails).css('display', 'none');
         $(self.panoNotAvailableAuditSuggestion).css('display', 'none');
-        $(self.buttonHolder).css('display', 'block');
+        $(self.buttonHolder).css('display', '');
 
         // There is a bug that can sometimes cause Google's panos to go black when you load a new one. We can deal with
         // it by triggering a resize event after a short delay. This seems to only be an issue with the label popup, not
         // with Explore/Gallery/Validate. Probably because of how we show/hide the popup.
         return new Promise((resolve) => {
             setTimeout(() => {
-                if (viewerType === GsvViewer) google.maps.event.trigger(self.panoViewer.gsvPano, 'resize');
+                self.panoViewer.resize();
                 self.panoViewer.setPov(targetPov);
                 if (self.label) renderLabel(self.label);
                 resolve();
@@ -203,7 +210,7 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
             $(self.panoNotAvailable).css('display', 'none');
             $(self.panoNotAvailableDetails).css('display', 'none');
             $(self.panoNotAvailableAuditSuggestion).css('display', 'none');
-            $(self.buttonHolder).css('display', 'block');
+            $(self.buttonHolder).css('display', '');
         } else {
             $(self.svHolder).css('height', '');
             $(self.fallbackContainer).css('display', 'none');
@@ -223,7 +230,9 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
 
     /**
      * Renders a PanoMarker (label) onto a Streetview Panorama.
-     * @param {AdminPanoramaLabel} label
+     * @param {object} label Plain-object label shape produced by LabelPopup / Admin.Task / Admin.CommentPopup.
+     *   Expected fields: labelId, label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight, pov,
+     *   streetEdgeId, oldSeverity, newSeverity, oldTags, newTags, aiGenerated.
      * @returns void
      */
     function renderLabel(label) {
@@ -248,7 +257,7 @@ async function AdminPanorama(svHolder, buttonHolder, admin, viewerType, viewerAc
         if (!panoMarker.marker_.querySelector('.admin-ai-icon-marker')) {
             const indicator = AiLabelIndicator(['admin-ai-icon-marker']);
             panoMarker.marker_.appendChild(indicator);
-            const $indicator = ensureAiTooltip(indicator);
+            ensureAiTooltip(indicator);
         }
     }
 

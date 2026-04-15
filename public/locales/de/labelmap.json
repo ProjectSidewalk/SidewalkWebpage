@@ -6,5 +6,8 @@
     "ai-val-included": "$t(common:{{aiVal}}) (in der obigen Zählung enthalten)",
     "add-comment": "Hier Kommentar hinzufügen...",
     "submit-comment": "Kommentar senden",
-    "comment-submitted": "Kommentar gesendet"
+    "comment": "Kommentar",
+    "comments": "Kommentare",
+    "comment-submitted": "Kommentar gesendet",
+    "own-label-disabled": "Sie können Ihre eigene Beschriftung nicht validieren oder kommentieren"
 }

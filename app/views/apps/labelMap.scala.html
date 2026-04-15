@@ -10,10 +10,13 @@
 
 @common.main(commonData, title, i18Namespaces = Seq("common", "labelmap")) {
     @common.navbar(commonData, Some(user))
+    <div id="page-loading">
+        <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'/>
+    </div>
     <div id="labelmap-choropleth-container" class="container choropleth-container">
         <div id="labelmap-choropleth-holder" class="choropleth-holder">
             <div id="labelmap-choropleth" class="choropleth"></div>
-            <div id="map-label-legend">
+            <div id="map-label-legend" style="visibility: hidden;">
                 <div id="map-legend-title-holder">
                     <label id="map-legend-title">@Messages("legend")</label>
                     <button id="map-legend-minimize-button" class="close" onclick="toggleLegend()">-</button>
@@ -82,22 +85,22 @@
                         <td><input type="checkbox" id="Occlusion-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-correct"><img src='@assets.path("javascripts/SVValidate/img/Checkmark.png")' alt="Check mark icon, indicating labels that were validated as correct"></td>
+                        <td id="map-legend-correct"><img src='@assets.path("images/icons/validation/agree-filled.svg")' alt="Thumbs up icon, indicating labels that were validated as correct"></td>
                         <td><label for="correct" class="map-legend-label">@Messages("validated.correct")</label></td>
                         <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-incorrect"><img src='@assets.path("javascripts/SVValidate/img/Cross.png")' alt="An X icon, indicating labels that were validated as incorrect"></td>
+                        <td id="map-legend-incorrect"><img src='@assets.path("images/icons/validation/disagree-filled.svg")' alt="Thumbs down icon, indicating labels that were validated as incorrect"></td>
                         <td><label for="incorrect" class="map-legend-label">@Messages("validated.incorrect")</label></td>
                         <td><input type="checkbox" id="incorrect" data-filter-type="label-validations" disabled></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-unsure"><img src='@assets.path("images/icons/QuestionMark.png")' alt="Question mark icon, indicating labels with inconclusive validations"></td>
+                        <td id="map-legend-unsure"><img src='@assets.path("images/icons/validation/unsure-filled.svg")' alt="Open palm with a question mark icon, indicating labels with inconclusive validations"></td>
                         <td><label for="unsure" class="map-legend-label">@Messages("unsure.caps")</label></td>
                         <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-unvalidated"><img src='@assets.path("images/icons/ExclamationMark.png")' alt="Exclamation mark icon, indicating labels that have not been validated"></td>
+                        <td id="map-legend-unvalidated"><img src='@assets.path("images/icons/alert-circle.svg")' alt="Exclamation mark icon, indicating labels that have not been validated"></td>
                         <td><label for="unvalidated" class="map-legend-label">@Messages("unvalidated")</label></td>
                         <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
                     </tr>
@@ -116,7 +119,10 @@
         </div>
     </div>
 
+    @common.labelPopup(admin = false)
+
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
+    <link href='@assets.path("stylesheets/labelDetail.css")' rel="stylesheet"/>
 
     <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
@@ -163,7 +169,7 @@
                 differentiateUnauditedStreets: true,
                 interactiveStreets: true,
                 uiSource: 'LabelMap',
-                popupLabelViewer: await AdminGSVLabelView(false, viewerType, accessToken, false),
+                popupLabelViewer: await LabelPopup(false, viewerType, accessToken, "@currentCity.cityNameShort", "@user.username"),
                 differentiateExpiredLabels: true
             };
             params.neighborhoodsURL = new URL('/neighborhoods', window.location.origin);
@@ -230,6 +236,7 @@
                     }, false);
                     checkbox.disabled = false; // Enable the checkbox now that the map has loaded.
                 });
+                document.getElementById('map-label-legend').style.visibility = 'visible';
 
                 // Add listeners on the sliders.
                 const sliderNotApplicableText = '@Messages("not.applicable.abbr")';

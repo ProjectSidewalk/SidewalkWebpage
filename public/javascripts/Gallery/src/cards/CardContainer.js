@@ -233,7 +233,7 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
                     const labels = data.labelsOfType;
                     for (let i = 0; i < labels.length; i++) {
                     const labelProp = labels[i];
-                        const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl, expandedView);
+                        const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl);
                         self.push(card);
                         loadedLabelIds.add(card.getLabelId());
                     }
@@ -354,6 +354,7 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
                 uiCardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
                 sg.scrollStatus.stickySidebar = true;
                 sg.cardFilter.enable();
+                expandedView && expandedView.onPageCardsRendered();
             });
         } else {
             // TODO: figure out how to better do the toggling of this element.

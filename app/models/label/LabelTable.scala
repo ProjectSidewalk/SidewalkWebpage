@@ -51,10 +51,18 @@ case class Label(
     tags: List[String]
 )
 
-case class LabelValidationInfo(agreeCount: Int, disagreeCount: Int, unsureCount: Int, correct: Option[Boolean])
+case class LabelValidationInfo(
+    agreeCount: Int,
+    disagreeCount: Int,
+    unsureCount: Int,
+    correct: Option[Boolean],
+    userValidation: Option[Int],
+    aiValidation: Option[Int]
+)
 case class POV(heading: Double, pitch: Double, zoom: Double)
 case class Dimensions(width: Int, height: Int)
 case class LocationXY(x: Int, y: Int)
+case class LatLng(lat: Double, lng: Double)
 
 case class LabelLocation(
     labelId: Int,
@@ -143,10 +151,14 @@ case class LabelMetadata(
     validations: Map[String, Int],
     tags: List[String],
     lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean),
-    comments: Option[Seq[String]],
+    comments: Seq[LabelComment],
+    cameraLocation: Option[LatLng],
     aiGenerated: Boolean,
-    expired: Boolean
+    expired: Boolean,
+    fromCurrentUser: Boolean
 )
+
+case class LabelComment(username: String, comment: String)
 
 // Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
 case class AdminValidationData(labelId: Int, username: String, previousValidations: Seq[(String, Int)])
@@ -214,10 +226,10 @@ case class LabelValidationMetadata(
     labelType: LabelTypeEnum.Base,
     panoId: String,
     panoSource: PanoSource,
+    expired: Boolean,
     imageCaptureDate: String,
     timestamp: OffsetDateTime,
-    lat: Double,
-    lng: Double,
+    location: LatLng,
     pov: POV,
     canvasXY: LocationXY,
     severity: Option[Int],
@@ -225,13 +237,12 @@ case class LabelValidationMetadata(
     streetEdgeId: Int,
     regionId: Int,
     validationInfo: LabelValidationInfo,
-    userValidation: Option[Int],
-    aiValidation: Option[Int],
     tags: Seq[String],
-    cameraLat: Option[Double],
-    cameraLng: Option[Double],
+    cameraLocation: Option[LatLng],
     aiTags: Option[Seq[String]],
-    aiGenerated: Boolean
+    aiGenerated: Boolean,
+    comments: Seq[LabelComment] = Seq.empty,
+    fromCurrentUser: Boolean = false
 ) extends BasicLabelMetadata
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
@@ -312,57 +323,82 @@ object LabelTable {
       String,                           // labelType
       String,                           // panoId
       PanoSource,                       // panoSource
+      Boolean,                          // expired
       String,                           // imageCaptureDate
       OffsetDateTime,                   // timestamp
-      Option[Double],                   // lat
-      Option[Double],                   // lng
+      (Option[Double], Option[Double]), // location (lat, lng)
       (Double, Double, Double),         // pov (heading, pitch, zoom)
       (Int, Int),                       // canvasXY (x, y)
       Option[Int],                      // severity
       Option[String],                   // description
       Int,                              // streetEdgeId
       Int,                              // regionId
-      (Int, Int, Int, Option[Boolean]), // validationInfo (agreeCount, disagreeCount, unsureCount, correct)
-      Option[Int],                      // userValidation
-      Option[Int],                      // aiValidation
+      (Int, Int, Int, Option[Boolean], Option[Int], Option[Int]), // validationInfo (agree, disagree, unsure, correct, userVal, aiVal)
       List[String],                     // tags
-      Option[Double],                   // cameraLat
-      Option[Double],                   // cameraLng
+      (Option[Double], Option[Double]), // cameraLocation (lat, lng)
       Option[List[String]],             // aiTags
-      Boolean                           // aiGenerated
+      Boolean,                          // aiGenerated
+      Option[String],                   // comments (JSON-aggregated)
+      Boolean                           // fromCurrentUser
   )
   type LabelValidationMetadataTupleRep = (
-      Rep[Int],                                             // labelId
-      Rep[String],                                          // labelType
-      Rep[String],                                          // panoId
-      Rep[PanoSource],                                      // panoSource
-      Rep[String],                                          // imageCaptureDate
-      Rep[OffsetDateTime],                                  // timestamp
-      Rep[Option[Double]],                                  // lat
-      Rep[Option[Double]],                                  // lng
-      (Rep[Double], Rep[Double], Rep[Double]),              // pov (heading, pitch, zoom)
-      (Rep[Int], Rep[Int]),                                 // canvasXY (x, y)
-      Rep[Option[Int]],                                     // severity
-      Rep[Option[String]],                                  // description
-      Rep[Int],                                             // streetEdgeId
-      Rep[Int],                                             // regionId
-      (Rep[Int], Rep[Int], Rep[Int], Rep[Option[Boolean]]), // validationInfo (nAgree, nDisagree, nUnsure, correct)
-      Rep[Option[Int]],                                     // userValidation
-      Rep[Option[Int]],                                     // aiValidation
-      Rep[List[String]],                                    // tags
-      Rep[Option[Double]],                                  // cameraLat
-      Rep[Option[Double]],                                  // cameraLng
-      Rep[Option[List[String]]],                            // aiTags
-      Rep[Boolean]                                          // aiGenerated
+      Rep[Int],                                   // labelId
+      Rep[String],                                // labelType
+      Rep[String],                                // panoId
+      Rep[PanoSource],                            // panoSource
+      Rep[Boolean],                               // expired
+      Rep[String],                                // imageCaptureDate
+      Rep[OffsetDateTime],                        // timestamp
+      (Rep[Option[Double]], Rep[Option[Double]]), // location (lat, lng)
+      (Rep[Double], Rep[Double], Rep[Double]),    // pov (heading, pitch, zoom)
+      (Rep[Int], Rep[Int]),                       // canvasXY (x, y)
+      Rep[Option[Int]],                           // severity
+      Rep[Option[String]],                        // description
+      Rep[Int],                                   // streetEdgeId
+      Rep[Int],                                   // regionId
+      (Rep[Int], Rep[Int], Rep[Int], Rep[Option[Boolean]], Rep[Option[Int]], Rep[Option[Int]]), // validationInfo
+      Rep[List[String]],                                                                        // tags
+      (Rep[Option[Double]], Rep[Option[Double]]), // cameraLocation (lat, lng)
+      Rep[Option[List[String]]],                  // aiTags
+      Rep[Boolean],                               // aiGenerated
+      Rep[Option[String]],                        // comments (JSON-aggregated)
+      Rep[Boolean]                                // fromCurrentUser
   )
 
   // Define an implicit conversion from the tuple representation to the case class.
   implicit val labelValidationMetadataConverter: TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] =
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
       def fromTuple(t: LabelValidationMetadataTuple): LabelValidationMetadata = LabelValidationMetadata(
-        t._1, LabelTypeEnum.byName(t._2), t._3, t._4, t._5, t._6, t._7.get, t._8.get, POV.tupled(t._9),
-        LocationXY.tupled(t._10), t._11, t._12, t._13, t._14, LabelValidationInfo.tupled(t._15), t._16, t._17, t._18,
-        t._19, t._20, t._21, t._22
+        labelId = t._1,
+        labelType = LabelTypeEnum.byName(t._2),
+        panoId = t._3,
+        panoSource = t._4,
+        expired = t._5,
+        imageCaptureDate = t._6,
+        timestamp = t._7,
+        location = LatLng(t._8._1.get, t._8._2.get),
+        pov = POV.tupled(t._9),
+        canvasXY = LocationXY.tupled(t._10),
+        severity = t._11,
+        description = t._12,
+        streetEdgeId = t._13,
+        regionId = t._14,
+        validationInfo = LabelValidationInfo(t._15._1, t._15._2, t._15._3, t._15._4, t._15._5, t._15._6),
+        tags = t._16,
+        cameraLocation = (t._17._1, t._17._2) match {
+          case (Some(lat), Some(lng)) => Some(LatLng(lat, lng))
+          case _                      => None
+        },
+        aiTags = t._18,
+        aiGenerated = t._19,
+        comments = t._20
+          .map { json =>
+            play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
+              LabelComment((obj \ "username").as[String], (obj \ "comment").as[String])
+            }
+          }
+          .getOrElse(Seq.empty),
+        fromCurrentUser = t._21
       )
     }
 
@@ -475,6 +511,17 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   val gf: GeometryFactory = JTSFactoryFinder.getGeometryFactory
 
+  /**
+   * Slick mapping for the label_comments_agg VIEW, which pre-aggregates validation comments per label via json_agg.
+   * Each row contains a label_id and a JSON array string of {username, comment} objects.
+   */
+  private class LabelCommentsAggTableDef(tag: Tag) extends Table[(Int, Option[String])](tag, "label_comments_agg") {
+    def labelId: Rep[Int]             = column[Int]("label_id")
+    def comments: Rep[Option[String]] = column[Option[String]]("comments")
+    def *                             = (labelId, comments)
+  }
+  private val commentsAggregated = TableQuery[LabelCommentsAggTableDef]
+
   val labelsUnfiltered       = TableQuery[LabelTableDef]
   val auditTasks             = TableQuery[AuditTaskTableDef]
   val panoData               = TableQuery[PanoDataTableDef]
@@ -564,7 +611,18 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextString().split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextString().split(",").filter(_.nonEmpty).toList,
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
-      r.nextStringOption().filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toSeq),
+      r.nextStringOption()
+        .map { json =>
+          play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
+            LabelComment((obj \ "username").as[String], (obj \ "comment").as[String])
+          }
+        }
+        .getOrElse(Seq.empty),
+      (r.nextDoubleOption(), r.nextDoubleOption()) match {
+        case (Some(lat), Some(lng)) => Some(LatLng(lat, lng))
+        case _                      => None
+      },
+      r.nextBoolean(),
       r.nextBoolean(),
       r.nextBoolean()
     )
@@ -713,6 +771,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // Optional filter to only get labels placed by the given user.
     val labelerFilter: String = if (labelerId.isDefined) s"""u.user_id = '${labelerId.get}'""" else "TRUE"
 
+    // Whether the label was placed by the current user (used to prevent self-validation).
+    val fromCurrentUserExpr: String = if (validatorId.isDefined) s"""u.user_id = '${validatorId.get}'""" else "FALSE"
+
     // Optionally include the given user's validation info for each label in the userValidation field.
     val validatorJoin: String =
       if (validatorId.isDefined) {
@@ -758,8 +819,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              at.incomplete,
              at.stale,
              comment.comments,
+             pano_data.lat AS camera_lat,
+             pano_data.lng AS camera_lng,
              r.role = 'AI' AS ai_generated,
-             pano_data.expired
+             pano_data.expired,
+             #$fromCurrentUserExpr AS from_current_user
       FROM label AS lb1
       INNER JOIN pano_data ON lb1.pano_id = pano_data.pano_id
       INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
@@ -795,8 +859,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           WHERE role.role = 'AI'
       ) AS ai_val ON lb1.label_id = ai_val.label_id
       LEFT JOIN (
-          SELECT label_id, string_agg(comment, ':') AS comments
+          SELECT label_id,
+                 json_agg(json_build_object('username', username, 'comment', comment) ORDER BY timestamp)::text AS comments
           FROM validation_task_comment
+          INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id
           GROUP BY label_id
        ) AS comment ON lb1.label_id = comment.label_id
       WHERE #$labelFilter
@@ -931,26 +997,33 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           labelType,
           l.panoId,
           pd.source,
+          pd.expired,
           pd.captureDate,
           l.timeCreated,
-          lp.lat,
-          lp.lng,
+          (lp.lat, lp.lng),
           (lp.heading.asColumnOf[Double], lp.pitch.asColumnOf[Double], lp.zoom.asColumnOf[Double]),
           (lp.canvasX, lp.canvasY),
           l.severity,
           l.description,
           l.streetEdgeId,
           regionId,
-          (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct),
-          Option.empty[Int].bind, // userValidation, always None bc we only show labels they haven't already validated.
-          aiv.map(_.validationResult), // aiValidation, if it exists.
+          // userValidation is always None here bc we only show labels the user hasn't already validated.
+          (
+            l.agreeCount,
+            l.disagreeCount,
+            l.unsureCount,
+            l.correct,
+            Option.empty[Int].bind,
+            aiv.map(_.validationResult)
+          ),
           l.tags,
-          pd.lat,
-          pd.lng,
+          (pd.lat, pd.lng),
           // Include AI tags if requested.
           if (includeAiTags) laa.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
           else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
-          isAiUser
+          isAiUser,
+          None.asInstanceOf[Option[String]].asColumnOf[Option[String]], // Comments not needed for validation rn.
+          false.bind
         )
       }
 
@@ -1063,35 +1136,39 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       query
     }
 
-    // Join with user validations.
+    // Join with user validations and pre-aggregated comments.
     val _userValidations       = labelValidations.filter(_.userId === userId)
     val _labelInfoWithUserVals = for {
-      ((lb, lp, pd, labelType, regionId, isAiUser, aiv), uv) <-
-        _labelsFilteredByAiValidation.joinLeft(_userValidations).on(_._1.labelId === _.labelId)
+      (((lb, lp, pd, labelType, regionId, isAiUser, aiv), uv), comments) <-
+        _labelsFilteredByAiValidation
+          .joinLeft(_userValidations)
+          .on(_._1.labelId === _.labelId)
+          .joinLeft(commentsAggregated)
+          .on(_._1._1.labelId === _.labelId)
     } yield (
       lb.labelId,
       labelType,
       lb.panoId,
       pd.source,
+      pd.expired,
       pd.captureDate,
       lb.timeCreated,
-      lp.lat,
-      lp.lng,
+      (lp.lat, lp.lng),
       (lp.heading.asColumnOf[Double], lp.pitch.asColumnOf[Double], lp.zoom),
       (lp.canvasX, lp.canvasY),
       lb.severity,
       lb.description,
       lb.streetEdgeId,
       regionId,
-      (lb.agreeCount, lb.disagreeCount, lb.unsureCount, lb.correct),
-      uv.map(_.validationResult),  // userValidation
-      aiv.map(_.validationResult), // aiValidation
+      (lb.agreeCount, lb.disagreeCount, lb.unsureCount, lb.correct, uv.map(_.validationResult),
+        aiv.map(_.validationResult)),
       lb.tags,
-      pd.lat,
-      pd.lng,
+      (pd.lat, pd.lng),
       // Placeholder for AI tags, since we don't show those on Gallery right now.
       None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
-      isAiUser
+      isAiUser,
+      comments.flatMap(_.comments), // pre-aggregated comments string from VIEW
+      lb.userId === userId.bind
     )
 
     // Remove duplicates if needed and randomize.

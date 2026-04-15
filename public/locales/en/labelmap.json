@@ -6,5 +6,8 @@
     "ai-val-included": "$t(common:{{aiVal}}) (included in count above)",
     "add-comment": "Add comment here...",
     "submit-comment": "Submit comment",
-    "comment-submitted": "Comment Submitted"
+    "comment": "Comment",
+    "comments": "Comments",
+    "comment-submitted": "Comment Submitted",
+    "own-label-disabled": "You cannot validate or comment on your own label"
 }

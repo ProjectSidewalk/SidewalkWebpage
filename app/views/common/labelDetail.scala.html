@@ -1,0 +1,156 @@
+@*
+ * Inner markup for the label detail view. Hosted two ways:
+ *   - Modal popup (LabelMap, Dashboard, Admin): wrapped in `common.labelPopup()` (a <dialog>).
+ *   - Inline (Gallery expanded view): wrapped in a <div class="label-detail label-detail--inline"> in
+ *     gallery.scala.html, with `withPaging = true` to render prev/next arrows around the pano.
+ *
+ * All ids that used to live inside the popup partial have been converted to BEM classes
+ * (`.label-detail__*`). The JS controller scopes its queries to the host root element so that multiple
+ * instances on different pages cannot collide with each other or with arbitrary `id="tags"`/`id="severity"`
+ * style elsewhere on the host page.
+ *@
+@(admin: Boolean = false, withPaging: Boolean = false)(implicit assets: AssetsFinder)
+
+<header class="label-detail__header">
+    <h2 class="label-detail__title"><!-- populated by JS --></h2>
+    <button type="button" class="label-detail__close" aria-label="Close" data-action="close-label-detail">
+        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+    </button>
+</header>
+
+<div class="label-detail__pano-wrap">
+    @if(withPaging) {
+        <button type="button" class="label-detail__paging label-detail__paging--prev"
+                data-action="prev-label" aria-label="Previous label">&lt;</button>
+    }
+    <div class="label-detail__pano"></div>
+    @* Hover overlay with Agree/Disagree/Unsure buttons. *@
+    <div class="label-detail__pano-overlay" role="group" aria-label="Validate label">
+        <button type="button"
+                class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree"
+                data-action="validate" data-result="Agree" data-i18n="common:agree">Agree</button>
+        <button type="button"
+                class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree"
+                data-action="validate" data-result="Disagree" data-i18n="common:disagree">Disagree</button>
+        <button type="button"
+                class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure"
+                data-action="validate" data-result="Unsure" data-i18n="common:unsure">Unsure</button>
+    </div>
+    @if(withPaging) {
+        <button type="button" class="label-detail__paging label-detail__paging--next"
+                data-action="next-label" aria-label="Next label">&gt;</button>
+    }
+</div>
+
+<div class="label-detail__meta-row">
+    <div class="label-detail__meta-cell">
+        <span data-i18n="common:labeled">Labeled</span> :
+        <span class="label-detail__timestamp label-detail__meta-value"></span>
+        @* PanoInfoPopover appends its info button into this container on init. *@
+        <span class="label-detail__info-button-host"></span>
+    </div>
+    <div class="label-detail__meta-cell">
+        <span data-i18n="common:image-capture-date">Image Capture Date</span> :
+        <span class="label-detail__image-capture-date label-detail__meta-value"></span>
+    </div>
+</div>
+
+<div class="label-detail__columns">
+    <section class="label-detail__col label-detail__col--validations">
+        <h3 class="label-detail__col-title" data-i18n="labelmap:validations">Validations</h3>
+        @* Validation count display. Each icon's `src` is swapped by JS between the four variants — outline /
+           filled / outline-ai / filled-ai — depending on whether the user (filled) and/or the AI (ai badge)
+           validated this option. The base URL for the icon files is provided via `data-icon-base` so JS doesn't
+           need to know the assets' path. *@
+        <div class="label-detail__vote-display" data-icon-base='@assets.path("images/icons/validation/")'>
+            <button type="button" class="label-detail__vote label-detail__vote--agree" aria-label="Agree">
+                <img src='@assets.path("images/icons/validation/agree-outline.svg")' alt="" class="label-detail__vote-icon">
+                <span class="label-detail__vote-count">0</span>
+            </button>
+            <button type="button" class="label-detail__vote label-detail__vote--disagree" aria-label="Disagree">
+                <img src='@assets.path("images/icons/validation/disagree-outline.svg")' alt="" class="label-detail__vote-icon">
+                <span class="label-detail__vote-count">0</span>
+            </button>
+            <button type="button" class="label-detail__vote label-detail__vote--unsure" aria-label="Unsure">
+                <img src='@assets.path("images/icons/validation/unsure-outline.svg")' alt="" class="label-detail__vote-icon">
+                <span class="label-detail__vote-count">0</span>
+            </button>
+        </div>
+    </section>
+    <section class="label-detail__col label-detail__col--severity">
+        @* Title and severity level labels are swapped by LabelDetail JS based on current label type. *@
+        <h3 class="label-detail__col-title label-detail__severity-title">Severity</h3>
+        <div class="label-detail__severity-faces" role="img" aria-label="Severity">
+            <div class="label-detail__face label-detail__face--low" data-severity="1">
+                <img src="" alt="" class="label-detail__face-icon">
+                <span class="label-detail__face-label">Low</span>
+            </div>
+            <div class="label-detail__face label-detail__face--medium" data-severity="2">
+                <img src="" alt="" class="label-detail__face-icon">
+                <span class="label-detail__face-label">Medium</span>
+            </div>
+            <div class="label-detail__face label-detail__face--high" data-severity="3">
+                <img src="" alt="" class="label-detail__face-icon">
+                <span class="label-detail__face-label">High</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="label-detail__col label-detail__col--tags">
+        <h3 class="label-detail__col-title" data-i18n="common:tags">Tags</h3>
+        <div class="label-detail__tags"></div>
+    </section>
+</div>
+
+<div class="label-detail__comment-row">
+    <input type="text"
+           class="label-detail__comment-input"
+           data-i18n-placeholder="labelmap:add-comment"
+           placeholder="Add comment here..">
+    <button type="button"
+            class="label-detail__comment-submit"
+            data-action="submit-comment"
+            data-i18n="labelmap:comment">Comment</button>
+    <span class="label-detail__comment-confirmation"
+          role="status"
+          aria-live="polite"
+          hidden
+          data-i18n="labelmap:comment-submitted">Comment submitted</span>
+</div>
+
+<div class="label-detail__desc-comments">
+    <p class="label-detail__description-row">
+        <strong data-i18n="common:description">Description</strong> :
+        <span class="label-detail__description"></span>
+    </p>
+
+    <section class="label-detail__comments-section">
+        <h3 class="label-detail__col-title" data-i18n="labelmap:comments">Comments</h3>
+        <div class="label-detail__validator-comments"></div>
+    </section>
+</div>
+
+@if(admin) {
+    <details class="label-detail__details label-detail__details--admin" open>
+        <summary class="label-detail__details-summary">Admin info</summary>
+        <dl class="label-detail__details-list">
+            <dt>Username</dt>
+            <dd class="label-detail__admin-username"></dd>
+            <dt>Audit Task ID</dt>
+            <dd class="label-detail__admin-task"></dd>
+            <dt>Previous Validations</dt>
+            <dd class="label-detail__admin-prev-validations"></dd>
+        </dl>
+        <div class="label-detail__flag-controls">
+            <h4>Manually set work quality for street</h4>
+            <p>Click on a button to apply or remove that flag from the <b>audit task</b> (street) the label belongs to. Incomplete means they didn't finish or didn't use all label types. Stale means imagery is out of date.</p>
+            <div class="label-detail__flag-buttons">
+                <button type="button" class="label-detail__flag-button" data-flag="low_quality">Low Quality</button>
+                <button type="button" class="label-detail__flag-button" data-flag="incomplete">Incomplete</button>
+                <button type="button" class="label-detail__flag-button" data-flag="stale">Stale</button>
+            </div>
+        </div>
+    </details>
+}

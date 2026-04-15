@@ -2,10 +2,11 @@
  * A Severity Bucket to store Severities.
  *
  * @param initialActiveSeverities array of severity levels to start out as active. Received from query params.
+ * @param initialLabelType initial gallery label type (drives which smiley icon set to use).
  * @returns {SeverityBucket}
  * @constructor
  */
-function SeverityBucket(initialActiveSeverities) {
+function SeverityBucket(initialActiveSeverities, initialLabelType) {
     const self = this;
 
     // List of severities.
@@ -16,8 +17,16 @@ function SeverityBucket(initialActiveSeverities) {
      */
     function _init() {
         for (let i = 1; i <= 3; i++ ) {
-            push(new Severity(i, initialActiveSeverities ? initialActiveSeverities.includes(i) > 0 : false));
+            push(new Severity(i, initialActiveSeverities ? initialActiveSeverities.includes(i) > 0 : false, initialLabelType));
         }
+    }
+
+    /**
+     * Update the label type on all Severities so icons reflect the current smiley set.
+     * @param {string} labelType
+     */
+    function setLabelType(labelType) {
+        bucket.forEach(severity => severity.setLabelType(labelType));
     }
 
     /**
@@ -81,6 +90,7 @@ function SeverityBucket(initialActiveSeverities) {
 
     self.push = push;
     self.render = render;
+    self.setLabelType = setLabelType;
     self.unapplySeverities = unapplySeverities;
     self.getSeverities = getSeverities;
     self.getSize = getSize;

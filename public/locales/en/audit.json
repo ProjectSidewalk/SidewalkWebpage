@@ -15,8 +15,8 @@
         "mission-message": "Complete the onboarding tutorial!",
         "select-label-type-1": "In this Street View image, we have drawn an arrow to a curb ramp. Let’s label it. Click the flashing <span class=\"bold\">\"Curb Ramp\" button</span> above.",
         "label-attribute-1": "Good! Now <span class=\"bold\">click the curb ramp</span> beneath the flashing yellow arrow to label it.",
-        "rate-severity-1": "Now you can rate the severity of any problems with the curb ramp that might be an issue for a wheelchair user. Because it is wide enough and has a tactile warning, <span class=\"bold\">let's rate the severity as Low.</span>",
-        "redo-rate-attribute-1": "Uh-oh, you should rate this curb ramp as Low. It is a high quality curb ramp that is wide enough and has a tactile warning. <span class=\"bold\">Let’s click \"Low\" to set its quality.</span>",
+        "rate-severity-1": "Now you can rate the quality of the curb ramp. Because it is wide enough and has a tactile warning, <span class=\"bold\">let's rate the quality as Good.</span>",
+        "redo-rate-attribute-1": "Uh-oh, you should rate this curb ramp as Good. It is a high quality curb ramp that is wide enough and has a tactile warning. <span class=\"bold\">Let’s click \"Good\" to set its quality.</span>",
         "select-label-type-2": "Now let's label the painted crosswalk. <span class=\"bold\">Click the \"Marked Crosswalk\" button</span>.",
         "label-attribute-2": "Great! Now <span class=\"bold\">click beneath the flashing yellow arrow</span> to label the crosswalk.",
         "adjust-heading-angle-1": "Great! Let’s adjust the view to look at another corner of the intersection. <span class=\"bold\">Grab and drag the Street View image to look left.</span>",
@@ -24,7 +24,7 @@
         "select-label-type-3": "Great! Now you’ve found another curb ramp. Let’s label it! <span class=\"bold\">Click the “Curb Ramp” button</span> like before.",
         "label-attribute-3": "Now <span class=\"bold\">click the curb ramp</span> beneath the flashing yellow arrow to label it.",
         "rate-severity-3": "Good, now <span class=\"bold\">rate the quality</span> of the curb ramp.",
-        "redo-rate-attribute-3": "Uh-oh, you should rate this curb ramp as Medium. It is a high quality curb ramp but it has no landing space at the top of the ramp for making turns. <span class=\"bold\">Let’s click \"Medium\" to set its quality.</span>",
+        "redo-rate-attribute-3": "Uh-oh, you should rate this curb ramp as Okay. It is a high quality curb ramp but it has no landing space at the top of the ramp for making turns. <span class=\"bold\">Let’s click \"Okay\" to set its quality.</span>",
         "tag-attribute-3": "Every label includes optional tags that add descriptive information. Choose appropriate tags for every label you place! <span class=\"bold\">Let's add the “not enough landing space” tag</span> because there is not enough space for a wheelchair user to turn when they get to the top of the ramp.",
         "redo-tag-attribute-3": "Only the \"not enough landing space\" tag applies here, since the curb ramp has a tactile warning, is not too narrow nor steep, and does not point into traffic. So add <span class=\"bold\">only the \"not enough landing space\" tag.</span>",
         "select-label-type-4": "Notice that there is no curb ramp at the end of this crosswalk. <span class=\"bold\">Click the \"Missing Curb Ramp\" button</span> to label it.",
@@ -49,7 +49,7 @@
         "select-label-type-8": "Good! Now <span class=\"bold\">click the \"Curb Ramp\" button</span> on the menu to label it.",
         "label-attribute-8": "<span class=\"bold\">Click the curb ramp</span> beneath the flashing yellow arrow to label it.",
         "rate-severity-8": "Now <span class=\"bold\">rate the curb ramp’s quality</span>. Use your best judgment. You can also write notes in the <span class=\"bold\">Description Box.</span>",
-        "redo-rate-attribute-8": "Hmm, you should rate this curb ramp as Low. This curb ramp is wide enough, has a tactile warning, and doesn't point into traffic. <span class=\"bold\">Let’s click \"Low\" to change its rating.</span>",
+        "redo-rate-attribute-8": "Hmm, you should rate this curb ramp as Good. This curb ramp is wide enough, has a tactile warning, and doesn't point into traffic. <span class=\"bold\">Let’s click \"Good\" to change its rating.</span>",
         "select-label-type-9": "We shouldn't forget the pedestrian signal! <span class=\"bold\">Click the \"Pedestrian Signal\" button</span> to label it.",
         "label-attribute-9": "<span class=\"bold\">Click at the base of the pole</span> to label this pedestrian signal.",
         "adjust-heading-angle-5": "Great Job! We are almost done. Now let’s learn how to move. <span class=\"bold\">Grab and drag the Street View image</span>.",
@@ -69,8 +69,8 @@
             "label-too-far-signal": "$t(audit:tutorial.common.label-too-far-start) For tall objects like poles, we ask you to add labels at the base of the pole. This gives us more accurate location info! $t(audit:tutorial.common.label-too-far-end)",
             "label-too-far-generic": "$t(audit:tutorial.common.label-too-far-start) Let's remove the misplaced label. $t(audit:tutorial.common.label-too-far-end)",
             "re-label": "Good! Now, let's label again. <span class=\"bold\">Click the \"{{label_type}}\" button</span> above.",
-            "rate-crosswalk-sev-1": "Now you can rate the severity of any problems with the crosswalk that might be an issue for a wheelchair user. Because the surface is smooth and the paint isn't fading, <span class=\"bold\">let’s rate the severity as Low.</span>",
-            "redo-rate-crosswalk-sev-1": "Uh-oh, you should rate this crosswalk as Low. The surface looks smooth and the paint isn't fading. <span class=\"bold\">Let’s click \"Low\" to set its quality.</span>"
+            "rate-crosswalk-sev-1": "Now you can rate the quality of the crosswalk. Because the surface is smooth and the paint isn't fading, <span class=\"bold\">let’s rate the quality as Good.</span>",
+            "redo-rate-crosswalk-sev-1": "Uh-oh, you should rate this crosswalk as Good. The surface looks smooth and the paint isn't fading. <span class=\"bold\">Let’s click \"Good\" to set its quality.</span>"
         }
     },
     "mission-complete": {

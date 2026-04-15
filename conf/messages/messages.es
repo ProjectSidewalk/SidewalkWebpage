@@ -236,8 +236,6 @@ audit.right.ui.distance = kilómetros
 
 audit.center.ui.tags.header = Agregar etiquetas
 audit.center.ui.tags.info = Añade etiquetas a tus etiquetas para enriquecer los datos con información útil. Pasa el cursor sobre las etiquetas para ver ejemplos.
-audit.center.ui.severity.header = Gravedad de la tasa
-audit.center.ui.severity.info = Haga todo lo posible por evaluar en qué medida el obstáculo o característica señalado dificulta el acceso peatonal.
 audit.center.ui.description.header = Describe (opcional)
 audit.center.ui.description.placeholder = Descripción
 

@@ -1,4 +1,4 @@
-async function AdminGSVCommentView(admin, viewerType, viewerAccessToken) {
+async function AdminCommentPopup(admin, viewerType, viewerAccessToken) {
     const self = {};
     self.admin = admin;
 
@@ -41,7 +41,7 @@ async function AdminGSVCommentView(admin, viewerType, viewerAccessToken) {
             } else {
                 self.modal.one('shown.bs.modal', async () => {
                     self.panoManager =
-                        await AdminPanorama(self.svHolder[0], self.validateSection, admin, viewerType, viewerAccessToken);
+                        await PopupPanoManager(self.svHolder[0], self.validateSection, admin, viewerType, viewerAccessToken);
 
                     // Once the modal has finished closing, we can set it as visible and resolve the Promise.
                     self.modal.one('hidden.bs.modal', async () => {
@@ -87,17 +87,29 @@ async function AdminGSVCommentView(admin, viewerType, viewerAccessToken) {
     }
 
     function setLabel(labelMetadata) {
-        const isAiGenerated = labelMetadata['ai_generated'] === true;
         const labelPov = {
             heading: labelMetadata.heading,
             pitch: labelMetadata.pitch,
             zoom: labelMetadata.zoom
-        }
-        const adminPanoramaLabel = AdminPanoramaLabel(labelMetadata.label_id, labelMetadata.label_type,
-            labelMetadata.canvas_x, labelMetadata.canvas_y, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
-            labelPov, labelMetadata.street_edge_id, labelMetadata.severity, labelMetadata.tags, isAiGenerated);
-        self.panoManager.setLabel(adminPanoramaLabel);
-        self.panoManager.renderLabel(adminPanoramaLabel);
+        };
+        // Plain-object label shape consumed by PopupPanoManager. See LabelPopup.js for the field-shape comment.
+        const popupLabel = {
+            labelId: labelMetadata.label_id,
+            label_type: labelMetadata.label_type,
+            canvasX: labelMetadata.canvas_x,
+            canvasY: labelMetadata.canvas_y,
+            originalCanvasWidth: util.EXPLORE_CANVAS_WIDTH,
+            originalCanvasHeight: util.EXPLORE_CANVAS_HEIGHT,
+            pov: labelPov,
+            streetEdgeId: labelMetadata.street_edge_id,
+            oldSeverity: labelMetadata.severity,
+            newSeverity: labelMetadata.severity,
+            oldTags: labelMetadata.tags,
+            newTags: labelMetadata.tags,
+            aiGenerated: labelMetadata['ai_generated'] === true
+        };
+        self.panoManager.setLabel(popupLabel);
+        self.panoManager.renderLabel(popupLabel);
     }
 
     await _init();

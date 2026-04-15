@@ -232,8 +232,6 @@ audit.right.ui.distance = quilômetros
 
 audit.center.ui.tags.header = Adicionar etiquetas
 audit.center.ui.tags.info = Adicione etiquetas aos seus rótulos para enriquecer os dados com informações úteis. Passe o mouse sobre as tags para ver exemplos.
-audit.center.ui.severity.header = Avaliar Severidade
-audit.center.ui.severity.info = Faça o possível para avaliar o quanto o obstáculo ou característica identificada dificulta o acesso de pedestres.
 audit.center.ui.description.header = Descreva (opcional)
 audit.center.ui.description.placeholder = Descrição
 

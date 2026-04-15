@@ -525,22 +525,22 @@
                                             <td><input type="checkbox" id="Occlusion-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-correct"><img src='@assets.path("javascripts/SVValidate/img/Checkmark.png")'></td>
+                                            <td id="map-legend-correct"><img src='@assets.path("images/icons/validation/agree-filled.svg")'></td>
                                             <td>@Messages("validated.correct")</td>
                                             <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-incorrect"><img src='@assets.path("javascripts/SVValidate/img/Cross.png")'></td>
+                                            <td id="map-legend-incorrect"><img src='@assets.path("images/icons/validation/disagree-filled.svg")'></td>
                                             <td>@Messages("validated.incorrect")</td>
                                             <td><input type="checkbox" id="incorrect" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-unsure"><img src='@assets.path("images/icons/QuestionMark.png")'></td>
+                                            <td id="map-legend-unsure"><img src='@assets.path("images/icons/validation/unsure-filled.svg")'></td>
                                             <td>@Messages("unsure.caps")</td>
                                             <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-unvalidated"><img src='@assets.path("images/icons/ExclamationMark.png")'></td>
+                                            <td id="map-legend-unvalidated"><img src='@assets.path("images/icons/alert-circle.svg")'></td>
                                             <td>@Messages("unvalidated")</td>
                                             <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
@@ -964,6 +964,10 @@
             </div>
         </div>
     </div>
+
+    @common.labelPopup(admin = true)
+    <link href='@assets.path("stylesheets/labelDetail.css")' rel="stylesheet"/>
+
     <script src='@assets.path("javascripts/lib/d3-3.5.6.js")'></script>
     @if(commonData.imagerySource == PanoSource.Infra3d) {
         <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
@@ -1007,7 +1011,7 @@
             const imagerySrc = "@commonData.imagerySource.toString";
             const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
             const accessToken = "@commonData.imageryAccessToken";
-            window.admin = await Admin(_, $, '@commonData.mapboxApiKey', viewerType, accessToken);
+            window.admin = await Admin(_, $, '@commonData.mapboxApiKey', viewerType, accessToken, "@currentCity.cityNameShort", "@user.username");
             // Initialize the sliders in the legend. We add the "change" functionality after the map loads.
             $("*[id*='slider']").each(function() {
                 $(this).slider({ range: true, min : 0, max : 3, step: 1, values: [0,3], disabled: true });

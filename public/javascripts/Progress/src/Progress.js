@@ -1,4 +1,4 @@
-async function Progress (_, $, mapboxApiKey, viewerType, viewerAccessToken, userId, admin) {
+async function Progress (_, $, mapboxApiKey, viewerType, viewerAccessToken, userId, admin, cityName, currentUsername) {
     var params = {
         mapName: 'user-dashboard-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
@@ -14,7 +14,7 @@ async function Progress (_, $, mapboxApiKey, viewerType, viewerAccessToken, user
         neighborhoodFillColor: '#5d6d6b',
         neighborhoodFillOpacity: 0.1,
         uiSource: admin ? 'AdminUserDashboard' : 'UserMap',
-        popupLabelViewer: await AdminGSVLabelView(admin, viewerType, viewerAccessToken, !admin),
+        popupLabelViewer: await LabelPopup(admin, viewerType, viewerAccessToken, cityName, currentUsername),
         includeLabelCounts: true
     };
     var self = {}
