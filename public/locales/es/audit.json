@@ -15,8 +15,8 @@
         "mission-message": "¡Completar el tutorial introductorio!",
         "select-label-type-1": "En esta imagen, hemos dibujado una flecha hacia una rampa peatonal. Vamos a etiquetarla. Da clic en el <span class=\"bold\">botón parpadeante \"Rampa peatonal\"</span> ubicado en la parte superior.",
         "label-attribute-1": "¡Muy bien! Ahora haz <span class=\"bold\">clic en la rampa peatonal</span>, que está ubicada debajo de la flecha amarilla parpadeante, para etiquetarla.",
-        "rate-severity-1": "Ahora puede evaluar la gravedad de cualquier problema con la rampa de acera que pueda ser un inconveniente para un usuario de silla de ruedas. Debido es una rampa peatonal de alta calidad, <span class=\"bold\">Califiquemos la gravedad como Baja.</span>",
-        "redo-rate-attribute-1": "Oh-oh, deberías calificar esta rampa peatonal como Baja. Es una rampa peatonal de alta calidad. <span class=\"bold\">Haz clic en \"Bajo\" para establecer su calidad.</span>",
+        "rate-severity-1": "Ahora puede evaluar la calidad de la rampa peatonal. Debido a que es una rampa peatonal de alta calidad, <span class=\"bold\">califiquemos la calidad como Buena.</span>",
+        "redo-rate-attribute-1": "Oh-oh, deberías calificar esta rampa peatonal como Buena. Es una rampa peatonal de alta calidad. <span class=\"bold\">Haz clic en \"Buena\" para establecer su calidad.</span>",
         "select-label-type-2": "Ahora etiquetemos el cruce de peatones pintados. <span class=\"bold\">Haga clic en el botón \"Cruce peatonal marcado\".</span>",
         "label-attribute-2": "¡Excelente! Ahora <span class=\"bold\">haga clic debajo de la flecha amarilla parpadeante</span> para etiquetar el cruce peatonal.",
         "adjust-heading-angle-1": "¡Excelente! Ajustemos la vista para ver otra esquina de la intersección vial. <span class=\"bold\">Agarra y arrastra la imagen para mirar hacia la izquierda.</span>",
@@ -24,7 +24,7 @@
         "select-label-type-3": "¡Excelente! Ahora has encontrado otra rampa peatonal. ¡Vamos a etiquetarla! <span class=\"bold\">Haz clic en el botón \"Rampa peatonal\"</span> igual que antes.",
         "label-attribute-3": "Ahora <span class=\"bold\">haz clic en la rampa peatonal</span>, debajo de la flecha amarilla parpadeante, para etiquetarla.",
         "rate-severity-3": "Bien, ahora <span class=\"bold\">califica la calidad</span> de la rampa peatonal.",
-        "redo-rate-attribute-3": "Oh-oh, deberías calificar esta rampa peatonal como Media. Es una rampa peatonal de alta calidad pero no tiene área de aproximación en la parte superior y esto dificulta que una persona en silla de ruedas pueda girar. <span class=\"bold\">Haz clic en \"Medio\" para establecer su calidad.</span>",
+        "redo-rate-attribute-3": "Oh-oh, deberías calificar esta rampa peatonal como Aceptable. Es una rampa peatonal de alta calidad pero no tiene área de aproximación en la parte superior y esto dificulta que una persona en silla de ruedas pueda girar. <span class=\"bold\">Haz clic en \"Aceptable\" para establecer su calidad.</span>",
         "tag-attribute-3": "Cada etiqueta incluye clasificaciones opcionales que sirven para agregar información descriptiva de la situación. ¡Elige las clasificaciones apropiadas para cada etiqueta que agregues! <span class=\"bold\">Agreguemos la clasificación de “área de aproximación insuficiente”</span> porque no hay suficiente espacio para que una persona usuaria de silla de ruedas gire cuando llegue a la parte superior de la rampa.",
         "redo-tag-attribute-3": "Aquí solo aplica la clasificación \"área de aproximación insuficiente\", ya que la rampa peatonal tiene pavimento de advertencia táctil, no es demasiado muy angosta ni empinada (mucha pendiente), y no está orientada al tráfico. Por lo tanto, agrega <span class=\"bold\">solo la clasificación \"área de aproximación insuficiente\".</span>",
         "select-label-type-4": "Observa que no hay una rampa al final de este cruce peatonal. <span class=\"bold\">Haz clic en el botón \"Rampa peatonal ausente\"</span> para etiquetarla.",
@@ -49,7 +49,7 @@
         "select-label-type-8": "¡Muy bien! Ahora <span class=\"bold\">haz clic en el botón \"Rampa peatonal\"</span>, en el menú principal, para etiquetarlo.",
         "label-attribute-8": "<span class=\"bold\">Haz clic en la rampa peatonal</span>, ubicada debajo de la flecha amarilla parpadeante, para etiquetarla.",
         "rate-severity-8": "Ahora <span class=\"bold\">califica la calidad de las rampas peatonales</span>. Usa tu mejor criterio. También puedes escribir notas en el “Cuadro de descripciones”.",
-        "redo-rate-attribute-8": "Hmm, deberías calificar esta rampa peatonal como Baja. Es una rampa peatonal de alta calidad. <span class=\"bold\">Haz clic en \"Bajo\" para establecer su calidad.</span>",
+        "redo-rate-attribute-8": "Hmm, deberías calificar esta rampa peatonal como Buena. Es una rampa peatonal de alta calidad. <span class=\"bold\">Haz clic en \"Buena\" para establecer su calidad.</span>",
         "select-label-type-9": "¡No debemos olvidar el semáforo peatonal! <span class=\"bold\">Haga clic en el botón \"Semáforo peatonal\"</span> para etiquetarlo.",
         "label-attribute-9": "<span class=\"bold\">Haga clic en la base del polo </span>para etiquetar este semáforo peatonal.",
         "adjust-heading-angle-5": "¡Buen trabajo! Casi terminamos. Ahora aprendamos a movernos. <span class=\"bold\">Agarra y arrastra la imagen.</span>",
@@ -69,8 +69,8 @@
             "label-too-far-signal": "$t(audit:tutorial.common.label-too-far-start) Para objetos altos como postes, le pedimos que agregue etiquetas en la base del poste. ¡Esto nos da información de ubicación más precisa! $t(audit:tutorial.common.label-too-far-end)",
             "label-too-far-generic": "$t(audit:tutorial.common.label-too-far-start) Quitemos la etiqueta mal colocada. $t(audit:tutorial.common.label-too-far-end)",
             "re-label": "¡Bueno! Ahora, etiquetemos de nuevo. <span class=\"bold\">Haz clic en el botón \"{{label_type}}\"</span> ubicado en la parte superior.",
-            "rate-crosswalk-sev-1": "Ahora puede evaluar la gravedad de cualquier problema con el cruce de peatones que pueda ser un inconveniente para un usuario de silla de ruedas. Debido a que la superficie es suave y la pintura se está desvaneciendo, <span class=\"bold\">Califiquemos la gravedad como Baja.</span>",
-            "redo-rate-crosswalk-sev-1": "Uh-oh, debes calificar este cruce peatonal como Baja. La superficie se ve suave y la pintura no se desvanece. <span class=\"bold\">hagamos clic \"Bajo\" para establecer su calidad.</span>"
+            "rate-crosswalk-sev-1": "Ahora puede evaluar la calidad del cruce peatonal. Debido a que la superficie es suave y la pintura no se desvanece, <span class=\"bold\">califiquemos la calidad como Buena.</span>",
+            "redo-rate-crosswalk-sev-1": "Uh-oh, debes calificar este cruce peatonal como Buena. La superficie se ve suave y la pintura no se desvanece. <span class=\"bold\">hagamos clic en \"Buena\" para establecer su calidad.</span>"
         }
     },
     "mission-complete": {

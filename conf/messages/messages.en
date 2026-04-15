@@ -228,8 +228,6 @@ audit.right.ui.distance = kilometers
 
 audit.center.ui.tags.header = Add tags
 audit.center.ui.tags.info = Please add tags to your labels, which enriches the data with useful information. Mouseover the tags for examples.
-audit.center.ui.severity.header = Rate severity
-audit.center.ui.severity.info = Do your best to assess how severely the labeled obstacle or feature hinders pedestrian access.
 audit.center.ui.description.header = Describe (optional)
 audit.center.ui.description.placeholder = Description
 

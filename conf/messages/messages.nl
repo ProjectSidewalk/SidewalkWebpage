@@ -224,8 +224,6 @@ audit.right.ui.distance = kilometer
 
 audit.center.ui.tags.header = Voeg tags toe
 audit.center.ui.tags.info = Voeg tags toe aan uw labels om de gegevens te verrijken met nuttige informatie. Beweeg de muis over de tags voor voorbeelden.
-audit.center.ui.severity.header = Ernst van de snelheid
-audit.center.ui.severity.info = Probeer zo goed mogelijk in te schatten in hoeverre het gemarkeerde obstakel of de gemarkeerde voorziening de toegang voor voetgangers belemmert.
 audit.center.ui.description.header = Beschrijf (optioneel)
 audit.center.ui.description.placeholder = Beschrijving
 

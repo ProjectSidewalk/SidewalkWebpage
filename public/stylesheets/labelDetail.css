@@ -270,6 +270,7 @@ dialog.label-detail[open]::backdrop {
     flex-direction: column;
     align-items: center;
     gap: 5px;
+    min-width: 44px;
 }
 .label-detail__face-icon {
     width: 26px;
@@ -507,7 +508,7 @@ dialog.label-detail[open]::backdrop {
 }
 
 .label-detail--inline .label-detail__severity-faces {
-    gap: 12px;
+    gap: 4px;
 }
 
 .label-detail--inline .label-detail__comment-row {

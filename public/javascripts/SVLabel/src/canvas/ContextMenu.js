@@ -183,6 +183,28 @@ function ContextMenu (uiContextMenu) {
     }
 
     /**
+     * Swap the context menu's rating section text based on whether the current label type is a positive type.
+     */
+    function _updateRatingText() {
+        const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
+        const positive = util.misc.isPositiveLabelType(labelType);
+        const headerKey = positive ? 'rate-quality' : 'rate-severity';
+        const infoKey = positive ? 'rate-quality-info' : 'rate-severity-info';
+        const levelKeys = util.misc.getRatingLevelKeys(labelType);
+
+        const $header = $('#severity-header-text');
+        if ($header.length) $header.text(i18next.t(`common:${headerKey}`));
+        const $info = $('#severity-header-info');
+        if ($info.length) {
+            $info.attr('title', i18next.t(`common:${infoKey}`));
+            $info.attr('data-original-title', i18next.t(`common:${infoKey}`));
+        }
+        for (let sev = 1; sev <= 3; sev++) {
+            $(`#severity-${sev} .severity-label`).text(i18next.t(`common:${levelKeys[sev]}`));
+        }
+    }
+
+    /**
      * Records tag ID when clicked and updates tag color.
      */
     function _handleTagClick(e) {
@@ -470,10 +492,11 @@ function ContextMenu (uiContextMenu) {
      * @private
      */
     function _setSeverityTooltips(labelType) {
+        const tooltipKey = util.misc.isPositiveLabelType(labelType) ? 'quality-example-tooltip' : 'severity-example-tooltip';
         for (let sev = 1; sev < 4; sev++) {
             // Add severity tooltips for the current label type if we have images for them.
             util.getImage(`/assets/images/examples/severity/${labelType}_Severity${sev}.png`).then(img => {
-                const tooltipHeader = i18next.t(`common:severity-example-tooltip-${sev}`);
+                const tooltipHeader = i18next.t(`common:${tooltipKey}-${sev}`);
                 const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
                 $(`#severity-${sev}`).tooltip({
                     placement: 'top', html: true, delay: { 'show': 300, 'hide': 10 },
@@ -566,6 +589,7 @@ function ContextMenu (uiContextMenu) {
         }
         if (!['NoSidewalk', 'Signal', 'Occlusion'].includes(labelType)) {
             self.updateRadioButtonImages();
+            _updateRatingText();
             _removePrevSeverityTooltips();
             if (labelType !== 'Other') {
                 _setSeverityTooltips(labelType);

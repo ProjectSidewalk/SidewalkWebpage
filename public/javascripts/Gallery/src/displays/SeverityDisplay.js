@@ -17,6 +17,7 @@ function SeverityDisplay(container, severity, labelType) {
     const unsupportedLabels = ['NoSidewalk', 'Signal', 'Occlusion'];
 
     let unsupported = unsupportedLabels.includes(labelType);
+    const positive = util.misc.isPositiveLabelType(labelType);
 
     let circles = [];
     function _init() {
@@ -26,7 +27,7 @@ function SeverityDisplay(container, severity, labelType) {
         let title = document.createElement('div');
         title.className = 'label-severity-header';
 
-        title.innerText = `${i18next.t("severity")}`;
+        title.innerText = i18next.t(positive ? 'quality' : 'severity');
         // If no severity rating, gray out title.
         if (unsupported || severity == null) {
             title.classList.add('no-severity-header');
@@ -62,7 +63,7 @@ function SeverityDisplay(container, severity, labelType) {
             if (unsupported) {
                 holder.setAttribute('title', `${i18next.t("unsupported")}`);
             } else {
-                holder.setAttribute('title', `${i18next.t("no-severity")}`);
+                holder.setAttribute('title', i18next.t(positive ? 'no-quality' : 'no-severity'));
             }
             $(holder).tooltip('hide');
         }

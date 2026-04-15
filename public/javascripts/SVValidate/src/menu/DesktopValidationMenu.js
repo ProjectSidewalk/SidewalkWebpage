@@ -34,7 +34,8 @@ function DesktopValidationMenu(menuUI) {
         // Tag and severity sections only available with Expert Validate.
         if (svv.adminVersion) {
             // Add onclick for each severity button.
-            menuUI.severityMenu.find('.severity-level').click(function (e) {
+            const $severityLevels = menuUI.severityMenu.find('.severity-level');
+            $severityLevels.click(function (e) {
                 let currLabel = svv.labelContainer.getCurrentLabel();
                 const oldSeverity = currLabel.getProperty('newSeverity');
                 const newSeverity = $(e.target).closest('.severity-level').data('severity');
@@ -44,6 +45,15 @@ function DesktopValidationMenu(menuUI) {
                     currLabel.setProperty('newSeverity', newSeverity);
                     _renderSeverity();
                 }
+            });
+
+            // Hover state: temporarily swap the hovered severity icon to its filled (selected-state) variant.
+            $severityLevels.on('mouseenter mouseleave', function (e) {
+                const currLabel = svv.labelContainer.getCurrentLabel();
+                const sev = Number(this.dataset.severity);
+                const filled = e.type === 'mouseenter' || sev === Number(currLabel.getProperty('newSeverity'));
+                const img = this.querySelector('.severity-icon-img');
+                if (img) img.src = util.misc.getSmileyIconPath(sev, currLabel.getAuditProperty('labelType'), filled);
             });
 
             // Initialize the selectize object for tags (this is the auto-completing tag picker).
@@ -429,15 +439,26 @@ function DesktopValidationMenu(menuUI) {
         let label = svv.labelContainer.getCurrentLabel();
         const severity = label.getProperty('newSeverity');
         const labelType = svv.labelContainer.getCurrentLabel().getAuditProperty('labelType');
+        const positive = util.misc.isPositiveLabelType(labelType);
+        const tooltipKey = positive ? 'quality-example-tooltip' : 'severity-example-tooltip';
+        const headerKey = positive ? 'update-quality-level' : 'update-severity-level';
+        const levelKeys = util.misc.getRatingLevelKeys(labelType);
+
+        // Swap the header text and per-level labels between severity and quality wording based on label type.
+        const headerEl = document.getElementById('validate-severity-header');
+        if (headerEl) headerEl.textContent = i18next.t(`common:${headerKey}`);
 
         // Add example image tooltips to the severity buttons after removing old ones (in case label type changed).
         for (const severityButton of menuUI.severityMenu.find('.severity-level')) {
             const severityIcon = $(severityButton.querySelector('.severity-icon'));
-            const severity = severityButton.dataset.severity;
-            const tooltipText = i18next.t(`common:severity-example-tooltip-${severity}`);
-            const tooltipImage = `/assets/images/examples/severity/${labelType}_Severity${severity}.png`;
+            const sev = severityButton.dataset.severity;
+            const tooltipText = i18next.t(`common:${tooltipKey}-${sev}`);
+            const tooltipImage = `/assets/images/examples/severity/${labelType}_Severity${sev}.png`;
             severityIcon.tooltip('destroy');
             _addTooltip(severityIcon, tooltipText, tooltipImage);
+
+            const labelSpan = severityButton.querySelector('.severity-label');
+            if (labelSpan) labelSpan.textContent = i18next.t(`common:${levelKeys[Number(sev)]}`);
         }
 
         // Swap the smiley <img> src for each severity level based on label type + selection.

@@ -302,6 +302,10 @@
     padding: 0;
 }
 
+.severity-level.radio-inline * {
+    cursor: inherit; /* Forces pointer cursor on all child elements. */
+}
+
 #optional-comment-input {
     margin-top: 0px; /* Overrides .validate-text-input margin, since the textbox for agreeing looks different. */
 }

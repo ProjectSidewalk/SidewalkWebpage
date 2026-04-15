@@ -486,6 +486,26 @@ function UtilitiesMisc (JSON) {
     const POSITIVE_LABEL_TYPES = ['CurbRamp', 'Crosswalk'];
 
     /**
+     * Returns true if label type uses the "positive" rating scheme (Good/Okay/Bad) vs the "negative" (Low/Medium/High).
+     * @param {string} labelType
+     * @returns {boolean}
+     */
+    function isPositiveLabelType(labelType) {
+        return POSITIVE_LABEL_TYPES.includes(labelType);
+    }
+
+    /**
+     * Returns a map from rating level (1/2/3) to the i18n key (under the `common` namespace) for that level's label.
+     * @param {string} labelType
+     * @returns {Object.<number, string>}
+     */
+    function getRatingLevelKeys(labelType) {
+        return isPositiveLabelType(labelType)
+            ? { 1: 'good', 2: 'okay', 3: 'bad' }
+            : { 1: 'low', 2: 'medium', 3: 'high' };
+    }
+
+    /**
      * Returns the full asset path for the smiley icon at the given severity and label type.
      * @param {number} severity - 1 (low), 2 (medium), or 3 (high).
      * @param {string} labelType - The label type, used to pick positive vs negative icon set.
@@ -493,7 +513,7 @@ function UtilitiesMisc (JSON) {
      * @returns {string}
      */
     function getSmileyIconPath(severity, labelType, selected) {
-        const set = POSITIVE_LABEL_TYPES.includes(labelType) ? 'positive' : 'negative';
+        const set = isPositiveLabelType(labelType) ? 'positive' : 'negative';
         return `${SMILEY_ICON_BASE}sev-${severity}-${set}${selected ? '-filled' : ''}.svg`;
     }
 
@@ -588,7 +608,10 @@ function UtilitiesMisc (JSON) {
     self.getIconImagePaths = getIconImagePaths;
     self.getLabelDescriptions = getLabelDescriptions;
     self.getSeverityDescription = getSeverityDescription;
+    self.isPositiveLabelType = isPositiveLabelType;
+    self.POSITIVE_LABEL_TYPES = POSITIVE_LABEL_TYPES;
     self.getSmileyIconPath = getSmileyIconPath;
+    self.getRatingLevelKeys = getRatingLevelKeys;
     self.getLabelColors = getLabelColors;
     self.reportNoImagery = reportNoImagery;
 

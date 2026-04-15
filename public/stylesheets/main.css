@@ -333,9 +333,9 @@ body {
     left: -9999px;       /* Off-screen until JS positions it. */
     top: -9999px;
     overflow: visible;   /* Allow the CSS arrow to extend beyond the box. */
-    min-width: 260px;
+    min-width: 280px;
     max-width: 400px;
-    padding: 12px;
+    padding: 14px;
     background: white;
     border: 1px solid #9c9c9c;
     border-radius: 12px;

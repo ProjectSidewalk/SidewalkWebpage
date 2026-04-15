@@ -380,14 +380,15 @@
                         <div id="severity-menu" class="context-menu-section">
                             <div class="context-menu-header">
                                 <span id="severity-header-num">2.</span>
-                                <span>@Messages("audit.center.ui.severity.header")</span>
-                                <img src='@assets.path("images/icons/info-button.svg")' class="context-menu-info-icon"
-                                    title="@Messages("audit.center.ui.severity.info")"
+                                @* Header text and info tooltip are swapped between the severity/quality strings by
+                                   ContextMenu JS based on the current label type (positive vs negative). *@
+                                <span id="severity-header-text"></span>
+                                <img id="severity-header-info" src='@assets.path("images/icons/info-button.svg")'
+                                    class="context-menu-info-icon"
                                     data-toggle="tooltip" data-placement="top"
                                 />
                             </div>
-                            @* Severity radio smileys. The <img> src is swapped by ContextMenu JS based on the
-                               current label type (positive vs negative icon set) and selected state. *@
+                            @* Severity radio smileys. Positive/negative images/text are swapped in ContextMenu.js. *@
                             <div id="severity-radio-holder" class="context-menu-section">
                                 <div class="severity-level" id="severity-1" data-toggle="tooltip">
                                     <label>

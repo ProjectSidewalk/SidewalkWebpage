@@ -15,8 +15,8 @@
         "mission-message": "Complete o tutorial de onboarding",
         "select-label-type-1": "Nesta imagem do Street View, desenhamos uma seta para uma rampa de meio-fio. Vamos rotulá-la. Clique no <span class=\"bold\">botão \"Rampa de Meio-Fio\" piscante</span> acima.",
         "label-attribute-1": "Muito bom! Agora <span class=\"bold\">clique na rampa de meio-fio</span> sob a seta amarela piscante para rotulá-la.",
-        "rate-severity-1": "Agora você pode avaliar a gravidade de quaisquer problemas com a rampa de meio-fio que possam ser um problema para um usuário de cadeira de rodas. Como ela é larga o suficiente e tem um aviso tátil, <span class=\"bold\">vamos avaliar a gravidade como Baixa.</span>",
-        "redo-rate-attribute-1": "Opa, você deve avaliar esta rampa de meio-fio como Baixa. É uma rampa de meio-fio de alta qualidade que é larga o suficiente e tem um aviso tátil. <span class=\"bold\">Vamos clicar em \"Baixa\" para definir sua qualidade.</span>",
+        "rate-severity-1": "Agora você pode avaliar a qualidade da rampa de meio-fio. Como ela é larga o suficiente e tem um aviso tátil, <span class=\"bold\">vamos avaliar a qualidade como Boa.</span>",
+        "redo-rate-attribute-1": "Opa, você deve avaliar esta rampa de meio-fio como Boa. É uma rampa de meio-fio de alta qualidade que é larga o suficiente e tem um aviso tátil. <span class=\"bold\">Vamos clicar em \"Boa\" para definir sua qualidade.</span>",
         "select-label-type-2": "Agora vamos rotular a faixa de pedestres pintada. <span class=\"bold\">Clique no botão \"Faixa de Pedestres Sinalizada\"</span>.",
         "label-attribute-2": "Ótimo! Agora <span class=\"bold\">clique sob a seta amarela piscante</span> para rotular a faixa de pedestres.",
         "adjust-heading-angle-1": "Ótimo! Vamos ajustar a visualização para olhar outro canto do cruzamento. <span class=\"bold\">Segure e arraste a imagem do Street View para olhar para a esquerda.</span>",
@@ -24,7 +24,7 @@
         "select-label-type-3": "Ótimo! Agora você encontrou outra rampa de meio-fio. Vamos rotulá-la! <span class=\"bold\">Clique no botão \"Rampa de Meio-Fio\"</span> como antes.",
         "label-attribute-3": "Agora <span class=\"bold\">clique na rampa de meio-fio</span> sob a seta amarela piscante para rotulá-la.",
         "rate-severity-3": "Ótimo, agora <span class=\"bold\">avalie a qualidade</span> da rampa de meio-fio.",
-        "redo-rate-attribute-3": "Opa, você deve avaliar esta rampa de meio-fio como Média. É uma rampa de meio-fio de alta qualidade, mas não tem espaço de desembarque no topo da rampa para fazer curvas. <span class=\"bold\">Vamos clicar em \"Média\" para definir sua qualidade.</span>",
+        "redo-rate-attribute-3": "Opa, você deve avaliar esta rampa de meio-fio como Razoável. É uma rampa de meio-fio de alta qualidade, mas não tem espaço de desembarque no topo da rampa para fazer curvas. <span class=\"bold\">Vamos clicar em \"Razoável\" para definir sua qualidade.</span>",
         "tag-attribute-3": "Cada rótulo inclui tags opcionais que adicionam informações descritivas. Escolha tags apropriadas para cada rótulo que você colocar! <span class=\"bold\">Vamos adicionar a tag \"espaço de desembarque insuficiente\"</span> porque não há espaço suficiente para um usuário de cadeira de rodas virar quando chegar ao topo da rampa.",
         "redo-tag-attribute-3": "Apenas a tag \"espaço de desembarque insuficiente\" se aplica aqui, já que a rampa de meio-fio tem um aviso tátil, não é muito estreita nem íngreme e não aponta em direção ao trânsito. Então adicione <span class=\"bold\">apenas a tag \"espaço de desembarque insuficiente\".</span>",
         "select-label-type-4": "Observe que não há rampa de meio-fio no final desta faixa de pedestres. <span class=\"bold\">Clique no botão \"Rampa de Meio-Fio Ausente\"</span> para rotulá-la.",
@@ -49,7 +49,7 @@
         "select-label-type-8": "Bom! Agora <span class=\"bold\">clique no botão \"Rampa de Meio-Fio\"</span> no menu para rotulá-la.",
         "label-attribute-8": "<span class=\"bold\">Clique na rampa de meio-fio</span> sob a seta amarela piscante para rotulá-la.",
         "rate-severity-8": "Agora <span class=\"bold\">avalie a qualidade da rampa de meio-fio</span>. Use seu melhor julgamento. Você também pode escrever notas na <span class=\"bold\">Caixa de Descrição.</span>",
-        "redo-rate-attribute-8": "Hmm, você deve avaliar esta rampa de meio-fio como Baixa. Esta rampa de meio-fio é larga o suficiente, tem um aviso tátil e não aponta para o trânsito. <span class=\"bold\">Vamos clicar em \"Baixa\" para alterar sua avaliação.</span>",
+        "redo-rate-attribute-8": "Hmm, você deve avaliar esta rampa de meio-fio como Boa. Esta rampa de meio-fio é larga o suficiente, tem um aviso tátil e não aponta para o trânsito. <span class=\"bold\">Vamos clicar em \"Boa\" para alterar sua avaliação.</span>",
         "select-label-type-9": "Não devemos esquecer o semáforo de pedestres! <span class=\"bold\">Clique no botão \"Semáforo de Pedestres\"</span> para rotulá-lo.",
         "label-attribute-9": "<span class=\"bold\">Clique na base do poste</span> para rotular este semáforo de pedestres.",
         "adjust-heading-angle-5": "Ótimo trabalho! Estamos quase terminando. Agora vamos aprender como se mover. <span class=\"bold\">Segure e arraste a imagem do Street View</span>.",
@@ -69,8 +69,8 @@
             "label-too-far-signal": "$t(audit:tutorial.common.label-too-far-start) Para objetos altos como postes, pedimos que você adicione rótulos na base do poste. Isso nos dá informações de localização mais precisas! $t(audit:tutorial.common.label-too-far-end)",
             "label-too-far-generic": "$t(audit:tutorial.common.label-too-far-start) Vamos remover o rótulo mal colocado. $t(audit:tutorial.common.label-too-far-end)",
             "re-label": "Bom! Agora, vamos rotular novamente. <span class=\"bold\">Clique no botão \"{{label_type}}\"</span> acima.",
-            "rate-crosswalk-sev-1": "Agora você pode avaliar a gravidade de quaisquer problemas com a faixa de pedestres que possam ser um problema para um usuário de cadeira de rodas. Como a superfície é lisa e a tinta não está desbotando, <span class=\"bold\">vamos avaliar a gravidade como Baixa.</span>",
-            "redo-rate-crosswalk-sev-1": "Opa, você deve avaliar esta faixa de pedestres como Baixa. A superfície parece lisa e a tinta não está desbotando. <span class=\"bold\">Vamos clicar em \"Baixa\" para definir sua qualidade.</span>"
+            "rate-crosswalk-sev-1": "Agora você pode avaliar a qualidade da faixa de pedestres. Como a superfície é lisa e a tinta não está desbotando, <span class=\"bold\">vamos avaliar a qualidade como Boa.</span>",
+            "redo-rate-crosswalk-sev-1": "Opa, você deve avaliar esta faixa de pedestres como Boa. A superfície parece lisa e a tinta não está desbotando. <span class=\"bold\">Vamos clicar em \"Boa\" para definir sua qualidade.</span>"
         }
     },
     "mission-complete": {

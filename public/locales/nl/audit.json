@@ -15,8 +15,8 @@
         "mission-message": "Voltooi de onboarding tutorial!",
         "select-label-type-1": "In deze Street View foto hebben we een pijl getekend naar een trottoir oprit. Laten we het labelen. Klik op de knipperende <span class=\"bold\">\"trottoir oprit\" knop</span> bovenaan.",
         "label-attribute-1": "Goed! Vervolgens, <span class=\"bold\">klik op de trottoir oprit</span> onder de knipperende gele pijl om het te labelen.",
-        "rate-severity-1": "Nu kunt u de ernst van eventuele problemen met de oprit beoordelen die een probleem kunnen vormen voor een rolstoelgebruiker. Omdat het breed genoeg is en een tactiele waarschuwing heeft, <span class=\"bold\">Laten we de ernst beoordelen als Laag.</span>",
-        "redo-rate-attribute-1": "Oh oh, je zou deze trottoir oprit moeten beoordelen als Laag, begaanbaar. Het is een hoge kwaliteit trottoir oprit die breed genoeg is en een tactiele waarschuwing heeft. <span class=\"bold\">Klik \"Laag\" om de kwaliteit opnieuw in te stellen.</span>",
+        "rate-severity-1": "Nu kunt u de kwaliteit van de trottoir oprit beoordelen. Omdat deze breed genoeg is en een tactiele waarschuwing heeft, <span class=\"bold\">laten we de kwaliteit beoordelen als Goed.</span>",
+        "redo-rate-attribute-1": "Oh oh, je zou deze trottoir oprit moeten beoordelen als Goed. Het is een hoge kwaliteit trottoir oprit die breed genoeg is en een tactiele waarschuwing heeft. <span class=\"bold\">Klik \"Goed\" om de kwaliteit in te stellen.</span>",
         "adjust-heading-angle-1": "Perfect! Laten we het zicht aanpassen om naar een andere hoek van het kruispunt. <span class=\"bold\">Selecteer en sleep de Street View foto om naar links te kijken.</span>",
         "select-label-type-2": "Laten we nu de geschilderde zebrapad labelen. <span class=\"bold\">klik op de knop \"Gemarkeerde oversteekplaats\"</span>.",
         "label-attribute-2": "Geweldig! Nu <span class=\"bold\">klik onder de knipperende gele pijl</span> om de oversteekplaats te labelen.",
@@ -24,7 +24,7 @@
         "select-label-type-3": "Goed zo! Nu heb je een nieuwe trottoir oprit gevonden. Laten we het labelen! <span class=\"bold\">Klik op de “trottoir oprit” knop</span> zoals voorheen.",
         "label-attribute-3": "<span class=\"bold\">Klik nu op de trottoir oprit</span> onder de gele knipperende pijl om het te labelen.",
         "rate-severity-3": "Goed, vervolgens <span class=\"bold\">beoordeel de kwaliteit</span> van de trottoir oprit.",
-        "redo-rate-attribute-3": "Oh oh, je zou deze trottoir oprit met Medium moeten beoordelen, enigszins begaanbaar. Het is een hoge kwaliteit trottoir oprit maar het heeft geen ruimte bovenaan op het trottoir om te draaien. <span class=\"bold\">Klik \"Medium\" om de kwaliteit in te stellen.</span>",
+        "redo-rate-attribute-3": "Oh oh, je zou deze trottoir oprit met Redelijk moeten beoordelen. Het is een hoge kwaliteit trottoir oprit maar het heeft geen ruimte bovenaan op het trottoir om te draaien. <span class=\"bold\">Klik \"Redelijk\" om de kwaliteit in te stellen.</span>",
         "tag-attribute-3": "Elk label bevat optionele tags die die beschrijvende informatie toevoegen. Kies passende tags voor elk label! <span class=\"bold\">Laten we “bovenaan niet genoeg ruimte” tag</span> selecteren omdat er niet genoeg ruimte is voor een rosltoelgebruiker om te draaien wanneer ze bovenaan de oprit zijn.",
         "redo-tag-attribute-3": "Alleen de \"bovenaan niet genoeg ruimte\" is hier toepassend, aangezien de trottoir oprit een tactiele waarschuwing heeft, niet te smal en steil is, en niet richting het verkeer gericht is. Dus voeg <span class=\"bold\">alleen de \"bovenaan niet genoeg ruimte\" tag toe.</span>",
         "select-label-type-4": "Merk op dat er geen trottoir oprit is aan het eind van deze oversteekplaats. <span class=\"bold\">Klik op de \"ontbrekende trottoir oprit\" knop</span> om het te labelen.",
@@ -49,7 +49,7 @@
         "select-label-type-8": "Goed! Nu <span class=\"bold\">klik de \"Trottoir Oprit\" knop</span> in het menu om het te labelen.",
         "label-attribute-8": "<span class=\"bold\">Klik op de trottoir oprit</span> onder de knipperende gele pijl om het te labelen.",
         "rate-severity-8": "Vervolgens <span class=\"bold\">Beoordeel de kwaliteit van de trottoir oprit</span>. Probeer hem zo juist mogelijk te beoordelen. Je kunt ook altijd aantekeningen maken in de <span class=\"bold\">Beschrijving Box.</span>",
-        "redo-rate-attribute-8": "Hmm, je zou hem met een Laag moeten beoordelen, begaanbaar. Deze trottoir oprit is breed genoeg, heeft een tactiele waarschuwing, en is niet het verkeer in gericht. <span class=\"bold\">Klik \"Laag\" om deze beoordeling te veranderen.</span>",
+        "redo-rate-attribute-8": "Hmm, je zou hem met Goed moeten beoordelen. Deze trottoir oprit is breed genoeg, heeft een tactiele waarschuwing, en is niet het verkeer in gericht. <span class=\"bold\">Klik \"Goed\" om deze beoordeling te veranderen.</span>",
         "select-label-type-9": "We moeten het verkeerslicht niet vergeten! <span class=\"bold\">klik op de knop \"Verkeerslicht\"</span> om het te labelen.",
         "label-attribute-9": "<span class=\"bold\">klik aan de basis van de pool</span> om dit verkeerslicht te labelen.",
         "adjust-heading-angle-5": "Goed gedaan! We zijn er bijna. Laten we je leren hoe je je kunt verplaatsen. <span class=\"bold\">Selecteer en sleep de Street View image</span>.",
@@ -69,8 +69,8 @@
             "label-too-far-signal": "$t(audit:tutorial.common.label-too-far-start) Voor lange objecten zoals polen vragen we u om labels toe te voegen aan de basis van de paal. Dit geeft ons meer accurate locatie -info! $t(audit:tutorial.common.label-too-far-end)",
             "label-too-far-generic": "$t(audit:tutorial.common.label-too-far-start) Laten we dit verkeerd geplaatste label opnieuw plaatsen. $t(audit:tutorial.common.label-too-far-end)",
             "re-label": "Goed zo! Laten we er nog een labelen. <span class=\"bold\">Klik de \"{{label_type}}\" knop</span> bovenaan.",
-            "rate-crosswalk-sev-1": "Nu kunt u de ernst van eventuele problemen met de oversteekplaats beoordelen die een probleem kunnen vormen voor een rolstoelgebruiker. Omdat het oppervlak soepel is en de verf niet vervaagt, <span class=\"bold\">Laten we de ernst beoordelen als Laag.</span>",
-            "redo-rate-crosswalk-sev-1": "Uh-oh, je moet deze oversteekplaats als Laag beoordelen, begaanbaar. Het oppervlak ziet er soepel uit en de verf vervaagt niet. <span class=\"bold\">laten we klikken op \"Laag\" om de kwaliteit in te stellen.</span>"
+            "rate-crosswalk-sev-1": "Nu kunt u de kwaliteit van de oversteekplaats beoordelen. Omdat het oppervlak soepel is en de verf niet vervaagt, <span class=\"bold\">laten we de kwaliteit beoordelen als Goed.</span>",
+            "redo-rate-crosswalk-sev-1": "Uh-oh, je moet deze oversteekplaats als Goed beoordelen. Het oppervlak ziet er soepel uit en de verf vervaagt niet. <span class=\"bold\">laten we klikken op \"Goed\" om de kwaliteit in te stellen.</span>"
         }
     },
     "mission-complete": {

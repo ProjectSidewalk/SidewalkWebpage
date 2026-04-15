@@ -159,7 +159,9 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
             $('#severity-header').hide();
             $('#severity-select').hide();
         } else {
-            $('#severity-header').show();
+            // Swap the filter header between "Severity" and "Quality" based on the current label type.
+            const headerKey = util.misc.isPositiveLabelType(status.currentLabelType) ? 'quality' : 'severity';
+            $('#severity-header').text(i18next.t(headerKey)).show();
             $('#severity-select').show();
         }
         if (currentTags.getTags().length > 0) {
