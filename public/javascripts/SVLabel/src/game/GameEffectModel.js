@@ -5,7 +5,7 @@
 function GameEffectModel () {
     var self = this;
 }
-_.extend(GameEffectModel.prototype, Backbone.Events);
+Object.assign(GameEffectModel.prototype, EventMixin);
 
 GameEffectModel.prototype.loadAudio = function (parameters) {
     this.trigger("loadAudio", parameters);

@@ -27,7 +27,7 @@ function NeighborhoodModel() {
         }
     };
 }
-_.extend(NeighborhoodModel.prototype, Backbone.Events);
+Object.assign(NeighborhoodModel.prototype, EventMixin);
 
 NeighborhoodModel.prototype.add = function (neighborhood) {
     this.trigger("NeighborhoodContainer:add", neighborhood);

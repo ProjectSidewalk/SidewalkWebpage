@@ -2,7 +2,7 @@ function ModalModel () {
     var self = this;
 }
 
-_.extend(ModalModel.prototype, Backbone.Events);
+Object.assign(ModalModel.prototype, EventMixin);
 
 ModalModel.prototype.showModalMissionComplete = function () {
     this.trigger("ModalMissionComplete:show");
