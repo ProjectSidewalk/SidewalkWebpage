@@ -3,7 +3,7 @@ function hideBrowserVersionAlert(){
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    if (!bowser.chrome && !bowser.firefox && !bowser.safari) {
+    if (!util.isChrome() && !util.isFirefox() && !util.isSafari()) {
         document.getElementById('unsupported-browser-alert').style.visibility = 'visible';
         document.getElementById('page-alert-close').addEventListener('click', hideBrowserVersionAlert);
     }

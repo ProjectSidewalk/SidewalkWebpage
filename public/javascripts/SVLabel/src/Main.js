@@ -382,7 +382,7 @@ function Main (params) {
 
             // Use CSS zoom to scale the UI for users with high resolution screens.
             // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
-            if (bowser.safari) {
+            if (util.isSafari()) {
                 svl.cssZoom = util.scaleUI();
                 window.addEventListener('resize', (e) => { svl.cssZoom = util.scaleUI(); });
             }
