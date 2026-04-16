@@ -1,73 +1,49 @@
 /**
- * Adds labels to the map and returns a promise.
+ * Adds labels to the map, creating one Mapbox layer per label type. Resolves once all layers have loaded.
  *
- * @param map Map on which the streets are rendered.
  * @param {object} map The Mapbox map object.
- * @param {object} labelData - GeoJSON object containing labels to draw on the map.
- * @param {object} params - Properties that can change the process of choropleth creation.
- * @param {string} params.mapName - Name of the HTML ID of the map.
- * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
- * @param {boolean} [params.includeLabelCounts=false] - Whether to include label counts for each type in the legend.
- * @param {boolean} [params.differentiateExpiredLabels=false] - Whether to color expired labels differently.
- * @param {string} [params.uiSource] - Used to record the UI used when submitting a validation through the popup.
- * @param {object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
- * @returns {Promise} Promise that resolves with all layer names when the labels have been added to the map.
+ * @param {object} labelData GeoJSON FeatureCollection of labels to draw on the map.
+ * @param {object} params Properties that can change the process of choropleth creation.
+ * @param {string} params.mapName Name of the HTML ID of the map.
+ * @param {string} [params.highQualityFilter] If true, only show labels from users marked as high quality.
+ * @param {boolean} [params.logClicks=true] Whether clicks should be logged.
+ * @param {boolean} [params.differentiateExpiredLabels=false] Whether to color expired labels differently.
+ * @param {string} [params.uiSource] Used to record the UI used when submitting a validation through the popup.
+ * @param {object} [params.popupLabelViewer] Shows a validation popup on labels on the map.
+ * @returns {Promise} Promise that resolves with the mapData object.
  */
 function AddLabelsToMap(map, labelData, params) {
     const colorMapping = util.misc.getLabelColors();
-    let mapData = CreateMapLayerTracker();
+    const mapData = CreateMapLayerTracker();
 
-    // Separate labels into an array for each label type and severity.
-    let sortedLabels = {};
-    for (let i = 0; i < labelData.features.length; i++) {
-        let labelType = labelData.features[i].properties.label_type;
-        let severity = labelData.features[i].properties.severity;
-        sortedLabels[labelType] = sortedLabels[labelType] || {};
-        if (['NoSidewalk', 'Signal', 'Occlusion'].includes(labelType) || !severity) { // No severity level.
-            mapData.sortedLabels[labelType][0].push(labelData.features[i]);
-        } else {
-            mapData.sortedLabels[labelType][severity].push(labelData.features[i]);
+    // Sort labels into flat arrays by label type.
+    for (const feature of labelData.features) {
+        const labelType = feature.properties.label_type;
+        if (mapData.sortedLabels[labelType]) {
+            mapData.sortedLabels[labelType].push(feature);
         }
     }
-    Object.keys(mapData.sortedLabels).forEach(function (key) {
-        for (let i = 0; i < mapData.sortedLabels[key].length; i++) {
-            mapData.layerNames[key][i] = createLayer({
-                'type': 'FeatureCollection',
-                'features': mapData.sortedLabels[key][i]
-            }, key, i);
-        }
-    });
 
-    if (params.includeLabelCounts) {
-        // Count the number of each label type and fill in the legend with those counts.
-        document.getElementById('td-number-of-curb-ramps').innerHTML =
-            mapData.sortedLabels['CurbRamp'].map(l => l.length).reduce((acc, len) => acc + len, 0);
-        document.getElementById('td-number-of-missing-curb-ramps').innerHTML =
-            mapData.sortedLabels['NoCurbRamp'].map(l => l.length).reduce((acc, len) => acc + len, 0);
-        document.getElementById('td-number-of-obstacles').innerHTML =
-            mapData.sortedLabels['Obstacle'].map(l => l.length).reduce((acc, len) => acc + len, 0);
-        document.getElementById('td-number-of-surface-problems').innerHTML =
-            mapData.sortedLabels['SurfaceProblem'].map(l => l.length).reduce((acc, len) => acc + len, 0);
-        document.getElementById('td-number-of-no-sidewalks').innerHTML =
-            mapData.sortedLabels['NoSidewalk'].map(l => l.length).reduce((acc, len) => acc + len, 0);
-        document.getElementById('td-number-of-crosswalks').innerHTML =
-            mapData.sortedLabels['Crosswalk'].map(l => l.length).reduce((acc, len) => acc + len, 0);
-        document.getElementById('td-number-of-signals').innerHTML =
-            mapData.sortedLabels['Signal'].map(l => l.length).reduce((acc, len) => acc + len, 0);
-    } else {
-        // Set up the initial set of filters.
-        filterLabelLayers('incorrect', map, mapData, true);
+    // Create one source + layer per label type.
+    for (const labelType of Object.keys(mapData.sortedLabels)) {
+        mapData.layerNames[labelType] = createLayer(mapData.sortedLabels[labelType], labelType);
     }
 
-    // Set up the label hover and popup functionality.
+    // Apply the initial set of filters (incorrect is unchecked by default). Use highQualityFilter param if provided,
+    // defaulting to false so labels aren't hidden before MapSidebarFilter takes over with the correct setting.
+    filterLabelLayers('incorrect', map, mapData, params.highQualityFilter || false);
+
+    // Set up label hover and popup functionality.
     if (params.popupLabelViewer) {
-        map.on('click', Object.values(mapData.layerNames).flat(), async (event) => {
+        const allLayerNames = Object.values(mapData.layerNames);
+
+        map.on('click', allLayerNames, async (event) => {
             await params.popupLabelViewer.showLabel(event.features[0].properties.label_id, params.uiSource);
         });
 
         let hoveredLab = null;
-        map.on('mousemove', Object.values(mapData.layerNames).flat(), (event) => {
-            let currLab = event.features[0];
+        map.on('mousemove', allLayerNames, (event) => {
+            const currLab = event.features[0];
             if (hoveredLab && hoveredLab.properties.label_id !== currLab.properties.label_id) {
                 map.setFeatureState({ source: hoveredLab.layer.id, id: hoveredLab.properties.label_id }, { hover: false });
                 map.setFeatureState({ source: currLab.layer.id, id: currLab.properties.label_id }, { hover: true });
@@ -78,18 +54,26 @@ function AddLabelsToMap(map, labelData, params) {
                 document.querySelector('.mapboxgl-canvas').style.cursor = 'pointer';
             }
         });
-        map.on('mouseleave', Object.values(mapData.layerNames).flat(), (event) => {
-            map.setFeatureState({ source: hoveredLab.layer.id, id: hoveredLab.properties.label_id }, { hover: false });
-            hoveredLab = null;
-            document.querySelector('.mapboxgl-canvas').style.cursor = '';
+        map.on('mouseleave', allLayerNames, () => {
+            if (hoveredLab) {
+                map.setFeatureState({ source: hoveredLab.layer.id, id: hoveredLab.properties.label_id }, { hover: false });
+                hoveredLab = null;
+                document.querySelector('.mapboxgl-canvas').style.cursor = '';
+            }
         });
     }
 
-    function createLayer(data, labelType, severity) {
-        let layerName = `labels-${labelType}-${severity}`;
+    /**
+     * Creates a single Mapbox source and circle layer for the given label type.
+     * @param {Array} features GeoJSON features for this label type.
+     * @param {string} labelType The label type key.
+     * @returns {string} The layer name.
+     */
+    function createLayer(features, labelType) {
+        const layerName = `labels-${labelType}`;
         map.addSource(layerName, {
             type: 'geojson',
-            data: data,
+            data: { type: 'FeatureCollection', features: features },
             promoteId: 'label_id'
         });
         map.addLayer({
@@ -98,14 +82,14 @@ function AddLabelsToMap(map, labelData, params) {
             source: layerName,
             layout: { visibility: 'visible' },
             paint: {
-                'circle-radius': ['case', ['boolean', ['feature-state', 'hover'], false], 15, 5 ],
+                'circle-radius': ['case', ['boolean', ['feature-state', 'hover'], false], 15, 5],
                 'circle-opacity': 0.5,
                 'circle-stroke-opacity': 0.5,
                 'circle-stroke-width': 1,
                 'circle-color': [
                     'case',
                     ['all',
-                        ['==', params.differentiateExpiredLabels ? params.differentiateExpiredLabels : false, true],
+                        ['==', params.differentiateExpiredLabels || false, true],
                         ['==', ['get', 'expired'], true]
                     ],
                     'lightgrey',
@@ -114,8 +98,8 @@ function AddLabelsToMap(map, labelData, params) {
                 'circle-stroke-color': [
                     'case',
                     ['all',
-                        ['==', params.differentiateExpiredLabels ? params.differentiateExpiredLabels : false, true],
-                        ['==', ['get', 'expired'], true],
+                        ['==', params.differentiateExpiredLabels || false, true],
+                        ['==', ['get', 'expired'], true]
                     ],
                     colorMapping[labelType].fillStyle,
                     colorMapping[labelType].strokeStyle
@@ -125,26 +109,20 @@ function AddLabelsToMap(map, labelData, params) {
         return layerName;
     }
 
-    // Check if all the label layers have been added to the map.
+    /**
+     * Checks if all label layers have been added to the map.
+     * @returns {boolean} True if all layers are loaded.
+     */
     function allLabelLayersLoaded() {
-        let allLoaded = true;
-        Object.keys(mapData.sortedLabels).forEach(function (key) {
-            for (let i = 0; i < mapData.sortedLabels[key].length; i++) {
-                if (map.getLayer(mapData.layerNames[key][i]) === undefined) {
-                    allLoaded = false;
-                    break;
-                }
-            }
-        });
-        return allLoaded;
+        return Object.values(mapData.layerNames).every(name => map.getLayer(name) !== undefined);
     }
 
-    // Return promise that is resolved once all the layers have been added to the map.
-    return new Promise((resolve, reject) => {
+    // Return promise that resolves once all layers have been added.
+    return new Promise((resolve) => {
         if (allLabelLayersLoaded()) {
             resolve(mapData);
         } else {
-            map.on('sourcedataloading', function(e) {
+            map.on('sourcedataloading', function() {
                 if (allLabelLayersLoaded()) {
                     resolve(mapData);
                 }

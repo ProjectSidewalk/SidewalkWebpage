@@ -1,4 +1,4 @@
-async function Progress (_, $, mapboxApiKey, viewerType, viewerAccessToken, userId, admin, cityName, currentUsername) {
+async function Progress ($, mapboxApiKey, viewerType, viewerAccessToken, userId, admin, cityName, currentUsername) {
     var params = {
         mapName: 'user-dashboard-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
@@ -14,15 +14,15 @@ async function Progress (_, $, mapboxApiKey, viewerType, viewerAccessToken, user
         neighborhoodFillColor: '#5d6d6b',
         neighborhoodFillOpacity: 0.1,
         uiSource: admin ? 'AdminUserDashboard' : 'UserMap',
-        popupLabelViewer: await LabelPopup(admin, viewerType, viewerAccessToken, cityName, currentUsername),
-        includeLabelCounts: true
+        navigationControlPosition: 'top-right',
+        popupLabelViewer: await LabelPopup(admin, viewerType, viewerAccessToken, cityName, currentUsername)
     };
     var self = {}
     CreatePSMap($, params).then(m => {
         self.map = m[0];
-        self.mapData = m[3];
+        self.mapData = m[4];
         setRegionFocus(self.map);
-        addLegendListeners(self.map, self.mapData);
+        new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: false });
     });
     window.map = self;
 
@@ -82,16 +82,6 @@ async function Progress (_, $, mapboxApiKey, viewerType, viewerAccessToken, user
             error: function (result) {
                 console.error(result);
             }
-        });
-    }
-
-    function addLegendListeners(map, mapData) {
-        // Add listeners on the checkboxes.
-        $('#map-label-legend tr input[type="checkbox"]').each(function () {
-            $(this).on('click', () => {
-                filterLabelLayers(this, map, mapData, false);
-            });
-            this.disabled = false; // Enable the checkbox now that the map has loaded.
         });
     }
 
