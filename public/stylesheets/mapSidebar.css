@@ -168,6 +168,7 @@ body.map-sidebar-resizing {
     font-family: 'Raleway', sans-serif;
     font-size: 11px;
     font-weight: 600;
+    color: var(--color-asphalt-400);
     white-space: nowrap;
 }
 
