@@ -32,6 +32,7 @@ class MapSidebarFilter {
         this.#initTagToggles();
         this.#initTagPills();
         this.#initSidebarOpenClose();
+        this.#initResizeHandle();
         this.#enableAllControls();
     }
 
@@ -211,17 +212,59 @@ class MapSidebarFilter {
     #initSidebarOpenClose() {
         const closeBtn = document.getElementById('map-sidebar-close');
         const openBtn = document.getElementById('map-sidebar-open');
-        const sidebarWidth = this.#sidebar.offsetWidth;
+        const handle = document.getElementById('map-sidebar-resize-handle');
 
         closeBtn.addEventListener('click', () => {
             this.#sidebar.classList.add('map-sidebar--hidden');
+            handle.style.display = 'none';
             openBtn.style.display = 'block';
             this.#map.easeTo({ padding: { left: 0, top: 0, right: 0, bottom: 0 } });
         });
         openBtn.addEventListener('click', () => {
+            const width = this.#sidebar.offsetWidth;
             this.#sidebar.classList.remove('map-sidebar--hidden');
+            handle.style.display = '';
             openBtn.style.display = 'none';
-            this.#map.easeTo({ padding: { left: sidebarWidth, top: 0, right: 0, bottom: 0 } });
+            this.#map.easeTo({ padding: { left: width, top: 0, right: 0, bottom: 0 } });
+        });
+    }
+
+    /** Wires up the drag-to-resize handle on the sidebar's right edge, keeping map centered as you drag. */
+    #initResizeHandle() {
+        const handle = document.getElementById('map-sidebar-resize-handle');
+        if (!handle) return;
+
+        const MIN_WIDTH = 280;
+        const MAX_WIDTH = 600;
+
+        // Sync the handle's starting position with the sidebar's rendered width.
+        handle.style.left = `${this.#sidebar.offsetWidth}px`;
+
+        const onPointerMove = (e) => {
+            const rect = this.#sidebar.getBoundingClientRect();
+            const newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, e.clientX - rect.left));
+            this.#sidebar.style.width = `${newWidth}px`;
+            handle.style.left = `${newWidth}px`;
+            this.#map.setPadding({ left: newWidth, top: 0, right: 0, bottom: 0 });
+        };
+
+        const onPointerUp = (e) => {
+            handle.releasePointerCapture?.(e.pointerId);
+            handle.classList.remove('map-sidebar__resize-handle--dragging');
+            document.body.classList.remove('map-sidebar-resizing');
+            handle.removeEventListener('pointermove', onPointerMove);
+            handle.removeEventListener('pointerup', onPointerUp);
+            handle.removeEventListener('pointercancel', onPointerUp);
+        };
+
+        handle.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            handle.setPointerCapture(e.pointerId);
+            handle.classList.add('map-sidebar__resize-handle--dragging');
+            document.body.classList.add('map-sidebar-resizing');
+            handle.addEventListener('pointermove', onPointerMove);
+            handle.addEventListener('pointerup', onPointerUp);
+            handle.addEventListener('pointercancel', onPointerUp);
         });
     }
 

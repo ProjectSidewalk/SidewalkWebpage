@@ -45,6 +45,31 @@
     opacity: 0.8;
 }
 
+/* Drag handle for resizing the sidebar width. Sits on the right edge of the sidebar. */
+.map-sidebar__resize-handle {
+    position: absolute;
+    top: 20px; /* Matches .map-sidebar margin-top so the handle aligns with the visible edge. */
+    bottom: 0;
+    left: 315px; /* Matches .map-sidebar default width; updated by JS on drag. */
+    width: 6px;
+    cursor: col-resize;
+    z-index: 11;
+    background: transparent;
+    transition: background 0.15s ease;
+    touch-action: none;
+}
+
+.map-sidebar__resize-handle:hover,
+.map-sidebar__resize-handle--dragging {
+    background: rgba(0, 0, 0, 0.15);
+}
+
+/* Applied to <body> while dragging to suppress text selection and force the resize cursor. */
+body.map-sidebar-resizing {
+    user-select: none;
+    cursor: col-resize;
+}
+
 /* Floating button to reopen the sidebar */
 .map-sidebar-open-btn {
     position: absolute;
