@@ -56,18 +56,22 @@ function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
         ]
     ];
 
-    // Combine into a single filter.
-    const filter = ['all', sevFilter, valFilter];
-
-    // Conditionally add the high-quality user filter (used on LabelMap and Admin).
+    // Build the base filter combining severity, validation, and optionally high-quality user filters.
+    const baseFilter = ['all', sevFilter, valFilter];
     if (highQualityFilter) {
-        filter.push(['any', mapData.lowQualityUsers, ['==', ['get', 'high_quality_user'], true]]);
+        baseFilter.push(['any', mapData.lowQualityUsers, ['==', ['get', 'high_quality_user'], true]]);
     }
 
-    // Apply to every label layer.
-    for (const layerName of Object.values(mapData.layerNames)) {
-        if (map.getLayer(layerName)) {
-            map.setFilter(layerName, filter);
+    // Apply per-layer, appending a tag sub-filter when that label type has active tags.
+    for (const [labelType, layerName] of Object.entries(mapData.layerNames)) {
+        if (!map.getLayer(layerName)) continue;
+
+        const selectedTags = mapData.selectedTags[labelType];
+        if (selectedTags && selectedTags.size > 0) {
+            const tagFilter = ['any', ...Array.from(selectedTags).map(t => ['in', t, ['get', 'tags']])];
+            map.setFilter(layerName, [...baseFilter, tagFilter]);
+        } else {
+            map.setFilter(layerName, baseFilter);
         }
     }
 }
@@ -110,6 +114,9 @@ function CreateMapLayerTracker() {
     // Severity filter state (all enabled by default).
     mapData.severities = { 0: true, 1: true, 2: true, 3: true };
 
+    // Tag filter state: maps label type -> Set of active tag strings. Empty set = no tag filter.
+    mapData.selectedTags = {};
+
     // One flat array of features and one layer name string per label type.
     mapData.sortedLabels = {};
     mapData.layerNames = {};
@@ -119,6 +126,7 @@ function CreateMapLayerTracker() {
     for (const labelType of labelTypes) {
         mapData.sortedLabels[labelType] = [];
         mapData.layerNames[labelType] = '';
+        mapData.selectedTags[labelType] = new Set();
     }
     return mapData;
 }

@@ -1,9 +1,10 @@
+@import models.label.Tag
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
 @import models.pano.PanoSource
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, regionIds: Seq[Int], routeIds: Seq[Int],
-    aiValidationOptions: Seq[String]
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, tags: Seq[Tag] = Seq.empty, regionIds: Seq[Int],
+    routeIds: Seq[Int], aiValidationOptions: Seq[String]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -16,7 +17,7 @@
     <div id="labelmap-choropleth-container" class="container choropleth-container">
         <div id="labelmap-choropleth-holder" class="choropleth-holder">
             <div id="labelmap-choropleth" class="choropleth"></div>
-            @common.mapSidebar()
+            @common.mapSidebar(tags = tags)
         </div>
     </div>
 
@@ -24,6 +25,7 @@
 
     <link href='@assets.path("stylesheets/labelDetail.css")' rel="stylesheet"/>
     <link href='@assets.path("stylesheets/mapSidebar.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/tag-pills.css")' rel="stylesheet"/>
 
     <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>

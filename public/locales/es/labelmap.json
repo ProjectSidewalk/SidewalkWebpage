@@ -9,6 +9,8 @@
     "not-applicable-abbr": "N/A",
     "deselect-all": "Deseleccionar todo",
     "select-all": "Seleccionar todo",
+    "show-tags": "Mostrar etiquetas",
+    "hide-tags": "Ocultar etiquetas",
     "ai-validation": "Validación de IA",
     "ai-val-included": "$t(common:{{aiVal}}) (incluido en el recuento anterior)",
     "add-comment": "Agrega un comentario aquí...",

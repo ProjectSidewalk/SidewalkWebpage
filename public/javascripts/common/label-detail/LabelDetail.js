@@ -329,7 +329,7 @@ async function LabelDetail(root, opts) {
         if (meta.tags && meta.tags.length) {
             for (const tag of meta.tags) {
                 const pill = document.createElement('span');
-                pill.className = 'label-detail__tag';
+                pill.className = 'tag-pill';
                 pill.textContent = i18next.t(`common:tag.${tag.replace(/:/g, '-')}`);
                 els.tags.appendChild(pill);
             }

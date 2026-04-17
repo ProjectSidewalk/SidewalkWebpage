@@ -12,7 +12,7 @@
     background: #fefefe;
     box-shadow: 2px 0 6px rgba(0, 0, 0, 0.12);
     z-index: 10;
-    overflow-y: auto;
+    overflow-y: scroll;
     padding: 24px 28px;
     font-family: 'Raleway', sans-serif;
     transition: transform 0.2s ease;
@@ -164,6 +164,17 @@
     gap: 9px;
 }
 
+.map-sidebar__item--expandable {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.map-sidebar__item-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
 .map-sidebar__item input[type="checkbox"] {
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -245,4 +256,48 @@
 
 .map-sidebar__item .map-sidebar__street-icon--unaudited path {
     stroke: #b3b3b3;
+}
+
+/* ---- Tag expand/collapse toggle ---- */
+
+.map-sidebar__tag-toggle {
+    margin-left: auto;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.map-sidebar__tag-toggle img {
+    width: 24px;
+    height: 24px;
+}
+
+.map-sidebar__tag-toggle:hover {
+    opacity: 0.7;
+}
+
+/* ---- Tag pills container (collapsible) ---- */
+
+.map-sidebar__tag-pills {
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 0 8px 21px;
+}
+
+.map-sidebar__tag-pills[hidden] {
+    display: none;
+}
+
+.map-sidebar__tag-pills:not([hidden]) {
+    display: flex;
+}
+
+/* Gray checkbox when a label type is only partially filtered by tags. */
+.map-sidebar__item input[type="checkbox"].checkbox--partial {
+    background: #888;
+    border-color: #888;
 }

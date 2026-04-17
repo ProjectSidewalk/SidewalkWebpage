@@ -286,25 +286,11 @@ dialog.label-detail[open]::backdrop {
     white-space: nowrap;
 }
 
-/* Tag pills */
+/* Tag pills — base styles are in tag-pills.css (.tag-pill class). */
 .label-detail__tags {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-}
-
-.label-detail__tag {
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 10px;
-    border: 1px solid #666;
-    border-radius: 16px;
-    font-family: "Raleway", sans-serif;
-    font-weight: 600;
-    font-size: 10px;
-    color: #000;
-    background: #fff;
-    white-space: nowrap;
 }
 
 /* ─── Comment row ─────────────────────────────────────────────────────── */
@@ -516,7 +502,7 @@ dialog.label-detail[open]::backdrop {
 }
 
 /* Increasing tag font size for Gallery since we have more space */
-.label-detail--inline .label-detail__tag {
+.label-detail--inline .tag-pill {
     font-size: 12px;
 }
 

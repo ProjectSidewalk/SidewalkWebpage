@@ -65,9 +65,12 @@ class AdminController @Inject() (
    * Loads the admin page.
    */
   def index = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      tags       <- labelService.getTagsForCurrentCity
+    } yield {
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin")
-      Ok(views.html.admin.index(commonData, "Sidewalk - Admin", request.identity))
+      Ok(views.html.admin.index(commonData, "Sidewalk - Admin", request.identity, tags))
     }
   }
 
@@ -82,10 +85,11 @@ class AdminController @Inject() (
           userProfileData: UserProfileData <- userService.getUserProfileData(user.userId, metricSystem)
           adminData                        <- adminService.getAdminUserProfileData(user.userId)
           commonData                       <- configService.getCommonPageData(request2Messages.lang)
+          tags                             <- labelService.getTagsForCurrentCity
         } yield {
           cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_AdminUserDashboard_User=$username")
           Ok(
-            views.html.userProfile(commonData, "Sidewalk - Dashboard", request.identity, user, userProfileData,
+            views.html.userProfile(commonData, "Sidewalk - Dashboard", request.identity, user, tags, userProfileData,
               Some(adminData))
           )
         }
@@ -200,7 +204,8 @@ class AdminController @Inject() (
                 "ai_validation"     -> label.aiValidation.map(LabelValidationTable.validationOptions.get),
                 "expired"           -> label.expired,
                 "high_quality_user" -> label.highQualityUser,
-                "ai_generated"      -> label.aiGenerated
+                "ai_generated"      -> label.aiGenerated,
+                "tags"              -> label.tags
               )
             )
           }.seq

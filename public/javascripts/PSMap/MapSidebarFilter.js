@@ -29,6 +29,8 @@ class MapSidebarFilter {
         this.#initValidationCheckboxes();
         this.#initStreetCheckboxes();
         this.#initDeselectAllButtons();
+        this.#initTagToggles();
+        this.#initTagPills();
         this.#initSidebarOpenClose();
         this.#enableAllControls();
     }
@@ -57,7 +59,12 @@ class MapSidebarFilter {
         this.#sidebar.querySelectorAll('input[data-filter-type="label-type"]').forEach(cb => {
             cb.addEventListener('click', () => {
                 const labelType = cb.id.replace('-checkbox', '');
+                // Unchecking a label type clears its tag filters.
+                if (!cb.checked) this.#clearTagsForLabelType(labelType);
+                cb.classList.remove('checkbox--partial');
                 toggleLabelLayer(labelType, cb.checked, this.#map, this.#mapData);
+                // Reapply filters so stale tag constraints are cleared from the Mapbox layer.
+                filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
             });
         });
     }
@@ -95,9 +102,12 @@ class MapSidebarFilter {
                     // Batch visibility changes for all label type layers.
                     checkboxes.forEach(cb => {
                         cb.checked = newState;
+                        cb.classList.remove('checkbox--partial');
                         const labelType = cb.id.replace('-checkbox', '');
                         toggleLabelLayer(labelType, newState, this.#map, this.#mapData);
                     });
+                    // Also clear all tag selections when deselecting all label types.
+                    if (!newState) this.#clearAllTagSelections();
                 } else if (section === 'label-validations') {
                     // Batch mapData updates, then apply filter once.
                     checkboxes.forEach(cb => {
@@ -113,6 +123,87 @@ class MapSidebarFilter {
                 // Update button text.
                 btn.textContent = newState ? i18next.t('labelmap:deselect-all') : i18next.t('labelmap:select-all');
             });
+        });
+    }
+
+    /** Binds click handlers to the tag expand/collapse chevron buttons. */
+    #initTagToggles() {
+        this.#sidebar.querySelectorAll('.map-sidebar__tag-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const expanded = btn.getAttribute('aria-expanded') === 'true';
+                const pillsContainer = btn.closest('.map-sidebar__item').querySelector('.map-sidebar__tag-pills');
+                if (!pillsContainer) return;
+
+                const nowExpanded = !expanded;
+                btn.setAttribute('aria-expanded', String(nowExpanded));
+                const img = btn.querySelector('img');
+                if (img) img.src = nowExpanded ? img.dataset.upSrc : img.dataset.downSrc;
+                pillsContainer.hidden = !nowExpanded;
+            });
+        });
+    }
+
+    /** Binds click handlers to tag pills to toggle them and update map filters. */
+    #initTagPills() {
+        this.#sidebar.querySelectorAll('.tag-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                const tag = pill.dataset.tag;
+                const labelType = pill.dataset.labelType;
+                const isActive = pill.classList.toggle('tag-pill--active');
+
+                if (isActive) {
+                    this.#mapData.selectedTags[labelType].add(tag);
+                } else {
+                    this.#mapData.selectedTags[labelType].delete(tag);
+                }
+
+                // If a tag is selected on an unchecked label type, check and show it.
+                const cb = this.#sidebar.querySelector(`#${labelType}-checkbox`);
+                if (isActive && !cb.checked) {
+                    cb.checked = true;
+                    toggleLabelLayer(labelType, true, this.#map, this.#mapData);
+                }
+
+                // Update the checkbox appearance: gray when partially filtered by tags.
+                this.#updateCheckboxPartialState(labelType);
+
+                filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
+            });
+        });
+    }
+
+    /**
+     * Updates the checkbox to show a partial (gray) state when some tags are selected, or full (black) otherwise.
+     * @param {string} labelType The label type key.
+     */
+    #updateCheckboxPartialState(labelType) {
+        const cb = this.#sidebar.querySelector(`#${labelType}-checkbox`);
+        const hasActiveTags = this.#mapData.selectedTags[labelType]?.size > 0;
+        cb.classList.toggle('checkbox--partial', hasActiveTags);
+    }
+
+    /**
+     * Clears tag selections for a specific label type.
+     * @param {string} labelType The label type key.
+     */
+    #clearTagsForLabelType(labelType) {
+        this.#mapData.selectedTags[labelType]?.clear();
+        this.#sidebar.querySelectorAll(`.tag-pill[data-label-type="${labelType}"]`).forEach(pill => {
+            pill.classList.remove('tag-pill--active');
+        });
+        this.#updateCheckboxPartialState(labelType);
+    }
+
+    /** Clears all tag selections and removes the active class from all pills. */
+    #clearAllTagSelections() {
+        for (const labelType of Object.keys(this.#mapData.selectedTags)) {
+            this.#mapData.selectedTags[labelType].clear();
+        }
+        this.#sidebar.querySelectorAll('.tag-pill--active').forEach(pill => {
+            pill.classList.remove('tag-pill--active');
+        });
+        this.#sidebar.querySelectorAll('.checkbox--partial').forEach(cb => {
+            cb.classList.remove('checkbox--partial');
         });
     }
 

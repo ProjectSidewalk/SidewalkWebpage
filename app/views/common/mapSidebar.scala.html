@@ -1,4 +1,36 @@
-@(showStreets: Boolean = true)(implicit messages: Messages, assets: AssetsFinder)
+@import models.label.{LabelTypeEnum, Tag}
+@(showStreets: Boolean = true, tags: Seq[Tag] = Seq.empty)(implicit messages: Messages, assets: AssetsFinder)
+
+@tagsByLabelType = @{tags.groupBy(t => LabelTypeEnum.labelTypeIdToLabelType.getOrElse(t.labelTypeId, ""))}
+
+@* Helper to render a label type row with optional tag expansion. *@
+@labelTypeItem(labelType: String, i18nKey: String, msgKey: String, legendId: String) = {
+    <li class="map-sidebar__item map-sidebar__item--expandable">
+        <div class="map-sidebar__item-row">
+            <input type="checkbox" id="@(labelType)-checkbox" checked data-filter-type="label-type" disabled>
+            <span id="@legendId" class="map-legend-circle-icon">
+                <svg width="14" height="14"><circle cx="7" cy="7" r="6"/></svg>
+            </span>
+            <label for="@(labelType)-checkbox" data-i18n="@i18nKey">@Messages(msgKey)</label>
+            @if(tagsByLabelType.getOrElse(labelType, Seq.empty).nonEmpty) {
+                <button class="map-sidebar__tag-toggle" aria-expanded="false"
+                        aria-label="Show tags" data-i18n-aria-label="labelmap:show-tags">
+                    <img src='@assets.path("images/icons/keyboard_arrow_down.svg")' alt=""
+                         data-down-src='@assets.path("images/icons/keyboard_arrow_down.svg")'
+                         data-up-src='@assets.path("images/icons/keyboard_arrow_up.svg")'>
+                </button>
+            }
+        </div>
+        @if(tagsByLabelType.getOrElse(labelType, Seq.empty).nonEmpty) {
+            <div class="map-sidebar__tag-pills" hidden>
+                @for(tag <- tagsByLabelType(labelType)) {
+                    <button class="tag-pill tag-pill--interactive" data-tag="@tag.tag" data-label-type="@labelType"
+                            data-i18n="common:tag.@{tag.tag.replace(":", "-")}">@tag.tag</button>
+                }
+            </div>
+        }
+    </li>
+}
 
 <div id="map-sidebar" class="map-sidebar" role="complementary" aria-label="Legend"
     data-i18n-aria-label="labelmap:legend" style="visibility: hidden;">
@@ -52,69 +84,15 @@
                     data-i18n="labelmap:deselect-all">Deselect all</button>
         </div>
         <ul class="map-sidebar__list">
-            <li class="map-sidebar__item">
-                <input type="checkbox" id="CurbRamp-checkbox" checked data-filter-type="label-type" disabled>
-                <span id="map-legend-curb-ramp" class="map-legend-circle-icon">
-                    <svg width="14" height="14"><circle cx="7" cy="7" r="6"/></svg>
-                </span>
-                <label for="CurbRamp-checkbox" data-i18n="common:curb-ramp">@Messages("curb.ramp")</label>
-            </li>
-            <li class="map-sidebar__item">
-                <input type="checkbox" id="NoCurbRamp-checkbox" checked data-filter-type="label-type" disabled>
-                <span id="map-legend-no-curb-ramp" class="map-legend-circle-icon">
-                    <svg width="14" height="14"><circle cx="7" cy="7" r="6"/></svg>
-                </span>
-                <label for="NoCurbRamp-checkbox" data-i18n="common:no-curb-ramp">@Messages("missing.ramp")</label>
-            </li>
-            <li class="map-sidebar__item">
-                <input type="checkbox" id="Obstacle-checkbox" checked data-filter-type="label-type" disabled>
-                <span id="map-legend-obstacle" class="map-legend-circle-icon">
-                    <svg width="14" height="14"><circle cx="7" cy="7" r="6"/></svg>
-                </span>
-                <label for="Obstacle-checkbox" data-i18n="common:obstacle">@Messages("obstacle")</label>
-            </li>
-            <li class="map-sidebar__item">
-                <input type="checkbox" id="SurfaceProblem-checkbox" checked data-filter-type="label-type" disabled>
-                <span id="map-legend-surface-problem" class="map-legend-circle-icon">
-                    <svg width="14" height="14"><circle cx="7" cy="7" r="6"/></svg>
-                </span>
-                <label for="SurfaceProblem-checkbox" data-i18n="common:surface-problem">@Messages("surface.problem")</label>
-            </li>
-            <li class="map-sidebar__item">
-                <input type="checkbox" id="NoSidewalk-checkbox" checked data-filter-type="label-type" disabled>
-                <span id="map-legend-no-sidewalk" class="map-legend-circle-icon">
-                    <svg width="14" height="14"><circle cx="7" cy="7" r="6"/></svg>
-                </span>
-                <label for="NoSidewalk-checkbox" data-i18n="common:no-sidewalk">@Messages("no.sidewalk")</label>
-            </li>
-            <li class="map-sidebar__item">
-                <input type="checkbox" id="Crosswalk-checkbox" checked data-filter-type="label-type" disabled>
-                <span id="map-legend-crosswalk" class="map-legend-circle-icon">
-                    <svg width="14" height="14"><circle cx="7" cy="7" r="6"/></svg>
-                </span>
-                <label for="Crosswalk-checkbox" data-i18n="common:crosswalk">@Messages("crosswalk")</label>
-            </li>
-            <li class="map-sidebar__item">
-                <input type="checkbox" id="Other-checkbox" checked data-filter-type="label-type" disabled>
-                <span id="map-legend-other" class="map-legend-circle-icon">
-                    <svg width="14" height="14"><circle cx="7" cy="7" r="6"/></svg>
-                </span>
-                <label for="Other-checkbox" data-i18n="common:other">@Messages("other")</label>
-            </li>
-            <li class="map-sidebar__item">
-                <input type="checkbox" id="Signal-checkbox" checked data-filter-type="label-type" disabled>
-                <span id="map-legend-signal" class="map-legend-circle-icon">
-                    <svg width="14" height="14"><circle cx="7" cy="7" r="6"/></svg>
-                </span>
-                <label for="Signal-checkbox" data-i18n="common:signal">@Messages("signal")</label>
-            </li>
-            <li class="map-sidebar__item">
-                <input type="checkbox" id="Occlusion-checkbox" checked data-filter-type="label-type" disabled>
-                <span id="map-legend-occlusion" class="map-legend-circle-icon">
-                    <svg width="14" height="14"><circle cx="7" cy="7" r="6"/></svg>
-                </span>
-                <label for="Occlusion-checkbox" data-i18n="common:occlusion">@Messages("occlusion")</label>
-            </li>
+            @labelTypeItem("CurbRamp", "common:curb-ramp", "curb.ramp", "map-legend-curb-ramp")
+            @labelTypeItem("NoCurbRamp", "common:no-curb-ramp", "missing.ramp", "map-legend-no-curb-ramp")
+            @labelTypeItem("Obstacle", "common:obstacle", "obstacle", "map-legend-obstacle")
+            @labelTypeItem("SurfaceProblem", "common:surface-problem", "surface.problem", "map-legend-surface-problem")
+            @labelTypeItem("NoSidewalk", "common:no-sidewalk", "no.sidewalk", "map-legend-no-sidewalk")
+            @labelTypeItem("Crosswalk", "common:crosswalk", "crosswalk", "map-legend-crosswalk")
+            @labelTypeItem("Other", "common:other", "other", "map-legend-other")
+            @labelTypeItem("Signal", "common:signal", "signal", "map-legend-signal")
+            @labelTypeItem("Occlusion", "common:occlusion", "occlusion", "map-legend-occlusion")
         </ul>
     </section>
 

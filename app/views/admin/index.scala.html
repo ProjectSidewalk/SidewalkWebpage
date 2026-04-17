@@ -1,8 +1,9 @@
+@import models.label.Tag
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
 @import models.pano.PanoSource
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, tags: Seq[Tag] = Seq.empty
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -456,7 +457,7 @@
                         <div class="col-lg-12">
                             <div id="admin-labelmap-choropleth-holder" class="choropleth-holder">
                                 <div id="admin-labelmap-choropleth" class="choropleth"></div>
-                                @common.mapSidebar()
+                                @common.mapSidebar(tags = tags)
                             </div>
                         </div>
                     </div>
@@ -900,6 +901,7 @@
     <link href='@assets.path("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
     <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
     <link href='@assets.path("stylesheets/mapSidebar.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/tag-pills.css")' rel="stylesheet"/>
     <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
 
     <script>

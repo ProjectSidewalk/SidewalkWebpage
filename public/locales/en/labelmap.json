@@ -9,6 +9,8 @@
     "not-applicable-abbr": "N/A",
     "deselect-all": "Deselect all",
     "select-all": "Select all",
+    "show-tags": "Show tags",
+    "hide-tags": "Hide tags",
     "ai-validation": "AI Validation",
     "ai-val-included": "$t(common:{{aiVal}}) (included in count above)",
     "add-comment": "Add comment here...",

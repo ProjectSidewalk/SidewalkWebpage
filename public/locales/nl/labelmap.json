@@ -9,6 +9,8 @@
     "not-applicable-abbr": "NVT",
     "deselect-all": "Alles deselecteren",
     "select-all": "Alles selecteren",
+    "show-tags": "Tags weergeven",
+    "hide-tags": "Tags verbergen",
     "ai-validation": "AI-validatie",
     "ai-val-included": "$t(common:{{aiVal}}) (inbegrepen in bovenstaande telling)",
     "add-comment": "Voeg opmerking hier toe...",

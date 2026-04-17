@@ -9,6 +9,8 @@
     "not-applicable-abbr": "不適用",
     "deselect-all": "取消全選",
     "select-all": "全選",
+    "show-tags": "顯示標籤",
+    "hide-tags": "隱藏標籤",
     "ai-validation": "人工智慧驗證",
     "ai-val-included": "$t(common:{{aiVal}})（包含在上面的計數中）",
     "add-comment": "在此新增評論...",
