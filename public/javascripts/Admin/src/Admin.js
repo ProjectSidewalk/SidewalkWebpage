@@ -1,4 +1,4 @@
-async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken, cityName, currentUsername) {
+async function Admin($, mapboxApiKey, viewerType, viewerAccessToken, cityName, currentUsername) {
     const self = {};
     const $loadingGif = $('#page-loading');
     const legendTable = document.getElementById('legend-table');

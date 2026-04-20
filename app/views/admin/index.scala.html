@@ -1011,7 +1011,7 @@
             const imagerySrc = "@commonData.imagerySource.toString";
             const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
             const accessToken = "@commonData.imageryAccessToken";
-            window.admin = await Admin(_, $, '@commonData.mapboxApiKey', viewerType, accessToken, "@currentCity.cityNameShort", "@user.username");
+            window.admin = await Admin($, '@commonData.mapboxApiKey', viewerType, accessToken, "@currentCity.cityNameShort", "@user.username");
             // Initialize the sliders in the legend. We add the "change" functionality after the map loads.
             $("*[id*='slider']").each(function() {
                 $(this).slider({ range: true, min : 0, max : 3, step: 1, values: [0,3], disabled: true });
