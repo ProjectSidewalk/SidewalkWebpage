@@ -104,12 +104,14 @@ class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "au
 @ImplementedBy(classOf[AuditTaskTable])
 trait AuditTaskTableRepository {}
 
-class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class AuditTaskTable @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    streetEdgeTable: StreetEdgeTable
+)(implicit ec: ExecutionContext)
     extends AuditTaskTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val auditTasks            = TableQuery[AuditTaskTableDef]
-  val streetEdges           = TableQuery[StreetEdgeTableDef]
   val regions               = TableQuery[RegionTableDef]
   val streetEdgeRegionTable = TableQuery[StreetEdgeRegionTableDef]
   val configTable           = TableQuery[ConfigTableDef]
@@ -121,13 +123,13 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
   val userRoutes            = TableQuery[UserRouteTableDef]
   val auditTaskUserRoutes   = TableQuery[AuditTaskUserRouteTableDef]
 
-  val activeTasks                 = auditTasks.filterNot(_.completed)
-  val completedTasks              = auditTasks.filter(_.completed)
-  val streetEdgesWithoutDeleted   = streetEdges.filterNot(_.deleted)
+  val activeTasks    = auditTasks.filterNot(_.completed)
+  val completedTasks = auditTasks.filter(_.completed)
+
   val regionsWithoutDeleted       = regions.filterNot(_.deleted)
   val nonDeletedStreetEdgeRegions = for {
     _ser <- streetEdgeRegionTable
-    _se  <- streetEdgesWithoutDeleted if _ser.streetEdgeId === _se.streetEdgeId
+    _se  <- streetEdgeTable.streets if _ser.streetEdgeId === _se.streetEdgeId
     _r   <- regionsWithoutDeleted if _ser.regionId === _r.regionId
   } yield _ser
 
@@ -138,7 +140,7 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
     val completionCnt = completedTasks.groupBy(_.streetEdgeId).map { case (_street, group) => (_street, group.length) }
 
     // Gets completion count of 0 for unaudited streets w/ a left join, then checks if completion count is > 0.
-    streetEdgesWithoutDeleted.joinLeft(completionCnt).on(_.streetEdgeId === _._1).map { case (_edge, _cnt) =>
+    streetEdgeTable.streetsWithTutorial.joinLeft(completionCnt).on(_.streetEdgeId === _._1).map { case (_edge, _cnt) =>
       (_edge.streetEdgeId, _cnt.map(_._2).ifNull(0.asColumnOf[Int]) > 0)
     }
   }
@@ -264,7 +266,7 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
     val _distinctCompleted = _filteredTasks.groupBy(_.streetEdgeId).map(_._1)
 
     // Left join list of streets with list of audited streets to record whether each street has been audited.
-    val streetsWithAuditedStatus = streetEdgesWithoutDeleted
+    val streetsWithAuditedStatus = streetEdgeTable.streets
       .join(streetEdgeRegionTable)
       .on(_.streetEdgeId === _.streetEdgeId)
       .filter(x => (x._2.regionId inSetBind regionIds) || regionIds.isEmpty)
@@ -292,7 +294,7 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
   def getAuditedStreetsWithTimestamps: DBIO[Seq[AuditedStreetWithTimestamp]] = {
     val auditedStreets = for {
       _at <- completedTasks
-      _se <- streetEdges if _at.streetEdgeId === _se.streetEdgeId
+      _se <- streetEdgeTable.streets if _at.streetEdgeId === _se.streetEdgeId
       _ut <- userStats if _at.userId === _ut.userId
       _ur <- userRoleTable if _ut.userId === _ur.userId
       _r  <- roleTable if _ur.roleId === _r.roleId
@@ -306,7 +308,7 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
    */
   def getAuditedStreets(userId: String): DBIO[Seq[StreetEdge]] = {
     completedTasks
-      .join(streetEdgesWithoutDeleted)
+      .join(streetEdgeTable.streets)
       .on(_.streetEdgeId === _.streetEdgeId)
       .filter(_._1.userId === userId)
       .map(_._2)
@@ -320,7 +322,7 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
   def getDistanceAudited(userId: String): DBIO[Double] = {
     completedTasks
       .filter(_.userId === userId)
-      .join(streetEdges)
+      .join(streetEdgeTable.streets)
       .on(_.streetEdgeId === _.streetEdgeId)
       .map(_._2.geom.transform(26918).lengthD)
       .sum
@@ -333,7 +335,7 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
    */
   def getUnauditedDistance(userId: String, regionId: Int): DBIO[Double] = {
     getStreetEdgeRegionsNotAuditedQuery(userId, regionId)
-      .join(streetEdgesWithoutDeleted)
+      .join(streetEdgeTable.streets)
       .on(_.streetEdgeId === _.streetEdgeId)
       .map(_._2.geom.transform(26918).lengthD)
       .sum
@@ -354,7 +356,7 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
 
     // Join with other queries to get completion count and priority for each of the street edges.
     val edges = for {
-      se   <- streetEdgesWithoutDeleted if se.streetEdgeId === streetEdgeId
+      se   <- streetEdgeTable.streets if se.streetEdgeId === streetEdgeId
       scau <- streetCompletedByAnyUser if se.streetEdgeId === scau._1
       sep  <- streetEdgePriorities if scau._1 === sep.streetEdgeId
     } yield (
@@ -382,7 +384,7 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
    */
   def getATutorialTask(missionId: Int): DBIO[NewTask] = {
     val timestamp: OffsetDateTime = OffsetDateTime.now
-    streetEdges
+    streetEdgeTable.streetsUnfiltered
       .join(configTable)
       .on(_.streetEdgeId === _.tutorialStreetEdgeID)
       .map { case (e, c) =>
@@ -415,7 +417,7 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
     // Get streets the user hasn't completed. Then join w/ other queries to get completion count and priority.
     val possibleTasks = for {
       ser <- getStreetEdgeRegionsNotAuditedQuery(userId, regionId)
-      se  <- streetEdgesWithoutDeleted if ser.streetEdgeId === se.streetEdgeId
+      se  <- streetEdgeTable.streets if ser.streetEdgeId === se.streetEdgeId
       sp  <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
       sc  <- streetCompletedByAnyUser if se.streetEdgeId === sc._1
     } yield (
@@ -452,7 +454,7 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
   def selectTaskFromTaskId(taskId: Int, routeStreetId: Option[Int] = None): DBIO[Option[NewTask]] = {
     val newTask = for {
       at <- activeTasks if at.auditTaskId === taskId
-      se <- streetEdges if at.streetEdgeId === se.streetEdgeId
+      se <- streetEdgeTable.streetsWithTutorial if at.streetEdgeId === se.streetEdgeId
       sp <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
       sc <- streetCompletedByAnyUser if sp.streetEdgeId === sc._1
     } yield (
@@ -480,7 +482,7 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
     val edgesInRegion = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
     val tasks         = for {
       (ser, ucs) <- edgesInRegion.joinLeft(userCompletedStreets).on(_.streetEdgeId === _._1)
-      se         <- streetEdges if ser.streetEdgeId === se.streetEdgeId
+      se         <- streetEdgeTable.streets if ser.streetEdgeId === se.streetEdgeId
       sep        <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
       scau       <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
     } yield (
@@ -514,7 +516,7 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
       .filter(_.userRouteId === userRouteId)
       .join(routeStreets)
       .on(_.routeId === _.routeId)
-      .join(streetEdgesWithoutDeleted)
+      .join(streetEdgeTable.streets)
       .on(_._2.streetEdgeId === _.streetEdgeId)
       .map { case ((_userRoute, _routeStreet), _streetEdge) => (_streetEdge, _routeStreet) }
 
@@ -532,7 +534,7 @@ class AuditTaskTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
 
     val tasks = for {
       ((_se1, _rs), ucs) <- edgesInRoute.joinLeft(userCompletedStreets).on(_._1.streetEdgeId === _._1)
-      _se2               <- streetEdges if _se1.streetEdgeId === _se2.streetEdgeId
+      _se2               <- streetEdgeTable.streets if _se1.streetEdgeId === _se2.streetEdgeId
       _sep               <- streetEdgePriorities if _se2.streetEdgeId === _sep.streetEdgeId
       _scau              <- streetCompletedByAnyUser if _sep.streetEdgeId === _scau._1
     } yield (
