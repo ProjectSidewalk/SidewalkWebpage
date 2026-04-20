@@ -39,7 +39,7 @@ class StreetEdgeRegionTable @Inject() (
   val regionsWithoutDeleted       = regionTable.filter(_.deleted === false)
   val nonDeletedStreetEdgeRegions = for {
     _ser <- streetEdgeRegionTable
-    _se  <- streetEdgeTable.streetEdgesWithoutDeleted if _ser.streetEdgeId === _se.streetEdgeId
+    _se  <- streetEdgeTable.streets if _ser.streetEdgeId === _se.streetEdgeId
     _r   <- regionsWithoutDeleted if _ser.regionId === _r.regionId
   } yield _ser
 

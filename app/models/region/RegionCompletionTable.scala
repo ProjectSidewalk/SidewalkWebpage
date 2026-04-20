@@ -1,8 +1,8 @@
 package models.region
 
 import com.google.inject.ImplementedBy
-import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTableDef, StreetEdgeTableDef}
-import models.utils.MyPostgresProfile
+import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTableDef, StreetEdgeTable}
+import models.utils.{ConfigTableDef, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -24,7 +24,10 @@ class RegionCompletionTableDef(tag: Tag) extends Table[RegionCompletion](tag, "r
 trait RegionCompletionTableRepository {}
 
 @Singleton
-class RegionCompletionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class RegionCompletionTable @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    streetEdgeTable: StreetEdgeTable
+)(implicit
     ec: ExecutionContext
 ) extends RegionCompletionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -32,10 +35,11 @@ class RegionCompletionTable @Inject() (protected val dbConfigProvider: DatabaseC
   val regionCompletions       = TableQuery[RegionCompletionTableDef]
   val regions                 = TableQuery[RegionTableDef]
   val streetEdgeRegion        = TableQuery[StreetEdgeRegionTableDef]
-  val streetEdgeTable         = TableQuery[StreetEdgeTableDef]
   val streetEdgePriorityTable = TableQuery[StreetEdgePriorityTableDef]
-  val streetsWithoutDeleted   = streetEdgeTable.filter(_.deleted === false)
+  val configTable             = TableQuery[ConfigTableDef]
   val regionsWithoutDeleted   = regions.filter(_.deleted === false)
+
+  val tutorialStreetId: Query[Rep[Int], Int, Seq] = configTable.map(_.tutorialStreetEdgeID)
 
   def count: DBIO[Int] = regionCompletions.length.result
 
@@ -54,10 +58,19 @@ class RegionCompletionTable @Inject() (protected val dbConfigProvider: DatabaseC
 
   /**
    * Increase the `audited_distance` column of the corresponding region by the length of the specified street edge.
+   * Short-circuits for the tutorial street — it's excluded from region completion totals entirely, so crediting its
+   * distance here would overshoot `total_distance`.
    */
   def updateAuditedDistance(streetEdgeId: Int): DBIO[Int] = {
+    tutorialStreetId.filter(_ === streetEdgeId).exists.result.flatMap { isTutorial =>
+      if (isTutorial) DBIO.successful(0)
+      else doUpdateAuditedDistance(streetEdgeId)
+    }
+  }
+
+  private def doUpdateAuditedDistance(streetEdgeId: Int): DBIO[Int] = {
     for {
-      distToAdd: Double <- streetsWithoutDeleted
+      distToAdd: Double <- streetEdgeTable.streets
         .filter(_.streetEdgeId === streetEdgeId)
         .map(_.geom.transform(26918).lengthD)
         .result
@@ -70,11 +83,16 @@ class RegionCompletionTable @Inject() (protected val dbConfigProvider: DatabaseC
         .result
         .head
 
-      // Check if neighborhood is fully audited.
+      // Check if neighborhood is fully audited. Exclude the tutorial street (permanent priority=1.0) and the street
+      // currently being audited (its priority update runs separately in partiallyUpdatePriority — if we don't exclude
+      // it here, the last street in a region always appears un-audited at this point, so regionIncomplete is always
+      // true and the floating-point equalization never fires).
       regionIncomplete: Boolean <- streetEdgeRegion
         .join(streetEdgePriorityTable)
         .on(_.streetEdgeId === _.streetEdgeId)
         .filter(x => x._1.regionId === regionId && x._2.priority === 1.0)
+        .filterNot(_._1.streetEdgeId in tutorialStreetId)
+        .filterNot(_._1.streetEdgeId === streetEdgeId)
         .exists
         .result
 

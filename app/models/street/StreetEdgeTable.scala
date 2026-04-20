@@ -8,7 +8,7 @@ import models.user.RoleTable.RESEARCHER_ROLES
 import models.user.{RoleTableDef, UserRoleTableDef, UserStatTableDef}
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType}
+import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile, SpatialQueryType}
 import org.locationtech.jts.geom.LineString
 import org.postgresql.jdbc.PgArray
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -101,14 +101,23 @@ class StreetEdgeTable @Inject() (
     )
   })
 
-  val auditTasks       = TableQuery[AuditTaskTableDef]
-  val streetEdges      = TableQuery[StreetEdgeTableDef]
-  val streetEdgeRegion = TableQuery[StreetEdgeRegionTableDef]
-  val osmWayStreetEdge = TableQuery[OsmWayStreetEdgeTableDef]
-  val regions          = TableQuery[RegionTableDef]
-  val userStats        = TableQuery[UserStatTableDef]
-  val userRoles        = TableQuery[UserRoleTableDef]
-  val roleTable        = TableQuery[RoleTableDef]
+  val auditTasks        = TableQuery[AuditTaskTableDef]
+  val streetsUnfiltered = TableQuery[StreetEdgeTableDef]
+  val streetEdgeRegion  = TableQuery[StreetEdgeRegionTableDef]
+  val osmWayStreetEdge  = TableQuery[OsmWayStreetEdgeTableDef]
+  val regions           = TableQuery[RegionTableDef]
+  val userStats         = TableQuery[UserStatTableDef]
+  val userRoles         = TableQuery[UserRoleTableDef]
+  val roleTable         = TableQuery[RoleTableDef]
+  val configTable       = TableQuery[ConfigTableDef]
+
+  val tutorialStreetId: Query[Rep[Int], Int, Seq] = configTable.map(_.tutorialStreetEdgeID)
+
+  // `streetsWithTutorial` drops deleted streets only. `streets` is the default set: drops deleted AND the tutorial
+  // street, which is randomly assigned to a region at db init but should not be user-routable outside the tutorial.
+  // Use `streetsUnfiltered` only when you specifically need access to the tutorial or deleted streets.
+  val streetsWithTutorial = streetsUnfiltered.filterNot(_.deleted)
+  val streets             = streetsWithTutorial.filterNot(_.streetEdgeId in tutorialStreetId)
 
   val roleTableWithResearchersCollapsed = roleTable.map(_roles =>
     (
@@ -120,27 +129,25 @@ class StreetEdgeTable @Inject() (
   val completedAuditTasksWithUsers = auditTasks
     .join(userStats)
     .on(_.userId === _.userId)
-    .join(streetEdges)
+    .join(streets)
     .on(_._1.streetEdgeId === _.streetEdgeId)
-    .filter { case ((t, u), s) => t.completed && !u.excluded && !s.deleted }
+    .filter { case ((t, u), _) => t.completed && !u.excluded }
   val completedAuditTasks       = completedAuditTasksWithUsers.map(_._1._1)
   val highQualityCompletedTasks = completedAuditTasksWithUsers.filter(_._1._2.highQuality).map(_._1._1)
 
-  val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
-
   def getStreet(streetEdgeId: Int): DBIO[Option[StreetEdge]] = {
-    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).result.headOption
+    streetsWithTutorial.filter(_.streetEdgeId === streetEdgeId).result.headOption
   }
 
   def streetCount: DBIO[Int] = {
-    streetEdgesWithoutDeleted.length.result
+    streets.length.result
   }
 
   /**
    * Get the total street distance in meters.
    */
   def totalStreetDistance: DBIO[Double] = {
-    streetEdgesWithoutDeleted.map(_.geom.transform(26918).lengthD).sum.result.map(x => x.getOrElse(0.0d))
+    streets.map(_.geom.transform(26918).lengthD).sum.result.map(x => x.getOrElse(0.0d))
   }
 
   /**
@@ -153,7 +160,7 @@ class StreetEdgeTable @Inject() (
     // Get the street edges that have been audited.
     val edges = for {
       _tasks <- filteredTasks
-      _edges <- streetEdgesWithoutDeleted if _tasks.streetEdgeId === _edges.streetEdgeId
+      _edges <- streets if _tasks.streetEdgeId === _edges.streetEdgeId
     } yield _edges
 
     // Get length of each street segment, sum the lengths, and convert from meters to miles.
@@ -170,7 +177,7 @@ class StreetEdgeTable @Inject() (
     // Group by role and sum distance of distinct street edges.
     (for {
       _tasks    <- filteredTasks
-      _edges    <- streetEdges if _tasks.streetEdgeId === _edges.streetEdgeId
+      _edges    <- streets if _tasks.streetEdgeId === _edges.streetEdgeId
       _userRole <- userRoles if _userRole.userId === _tasks.userId
       _role     <- roleTableWithResearchersCollapsed if _role._1 === _userRole.roleId
     } yield (_role._2, _edges.streetEdgeId, _edges.geom))
@@ -195,11 +202,11 @@ class StreetEdgeTable @Inject() (
       case _                  => auditTasks
     }
 
-    streetEdges
+    streets
       .join(tasksEndedInTimeInterval)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .filter { case (street, task) => street.deleted === false && task.completed === true }
-      .map { case (street, task) => street.geom.transform(26918).lengthD }
+      .filter { case (_, task) => task.completed === true }
+      .map { case (street, _) => street.geom.transform(26918).lengthD }
       .sum
       .result
       .map(_.getOrElse(0.0d))
@@ -215,7 +222,7 @@ class StreetEdgeTable @Inject() (
       .groupBy(_.streetEdgeId)
       .map { case (streetId, rows) => (streetId, rows.map(_.taskEnd).min.trunc("day")) }
       // Join with street edges to get the geometry.
-      .join(streetEdgesWithoutDeleted)
+      .join(streets)
       .on(_._1 === _.streetEdgeId)
       // Group by date and sum the distances.
       .groupBy(_._1._2)
@@ -262,7 +269,7 @@ class StreetEdgeTable @Inject() (
     require(spatialQueryType != SpatialQueryType.LabelCluster, "This method is not supported for the Clusters API.")
 
     // Do all the necessary joins to get all the data we need.
-    val baseQuery = streetEdgesWithoutDeleted
+    val baseQuery = streets
       .join(osmWayStreetEdge)
       .on(_.streetEdgeId === _.streetEdgeId)
       .join(streetEdgeRegion)
@@ -347,10 +354,11 @@ class StreetEdgeTable @Inject() (
         JOIN street_edge_region r ON s.street_edge_id = r.street_edge_id
         JOIN region reg ON r.region_id = reg.region_id
         WHERE s.deleted = false
-        $bboxFilter
-        $wayTypeFilter
-        $regionIdFilter
-        $regionNameFilter
+            AND s.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+            $bboxFilter
+            $wayTypeFilter
+            $regionIdFilter
+            $regionNameFilter
       ),
       -- Get audit counts.
       audit_counts AS (
@@ -362,10 +370,10 @@ class StreetEdgeTable @Inject() (
       -- Get label counts, users, and timestamps.
       label_stats AS (
         SELECT s.street_edge_id,
-              COUNT(l.label_id) as label_count,
-              array_agg(DISTINCT l.user_id) as user_ids,
-              MIN(l.time_created) as first_label_date,
-              MAX(l.time_created) as last_label_date
+               COUNT(l.label_id) as label_count,
+               array_agg(DISTINCT l.user_id) as user_ids,
+               MIN(l.time_created) as first_label_date,
+               MAX(l.time_created) as last_label_date
         FROM filtered_streets s
         LEFT JOIN label l ON s.street_edge_id = l.street_edge_id
             AND l.deleted = false
@@ -376,19 +384,19 @@ class StreetEdgeTable @Inject() (
       )
       -- Final selection with all filters applied.
       SELECT s.street_edge_id, s.osm_way_id, s.region_id, s.region_name, s.way_type,
-            COALESCE(l.user_ids, ARRAY[]::text[]) as user_ids,
-            COALESCE(l.label_count, 0) as label_count,
-            COALESCE(a.audit_count, 0) as audit_count,
-            l.first_label_date,
-            l.last_label_date,
-            s.geom
+             COALESCE(l.user_ids, ARRAY[]::text[]) as user_ids,
+             COALESCE(l.label_count, 0) as label_count,
+             COALESCE(a.audit_count, 0) as audit_count,
+             l.first_label_date,
+             l.last_label_date,
+             s.geom
       FROM filtered_streets s
       LEFT JOIN audit_counts a ON s.street_edge_id = a.street_edge_id
       LEFT JOIN label_stats l ON s.street_edge_id = l.street_edge_id
       WHERE 1=1
-      $minLabelCountFilter
-      $minAuditCountFilter
-      $minUserCountFilter
+        $minLabelCountFilter
+        $minAuditCountFilter
+        $minUserCountFilter
     """
 
     // Use the plainSQL function with GetResult implicit for StreetDataForApi.
@@ -423,7 +431,7 @@ class StreetEdgeTable @Inject() (
    * @return A database action that yields a sequence of (wayType, count) tuples.
    */
   def getStreetTypes: DBIO[Seq[(String, Int)]] = {
-    streetEdgesWithoutDeleted
+    streets
       .groupBy(_.wayType)
       .map { case (wayType, group) => (wayType, group.length) }
       .result
@@ -435,7 +443,7 @@ class StreetEdgeTable @Inject() (
    * @return A DBIO action that returns an Option containing the azimuth in radians
    */
   def directionFromStart(streetEdgeId: Int): DBIO[Option[Double]] = {
-    streetEdgesWithoutDeleted
+    streetsWithTutorial
       .filter(_.streetEdgeId === streetEdgeId)
       .map { street => street.geom.startPoint.azimuthD(street.geom.pointN(2)) }
       .result
@@ -448,7 +456,7 @@ class StreetEdgeTable @Inject() (
    * @return A DBIO action that returns an Option containing the azimuth in radians
    */
   def directionFromEnd(streetEdgeId: Int): DBIO[Option[Double]] = {
-    streetEdgesWithoutDeleted
+    streetsWithTutorial
       .filter(_.streetEdgeId === streetEdgeId)
       .map { street => street.geom.endPoint.azimuthD(street.geom.pointN(street.geom.nPoints - 1)) }
       .result
