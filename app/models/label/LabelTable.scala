@@ -12,7 +12,7 @@ import models.pano.PanoSource.PanoSource
 import models.pano.{PanoData, PanoDataTableDef, PanoSource}
 import models.region.RegionTableDef
 import models.route.RouteStreetTableDef
-import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
+import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable}
 import models.user._
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTableDef, MyPostgresProfile}
@@ -506,8 +506,9 @@ object LabelTable {
 trait LabelTableRepository {}
 
 @Singleton
-class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
-    extends LabelTableRepository
+class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider, streetEdgeTable: StreetEdgeTable)(
+    implicit ec: ExecutionContext
+) extends LabelTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val gf: GeometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -531,7 +532,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val labelValidations       = TableQuery[LabelValidationTableDef]
   val labelAiAssessments     = TableQuery[LabelAiAssessmentTableDef]
   val missions               = TableQuery[MissionTableDef]
-  val streets                = TableQuery[StreetEdgeTableDef]
   val regions                = TableQuery[RegionTableDef]
   val usersUnfiltered        = TableQuery[SidewalkUserTableDef]
   val userStats              = TableQuery[UserStatTableDef]
@@ -1293,7 +1293,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     val _labelsNearRoute = if (routeIds.nonEmpty) {
       (for {
         _rs <- routeStreets if _rs.routeId inSetBind routeIds
-        _se <- streets if _rs.streetEdgeId === _se.streetEdgeId
+        _se <- streetEdgeTable.streetsUnfiltered if _rs.streetEdgeId === _se.streetEdgeId
         _l  <- _labelsFilteredByAiValidation if _se.streetEdgeId === _l._2 ||
           _se.geom.distanceSphereD(makePoint(_l._6.asColumnOf[Double], _l._5.asColumnOf[Double]).setSRID(4326)) < 30d
       } yield _l).distinct
@@ -1390,8 +1390,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * Select street_edge_id of street closest to lat/lng position.
    */
   def getStreetEdgeIdClosestToLatLng(lat: Double, lng: Double): DBIO[Int] = {
-    streets
-      .filterNot(_.deleted)
+    streetEdgeTable.streetsWithTutorial
       .map(s => (s.streetEdgeId, s.geom.distanceSphereD(makePoint(lng.bind, lat.bind).setSRID(4326))))
       .sortBy(_._2)
       .map(_._1)

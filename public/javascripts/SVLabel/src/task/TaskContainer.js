@@ -43,6 +43,10 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
         // Updates the segments that the user has already explored.
         self.updateCurrentTask();
 
+        // Check if finishing this task completes the neighborhood across all users. Must run after task.complete() so
+        // the just-finished task is filtered out of getIncompleteTasksAcrossAllUsersUsingPriority() naturally.
+        updateNeighborhoodCompleteAcrossAllUsersStatus();
+
         return task;
     }
 
@@ -253,32 +257,17 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
     };
 
     /**
-     * Checks if finishedTask makes the neighborhood complete across all users; if so, it displays the relevant overlay.
-     *
-     * @param {Task} finishedTask
+     * Checks if the neighborhood is complete across all users; if so, displays the relevant overlay.
      */
-    function updateNeighborhoodCompleteAcrossAllUsersStatus(finishedTask) {
+    function updateNeighborhoodCompleteAcrossAllUsersStatus() {
         // Only run this code if the neighborhood was set as incomplete and user is not on a designated route.
         if (!neighborhoodModel.isRoute && !neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers()) {
-            const candidateTasks = self.getIncompleteTasksAcrossAllUsersUsingPriority().filter(function (t) {
-                return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null));
-            });
             // Indicates neighborhood is complete.
-            if (candidateTasks.length === 0) {
-                // TODO: Remove the console.log statements if issue #1449 has been resolved.
-                console.error('finished neighborhood screen has appeared, logging debug info');
-                console.trace();
-                console.log('incompleteTasks.length:' +
-                    self.getIncompleteTasksAcrossAllUsersUsingPriority().length);
-                console.log('finishedTask streetEdgeId: ' + finishedTask.getStreetEdgeId());
-
+            if (self.getIncompleteTasksAcrossAllUsersUsingPriority().length === 0) {
                 neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
                 svl.ui.areaComplete.overlay.show();
                 const currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
                 const currentNeighborhoodId = currentNeighborhood.getRegionId();
-
-                console.log('neighborhood: ' + currentNeighborhoodId + ": " + currentNeighborhood);
-
                 tracker.push("NeighborhoodComplete_AcrossAllUsers", { 'RegionId': currentNeighborhoodId });
             }
         }
@@ -299,9 +288,6 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
      */
     this.nextTask = function(finishedTask) {
         let newTask;
-
-        // Check if this task finishes the neighborhood across all users, if so, shows neighborhood complete overlay.
-        updateNeighborhoodCompleteAcrossAllUsersStatus(finishedTask);
 
         // Check if user has audited entire region or route.
         let tasksNotCompletedByUser = self.getTasks().filter(function (t) {

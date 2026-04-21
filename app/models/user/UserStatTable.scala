@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.audit.AuditTaskTableDef
 import models.label.{LabelTable, LabelTypeEnum}
 import models.mission.{MissionTableDef, MissionTypeTable}
-import models.street.StreetEdgeTableDef
+import models.street.StreetEdgeTable
 import models.user.RoleTable.{RESEARCHER_ROLES, ROLES_RESEARCHER_COLLAPSED}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -126,6 +126,7 @@ trait UserStatTableRepository {}
 class UserStatTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     sidewalkUserTable: SidewalkUserTable,
+    streetEdgeTable: StreetEdgeTable,
     labelTable: LabelTable
 )(implicit ec: ExecutionContext)
     extends UserStatTableRepository
@@ -134,7 +135,6 @@ class UserStatTable @Inject() (
   private val userStats            = TableQuery[UserStatTableDef]
   private val userRoleTable        = TableQuery[UserRoleTableDef]
   private val auditTaskTable       = TableQuery[AuditTaskTableDef]
-  private val streetEdgeTable      = TableQuery[StreetEdgeTableDef]
   private val missionTable         = TableQuery[MissionTableDef]
   private val labelValidationTable = TableQuery[LabelValidationTableDef]
 
@@ -236,7 +236,7 @@ class UserStatTable @Inject() (
       .filter(_.completed === true)
       .join(usersToUpdate)
       .on(_.userId === _)
-      .join(streetEdgeTable)
+      .join(streetEdgeTable.streets)
       .on(_._1.streetEdgeId === _.streetEdgeId)
       .groupBy(_._1._1.userId)
       .map(x => (x._1, x._2.map(_._2.geom.transform(26918).lengthD).sum))

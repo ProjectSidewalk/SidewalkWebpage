@@ -33,17 +33,16 @@ trait StreetEdgePriorityTableRepository {}
 @Singleton
 class StreetEdgePriorityTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
+    streetEdgeTable: StreetEdgeTable,
     implicit val ec: ExecutionContext
 ) extends StreetEdgePriorityTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  val userStats                 = TableQuery[UserStatTableDef]
-  val streetEdgePriorities      = TableQuery[StreetEdgePriorityTableDef]
-  val streetEdges               = TableQuery[StreetEdgeTableDef]
-  val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
-  val streetEdgeRegionTable     = TableQuery[StreetEdgeRegionTableDef]
-  val auditTaskTable            = TableQuery[AuditTaskTableDef]
-  val completedTasks            = auditTaskTable.filter(_.completed === true)
+  val userStats             = TableQuery[UserStatTableDef]
+  val streetEdgePriorities  = TableQuery[StreetEdgePriorityTableDef]
+  val streetEdgeRegionTable = TableQuery[StreetEdgeRegionTableDef]
+  val auditTaskTable        = TableQuery[AuditTaskTableDef]
+  val completedTasks        = auditTaskTable.filter(_.completed === true)
 
   def insert(streetEdgePriority: StreetEdgePriority): DBIO[Int] = {
     (streetEdgePriorities returning streetEdgePriorities.map(_.streetEdgePriorityId)) += streetEdgePriority
@@ -52,7 +51,7 @@ class StreetEdgePriorityTable @Inject() (
   def auditedStreetDistanceUsingPriority: DBIO[Double] = {
     // Get the lengths of all the audited street edges.
     val edgeLengths = for {
-      se  <- streetEdgesWithoutDeleted
+      se  <- streetEdgeTable.streets
       sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
       if sep.priority < 1.0d
     } yield se.geom.transform(26918).lengthD
@@ -200,9 +199,10 @@ class StreetEdgePriorityTable @Inject() (
       completions.filterNot(_._2).groupBy(_._1).map { case (edge, group) => (edge, group.length) }
 
     // Join the good and bad user audit counts with street_edge table, filling in any counts not present as 0. We now
-    // have a table with three columns: street_edge_id, good_user_audit_count, bad_user_audit_count.
+    // have a table with three columns: street_edge_id, good_user_audit_count, bad_user_audit_count. We keep tutorial
+    // street in the set so its street_edge_priority row stays at priority=1.0 (it's never a regular audit target).
     val allAuditCounts =
-      streetEdgesWithoutDeleted
+      streetEdgeTable.streetsWithTutorial
         .joinLeft(goodUserAuditCounts)
         .on(_.streetEdgeId === _._1)
         .map { case (_edge, _goodCount) => (_edge.streetEdgeId, _goodCount.map(_._2).getOrElse(0)) }
