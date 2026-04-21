@@ -66,6 +66,7 @@ class MapSidebarFilter {
                 toggleLabelLayer(labelType, cb.checked, this.#map, this.#mapData);
                 // Reapply filters so stale tag constraints are cleared from the Mapbox layer.
                 filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
+                this.#updateDeselectAllButton('label-type');
             });
         });
     }
@@ -75,6 +76,7 @@ class MapSidebarFilter {
         this.#sidebar.querySelectorAll('input[data-filter-type="label-validations"]').forEach(cb => {
             cb.addEventListener('click', () => {
                 filterLabelLayers(cb, this.#map, this.#mapData, this.#highQualityFilter);
+                this.#updateDeselectAllButton('label-validations');
             });
         });
     }
@@ -84,6 +86,7 @@ class MapSidebarFilter {
         this.#sidebar.querySelectorAll('input[data-filter-type="streets"]').forEach(cb => {
             cb.addEventListener('click', () => {
                 filterStreetLayer(this.#map);
+                this.#updateDeselectAllButton('streets');
             });
         });
     }
@@ -121,10 +124,20 @@ class MapSidebarFilter {
                     filterStreetLayer(this.#map);
                 }
 
-                // Update button text.
-                btn.textContent = newState ? i18next.t('labelmap:deselect-all') : i18next.t('labelmap:select-all');
+                this.#updateDeselectAllButton(section);
             });
         });
+    }
+
+    /**
+     * Syncs a section's toggle button text: "Deselect all" if any checkbox is checked, "Select all" otherwise.
+     * @param {string} section The data-section value identifying the button and its checkboxes.
+     */
+    #updateDeselectAllButton(section) {
+        const btn = this.#sidebar.querySelector(`.map-sidebar__deselect-all[data-section="${section}"]`);
+        const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);
+        const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+        btn.textContent = anyChecked ? i18next.t('labelmap:deselect-all') : i18next.t('labelmap:select-all');
     }
 
     /** Binds click handlers to the tag expand/collapse chevron buttons. */
@@ -163,6 +176,7 @@ class MapSidebarFilter {
                 if (isActive && !cb.checked) {
                     cb.checked = true;
                     toggleLabelLayer(labelType, true, this.#map, this.#mapData);
+                    this.#updateDeselectAllButton('label-type');
                 }
 
                 // Update the checkbox appearance: gray when partially filtered by tags.
