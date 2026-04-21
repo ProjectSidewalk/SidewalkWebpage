@@ -21,7 +21,7 @@ async function Admin($, mapboxApiKey, viewerType, viewerAccessToken, cityName, c
     self.labelPopup = await LabelPopup(true, viewerType, viewerAccessToken, cityName, currentUsername);
     const mapTabMapParams = {
         mapName: 'admin-labelmap-choropleth',
-        mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+        mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
         mapboxApiKey: mapboxApiKey,
         mapboxLogoLocation: 'bottom-right',
         neighborhoodsURL: '/neighborhoods',

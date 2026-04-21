@@ -82,10 +82,14 @@ function AddLabelsToMap(map, labelData, params) {
             source: layerName,
             layout: { visibility: 'visible' },
             paint: {
-                'circle-radius': ['case', ['boolean', ['feature-state', 'hover'], false], 15, 5],
-                'circle-opacity': 0.5,
-                'circle-stroke-opacity': 0.5,
-                'circle-stroke-width': 1,
+                'circle-radius': [
+                    'interpolate', ['exponential', 1.5], ['zoom'],
+                    12, ['case', ['boolean', ['feature-state', 'hover'], false], 8, 3],
+                    20, ['case', ['boolean', ['feature-state', 'hover'], false], 20, 8]
+                ],
+                'circle-opacity': 0.75,
+                'circle-stroke-opacity': 0.75,
+                'circle-stroke-width': 0.75,
                 'circle-color': [
                     'case',
                     ['all',

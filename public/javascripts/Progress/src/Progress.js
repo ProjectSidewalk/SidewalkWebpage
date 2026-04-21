@@ -1,7 +1,7 @@
 async function Progress ($, mapboxApiKey, viewerType, viewerAccessToken, userId, admin, cityName, currentUsername) {
     var params = {
         mapName: 'user-dashboard-choropleth',
-        mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+        mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
         mapboxApiKey: mapboxApiKey,
         zoomCorrection: -0.5,
         mapboxLogoLocation: 'bottom-right',
