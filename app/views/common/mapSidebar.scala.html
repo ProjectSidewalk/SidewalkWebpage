@@ -36,7 +36,7 @@
     data-i18n-aria-label="labelmap:legend" style="visibility: hidden;">
     <button id="map-sidebar-close" class="map-sidebar__close" aria-label="Close"
             data-i18n-aria-label="common:close">
-        <img src="@assets.path("images/icons/cross.svg")" alt="Close">
+        <img src="@assets.path("images/icons/chevrons-left.svg")" alt="">
     </button>
 
     @* ---- Severity section ---- *@
@@ -171,4 +171,6 @@
 
 @* Floating button to reopen the sidebar when it's closed *@
 <button id="map-sidebar-open" class="map-sidebar-open-btn" aria-label="Legend"
-        data-i18n-aria-label="labelmap:legend" data-i18n="labelmap:legend">Legend</button>
+        data-i18n-aria-label="labelmap:legend">
+    <img src="@assets.path("images/icons/chevrons-right.svg")" alt="">
+</button>
