@@ -4,7 +4,7 @@ function AdminTask(params) {
     mapboxgl.accessToken = params.mapboxApiKey;
     let map = new mapboxgl.Map({
         container: 'admin-task-choropleth',
-        style: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+        style: 'mapbox://styles/mapbox/light-v11?optimize=true',
         maxZoom: 19,
         minZoom: 8.25,
         scrollZoom: false,

@@ -1,0 +1,176 @@
+@import models.label.{LabelTypeEnum, Tag}
+@(showStreets: Boolean = true, tags: Seq[Tag] = Seq.empty)(implicit messages: Messages, assets: AssetsFinder)
+
+@tagsByLabelType = @{tags.groupBy(t => LabelTypeEnum.labelTypeIdToLabelType.getOrElse(t.labelTypeId, ""))}
+
+@* Helper to render a label type row with optional tag expansion. *@
+@labelTypeItem(labelType: String, i18nKey: String, msgKey: String, legendId: String) = {
+    <li class="map-sidebar__item map-sidebar__item--expandable">
+        <div class="map-sidebar__item-row">
+            <input type="checkbox" id="@(labelType)-checkbox" checked data-filter-type="label-type" disabled>
+            <span id="@legendId" class="map-legend-circle-icon">
+                <svg width="14" height="14"><circle cx="7" cy="7" r="6"/></svg>
+            </span>
+            <label for="@(labelType)-checkbox" data-i18n="@i18nKey">@Messages(msgKey)</label>
+            @if(tagsByLabelType.getOrElse(labelType, Seq.empty).nonEmpty) {
+                <button class="map-sidebar__tag-toggle" aria-expanded="false"
+                        aria-label="Show tags" data-i18n-aria-label="labelmap:show-tags">
+                    <img src='@assets.path("images/icons/chevron-right.svg")' alt=""
+                         data-down-src='@assets.path("images/icons/chevron-right.svg")'
+                         data-up-src='@assets.path("images/icons/chevron-down.svg")'>
+                </button>
+            }
+        </div>
+        @if(tagsByLabelType.getOrElse(labelType, Seq.empty).nonEmpty) {
+            <div class="map-sidebar__tag-pills" hidden>
+                @for(tag <- tagsByLabelType(labelType)) {
+                    <button class="tag-pill tag-pill--interactive" data-tag="@tag.tag" data-label-type="@labelType"
+                            data-i18n="common:tag.@{tag.tag.replace(":", "-")}">@tag.tag</button>
+                }
+            </div>
+        }
+    </li>
+}
+
+<div id="map-sidebar" class="map-sidebar" role="complementary" aria-label="Legend"
+    data-i18n-aria-label="labelmap:legend" style="visibility: hidden;">
+    <button id="map-sidebar-close" class="map-sidebar__close" aria-label="Close"
+            data-i18n-aria-label="common:close">
+        <img src="@assets.path("images/icons/chevrons-left.svg")" alt="">
+    </button>
+
+    @* ---- Severity section ---- *@
+    <section class="map-sidebar__section">
+        <h3 class="map-sidebar__heading" data-i18n="common:severity">@Messages("severity")</h3>
+        <div class="map-sidebar__severity-toggles" role="group" aria-label="@Messages("severity")"
+             data-i18n-aria-label="common:severity">
+            <button class="severity-toggle" data-severity="0" aria-pressed="true">
+                <img src='@assets.path("images/icons/smileys/sev-0-negative-filled.svg")'
+                     data-selected-src='@assets.path("images/icons/smileys/sev-0-negative-filled.svg")'
+                     data-unselected-src='@assets.path("images/icons/smileys/sev-0-negative.svg")'
+                     alt="@Messages("not.applicable.abbr")" data-i18n-alt="labelmap:not-applicable-abbr">
+                <span data-i18n="labelmap:not-applicable-abbr">@Messages("not.applicable.abbr")</span>
+            </button>
+            <button class="severity-toggle" data-severity="1" aria-pressed="true">
+                <img src='@assets.path("images/icons/smileys/sev-1-negative-filled.svg")'
+                     data-selected-src='@assets.path("images/icons/smileys/sev-1-negative-filled.svg")'
+                     data-unselected-src='@assets.path("images/icons/smileys/sev-1-negative.svg")'
+                     alt="@Messages("low")" data-i18n-alt="common:low">
+                <span data-i18n="common:low">@Messages("low")</span>
+            </button>
+            <button class="severity-toggle" data-severity="2" aria-pressed="true">
+                <img src='@assets.path("images/icons/smileys/sev-2-negative-filled.svg")'
+                     data-selected-src='@assets.path("images/icons/smileys/sev-2-negative-filled.svg")'
+                     data-unselected-src='@assets.path("images/icons/smileys/sev-2-negative.svg")'
+                     alt="@Messages("medium")" data-i18n-alt="common:medium">
+                <span data-i18n="common:medium">@Messages("medium")</span>
+            </button>
+            <button class="severity-toggle" data-severity="3" aria-pressed="true">
+                <img src='@assets.path("images/icons/smileys/sev-3-negative-filled.svg")'
+                     data-selected-src='@assets.path("images/icons/smileys/sev-3-negative-filled.svg")'
+                     data-unselected-src='@assets.path("images/icons/smileys/sev-3-negative.svg")'
+                     alt="@Messages("high")" data-i18n-alt="common:high">
+                <span data-i18n="common:high">@Messages("high")</span>
+            </button>
+        </div>
+    </section>
+
+    @* ---- Label Types section ---- *@
+    <section class="map-sidebar__section">
+        <div class="map-sidebar__heading-row">
+            <h3 class="map-sidebar__heading" data-i18n="labelmap:label-type">@Messages("label.type")</h3>
+            <button class="map-sidebar__deselect-all" data-section="label-type"
+                    data-i18n="labelmap:deselect-all">Deselect all</button>
+        </div>
+        <ul class="map-sidebar__list">
+            @labelTypeItem("CurbRamp", "common:curb-ramp", "curb.ramp", "map-legend-curb-ramp")
+            @labelTypeItem("NoCurbRamp", "common:no-curb-ramp", "missing.ramp", "map-legend-no-curb-ramp")
+            @labelTypeItem("Obstacle", "common:obstacle", "obstacle", "map-legend-obstacle")
+            @labelTypeItem("SurfaceProblem", "common:surface-problem", "surface.problem", "map-legend-surface-problem")
+            @labelTypeItem("NoSidewalk", "common:no-sidewalk", "no.sidewalk", "map-legend-no-sidewalk")
+            @labelTypeItem("Crosswalk", "common:crosswalk", "crosswalk", "map-legend-crosswalk")
+            @labelTypeItem("Other", "common:other", "other", "map-legend-other")
+            @labelTypeItem("Signal", "common:signal", "signal", "map-legend-signal")
+            @labelTypeItem("Occlusion", "common:occlusion", "occlusion", "map-legend-occlusion")
+        </ul>
+    </section>
+
+    @* ---- Validations section ---- *@
+    <section class="map-sidebar__section">
+        <div class="map-sidebar__heading-row">
+            <h3 class="map-sidebar__heading" data-i18n="labelmap:validations">@Messages("validations")</h3>
+            <button class="map-sidebar__deselect-all" data-section="label-validations"
+                    data-i18n="labelmap:deselect-all">Deselect all</button>
+        </div>
+        <ul class="map-sidebar__list">
+            <li class="map-sidebar__item">
+                <input type="checkbox" id="correct" checked data-filter-type="label-validations" disabled>
+                <img class="map-sidebar__validation-icon"
+                     src='@assets.path("images/icons/validation/agree-filled.svg")'
+                     alt="Validated correct" data-i18n-alt="common:correct">
+                <label for="correct" data-i18n="common:correct">Validated correct</label>
+            </li>
+            <li class="map-sidebar__item">
+                <input type="checkbox" id="incorrect" data-filter-type="label-validations" disabled>
+                <img class="map-sidebar__validation-icon"
+                     src='@assets.path("images/icons/validation/disagree-filled.svg")'
+                     alt="Validated incorrect" data-i18n-alt="common:incorrect">
+                <label for="incorrect" data-i18n="common:incorrect">Validated incorrect</label>
+            </li>
+            <li class="map-sidebar__item">
+                <input type="checkbox" id="unsure" checked data-filter-type="label-validations" disabled>
+                <img class="map-sidebar__validation-icon"
+                     src='@assets.path("images/icons/validation/unsure-filled.svg")'
+                     alt="@Messages("unsure.caps")" data-i18n-alt="common:unsure">
+                <label for="unsure" data-i18n="common:unsure">@Messages("unsure.caps")</label>
+            </li>
+            <li class="map-sidebar__item">
+                <input type="checkbox" id="unvalidated" checked data-filter-type="label-validations" disabled>
+                <img class="map-sidebar__unvalidated-icon"
+                     src='@assets.path("images/icons/alert-circle.svg")'
+                     alt="Unvalidated" data-i18n-alt="common:unvalidated">
+                <label for="unvalidated" data-i18n="common:unvalidated">Unvalidated</label>
+            </li>
+        </ul>
+    </section>
+
+    @* ---- Streets section (optional) ---- *@
+    @if(showStreets) {
+        <section class="map-sidebar__section">
+            <div class="map-sidebar__heading-row">
+                <h3 class="map-sidebar__heading" data-i18n="labelmap:streets">Streets</h3>
+                <button class="map-sidebar__deselect-all" data-section="streets"
+                        data-i18n="labelmap:deselect-all">Deselect all</button>
+            </div>
+            <ul class="map-sidebar__list">
+                <li class="map-sidebar__item">
+                    <input type="checkbox" id="audited-street" checked data-filter-type="streets" disabled>
+                    <svg class="map-sidebar__street-icon map-sidebar__street-icon--audited"
+                         width="17" height="14" viewBox="0 0 20 20">
+                        <path d="M 2 10 L 18 10 z"></path>
+                    </svg>
+                    <label for="audited-street" data-i18n="labelmap:audited-street">Audited Street</label>
+                </li>
+                <li class="map-sidebar__item">
+                    <input type="checkbox" id="unaudited-street" checked data-filter-type="streets" disabled>
+                    <svg class="map-sidebar__street-icon map-sidebar__street-icon--unaudited"
+                         width="17" height="14" viewBox="0 0 20 20">
+                        <path d="M 2 10 L 18 10 z"></path>
+                    </svg>
+                    <label for="unaudited-street" data-i18n="labelmap:unaudited-street">Unaudited Street</label>
+                </li>
+            </ul>
+        </section>
+    }
+</div>
+
+@* Drag handle on the right edge of the sidebar for resizing. *@
+<div id="map-sidebar-resize-handle" class="map-sidebar__resize-handle"
+     role="separator" aria-orientation="vertical" aria-label="Resize legend"
+     data-i18n-aria-label="labelmap:resize-legend"></div>
+
+@* Floating button to reopen the sidebar when it's closed *@
+<button id="map-sidebar-open" class="map-sidebar-open-btn" aria-label="Legend"
+        data-i18n-aria-label="labelmap:legend">
+    <img src="@assets.path("images/icons/chevrons-right.svg")" alt="">
+</button>

@@ -19,8 +19,12 @@
     "agree": "Mee eens zijn",
     "disagree": "Het oneens zijn",
     "unsure": "Onzeker",
+    "correct": "Gevalideerd juist",
+    "incorrect": "Gevalideerd onjuist",
+    "unvalidated": "Niet gevalideerd",
     "surface-problems": "Oppervlakte problemen",
     "sign-up": "Een account maken",
+    "close": "Sluiten",
     "sign-in": "Log in",
     "complete": "voltooid",
     "map": {

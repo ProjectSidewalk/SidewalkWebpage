@@ -217,10 +217,14 @@ class ApplicationController @Inject() (
       val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
       val activityStr: String    = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
 
-      configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      for {
+        commonData <- configService.getCommonPageData(request2Messages.lang)
+        tags       <- labelService.getTagsForCurrentCity
+      } yield {
         cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
         Ok(
-          views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, regionIds, routeIds, aiValOpts)
+          views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, tags, regionIds, routeIds,
+            aiValOpts)
         )
       }
     }

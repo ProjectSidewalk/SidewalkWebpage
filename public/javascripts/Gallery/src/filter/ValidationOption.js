@@ -32,7 +32,7 @@ function ValidationOption (params, applied) {
         validationOptionElement = document.createElement('button');
         validationOptionElement.className = "gallery-filter-validation-button gallery-filter-button gallery-filter";
         validationOptionElement.id = properties.validationOption;
-        validationOptionElement.innerText = i18next.t('gallery:' + properties.validationOption);
+        validationOptionElement.innerText = i18next.t('common:' + properties.validationOption);
         validationOptionElement.disabled = true; // Will be enabled once images load.
 
         if (status.applied) {

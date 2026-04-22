@@ -5,6 +5,16 @@
 
 /* Project Sidewalk color pallete */
 :root {
+    --color-pine-100: #E4F4EE;
+    --color-pine-200: #C9E9DD;
+    --color-pine-300: #AEDFCD;
+    --color-pine-400: #93D4BC;
+    --color-pine-500: #78C9AB;
+    --color-pine-600: #60A189;
+    --color-pine-700: #487967;
+    --color-pine-800: #305044;
+    --color-pine-900: #182822;
+
     --color-asphalt-100: #D5D3E4;
     --color-asphalt-200: #9F9DB1;
     --color-asphalt-300: #615E78;

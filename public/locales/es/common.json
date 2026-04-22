@@ -19,8 +19,12 @@
     "agree": "Aceptar",
     "disagree": "Discrepar",
     "unsure": "Inseguro",
+    "correct": "Validada correcta",
+    "incorrect": "Validada incorrecta",
+    "unvalidated": "No validada",
     "surface-problems": "Problemas en superficie",
     "sign-up": "Regístrate",
+    "close": "Cerrar",
     "sign-in": "Iniciar sesión",
     "complete": "completado",
     "map": {

@@ -19,8 +19,12 @@
     "agree": "同意",
     "disagree": "不同意",
     "unsure": "不確定",
+    "correct": "檢核正確",
+    "incorrect": "檢核不正確",
+    "unvalidated": "未檢核",
     "surface-problems": "鋪面問題",
     "sign-up": "註冊",
+    "close": "關閉",
     "sign-in": "登入",
     "complete": "完成",
     "map": {

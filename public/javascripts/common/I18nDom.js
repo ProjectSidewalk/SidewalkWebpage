@@ -5,6 +5,7 @@
  *   - data-i18n="ns:key"             -> sets textContent
  *   - data-i18n-placeholder="ns:key" -> sets the `placeholder` attribute
  *   - data-i18n-aria-label="ns:key"  -> sets the `aria-label` attribute
+ *   - data-i18n-alt="ns:key"         -> sets the `alt` attribute
  *
  * Convention: include English fallback text in the markup for elements that are visible during initial render (graceful
  * degradation if i18next fails to load, and avoids layout shift). Elements that are hidden until user interaction may
@@ -22,7 +23,7 @@
 window.localizeSubtree = function(root) {
     if (!root || typeof i18next === 'undefined' || !i18next.isInitialized) return;
 
-    const selector = '[data-i18n], [data-i18n-placeholder], [data-i18n-aria-label]';
+    const selector = '[data-i18n], [data-i18n-placeholder], [data-i18n-aria-label], [data-i18n-alt]';
 
     // querySelectorAll doesn't include `root` itself; check it explicitly so callers can pass an element that itself
     // carries a data-i18n attribute.
@@ -49,4 +50,7 @@ window.localizeElement = function(el) {
 
     const ariaLabelKey = el.getAttribute('data-i18n-aria-label');
     if (ariaLabelKey) el.setAttribute('aria-label', i18next.t(ariaLabelKey));
+
+    const altKey = el.getAttribute('data-i18n-alt');
+    if (altKey) el.setAttribute('alt', i18next.t(altKey));
 };

@@ -87,6 +87,7 @@ case class LabelForLabelMap(
     expired: Boolean,
     highQualityUser: Boolean,
     severity: Option[Int],
+    tags: List[String],
     aiGenerated: Boolean
 )
 
@@ -1284,7 +1285,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       query.map { case (l, lp, highQuality, labelType, expired, isAiUser, aiv) =>
         val hasValidations = l.agreeCount > 0 || l.disagreeCount > 0 || l.unsureCount > 0
         (l.labelId, l.streetEdgeId, l.auditTaskId, labelType, lp.lat, lp.lng, l.correct, hasValidations,
-          aiv.map(_.validationResult), expired, highQuality, l.severity, isAiUser)
+          aiv.map(_.validationResult), expired, highQuality, l.severity, l.tags, isAiUser)
       }
     }
 
@@ -1304,8 +1305,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
     _labelsNearRoute.result.map(_.map {
-      case (id, streetId, taskId, labType, lat, lng, correct, hasVals, aiVal, expired, highQual, sev, ai) =>
-        LabelForLabelMap(id, taskId, labType, lat.get, lng.get, correct, hasVals, aiVal, expired, highQual, sev, ai)
+      case (id, streetId, taskId, lType, lat, lng, correct, hasVals, aiVal, expired, highQual, sev, tags, ai) =>
+        LabelForLabelMap(id, taskId, lType, lat.get, lng.get, correct, hasVals, aiVal, expired, highQual, sev, tags, ai)
     })
   }
 
