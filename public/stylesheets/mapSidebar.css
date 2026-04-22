@@ -12,7 +12,8 @@
     background: #fefefe;
     box-shadow: 2px 0 6px rgba(0, 0, 0, 0.12);
     z-index: 10;
-    overflow-y: scroll;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
     padding: 24px 28px;
     font-family: 'Raleway', sans-serif;
     transition: transform 0.2s ease;
