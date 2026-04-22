@@ -256,14 +256,14 @@ body.map-sidebar-resizing {
 
 /* Validation icons */
 .map-sidebar__item .map-sidebar__validation-icon {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     flex-shrink: 0;
 }
 
 .map-sidebar__item .map-sidebar__unvalidated-icon {
-    width: 20px;
-    height: 20px;
+    width: 18px; /* Width needs to be smaller due to it having less space around the icon than the others. */
+    height: 18px;
     flex-shrink: 0;
 }
 
@@ -301,8 +301,8 @@ body.map-sidebar-resizing {
 }
 
 .map-sidebar__tag-toggle img {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
 }
 
 .map-sidebar__tag-toggle:hover {
