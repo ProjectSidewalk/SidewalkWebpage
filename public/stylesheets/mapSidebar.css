@@ -24,7 +24,11 @@
 
 .map-sidebar--loading {
     pointer-events: none;
-    opacity: 0.75;
+}
+
+.map-sidebar--loading > * {
+    opacity: 0.5;
+    filter: grayscale(1);
 }
 
 /* Close button (top-right corner) */
