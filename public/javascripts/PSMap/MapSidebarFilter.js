@@ -51,6 +51,7 @@ class MapSidebarFilter {
                 if (img) img.src = newState ? img.dataset.selectedSrc : img.dataset.unselectedSrc;
 
                 filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
+                this.#updateDeselectAllButton('severity');
             });
         });
     }
@@ -98,11 +99,20 @@ class MapSidebarFilter {
         this.#sidebar.querySelectorAll('.map-sidebar__deselect-all').forEach(btn => {
             btn.addEventListener('click', () => {
                 const section = btn.dataset.section;
-                const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);
-                const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
-                const newState = !anyChecked;
+                const newState = !this.#isAnyActive(section);
 
-                if (section === 'label-type') {
+                if (section === 'severity') {
+                    // Match the look and state of all severity toggles to newState.
+                    this.#sidebar.querySelectorAll('.severity-toggle').forEach(toggle => {
+                        const severity = Number(toggle.dataset.severity);
+                        this.#mapData.severities[severity] = newState;
+                        toggle.setAttribute('aria-pressed', String(newState));
+                        const img = toggle.querySelector('img');
+                        if (img) img.src = newState ? img.dataset.selectedSrc : img.dataset.unselectedSrc;
+                    });
+                    filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
+                } else if (section === 'label-type') {
+                    const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);
                     // Batch visibility changes for all label type layers.
                     checkboxes.forEach(cb => {
                         cb.checked = newState;
@@ -113,6 +123,7 @@ class MapSidebarFilter {
                     // Also clear all tag selections when deselecting all label types.
                     if (!newState) this.#clearAllTagSelections();
                 } else if (section === 'label-validations') {
+                    const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);
                     // Batch mapData updates, then apply filter once.
                     checkboxes.forEach(cb => {
                         cb.checked = newState;
@@ -120,6 +131,7 @@ class MapSidebarFilter {
                     });
                     filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
                 } else if (section === 'streets') {
+                    const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);
                     checkboxes.forEach(cb => { cb.checked = newState; });
                     filterStreetLayer(this.#map);
                 }
@@ -130,14 +142,25 @@ class MapSidebarFilter {
     }
 
     /**
-     * Syncs a section's toggle button text: "Deselect all" if any checkbox is checked, "Select all" otherwise.
-     * @param {string} section The data-section value identifying the button and its checkboxes.
+     * Returns true when at least one control in the section is on (checkbox checked, or toggle pressed for severity).
+     * @param {string} section The data-section value identifying the section.
+     */
+    #isAnyActive(section) {
+        if (section === 'severity') {
+            const toggles = this.#sidebar.querySelectorAll('.severity-toggle');
+            return Array.from(toggles).some(t => t.getAttribute('aria-pressed') === 'true');
+        }
+        const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);
+        return Array.from(checkboxes).some(cb => cb.checked);
+    }
+
+    /**
+     * Syncs a section's toggle button text: "Deselect all" if any control is active, "Select all" otherwise.
+     * @param {string} section The data-section value identifying the button and its controls.
      */
     #updateDeselectAllButton(section) {
         const btn = this.#sidebar.querySelector(`.map-sidebar__deselect-all[data-section="${section}"]`);
-        const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);
-        const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
-        btn.textContent = anyChecked ? i18next.t('labelmap:deselect-all') : i18next.t('labelmap:select-all');
+        btn.textContent = this.#isAnyActive(section) ? i18next.t('labelmap:deselect-all') : i18next.t('labelmap:select-all');
     }
 
     /** Binds click handlers to the tag expand/collapse chevron buttons. */

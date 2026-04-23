@@ -41,7 +41,11 @@
 
     @* ---- Severity section ---- *@
     <section class="map-sidebar__section">
-        <h3 class="map-sidebar__heading" data-i18n="common:severity">@Messages("severity")</h3>
+        <div class="map-sidebar__heading-row">
+            <h3 class="map-sidebar__heading" data-i18n="common:severity">@Messages("severity")</h3>
+            <button class="map-sidebar__deselect-all" data-section="severity"
+                    data-i18n="labelmap:deselect-all">Deselect all</button>
+        </div>
         <div class="map-sidebar__severity-toggles" role="group" aria-label="@Messages("severity")"
              data-i18n-aria-label="common:severity">
             <button class="severity-toggle" data-severity="0" aria-pressed="true">
@@ -140,11 +144,11 @@
             <div class="map-sidebar__heading-row">
                 <h3 class="map-sidebar__heading" data-i18n="labelmap:streets">Streets</h3>
                 <button class="map-sidebar__deselect-all" data-section="streets"
-                        data-i18n="labelmap:deselect-all">Deselect all</button>
+                        data-i18n="labelmap:select-all">Select all</button>
             </div>
             <ul class="map-sidebar__list">
                 <li class="map-sidebar__item">
-                    <input type="checkbox" id="audited-street" checked data-filter-type="streets" disabled>
+                    <input type="checkbox" id="audited-street" data-filter-type="streets" disabled>
                     <svg class="map-sidebar__street-icon map-sidebar__street-icon--audited"
                          width="17" height="14" viewBox="0 0 20 20">
                         <path d="M 2 10 L 18 10 z"></path>
@@ -152,7 +156,7 @@
                     <label for="audited-street" data-i18n="labelmap:audited-street">Audited Street</label>
                 </li>
                 <li class="map-sidebar__item">
-                    <input type="checkbox" id="unaudited-street" checked data-filter-type="streets" disabled>
+                    <input type="checkbox" id="unaudited-street" data-filter-type="streets" disabled>
                     <svg class="map-sidebar__street-icon map-sidebar__street-icon--unaudited"
                          width="17" height="14" viewBox="0 0 20 20">
                         <path d="M 2 10 L 18 10 z"></path>

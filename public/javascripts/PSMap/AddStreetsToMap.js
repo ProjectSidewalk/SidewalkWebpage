@@ -13,8 +13,8 @@
 */
 function AddStreetsToMap(map, streetData, params) {
     const STREET_LAYER_NAME = 'streets';
-    const AUDITED_STREET_COLOR = '#2D2A3F'; // --color-asphalt-500
-    const UNAUDITED_STREET_COLOR = '#9F9DB1'; // --color-asphalt-200
+    const AUDITED_STREET_COLOR = getComputedStyle(document.documentElement).getPropertyValue('--color-asphalt-500').trim();
+    const UNAUDITED_STREET_COLOR = getComputedStyle(document.documentElement).getPropertyValue('--color-asphalt-300').trim();
 
     // Render street segments.
     map.addSource(STREET_LAYER_NAME, {
@@ -28,7 +28,8 @@ function AddStreetsToMap(map, streetData, params) {
         source: STREET_LAYER_NAME,
         layout: {
             'line-join': 'round',
-            'line-cap': 'round'
+            'line-cap': 'round',
+            visibility: 'none' // Hidden by default; shown when the user checks a street filter in the sidebar.
         },
         paint: {
             'line-opacity': 0.6,
