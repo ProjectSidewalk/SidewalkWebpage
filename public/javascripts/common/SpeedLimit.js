@@ -34,6 +34,11 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
 
     let cache = {};
 
+    // Country info (ISO 3166-1 code) for the current session. Country doesn't change while a user is auditing, so we
+    // fetch it once and reuse it to cut Overpass request volume roughly in half. Null until first successful fetch; on
+    // failure we reset to null so the next pano change can retry.
+    let countryCodePromise = null;
+
     function _init() {
         // If labelType is null/undefined (not provided), the speed limit will be displayed by default.
         const speedLimitRelevant = !labelType || speedLimitRelevantLabels.includes(labelType);
@@ -113,13 +118,13 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
     }
 
     /**
-     * Fetches the overpass json and closest road for a given set of coordinates.
+     * Fetches the closest nearby road for a given set of coordinates from the Overpass API.
      *
      * @param {number} lat The latitude of the current position.
      * @param {number} lng The longitude of the current position.
-     * @param {boolean} shouldCache If true, this will cache the coordinates with the json response.
+     * @param {boolean} shouldCache If true, this will cache the coordinates with the road response.
      * @param {Label} label The label that is being validated. Can be null.
-     * @returns Object that contains json response and calculated closest road
+     * @returns {Promise<{closestRoad: object|null}>} Object with the calculated closest road, or null on failure.
      */
     async function queryClosestRoadForCoords(lat, lng, shouldCache, label) {
         const cacheKey = label === null ? (labelContainer === null ? "" : labelContainer.getCurrentLabel().getAuditProperty("panoId")) : label.getAuditProperty("panoId");
@@ -134,25 +139,21 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
         way['highway'](around:10.0, ${lat}, ${lng});
         );
         out geom;
-        is_in(${lat}, ${lng})->.a;
-        rel(pivot.a)['ISO3166-1'];
-        convert country
-            ::id = id(),
-            code = t['ISO3166-1'];
-        out tags;
         `;
         const promise = (async () => {
-            const overpassResp = await fetch(
-                `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
-            );
-
-            const overpassRespJson = await overpassResp.json();
-            const closestRoad = findClosestRoad(overpassRespJson, lat, lng);
-            const result = {
-                json: overpassRespJson,
-                closestRoad
-            };
-            return result;
+            try {
+                const overpassResp = await fetch(
+                    `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
+                );
+                // A 429 (or other non-2xx) returns XML rather than JSON, so guard before parsing.
+                if (!overpassResp.ok) {
+                    return { closestRoad: null };
+                }
+                const overpassRespJson = await overpassResp.json();
+                return { closestRoad: findClosestRoad(overpassRespJson, lat, lng) };
+            } catch (e) {
+                return { closestRoad: null };
+            }
         })();
 
         if (shouldCache) {
@@ -160,6 +161,49 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
         }
 
         return await promise;
+    }
+
+    /**
+     * Fetches the ISO 3166-1 country code for the given coordinates. The result is cached for the session on first
+     * success since the country doesn't change while a user audits. On failure the cache is cleared.
+     *
+     * @param {number} lat The latitude of the current position.
+     * @param {number} lng The longitude of the current position.
+     * @returns {Promise<string|null>} ISO 3166-1 country code, or null if the lookup failed.
+     */
+    async function queryCountryCode(lat, lng) {
+        if (countryCodePromise !== null) {
+            return await countryCodePromise;
+        }
+
+        const overpassQuery = `
+        [out:json];
+        is_in(${lat}, ${lng})->.a;
+        rel(pivot.a)['ISO3166-1'];
+        convert country
+            ::id = id(),
+            code = t['ISO3166-1'];
+        out tags;
+        `;
+        countryCodePromise = (async () => {
+            try {
+                const resp = await fetch(
+                    `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
+                );
+                if (!resp.ok) {
+                    countryCodePromise = null;
+                    return null;
+                }
+                const json = await resp.json();
+                const countryElements = json.elements.filter(el => el.type === 'country');
+                return countryElements.length > 0 ? countryElements[0].tags.code : null;
+            } catch (e) {
+                countryCodePromise = null;
+                return null;
+            }
+        })();
+
+        return await countryCodePromise;
     }
 
     /**
@@ -189,17 +233,18 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
         // const lat = 47.6271486;
         // const lng = -122.3423263;
 
-        const queryResp = await queryClosestRoadForCoords(lat, lng, false, null);
+        // Fetch roads (per-pano) and country code (session-cached) in parallel.
+        const [queryResp, countryCode] = await Promise.all([
+            queryClosestRoadForCoords(lat, lng, false, null),
+            queryCountryCode(lat, lng)
+        ]);
         const closestRoad = queryResp.closestRoad;
 
         // Fallback units should be kilometers per hour by default.
         let fallbackUnits = 'km/h';
 
-        // Get the country code of the current location to set the speed limit indicator design and fallback units.
-        const countryElements = queryResp.json.elements.filter((el) => el.type === 'country');
-        if (countryElements.length > 0) {
-            const countryCode = countryElements[0].tags.code;
-
+        // Use the country code to set the speed limit indicator design and fallback units.
+        if (countryCode) {
             // Set proper design.
             if (countryCode === 'US' || countryCode === 'CA') {
                 self.container.setAttribute('data-design-style', 'us-canada');
