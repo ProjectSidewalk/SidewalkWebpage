@@ -1,7 +1,7 @@
 /**
  * A Severity module.
  *
- * @param {*} params Properties of severity.
+ * @param {*} params Severity value: the string "null" for the N/A bucket, or "1"/"2"/"3" for rated.
  * @param active A boolean to see if the current severity filter is active.
  * @param labelType Current gallery label type (drives which smiley set to use).
  * @returns {Severity}
@@ -10,9 +10,10 @@
 function Severity (params, active, labelType) {
     const self = this;
 
-    // UI element of the severity container and image.
+    // UI elements of the severity container, image, and label.
     let severityElement = null;
     let $severityImage = null;
+    let $severityLabel = null;
     let interactionEnabled = false;
     let currentLabelType = labelType;
 
@@ -26,7 +27,7 @@ function Severity (params, active, labelType) {
     /**
      * Initialize Severity.
      *
-     * @param {int} param Severity.
+     * @param {string} param Severity ("null" for N/A, "1"/"2"/"3" for rated).
      */
     function _init(param) {
         properties.severity = param;
@@ -36,8 +37,10 @@ function Severity (params, active, labelType) {
 
         $severityImage = $('<img class="severity-filter-image" alt="">')
             .addClass('severity-' + properties.severity)
-            .attr('id', properties.severity);
+            .attr('id', 'severity-' + properties.severity);
         _updateIconSrc();
+
+        $severityLabel = $('<span class="severity-filter-label"></span>').text(_getLabelText());
 
         if (filterActive) {
             _showSelected();
@@ -45,7 +48,7 @@ function Severity (params, active, labelType) {
             _showDeselected();
         }
 
-        $(severityElement).append($severityImage);
+        $(severityElement).append($severityImage).append($severityLabel);
 
         // Show inverted smiley face on click or hover.
         severityElement.onclick = handleOnClickCallback;
@@ -70,9 +73,25 @@ function Severity (params, active, labelType) {
         sg.cardFilter.update();
     }
 
+    /**
+     * Icon filenames are keyed by a numeric severity (0..3). The "null" bucket reuses the sev-0 asset.
+     */
+    function _severityNum() {
+        return properties.severity === 'null' ? 0 : Number(properties.severity);
+    }
+
+    /**
+     * Returns the i18n-resolved text for this severity's label shown under the icon.
+     */
+    function _getLabelText() {
+        if (properties.severity === 'null') return i18next.t('labelmap:not-applicable-abbr');
+        const key = util.misc.getRatingLevelKeys(currentLabelType)[Number(properties.severity)];
+        return i18next.t('common:' + key);
+    }
+
     function _updateIconSrc() {
         const selected = filterActive || $($severityImage).hasClass('selected');
-        $severityImage.attr('src', util.misc.getSmileyIconPath(properties.severity, currentLabelType, selected));
+        $severityImage.attr('src', util.misc.getSmileyIconPath(_severityNum(), currentLabelType, selected));
     }
 
     function _showSelected() {
@@ -86,12 +105,13 @@ function Severity (params, active, labelType) {
     }
 
     /**
-     * Update the label type used to pick the smiley icon set (positive vs negative).
+     * Update the label type used to pick the smiley icon set (positive vs negative) and refresh the text label.
      * @param {string} newLabelType
      */
     function setLabelType(newLabelType) {
         currentLabelType = newLabelType;
         _updateIconSrc();
+        if ($severityLabel) $severityLabel.text(_getLabelText());
     }
 
     /**

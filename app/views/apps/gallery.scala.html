@@ -3,7 +3,7 @@
 @import service.CommonPageData
 @import models.pano.PanoSource
 @(commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, labelType: String,
-    labels: Seq[(String, String)], regionIds: Seq[Int], severities: Seq[Int], tags: List[String],
+    labels: Seq[(String, String)], regionIds: Seq[Int], severities: Seq[String], tags: List[String],
     valOptions: Seq[String], aiValOptions: Seq[String]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -106,7 +106,7 @@
             params.initialFilters = {
                 labelType: '@labelType',
                 neighborhoods: @{regionIds.mkString("[", ",", "]")},
-                severities: @{severities.mkString("[", ",", "]")},
+                severities: @{if (severities.isEmpty) "[]" else Html(severities.mkString("['", "','", "']"))},
                 validationOptions: @{if (valOptions.isEmpty) "[]" else Html(valOptions.mkString("['", "','", "']"))},
                 tags: @{if (tags.isEmpty) "[]" else Html(tags.mkString("['", "','", "']"))},
                 aiValidationOptions: @{if (aiValOptions.isEmpty) "[]" else Html(aiValOptions.mkString("['", "','", "']"))}

@@ -52,7 +52,7 @@ trait LabelService {
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
       regionIds: Set[Int],
-      severity: Set[Int],
+      severity: Set[Option[Int]],
       tags: Set[String],
       aiValOptions: Set[String],
       userId: String
@@ -194,7 +194,7 @@ class LabelServiceImpl @Inject() (
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
       regionIds: Set[Int],
-      severity: Set[Int],
+      severity: Set[Option[Int]],
       tags: Set[String],
       aiValOptions: Set[String],
       userId: String

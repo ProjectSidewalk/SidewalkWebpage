@@ -1,7 +1,7 @@
 /**
  * A Severity Bucket to store Severities.
  *
- * @param initialActiveSeverities array of severity levels to start out as active. Received from query params.
+ * @param initialActiveSeverities Array of severity levels to start out as active ("null"/"1"/"2"/"3").
  * @param initialLabelType initial gallery label type (drives which smiley icon set to use).
  * @returns {SeverityBucket}
  * @constructor
@@ -9,15 +9,18 @@
 function SeverityBucket(initialActiveSeverities, initialLabelType) {
     const self = this;
 
-    // List of severities.
+    // List of severities: "null" = N/A, "1" = low/good, "2" = medium/okay, "3" = high/bad.
+    const SEVERITY_LEVELS = ['null', '1', '2', '3'];
     let bucket = [];
 
     /**
      * Initialize SeverityBucket.
      */
     function _init() {
-        for (let i = 1; i <= 3; i++ ) {
-            push(new Severity(i, initialActiveSeverities ? initialActiveSeverities.includes(i) > 0 : false, initialLabelType));
+        const activeSet = new Set(initialActiveSeverities || []);
+        const defaultAll = activeSet.size === 0;
+        for (const level of SEVERITY_LEVELS) {
+            push(new Severity(level, defaultAll || activeSet.has(level), initialLabelType));
         }
     }
 
@@ -47,6 +50,13 @@ function SeverityBucket(initialActiveSeverities, initialLabelType) {
     }
 
     /**
+     * Reset all Severities to the default (all selected) state.
+     */
+    function selectAllSeverities() {
+        bucket.forEach(severity => severity.apply());
+    }
+
+    /**
      * Unapply all Severities.
      */
     function unapplySeverities() {
@@ -68,7 +78,7 @@ function SeverityBucket(initialActiveSeverities, initialLabelType) {
     }
 
     /**
-     * Return list of applied Severities.
+     * Return list of applied Severities ("null" represents the N/A bucket).
      */
     function getAppliedSeverities() {
         return bucket.filter(severity => severity.getActive()).map(severity => severity.getSeverity());
@@ -91,6 +101,7 @@ function SeverityBucket(initialActiveSeverities, initialLabelType) {
     self.push = push;
     self.render = render;
     self.setLabelType = setLabelType;
+    self.selectAllSeverities = selectAllSeverities;
     self.unapplySeverities = unapplySeverities;
     self.getSeverities = getSeverities;
     self.getSize = getSize;

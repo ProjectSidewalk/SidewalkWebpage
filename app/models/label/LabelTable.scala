@@ -1078,11 +1078,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
       regionIds: Set[Int],
-      severity: Set[Int],
+      severity: Set[Option[Int]],
       tags: Set[String],
       aiValOptions: Set[String],
       userId: String
   ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
+    val severityRatings: Set[Int]   = severity.flatten
+    val severityAllowsNull: Boolean = severity.contains(None)
     // Filter labels based on correctness.
     val _labelsFilteredByCorrectness = {
       var query = labels
@@ -1109,7 +1111,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if _lp.lat.isDefined && _lp.lng.isDefined
       if _lt.labelTypeId === labelType.id
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
-      if (_lb.severity inSetBind severity) || severity.isEmpty
+      // When the severity filter is non-empty, require a match against the requested ratings or (if allowed) null.
+      if (_lb.severity inSetBind severityRatings) || (_lb.severity.isEmpty && severityAllowsNull) || severity.isEmpty
       if (_lb.tags @& tags.toList) || tags.isEmpty // @& is the overlap operator from postgres (&& in postgres).
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2

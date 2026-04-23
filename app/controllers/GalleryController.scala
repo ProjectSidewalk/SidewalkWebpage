@@ -72,8 +72,12 @@ class GalleryController @Inject() (
         commonData <- configService.getCommonPageData(request2Messages.lang)
       } yield {
         // Make sure that list of region IDs, severities, and validation options are formatted correctly.
-        val regionIdsList: Seq[Int] = parseIntegerSeq(neighborhoods).filter(possibleRegions.contains)
-        val severityList: Seq[Int]  = parseIntegerSeq(severities).filter(s => s > 0 && s < 4)
+        val regionIdsList: Seq[Int]      = parseIntegerSeq(neighborhoods).filter(possibleRegions.contains)
+        val validSeverities: Seq[String] = Seq("null", "1", "2", "3")
+        val severityList: Seq[String]    = {
+          val tokens = severities.split(",").filter(validSeverities.contains).distinct.toSeq
+          if (tokens.isEmpty) validSeverities else tokens
+        }
         val tagList: List[String]   = tags.split(",").filter(possibleTags.contains).toList
         val valOptions: Seq[String] =
           validationOptions.split(",").filter(Seq("correct", "incorrect", "unsure", "unvalidated").contains(_)).toSeq
@@ -105,10 +109,11 @@ class GalleryController @Inject() (
         val loadedLabels: Set[Int]                = submission.loadedLabels.toSet
         val valOptions: Set[String]               = submission.validationOptions.getOrElse(Seq()).toSet
         val regionIds: Set[Int]                   = submission.regionIds.getOrElse(Seq()).toSet
-        val severities: Set[Int]                  = submission.severities.getOrElse(Seq()).toSet
-        val tags: Set[String]                     = submission.tags.getOrElse(Seq()).toSet
-        val aiValOptions: Set[String]             = submission.aiValidationOptions.getOrElse(Seq()).toSet
-        val userId: String                        = request.identity.userId
+        val severities: Set[Option[Int]]          =
+          submission.severities.getOrElse(Seq()).toSet.map { (s: String) => if (s == "null") None else Some(s.toInt) }
+        val tags: Set[String]         = submission.tags.getOrElse(Seq()).toSet
+        val aiValOptions: Set[String] = submission.aiValidationOptions.getOrElse(Seq()).toSet
+        val userId: String            = request.identity.userId
 
         // Get labels from LabelTable.
         labelService

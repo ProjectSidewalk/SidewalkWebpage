@@ -507,13 +507,14 @@ function UtilitiesMisc (JSON) {
 
     /**
      * Returns the full asset path for the smiley icon at the given severity and label type.
-     * @param {number} severity - 1 (low), 2 (medium), or 3 (high).
+     * @param {number} severity - 0 (N/A), 1 (low), 2 (medium), or 3 (high).
      * @param {string} labelType - The label type, used to pick positive vs negative icon set.
      * @param {boolean} selected - Whether to return the filled (selected-state) variant.
      * @returns {string}
      */
     function getSmileyIconPath(severity, labelType, selected) {
-        const set = isPositiveLabelType(labelType) ? 'positive' : 'negative';
+        // Severity 0 (N/A) is a neutral circle; only the negative asset exists and it's reused for both sets.
+        const set = severity === 0 || !isPositiveLabelType(labelType) ? 'negative' : 'positive';
         return `${SMILEY_ICON_BASE}sev-${severity}-${set}${selected ? '-filled' : ''}.svg`;
     }
 

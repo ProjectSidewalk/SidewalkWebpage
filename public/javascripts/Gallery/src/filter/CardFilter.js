@@ -132,7 +132,8 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
             newUrl += firstQueryParam ? `?neighborhoods=${sg.neighborhoodIds.join()}` : `&neighborhoods=${sg.neighborhoodIds.join()}`;
             firstQueryParam = false;
         }
-        if (currSeverities.length > 0) {
+        // All four severities (null, 1, 2, 3) selected is the default state, so we omit the param in that case.
+        if (currSeverities.length !== 4) {
             uiCardFilter.clearFilters.show();
             newUrl += firstQueryParam ? `?severities=${currSeverities}` : `&severities=${currSeverities}`;
             firstQueryParam = false;
@@ -285,7 +286,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
      * Clear all filters, setting them to their default state.
      */
     function clearFilters() {
-        severities.unapplySeverities();
+        severities.selectAllSeverities();
         validationOptions.setToDefault();
         clearCurrentTags();
         labelTypeMenu.setToDefault();

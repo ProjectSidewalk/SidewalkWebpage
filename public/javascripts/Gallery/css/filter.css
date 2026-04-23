@@ -18,13 +18,28 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 30px;
+    gap: 5px;
+    padding: 3px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.severity-filter:hover {
+    background: #f0f0f0;
+}
+
+.severity-filter-label {
+    font-family: 'Raleway', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-asphalt-400);
+    white-space: nowrap;
 }
 
 #severity-select {
-    display: flex;
-    flex-direction: row;
-    margin-left: -3px;
+    display: inline-grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
 }
 
 .gallery-filter-button, .gallery-tag {
