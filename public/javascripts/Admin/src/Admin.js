@@ -1,8 +1,6 @@
-async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
+async function Admin($, mapboxApiKey, viewerType, viewerAccessToken, cityName, currentUsername) {
     const self = {};
     const $loadingGif = $('#page-loading');
-    const legendTable = document.getElementById('legend-table');
-    const sliderNotApplicableText = (legendTable && legendTable.dataset.notApplicableLabel) || "N/A";
     let mapLoaded = false;
     let graphsLoaded = false;
     let labelsLoaded = false;
@@ -20,10 +18,10 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
         neighborhoodTooltip: 'completionRate',
         logClicks: false
     };
-    self.adminGSVLabelView = await AdminGSVLabelView(true, viewerType, viewerAccessToken, false);
+    self.labelPopup = await LabelPopup(true, viewerType, viewerAccessToken, cityName, currentUsername);
     const mapTabMapParams = {
         mapName: 'admin-labelmap-choropleth',
-        mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+        mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
         mapboxApiKey: mapboxApiKey,
         mapboxLogoLocation: 'bottom-right',
         neighborhoodsURL: '/neighborhoods',
@@ -36,10 +34,12 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
         neighborhoodTooltip: 'none',
         differentiateUnauditedStreets: true,
         interactiveStreets: true,
+        navigationControlPosition: 'top-right',
         uiSource: 'AdminMapTab',
-        popupLabelViewer: self.adminGSVLabelView,
+        popupLabelViewer: self.labelPopup,
         differentiateExpiredLabels: true,
-        logClicks: false
+        logClicks: false,
+        highQualityFilter: true
     };
 
     // Constructor: load data for the Overview page tables from backend & make the loader finish after that data loads.
@@ -47,7 +47,7 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
         // Run all the API requests. Once the data has loaded, make the page visible.
         Promise.all([
             loadStreetEdgeData(), loadUserCountData(), loadContributionTimeData(), loadLabelCountData(),
-            loadValidationCountData(), loadComments(), initializeAdminGSVCommentView()
+            loadValidationCountData(), loadComments(), initializeAdminCommentPopup()
         ]).then(function() {
             $loadingGif.css('visibility', 'hidden');
             $('#admin-page-container').css('visibility', 'visible');
@@ -56,12 +56,12 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
         });
 
         // Create the functionality for the Label Search tab.
-        self.adminLabelSearch = AdminLabelSearch(true, self.adminGSVLabelView, 'AdminLabelSearchTab');
+        self.adminLabelSearch = AdminLabelSearch(true, self.labelPopup, 'AdminLabelSearchTab');
 
         // Set up the listeners for the Labels table.
         $('#label-table').on('click', '.labelView', async function(e) {
             e.preventDefault();
-            await self.adminGSVLabelView.showLabel($(this).data('labelId'), 'AdminContributionsTab');
+            await self.labelPopup.showLabel($(this).data('labelId'), 'AdminContributionsTab');
         });
 
         // Set up the listeners for the comments table.
@@ -73,12 +73,12 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
                 zoom: Number($(this).data('zoom'))
             };
             const labelId = parseInt($(this).data('labelId'));
-            await self.adminGSVCommentView.showCommentGSV(this.innerHTML, pov, labelId);
+            await self.adminCommentPopup.showCommentGSV(this.innerHTML, pov, labelId);
         });
     }
 
-    async function initializeAdminGSVCommentView(){
-        self.adminGSVCommentView = await AdminGSVCommentView(true, viewerType, viewerAccessToken);
+    async function initializeAdminCommentPopup(){
+        self.adminCommentPopup = await AdminCommentPopup(true, viewerType, viewerAccessToken);
     }
 
     function isResearcherRole(roleName) {
@@ -202,56 +202,9 @@ async function Admin(_, $, mapboxApiKey, viewerType, viewerAccessToken) {
             CreatePSMap($, mapTabMapParams).then(m => {
                 self.map = m[0];
                 self.mapData = m[4];
-                addLegendListeners(self.map, self.mapData);
+                new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });
                 mapLoaded = true;
             });
-
-            // Adds listeners to the checkboxes and sliders so that they update the map.
-            function addLegendListeners(map, mapData) {
-                // Add listeners on the checkboxes.
-                document.querySelectorAll('#legend-table tr input').forEach(checkbox => {
-                    checkbox.addEventListener('click', () => {
-                        if (checkbox.getAttribute('data-filter-type') === 'label-type') {
-                            let slider;
-                            if (checkbox.parentElement.nextElementSibling) {
-                                slider = checkbox.parentElement.nextElementSibling.firstElementChild;
-                            }
-                            toggleLabelLayer(checkbox.id.split('-')[0], checkbox, slider, map, mapData);
-                        } else if (checkbox.getAttribute('data-filter-type') === 'label-validations') {
-                            filterLabelLayers(checkbox, map, mapData, true);
-                        } else {
-                            filterStreetLayer(map);
-                        }
-                    }, false);
-                    checkbox.disabled = false; // Enable the checkbox now that the map has loaded.
-                });
-
-                // Add listeners on the sliders.
-                const formatSeverityValue = (value) => value === 0 ? sliderNotApplicableText : value;
-                $( "*[id*='slider']" ).each(function() {
-                    $(this).slider('option', {
-                        // Change the text next to the slider as it's moved.
-                        slide: function(event, ui) {
-                            let sliderTextEl = this.parentElement.nextElementSibling.firstElementChild;
-                            const low = formatSeverityValue(ui.values[0]);
-                            const high = formatSeverityValue(ui.values[1]);
-                            if (low === high) {
-                                sliderTextEl.textContent = low;
-                            } else {
-                                sliderTextEl.textContent = `${low} - ${high}`;
-                            }
-                        },
-                        // When the slider is released, update the map.
-                        change: function(event, ui) {
-                            let labelType = this.id.split('-')[0];
-                            let checkbox = this.parentElement.previousElementSibling.firstElementChild;
-                            toggleLabelLayer(labelType, checkbox, this, map, mapData);
-                        },
-                        // Enable the sliders now that the map has loaded.
-                        disabled: false
-                    });
-                });
-            }
         }
         else if (e.target.id === "analytics" && graphsLoaded === false) {
 

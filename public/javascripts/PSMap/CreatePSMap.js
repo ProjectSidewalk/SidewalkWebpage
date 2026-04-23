@@ -23,6 +23,7 @@
  * @param {boolean} [params.interactiveStreets=false] - Whether to include hover/click interactions on the streets.
  * @param {boolean} [params.includeLabelCounts=false] - Whether to include label counts for each type in the legend.
  * @param {boolean} [params.differentiateExpiredLabels=false] - Whether to color expired labels differently.
+ * @param {string} [params.navigationControlPosition='top-left'] - Position of the zoom/pitch controls on the map.
  * @param {string} [params.uiSource] - Used to record the UI used when submitting a validation through the popup.
  * @param {object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
  * @return {Promise} - Promise that resolves all components of map have loaded.
@@ -41,6 +42,15 @@ function CreatePSMap($, params) {
         return createMap(data[0]);
     }).then(newMap => {
         map = newMap; // Assign the returned map to the map variable.
+
+        // Show the sidebar early (in its disabled/loading state) so it's visible while data loads.
+        // Also shift the map center to account for the sidebar covering part of the map.
+        const sidebar = document.getElementById('map-sidebar');
+        if (sidebar) {
+            sidebar.style.visibility = 'visible';
+            sidebar.classList.add('map-sidebar--loading');
+            map.setPadding({ left: sidebar.offsetWidth, top: 0, right: 0, bottom: 0 });
+        }
         return map;
     });
 
@@ -90,9 +100,6 @@ function CreatePSMap($, params) {
                 window.citiesMap.resize();
             }
         });
-
-        // Hide the loading spinner.
-        $('#page-loading').hide();
     });
     return allLoaded;
 
@@ -120,7 +127,8 @@ function CreatePSMap($, params) {
             scrollZoom: params.scrollWheelZoom,
         });
         map.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
-        map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
+        const navPosition = params.navigationControlPosition || 'top-left';
+        map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), navPosition);
 
         // Move the Mapbox logo if necessary.
         if (['top-left', 'top-right', 'bottom-right'].includes(params.mapboxLogoLocation)) {
@@ -134,6 +142,9 @@ function CreatePSMap($, params) {
                 newParentElement.appendChild(mapboxLogoElem);
             }
         }
+
+        // From manual testing, it looks best to hide the loading spinner at this point.
+        $('#page-loading').hide();
 
         // Create a promise that resolves when the map has loaded.
         return new Promise((resolve, reject) => {

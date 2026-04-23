@@ -102,6 +102,19 @@
     padding: 0 10px 10px 10px;
 }
 
+/* Gallery's inline expanded view — host-level sizing for the LabelDetail inline card.  Height is 100vh minus the fixed
+   navbar height ~71px and some margin. Note that the top is also set dynamically as the user scrolls in Main.js. */
+.gallery-expanded-view {
+    height: calc(100vh - 71px - 2vh);
+    top: 1vh;
+    width: 52vw;
+    right: 3vw;
+    border-radius: 12px;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+    justify-self: end;
+    visibility: hidden;
+}
+
 .cards {
     display: flex;
     flex-flow: row wrap;
@@ -112,14 +125,6 @@
 We should allow the pointer events to pass through and behave the same way as they do on the background. */
 .label-icon-gallery, .icon-outline {
     pointer-events: none;
-}
-
-.face-outline {
-    stroke: #2D2A3F;
-}
-
-.facial-feature {
-    fill: #2D2A3F;
 }
 
 .ai-icon-marker {
@@ -136,7 +141,3 @@ We should allow the pointer events to pass through and behave the same way as th
     left: -5px;
 }
 
-.ai-icon-marker-expanded {
-    top: -6px;
-    left: -4px;
-}

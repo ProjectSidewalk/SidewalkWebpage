@@ -15,8 +15,8 @@
         "mission-message": "Absolvieren Sie die Einführung!",
         "select-label-type-1": "In diesem “Street View”-Bild haben wir einen Pfeil zu einer Trottoirabsenkung eingezeichnet. Diese werden wir nun beschriften. Klicken Sie oben auf das beschriftete <span class=\"bold\">\"Trottoirabsenkung\"-Symbol</span>.",
         "label-attribute-1": "Gut! Nun <span class=\"bold\">klicken Sie auf die Trottoirabsenkung</span> unterhalb des gelb blinkenden Pfeils, um sie zu beschriften.",
-        "rate-severity-1": "Jetzt können Sie den Schweregrad etwaiger Probleme mit der Bordsteinrampe bewerten, die für einen Rollstuhlfahrer ein Problem darstellen könnten. Da sie breit genug ist und eine taktile Orientierungshilfe hat, <span class=\"bold\">Bewerten wir den Schweregrad als „Niedrig“.</span>",
-        "redo-rate-attribute-1": "Ups, Sie sollten diese Trottoirabsenkung mit Niedrig, passierbar bewerten. Es handelt sich um eine gute Trottoirabsenkung, die breit genug ist und eine taktile Orientierungshilfe hat. <span class=\"bold\">Wählen Sie \"Niedrig\" aus, um sie zu bewerten.</span>",
+        "rate-severity-1": "Jetzt können Sie die Qualität der Bordsteinrampe bewerten. Da sie breit genug ist und eine taktile Orientierungshilfe hat, <span class=\"bold\">bewerten wir die Qualität als „Gut“.</span>",
+        "redo-rate-attribute-1": "Ups, Sie sollten diese Trottoirabsenkung mit Gut bewerten. Es handelt sich um eine gute Trottoirabsenkung, die breit genug ist und eine taktile Orientierungshilfe hat. <span class=\"bold\">Wählen Sie \"Gut\" aus, um sie zu bewerten.</span>",
         "select-label-type-2": "Beschriften wir nun den aufgemalten Fussgängerübergang. <span class=\"bold\">Klicken Sie auf das \"Markierter Fussgängerstreifen\"-Symbol.</span>.",
         "label-attribute-2": "Toll! Jetzt <span class=\"bold\">klicken Sie unter den blinkenden gelben Pfeil</span> um den Fussgängerübergang zu kennzeichnen.",
         "adjust-heading-angle-1": "Gut! Nun passen wir die Ansicht an, um eine andere Ecke der Kreuzung zu betrachten. <span class=\"bold\">Greifen und ziehen Sie das “Street View”-Bild, um nach links zu blicken.</span>",
@@ -24,7 +24,7 @@
         "select-label-type-3": "Sehr gut! Wir haben eine weitere Trottoirabsenkung gefunden. Beschriften wir sie! <span class=\"bold\">Klicken Sie auf das “Trottoirabsenkung”-Symbol</span> wie vorhin.",
         "label-attribute-3": "Nun <span class=\"bold\">klicken Sie auf die Trottoirabsenkung</span> unterhalb des gelb blinkenden Pfeils, um sie zu beschriften.",
         "rate-severity-3": "Gut, nun <span class=\"bold\">bewerten Sie die Qualität</span> der Trottoirabsenkung.",
-        "redo-rate-attribute-3": "Ups, Sie sollten diese Trottoirabsenkung mit Medium, einigermassen passierbar bewerten.  Es handelt sich um eine gute Trottoirabsenkung, aber es hat keinen Platz am oberen Ende der Absenkung, um zu wenden. <span class=\"bold\">Wählen Sie \"Medium\" aus, um sie zu bewerten.</span>",
+        "redo-rate-attribute-3": "Ups, Sie sollten diese Trottoirabsenkung mit Mittelmäßig bewerten. Es handelt sich um eine gute Trottoirabsenkung, aber es hat keinen Platz am oberen Ende der Absenkung, um zu wenden. <span class=\"bold\">Wählen Sie \"Mittelmäßig\" aus, um sie zu bewerten.</span>",
         "tag-attribute-3": "Jede Beschriftung enthält optionale Tags, mit denen zusätzliche Informationen hinzugefügt werden. Wählen Sie für jede Beschriftung, die Sie erstellen, die passenden Tags! <span class=\"bold\">Fügen Sie den “nicht genug Platz”-Tag</span> hinzu, da es am oberen Ende der Trottoirabsenkung für eine rollstuhlfahrende Person nicht genügend Platz hat um zu wenden.",
         "redo-tag-attribute-3": "Nur der \"nicht genug Platz\"-Tag trifft hier zu, da die Trottoirabsenkung eine taktile Orientierungshilfe hat, nicht zu schmal oder zu steil ist und nicht auf den Verkehr ausgerichtet ist. Fügen Sie <span class=\"bold\">nur den \"nicht genug Platz\"-Tag hinzu.</span>",
         "select-label-type-4": "Beachten Sie, dass es am Ende dieses Fussgängerstreifens keine Trottoirabsenkung hat. <span class=\"bold\">Klicken Sie das\"Fehlende Trottoirabsenkung\"-Symbol</span>, um dies zu beschriften.",
@@ -49,7 +49,7 @@
         "select-label-type-8": "Gut! Nun <span class=\"bold\">klicken Sie auf das \"Trottoirabsenkung\"-Symbol</span> im Menu, um sie zu beschriften.",
         "label-attribute-8": "<span class=\"bold\">Klicken Sie auf die Trottoirabsenkung</span> unterhalb des gelb blinkenden Pfeils, um sie zu beschriften.",
         "rate-severity-8": "Nun <span class=\"bold\">beurteilen Sie die Qualität der Trottoirabsenkung</span>. Nutzen Sie Ihr bestes Urteilsvermögen. Sie können auch Kommentare ins <span class=\"bold\">Beschreibungsfeld</span> schreiben.",
-        "redo-rate-attribute-8": "Hmm, Sie sollten diese Trottoirabsenkung mit Niedrig, passierbar bewerten. Diese Trottoirabsenkung ist breit genug, hat eine taktile Orientierungshilfe und ist nicht auf den Verkehr ausgerichtet. <span class=\"bold\">Klicken Sie \"Niedrig\" um den Schweregrad zu ändern.</span>",
+        "redo-rate-attribute-8": "Hmm, Sie sollten diese Trottoirabsenkung mit Gut bewerten. Diese Trottoirabsenkung ist breit genug, hat eine taktile Orientierungshilfe und ist nicht auf den Verkehr ausgerichtet. <span class=\"bold\">Klicken Sie \"Gut\" um die Bewertung zu ändern.</span>",
         "select-label-type-9": "Wir sollten das Fussgänger:innensignal nicht vergessen! <span class=\"bold\">Klicken Sie auf das \"Fussgänger:innensignal\"-Symbol</span> um dieses zu beschriften.",
         "label-attribute-9": "<span class=\"bold\">Klicken Sie auf das untere Ende des Pfostens</span> um dieses Fussgänger:innensignal zu beschriften.",
         "adjust-heading-angle-5": "Gut gemacht! Wir sind beinahe fertig. Nun wollen wir lernen, wie Sie sich bewegen können. <span class=\"bold\">Greifen und ziehen Sie das “Street View”-Bild</span>.",
@@ -69,8 +69,8 @@
             "label-too-far-signal": "$t(audit:tutorial.common.label-too-far-start) Bei hohen Objekten, wie z. B. Pfosten, bitten wir Sie, Beschriftungen am unteren Ende des Pfostens anzubringen. So erhalten wir genauere Informationen zum Standort! $t(audit:tutorial.common.label-too-far-end)",
             "label-too-far-generic": "$t(audit:tutorial.common.label-too-far-start) Lassen Sie uns die falsch platzierte Beschriftung entfernen. $t(audit:tutorial.common.label-too-far-end)",
             "re-label": "Gut! Nun werden wir eine neue Beschriftung hinzufügen. <span class=\"bold\">Klicken Sie auf das \"{{label_type}}\"-Symbol</span> oberhalb.",
-            "rate-crosswalk-sev-1": "Jetzt können Sie den Schweregrad aller Probleme mit dem Zebrastreifen bewerten, die für einen Rollstuhlfahrer ein Problem darstellen könnten. Da die Oberfläche glatt und die Farbe nicht verblasst ist, <span class=\"bold\">Bewerten wir den Schweregrad als „Niedrig“.</span>",
-            "redo-rate-crosswalk-sev-1": "Achtung! Sie sollten diesen Fussgängerstreifen mit Niedrig, passierbar, bewerten. Die Oberfläche ist glatt und die Farbe nicht verblasst. <span class=\"bold\">Klicken Sie auf \"Niedrig\" um den entsprechenden Schweregrad anzugeben.</span>"
+            "rate-crosswalk-sev-1": "Jetzt können Sie die Qualität des Zebrastreifens bewerten. Da die Oberfläche glatt und die Farbe nicht verblasst ist, <span class=\"bold\">bewerten wir die Qualität als „Gut“.</span>",
+            "redo-rate-crosswalk-sev-1": "Achtung! Sie sollten diesen Fussgängerstreifen mit Gut bewerten. Die Oberfläche ist glatt und die Farbe nicht verblasst. <span class=\"bold\">Klicken Sie auf \"Gut\" um die entsprechende Qualität anzugeben.</span>"
         }
     },
     "mission-complete": {

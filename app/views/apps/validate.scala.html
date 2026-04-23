@@ -18,13 +18,13 @@
 
     <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
     <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
     <script src='@assets.path("javascripts/lib/turf-7.3.4.min.js")'></script>
     <script src='@assets.path("javascripts/lib/selectize-0.15.2.min.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/lib/selectize-0.15.2.min.css")'/>
     @if(commonData.imagerySource == PanoSource.Infra3d) {
         <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
-        <script src='@assets.path("javascripts/lib/infra3dapi-1.7.0.js")'></script>
+        <script src='@assets.path("javascripts/lib/infra3dapi-1.8.0.js")'></script>
     } else if (commonData.imagerySource == PanoSource.Mapillary) {
         <script src='@assets.path("javascripts/lib/three-0.160.1-min.js")'></script>
         <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
@@ -35,6 +35,7 @@
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
 
     @common.missionStartTutorial()
+    @common.panoInfoPopover()
 
     <div id="page-loading">
         <div id="loading-animation">
@@ -53,15 +54,6 @@
             <div class="remove-tag-x">
                 <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>
             </div>
-        </div>
-        <div class="severity-image severity-1 template">
-            <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-1"></use></svg>
-        </div>
-        <div class="severity-image severity-2 template">
-            <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-2"></use></svg>
-        </div>
-        <div class="severity-image severity-3 template">
-            <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-3"></use></svg>
         </div>
         <template id="admin-info-template">
             <div id="admin-info-content">
@@ -203,28 +195,29 @@
                     <select id="select-tag" multiple></select>
                 </div>
                 <div id="validate-severity-section" class="validation-menu-section">
-                    <div id="validate-severity-header" class="validation-menu-section-header">Update severity level</div>
+                    @* Header and severity level labels are swapped by DesktopValidationMenu JS based on curr label type. *@
+                    <div id="validate-severity-header" class="validation-menu-section-header"></div>
                     <div id="severity-radio-holder">
                         <div class="severity-level radio-inline" id="severity-button-1" data-severity="1" data-toggle="tooltip">
                             <input type="radio" name="label-severity" value="1" id="radio-severity-1">
                             <div class="severity-icon severity-1">
-                                <svg viewBox="0 0 150 150" aria-hidden="true"><use xlink:href="#smiley-frown-1"></use></svg>
+                                <img src="" alt="" class="severity-icon-img">
                             </div>
-                            <label for="radio-severity-1" class="severity-label">Low</label>
+                            <label for="radio-severity-1" class="severity-label"></label>
                         </div>
                         <div class="severity-level radio-inline" id="severity-button-2" data-severity="2" data-toggle="tooltip">
                             <input type="radio" name="label-severity" value="2" id="radio-severity-2">
                             <div class="severity-icon severity-2">
-                                <svg viewBox="0 0 150 150" aria-hidden="true"><use xlink:href="#smiley-frown-2"></use></svg>
+                                <img src="" alt="" class="severity-icon-img">
                             </div>
-                            <label for="radio-severity-2" class="severity-label">Medium</label>
+                            <label for="radio-severity-2" class="severity-label"></label>
                         </div>
                         <div class="severity-level radio-inline selected" id="severity-button-3" data-severity="3" data-toggle="tooltip">
                             <input type="radio" name="label-severity" value="3" id="radio-severity-3">
                             <div class="severity-icon severity-3">
-                                <svg viewBox="0 0 150 150" aria-hidden="true"><use xlink:href="#smiley-frown-3"></use></svg>
+                                <img src="" alt="" class="severity-icon-img">
                             </div>
-                            <label for="radio-severity-3" class="severity-label">High</label>
+                            <label for="radio-severity-3" class="severity-label"></label>
                         </div>
                     </div>
                 </div>

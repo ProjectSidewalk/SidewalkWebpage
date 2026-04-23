@@ -328,6 +328,9 @@ function Main (params) {
         var distance = svl.taskContainer.getCompletedTaskDistance();
         svl.statusFieldNeighborhood.setAuditedDistance(distance, unit);
         svl.statusFieldOverall.setNeighborhoodAuditedDistance(distance);
+
+        // Prefetch Mapillary data on images along the street to improve load times for images along the street.
+        svl.navigationService.prefetchAlongStreet(svl.taskContainer.getCurrentTask().getFeature())
     }
 
     // This is a callback function that is executed after every loading process is done.
@@ -379,7 +382,7 @@ function Main (params) {
 
             // Use CSS zoom to scale the UI for users with high resolution screens.
             // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
-            if (bowser.safari) {
+            if (util.isSafari()) {
                 svl.cssZoom = util.scaleUI();
                 window.addEventListener('resize', (e) => { svl.cssZoom = util.scaleUI(); });
             }

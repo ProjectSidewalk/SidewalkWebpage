@@ -35,7 +35,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     let currentTags = tagsByType[status.currentLabelType];
 
     // Collection of severities.
-    let severities = new SeverityBucket(initialFilters.severities);
+    let severities = new SeverityBucket(initialFilters.severities, status.currentLabelType);
 
     let validationOptions = new ValidationOptionBucket(initialFilters.validationOptions);
 
@@ -81,6 +81,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
             clearCurrentTags();
             setStatus('currentLabelType', currLabelType);
             currentTags = tagsByType[currLabelType];
+            severities.setLabelType(currLabelType);
             render();
         }
         sg.cardContainer.updateCardsByFilter();
@@ -131,7 +132,8 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
             newUrl += firstQueryParam ? `?neighborhoods=${sg.neighborhoodIds.join()}` : `&neighborhoods=${sg.neighborhoodIds.join()}`;
             firstQueryParam = false;
         }
-        if (currSeverities.length > 0) {
+        // All four severities (null, 1, 2, 3) selected is the default state, so we omit the param in that case.
+        if (currSeverities.length !== 4) {
             uiCardFilter.clearFilters.show();
             newUrl += firstQueryParam ? `?severities=${currSeverities}` : `&severities=${currSeverities}`;
             firstQueryParam = false;
@@ -158,7 +160,9 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
             $('#severity-header').hide();
             $('#severity-select').hide();
         } else {
-            $('#severity-header').show();
+            // Swap the filter header between "Severity" and "Quality" based on the current label type.
+            const headerKey = util.misc.isPositiveLabelType(status.currentLabelType) ? 'quality' : 'severity';
+            $('#severity-header').text(i18next.t(headerKey)).show();
             $('#severity-select').show();
         }
         if (currentTags.getTags().length > 0) {
@@ -282,7 +286,7 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
      * Clear all filters, setting them to their default state.
      */
     function clearFilters() {
-        severities.unapplySeverities();
+        severities.selectAllSeverities();
         validationOptions.setToDefault();
         clearCurrentTags();
         labelTypeMenu.setToDefault();

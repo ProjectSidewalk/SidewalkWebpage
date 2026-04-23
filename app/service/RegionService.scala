@@ -61,8 +61,8 @@ class RegionServiceImpl @Inject() (
       numInserted: Int <-
         if (count == 0) {
           val streetsInRegion = for {
-            _edgeRegion <- streetEdgeRegion
-            _edges      <- streetEdgeTable.streetEdgesWithoutDeleted if _edges.streetEdgeId === _edgeRegion.streetEdgeId
+            _edgeRegion   <- streetEdgeRegion
+            _edges        <- streetEdgeTable.streets if _edges.streetEdgeId === _edgeRegion.streetEdgeId
             _edgePriority <- streetEdgePriorities if _edges.streetEdgeId === _edgePriority.streetEdgeId
           } yield (_edgeRegion.regionId, _edges.geom.transform(26918), _edgePriority.priority < 1.0)
 

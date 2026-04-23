@@ -5,6 +5,13 @@ util.EXPLORE_CANVAS_WIDTH = 720;
 util.EXPLORE_CANVAS_HEIGHT = 480;
 util.EXPLORE_CANVAS_ASPECT_RATIO = util.EXPLORE_CANVAS_WIDTH / util.EXPLORE_CANVAS_HEIGHT;
 
+// Browser detection helpers backed by Bowser 2.x.
+const _bowserParser = bowser.getParser(window.navigator.userAgent);
+util.getBrowserName = () => _bowserParser.getBrowserName();
+util.isSafari = () => util.getBrowserName() === 'Safari';
+util.isChrome = () => util.getBrowserName() === 'Chrome';
+util.isFirefox = () => util.getBrowserName() === 'Firefox';
+
 // A cross-browser function to capture a mouse position.
 function mouseposition(e, dom) {
     var mx, my, zoomFactor;
@@ -172,7 +179,7 @@ util.camelToKebab = camelToKebab;
  */
 function scaleUI() {
     var toolCSSZoom = 100;
-    if (!bowser.safari) return toolCSSZoom; // Only tested for Chrome/Safari so far.
+    if (!util.isSafari()) return toolCSSZoom; // Only tested for Chrome/Safari so far.
 
     var toolUI = document.querySelector('.tool-ui');
     var mst = document.querySelector('.mst-content');

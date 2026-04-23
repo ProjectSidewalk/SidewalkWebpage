@@ -1,0 +1,31 @@
+/* Shared tag pill styles — used in map sidebar filters and label detail popups. */
+.tag-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border: 1px solid #666;
+    border-radius: 16px;
+    font-family: "Raleway", sans-serif;
+    font-weight: 600;
+    font-size: 10px;
+    color: #000;
+    background: #fff;
+    white-space: nowrap;
+}
+
+/* Interactive pills (toggleable filters, clickable actions, etc.) */
+.tag-pill--interactive {
+    cursor: pointer;
+}
+
+.tag-pill--interactive:hover {
+    background: var(--color-pine-100);
+}
+
+.tag-pill--interactive.tag-pill--active {
+    background: var(--color-pine-400);
+}
+
+.tag-pill--interactive.tag-pill--active:hover {
+    background: var(--color-pine-300);
+}

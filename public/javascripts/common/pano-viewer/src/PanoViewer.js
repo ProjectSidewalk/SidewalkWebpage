@@ -107,12 +107,25 @@ class PanoViewer {
     /**
      * Sets the panorama to the location closest to the specified lat/lng.
      * @param {{lat: number, lng: number}} latLng The desired location to move to.
-     * @param {Set<string>} [excludedPanos=new Set()] Set of pano IDs that are not valid images to move to.
+     * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to.
      * @returns {Promise<PanoData>} The panorama data object. Rejects if closest image is in excludedPanos or none found.
      */
     async setLocation(latLng, excludedPanos = new Set()) {
         throw new Error('setLocation(latLng, excludedPanos) must be implemented by subclass');
     }
+
+    /**
+     * Prefetches images near a location to reduce latency on a subsequent setLocation() call.
+     * No-op by default; override in subclasses that support prefetching.
+     * @param {{lat: number, lng: number}} latLng
+     */
+    prefetchLocation(latLng) {}
+
+    /**
+     * Clears all prefetched image search results. Call when moving to a new street.
+     * No-op by default; override in subclasses that support prefetching.
+     */
+    clearPrefetchCache() {}
 
     /**
      * Moves the current panorama to the specified panorama ID.
@@ -167,6 +180,14 @@ class PanoViewer {
     showNavigationArrows() {
         throw new Error('showNavigationArrows() must be implemented by subclass');
     }
+
+    /**
+     * Notifies the viewer that its container has been resized. Call this after any layout change that affects
+     * the container's dimensions so the viewer can re-measure and re-render at the correct size.
+     * No-op by default; override in subclasses that support a resize API.
+     * @returns {void}
+     */
+    resize() {}
 
     /**
      * Adds an event listener for the specified event type.

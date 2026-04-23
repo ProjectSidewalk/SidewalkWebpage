@@ -3,25 +3,23 @@ svg {
     position: relative;
 }
 
-#map-label-legend {
-    position: absolute;
-    background: rgba(255, 255, 255, 0.75);
-    left: 10px;
-    width: 250px;
-    bottom: 10px;
-    border: solid 1px #ccc;
+.map-sidebar {
+    margin-top: 0;
 }
 
-#map-label-legend .table {
-    margin-bottom: 0;
+.map-sidebar__resize-handle {
+    top: 0; /* Matches .map-sidebar margin-top so the handle aligns with the visible edge. */
 }
 
-#map-label-legend table td {
-    border-top: 0;
-    padding: 2px;
+.map-sidebar-open-btn {
+    margin: 0 0 0 0;
 }
 
 #profile-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
     margin: 0px;
     margin-top: 7px;
 }
@@ -120,7 +118,7 @@ svg {
 }
 
 #map-row {
-    height: 600px;
+    height: 620px;
     margin-top: 10px;
 }
 #map-column {
@@ -187,11 +185,8 @@ svg {
 }
 
 .mistakes-help-tooltip {
-    margin-bottom: 4px;
-    border: 1px solid black;
-    border-radius: 10px;
-    padding: 3px;
-    width: 17px;
+    margin-bottom: 3px;
+    width: 18px;
     height: 18px;
 }
 

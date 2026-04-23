@@ -2,9 +2,21 @@
     "is-correct": "Is this label correct?",
     "label-type": "Label Type",
     "validations": "Validations",
+    "legend": "Legend",
+    "streets": "Streets",
+    "audited-street": "Audited Street",
+    "unaudited-street": "Unaudited Street",
+    "not-applicable-abbr": "N/A",
+    "deselect-all": "Deselect all",
+    "select-all": "Select all",
+    "show-tags": "Show tags",
+    "hide-tags": "Hide tags",
     "ai-validation": "AI Validation",
     "ai-val-included": "$t(common:{{aiVal}}) (included in count above)",
     "add-comment": "Add comment here...",
     "submit-comment": "Submit comment",
-    "comment-submitted": "Comment Submitted"
+    "comment": "Comment",
+    "comments": "Comments",
+    "comment-submitted": "Comment Submitted",
+    "own-label-disabled": "You cannot validate or comment on your own label"
 }

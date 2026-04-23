@@ -144,25 +144,17 @@
 }
 
 .severity-level .severity-icon {
-    width: 25px;
-    height: 25px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     margin-bottom: 5px;
     overflow: visible;
 }
 
-.severity-level .severity-icon svg {
+.severity-level .severity-icon-img {
     width: 100%;
     height: 100%;
-}
-
-.severity-level .severity-icon svg use {
-    fill: white;
-    stroke: #2D2A3F;
-}
-
-.facial-feature {
-    fill: #2D2A3F;
+    display: block;
 }
 
 .severity-level .severity-label {
@@ -171,32 +163,6 @@
     font-size: 10px;
     text-align: center;
     color: #514d4d;
-}
-
-/* We should add transition only when the cursor is on the context menu. */
-/* Otherwise, it causes a delay when the context menu is closed and re-opened. */
-#context-menu-holder:hover .severity-level .severity-icon svg use{
-    transition: fill 0.3s;
-}
-
-.severity-level:hover .severity-icon.severity-1 svg use {
-    fill: rgba(244, 219, 72, 0.55);
-}
-.severity-level:hover .severity-icon.severity-2 svg use {
-    fill: rgba(238, 157, 58, 0.55);
-}
-.severity-level:hover .severity-icon.severity-3 svg use {
-    fill: rgba(232, 95, 43, 0.55);
-}
-
-.severity-level input:checked ~ .severity-icon.severity-1 svg use {
-    fill: #f4db48;
-}
-.severity-level input:checked ~ .severity-icon.severity-2 svg use {
-    fill: #ee9d3a;
-}
-.severity-level input:checked ~ .severity-icon.severity-3 svg use {
-    fill: #e85f2b;
 }
 
 #context-menu-description-section {

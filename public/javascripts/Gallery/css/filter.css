@@ -9,49 +9,44 @@
 }
 
 .severity-filter-image {
-    background-color: white;
-    width: 25px;
-}
-
-.severity-filter-image svg {
-    fill: white;
-    transition: fill 0.3s;
-}
-
-.severity-filter-image.severity-1.selected svg, .severity-filter-image.severity-1.highlight svg {
-    fill: #f4db48;
-}
-.severity-filter-image.severity-2.selected svg, .severity-filter-image.severity-2.highlight svg {
-    fill: #f1bc41;
-}
-.severity-filter-image.severity-3.selected svg, .severity-filter-image.severity-3.highlight svg {
-    fill: #ee9d3a;
-}
-.severity-filter-image.severity-4.selected svg, .severity-filter-image.severity-4.highlight svg {
-    fill: #eb7e32;
-}
-.severity-filter-image.severity-5.selected svg, .severity-filter-image.severity-5.highlight svg {
-    fill: #e85f2b;
+    width: 24px;
+    height: 24px;
+    display: block;
 }
 
 .severity-filter {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 30px;
+    gap: 5px;
+    padding: 3px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.severity-filter:hover {
+    background: #f0f0f0;
+}
+
+.severity-filter-label {
+    font-family: 'Raleway', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-asphalt-400);
+    white-space: nowrap;
 }
 
 #severity-select {
-    display: flex;
-    flex-direction: row;
-    margin-left: -3px;
+    display: inline-grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
 }
 
 .gallery-filter-button, .gallery-tag {
     padding: 0px 5px;
     border-style: solid;
     border-width: 1px;
-    border-radius: 5px;
+    border-radius: 10px;
     text-align: left;
     background-color: white;
     color: black;

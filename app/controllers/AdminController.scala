@@ -65,9 +65,12 @@ class AdminController @Inject() (
    * Loads the admin page.
    */
   def index = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      tags       <- labelService.getTagsForCurrentCity
+    } yield {
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin")
-      Ok(views.html.admin.index(commonData, "Sidewalk - Admin", request.identity))
+      Ok(views.html.admin.index(commonData, "Sidewalk - Admin", request.identity, tags))
     }
   }
 
@@ -82,10 +85,11 @@ class AdminController @Inject() (
           userProfileData: UserProfileData <- userService.getUserProfileData(user.userId, metricSystem)
           adminData                        <- adminService.getAdminUserProfileData(user.userId)
           commonData                       <- configService.getCommonPageData(request2Messages.lang)
+          tags                             <- labelService.getTagsForCurrentCity
         } yield {
           cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_AdminUserDashboard_User=$username")
           Ok(
-            views.html.userProfile(commonData, "Sidewalk - Dashboard", request.identity, user, userProfileData,
+            views.html.userProfile(commonData, "Sidewalk - Dashboard", request.identity, user, tags, userProfileData,
               Some(adminData))
           )
         }
@@ -200,7 +204,8 @@ class AdminController @Inject() (
                 "ai_validation"     -> label.aiValidation.map(LabelValidationTable.validationOptions.get),
                 "expired"           -> label.expired,
                 "high_quality_user" -> label.highQualityUser,
-                "ai_generated"      -> label.aiGenerated
+                "ai_generated"      -> label.aiGenerated,
+                "tags"              -> label.tags
               )
             )
           }.seq
@@ -289,7 +294,8 @@ class AdminController @Inject() (
    * Get metadata for a given label ID (for admins; includes personal identifiers like username).
    */
   def getAdminLabelData(labelId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    labelService.getSingleLabelMetadata(labelId, request.identity.userId).flatMap {
+    val userId: String = request.identity.userId
+    labelService.getSingleLabelMetadata(labelId, userId).flatMap {
       case Some(metadata) =>
         labelService
           .getExtraAdminValidateData(Seq(labelId))
@@ -304,7 +310,8 @@ class AdminController @Inject() (
    * Get metadata for a given label ID (excludes personal identifiers like username).
    */
   def getLabelData(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
-    labelService.getSingleLabelMetadata(labelId, request.identity.userId).map {
+    val userId: String = request.identity.userId
+    labelService.getSingleLabelMetadata(labelId, userId).map {
       case Some(metadata) => Ok(labelMetadataWithValidationToJson(metadata) ++ cropUrlJson(metadata))
       case None           => NotFound(s"No label found with ID: $labelId")
     }

@@ -4,6 +4,7 @@ import models.label.LabelTypeEnum
 import models.user.{RoleTable, SidewalkUserWithRole}
 import play.api.mvc.Results.Redirect
 import play.api.mvc.{Request, RequestHeader, Result}
+
 import scala.util.Try
 import scala.util.matching.Regex
 
@@ -101,5 +102,19 @@ object ControllerUtils {
    */
   def anonSignupRedirect(request: RequestHeader): Result = {
     Redirect("/anonSignUp", request.queryString + ("url" -> Seq(request.path)))
+  }
+
+  /**
+   * Checks if a query string map contains any UTM parameters.
+   */
+  def hasUtmParams(qString: Map[String, Seq[String]]): Boolean = {
+    qString.keys.exists(_.startsWith("utm_"))
+  }
+
+  /**
+   * Checks if a flattened query string map contains any UTM parameters.
+   */
+  def hasUtmParamsFlat(qString: Map[String, String]): Boolean = {
+    qString.keys.exists(_.startsWith("utm_"))
   }
 }

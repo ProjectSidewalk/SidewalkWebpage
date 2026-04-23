@@ -185,12 +185,12 @@
                     <tr>
                         <td><code>minSeverity</code></td>
                         <td><code>integer</code></td>
-                        <td>Filter clusters with a median severity rating greater than or equal to this value (1-3).</td>
+                        <td>Filter clusters with a median severity/quality rating greater than or equal to this value (1-3).</td>
                     </tr>
                     <tr>
                         <td><code>maxSeverity</code></td>
                         <td><code>integer</code></td>
-                        <td>Filter clusters with a median severity rating less than or equal to this value (1-3).</td>
+                        <td>Filter clusters with a median severity/quality rating less than or equal to this value (1-3).</td>
                     </tr>
                     <tr>
                         <td><code>filetype</code></td>
@@ -344,7 +344,7 @@
                     <tr>
                         <td><code>properties.median_severity</code></td>
                         <td><code>integer</code></td>
-                        <td>Median severity rating of all labels in the cluster, from 1 (minor issue) to 3 (major barrier). For accessibility features like curb ramps, a low severity indicates good condition, while for barriers, it indicates a less significant obstacle.</td>
+                        <td>Median severity rating of all labels in the cluster: 1 (Low), 2 (Medium), or 3 (High). For accessibility features like curb ramps and marked crosswalks, the scale is defined as 1 (Good quality), 2 (Okay quality), or 3 (Low quality).</td>
                     </tr>
                     <tr>
                         <td><code>properties.cluster_size</code></td>

@@ -47,9 +47,12 @@ class UserProfileController @Inject() (
     for {
       userProfileData <- userService.getUserProfileData(user.userId, metricSystem)
       commonData      <- configService.getCommonPageData(request2Messages.lang)
+      tags            <- labelService.getTagsForCurrentCity
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard")
-      Ok(views.html.userProfile(commonData, "Sidewalk - Dashboard", user, user, userProfileData, adminData = None))
+      Ok(
+        views.html.userProfile(commonData, "Sidewalk - Dashboard", user, user, tags, userProfileData, adminData = None)
+      )
     }
   }
 

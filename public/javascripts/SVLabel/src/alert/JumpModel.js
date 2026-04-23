@@ -4,7 +4,7 @@
 function JumpModel () {
     var self = this;
 }
-_.extend(JumpModel.prototype, Backbone.Events);
+Object.assign(JumpModel.prototype, EventMixin);
 
 JumpModel.prototype.triggerUserClickJumpMessage = function () {
     this.trigger("JumpAlert:clickJumpMsg");

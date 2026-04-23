@@ -1,45 +1,50 @@
 /**
- * A Keyboard module.
- * @param {expandedView} expandedView The object for the expanded view modal in the gallery
+ * A Keyboard module for Gallery keyboard shortcuts.
+ * @param {ExpandedView} expandedView The object for the expanded view in the gallery.
  * @constructor
  */
 function Keyboard(expandedView) {
-    // Initialization function.
+    /**
+     * Initialization function.
+     */
     function _init() {
-        // Add the keyboard event listeners.
         window.addEventListener('keyup', _documentKeyUp);
     }
 
     /**
-     * This is a callback for a key down event.
-     * @param {object} e An event object
+     * Callback for key-up events. Routes keyboard shortcuts to the appropriate expanded-view actions.
+     * @param {KeyboardEvent} e
      * @private
      */
     function _documentKeyUp(e) {
+        // Prevent shortcuts in the comment box.
+        const activeTag = document.activeElement && document.activeElement.tagName;
+        if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+
         if (e.key && !e.ctrlKey) {
             switch (e.key.toUpperCase()) {
-                case "ARROWLEFT":
+                case 'ARROWLEFT':
                     if (expandedView.open && !expandedView.leftArrowDisabled) {
-                        expandedView.previousLabel(true)
+                        expandedView.previousLabel(true);
                     }
                     break;
-                case "ARROWRIGHT":
+                case 'ARROWRIGHT':
                     if (expandedView.open && !expandedView.rightArrowDisabled) {
-                        expandedView.nextLabel(true)
+                        expandedView.nextLabel(true);
                     }
                     break;
-                case "A":
-                case "Y":
-                    expandedView.validationMenu.validateOnClickOrKeyPress("validate-agree", false, true)()
+                case 'A':
+                case 'Y':
+                    expandedView.validate('Agree');
                     break;
-                case "D":
-                case "N":
-                    expandedView.validationMenu.validateOnClickOrKeyPress("validate-disagree", false, true)()
+                case 'D':
+                case 'N':
+                    expandedView.validate('Disagree');
                     break;
-                case "U":
-                    expandedView.validationMenu.validateOnClickOrKeyPress("validate-unsure", false, true)()
+                case 'U':
+                    expandedView.validate('Unsure');
                     break;
-                case "Z":
+                case 'Z':
                     if (expandedView.open) {
                         if (e.shiftKey) {
                             expandedView.panoManager.zoomOut();
@@ -48,7 +53,7 @@ function Keyboard(expandedView) {
                         }
                     }
                     break;
-                case "ESCAPE":
+                case 'ESCAPE':
                     if (expandedView.open) {
                         expandedView.closeExpandedViewAndRemoveCardTransparency();
                     }
@@ -58,7 +63,6 @@ function Keyboard(expandedView) {
             }
         }
     }
-
 
     _init();
 }

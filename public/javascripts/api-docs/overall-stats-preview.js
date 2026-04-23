@@ -178,7 +178,7 @@
             this.createChartSection(
                 container,
                 'Mean Severity by Label Type',
-                'Average severity rating (1-5) where 5 is most severe',
+                'Average severity rating (1-3) where 3 is most severe',
                 (chartContainer) => this.createMeanSeverityChart(chartContainer, data)
             );
 
@@ -388,10 +388,10 @@
                     scales: {
                         y: {
                             min: 1,
-                            max: 5,
+                            max: 3,
                             title: {
                                 display: true,
-                                text: 'Mean Severity (1-5)'
+                                text: 'Mean Severity (1-3)'
                             }
                         },
                         x: {

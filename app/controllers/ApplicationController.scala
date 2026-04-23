@@ -4,7 +4,7 @@ import controllers.base._
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.auth.{DefaultEnv, WithSignedIn}
-import models.user.SidewalkUserWithRole
+import models.user.{SidewalkUserWithRole, UserUtm, UserUtmTable}
 import models.utils.MyPostgresProfile
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -28,7 +28,8 @@ class ApplicationController @Inject() (
     userService: UserService,
     streetService: StreetService,
     labelService: LabelService,
-    validationService: ValidationService
+    validationService: ValidationService,
+    userUtmTable: UserUtmTable
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc)
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -58,9 +59,18 @@ class ApplicationController @Inject() (
         if (qString.nonEmpty) {
           // Log the query string parameters if they exist, but do a redirect to hide them.
           cc.loggingService.insert(user.userId, ipAddress, request.uri, timestamp)
+          // Save UTM parameters if present.
+          if (ControllerUtils.hasUtmParamsFlat(qString)) {
+            userUtmTable.insert(
+              UserUtm(
+                0, user.userId, qString.get("utm_source"), qString.get("utm_medium"), qString.get("utm_campaign"),
+                qString.get("utm_content"), qString.get("utm_term"), configService.getCityId, timestamp
+              )
+            )
+          }
           Future.successful(Redirect("/"))
         } else if (isMobile) {
-          Future.successful(Redirect("/mobile"))
+          Future.successful(Redirect("/mobileLanding"))
         } else {
           cc.loggingService.insert(user.userId, ipAddress, "Visit_Index", timestamp)
           // Get names and URLs for other cities so we can link to them on landing page.
@@ -80,6 +90,18 @@ class ApplicationController @Inject() (
             )
           }
         }
+    }
+  }
+
+  def mobileLanding = cc.securityService.SecuredAction { implicit request =>
+    val user: SidewalkUserWithRole = request.identity
+    cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileLanding")
+    for {
+      commonData      <- configService.getCommonPageData(request2Messages.lang)
+      labelCount: Int <- labelService.countLabels
+      valCount: Int   <- validationService.countHumanValidations
+    } yield {
+      Ok(views.html.mobileLanding("Project Sidewalk", commonData, user, labelCount, valCount))
     }
   }
 
@@ -195,10 +217,14 @@ class ApplicationController @Inject() (
       val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
       val activityStr: String    = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
 
-      configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      for {
+        commonData <- configService.getCommonPageData(request2Messages.lang)
+        tags       <- labelService.getTagsForCurrentCity
+      } yield {
         cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
         Ok(
-          views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, regionIds, routeIds, aiValOpts)
+          views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, tags, regionIds, routeIds,
+            aiValOpts)
         )
       }
     }

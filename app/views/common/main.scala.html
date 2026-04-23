@@ -20,7 +20,7 @@
     <meta charset="utf-8" />
     <title>@title</title>
     <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.2.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
     <link href='@assets.path("stylesheets/bootstrap/bootstrap.min.css")' rel='stylesheet' />
     <link href='@assets.path("stylesheets/bootstrap/bootstrap-accessibility.css")' rel='stylesheet' />
@@ -30,7 +30,6 @@
     <script src='@assets.path("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/bootstrap.min.js")'></script>
     <script src='@assets.path("javascripts/lib/bootstrap-accessibility-plugin/plugins/js/bootstrap-accessibility.min.js")'></script>
 
-    <script src='@assets.path("javascripts/lib/underscore-1.10.2.min.js")'></script>
     <script src='@assets.path("javascripts/lib/js-cookie-3.0.5-min.js")'></script>
 
     <script>
@@ -46,10 +45,11 @@
 
     <script src='@assets.path("javascripts/common/isMobile.js")'></script>
     <script src='@assets.path("javascripts/lib/countUp-1.9.3.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/bowser-1.9.4.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/bowser-2.14.1.min.js")'></script>
     <script src='@assets.path("javascripts/common/pagetop-padding.js")'></script>
     <script src='@assets.path("javascripts/common/Utilities.js")'></script>
     <script src='@assets.path("javascripts/common/UtilitiesMath.js")'></script>
+    <script src='@assets.path("javascripts/common/I18nDom.js")'></script>
     <script src='@assets.path("/javascripts/common/AppManager.js")'></script>
 </head>
 <body onload="checkIfPaddingNeeded()">
@@ -112,8 +112,8 @@
         </script>
     }
         <!-- Trying out no footer on Explore or Validate. Mini footer on mobile sign in/up. Code is weird bc "else if" doesn't work in template scala rn. -->
-    @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/signInMobile" || url == "/signUpMobile") {
-        @if(url == "/explore" || url == "/validate" || url == "/expertValidate") {
+    @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/signInMobile" || url == "/signUpMobile" || url == "/mobileLanding") {
+        @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobileLanding") {
         } else {
             <!-- footer code found in app/views/footer.scala.html -->
             @common.miniFooter(commonData)

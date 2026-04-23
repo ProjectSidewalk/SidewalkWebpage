@@ -3,11 +3,10 @@
  * @param params properties of the associated label.
  * @param cropUrl Locally-saved crop image url, or null if no crop exists.
  * @param gsvImageUrl Google Street View static image url, or null if non-GSV imagery.
- * @param expandedView ExpandedView object; used to update the expanded view when modifying a card.
  * @returns {Card}
  * @constructor
  */
-function Card(params, cropUrl, gsvImageUrl, expandedView) {
+function Card(params, cropUrl, gsvImageUrl) {
     const self = this;
 
     // UI card element.
@@ -21,6 +20,9 @@ function Card(params, cropUrl, gsvImageUrl, expandedView) {
         label_id: undefined,
         label_type: undefined,
         pano_id: undefined,
+        camera_lat: undefined,
+        camera_lng: undefined,
+        expired: undefined,
         image_capture_date: undefined,
         label_timestamp: undefined,
         heading: undefined,
@@ -38,22 +40,11 @@ function Card(params, cropUrl, gsvImageUrl, expandedView) {
         user_validation: undefined,
         ai_validation: undefined,
         tags: [],
-        ai_generated: false
+        ai_generated: false,
+        comments: [],
+        from_current_user: false
     };
 
-    // Paths to label icon images.
-    // TODO: This object should be moved to a util file since it is shared in validation and admin tools as well.
-    let iconImagePaths = {
-        CurbRamp : '/assets/images/icons/AdminTool_CurbRamp.png',
-        NoCurbRamp : '/assets/images/icons/AdminTool_NoCurbRamp.png',
-        Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
-        SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem.png',
-        Other : '/assets/images/icons/AdminTool_Other.png',
-        Occlusion : '/assets/images/icons/AdminTool_Occlusion.png',
-        NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png',
-        Crosswalk : '/assets/images/icons/AdminTool_Crosswalk.png',
-        Signal : '/assets/images/icons/AdminTool_Signal.png'
-    };
 
     // Status to determine if static imagery has been loaded.
     let status = {
@@ -96,7 +87,7 @@ function Card(params, cropUrl, gsvImageUrl, expandedView) {
         else properties.correctness = "unvalidated";
 
         // Place label icon.
-        labelIcon.src = iconImagePaths[getLabelType()];
+        labelIcon.src = util.misc.getIconImagePaths(getLabelType()).iconImagePath;
         labelIcon.classList.add("label-icon", "label-icon-gallery");
 
         // Create an element for the image in the card.
@@ -137,7 +128,7 @@ function Card(params, cropUrl, gsvImageUrl, expandedView) {
         let cardValidationInfo = document.createElement('div');
         cardValidationInfo.className = 'card-validation-info';
         self.validationInfoDisplay = new ValidationInfoDisplay(
-            cardValidationInfo, properties.val_counts['Agree'], properties.val_counts['Disagree'], properties.ai_validation, false
+            cardValidationInfo, properties.val_counts['Agree'], properties.val_counts['Disagree'], properties.ai_validation
         );
         cardData.appendChild(cardValidationInfo);
 
@@ -171,7 +162,7 @@ function Card(params, cropUrl, gsvImageUrl, expandedView) {
         imageHolder.appendChild(panoImage);
 
         card.appendChild(cardInfo);
-        validationMenu = new ValidationMenu(self, $(imageHolder), expandedView, false);
+        validationMenu = new ValidationMenu(self, $(imageHolder));
     }
 
     /**
@@ -293,8 +284,7 @@ function Card(params, cropUrl, gsvImageUrl, expandedView) {
     }
 
     /**
-     * Updates metadata and visuals based on a new validation from the user.
-     *
+     * Updates metadata and visuals on the small card based on a new validation from the user.
      * @param newUserValidation
      */
     function updateUserValidation(newUserValidation) {
@@ -304,19 +294,9 @@ function Card(params, cropUrl, gsvImageUrl, expandedView) {
             properties.val_counts[newUserValidation] += 1;
             properties.user_validation = newUserValidation;
 
-            // Update the validation displays.
+            // Update the small card's validation displays.
             self.validationInfoDisplay.updateValCounts(properties.val_counts['Agree'], properties.val_counts['Disagree']);
             self.validationMenu.showValidationOnCard(newUserValidation);
-
-            // If this card matches the one in expanded view, update the validation displays there as well.
-            const expandedViewRefCard = expandedView.getReferenceCard();
-            if (expandedViewRefCard && expandedViewRefCard.getLabelId() === properties.label_id) {
-                expandedView.validationInfoDisplay.updateValCounts(
-                    properties.val_counts['Agree'],
-                    properties.val_counts['Disagree']
-                );
-                expandedView.validationMenu.showValidationOnExpandedView(newUserValidation);
-            }
         }
     }
 

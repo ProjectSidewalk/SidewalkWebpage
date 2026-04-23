@@ -13,8 +13,8 @@
 */
 function AddStreetsToMap(map, streetData, params) {
     const STREET_LAYER_NAME = 'streets';
-    const AUDITED_STREET_COLOR = 'black';
-    const UNAUDITED_STREET_COLOR = 'grey';
+    const AUDITED_STREET_COLOR = getComputedStyle(document.documentElement).getPropertyValue('--color-asphalt-500').trim();
+    const UNAUDITED_STREET_COLOR = getComputedStyle(document.documentElement).getPropertyValue('--color-asphalt-300').trim();
 
     // Render street segments.
     map.addSource(STREET_LAYER_NAME, {
@@ -28,10 +28,11 @@ function AddStreetsToMap(map, streetData, params) {
         source: STREET_LAYER_NAME,
         layout: {
             'line-join': 'round',
-            'line-cap': 'round'
+            'line-cap': 'round',
+            visibility: 'none' // Hidden by default; shown when the user checks a street filter in the sidebar.
         },
         paint: {
-            'line-opacity': 0.75,
+            'line-opacity': 0.6,
             'line-color': [ // Grey if unaudited, black if audited. All black if the map doesn't differentiate.
                 'case', ['all', params.differentiateUnauditedStreets, ['==', ['get', 'audited'], false]],
                 UNAUDITED_STREET_COLOR,
@@ -39,8 +40,8 @@ function AddStreetsToMap(map, streetData, params) {
             ],
             'line-width': [ // Twice the thickness if hovered. Increase thickness as we zoom in.
                 'interpolate', ['linear'], ['zoom'],
-                12, ['case', ['boolean', ['feature-state', 'hover'], false], 3, 1.5 ],
-                15, ['case', ['boolean', ['feature-state', 'hover'], false], 8, 4 ]
+                12, ['case', ['boolean', ['feature-state', 'hover'], false], 3, 1 ],
+                15, ['case', ['boolean', ['feature-state', 'hover'], false], 7, 3 ]
             ]
         }
     });

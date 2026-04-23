@@ -20,7 +20,7 @@
 }
 
 .validate-unsure {
-    background-color: #fbd78b;
+    background-color: var(--color-asphalt-100);
 }
 
 /*
@@ -54,7 +54,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     position: absolute;
     bottom: 0;
     width: 100%;
-    height: 11.5%;
+    height: 14%;
     z-index: 2;
 }
 
@@ -74,7 +74,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 #gallery-card-unsure-button {
     border-left: 1px solid #dcdbdb;
     width: 33%;
-    background-color: #fbd78b;
+    background-color: var(--color-asphalt-100);
     color: #2d2a3f;
 }
 
@@ -149,16 +149,12 @@ with respect to the image holder. This allows the validation menu to be placed o
 .label-tags-holder {
     display: flex;
     align-items: center;
+    overflow-y: auto;
     width: 100%;
     flex-direction: row;
     flex-wrap: wrap;
     flex: 1;
     min-width: 0;
-}
-
-.gallery-expanded-view-info-tags .label-tags-holder {
-    align-items: start;
-    overflow-y: auto;
 }
 
 .label-tags-content {
@@ -200,6 +196,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 .validation-info-content {
     display: flex;
     flex-direction: row;
+    gap: 8px;
 }
 
 .validation-section-content {
@@ -218,35 +215,25 @@ with respect to the image holder. This allows the validation menu to be placed o
     position: relative;
     display: flex;
     flex-direction: row;
+    align-items: center;
+    height: 100%;
+    gap: 2px;
 }
 
 .validation-info-count {
     display: flex;
-    width: 60%;
+    flex: 1;
     height: 100%;
     flex-direction: column;
     justify-content: center;
 }
 
+/* The validation SVGs have ~30% internal whitespace in their viewBox, so size
+   them to fill the section height rather than using the old PNG-based width %. */
 .validation-info-image {
-    width: 50%;
-    margin: 2%;
-}
-
-/* The AI icon is positioned to partially overlap the thumps up/down icons. */
-.ai-icon {
-    position: absolute;
-    top: -43%;
-    left: -16%;
-    height: 75%;
-}
-
-.ai-tooltip {
-    width: 200px;
-}
-
-.validation-info-thumbs-down {
-    margin-top: 5%;
+    height: 100%;
+    width: auto;
+    flex: 0 0 auto;
 }
 
 .validation-button, .validation-button-selected {
@@ -257,10 +244,15 @@ with respect to the image holder. This allows the validation menu to be placed o
     background-color: white;
     border-style: none;
     color: #2d2a3f;
+    transition: opacity 120ms ease;
 }
 
 .gallery-card:hover .validation-button {
     opacity: 0.75;
+}
+
+.gallery-card:hover .validation-button:hover {
+    opacity: 0.95;
 }
 
 .gallery-card:hover .validation-button-selected {
@@ -268,16 +260,30 @@ with respect to the image holder. This allows the validation menu to be placed o
     background-color: gray;
 }
 
+/* Read-only mode: the card shows the viewer's own label, so validating isn't allowed. The UI stays in place but
+   appears disabled, matching the Gallery expanded view / LabelMap popup. */
+.gallery-card--readonly #gallery-card-agree-button,
+.gallery-card--readonly #gallery-card-disagree-button,
+.gallery-card--readonly #gallery-card-unsure-button {
+    background-color: #E2E2E2;
+    color: rgba(0, 0, 0, 0.4);
+    cursor: default;
+}
+.gallery-card--readonly .card-validation-info {
+    opacity: 0.5;
+}
+.gallery-card--readonly:hover .validation-button:hover {
+    opacity: 0.75; /* No hover bump in readonly: nothing to validate. */
+}
+.gallery-card--readonly .validation-section-content {
+    cursor: default;
+}
+.gallery-card--readonly .validation-info-image {
+    pointer-events: none;
+}
+
 .expanded-view-background-card {
     opacity: 50%;
-}
-
-.expanded-view-no-severity {
-    filter: opacity(0.2);
-}
-
-.expanded-view-severity-content {
-    width: 100%;
 }
 
 .severity-circle {

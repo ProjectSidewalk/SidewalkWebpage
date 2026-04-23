@@ -442,7 +442,7 @@ class ValidateController @Inject() (
               OffsetDateTime.now, submission.comment)
           )
         } yield {
-          Ok(Json.obj("commend_id" -> commentId))
+          Ok(Json.obj("comment_id" -> commentId, "username" -> request.identity.username))
         }
       }
     )

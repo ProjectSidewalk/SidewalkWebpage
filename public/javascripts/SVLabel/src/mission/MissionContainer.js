@@ -118,7 +118,7 @@ function MissionContainer (statusFieldMission, missionModel) {
     self.setTasksMissionsOffset = setTasksMissionsOffset;
     self.getTasksMissionsOffset = getTasksMissionsOffset;
 }
-_.extend(MissionContainer.prototype, Backbone.Events);
+Object.assign(MissionContainer.prototype, EventMixin);
 
 MissionContainer.prototype.notifyMissionLoaded = function(mission) {
     this.trigger("MissionContainer:missionLoaded", mission);

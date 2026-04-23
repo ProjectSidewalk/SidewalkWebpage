@@ -16,7 +16,7 @@ function updateTimestamps(locale) {
                 $(this).addClass('local');
 
                 // Skip if the timestamp is null.
-                if (_.isEmpty(this.textContent)) {
+                if (!this.textContent) {
                     return;
                 }
 

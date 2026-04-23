@@ -37,7 +37,10 @@ function CardBucket(inputCards) {
     function filterOnSeverities(severities) {
         if (severities !== undefined && severities.length > 0) {
             let severitySet = new Set(severities);
-            bucket = bucket.filter(card => severitySet.has(card.getProperty("severity")));
+            bucket = bucket.filter(card => {
+                const sev = card.getProperty("severity");
+                return severitySet.has(sev == null ? 'null' : String(sev));
+            });
         }
     }
 

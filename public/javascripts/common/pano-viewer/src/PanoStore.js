@@ -23,6 +23,7 @@ class PanoStore {
     /**
      * This method returns the existing panorama data.
      * @param {string} panoId
+     * @return {PanoData|null}
      */
     getPanoData(panoId) {
         return panoId in this.store ? this.store[panoId] : null;

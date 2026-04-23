@@ -3,6 +3,30 @@
 * --------------------------------------------------
 */
 
+/* Project Sidewalk color pallete */
+:root {
+    --color-pine-100: #E4F4EE;
+    --color-pine-200: #C9E9DD;
+    --color-pine-300: #AEDFCD;
+    --color-pine-400: #93D4BC;
+    --color-pine-500: #78C9AB;
+    --color-pine-600: #60A189;
+    --color-pine-700: #487967;
+    --color-pine-800: #305044;
+    --color-pine-900: #182822;
+
+    --color-asphalt-100: #D5D3E4;
+    --color-asphalt-200: #9F9DB1;
+    --color-asphalt-300: #615E78;
+    --color-asphalt-400: #424055;
+    --color-asphalt-500: #2D2A3F;
+    --color-asphalt-600: #242232;
+    --color-asphalt-700: #1B1926;
+    --color-asphalt-800: #121119;
+    --color-asphalt-900: #09080D;
+}
+
+
 /* General styles */
 @font-face {
     font-family: adelle-semibold;
@@ -312,51 +336,130 @@ body {
 }
 
 /* Pano Info Popover styling. */
-.info-key {
-    font-weight: bold;
-    margin-right: 20px;
-}
-
-.info-list-item {
-    display: flex;
-    justify-content: space-between;
-}
-
-.popover {
+.pano-info-popover {
+    position: fixed;
+    inset: unset;        /* Override the browser's default centered placement. */
+    margin: 0;
+    left: -9999px;       /* Off-screen until JS positions it. */
+    top: -9999px;
+    overflow: visible;   /* Allow the CSS arrow to extend beyond the box. */
+    min-width: 280px;
     max-width: 400px;
+    padding: 14px;
+    background: white;
+    border: 1px solid #9c9c9c;
+    border-radius: 12px;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
-.popover-title {
+/* Downward-pointing arrow: ::before is the border, ::after is the white fill on top. */
+.pano-info-popover::before,
+.pano-info-popover::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.pano-info-popover::before {
+    bottom: -10px;
+    border-width: 10px 9px 0;
+    border-color: #9c9c9c transparent transparent;
+}
+
+.pano-info-popover::after {
+    bottom: -9px;
+    border-width: 9px 8px 0;
+    border-color: white transparent transparent;
+}
+
+.pano-info-popover__header {
     display: flex;
     justify-content: space-between;
-    height: 36px;
+    align-items: center;
+    margin-bottom: 10px;
 }
 
-.popover-content {
+.pano-info-popover__title {
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.pano-info-popover__clipboard {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    line-height: 0;
+    opacity: 0.75;
+}
+
+.pano-info-popover__clipboard:hover {
+    opacity: 1;
+}
+
+.pano-info-popover__clipboard:active {
+    opacity: 0.5;
+}
+
+.pano-info-popover__clipboard img {
+    width: 18px;
+    height: 18px;
+}
+
+/* Shown briefly after clipboard copy. Absolutely positioned so it doesn't shift the body rows. */
+.pano-info-popover__copied:not([hidden]) {
+    display: block;
+    position: absolute;
+    top: 44px;   /* below the header (12px padding-top + ~30px header + 2px gap) */
+    right: 8px;
+    background: rgba(40, 40, 40, 0.85);
+    color: white;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.pano-info-popover__body {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    gap: 6px;
 }
 
-#pano-link {
+.pano-info-popover__row {
+    margin: 0;
+    line-height: 1.4;
+}
+
+.pano-info-popover__row--hidden {
+    display: none;
+}
+
+.pano-info-popover__row strong {
+    font-weight: bold;
+}
+
+.pano-info-popover__val {
+    /* Values use the default (regular) font weight inherited from the row. */
+}
+
+.pano-info-popover__view-link {
+    display: block;
     text-align: center;
-    width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
+    color: #4990cc;
+    text-decoration: none;
+    margin-top: 4px;
 }
 
-#clipboard {
-    max-height: 100%;
-    cursor: pointer;
-}
-
-#clipboard:active {
-    opacity: 50%;
-}
-
-.clipboard-tooltip {
-    font-size: 12px;
-    white-space: nowrap;
+.pano-info-popover__view-link:hover {
+    text-decoration: underline;
 }
 
 @media only screen and (max-device-width: 500px) {
@@ -405,6 +508,7 @@ kbd {
 
 #page-loading {
     position:absolute;
+    z-index: 1;
     max-width:45%;
     max-height:45%;
     top:33%;
@@ -662,24 +766,11 @@ kbd {
     margin-right: 2px;
 }
 
-#comment-button {
-    height: 33px;
-    width: 146px;
-    background-color: #f9f9f9;
-    margin-right: 2px;
-    border-radius: 5px;
-    border-width: 2px;
-    border-color: lightgrey;
-    vertical-align: middle;
-}
-
-#gsv-info-button {
+#pano-info-button {
     cursor: pointer;
+    width: 24px;
 }
 
-.gsv-info-list-group {
-    margin-bottom: 8px;
-}
 
 .feedback-popover {
     background-color:rgba(58,58,58, 0.9);
