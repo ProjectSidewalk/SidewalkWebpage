@@ -191,10 +191,11 @@ class AiServiceImpl @Inject() (
             val tagsConfidence: Option[Seq[AiTagConfidence]] = (json \ "tag_scores")
               .asOpt[JsObject]
               .map(_.fields.map { case (tag, jsValue) => AiTagConfidence(tag, jsValue.as[Double]) }.toSeq)
-            val tags          = (json \ "tags").asOpt[List[String]].map(tags => tags.filter(tag => tag != "NULL"))
-            val apiVersion    = (json \ "api_version").as[String]
-            val valModelId    = (json \ "validator_model_id").as[String]
-            val taggerModelId = (json \ "tagger_model_id").asOpt[String]
+            val tags           = (json \ "tags").asOpt[List[String]]
+            val tagsNotPresent = (json \ "tags_not_present").asOpt[List[String]]
+            val apiVersion     = (json \ "api_version").as[String]
+            val valModelId     = (json \ "validator_model_id").as[String]
+            val taggerModelId  = (json \ "tagger_model_id").asOpt[String]
 
             // Read training dates.
             val dateFormatter   = DateTimeFormatter.ofPattern("MM-dd-yyyy")
@@ -207,8 +208,9 @@ class AiServiceImpl @Inject() (
               .map(dateStr => LocalDate.parse(dateStr, dateFormatter).atStartOfDay(ZoneOffset.UTC).toOffsetDateTime)
 
             Some(
-              LabelAiAssessment(0, labelData.labelId, valResult, valAccuracy, valConfidence, tags, tagsConfidence,
-                apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate, OffsetDateTime.now, None)
+              LabelAiAssessment(0, labelData.labelId, valResult, valAccuracy, valConfidence, tags, tagsNotPresent,
+                tagsConfidence, apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate,
+                OffsetDateTime.now, None)
             )
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")

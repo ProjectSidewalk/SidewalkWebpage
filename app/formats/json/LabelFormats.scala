@@ -125,11 +125,12 @@ object LabelFormats {
       "ai_validation"   -> labelMetadata.validationInfo.aiValidation.map(LabelValidationTable.validationOptions.get),
       "tags"            -> labelMetadata.tags,
       "ai_tags"         -> labelMetadata.aiTags,
-      "ai_generated"    -> labelMetadata.aiGenerated,
-      "expired"         -> labelMetadata.expired,
-      "comments"        -> labelMetadata.comments.map(_.comment),
-      "from_current_user" -> labelMetadata.fromCurrentUser,
-      "admin_data"        -> adminData.map(ad =>
+      "ai_tags_not_present" -> labelMetadata.aiTagsNotPresent,
+      "ai_generated"        -> labelMetadata.aiGenerated,
+      "expired"             -> labelMetadata.expired,
+      "comments"            -> labelMetadata.comments.map(_.comment),
+      "from_current_user"   -> labelMetadata.fromCurrentUser,
+      "admin_data"          -> adminData.map(ad =>
         Json.obj(
           "username"             -> ad.username,
           "previous_validations" -> ad.previousValidations.map(prevVal =>
