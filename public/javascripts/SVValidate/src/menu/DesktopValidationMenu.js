@@ -388,9 +388,15 @@ function DesktopValidationMenu(menuUI) {
         if (label.getAuditProperty('aiTags') !== null) {
             const aiTags = label.getAuditProperty('aiTags');
             aiAddTagOptions = allTagOptions.filter(t => aiTags.includes(t.tag_name));
-            // TODO we need to set up a threshold where we decide to remove tags: issue #3998.
-            // aiRemoveTagOptions = currTags.filter(t => !aiTags.includes(t)).filter(t => !tagsAddedByUser.includes(t))
-            //     .map(t => allTagOptionsPermanent.find(t2 => t2.tag_name === t));
+        }
+        if (label.getAuditProperty('aiTagsNotPresent') !== null) {
+            const aiTagsNotPresent = label.getAuditProperty('aiTagsNotPresent');
+            // Only suggest removing tags that are currently on the label and were not added by the user this session.
+            aiRemoveTagOptions = currTags
+                .filter(t => aiTagsNotPresent.includes(t))
+                .filter(t => !tagsAddedByUser.includes(t))
+                .map(t => allTagOptionsPermanent.find(t2 => t2.tag_name === t))
+                .filter(t => t !== undefined);
         }
 
         // If there are AI suggestions, show the section and add the tag suggestions.
@@ -412,7 +418,10 @@ function DesktopValidationMenu(menuUI) {
                 // Add the text to the tag.
                 const translatedTagName = i18next.t(`common:tag.${tag.tag_name.replace(/:/g, '-')}`);
                 const addRemoveTranslationKey = 'expert-validate.' + (tag.action === 'add' ? 'add-tag' : 'remove-tag');
-                template.text(i18next.t(addRemoveTranslationKey, { tag: translatedTagName }));
+                template.text(i18next.t(addRemoveTranslationKey, {
+                    tag: translatedTagName,
+                    interpolation: { escapeValue: false }
+                }));
                 menuUI.aiSuggestedTagTemplate.parent().append(template);
 
                 // Show tooltip with example image for the tag.

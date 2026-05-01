@@ -28,6 +28,7 @@ function Label(params) {
         regionId: undefined,
         tags: undefined,
         aiTags: undefined,
+        aiTagsNotPresent: undefined,
         isMobile: undefined,
         aiGenerated: false
     };
@@ -123,6 +124,7 @@ function Label(params) {
                 setProperty('newTags', [...params.tags]); // Copy tags to newTags.
             }
             if ('ai_tags' in params) setAuditProperty('aiTags', params.ai_tags);
+            if ('ai_tags_not_present' in params) setAuditProperty('aiTagsNotPresent', params.ai_tags_not_present);
             if ('ai_generated' in params) setAuditProperty('aiGenerated', params.ai_generated);
             // Properties only used on the Admin version of Validate.
             if ('admin_data' in params && params.admin_data !== null) {

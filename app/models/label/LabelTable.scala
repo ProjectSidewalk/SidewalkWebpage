@@ -241,6 +241,7 @@ case class LabelValidationMetadata(
     tags: Seq[String],
     cameraLocation: Option[LatLng],
     aiTags: Option[Seq[String]],
+    aiTagsNotPresent: Option[Seq[String]],
     aiGenerated: Boolean,
     comments: Seq[LabelComment] = Seq.empty,
     fromCurrentUser: Boolean = false
@@ -338,6 +339,7 @@ object LabelTable {
       List[String],                     // tags
       (Option[Double], Option[Double]), // cameraLocation (lat, lng)
       Option[List[String]],             // aiTags
+      Option[List[String]],             // aiTagsNotPresent
       Boolean,                          // aiGenerated
       Option[String],                   // comments (JSON-aggregated)
       Boolean                           // fromCurrentUser
@@ -361,6 +363,7 @@ object LabelTable {
       Rep[List[String]],                                                                        // tags
       (Rep[Option[Double]], Rep[Option[Double]]), // cameraLocation (lat, lng)
       Rep[Option[List[String]]],                  // aiTags
+      Rep[Option[List[String]]],                  // aiTagsNotPresent
       Rep[Boolean],                               // aiGenerated
       Rep[Option[String]],                        // comments (JSON-aggregated)
       Rep[Boolean]                                // fromCurrentUser
@@ -391,15 +394,16 @@ object LabelTable {
           case _                      => None
         },
         aiTags = t._18,
-        aiGenerated = t._19,
-        comments = t._20
+        aiTagsNotPresent = t._19,
+        aiGenerated = t._20,
+        comments = t._21
           .map { json =>
             play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
               LabelComment((obj \ "username").as[String], (obj \ "comment").as[String])
             }
           }
           .getOrElse(Seq.empty),
-        fromCurrentUser = t._21
+        fromCurrentUser = t._22
       )
     }
 
@@ -1019,8 +1023,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           ),
           l.tags,
           (pd.lat, pd.lng),
-          // Include AI tags if requested.
+          // Include AI tag suggestions (present and not present) if requested.
           if (includeAiTags) laa.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
+          else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
+          if (includeAiTags)
+            laa.flatMap(_.tagsNotPresent).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
           else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
           isAiUser,
           None.asInstanceOf[Option[String]].asColumnOf[Option[String]], // Comments not needed for validation rn.
@@ -1168,7 +1175,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         aiv.map(_.validationResult)),
       lb.tags,
       (pd.lat, pd.lng),
-      // Placeholder for AI tags, since we don't show those on Gallery right now.
+      // Placeholder for AI tags (present and not present), since we don't show those on Gallery right now.
+      None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
       None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
       isAiUser,
       comments.flatMap(_.comments), // pre-aggregated comments string from VIEW

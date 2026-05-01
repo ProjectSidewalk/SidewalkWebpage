@@ -16,6 +16,7 @@ case class LabelAiAssessment(
     validationAccuracy: Double,
     validationConfidence: Double,
     tags: Option[List[String]],
+    tagsNotPresent: Option[List[String]],
     tagsConfidence: Option[Seq[AiTagConfidence]],
     apiVersion: String,
     validatorModelId: String,
@@ -33,6 +34,7 @@ class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, 
   def validationAccuracy: Rep[Double]                   = column[Double]("validation_accuracy")
   def validationConfidence: Rep[Double]                 = column[Double]("validation_confidence")
   def tags: Rep[Option[List[String]]]                   = column[Option[List[String]]]("tags")
+  def tagsNotPresent: Rep[Option[List[String]]]         = column[Option[List[String]]]("tags_not_present")
   def tagsConfidence: Rep[Option[Seq[AiTagConfidence]]] = column[Option[Seq[AiTagConfidence]]]("tags_confidence")
   def apiVersion: Rep[String]                           = column[String]("api_version")
   def validatorModelId: Rep[String]                     = column[String]("validator_model_id")
@@ -43,8 +45,8 @@ class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, 
   def labelValidationId: Rep[Option[Int]] = column[Option[Int]]("label_validation_id")
 
   def * =
-    (labelAiAssessmentId, labelId, validationResult, validationAccuracy, validationConfidence, tags, tagsConfidence,
-      apiVersion, validatorModelId, validatorTrainingDate, taggerModelId, taggerTrainingDate, timestamp,
+    (labelAiAssessmentId, labelId, validationResult, validationAccuracy, validationConfidence, tags, tagsNotPresent,
+      tagsConfidence, apiVersion, validatorModelId, validatorTrainingDate, taggerModelId, taggerTrainingDate, timestamp,
       labelValidationId) <> (
       (LabelAiAssessment.apply _).tupled,
       LabelAiAssessment.unapply
