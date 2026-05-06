@@ -162,7 +162,7 @@ class AuthenticationServiceImpl @Inject() (
       loginInfoId: Long <- loginInfoTable.insert(DBLoginInfo(0, providerId, user.email.toLowerCase))
       _                 <- userLoginInfoTable.insert(UserLoginInfo(0, user.userId, loginInfoId))
       _ <- userPasswordInfoTable.insert(UserPasswordInfo(0, pwInfo.hasher, pwInfo.password, pwInfo.salt, loginInfoId))
-      _ <- userRoleTable.addRole(user.userId, user.role, user.communityService, user.infra3dAccess)
+      _ <- userRoleTable.addRole(user.userId, user.role, user.communityService)
       _ <- userStatTable.insert(user.userId)
     } yield user
     db.run(dbActions.transactionally)
