@@ -5,6 +5,7 @@ import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.silhouette.api.Identity
+
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -39,9 +40,11 @@ object SidewalkUserTable {
 trait SidewalkUserTableRepository {}
 
 @Singleton
-class SidewalkUserTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
-    ec: ExecutionContext
-) extends SidewalkUserTableRepository
+class SidewalkUserTable @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    userRoleTable: UserRoleTable
+)(implicit ec: ExecutionContext)
+    extends SidewalkUserTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val sidewalkUser           = TableQuery[SidewalkUserTableDef]
@@ -55,7 +58,8 @@ class SidewalkUserTable @Inject() (protected val dbConfigProvider: DatabaseConfi
     .map { case ((_user, _userRole), _role) => (_user, _userRole, _role) }
   val sidewalkUserWithRole = sidewalkUserToRoleJoin
     .map { case (user, userRole, role) =>
-      (user.userId, user.username, user.email, role.role, userRole.communityService, userRole.infra3dAccess)
+      (user.userId, user.username, user.email, role.role, userRole.communityService,
+        userRoleTable.infra3dAccessForCurrentCity(userRole))
     }
   val aiUsers    = sidewalkUserToRoleJoin.filter(_._3.role === "AI").map(_._1)
   val humanUsers = sidewalkUserToRoleJoin.filter(_._3.role =!= "AI").map(_._1)

@@ -26,13 +26,19 @@ class AppManager {
 
     /**
      * Initialize all registered tasks and built-in page setup.
+     * @param {string} csrfToken The CSRF token to attach to outgoing AJAX/fetch requests.
+     * @param {object} i18nextParams Parameters for i18next initialization (see _setupI18next).
+     * @param {object} [globals] Map of variable names to values to attach to `window` for global access.
      * @returns {Promise} Promise that resolves when all initialization is complete.
      */
-    init(csrfToken, i18nextParams) {
+    init(csrfToken, i18nextParams, globals = {}) {
         // Prevent multiple initializations.
         if (this.initPromise) {
             return this.initPromise;
         }
+
+        // Attach globals to `window` synchronously so they're available to subsequent init tasks and page scripts.
+        this._setupGlobals(globals);
 
         // CSRF token setup for AJAX and fetch requests.
         this.addInitTask('csrf-setup', () => {
@@ -78,6 +84,17 @@ class AppManager {
             callback(); // Page setup is already done, execute callback immediately.
         } else {
             this.readyCallbacks.push(callback); // Queue the callback for when the page becomes ready.
+        }
+    }
+
+    /**
+     * Attach the given key/value pairs to the `window` object so they're accessible from any script on the page.
+     * @param {object} globals Map of global variable names to their values.
+     * @private
+     */
+    _setupGlobals(globals) {
+        for (const [key, value] of Object.entries(globals)) {
+            window[key] = value;
         }
     }
 

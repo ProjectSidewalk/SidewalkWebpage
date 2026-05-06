@@ -605,7 +605,7 @@ class ConfigServiceImpl @Inject() (
       imagerySource: PanoSource = PanoSource.withName(config.get[String](s"city-params.pano-viewer-type.$cityId"))
       imageryAccessToken: String <-
         if (imagerySource == PanoSource.Gsv) Future.successful(gMapsApiKey)
-        else if (imagerySource == PanoSource.Infra3d) panoDataService.getInfra3dToken
+        else if (imagerySource == PanoSource.Infra3d) panoDataService.getInfra3dToken(cityId)
         else if (imagerySource == PanoSource.Mapillary) Future.successful(config.get[String]("mapillary-access-token"))
         else Future.failed(new Exception("No valid imagery source specified"))
       gMapsApiKey: String        = config.get[String]("google-maps-api-key")

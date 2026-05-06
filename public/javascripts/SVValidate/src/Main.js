@@ -12,8 +12,6 @@ function Main (param) {
     svv.validateParams = param.validateParams;
     svv.viewerType = param.viewerType;
     svv.missionLength = param.mission?.labels_validated ?? 0;
-    svv.cityId = param.cityId;
-    svv.cityName = param.cityName;
     svv.missionsCompleted = 0;
 
     function _initUI() {
@@ -162,7 +160,7 @@ function Main (param) {
             function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('regionId'); },
             function() { return svv.panoStore.getPanoData(svv.panoViewer.getPanoId()).getProperty('captureDate'); },
             function() { return svv.panoStore.getPanoData(svv.panoViewer.getPanoId()).getProperty('address'); },
-            svv.panoViewer.getPov, svv.cityName, true, function() { svv.tracker.push('PanoInfoButton_Click'); },
+            svv.panoViewer.getPov, true, function() { svv.tracker.push('PanoInfoButton_Click'); },
             function() { svv.tracker.push('PanoInfoCopyToClipboard_Click'); },
             function() { svv.tracker.push('PanoInfoViewInPano_Click'); },
             function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('labelId'); },

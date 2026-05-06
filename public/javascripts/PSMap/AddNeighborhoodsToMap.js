@@ -205,7 +205,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
                 else if (distanceLeftRounded === 1) distanceLeftStr = '1';
                 else distanceLeftStr = '>1';
                 const activity = `Click_module=${params.mapName}_regionId=${regionId}_distanceLeft=${distanceLeftStr}_target=audit`;
-                choropleth.logWebpageActivity(activity);
+                window.logWebpageActivity(activity);
             });
         }
     }
