@@ -148,7 +148,13 @@ object PanoDataService {
 
 @ImplementedBy(classOf[PanoDataServiceImpl])
 trait PanoDataService {
-  def getInfra3dToken: Future[String]
+
+  /**
+   * Requests the infra3D token using the client ID and secret stored in environment variables.
+   * @param cityId One of "zurich-infra3d" or "winterthur-infra3d", as they have separate authentication tokens.
+   * @return
+   */
+  def getInfra3dToken(cityId: String): Future[String]
   def panoExists(panoId: String, panoSource: PanoSource): Future[Option[Boolean]]
   def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String]
   def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
@@ -186,11 +192,12 @@ class PanoDataServiceImpl @Inject() (
 
   private val cropsDirName: String = getCropDirectory
 
-  def getInfra3dToken: Future[String] = {
+  def getInfra3dToken(cityId: String): Future[String] = {
     // Token expires after 60 minutes, so we don't need to get a new token every time.
     cacheApi.getOrElseUpdate[String]("getInfra3dToken", Duration(30, "minutes")) {
-      val clientId: String     = config.get[String]("infra3d-client-id")
-      val clientSecret: String = config.get[String]("infra3d-client-secret")
+      val cityName: String     = if (cityId == "winterthur-infra3d") "winterthur" else "zurich"
+      val clientId: String     = config.get[String](s"infra3d-client-id-$cityName")
+      val clientSecret: String = config.get[String](s"infra3d-client-secret-$cityName")
       val body                 = Map(
         "client_id"     -> clientId,
         "client_secret" -> clientSecret,
