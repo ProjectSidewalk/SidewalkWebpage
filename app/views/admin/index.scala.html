@@ -914,7 +914,7 @@
             const imagerySrc = "@commonData.imagerySource.toString";
             const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
             const accessToken = "@commonData.imageryAccessToken";
-            window.admin = await Admin($, '@commonData.mapboxApiKey', viewerType, accessToken, "@currentCity.cityNameShort", "@user.username");
+            window.admin = await Admin($, '@commonData.mapboxApiKey', viewerType, accessToken, "@user.username");
         });
     </script>
 }

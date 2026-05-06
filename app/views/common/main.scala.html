@@ -63,7 +63,12 @@
                 namespaces: @Html(i18Namespaces.map(namespace => s""""$namespace"""").mkString("[", ",", "]")),
                 countryId: "@currentCity.countryId"
             };
-            window.appManager.init(csrfToken, i18nextParams);
+            const globals = {
+                cityId: "@commonData.cityId",
+                cityName: "@currentCity.cityNameFormatted",
+                cityNameShort: "@currentCity.cityNameShort"
+            };
+            window.appManager.init(csrfToken, i18nextParams, globals);
         });
     </script>
     <div id="wrap">

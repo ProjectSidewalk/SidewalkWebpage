@@ -10,11 +10,10 @@
  * @param {boolean} admin If true, this is an admin UI, so additional info can be shown.
  * @param {typeof PanoViewer} viewerType The type of pano viewer to initialize.
  * @param {string} viewerAccessToken An access token used to request images for the pano viewer.
- * @param {string} [cityName] Current city name (used by PanoInfoPopover's clipboard-copy).
  * @param {string} [currUsername] Username of the current viewer. Used to identify comments from this user.
  * @returns {Promise<object>} Resolves once the pano viewer has been initialized.
  */
-async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUsername) {
+async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername) {
     const dialog = document.getElementById('label-modal');
     if (!dialog) {
         throw new Error('LabelPopup: #label-modal not found. Did you include common.labelPopup() on the page?');
@@ -29,7 +28,6 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, cityName, currUs
         admin,
         viewerType,
         viewerAccessToken,
-        cityName,
         currUsername
     });
     dialog.close();

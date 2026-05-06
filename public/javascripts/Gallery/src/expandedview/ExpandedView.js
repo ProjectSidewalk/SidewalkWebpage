@@ -31,7 +31,6 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
             admin: false,
             viewerType: panoViewerType,
             viewerAccessToken: viewerAccessToken,
-            cityName: sg.cityName,
             currUsername: null,
             onVote: _handleVote,
             panoOverlaySource: 'GalleryExpandedImage',

@@ -422,9 +422,9 @@ function ContextMenu (uiContextMenu) {
                         let exampleImage;
                         let imageUrl = `/assets/images/examples/tags/${tag.tag_id}.png`;
                         let citySpecificImageUrl;
-                        if (svl.cityId === 'chandigarh-india') {
+                        if (window.cityId === 'chandigarh-india') {
                             citySpecificImageUrl = `/assets/images/examples/tags/india/${tag.tag_id}.png`;
-                        } else if (['zurich', 'zurich-infra3d', 'staging'].includes(svl.cityId)) {
+                        } else if (['zurich', 'zurich-infra3d', 'staging'].includes(window.cityId)) {
                             citySpecificImageUrl = `/assets/images/examples/tags/zurich/${tag.tag_id}.png`;
                         }
 

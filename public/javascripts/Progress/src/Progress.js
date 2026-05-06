@@ -1,4 +1,4 @@
-async function Progress ($, mapboxApiKey, viewerType, viewerAccessToken, userId, admin, cityName, currentUsername) {
+async function Progress ($, mapboxApiKey, viewerType, viewerAccessToken, userId, admin, currentUsername) {
     var params = {
         mapName: 'user-dashboard-choropleth',
         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
@@ -15,7 +15,7 @@ async function Progress ($, mapboxApiKey, viewerType, viewerAccessToken, userId,
         neighborhoodFillOpacity: 0.1,
         uiSource: admin ? 'AdminUserDashboard' : 'UserMap',
         navigationControlPosition: 'top-right',
-        popupLabelViewer: await LabelPopup(admin, viewerType, viewerAccessToken, cityName, currentUsername)
+        popupLabelViewer: await LabelPopup(admin, viewerType, viewerAccessToken, currentUsername)
     };
     var self = {}
     CreatePSMap($, params).then(m => {
