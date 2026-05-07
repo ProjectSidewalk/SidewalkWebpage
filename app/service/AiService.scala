@@ -46,6 +46,7 @@ class AiServiceImpl @Inject() (
     labelTable: models.label.LabelTable,
     validationService: ValidationService,
     labelAiAssessmentTable: models.label.LabelAiAssessmentTable,
+    labelAiFailureTable: models.label.LabelAiFailureTable,
     missionTable: models.mission.MissionTable,
     panoDataService: PanoDataService
 )(implicit val ec: ExecutionContext)
@@ -178,7 +179,7 @@ class AiServiceImpl @Inject() (
 
     ws.url(url)
       .post(formData)
-      .map { response =>
+      .flatMap { response =>
         try {
           if (response.status >= 200 && response.status < 300) {
             val json: JsValue = response.json
@@ -207,21 +208,29 @@ class AiServiceImpl @Inject() (
               .asOpt[String]
               .map(dateStr => LocalDate.parse(dateStr, dateFormatter).atStartOfDay(ZoneOffset.UTC).toOffsetDateTime)
 
-            Some(
-              LabelAiAssessment(0, labelData.labelId, valResult, valAccuracy, valConfidence, tags, tagsNotPresent,
-                tagsConfidence, apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate,
-                OffsetDateTime.now, None)
+            Future.successful(
+              Some(
+                LabelAiAssessment(0, labelData.labelId, valResult, valAccuracy, valConfidence, tags, tagsNotPresent,
+                  tagsConfidence, apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate,
+                  OffsetDateTime.now, None)
+              )
             )
+          } else if (response.status == 502) {
+            // The AI API tried both its scraped cache and a fresh download from Google and got nothing back, so the
+            // imagery is permanently unavailable. Record a failure row so the daily actor stops retrying this label.
+            val reason = response.body.trim.take(500)
+            logger.warn(s"AI API for label $labelId returned 502: $reason. Recording permanent failure.")
+            db.run(labelAiFailureTable.save(labelId, reason)).map(_ => None)
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")
             // Most common failure is for expired imagery, so do that check and mark it as expired here.
             Await.result(panoDataService.panoExists(labelData.panoData.panoId, labelData.panoData.source), 5.seconds)
-            None
+            Future.successful(None)
           }
         } catch {
           case e: Exception =>
             logger.warn(s"Failed to parse AI API response for label $labelId: ${e.getMessage}")
-            None
+            Future.successful(None)
         }
       }
       .recover { case e: Exception =>
