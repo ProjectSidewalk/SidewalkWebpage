@@ -54,6 +54,8 @@ class AiServiceImpl @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger                         = Logger(this.getClass)
   private val cityId: String                 = config.get[String]("city-id")
+  // Strip the "sidewalk_" prefix off DATABASE_USER so the AI API can look up this city's image cache.
+  private val cityForAiApi: String           = config.get[String]("slick.dbs.default.db.user").stripPrefix("sidewalk_")
   private val AI_ENABLED: Boolean            = config.get[Boolean]("ai-enabled")
   private val AI_VALIDATIONS_ON: Boolean     = config.get[Boolean](s"city-params.ai-validation-enabled.$cityId")
   private val AI_TAG_SUGGESTIONS_ON: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$cityId")
@@ -174,7 +176,8 @@ class AiServiceImpl @Inject() (
       "label_type"  -> LabelTypeEnum.labelTypeIdToLabelType(labelData.labelTypeId).toLowerCase,
       "panorama_id" -> labelData.panoData.panoId,
       "x"           -> (labelData.labelPoint.panoX.toDouble / labelData.panoData.width.get).toString,
-      "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.panoData.height.get).toString
+      "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.panoData.height.get).toString,
+      "city"        -> cityForAiApi
     )
 
     ws.url(url)
@@ -197,6 +200,7 @@ class AiServiceImpl @Inject() (
             val apiVersion     = (json \ "api_version").as[String]
             val valModelId     = (json \ "validator_model_id").as[String]
             val taggerModelId  = (json \ "tagger_model_id").asOpt[String]
+            val aiImageSource  = AiImageSource.withName((json \ "image_source").as[String])
 
             // Read training dates.
             val dateFormatter   = DateTimeFormatter.ofPattern("MM-dd-yyyy")
@@ -212,7 +216,7 @@ class AiServiceImpl @Inject() (
               Some(
                 LabelAiAssessment(0, labelData.labelId, valResult, valAccuracy, valConfidence, tags, tagsNotPresent,
                   tagsConfidence, apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate,
-                  OffsetDateTime.now, None)
+                  OffsetDateTime.now, None, aiImageSource)
               )
             )
           } else if (response.status == 502) {

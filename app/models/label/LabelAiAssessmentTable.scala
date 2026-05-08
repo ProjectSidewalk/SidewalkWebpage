@@ -1,6 +1,7 @@
 package models.label
 
 import com.google.inject.ImplementedBy
+import models.label.AiImageSource.AiImageSource
 import models.utils.MyPostgresProfile.api._
 import models.utils.{AiTagConfidence, MyPostgresProfile}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -8,6 +9,13 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.ExecutionContext
+
+// NOTE need to update ai_image_source enum in postgres as well if changing this Enumeration.
+object AiImageSource extends Enumeration {
+  type AiImageSource = Value
+  val Download = Value("download")
+  val Cache    = Value("cache")
+}
 
 case class LabelAiAssessment(
     labelAiAssessmentId: Int,
@@ -24,7 +32,8 @@ case class LabelAiAssessment(
     taggerModelId: Option[String],
     taggerTrainingDate: Option[OffsetDateTime],
     timestamp: OffsetDateTime,
-    labelValidationId: Option[Int]
+    labelValidationId: Option[Int],
+    aiImageSource: AiImageSource
 )
 
 class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, "label_ai_assessment") {
@@ -43,11 +52,12 @@ class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, 
   def taggerTrainingDate: Rep[Option[OffsetDateTime]]   = column[Option[OffsetDateTime]]("tagger_training_date")
   def timestamp: Rep[OffsetDateTime]      = column[OffsetDateTime]("timestamp", O.Default(OffsetDateTime.now))
   def labelValidationId: Rep[Option[Int]] = column[Option[Int]]("label_validation_id")
+  def aiImageSource: Rep[AiImageSource]   = column[AiImageSource]("ai_image_source")
 
   def * =
     (labelAiAssessmentId, labelId, validationResult, validationAccuracy, validationConfidence, tags, tagsNotPresent,
       tagsConfidence, apiVersion, validatorModelId, validatorTrainingDate, taggerModelId, taggerTrainingDate, timestamp,
-      labelValidationId) <> (
+      labelValidationId, aiImageSource) <> (
       (LabelAiAssessment.apply _).tupled,
       LabelAiAssessment.unapply
     )
