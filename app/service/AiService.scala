@@ -221,13 +221,13 @@ class AiServiceImpl @Inject() (
             )
           } else if (response.status == 502) {
             // The AI API tried both its scraped cache and a fresh download from Google and got nothing back, so the
-            // imagery is permanently unavailable. Record a failure row so the daily actor stops retrying this label.
+            // imagery is likely expired. Check expiration & Record a failure row so we stop retrying this label.
             val reason = response.body.trim.take(500)
+            Await.result(panoDataService.panoExists(labelData.panoData.panoId, labelData.panoData.source), 5.seconds)
             logger.warn(s"AI API for label $labelId returned 502: $reason. Recording permanent failure.")
             db.run(labelAiFailureTable.save(labelId, reason)).map(_ => None)
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")
-            // Most common failure is for expired imagery, so do that check and mark it as expired here.
             Await.result(panoDataService.panoExists(labelData.panoData.panoId, labelData.panoData.source), 5.seconds)
             Future.successful(None)
           }
