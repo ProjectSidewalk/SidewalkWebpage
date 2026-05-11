@@ -535,6 +535,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val labelPoints            = TableQuery[LabelPointTableDef]
   val labelValidations       = TableQuery[LabelValidationTableDef]
   val labelAiAssessments     = TableQuery[LabelAiAssessmentTableDef]
+  val labelAiFailures        = TableQuery[LabelAiFailureTableDef]
   val missions               = TableQuery[MissionTableDef]
   val regions                = TableQuery[RegionTableDef]
   val usersUnfiltered        = TableQuery[SidewalkUserTableDef]
@@ -2034,7 +2035,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .joinLeft(labelAiAssessments)
       .on(_._1._1.labelId === _.labelId)
       .filter { case (((l, ur), r), laa) => laa.map(_.labelId).isEmpty } // No labels that AI's already validated
-      .map(_._1._1._1)
+      .joinLeft(labelAiFailures)
+      .on(_._1._1._1.labelId === _.labelId)
+      .filter { case ((((l, ur), r), laa), laf) => laf.map(_.labelId).isEmpty } // No labels with a permanent failure
+      .map(_._1._1._1._1)
 
     possibleLabels
       .join(labelPoints)
@@ -2042,7 +2046,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .join(panoData)
       .on { case ((label, point), pd) => label.panoId === pd.panoId }
       .filter { case ((label, point), pd) =>
-        !pd.expired && pd.width.isDefined && pd.height.isDefined && pd.source === PanoSource.Gsv
+        pd.width.isDefined && pd.height.isDefined && pd.source === PanoSource.Gsv
       }
       .sortBy { case ((label, point), pd) =>
         (

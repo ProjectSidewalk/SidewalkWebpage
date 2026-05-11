@@ -3,6 +3,7 @@ package models.utils
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
+import models.label.AiImageSource
 import models.pano.PanoSource
 import models.utils.CommonUtils.UiSource
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
@@ -106,9 +107,13 @@ trait MyPostgresProfile
     implicit val panoSourceMapper: BaseColumnType[PanoSource.Value] =
       createEnumJdbcType[PanoSource.Value]("pano_source", _.toString, PanoSource.withName, quoteName = false)
 
-    // Mapper for pano_source enum type.
+    // Mapper for ui_source enum type.
     implicit val uiSourceMapper: BaseColumnType[UiSource.Value] =
       createEnumJdbcType[UiSource.Value]("ui_source", _.toString, UiSource.withName, quoteName = false)
+
+    // Mapper for ai_image_source enum type.
+    implicit val aiImageSourceMapper: BaseColumnType[AiImageSource.Value] =
+      createEnumJdbcType[AiImageSource.Value]("ai_image_source", _.toString, AiImageSource.withName, quoteName = false)
   }
 }
 
