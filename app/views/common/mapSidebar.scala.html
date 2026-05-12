@@ -1,5 +1,5 @@
 @import models.label.{LabelTypeEnum, Tag}
-@(showStreets: Boolean = true, tags: Seq[Tag] = Seq.empty)(implicit messages: Messages, assets: AssetsFinder)
+@(tags: Seq[Tag] = Seq.empty)(implicit messages: Messages, assets: AssetsFinder)
 
 @tagsByLabelType = @{tags.groupBy(t => LabelTypeEnum.labelTypeIdToLabelType.getOrElse(t.labelTypeId, ""))}
 
@@ -138,34 +138,32 @@
         </ul>
     </section>
 
-    @* ---- Streets section (optional) ---- *@
-    @if(showStreets) {
-        <section class="map-sidebar__section">
-            <div class="map-sidebar__heading-row">
-                <h3 class="map-sidebar__heading" data-i18n="labelmap:streets">Streets</h3>
-                <button class="map-sidebar__deselect-all" data-section="streets"
-                        data-i18n="labelmap:select-all">Select all</button>
-            </div>
-            <ul class="map-sidebar__list">
-                <li class="map-sidebar__item">
-                    <input type="checkbox" id="audited-street" data-filter-type="streets" disabled>
-                    <svg class="map-sidebar__street-icon map-sidebar__street-icon--audited"
-                         width="17" height="14" viewBox="0 0 20 20">
-                        <path d="M 2 10 L 18 10 z"></path>
-                    </svg>
-                    <label for="audited-street" data-i18n="labelmap:audited-street">Audited Street</label>
-                </li>
-                <li class="map-sidebar__item">
-                    <input type="checkbox" id="unaudited-street" data-filter-type="streets" disabled>
-                    <svg class="map-sidebar__street-icon map-sidebar__street-icon--unaudited"
-                         width="17" height="14" viewBox="0 0 20 20">
-                        <path d="M 2 10 L 18 10 z"></path>
-                    </svg>
-                    <label for="unaudited-street" data-i18n="labelmap:unaudited-street">Unaudited Street</label>
-                </li>
-            </ul>
-        </section>
-    }
+    @* ---- Streets section ---- *@
+    <section class="map-sidebar__section">
+        <div class="map-sidebar__heading-row">
+            <h3 class="map-sidebar__heading" data-i18n="labelmap:streets">Streets</h3>
+            <button class="map-sidebar__deselect-all" data-section="streets"
+                    data-i18n="labelmap:select-all">Select all</button>
+        </div>
+        <ul class="map-sidebar__list">
+            <li class="map-sidebar__item">
+                <input type="checkbox" id="audited-street" data-filter-type="streets" disabled>
+                <svg class="map-sidebar__street-icon map-sidebar__street-icon--audited"
+                     width="17" height="14" viewBox="0 0 20 20">
+                    <path d="M 2 10 L 18 10 z"></path>
+                </svg>
+                <label for="audited-street" data-i18n="labelmap:audited-street">Audited Street</label>
+            </li>
+            <li class="map-sidebar__item">
+                <input type="checkbox" id="unaudited-street" data-filter-type="streets" disabled>
+                <svg class="map-sidebar__street-icon map-sidebar__street-icon--unaudited"
+                     width="17" height="14" viewBox="0 0 20 20">
+                    <path d="M 2 10 L 18 10 z"></path>
+                </svg>
+                <label for="unaudited-street" data-i18n="labelmap:unaudited-street">Unaudited Street</label>
+            </li>
+        </ul>
+    </section>
 </div>
 
 @* Drag handle on the right edge of the sidebar for resizing. *@
