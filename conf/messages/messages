@@ -56,6 +56,7 @@ city.name.virden-il = Virden
 city.name.gainesville-fl = Gainesville
 city.name.sao-paulo-brazil = São Paulo
 city.name.winterthur-infra3d = Winterthur
+city.name.waltham-ma = Waltham
 
 state.name.oregon = Oregon
 state.name.washington = Washington
@@ -73,6 +74,7 @@ state.name.arizona = Arizona
 state.name.virginia = Virginia
 state.name.indiana = Indiana
 state.name.florida = Florida
+state.name.massachusetts = Massachusetts
 
 country.name.usa = USA
 country.name.mexico = Mexico
