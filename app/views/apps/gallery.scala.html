@@ -113,8 +113,6 @@
             }
 
             params.language = "@messages.lang.code";
-            params.cityId = "@currentCity.cityId";
-            params.cityName = "@currentCity.cityNameFormatted";
             const imagerySrc = "@commonData.imagerySource.toString";
             params.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
             params.viewerAccessToken = "@commonData.imageryAccessToken";

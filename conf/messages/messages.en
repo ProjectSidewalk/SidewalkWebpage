@@ -74,6 +74,7 @@ state.name.arizona = AZ
 state.name.virginia = VA
 state.name.indiana = IN
 state.name.florida = FL
+state.name.massachusetts = MA
 
 navbar.explore = Explore
 navbar.validate = Validate

@@ -36,9 +36,6 @@ function Main (params) {
         svl.userHasCompletedAMission = params.hasCompletedAMission;
         svl.routeId = params.routeId;
         svl.userRouteId = params.userRouteId;
-        svl.cityId = params.cityId;
-        svl.cityName = params.cityName;
-        svl.cityNameShort = params.cityNameShort;
         svl.makeCrops = params.makeCrops;
 
         svl.storage = new TemporaryStorage(JSON);
@@ -164,7 +161,7 @@ function Main (params) {
             svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId,
             function() { return svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('captureDate'); },
             function() { return svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('address'); },
-            svl.panoViewer.getPov, svl.cityName, true,
+            svl.panoViewer.getPov, true,
             function() { svl.tracker.push('PanoInfoButton_Click'); },
             function() { svl.tracker.push('PanoInfoCopyToClipboard_Click'); },
             function() { svl.tracker.push('PanoInfoViewInPano_Click'); }

@@ -46,6 +46,7 @@ class AiServiceImpl @Inject() (
     labelTable: models.label.LabelTable,
     validationService: ValidationService,
     labelAiAssessmentTable: models.label.LabelAiAssessmentTable,
+    labelAiFailureTable: models.label.LabelAiFailureTable,
     missionTable: models.mission.MissionTable,
     panoDataService: PanoDataService
 )(implicit val ec: ExecutionContext)
@@ -53,6 +54,8 @@ class AiServiceImpl @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger                         = Logger(this.getClass)
   private val cityId: String                 = config.get[String]("city-id")
+  // Strip the "sidewalk_" prefix off DATABASE_USER so the AI API can look up this city's image cache.
+  private val cityForAiApi: String           = config.get[String]("slick.dbs.default.db.user").stripPrefix("sidewalk_")
   private val AI_ENABLED: Boolean            = config.get[Boolean]("ai-enabled")
   private val AI_VALIDATIONS_ON: Boolean     = config.get[Boolean](s"city-params.ai-validation-enabled.$cityId")
   private val AI_TAG_SUGGESTIONS_ON: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$cityId")
@@ -173,12 +176,13 @@ class AiServiceImpl @Inject() (
       "label_type"  -> LabelTypeEnum.labelTypeIdToLabelType(labelData.labelTypeId).toLowerCase,
       "panorama_id" -> labelData.panoData.panoId,
       "x"           -> (labelData.labelPoint.panoX.toDouble / labelData.panoData.width.get).toString,
-      "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.panoData.height.get).toString
+      "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.panoData.height.get).toString,
+      "city"        -> cityForAiApi
     )
 
     ws.url(url)
       .post(formData)
-      .map { response =>
+      .flatMap { response =>
         try {
           if (response.status >= 200 && response.status < 300) {
             val json: JsValue = response.json
@@ -191,10 +195,12 @@ class AiServiceImpl @Inject() (
             val tagsConfidence: Option[Seq[AiTagConfidence]] = (json \ "tag_scores")
               .asOpt[JsObject]
               .map(_.fields.map { case (tag, jsValue) => AiTagConfidence(tag, jsValue.as[Double]) }.toSeq)
-            val tags          = (json \ "tags").asOpt[List[String]].map(tags => tags.filter(tag => tag != "NULL"))
-            val apiVersion    = (json \ "api_version").as[String]
-            val valModelId    = (json \ "validator_model_id").as[String]
-            val taggerModelId = (json \ "tagger_model_id").asOpt[String]
+            val tags           = (json \ "tags").asOpt[List[String]]
+            val tagsNotPresent = (json \ "tags_not_present").asOpt[List[String]]
+            val apiVersion     = (json \ "api_version").as[String]
+            val valModelId     = (json \ "validator_model_id").as[String]
+            val taggerModelId  = (json \ "tagger_model_id").asOpt[String]
+            val aiImageSource  = AiImageSource.withName((json \ "image_source").as[String])
 
             // Read training dates.
             val dateFormatter   = DateTimeFormatter.ofPattern("MM-dd-yyyy")
@@ -206,20 +212,29 @@ class AiServiceImpl @Inject() (
               .asOpt[String]
               .map(dateStr => LocalDate.parse(dateStr, dateFormatter).atStartOfDay(ZoneOffset.UTC).toOffsetDateTime)
 
-            Some(
-              LabelAiAssessment(0, labelData.labelId, valResult, valAccuracy, valConfidence, tags, tagsConfidence,
-                apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate, OffsetDateTime.now, None)
+            Future.successful(
+              Some(
+                LabelAiAssessment(0, labelData.labelId, valResult, valAccuracy, valConfidence, tags, tagsNotPresent,
+                  tagsConfidence, apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate,
+                  OffsetDateTime.now, None, aiImageSource)
+              )
             )
+          } else if (response.status == 502) {
+            // The AI API tried both its scraped cache and a fresh download from Google and got nothing back, so the
+            // imagery is likely expired. Check expiration & Record a failure row so we stop retrying this label.
+            val reason = response.body.trim.take(500)
+            Await.result(panoDataService.panoExists(labelData.panoData.panoId, labelData.panoData.source), 5.seconds)
+            logger.warn(s"AI API for label $labelId returned 502: $reason. Recording permanent failure.")
+            db.run(labelAiFailureTable.save(labelId, reason)).map(_ => None)
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")
-            // Most common failure is for expired imagery, so do that check and mark it as expired here.
             Await.result(panoDataService.panoExists(labelData.panoData.panoId, labelData.panoData.source), 5.seconds)
-            None
+            Future.successful(None)
           }
         } catch {
           case e: Exception =>
             logger.warn(s"Failed to parse AI API response for label $labelId: ${e.getMessage}")
-            None
+            Future.successful(None)
         }
       }
       .recover { case e: Exception =>

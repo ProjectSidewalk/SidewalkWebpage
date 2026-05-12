@@ -13,20 +13,17 @@ class Infra3dViewer extends PanoViewer {
 
     async initialize(canvasElem, panoOptions = {}) {
         const manager = await infra3dapi.init(canvasElem.id, panoOptions.accessToken);
-        // Fetching projects will occasionally fail once, just refresh page to try again.
-        let fetchedProjects;
-        try {
-            fetchedProjects = await manager.getProjects();
-        } catch (error) {
-            window.location.reload();
-        }
-        const projectUID = fetchedProjects[0].uid;
+
+        // Each city has their own project_UID. Faster to hard code it rather than fetching projects in real time.
+        const projectId = window.cityId === 'winterthur-infra3d'
+            ? 'ab6045da-46b4-44d2-8123-e19c7cdbe7ea'
+            : 'bd8196f8-dbe5-4e67-849f-977452fe7587';
 
         // Docs on Infra3D viewer options:
         // https://developers.infra3d.com/custom-content/reference/classes/Manager.Manager.html#initViewer
         let disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
         let panoOpts = {
-            project_uid: projectUID,
+            project_uid: projectId,
             show_topbar: !disableDefaultUi,
             show_toolbar: !disableDefaultUi,
             show_mapWindow: !disableDefaultUi,

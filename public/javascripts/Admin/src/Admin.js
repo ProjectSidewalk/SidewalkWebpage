@@ -1,4 +1,4 @@
-async function Admin($, mapboxApiKey, viewerType, viewerAccessToken, cityName, currentUsername) {
+async function Admin($, mapboxApiKey, viewerType, viewerAccessToken, currentUsername) {
     const self = {};
     const $loadingGif = $('#page-loading');
     let mapLoaded = false;
@@ -18,7 +18,7 @@ async function Admin($, mapboxApiKey, viewerType, viewerAccessToken, cityName, c
         neighborhoodTooltip: 'completionRate',
         logClicks: false
     };
-    self.labelPopup = await LabelPopup(true, viewerType, viewerAccessToken, cityName, currentUsername);
+    self.labelPopup = await LabelPopup(true, viewerType, viewerAccessToken, currentUsername);
     const mapTabMapParams = {
         mapName: 'admin-labelmap-choropleth',
         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',

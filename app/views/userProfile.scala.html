@@ -86,7 +86,7 @@
             <div class="col-lg-12" id="map-column">
                 <div id="user-dashboard-choropleth-holder" class="choropleth-holder">
                     <div id="user-dashboard-choropleth" class="choropleth"></div>
-                    @common.mapSidebar(showStreets = false, tags = tags)
+                    @common.mapSidebar(tags = tags, streetsShownByDefault = true)
                 </div>
             </div>
         </div>
@@ -390,7 +390,7 @@
             const imagerySrc = "@commonData.imagerySource.toString";
             const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
             const accessToken = "@commonData.imageryAccessToken";
-            await Progress($, '@commonData.mapboxApiKey', viewerType, accessToken, '@profileUser.userId', @admin, "@currentCity.cityNameShort", "@user.username");
+            await Progress($, '@commonData.mapboxApiKey', viewerType, accessToken, '@profileUser.userId', @admin, "@user.username");
             @if(admin) {
                 AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService, @profileUser.infra3dAccess);
                 $('#label-table').dataTable();

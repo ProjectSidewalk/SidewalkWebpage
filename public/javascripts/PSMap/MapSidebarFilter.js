@@ -34,6 +34,9 @@ class MapSidebarFilter {
         this.#initSidebarOpenClose();
         this.#initResizeHandle();
         this.#enableAllControls();
+
+        // Sync the streets layer visibility with the initial checkbox state (the streets layer starts hidden).
+        filterStreetLayer(this.#map);
     }
 
     /** Binds click handlers to the severity toggle buttons. */

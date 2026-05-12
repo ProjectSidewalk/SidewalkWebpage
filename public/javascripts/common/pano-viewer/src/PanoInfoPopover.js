@@ -26,8 +26,6 @@ class PanoInfoPopover {
     #panoAddress;
     /** @type {function(): {heading: number, pitch: number}} */
     #pov;
-    /** @type {string} */
-    #cityName;
     /** @type {boolean} */
     #whiteIcon;
     /** @type {function()} */
@@ -51,7 +49,6 @@ class PanoInfoPopover {
      * @param {function} panoDate Function that returns the current pano's capture date as a moment object
      * @param {function} panoAddress Function that returns the current pano's address string, or null
      * @param {function} pov Function that returns the current { heading, pitch }
-     * @param {string} cityName Name of the current city
      * @param {boolean} whiteIcon True for the white icon variant, false for blue
      * @param {function} infoLogging Called when the info button is clicked
      * @param {function} clipboardLogging Called when the clipboard button is clicked
@@ -59,9 +56,8 @@ class PanoInfoPopover {
      * @param {function} [labelId] Optional — returns the Label ID
      * @param {function} [labelDate] Optional — returns the label's timestamp as a moment object
      */
-    constructor(container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate,
-                panoAddress, pov, cityName, whiteIcon, infoLogging, clipboardLogging,
-                viewPanoLogging, labelId, labelDate) {
+    constructor(container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, whiteIcon,
+                infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate) {
         this.#popoverEl = document.getElementById('pano-info-popover');
         this.#panoViewer = panoViewer;
         this.#coords = coords;
@@ -71,7 +67,6 @@ class PanoInfoPopover {
         this.#panoDate = panoDate;
         this.#panoAddress = panoAddress;
         this.#pov = pov;
-        this.#cityName = cityName;
         this.#whiteIcon = whiteIcon;
         this.#infoLogging = infoLogging;
         this.#clipboardLogging = clipboardLogging;
@@ -232,7 +227,7 @@ class PanoInfoPopover {
 
             let text = currPanoAddress
                 ? `${i18next.t('common:pano-info.pano-address')}: ${currPanoAddress}\n` : '';
-            text += `${i18next.t('common:pano-info.city')}: ${this.#cityName}\n`
+            text += `${i18next.t('common:pano-info.city')}: ${window.cityName}\n`
                 + `${i18next.t('common:pano-info.latitude')}: ${currCoords ? currCoords.lat : ''}°\n`
                 + `${i18next.t('common:pano-info.longitude')}: ${currCoords ? currCoords.lng : ''}°\n`
                 + `${i18next.t('common:pano-info.image-id')}: ${currPanoId}\n`

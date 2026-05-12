@@ -14,7 +14,6 @@
  * @param {boolean} opts.admin If true, this is an admin UI, so additional info can be shown.
  * @param {typeof PanoViewer} opts.viewerType The type of pano viewer to initialize.
  * @param {string} opts.viewerAccessToken An access token used to request images for the pano viewer.
- * @param {string} [opts.cityName] Current city name (used by PanoInfoPopover's clipboard-copy).
  * @param {string} [opts.currUsername] Username of the current viewer. Used to identify comments from this user.
  * @param {(action: 'Agree'|'Disagree'|'Unsure', meta: object) => void} [opts.onVote] Optional callback fired after a
  *      vote is successfully submitted. Hosts use this to sync upstream UI (e.g. recolor a Gallery card after the user
@@ -28,7 +27,7 @@
 async function LabelDetail(root, opts) {
     const self = {};
     const {
-        admin, viewerType, viewerAccessToken, cityName, currUsername, onVote, panoOverlaySource, voteColumnSource
+        admin, viewerType, viewerAccessToken, currUsername, onVote, panoOverlaySource, voteColumnSource
     } = opts;
     self.admin = admin;
     self.source = undefined; // Set in showLabel().
@@ -95,7 +94,6 @@ async function LabelDetail(root, opts) {
             () => currentLabelMeta && moment(new Date(currentLabelMeta.image_capture_date)),
             () => panoViewer.currPanoData ? panoViewer.currPanoData.getProperty('address') : null,
             () => currentLabelMeta && { heading: currentLabelMeta.heading, pitch: currentLabelMeta.pitch, zoom: currentLabelMeta.zoom },
-            cityName || '',
             false,    // whiteIcon
             noopLog,  // infoLogging
             noopLog,  // clipboardLogging

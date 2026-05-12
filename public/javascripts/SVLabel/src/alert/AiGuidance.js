@@ -50,7 +50,7 @@ function AiGuidance(tracker, popUpMessage) {
      * Displays a pop-up message with AI-generated guidance based on the current street. Pilot in Chandigarh, India.
      */
     function showAiGuidanceMessage() {
-        if (svl.cityId === 'chandigarh-india') {
+        if (window.cityId === 'chandigarh-india') {
             _analyzeCurrentStreetWithGemini(svl.taskContainer.getCurrentTask())
                 .then(response => {
                     const title = 'Mission Guidance';

@@ -116,11 +116,17 @@ class AdminServiceImpl @Inject() (
       currRegion: Option[Region]              <- userCurrentRegionTable.getCurrentRegion(userId)
       completedAudits: Int                    <- auditTaskTable.countCompletedAuditsForUser(userId)
       hoursWorked: Double                     <- auditTaskInteractionTable.getHoursAuditingAndValidating(userId)
-      userStats: Option[UserStat]             <- userStatTable.getStatsFromUserId(userId)
+      existingStats: Option[UserStat]         <- userStatTable.getStatsFromUserId(userId)
+      // Insert a user_stat if the user hasn't visited this server before, allowing this page to load.
+      userStats: UserStat <- existingStats match {
+        case Some(stats) => DBIO.successful(stats)
+        case None        =>
+          userStatTable.insert(userId).flatMap(_ => userStatTable.getStatsFromUserId(userId).map(_.get))
+      }
       completedMissions: Seq[RegionalMission] <- missionTable.selectCompletedRegionalMission(userId)
       comments: Seq[AuditTaskComment]         <- auditTaskCommentTable.all(userId)
     } yield {
-      AdminUserProfileData(currRegion, completedAudits, hoursWorked, userStats.get, completedMissions, comments)
+      AdminUserProfileData(currRegion, completedAudits, hoursWorked, userStats, completedMissions, comments)
     })
   }
 

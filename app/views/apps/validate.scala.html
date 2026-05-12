@@ -273,7 +273,6 @@
             param.hasNextMission = @validatePageData.hasNextMission;
             param.completedValidations = @validatePageData.completedValidations;
             param.language = "@messages.lang.code";
-            param.cityName = "@currentCity.cityNameFormatted";
             const imagerySrc = "@commonData.imagerySource.toString";
             param.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
             param.viewerAccessToken = "@commonData.imageryAccessToken";
