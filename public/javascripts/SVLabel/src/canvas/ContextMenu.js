@@ -15,11 +15,10 @@ function ContextMenu (uiContextMenu) {
         };
     var $menuWindow = uiContextMenu.holder;
     var $severityMenu = uiContextMenu.severityMenu;
-    var $severityButtons = uiContextMenu.radioButtons;
+    var $severityRadios = uiContextMenu.radioButtons;
     let $descriptionHeaderNumber = $('#description-header-num');
     var $descriptionTextBox = uiContextMenu.textBox;
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
-    var $radioButtonLabels = $menuWindow.find(".severity-level");
     var $tagHolder = uiContextMenu.tagHolder;
     var $tags = uiContextMenu.tags;
 
@@ -29,9 +28,7 @@ function ContextMenu (uiContextMenu) {
 
     document.addEventListener('mousedown', _handleMouseDown);
     $menuWindow.on('mousedown', _handleMenuWindowMouseDown);
-    $severityButtons.on('change', _handleSeverityChange);
-    $radioButtonLabels.on('mouseenter', _handleSeverityHoverEnter);
-    $radioButtonLabels.on('mouseleave', _handleSeverityHoverLeave);
+    $severityRadios.on('change', _handleSeverityChange);
     $descriptionTextBox.on('change', _handleDescriptionTextBoxChange);
     $descriptionTextBox.on('focus', _handleDescriptionTextBoxFocus);
     $descriptionTextBox.on('blur', _handleDescriptionTextBoxBlur);
@@ -132,27 +129,6 @@ function ContextMenu (uiContextMenu) {
         }
     }
 
-    /**
-     * Temporarily shows the hovered severity icon in its filled (selected-state) variant while hovering.
-     */
-    function _handleSeverityHoverEnter() {
-        const sev = Number(this.id.replace('severity-', ''));
-        const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
-        const img = this.querySelector('.severity-icon-img');
-        if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, true);
-    }
-
-    /**
-     * Reverts the hovered severity icon back to its actual selected/unselected state after the hover ends.
-     */
-    function _handleSeverityHoverLeave() {
-        const sev = Number(this.id.replace('severity-', ''));
-        const checkedSev = Number($radioButtonLabels.find('input:checked').val());
-        const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
-        const img = this.querySelector('.severity-icon-img');
-        if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === checkedSev);
-    }
-
     function fetchLabelTags(callback) {
         $.when($.ajax({
             contentType: 'application/json; charset=utf-8',
@@ -174,11 +150,11 @@ function ContextMenu (uiContextMenu) {
     function updateRadioButtonImages() {
         const holder = document.getElementById('severity-radio-holder');
         if (!holder) return;
-        const checkedSev = Number($radioButtonLabels.find('input:checked').val());
+        const checkedSev = Number($severityRadios.filter(':checked').val());
         const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
-        holder.querySelectorAll('.severity-level').forEach((level) => {
-            const sev = Number(level.id.replace('severity-', ''));
-            const img = level.querySelector('.severity-icon-img');
+        holder.querySelectorAll('.severity-button').forEach((button) => {
+            const sev = Number(button.dataset.severity);
+            const img = button.querySelector('.severity-button__icon');
             if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === checkedSev);
         });
     }
@@ -201,7 +177,8 @@ function ContextMenu (uiContextMenu) {
             $info.attr('data-original-title', i18next.t(`common:${infoKey}`));
         }
         for (let sev = 1; sev <= 3; sev++) {
-            $(`#severity-${sev} .severity-label`).text(i18next.t(`common:${levelKeys[sev]}`));
+            $(`.severity-button[data-severity="${sev}"] .severity-button__label`)
+                .text(i18next.t(`common:${levelKeys[sev]}`));
         }
     }
 
@@ -526,7 +503,7 @@ function ContextMenu (uiContextMenu) {
      */
     function show(targetLabel) {
         setStatus('targetLabel', null);
-        $severityButtons.prop('checked', false);
+        $severityRadios.prop('checked', false);
         $descriptionTextBox.val(null);
 
         var labelType = targetLabel.getLabelType();
@@ -559,7 +536,7 @@ function ContextMenu (uiContextMenu) {
             var severity = targetLabel.getProperty('severity');
             var description = targetLabel.getProperty('description');
             if (severity) {
-                $severityButtons.each(function(i, v) {
+                $severityRadios.each(function(i, v) {
                     if (severity === i + 1) { $(this).prop("checked", true); }
                 });
             }

@@ -389,33 +389,21 @@
                             </div>
                             @* Severity radio smileys. Positive/negative images/text are swapped in ContextMenu.js. *@
                             <div id="severity-radio-holder" class="context-menu-section">
-                                <div class="severity-level" id="severity-1" data-toggle="tooltip">
-                                    <label>
-                                        <input type="radio" name="label-severity" value="1">
-                                        <div class="severity-icon severity-1">
-                                            <img src="" alt="" class="severity-icon-img">
-                                        </div>
-                                        <div class="severity-label">@Messages("low")</div>
-                                    </label>
-                                </div>
-                                <div class="severity-level" id="severity-2" data-toggle="tooltip">
-                                    <label>
-                                        <input type="radio" name="label-severity" value="2">
-                                        <div class="severity-icon severity-2">
-                                            <img src="" alt="" class="severity-icon-img">
-                                        </div>
-                                        <div class="severity-label">@Messages("medium")</div>
-                                    </label>
-                                </div>
-                                <div class="severity-level" id="severity-3" data-toggle="tooltip">
-                                    <label>
-                                        <input type="radio" name="label-severity" value="3">
-                                        <div class="severity-icon severity-3">
-                                            <img src="" alt="" class="severity-icon-img">
-                                        </div>
-                                        <div class="severity-label">@Messages("high")</div>
-                                    </label>
-                                </div>
+                                <label class="severity-button" data-severity="1" data-toggle="tooltip">
+                                    <input type="radio" name="label-severity" value="1" class="severity-button__radio">
+                                    <img src="" alt="" class="severity-button__icon">
+                                    <span class="severity-button__label">@Messages("low")</span>
+                                </label>
+                                <label class="severity-button" data-severity="2" data-toggle="tooltip">
+                                    <input type="radio" name="label-severity" value="2" class="severity-button__radio">
+                                    <img src="" alt="" class="severity-button__icon">
+                                    <span class="severity-button__label">@Messages("medium")</span>
+                                </label>
+                                <label class="severity-button" data-severity="3" data-toggle="tooltip">
+                                    <input type="radio" name="label-severity" value="3" class="severity-button__radio">
+                                    <img src="" alt="" class="severity-button__icon">
+                                    <span class="severity-button__label">@Messages("high")</span>
+                                </label>
                             </div>
                         </div>
 

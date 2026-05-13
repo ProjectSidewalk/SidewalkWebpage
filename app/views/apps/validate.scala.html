@@ -198,27 +198,21 @@
                     @* Header and severity level labels are swapped by DesktopValidationMenu JS based on curr label type. *@
                     <div id="validate-severity-header" class="validation-menu-section-header"></div>
                     <div id="severity-radio-holder">
-                        <div class="severity-level radio-inline" id="severity-button-1" data-severity="1" data-toggle="tooltip">
-                            <input type="radio" name="label-severity" value="1" id="radio-severity-1">
-                            <div class="severity-icon severity-1">
-                                <img src="" alt="" class="severity-icon-img">
-                            </div>
-                            <label for="radio-severity-1" class="severity-label"></label>
-                        </div>
-                        <div class="severity-level radio-inline" id="severity-button-2" data-severity="2" data-toggle="tooltip">
-                            <input type="radio" name="label-severity" value="2" id="radio-severity-2">
-                            <div class="severity-icon severity-2">
-                                <img src="" alt="" class="severity-icon-img">
-                            </div>
-                            <label for="radio-severity-2" class="severity-label"></label>
-                        </div>
-                        <div class="severity-level radio-inline selected" id="severity-button-3" data-severity="3" data-toggle="tooltip">
-                            <input type="radio" name="label-severity" value="3" id="radio-severity-3">
-                            <div class="severity-icon severity-3">
-                                <img src="" alt="" class="severity-icon-img">
-                            </div>
-                            <label for="radio-severity-3" class="severity-label"></label>
-                        </div>
+                        <label class="severity-button" id="severity-button-1" data-severity="1" data-toggle="tooltip">
+                            <input type="radio" name="label-severity" value="1" class="severity-button__radio">
+                            <img src="" alt="" class="severity-button__icon">
+                            <span class="severity-button__label"></span>
+                        </label>
+                        <label class="severity-button" id="severity-button-2" data-severity="2" data-toggle="tooltip">
+                            <input type="radio" name="label-severity" value="2" class="severity-button__radio">
+                            <img src="" alt="" class="severity-button__icon">
+                            <span class="severity-button__label"></span>
+                        </label>
+                        <label class="severity-button" id="severity-button-3" data-severity="3" data-toggle="tooltip">
+                            <input type="radio" name="label-severity" value="3" class="severity-button__radio">
+                            <img src="" alt="" class="severity-button__icon">
+                            <span class="severity-button__label"></span>
+                        </label>
                     </div>
                 </div>
                 <div id="validate-optional-comment-section" class="validation-menu-section">

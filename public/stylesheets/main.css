@@ -974,3 +974,58 @@ kbd {
     /* Keep AI tooltips above map/canvas overlays without unnecessarily high stacking */
     z-index: 1160;
 }
+
+/* Severity face button — a smiley icon + label pair used across the site. Per-context CSS still owns the container
+   grid/flex layout that arranges multiple buttons. */
+.severity-button {
+    position: relative; /* contains the absolutely positioned hidden radio input */
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 6px;
+    margin: 0;
+    border-radius: 6px;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.severity-button:hover {
+    background: #f0f0f0;
+}
+
+/* Non-interactive variant used by LabelDetail. */
+.severity-button--static {
+    cursor: default;
+    padding: 0;
+}
+
+.severity-button--static:hover {
+    background: none;
+}
+
+/* Visually hidden radio input wrapped by the label-button (Explore, ExpertValidate). The wrapping
+   label still toggles it natively, and it stays in the accessibility tree. */
+.severity-button__radio {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.severity-button__icon {
+    width: 24px;
+    height: 24px;
+    display: block;
+}
+
+.severity-button__label {
+    font-family: 'Raleway', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--color-asphalt-400);
+    text-align: center;
+    white-space: nowrap;
+}
