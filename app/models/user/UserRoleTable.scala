@@ -58,7 +58,7 @@ class UserRoleTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   private val cityId: String = config.get[String]("city-id")
 
   /**
-   * The infra3d_access column for the current city, or a literal false for cities without infra3D imagery.
+   * The <city>_infra3d_access column for the current city, or a literal false for cities without infra3D imagery.
    * @param row The user_role row to read the column from
    */
   def infra3dAccessForCurrentCity(row: UserRoleTableDef): Rep[Boolean] = cityId match {
