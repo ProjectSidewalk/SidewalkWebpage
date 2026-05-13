@@ -127,7 +127,8 @@ class UserProfileController @Inject() (
                   "pano_id"         -> label.panoId,
                   "label_type"      -> label.labelType,
                   "correct"         -> label.correct,
-                  "has_validations" -> label.hasValidations
+                  "has_validations" -> label.hasValidations,
+                  "expired"         -> label.expired
                 )
               )
             }

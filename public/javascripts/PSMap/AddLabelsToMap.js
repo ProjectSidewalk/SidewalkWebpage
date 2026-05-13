@@ -7,7 +7,6 @@
  * @param {string} params.mapName Name of the HTML ID of the map.
  * @param {string} [params.highQualityFilter] If true, only show labels from users marked as high quality.
  * @param {boolean} [params.logClicks=true] Whether clicks should be logged.
- * @param {boolean} [params.differentiateExpiredLabels=false] Whether to color expired labels differently.
  * @param {string} [params.uiSource] Used to record the UI used when submitting a validation through the popup.
  * @param {object} [params.popupLabelViewer] Shows a validation popup on labels on the map.
  * @returns {Promise} Promise that resolves with the mapData object.
@@ -92,20 +91,12 @@ function AddLabelsToMap(map, labelData, params) {
                 'circle-stroke-width': 0.75,
                 'circle-color': [
                     'case',
-                    ['all',
-                        ['==', params.differentiateExpiredLabels || false, true],
-                        ['==', ['get', 'expired'], true]
-                    ],
-                    'lightgrey',
+                    ['==', ['get', 'expired'], true], 'lightgrey',
                     colorMapping[labelType].fillStyle
                 ],
                 'circle-stroke-color': [
                     'case',
-                    ['all',
-                        ['==', params.differentiateExpiredLabels || false, true],
-                        ['==', ['get', 'expired'], true]
-                    ],
-                    colorMapping[labelType].fillStyle,
+                    ['==', ['get', 'expired'], true], colorMapping[labelType].fillStyle,
                     colorMapping[labelType].strokeStyle
                 ]
             }

@@ -37,7 +37,6 @@ async function Admin($, mapboxApiKey, viewerType, viewerAccessToken, currentUser
         navigationControlPosition: 'top-right',
         uiSource: 'AdminMapTab',
         popupLabelViewer: self.labelPopup,
-        differentiateExpiredLabels: true,
         logClicks: false,
         highQualityFilter: true
     };
