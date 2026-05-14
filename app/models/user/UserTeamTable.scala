@@ -52,7 +52,7 @@ class UserTeamTable @Inject() (
    */
   def save(userId: String, teamId: Int): DBIO[Int] = {
     teams.filter(_.teamId === teamId).result.headOption.flatMap {
-      case Some(_) => userTeams.insertOrUpdate(UserTeam(0, userId, teamId))
+      case Some(_) => (userTeams returning userTeams.map(_.userTeamId)) += UserTeam(0, userId, teamId)
       case _       => DBIO.successful(0)
     }
   }
