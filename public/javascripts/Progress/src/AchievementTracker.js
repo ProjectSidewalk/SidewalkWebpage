@@ -3,27 +3,27 @@ class AchievementTracker {
         this.mapBadges = {};
         this.mapBadges[BadgeTypes.Missions] = {
             1: new Badge(BadgeTypes.Missions, 1, 5),
-            2: new Badge(BadgeTypes.Missions, 2, 10),
-            3: new Badge(BadgeTypes.Missions, 3, 20),
-            4: new Badge(BadgeTypes.Missions, 4, 50),
-            5: new Badge(BadgeTypes.Missions, 5, 100)
+            2: new Badge(BadgeTypes.Missions, 2, 25),
+            3: new Badge(BadgeTypes.Missions, 3, 75),
+            4: new Badge(BadgeTypes.Missions, 4, 150),
+            5: new Badge(BadgeTypes.Missions, 5, 250)
         };
 
         this.mapBadges[BadgeTypes.Distance] = {
             // All distances currently in miles.
-            1: new Badge(BadgeTypes.Distance, 1, 0.09), // approximately 500 ft
-            2: new Badge(BadgeTypes.Distance, 2, 0.25),
-            3: new Badge(BadgeTypes.Distance, 3, 0.5),
-            4: new Badge(BadgeTypes.Distance, 4, 1),
-            5: new Badge(BadgeTypes.Distance, 5, 5)
+            1: new Badge(BadgeTypes.Distance, 1, 0.5),
+            2: new Badge(BadgeTypes.Distance, 2, 2),
+            3: new Badge(BadgeTypes.Distance, 3, 5),
+            4: new Badge(BadgeTypes.Distance, 4, 10),
+            5: new Badge(BadgeTypes.Distance, 5, 20)
         };
 
         this.mapBadges[BadgeTypes.Labels] = {
             1: new Badge(BadgeTypes.Labels, 1, 50),
-            2: new Badge(BadgeTypes.Labels, 2, 250),
+            2: new Badge(BadgeTypes.Labels, 2, 200),
             3: new Badge(BadgeTypes.Labels, 3, 500),
             4: new Badge(BadgeTypes.Labels, 4, 1000),
-            5: new Badge(BadgeTypes.Labels, 5, 5000)
+            5: new Badge(BadgeTypes.Labels, 5, 2000)
         };
 
         this.mapBadges[BadgeTypes.Validations] = {
