@@ -15,6 +15,7 @@ function ContextMenu (uiContextMenu) {
         };
     var $menuWindow = uiContextMenu.holder;
     var $severityMenu = uiContextMenu.severityMenu;
+    const $severityRadioHolder = uiContextMenu.severityRadioHolder;
     var $severityRadios = uiContextMenu.radioButtons;
     let $descriptionHeaderNumber = $('#description-header-num');
     var $descriptionTextBox = uiContextMenu.textBox;
@@ -148,11 +149,10 @@ function ContextMenu (uiContextMenu) {
      * severity level is currently selected (filled vs outline variant).
      */
     function updateRadioButtonImages() {
-        const holder = document.getElementById('severity-radio-holder');
-        if (!holder) return;
+        if (!$severityRadioHolder[0]) return;
         const checkedSev = Number($severityRadios.filter(':checked').val());
         const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
-        holder.querySelectorAll('.severity-button').forEach((button) => {
+        $severityRadioHolder[0].querySelectorAll('.severity-button').forEach((button) => {
             const sev = Number(button.dataset.severity);
             const img = button.querySelector('.severity-button__icon');
             if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === checkedSev);
@@ -305,12 +305,12 @@ function ContextMenu (uiContextMenu) {
 
     // Adds the disabled visual effects to the severity buttons on current context menu.
     function _showRatingSeverityEnabled() {
-        $radioButtonLabels.removeClass('disabled');
+        $severityRadioHolder.removeClass('disabled');
     }
 
     // Adds the disabled visual effects to the tags on current context menu.
     function _showRatingSeverityDisabled() {
-        $radioButtonLabels.addClass('disabled');
+        $severityRadioHolder.addClass('disabled');
     }
 
     function _showTaggingEnabled() {
