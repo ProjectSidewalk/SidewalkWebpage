@@ -12,11 +12,7 @@ function SeverityDisplay(container, severity, labelType) {
     self.severity = severity;
     self.severityContainer = container;
 
-    // List of label types where severity ratings are not supported.
-    // If more unsupported label types are made, add them here!
-    const unsupportedLabels = ['NoSidewalk', 'Signal', 'Occlusion'];
-
-    let unsupported = unsupportedLabels.includes(labelType);
+    let unsupported = !util.misc.labelTypeHasSeverity(labelType);
     const positive = util.misc.isPositiveLabelType(labelType);
 
     let circles = [];
