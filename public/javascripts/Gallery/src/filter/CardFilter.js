@@ -156,14 +156,14 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
      * Render tags and severities in sidebar.
      */
     function render() {
-        if (['NoSidewalk', 'Signal', 'Occlusion'].includes(status.currentLabelType)) {
-            $('#severity-header').hide();
-            $('#severity-select').hide();
-        } else {
+        if (util.misc.labelTypeHasSeverity(status.currentLabelType)) {
             // Swap the filter header between "Severity" and "Quality" based on the current label type.
             const headerKey = util.misc.isPositiveLabelType(status.currentLabelType) ? 'quality' : 'severity';
             $('#severity-header').text(i18next.t(headerKey)).show();
             $('#severity-select').show();
+        } else {
+            $('#severity-header').hide();
+            $('#severity-select').hide();
         }
         if (currentTags.getTags().length > 0) {
             $("#tags-header").show();

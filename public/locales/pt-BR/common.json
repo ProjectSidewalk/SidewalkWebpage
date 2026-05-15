@@ -62,7 +62,6 @@
     "quality-example-tooltip-3": "Exemplo de má qualidade",
     "no-severity": "Uma classificação de gravidade não foi fornecida para este rótulo",
     "no-quality": "Uma classificação de qualidade não foi fornecida para este rótulo",
-    "unsupported": "Este tipo de rótulo não possui níveis de gravidade significativos",
     "tags": "Etiquetas",
     "description": "Descrição",
     "no-description": "Sem descrição",

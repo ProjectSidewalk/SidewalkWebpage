@@ -113,6 +113,7 @@ async function LabelDetail(root, opts) {
         els.title              = $('.label-detail__title');
         els.timestamp          = $('.label-detail__timestamp');
         els.imageDate          = $('.label-detail__image-capture-date');
+        els.severitySection    = $('.label-detail__col--severity');
         els.severity           = $('.label-detail__severity-faces');
         els.severityTitle      = $('.label-detail__severity-title');
         els.tags               = $('.label-detail__tags');
@@ -563,6 +564,10 @@ async function LabelDetail(root, opts) {
      * @private
      */
     function _renderSeverity(severity, labelType) {
+        // Hide entire section if the label type doesn't support severity ratings.
+        if (els.severitySection) els.severitySection.hidden = !util.misc.labelTypeHasSeverity(labelType);
+        if (!util.misc.labelTypeHasSeverity(labelType)) return;
+
         const positive = util.misc.isPositiveLabelType(labelType);
         const titleKey = positive ? 'quality' : 'severity';
         const levelKeys = util.misc.getRatingLevelKeys(labelType);

@@ -277,7 +277,7 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
         let appliedValOptions = sg.cardFilter.getAppliedValidationOptions();
 
         // NoSidewalk, Occlusion, and Signal don't have severity, Occlusion does not have tags.
-        if (['NoSidewalk', 'Signal', 'Occlusion'].includes(currentLabelType)) appliedSeverities = undefined;
+        if (!util.misc.labelTypeHasSeverity(currentLabelType)) appliedSeverities = undefined;
         if ('Occlusion' === currentLabelType) appliedTags = undefined;
 
         currentCards = cardsByType[currentLabelType].copy();
