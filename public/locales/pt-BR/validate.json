@@ -67,6 +67,9 @@
                 "reason-2": "A posição do rótulo parece incorreta",
                 "reason-2-tooltip": "Às vezes o que está sendo rotulado é visível, mas o rótulo aparece muito distante"
             },
+            "curb-ramp": {
+                "unsure-button-3-tooltip": "Algumas vielas ou entradas comerciais exigem rampas devido a diferenças de altura, outras não. Às vezes não está claro se uma transição em uma calçada exige uma rampa ou piso tátil de alerta."
+            },
             "no-curb-ramp": {
                 "unsure-button-3": "Não tenho certeza se uma rampa é necessária",
                 "unsure-button-3-tooltip": "Pode não estar claro se pedestres deveriam conseguir atravessar em um cruzamento com uma via mais movimentada"

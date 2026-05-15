@@ -67,6 +67,9 @@
                 "reason-2": "Die Platzierung des Etiketts sieht falsch aus.",
                 "reason-2-tooltip": "Manchmal ist das, was beschriftet wird, sichtbar, aber die Beschriftung selbst erscheint weit entfernt davon."
             },
+            "curb-ramp": {
+                "unsure-button-3-tooltip": "Manche Gassen oder gewerbliche Einfahrten erfordern aufgrund von Höhenunterschieden eine Rampe, andere nicht. Manchmal ist nicht klar, ob ein Übergang an einem Trottoir eine Rampe oder einen taktilen Bodenindikator benötigt."
+            },
             "no-curb-ramp": {
                 "unsure-button-3": "Ich bin mir nicht sicher, ob eine Trottoirabsenkung erforderlich ist.",
                 "unsure-button-3-tooltip": "Es kann unklar sein, ob die Überquerung von Fussgänger:innen an einer Kreuzung mit einer stärker befahrenen Strasse erlaubt sein sollte."

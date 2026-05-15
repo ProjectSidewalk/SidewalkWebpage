@@ -38,6 +38,9 @@
             }
         },
         "unsure-reason": {
+            "curb-ramp": {
+                "unsure-button-3-tooltip": "Some alleyways or commercial driveways require ramps due to height differences, others do not. Sometimes it's not clear if a seam between a footpath requires a ramp or tactile surface indicator."
+            },
             "no-curb-ramp": {
                 "unsure-button-3": "Not sure if a drop kerb is required"
             },
