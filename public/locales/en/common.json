@@ -62,7 +62,6 @@
     "quality-example-tooltip-3": "Bad quality example",
     "no-severity": "A severity rating was not provided for this label",
     "no-quality": "A quality rating was not provided for this label",
-    "unsupported": "This label type does not have meaningful severity levels",
     "tags": "Tags",
     "description": "Description",
     "no-description": "No description",

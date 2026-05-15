@@ -67,6 +67,9 @@
                 "reason-2": "La ubicación de la etiqueta parece incorrecta",
                 "reason-2-tooltip": "A veces lo que se etiqueta es visible pero la etiqueta aparece lejos de ello."
             },
+            "curb-ramp": {
+                "unsure-button-3-tooltip": "Algunos callejones o entradas comerciales requieren rampas debido a diferencias de altura, otros no. A veces no está claro si una junta en una banqueta requiere una rampa o un indicador táctil de superficie."
+            },
             "no-curb-ramp": {
                 "unsure-button-3": "No estoy seguro de si se requiere una rampa peatonal",
                 "unsure-button-3-tooltip": "Puede que no esté claro si los peatones deberían poder cruzar en una intersección con una carretera más transitada."

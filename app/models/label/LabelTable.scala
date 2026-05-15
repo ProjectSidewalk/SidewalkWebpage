@@ -72,7 +72,8 @@ case class LabelLocation(
     lat: Double,
     lng: Double,
     correct: Option[Boolean],
-    hasValidations: Boolean
+    hasValidations: Boolean,
+    expired: Boolean
 )
 
 case class LabelForLabelMap(
@@ -1350,6 +1351,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lp  <- labelPoints if _l.labelId === _lp.labelId
       _at  <- auditTasks if _l.auditTaskId === _at.auditTaskId
       _ser <- streetEdgeRegions if _at.streetEdgeId === _ser.streetEdgeId
+      _pd  <- panoData if _l.panoId === _pd.panoId
       if _l.userId === userId
       if regionId.isEmpty.asColumnOf[Boolean] || _ser.regionId === regionId.getOrElse(-1)
       if _lp.lat.isDefined && _lp.lng.isDefined
@@ -1361,13 +1363,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lp.lat,
       _lp.lng,
       _l.correct,
-      _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0
+      _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0,
+      _pd.expired
     )
 
     // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
-    _labels.result.map(_.map(l => LabelLocation(l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, l._8)))
+    _labels.result.map(_.map(l => LabelLocation(l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, l._8, l._9)))
   }
 
   /**

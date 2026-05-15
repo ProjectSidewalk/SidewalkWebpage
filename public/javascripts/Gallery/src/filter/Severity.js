@@ -33,29 +33,18 @@ function Severity (params, active, labelType) {
         properties.severity = param;
 
         severityElement = document.createElement('div');
-        severityElement.className = 'severity-filter gallery-filter';
+        severityElement.className = 'severity-button gallery-filter';
 
-        $severityImage = $('<img class="severity-filter-image" alt="">')
-            .addClass('severity-' + properties.severity)
+        $severityImage = $('<img class="severity-button__icon" alt="">')
             .attr('id', 'severity-' + properties.severity);
         _updateIconSrc();
 
-        $severityLabel = $('<span class="severity-filter-label"></span>').text(_getLabelText());
-
-        if (filterActive) {
-            _showSelected();
-        } else {
-            _showDeselected();
-        }
+        $severityLabel = $('<span class="severity-button__label"></span>').text(_getLabelText());
 
         $(severityElement).append($severityImage).append($severityLabel);
 
-        // Show inverted smiley face on click or hover.
+        // Toggle filter on click.
         severityElement.onclick = handleOnClickCallback;
-        $(severityElement).hover(
-            function() { _showSelected(); },
-            function() { if (!filterActive) _showDeselected(); }
-        );
     }
 
     /**
@@ -90,18 +79,7 @@ function Severity (params, active, labelType) {
     }
 
     function _updateIconSrc() {
-        const selected = filterActive || $($severityImage).hasClass('selected');
-        $severityImage.attr('src', util.misc.getSmileyIconPath(_severityNum(), currentLabelType, selected));
-    }
-
-    function _showSelected() {
-        $($severityImage).addClass('selected');
-        _updateIconSrc();
-    }
-
-    function _showDeselected() {
-        $($severityImage).removeClass('selected');
-        _updateIconSrc();
+        $severityImage.attr('src', util.misc.getSmileyIconPath(_severityNum(), currentLabelType, filterActive));
     }
 
     /**
@@ -120,7 +98,7 @@ function Severity (params, active, labelType) {
     function apply() {
         if (interactionEnabled) {
             filterActive = true;
-            _showSelected();
+            _updateIconSrc();
         }
     }
 
@@ -130,7 +108,7 @@ function Severity (params, active, labelType) {
     function unapply() {
         if (interactionEnabled) {
             filterActive = false;
-            _showDeselected();
+            _updateIconSrc();
         }
     }
 

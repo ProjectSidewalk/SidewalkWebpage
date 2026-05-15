@@ -118,11 +118,13 @@ function Card(params, cropUrl, gsvImageUrl) {
         cardData.className = 'card-data';
         cardInfo.appendChild(cardData);
 
-        // Create the div to store the severity of the label.
-        let cardSeverity = document.createElement('div');
-        cardSeverity.className = 'card-severity';
-        new SeverityDisplay(cardSeverity, properties.severity, getLabelType());
-        cardData.appendChild(cardSeverity);
+        // Create the div to store the severity of the label (if the label type supports severity/quality ratings).
+        if (util.misc.labelTypeHasSeverity(getLabelType())) {
+            let cardSeverity = document.createElement('div');
+            cardSeverity.className = 'card-severity';
+            new SeverityDisplay(cardSeverity, properties.severity, getLabelType());
+            cardData.appendChild(cardSeverity);
+        }
 
         // Create the div to store the validation info of the label.
         let cardValidationInfo = document.createElement('div');

@@ -62,7 +62,6 @@
     "quality-example-tooltip-3": "Voorbeeld van slechte kwaliteit",
     "no-severity": "Er is geen ernstclassificatie opgegeven voor dit label",
     "no-quality": "Er is geen kwaliteitsbeoordeling opgegeven voor dit label",
-    "unsupported": "Dit labeltype heeft geen betekenisvolle ernstniveaus",
     "tags": "Tags",
     "description": "Beschrijving",
     "no-description": "Geen beschrijving",

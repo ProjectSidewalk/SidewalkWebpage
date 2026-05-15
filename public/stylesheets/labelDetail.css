@@ -258,32 +258,12 @@ dialog.label-detail[open]::backdrop {
     font-variant-numeric: tabular-nums;
 }
 
-/* Severity faces */
+/* Severity faces — the inner faces use the shared .severity-button (--static) styles in main.css. */
 .label-detail__severity-faces {
     display: inline-grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     align-items: flex-start;
-}
-
-.label-detail__face {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-}
-.label-detail__face-icon {
-    width: 26px;
-    height: 26px;
-    display: block;
-}
-.label-detail__face-label {
-    font-family: "Raleway", sans-serif;
-    font-weight: 600;
-    font-size: 11px;
-    color: var(--color-asphalt-400);
-    text-align: center;
-    white-space: nowrap;
 }
 
 /* Tag pills — base styles are in tag-pills.css (.tag-pill class). */

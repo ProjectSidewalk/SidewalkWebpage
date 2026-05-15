@@ -15,11 +15,11 @@ function ContextMenu (uiContextMenu) {
         };
     var $menuWindow = uiContextMenu.holder;
     var $severityMenu = uiContextMenu.severityMenu;
-    var $severityButtons = uiContextMenu.radioButtons;
+    const $severityRadioHolder = uiContextMenu.severityRadioHolder;
+    var $severityRadios = uiContextMenu.radioButtons;
     let $descriptionHeaderNumber = $('#description-header-num');
     var $descriptionTextBox = uiContextMenu.textBox;
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
-    var $radioButtonLabels = $menuWindow.find(".severity-level");
     var $tagHolder = uiContextMenu.tagHolder;
     var $tags = uiContextMenu.tags;
 
@@ -29,9 +29,7 @@ function ContextMenu (uiContextMenu) {
 
     document.addEventListener('mousedown', _handleMouseDown);
     $menuWindow.on('mousedown', _handleMenuWindowMouseDown);
-    $severityButtons.on('change', _handleSeverityChange);
-    $radioButtonLabels.on('mouseenter', _handleSeverityHoverEnter);
-    $radioButtonLabels.on('mouseleave', _handleSeverityHoverLeave);
+    $severityRadios.on('change', _handleSeverityChange);
     $descriptionTextBox.on('change', _handleDescriptionTextBoxChange);
     $descriptionTextBox.on('focus', _handleDescriptionTextBoxFocus);
     $descriptionTextBox.on('blur', _handleDescriptionTextBoxBlur);
@@ -113,8 +111,8 @@ function ContextMenu (uiContextMenu) {
         const labels = svl.labelContainer.getAllLabels();
         if (labels.length > 0) {
             const lastLabelProps = labels[labels.length - 1].getProperties();
-            // If the label is No Sidewalk or Pedestrian Signal, do not call ratingReminderAlert().
-            if (!['NoSidewalk', 'Signal'].includes(lastLabelProps.labelType)) {
+            // Only call ratingReminderAlert() for label types that have a severity rating.
+            if (util.misc.labelTypeHasSeverity(lastLabelProps.labelType)) {
                 svl.ratingReminderAlert.ratingClicked(lastLabelProps.severity);
             }
         }
@@ -130,27 +128,6 @@ function ContextMenu (uiContextMenu) {
             label.setProperty('severity', severity);
             svl.canvas.clear().render();
         }
-    }
-
-    /**
-     * Temporarily shows the hovered severity icon in its filled (selected-state) variant while hovering.
-     */
-    function _handleSeverityHoverEnter() {
-        const sev = Number(this.id.replace('severity-', ''));
-        const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
-        const img = this.querySelector('.severity-icon-img');
-        if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, true);
-    }
-
-    /**
-     * Reverts the hovered severity icon back to its actual selected/unselected state after the hover ends.
-     */
-    function _handleSeverityHoverLeave() {
-        const sev = Number(this.id.replace('severity-', ''));
-        const checkedSev = Number($radioButtonLabels.find('input:checked').val());
-        const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
-        const img = this.querySelector('.severity-icon-img');
-        if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === checkedSev);
     }
 
     function fetchLabelTags(callback) {
@@ -172,13 +149,12 @@ function ContextMenu (uiContextMenu) {
      * severity level is currently selected (filled vs outline variant).
      */
     function updateRadioButtonImages() {
-        const holder = document.getElementById('severity-radio-holder');
-        if (!holder) return;
-        const checkedSev = Number($radioButtonLabels.find('input:checked').val());
+        if (!$severityRadioHolder[0]) return;
+        const checkedSev = Number($severityRadios.filter(':checked').val());
         const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
-        holder.querySelectorAll('.severity-level').forEach((level) => {
-            const sev = Number(level.id.replace('severity-', ''));
-            const img = level.querySelector('.severity-icon-img');
+        $severityRadioHolder[0].querySelectorAll('.severity-button').forEach((button) => {
+            const sev = Number(button.dataset.severity);
+            const img = button.querySelector('.severity-button__icon');
             if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === checkedSev);
         });
     }
@@ -201,7 +177,8 @@ function ContextMenu (uiContextMenu) {
             $info.attr('data-original-title', i18next.t(`common:${infoKey}`));
         }
         for (let sev = 1; sev <= 3; sev++) {
-            $(`#severity-${sev} .severity-label`).text(i18next.t(`common:${levelKeys[sev]}`));
+            $(`.severity-button[data-severity="${sev}"] .severity-button__label`)
+                .text(i18next.t(`common:${levelKeys[sev]}`));
         }
     }
 
@@ -328,12 +305,12 @@ function ContextMenu (uiContextMenu) {
 
     // Adds the disabled visual effects to the severity buttons on current context menu.
     function _showRatingSeverityEnabled() {
-        $radioButtonLabels.removeClass('disabled');
+        $severityRadioHolder.removeClass('disabled');
     }
 
     // Adds the disabled visual effects to the tags on current context menu.
     function _showRatingSeverityDisabled() {
-        $radioButtonLabels.addClass('disabled');
+        $severityRadioHolder.addClass('disabled');
     }
 
     function _showTaggingEnabled() {
@@ -526,7 +503,7 @@ function ContextMenu (uiContextMenu) {
      */
     function show(targetLabel) {
         setStatus('targetLabel', null);
-        $severityButtons.prop('checked', false);
+        $severityRadios.prop('checked', false);
         $descriptionTextBox.val(null);
 
         var labelType = targetLabel.getLabelType();
@@ -538,11 +515,11 @@ function ContextMenu (uiContextMenu) {
             _setTagColor(targetLabel);
             if (getStatus('disableTagging')) { disableTagging(); }
 
-            // Hide the severity menu for the No Sidewalk and Pedestrian Signal label types.
-            if (['NoSidewalk', 'Signal'].includes(labelType)) {
-                $severityMenu.addClass('hidden');
-            } else {
+            // Hide the severity menu for label types that don't have a severity rating.
+            if (util.misc.labelTypeHasSeverity(labelType)) {
                 $severityMenu.removeClass('hidden');
+            } else {
+                $severityMenu.addClass('hidden');
             }
             var menuHeight = $menuWindow.outerHeight();
 
@@ -559,7 +536,7 @@ function ContextMenu (uiContextMenu) {
             var severity = targetLabel.getProperty('severity');
             var description = targetLabel.getProperty('description');
             if (severity) {
-                $severityButtons.each(function(i, v) {
+                $severityRadios.each(function(i, v) {
                     if (severity === i + 1) { $(this).prop("checked", true); }
                 });
             }
@@ -588,7 +565,7 @@ function ContextMenu (uiContextMenu) {
             // Don't push event on Occlusion labels; they don't open ContextMenus.
             svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProps.auditTaskId}, {'temporaryLabelId': labelProps.temporaryLabelId});
         }
-        if (!['NoSidewalk', 'Signal', 'Occlusion'].includes(labelType)) {
+        if (util.misc.labelTypeHasSeverity(labelType)) {
             self.updateRadioButtonImages();
             _updateRatingText();
             _removePrevSeverityTooltips();

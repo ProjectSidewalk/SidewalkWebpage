@@ -113,6 +113,7 @@ async function LabelDetail(root, opts) {
         els.title              = $('.label-detail__title');
         els.timestamp          = $('.label-detail__timestamp');
         els.imageDate          = $('.label-detail__image-capture-date');
+        els.severitySection    = $('.label-detail__col--severity');
         els.severity           = $('.label-detail__severity-faces');
         els.severityTitle      = $('.label-detail__severity-title');
         els.tags               = $('.label-detail__tags');
@@ -563,6 +564,10 @@ async function LabelDetail(root, opts) {
      * @private
      */
     function _renderSeverity(severity, labelType) {
+        // Hide entire section if the label type doesn't support severity ratings.
+        if (els.severitySection) els.severitySection.hidden = !util.misc.labelTypeHasSeverity(labelType);
+        if (!util.misc.labelTypeHasSeverity(labelType)) return;
+
         const positive = util.misc.isPositiveLabelType(labelType);
         const titleKey = positive ? 'quality' : 'severity';
         const levelKeys = util.misc.getRatingLevelKeys(labelType);
@@ -570,12 +575,12 @@ async function LabelDetail(root, opts) {
         if (els.severityTitle) els.severityTitle.textContent = i18next.t(`common:${titleKey}`);
         if (els.severity) els.severity.setAttribute('aria-label', i18next.t(`common:${titleKey}`));
 
-        els.severity.querySelectorAll('.label-detail__face').forEach((face) => {
+        els.severity.querySelectorAll('.severity-button').forEach((face) => {
             const faceSev = Number(face.dataset.severity);
             const selected = faceSev === Number(severity);
             face.classList.toggle('is-selected', selected);
-            face.querySelector('.label-detail__face-icon').src = util.misc.getSmileyIconPath(faceSev, labelType, selected);
-            const labelSpan = face.querySelector('.label-detail__face-label');
+            face.querySelector('.severity-button__icon').src = util.misc.getSmileyIconPath(faceSev, labelType, selected);
+            const labelSpan = face.querySelector('.severity-button__label');
             if (labelSpan) labelSpan.textContent = i18next.t(`common:${levelKeys[faceSev]}`);
         });
     }

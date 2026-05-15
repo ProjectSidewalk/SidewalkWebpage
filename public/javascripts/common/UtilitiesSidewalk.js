@@ -484,6 +484,7 @@ function UtilitiesMisc (JSON) {
 
     const SMILEY_ICON_BASE = '/assets/images/icons/smileys/';
     const POSITIVE_LABEL_TYPES = ['CurbRamp', 'Crosswalk'];
+    const LABEL_TYPES_WITHOUT_SEVERITY = ['NoSidewalk', 'Signal', 'Occlusion'];
 
     /**
      * Returns true if label type uses the "positive" rating scheme (Good/Okay/Bad) vs the "negative" (Low/Medium/High).
@@ -492,6 +493,15 @@ function UtilitiesMisc (JSON) {
      */
     function isPositiveLabelType(labelType) {
         return POSITIVE_LABEL_TYPES.includes(labelType);
+    }
+
+    /**
+     * Returns true if label type supports a severity/quality rating.
+     * @param {string} labelType
+     * @returns {boolean}
+     */
+    function labelTypeHasSeverity(labelType) {
+        return !LABEL_TYPES_WITHOUT_SEVERITY.includes(labelType);
     }
 
     /**
@@ -611,6 +621,8 @@ function UtilitiesMisc (JSON) {
     self.getSeverityDescription = getSeverityDescription;
     self.isPositiveLabelType = isPositiveLabelType;
     self.POSITIVE_LABEL_TYPES = POSITIVE_LABEL_TYPES;
+    self.labelTypeHasSeverity = labelTypeHasSeverity;
+    self.LABEL_TYPES_WITHOUT_SEVERITY = LABEL_TYPES_WITHOUT_SEVERITY;
     self.getSmileyIconPath = getSmileyIconPath;
     self.getRatingLevelKeys = getRatingLevelKeys;
     self.getLabelColors = getLabelColors;

@@ -214,7 +214,7 @@ function Label(params) {
                 Label.renderLabelIcon(ctx, properties.labelType, properties.currCanvasXY.x, properties.currCanvasXY.y);
 
                 // Only render severity warning if there's a severity option.
-                if (!['NoSidewalk', 'Occlusion', 'Signal'].includes(properties.labelType) && properties.severity === null) {
+                if (util.misc.labelTypeHasSeverity(properties.labelType) && properties.severity === null) {
                     showSeverityAlert(ctx);
                 }
             }
@@ -246,7 +246,7 @@ function Label(params) {
         // labelCoordinate represents the upper left corner of the hover info.
         var labelCoordinate = getCanvasXY(),
             cornerRadius = 3,
-            hasSeverity = (!['NoSidewalk', 'Occlusion', 'Signal'].includes(properties.labelType)),
+            hasSeverity = util.misc.labelTypeHasSeverity(properties.labelType),
             width = 0,
             labelRows = 1,
             severityImage = new Image(),

@@ -41,7 +41,7 @@ class MapSidebarFilter {
 
     /** Binds click handlers to the severity toggle buttons. */
     #initSeverityToggles() {
-        this.#sidebar.querySelectorAll('.severity-toggle').forEach(btn => {
+        this.#sidebar.querySelectorAll('.severity-button').forEach(btn => {
             btn.addEventListener('click', () => {
                 const severity = Number(btn.dataset.severity);
                 const newState = !this.#mapData.severities[severity];
@@ -50,7 +50,7 @@ class MapSidebarFilter {
                 btn.setAttribute('aria-pressed', String(newState));
 
                 // Swap the icon between filled and outline.
-                const img = btn.querySelector('img');
+                const img = btn.querySelector('.severity-button__icon');
                 if (img) img.src = newState ? img.dataset.selectedSrc : img.dataset.unselectedSrc;
 
                 filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
@@ -106,11 +106,11 @@ class MapSidebarFilter {
 
                 if (section === 'severity') {
                     // Match the look and state of all severity toggles to newState.
-                    this.#sidebar.querySelectorAll('.severity-toggle').forEach(toggle => {
+                    this.#sidebar.querySelectorAll('.severity-button').forEach(toggle => {
                         const severity = Number(toggle.dataset.severity);
                         this.#mapData.severities[severity] = newState;
                         toggle.setAttribute('aria-pressed', String(newState));
-                        const img = toggle.querySelector('img');
+                        const img = toggle.querySelector('.severity-button__icon');
                         if (img) img.src = newState ? img.dataset.selectedSrc : img.dataset.unselectedSrc;
                     });
                     filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
@@ -150,7 +150,7 @@ class MapSidebarFilter {
      */
     #isAnyActive(section) {
         if (section === 'severity') {
-            const toggles = this.#sidebar.querySelectorAll('.severity-toggle');
+            const toggles = this.#sidebar.querySelectorAll('.severity-button');
             return Array.from(toggles).some(t => t.getAttribute('aria-pressed') === 'true');
         }
         const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);

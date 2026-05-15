@@ -450,7 +450,7 @@ class AdminController @Inject() (
   }
 
   /**
-   * Updates infra3d_access column in the database for the given user.
+   * Updates <city>_infra3d_access column in the database for the given user.
    */
   def setInfra3dAccess = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
     val submission = request.body.validate[UserInfra3dAccess]

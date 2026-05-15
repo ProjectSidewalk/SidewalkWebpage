@@ -67,6 +67,9 @@
                 "reason-2": "De plaatsing van het label lijkt onjuist.",
                 "reason-2-tooltip": "Soms is hetgeen gelabeld moet worden wel zichtbaar, maar lijkt het label er ver vanaf te staan."
             },
+            "curb-ramp": {
+                "unsure-button-3-tooltip": "Sommige steegjes of commerciële opritten vereisen vanwege hoogteverschillen een oprit, andere niet. Soms is het niet duidelijk of een overgang in een trottoir een oprit of voelbare oppervlakte-indicator nodig heeft."
+            },
             "no-curb-ramp": {
                 "unsure-button-3": "Ik weet niet zeker of een trottoir oprit verplicht is.",
                 "unsure-button-3-tooltip": "Het is wellicht onduidelijk of voetgangers wel zouden moeten kunnen oversteken op een kruispunt met een drukke weg."

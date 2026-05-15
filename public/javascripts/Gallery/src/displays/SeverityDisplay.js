@@ -12,11 +12,6 @@ function SeverityDisplay(container, severity, labelType) {
     self.severity = severity;
     self.severityContainer = container;
 
-    // List of label types where severity ratings are not supported.
-    // If more unsupported label types are made, add them here!
-    const unsupportedLabels = ['NoSidewalk', 'Signal', 'Occlusion'];
-
-    let unsupported = unsupportedLabels.includes(labelType);
     const positive = util.misc.isPositiveLabelType(labelType);
 
     let circles = [];
@@ -29,7 +24,7 @@ function SeverityDisplay(container, severity, labelType) {
 
         title.innerText = i18next.t(positive ? 'quality' : 'severity');
         // If no severity rating, gray out title.
-        if (unsupported || severity == null) {
+        if (severity == null) {
             title.classList.add('no-severity-header');
         }
         container.append(title);
@@ -41,7 +36,7 @@ function SeverityDisplay(container, severity, labelType) {
             let $severityCircle = $('<div></div>');
             $severityCircle.addClass('severity-circle');
 
-            if (unsupported || severity == null) {
+            if (severity == null) {
                 // Create grayed out empty circles.
                 $severityCircle.addClass('no-severity-circle');
                 circles.push($severityCircle);
@@ -55,16 +50,10 @@ function SeverityDisplay(container, severity, labelType) {
         }
 
         if (severity == null) {
-            // Add tooltip if no severity level.
+            // Add tooltip indicating the user didn't add a severity rating for this label.
             holder.setAttribute('data-toggle', 'tooltip');
             holder.setAttribute('data-placement', 'top');
-
-            // Change tooltip message depending on if the label is unsupported or user did not add severity rating.
-            if (unsupported) {
-                holder.setAttribute('title', `${i18next.t("unsupported")}`);
-            } else {
-                holder.setAttribute('title', i18next.t(positive ? 'no-quality' : 'no-severity'));
-            }
+            holder.setAttribute('title', i18next.t(positive ? 'no-quality' : 'no-severity'));
             $(holder).tooltip('hide');
         }
 

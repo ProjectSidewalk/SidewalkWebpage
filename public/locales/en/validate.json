@@ -67,6 +67,9 @@
                 "reason-2": "Label placement looks incorrect",
                 "reason-2-tooltip": "Sometimes what's being labeled is visible but the label appears far away from it"
             },
+            "curb-ramp": {
+                "unsure-button-3-tooltip": "Some alleyways or commercial driveways require ramps due to height differences, others do not. Sometimes it's not clear if a seam between a sidewalk requires a ramp or tactile surface indicator."
+            },
             "no-curb-ramp": {
                 "unsure-button-3": "Not sure if a curb ramp is required",
                 "unsure-button-3-tooltip": "It may be unclear whether pedestrians should be able to cross at an intersection with a busier road"

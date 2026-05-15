@@ -51,6 +51,11 @@ function defineValidateConstants() {
                 'buttonText': i18next.t('validate:validate-menu.unsure-reason.common.reason-2'),
                 'tooltipText': i18next.t('validate:validate-menu.unsure-reason.common.reason-2-tooltip'),
                 'tooltipImage': '/assets/javascripts/SVValidate/img/ExpertValidateTooltips/CommonUnsure2.png'
+            },
+            'unsure-button-3': {
+                'buttonText': i18next.t('validate:validate-menu.unsure-reason.no-curb-ramp.unsure-button-3'),
+                'tooltipText': i18next.t('validate:validate-menu.unsure-reason.curb-ramp.unsure-button-3-tooltip'),
+                'tooltipImage': '/assets/javascripts/SVValidate/img/ExpertValidateTooltips/CurbRampUnsure3.png'
             }
         },
         'no-curb-ramp': {

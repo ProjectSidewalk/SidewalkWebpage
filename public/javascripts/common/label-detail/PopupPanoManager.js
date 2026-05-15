@@ -74,27 +74,51 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
             position: 'relative',
             width: '100%',
             height: '100%',
-            display: 'none'
+            display: 'none',
+            overflow: 'hidden'
+        })[0];
+        // The panzoom target — wraps the image. The marker stays OUTSIDE this wrapper so it doesn't scale
+        // with the image; instead we reposition it manually whenever panzoom emits a transform event.
+        self.fallbackPanzoomWrap = $('<div id="pano-fallback-pz">').css({
+            width: '100%',
+            height: '100%',
+            cursor: 'grab'
         })[0];
         self.fallbackImage = $('<img id="pano-fallback-image">').css({
             width: '100%',
             height: '100%',
-            'object-fit': 'cover'
+            'object-fit': 'cover',
+            'user-select': 'none',
+            '-webkit-user-drag': 'none',
+            'pointer-events': 'none'
         })[0];
         self.fallbackMarker = $('<img id="pano-fallback-marker">').addClass('icon-outline').css({
             position: 'absolute',
             width: '20px',
             height: '20px',
             transform: 'translate(-50%, -50%)',
-            display: 'none'
+            display: 'none',
+            'pointer-events': 'none'
         })[0];
-        $(self.fallbackContainer).append(self.fallbackImage, self.fallbackMarker);
+        $(self.fallbackPanzoomWrap).append(self.fallbackImage);
+        $(self.fallbackContainer).append(self.fallbackPanzoomWrap, self.fallbackMarker);
 
         self.svHolder.append($(self.panoCanvas));
         self.svHolder.append($(self.fallbackContainer));
         self.svHolder.append($(self.panoNotAvailable));
         self.svHolder.append($(self.panoNotAvailableDetails));
         self.svHolder.append($(self.panoNotAvailableAuditSuggestion));
+
+        // Initialize panzoom on the wrapper.
+        self.fallbackPanzoom = panzoom(self.fallbackPanzoomWrap, {
+            minZoom: 1,
+            maxZoom: 8,
+            bounds: true,
+            boundsPadding: 1,
+            zoomDoubleClickSpeed: 1, // Disables double-click zoom (it would conflict with the dialog UI).
+            disableKeyboardInteraction: true
+        });
+        self.fallbackPanzoom.on('transform', _updateFallbackMarkerPosition);
 
         // Load the pano viewer.
         const panoOptions = {
@@ -138,6 +162,8 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
     async function setPano(panoId, pov, cropUrl, expired = false) {
         self.cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
         self.svHolder.css('visibility', 'hidden'); // Hide until we've finished rendering.
+        // Reset fallback zoom/pan so a previous label's manipulation doesn't leak into this one.
+        _resetFallbackTransform();
         let panoLoaded = false;
         // If the imagery is expired and we have a fallback image, skip the pano API call.
         if (expired && self.cropUrl) {
@@ -197,13 +223,8 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
             $(self.fallbackContainer).css('display', 'block');
             // Position the label icon on the fallback image.
             if (self.label && icons[self.label.label_type]) {
-                const leftPercent = 100 * self.label.canvasX / self.label.originalCanvasWidth;
-                const topPercent = 100 * self.label.canvasY / self.label.originalCanvasHeight;
-                $(self.fallbackMarker).attr('src', icons[self.label.label_type]).css({
-                    left: `${leftPercent}%`,
-                    top: `${topPercent}%`,
-                    display: 'block'
-                });
+                $(self.fallbackMarker).attr('src', icons[self.label.label_type]).css('display', 'block');
+                _updateFallbackMarkerPosition();
             } else {
                 $(self.fallbackMarker).css('display', 'none');
             }
@@ -226,6 +247,35 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
 
     function setLabel(label) {
         self.label = label;
+    }
+
+    /**
+     * Resets the fallback image's zoom/pan back to the identity transform.
+     * @private
+     */
+    function _resetFallbackTransform() {
+        if (!self.fallbackPanzoom) return;
+        self.fallbackPanzoom.zoomAbs(0, 0, 1);
+        self.fallbackPanzoom.moveTo(0, 0);
+    }
+
+    /**
+     * Reposition the fallback marker to track the current panzoom transform of the fallback image.
+     * @private
+     */
+    function _updateFallbackMarkerPosition() {
+        if (!self.label || !self.fallbackPanzoom) return;
+        if (self.fallbackMarker.style.display === 'none') return;
+
+        const W = self.fallbackContainer.clientWidth;
+        const H = self.fallbackContainer.clientHeight;
+        if (W === 0 || H === 0) return;
+
+        const t = self.fallbackPanzoom.getTransform();
+        const fracX = self.label.canvasX / self.label.originalCanvasWidth;
+        const fracY = self.label.canvasY / self.label.originalCanvasHeight;
+        self.fallbackMarker.style.left = (t.x + fracX * W * t.scale) + 'px';
+        self.fallbackMarker.style.top  = (t.y + fracY * H * t.scale) + 'px';
     }
 
     /**

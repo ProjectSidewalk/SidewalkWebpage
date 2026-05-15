@@ -151,34 +151,7 @@ body.map-sidebar-resizing {
     margin-top: 8px;
 }
 
-.severity-toggle {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    background: none;
-    border: none;
-    padding: 4px;
-    cursor: pointer;
-    border-radius: 6px;
-}
-
-.severity-toggle:hover {
-    background: #f0f0f0;
-}
-
-.severity-toggle img {
-    width: 24px;
-    height: 24px;
-}
-
-.severity-toggle span {
-    font-family: 'Raleway', sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--color-asphalt-400);
-    white-space: nowrap;
-}
+/* The actual button styles live in main.css under .severity-button (and related). */
 
 /* ---- Checkbox list items ---- */
 
