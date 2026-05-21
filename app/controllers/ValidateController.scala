@@ -252,26 +252,28 @@ class ValidateController @Inject() (
         labelService.getDataForValidationPages(user, labelCount, validateParams)
       completedValidations <- validationService.countValidations(user.userId)
       tags: Seq[Tag]       <- labelService.getTagsForCurrentCity
+      labelMetadataJsonSeq <- {
+        val baseJsonPairs: Seq[(String, JsObject)] = if (validateParams.adminVersion) {
+          labels.sortBy(_.labelId).zip(adminData.sortBy(_.labelId)).map { case (l, admin) =>
+            (l.panoId, LabelFormats.validationLabelMetadataToJson(l, Some(admin)))
+          }
+        } else {
+          labels.map(l => (l.panoId, LabelFormats.validationLabelMetadataToJson(l)))
+        }
+        Future.traverse(baseJsonPairs) { case (panoId, baseJson) =>
+          panoDataService.getLocalBackupImage(panoId).map { backupImageOpt =>
+            baseJson ++ Json.obj(
+              "backup_image" -> backupImageOpt.map(p => LabelFormats.localBackupImagePayload(panoId, p))
+            )
+          }
+        }
+      }
     } yield {
       val missionJsObject: Option[JsValue] = mission.map(m => Json.toJson(m))
-      val progressJsObject                 = missionProgress.map(p =>
-        Json.obj(
-          "agree_count"    -> p._1,
-          "disagree_count" -> p._2,
-          "unsure_count"   -> p._3
-        )
-      )
-      val hasDataForMission: Boolean          = labels.nonEmpty
-      val labelMetadataJsonSeq: Seq[JsObject] = if (validateParams.adminVersion) {
-        labels
-          .sortBy(_.labelId)
-          .zip(adminData.sortBy(_.labelId))
-          .map(label => LabelFormats.validationLabelMetadataToJson(label._1, Some(label._2)))
-      } else {
-        labels.map(l => LabelFormats.validationLabelMetadataToJson(l))
-      }
+      val progressJsObject                 =
+        missionProgress.map(p => Json.obj("agree_count" -> p._1, "disagree_count" -> p._2, "unsure_count" -> p._3))
+      val hasDataForMission: Boolean = labels.nonEmpty
       val labelMetadataJson: JsValue = Json.toJson(labelMetadataJsonSeq)
-      // https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/app/controllers/ValidateController.scala
       ValidatePageData(missionJsObject, Some(labelMetadataJson), progressJsObject, hasDataForMission,
         completedValidations, tags)
     }
@@ -295,7 +297,7 @@ class ValidateController @Inject() (
           LabelValidation(0, newVal.labelId, newVal.validationResult, newVal.oldSeverity, newVal.newSeverity,
             newVal.oldTags, newVal.newTags, user.userId, newVal.missionId, newVal.canvasX, newVal.canvasY,
             newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth, newVal.startTimestamp,
-            newVal.endTimestamp, newVal.source),
+            newVal.endTimestamp, newVal.source, newVal.viewerType),
           newVal.comment.map(c =>
             ValidationTaskComment(
               0, c.missionId, c.labelId, user.userId, ipAddress, c.panoId, c.heading, c.pitch, c.zoom, c.lat, c.lng,
@@ -309,29 +311,30 @@ class ValidateController @Inject() (
 
       // Get data to return in POST response. Not much unless the mission is over and we need the next batch of labels.
       returnValue <- labelService.getDataForValidatePostRequest(user, data.missionProgress, data.validateParams)
-    } yield {
-      // Put label metadata into JSON format.
-      val labelMetadataJsonSeq: Seq[JsObject] = if (data.validateParams.adminVersion) {
-        returnValue.labels
-          .sortBy(_.labelId)
-          .zip(returnValue.adminData.sortBy(_.labelId))
-          .map(label => LabelFormats.validationLabelMetadataToJson(label._1, Some(label._2)))
-      } else {
-        returnValue.labels.map(l => LabelFormats.validationLabelMetadataToJson(l))
+      labelMetadataJsonSeq <- {
+        val baseJsonPairs: Seq[(String, JsObject)] = if (data.validateParams.adminVersion) {
+          returnValue.labels.sortBy(_.labelId).zip(returnValue.adminData.sortBy(_.labelId)).map { case (l, admin) =>
+            (l.panoId, LabelFormats.validationLabelMetadataToJson(l, Some(admin)))
+          }
+        } else {
+          returnValue.labels.map(l => (l.panoId, LabelFormats.validationLabelMetadataToJson(l)))
+        }
+        Future.traverse(baseJsonPairs) { case (panoId, baseJson) =>
+          panoDataService.getLocalBackupImage(panoId).map { backupImageOpt =>
+            baseJson ++ Json.obj(
+              "backup_image" -> backupImageOpt.map(p => LabelFormats.localBackupImagePayload(panoId, p))
+            )
+          }
+        }
       }
-      val labelMetadataJson: JsValue = Json.toJson(labelMetadataJsonSeq)
-
+    } yield {
       Ok(
         Json.obj(
           "has_mission_available" -> returnValue.hasMissionAvailable,
           "mission"               -> returnValue.mission.map(m => Json.toJson(m)),
-          "labels"                -> labelMetadataJson,
+          "labels"                -> Json.toJson(labelMetadataJsonSeq),
           "progress"              -> returnValue.progress.map { case (agreeCount, disagreeCount, unsureCount) =>
-            Json.obj(
-              "agree_count"    -> agreeCount,
-              "disagree_count" -> disagreeCount,
-              "unsure_count"   -> unsureCount
-            )
+            Json.obj("agree_count" -> agreeCount, "disagree_count" -> disagreeCount, "unsure_count" -> unsureCount)
           }
         )
       )
@@ -408,7 +411,7 @@ class ValidateController @Inject() (
                 LabelValidation(0, newVal.labelId, newVal.validationResult, newVal.oldSeverity, newVal.newSeverity,
                   newVal.oldTags, newVal.newTags, userId, mission.get.missionId, newVal.canvasX, newVal.canvasY,
                   newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
-                  newVal.startTimestamp, newVal.endTimestamp, newVal.source),
+                  newVal.startTimestamp, newVal.endTimestamp, newVal.source, newVal.viewerType),
                 comment = None,
                 newVal.undone,
                 newVal.redone
@@ -476,14 +479,31 @@ class ValidateController @Inject() (
               validateParams.neighborhoodIds.map(_.toSet), validateParams.unvalidatedOnly,
               skippedLabelId = Some(skippedLabelId))
             .flatMap { labelMetadata =>
+              val label = labelMetadata.head
               if (validateParams.adminVersion) {
-                labelService
-                  .getExtraAdminValidateData(Seq(labelMetadata.head.labelId))
-                  .map(adminData =>
-                    Ok(Json.obj("label" -> validationLabelMetadataToJson(labelMetadata.head, Some(adminData.head))))
+                for {
+                  adminData      <- labelService.getExtraAdminValidateData(Seq(label.labelId))
+                  backupImageOpt <- panoDataService.getLocalBackupImage(label.panoId)
+                } yield Ok(
+                  Json.obj(
+                    "label" -> (validationLabelMetadataToJson(label, Some(adminData.head)) ++
+                      Json.obj(
+                        "backup_image" -> backupImageOpt.map(p => LabelFormats.localBackupImagePayload(label.panoId, p))
+                      ))
                   )
+                )
               } else {
-                Future.successful(Ok(Json.obj("label" -> validationLabelMetadataToJson(labelMetadata.head))))
+                panoDataService.getLocalBackupImage(label.panoId).map { backupImageOpt =>
+                  Ok(
+                    Json.obj(
+                      "label" -> (validationLabelMetadataToJson(label) ++
+                        Json.obj(
+                          "backup_image" -> backupImageOpt
+                            .map(p => LabelFormats.localBackupImagePayload(label.panoId, p))
+                        ))
+                    )
+                  )
+                }
               }
             }
         }

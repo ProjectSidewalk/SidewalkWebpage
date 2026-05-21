@@ -296,7 +296,7 @@ async function LabelDetail(root, opts) {
             aiGenerated: meta.ai_generated
         };
         self.panoManager.setLabel(popupLabel);
-        self.panoManager.setPano(meta.pano_id, labelPov, meta.crop_url, meta.expired);
+        self.panoManager.setPano(meta.pano_id, labelPov, meta.crop_url, meta.expired, meta.backup_image);
 
         // Validation counts + AI validation.
         self.validationCounts.Agree    = meta.num_agree;
@@ -439,7 +439,8 @@ async function LabelDetail(root, opts) {
             end_timestamp: validationTimestamp,
             source: source,
             undone: false,
-            redone: action !== self.prevAction
+            redone: action !== self.prevAction,
+            viewer_type: self.panoManager.activeViewerName
         };
 
         fetch('/labelmap/validate', {

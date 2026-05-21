@@ -131,7 +131,7 @@ dialog.label-detail[open]::backdrop {
     transition: opacity 150ms ease;
 }
 .label-detail__pano-wrap:hover .label-detail__pano-overlay,
-.label-detail__pano-wrap:focus-within .label-detail__pano-overlay {
+.label-detail__pano-overlay:focus-within {
     opacity: 1;
     pointer-events: auto;
 }

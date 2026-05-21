@@ -7,31 +7,66 @@ class PanoManager {
         panoLoaded: false
     };
 
-    /** @type {HTMLElement} */
+    /** @type {HTMLElement} The primary viewer's canvas element (GSV/Mapillary/Infra3d). */
     #panoCanvas;
+
+    /** @type {HTMLElement} Sibling canvas for the Pannellum fallback viewer. */
+    #pannellumCanvas;
+
+    /** @type {PanoViewer} The primary viewer, always kept alive. */
+    #primaryViewer;
+
+    /** @type {PannellumViewer|undefined} Pannellum fallback viewer — lazy-created on first expired pano. */
+    #pannellumViewer;
+
+    /** @type {PanoViewer|undefined} Tracks which viewer the current label marker was created for. */
+    #markerViewer;
 
     #bottomLinksClickable = false;
     #linksListener = null;
 
     /**
-     * Initializes panoViewer on the validate page.
+     * Initializes panoViewer on the validate page and loads the first pano.
+     *
+     * Tries the primary viewer first; if the first pano is expired and a backup image is available, falls back to
+     * Pannellum so that a pano is always loaded before this resolves.
+     *
      * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
      * @param {string} viewerAccessToken An access token used to request images for the pano viewer
      * @param {string} startPanoId The ID of the panorama to load first
-     * @returns {Promise<void>} A Promise that resolves once the PanoViewer has loaded with the first pano
+     * @param {{url: string, metadata: object}|null} startBackupImage Self-hosted backup for the first pano, or null.
+     * @returns {Promise<void>} A Promise that resolves once the first pano has loaded
      */
-    async #init(panoViewerType, viewerAccessToken, startPanoId) {
-        // Load the pano viewer.
+    async #init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage) {
+        // Create the primary viewer without a startPanoId so viewer construction never fails due to an expired pano.
         const panoOptions = {
             accessToken: viewerAccessToken,
-            startPanoId: startPanoId,
             defaultNavigation: false,
             scrollwheel: isMobile()
         };
 
         this.#panoCanvas = document.getElementById('svv-panorama');
-        svv.panoViewer = await panoViewerType.create(this.#panoCanvas, panoOptions);
-        if (svv.panoViewer.currPanoData) this.#setPanoCallback(svv.panoViewer.currPanoData);
+
+        // Sibling canvas for the Pannellum fallback viewer, hidden until an expired pano needs it.
+        this.#pannellumCanvas = document.createElement('div');
+        this.#pannellumCanvas.id = 'svv-panorama-pannellum';
+        this.#pannellumCanvas.style.cssText =
+            'position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none;';
+        this.#panoCanvas.insertAdjacentElement('afterend', this.#pannellumCanvas);
+
+        this.#primaryViewer = await panoViewerType.create(this.#panoCanvas, panoOptions);
+        svv.panoViewer = this.#primaryViewer;
+
+        // Load the first pano, falling back to Pannellum if the primary viewer fails.
+        try {
+            const panoData = await this.#primaryViewer.setPano(startPanoId);
+            this.#setPanoCallback(panoData);
+        } catch (_) {
+            if (startBackupImage) {
+                const panoData = await this.#showPannellumPano(startBackupImage);
+                this.#setPanoCallback(panoData);
+            }
+        }
         if (panoViewerType === GsvViewer) {
             $('#imagery-source-logo-holder').remove();
         } else if (panoViewerType === MapillaryViewer) {
@@ -50,7 +85,7 @@ class PanoManager {
 
         // TODO we probably need to do this for any viewer type...
         if (panoViewerType === GsvViewer && !isMobile()) {
-            this.#linksListener = svv.panoViewer.gsvPano.addListener('links_changed', this.#makeLinksClickable.bind(this));
+            this.#linksListener = this.#primaryViewer.gsvPano.addListener('links_changed', this.#makeLinksClickable.bind(this));
         }
     }
 
@@ -70,6 +105,12 @@ class PanoManager {
      */
     setProperty(key, value) {
         this.#properties[key] = value;
+    }
+
+    /** Returns the viewer_type enum value for the currently active viewer: 'Pannellum' or 'Default'. */
+    getActiveViewerName() {
+        if (!svv.panoViewer) return '';
+        return svv.panoViewer === this.#pannellumViewer ? 'Pannellum' : 'Default';
     }
 
     /**
@@ -116,11 +157,11 @@ class PanoManager {
 
     /**
      * Renders a label onto the screen using a PanoMarker.
-     * @returns {renderPanoMarker}
+     * @param {Label} currentLabel The label to render.
      */
     renderPanoMarker(currentLabel) {
-        let url = currentLabel.getIconUrl();
-        let labelPov = currentLabel.getOriginalPov();
+        const url = currentLabel.getIconUrl();
+        const labelPov = currentLabel.getOriginalPov();
 
         // Set to user's POV when labeling if on desktop. If on mobile, center the label on the screen.
         if (isMobile()) {
@@ -131,6 +172,13 @@ class PanoManager {
                 pitch: currentLabel.getAuditProperty('pitch'),
                 zoom: currentLabel.getAuditProperty('zoom')
             });
+        }
+
+        // If the active viewer changed (primary ↔ Pannellum switch), discard the old marker so a new one is created
+        // bound to the correct viewer's POV-tracking callbacks.
+        if (this.labelMarker && this.#markerViewer !== svv.panoViewer) {
+            this.labelMarker.removeMarker();
+            this.labelMarker = null;
         }
 
         if (!this.labelMarker) {
@@ -144,6 +192,7 @@ class PanoManager {
                 size: { width: svv.labelRadius * 2 + 2, height: svv.labelRadius * 2 + 2 },
                 zIndex: 2
             });
+            this.#markerViewer = svv.panoViewer;
         } else {
             this.labelMarker.setPosition({ heading: labelPov.heading, pitch: labelPov.pitch });
             this.labelMarker.setIcon(url);
@@ -152,17 +201,83 @@ class PanoManager {
     }
 
     /**
-     * Sets the panorama ID. Adds a callback function that will record pano metadata and update the date text field.
-     * @param {string} panoId The ID for the panorama that we want to move to
-     * @returns {Promise<PanoData>}
+     * Sets the panorama. Tries the primary viewer first; falls back to Pannellum if there's a backup image available.
+     * @param {string} panoId The ID for the panorama that we want to move to.
+     * @param {{url: string, metadata: object}|null} backupImage Self-hosted pano data from the backend, or null.
+     * @returns {Promise<PanoData|undefined>}
      */
-    async setPanorama(panoId) {
+    async setPanorama(panoId, backupImage = null) {
         this.setProperty('panoLoaded', false);
-        return svv.panoViewer.setPano(panoId).then(this.#setPanoCallback).then((panoData) => {
+
+        // Try the primary viewer first.
+        try {
+            const panoData = await this.#primaryViewer.setPano(panoId);
+            this.#teardownPannellum();
+            this.#setPanoCallback(panoData);
             this.setProperty('panoLoaded', true);
             svv.tracker.push('PanoId_Changed');
             return panoData;
-        });
+        } catch (_) {
+            // Primary viewer failed — try Pannellum if we have local pano data.
+            if (backupImage) {
+                try {
+                    const panoData = await this.#showPannellumPano(backupImage);
+                    this.#setPanoCallback(panoData);
+                    this.setProperty('panoLoaded', true);
+                    svv.tracker.push('PanoId_Changed');
+                    return panoData;
+                } catch (err) {
+                    console.error('PannellumViewer failed to load for Validate:', err);
+                }
+            }
+        }
+
+        // Both viewers failed; pano remains in broken state.
+        this.setProperty('panoLoaded', false);
+    }
+
+    /**
+     * Shows the primary viewer canvas and hides the Pannellum canvas; resets svv.panoViewer to the primary viewer.
+     * @private
+     */
+    #teardownPannellum() {
+        this.#pannellumCanvas.style.display = 'none';
+        this.#panoCanvas.style.display = '';
+        svv.panoViewer = this.#primaryViewer;
+        svv.panoViewer.resize();
+        svv.tracker.push('Viewer_Primary');
+    }
+
+    /**
+     * Shows the Pannellum viewer for the given pano. On the first call, creates a PannellumViewer; on subsequent
+     * calls, reuses it via loadPano() to avoid recreating the WebGL context. Sets svv.panoViewer to the Pannellum
+     * viewer so the rest of the codebase (setPov, getPov, markers) uses the correct viewer.
+     * @param {{url: string, metadata: object}} backupImage
+     * @returns {Promise<PanoData>}
+     * @private
+     */
+    async #showPannellumPano(backupImage) {
+        this.#panoCanvas.style.display = 'none';
+        this.#pannellumCanvas.style.display = '';
+
+        const metadata = backupImage.metadata;
+        // Use a neutral POV here; renderPanoMarker will setPov to the correct heading immediately after.
+        const neutralPov = { heading: metadata.cameraHeading || 0, pitch: 0, zoom: 1 };
+
+        if (this.#pannellumViewer) {
+            await this.#pannellumViewer.loadPano(metadata.panoId, metadata, neutralPov);
+        } else {
+            this.#pannellumViewer = await PannellumViewer.create(this.#pannellumCanvas, {
+                panoMetadata: metadata,
+                startPanoId: metadata.panoId,
+                startHeading: neutralPov.heading,
+                startPitch: neutralPov.pitch,
+                startZoom: neutralPov.zoom
+            });
+        }
+        svv.panoViewer = this.#pannellumViewer;
+        svv.tracker.push('Viewer_Pannellum');
+        return svv.panoViewer.currPanoData;
     }
 
     /**
@@ -214,10 +329,12 @@ class PanoManager {
         const outlineW = w + 10;
         const left = 0;
         this.#panoCanvas.style.height = h + 'px';
+        this.#pannellumCanvas.style.height = h + 'px';
         panoHolderElem.style.height = h + 'px';
         controlLayerElem.style.height = h + 'px';
         panoOutlineElem.style.height = outlineH + 'px';
         this.#panoCanvas.style.width = w + 'px';
+        this.#pannellumCanvas.style.width = w + 'px';
         panoHolderElem.style.width = w + 'px';
         controlLayerElem.style.width = w + 'px';
         panoOutlineElem.style.width = outlineW + 'px';
@@ -232,11 +349,12 @@ class PanoManager {
      * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
      * @param {string} viewerAccessToken An access token used to request images for the pano viewer
      * @param {string} startPanoId The ID of the panorama to load first
-     * @returns {Promise<PanoManager>} The panoManager instance.
+     * @param {{url: string, metadata: object}|null} startBackupImage Self-hosted backup for the first pano, or null.
+     * @returns {Promise<PanoManager>} The panoManager instance, with the first pano already loaded.
      */
-    static async create(panoViewerType, viewerAccessToken, startPanoId) {
+    static async create(panoViewerType, viewerAccessToken, startPanoId, startBackupImage = null) {
         const newPanoManager = new PanoManager();
-        await newPanoManager.#init(panoViewerType, viewerAccessToken, startPanoId);
+        await newPanoManager.#init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage);
         return newPanoManager;
     }
 }

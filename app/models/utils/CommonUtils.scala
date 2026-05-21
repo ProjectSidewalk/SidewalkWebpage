@@ -27,6 +27,15 @@ object CommonUtils {
     val OldDataUnknownSource            = Value("Old data, unknown source")
   }
 
+  // NOTE: if adding values here, also update the viewer_type PostgreSQL enum (add via ALTER TYPE).
+  object ViewerType extends Enumeration {
+    type ViewerType = Value
+    val Default    = Value("Default")    // Live primary viewer (GSV/Mapillary/Infra3d).
+    val Pannellum  = Value("Pannellum")  // Self-hosted Pannellum fallback for expired panos.
+    val StaticApi  = Value("StaticApi")  // Static image fetched from the imagery provider's API.
+    val StaticCrop = Value("StaticCrop") // Locally-saved crop image.
+  }
+
   /**
    * Calculate a destination point given a starting point, distance, and bearing using the Haversine formula.
    *

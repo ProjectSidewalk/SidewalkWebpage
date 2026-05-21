@@ -232,8 +232,8 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
                 if ("labelsOfType" in data) {
                     const labels = data.labelsOfType;
                     for (let i = 0; i < labels.length; i++) {
-                    const labelProp = labels[i];
-                        const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl);
+                        const labelProp = labels[i];
+                        const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl, labelProp.backup_image);
                         self.push(card);
                         loadedLabelIds.add(card.getLabelId());
                     }

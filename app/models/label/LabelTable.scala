@@ -888,11 +888,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   def getAvailableValidationsLabelsByType(userId: String, viewer: PanoSource): DBIO[Seq[LabelTypeValidationsLeft]] = {
     val labelsValidatedByUser = labelValidations.filter(_.userId === userId)
 
-    // Get labels the given user didn't place that have non-expired imagery in the correct pano viewer.
+    // Get labels the given user didn't place that have available imagery (non-expired, or backed up).
     val labelsToValidate = for {
       _lb <- labels
       _pd <- panoData if _pd.panoId === _lb.panoId
-      if _pd.expired === false && _pd.source === viewer && _lb.userId =!= userId
+      if (_pd.expired === false || _pd.hasBackup.getOrElse(true)) && _pd.source === viewer && _lb.userId =!= userId
     } yield (_lb.labelId, _lb.labelTypeId, _lb.correct)
 
     // Left join with the labels that the user has already validated, then filter those out.
@@ -947,7 +947,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _ur             <- userRoles if _us.userId === _ur.userId
       _r              <- roleTable if _ur.roleId === _r.roleId
       if _lt.labelTypeId === labelTypeId && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
-      if _pd.source === viewer && !_pd.expired
+      if _pd.source === viewer && (!_pd.expired || _pd.hasBackup.getOrElse(true: Rep[Boolean]))
       if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty                     // Filter out validated labels.
       if skippedLabelId.map(_lb.labelId =!= _).getOrElse(true: Rep[Boolean])             // Filter out skipped label.
       if regionIds.map(ids => _ser.regionId inSetBind ids).getOrElse(true: Rep[Boolean]) // Filter by region IDs.

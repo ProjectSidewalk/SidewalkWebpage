@@ -1,6 +1,7 @@
 package formats.json
 
 import models.label._
+import models.pano.PanoData
 import models.validation.LabelValidationTable
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -225,6 +226,31 @@ object LabelFormats {
       (__ \ "tag_name").write[String] and
       (__ \ "mutually_exclusive_with").writeNullable[String]
   )(unlift(Tag.unapply))
+
+  /**
+   * Builds the JSON payload for a self-hosted backup image, used as the value of the "backup_image" key.
+   * @param panoId The pano ID string, used to construct the serving URL.
+   * @param p The PanoData row from the database.
+   */
+  def localBackupImagePayload(panoId: String, p: PanoData): JsObject = {
+    Json.obj(
+      "url"      -> s"/backupImage/$panoId",
+      "metadata" -> Json.obj(
+        "panoId"        -> p.panoId,
+        "width"         -> p.width,
+        "height"        -> p.height,
+        "tileWidth"     -> p.tileWidth,
+        "tileHeight"    -> p.tileHeight,
+        "lat"           -> p.lat,
+        "lng"           -> p.lng,
+        "cameraHeading" -> p.cameraHeading,
+        "cameraPitch"   -> p.cameraPitch,
+        "cameraRoll"    -> p.cameraRoll,
+        "captureDate"   -> p.captureDate,
+        "copyright"     -> p.copyright
+      )
+    )
+  }
 
   def resumeLabelMetadatatoJson(label: ResumeLabelMetadata, allTags: Seq[Tag]): JsObject = {
     Json.obj(

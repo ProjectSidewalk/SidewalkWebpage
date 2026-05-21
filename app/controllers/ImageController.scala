@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base._
+import formats.json.LabelFormats
 import models.label.LabelTypeEnum
 import play.api.Logger
 import play.api.libs.json._
@@ -22,6 +23,9 @@ class ImageController @Inject() (cc: CustomControllerComponents, panoDataService
 
   // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
   private val CROPS_DIR_NAME = panoDataService.getCropDirectory
+
+  // Allowed characters in a pano ID: GSV uses base64url-style (alphanumeric + - + _); Mapillary uses digits.
+  private val PANO_ID_PATTERN = "^[A-Za-z0-9_-]+$".r
 
   // 2x the actual size of the pano window as retina screen can give us 2x the pixel density.
   val CROP_WIDTH  = 1440
@@ -70,6 +74,38 @@ class ImageController @Inject() (cc: CustomControllerComponents, panoDataService
       val result = file.mkdirs()
       if (!result) {
         logger.error("Error creating directory: " + CROPS_DIR_NAME)
+      }
+    }
+  }
+
+  /**
+   * Returns the backup image metadata for a pano as JSON, used by PopupPanoManager's lazy-fetch fallback.
+   * Returns 404 if no self-hosted copy exists for this pano.
+   */
+  def getBackupImageMetadata(panoId: String) = cc.securityService.SecuredAction { _ =>
+    if (PANO_ID_PATTERN.findFirstIn(panoId).isEmpty) {
+      Future.successful(BadRequest(s"Invalid pano ID: $panoId"))
+    } else {
+      panoDataService.getLocalBackupImage(panoId).map {
+        case Some(p) => Ok(LabelFormats.localBackupImagePayload(panoId, p))
+        case None    => NotFound(s"No backup image found for pano: $panoId")
+      }
+    }
+  }
+
+  /**
+   * Serves a self-hosted equirectangular panorama image.
+   */
+  def serveBackupImage(panoId: String) = cc.securityService.SecuredAction { _ =>
+    if (PANO_ID_PATTERN.findFirstIn(panoId).isEmpty) {
+      Future.successful(BadRequest(s"Invalid pano ID: $panoId"))
+    } else {
+      panoDataService.localBackupImageFile(panoId) match {
+        case Some(file) =>
+          val contentType = if (file.getName.toLowerCase.endsWith(".png")) "image/png" else "image/jpeg"
+          Future.successful(Ok.sendFile(file, inline = true).as(contentType))
+        case None =>
+          Future.successful(NotFound(s"Pano image not found: $panoId"))
       }
     }
   }

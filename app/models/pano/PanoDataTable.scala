@@ -28,7 +28,8 @@ case class PanoData(
     lastViewed: OffsetDateTime,
     panoHistorySaved: Option[OffsetDateTime],
     lastChecked: OffsetDateTime,
-    source: PanoSource
+    source: PanoSource,
+    hasBackup: Option[Boolean]
 )
 
 // NOTE need to update pano_source enum in postgres as well if changing this Enumeration.
@@ -70,9 +71,10 @@ class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
   def panoHistorySaved: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("pano_history_saved")
   def lastChecked: Rep[OffsetDateTime]              = column[OffsetDateTime]("last_checked")
   def source: Rep[PanoSource]                       = column[PanoSource]("source")
+  def hasBackup: Rep[Option[Boolean]]               = column[Option[Boolean]]("has_backup")
 
   def * = (panoId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng, cameraHeading, cameraPitch,
-    cameraRoll, expired, lastViewed, panoHistorySaved, lastChecked, source) <>
+    cameraRoll, expired, lastViewed, panoHistorySaved, lastChecked, source, hasBackup) <>
     ((PanoData.apply _).tupled, PanoData.unapply)
 }
 
@@ -119,20 +121,27 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   /**
    * Mark whether the pano was expired with a timestamp. If not expired, also update last_viewed column.
    *
-   * @param panoId
-   * @param expired
-   * @param lastChecked
+   * @param panoId The ID of the pano
+   * @param expired Whether the original source for the image has expired
+   * @param hasBackup Whether a locally-hosted backup image exists for this pano.
+   * @param lastChecked The last time that we checked for image availability
    * @return
    */
-  def updateExpiredStatus(panoId: String, expired: Boolean, lastChecked: OffsetDateTime): DBIO[Int] = {
+  def updateExpiredStatus(
+      panoId: String,
+      expired: Boolean,
+      hasBackup: Option[Boolean],
+      lastChecked: OffsetDateTime
+  ): DBIO[Int] = {
     if (expired) {
-      val q = for { img <- panoDataRecords if img.panoId === panoId } yield (img.expired, img.lastChecked)
-      q.update((expired, lastChecked))
+      val q =
+        for { img <- panoDataRecords if img.panoId === panoId } yield (img.expired, img.hasBackup, img.lastChecked)
+      q.update((expired, hasBackup, lastChecked))
     } else {
       val q = for {
         img <- panoDataRecords if img.panoId === panoId
-      } yield (img.expired, img.lastChecked, img.lastViewed)
-      q.update((expired, lastChecked, lastChecked))
+      } yield (img.expired, img.hasBackup, img.lastChecked, img.lastViewed)
+      q.update((expired, hasBackup, lastChecked, lastChecked))
     }
   }
 
@@ -187,6 +196,14 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    */
   def panoramaExists(panoId: String): DBIO[Boolean] = {
     panoDataRecords.filter(_.panoId === panoId).exists.result
+  }
+
+  /**
+   * Fetches the full metadata row for a single pano.
+   * @param panoId Unique ID for the panorama
+   */
+  def getPano(panoId: String): DBIO[Option[PanoData]] = {
+    panoDataRecords.filter(_.panoId === panoId).result.headOption
   }
 
   /**

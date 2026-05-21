@@ -1029,3 +1029,8 @@ kbd {
     text-align: center;
     white-space: nowrap;
 }
+
+/* Hide Pannellum's loading progress bar during scene transitions. */
+.pnlm-load-box {
+    display: none !important;
+}

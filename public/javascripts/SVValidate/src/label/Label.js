@@ -30,7 +30,8 @@ function Label(params) {
         aiTags: undefined,
         aiTagsNotPresent: undefined,
         isMobile: undefined,
-        aiGenerated: false
+        aiGenerated: false,
+        backupImage: null
     };
 
     // These properties are set through validating labels. In this object, canvas properties and
@@ -126,6 +127,7 @@ function Label(params) {
             if ('ai_tags' in params) setAuditProperty('aiTags', params.ai_tags);
             if ('ai_tags_not_present' in params) setAuditProperty('aiTagsNotPresent', params.ai_tags_not_present);
             if ('ai_generated' in params) setAuditProperty('aiGenerated', params.ai_generated);
+            if ('backup_image' in params) setAuditProperty('backupImage', params.backup_image);
             // Properties only used on the Admin version of Validate.
             if ('admin_data' in params && params.admin_data !== null) {
                 if ('username' in params.admin_data) adminProperties.username = params.admin_data.username;

@@ -7,7 +7,6 @@ import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin}
-import models.label.LabelMetadata
 import models.user.{RoleTable, SidewalkUserWithRole}
 import models.validation.LabelValidationTable
 import org.apache.pekko.actor.ActorSystem
@@ -52,13 +51,17 @@ class AdminController @Inject() (
   val dateFormatter: DateTimeFormatter       = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   private val logger                         = Logger(this.getClass)
 
-  /** Returns a JsObject with "crop_url" set to the crop image path if the crop exists, or null otherwise. */
-  private def cropUrlJson(metadata: LabelMetadata): JsObject = {
-    val cropUrl: Option[String] =
-      if (panoDataService.cropExists(metadata.labelId, metadata.labelType))
-        Some(s"/cropImage/${metadata.labelType.name}/${metadata.labelId}")
-      else None
-    Json.obj("crop_url" -> cropUrl)
+  /**
+   * Returns a JsObject with "backup_image" populated when a self-hosted copy exists and all req metadata is present.
+   *
+   * The frontend uses this both as the primary path for expired panos and as a fallback when the live viewer fails.
+   * The payload contains the URL plus the metadata needed to build a frontend PanoData object.
+   */
+  private def backupImageJson(panoId: String): Future[JsObject] = {
+    panoDataService.getLocalBackupImage(panoId).map {
+      case Some(p) => Json.obj("backup_image" -> localBackupImagePayload(panoId, p))
+      case None    => Json.obj("backup_image" -> Json.toJson(Option.empty[JsObject]))
+    }
   }
 
   /**
@@ -297,11 +300,13 @@ class AdminController @Inject() (
     val userId: String = request.identity.userId
     labelService.getSingleLabelMetadata(labelId, userId).flatMap {
       case Some(metadata) =>
-        labelService
-          .getExtraAdminValidateData(Seq(labelId))
-          .map(adminData => {
-            Ok(labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++ cropUrlJson(metadata))
-          })
+        for {
+          adminData   <- labelService.getExtraAdminValidateData(Seq(labelId))
+          backupImage <- backupImageJson(metadata.panoId)
+        } yield Ok(
+          labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++
+            Json.obj("crop_url" -> panoDataService.cropUrl(metadata.labelId, metadata.labelType)) ++ backupImage
+        )
       case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
     }
   }
@@ -311,9 +316,15 @@ class AdminController @Inject() (
    */
   def getLabelData(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
     val userId: String = request.identity.userId
-    labelService.getSingleLabelMetadata(labelId, userId).map {
-      case Some(metadata) => Ok(labelMetadataWithValidationToJson(metadata) ++ cropUrlJson(metadata))
-      case None           => NotFound(s"No label found with ID: $labelId")
+    labelService.getSingleLabelMetadata(labelId, userId).flatMap {
+      case Some(metadata) =>
+        backupImageJson(metadata.panoId).map(backupImage =>
+          Ok(
+            labelMetadataWithValidationToJson(metadata) ++
+              Json.obj("crop_url" -> panoDataService.cropUrl(metadata.labelId, metadata.labelType)) ++ backupImage
+          )
+        )
+      case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
     }
   }
 

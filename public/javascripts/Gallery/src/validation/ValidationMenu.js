@@ -198,7 +198,8 @@ function ValidationMenu(referenceCard, gsvImage) {
             end_timestamp: validationTimestamp,
             source: sourceStr,
             undone: false,
-            redone: refCard.getProperty('user_validation') !== null
+            redone: refCard.getProperty('user_validation') !== null,
+            viewer_type: refCard.getImageSource() === 'crop' ? 'StaticCrop' : 'StaticApi'
         };
 
         return fetch('/labelmap/validate', {

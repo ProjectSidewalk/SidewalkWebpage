@@ -43,6 +43,10 @@ class PanoViewer {
             this.viewerType = 'infra3d';
             this.canvasClass = 'infra3dsdk-canvas';
         }
+        else if (new.target === PannellumViewer) {
+            this.viewerType = 'pannellum';
+            this.canvasClass = 'pannellum-canvas';
+        }
     }
 
     /**
