@@ -91,12 +91,13 @@ function AddLabelsToMap(map, labelData, params) {
                 'circle-stroke-width': 0.75,
                 'circle-color': [
                     'case',
-                    ['==', ['get', 'expired'], true], 'lightgrey',
+                    ['all', ['==', ['get', 'expired'], true], ['!=', ['get', 'has_backup'], true]], 'lightgrey',
                     colorMapping[labelType].fillStyle
                 ],
                 'circle-stroke-color': [
                     'case',
-                    ['==', ['get', 'expired'], true], colorMapping[labelType].fillStyle,
+                    ['all', ['==', ['get', 'expired'], true], ['!=', ['get', 'has_backup'], true]],
+                    colorMapping[labelType].fillStyle,
                     colorMapping[labelType].strokeStyle
                 ]
             }

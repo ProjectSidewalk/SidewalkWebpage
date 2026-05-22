@@ -86,6 +86,7 @@ case class LabelForLabelMap(
     hasValidations: Boolean,
     aiValidation: Option[Int],
     expired: Boolean,
+    hasBackup: Boolean,
     highQualityUser: Boolean,
     severity: Option[Int],
     tags: List[String],
@@ -1307,14 +1308,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _r             <- roleTable if _ur.roleId === _r.roleId
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
       if _lp.lat.isDefined && _lp.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
-    } yield (_l, _lp, _us.highQuality, _lt.labelType, _pd.expired, _r.role === "AI")
+    } yield (_l, _lp, _us.highQuality, _lt.labelType, _pd.expired, _pd.hasBackup, _r.role === "AI")
 
     // Get AI validations.
     val _labelInfoWithAIValidation = _labels
       .joinLeft(aiValidations)
       .on(_._1.labelId === _.map(_.labelId))
-      .map { case ((l, lp, highQuality, labelType, expired, isAiUser), aiv) =>
-        (l, lp, highQuality, labelType, expired, isAiUser, aiv.flatten)
+      .map { case ((l, lp, highQuality, labelType, expired, hasBackup, isAiUser), aiv) =>
+        (l, lp, highQuality, labelType, expired, hasBackup, isAiUser, aiv.flatten)
       }
 
     // Filter labels based on how the AI validated them. If no filters provided, do no filtering here.
@@ -1322,26 +1323,26 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       var query = _labelInfoWithAIValidation
       if (aiValOptions.nonEmpty) {
         if (!aiValOptions.contains("correct"))
-          query = query.filter { case (_, _, _, _, _, _, aiv) =>
+          query = query.filter { case (_, _, _, _, _, _, _, aiv) =>
             aiv.isEmpty || aiv.map(_.validationResult) =!= 1.asColumnOf[Option[Int]]
           }
         if (!aiValOptions.contains("incorrect"))
-          query = query.filter { case (_, _, _, _, _, _, aiv) =>
+          query = query.filter { case (_, _, _, _, _, _, _, aiv) =>
             aiv.isEmpty || aiv.map(_.validationResult) =!= 2.asColumnOf[Option[Int]]
           }
         if (!aiValOptions.contains("unsure"))
-          query = query.filter { case (_, _, _, _, _, _, aiv) =>
+          query = query.filter { case (_, _, _, _, _, _, _, aiv) =>
             aiv.isEmpty || aiv.map(_.validationResult) =!= 3.asColumnOf[Option[Int]]
           }
         if (!aiValOptions.contains("unvalidated"))
-          query = query.filter { case (_, _, _, _, _, _, aiv) => aiv.isDefined }
+          query = query.filter { case (_, _, _, _, _, _, _, aiv) => aiv.isDefined }
       }
 
       // Grab the columns that we need for the LabelForLabelMap case class.
-      query.map { case (l, lp, highQuality, labelType, expired, isAiUser, aiv) =>
+      query.map { case (l, lp, highQuality, labelType, expired, hasBackup, isAiUser, aiv) =>
         val hasValidations = l.agreeCount > 0 || l.disagreeCount > 0 || l.unsureCount > 0
         (l.labelId, l.streetEdgeId, l.auditTaskId, labelType, lp.lat, lp.lng, l.correct, hasValidations,
-          aiv.map(_.validationResult), expired, highQuality, l.severity, l.tags, isAiUser)
+          aiv.map(_.validationResult), expired, hasBackup.getOrElse(false), highQuality, l.severity, l.tags, isAiUser)
       }
     }
 
@@ -1361,8 +1362,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
     _labelsNearRoute.result.map(_.map {
-      case (id, streetId, taskId, lType, lat, lng, correct, hasVals, aiVal, expired, highQual, sev, tags, ai) =>
-        LabelForLabelMap(id, taskId, lType, lat.get, lng.get, correct, hasVals, aiVal, expired, highQual, sev, tags, ai)
+      case (id, streetId, taskId, lType, lat, lng, correct, hasVals, aiVal, expired, hasBackup, highQual, sev, tags,
+            ai) =>
+        LabelForLabelMap(id, taskId, lType, lat.get, lng.get, correct, hasVals, aiVal, expired, hasBackup, highQual,
+          sev, tags, ai)
     })
   }
 

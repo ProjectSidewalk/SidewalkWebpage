@@ -193,6 +193,7 @@ class AdminController @Inject() (
                 "has_validations"   -> label.hasValidations,
                 "ai_validation"     -> label.aiValidation.map(LabelValidationTable.validationOptions.get),
                 "expired"           -> label.expired,
+                "has_backup"        -> label.hasBackup,
                 "high_quality_user" -> label.highQualityUser,
                 "ai_generated"      -> label.aiGenerated,
                 "tags"              -> label.tags

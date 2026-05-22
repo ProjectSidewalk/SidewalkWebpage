@@ -102,6 +102,10 @@ class ImageController @Inject() (cc: CustomControllerComponents, panoDataService
     } else {
       panoDataService.localBackupImageFile(panoId) match {
         case Some(file) =>
+          // Fire-and-forget: keep pano_data.has_backup in sync with what's on disk. No-op when already true.
+          panoDataService.markHasBackup(panoId).failed.foreach { e =>
+            logger.warn(s"Failed to update has_backup for pano $panoId: ${e.getMessage}")
+          }
           val contentType = if (file.getName.toLowerCase.endsWith(".png")) "image/png" else "image/jpeg"
           Future.successful(Ok.sendFile(file, inline = true).as(contentType))
         case None =>

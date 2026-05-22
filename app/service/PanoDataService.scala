@@ -163,6 +163,7 @@ trait PanoDataService {
   def checkForImagery: Future[String]
   def backupExists(panoId: String): Boolean
   def backupImageUrl(panoId: String): Option[String]
+  def markHasBackup(panoId: String): Future[Int]
   def getCropDirectory: String
   def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean
   def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String]
@@ -419,6 +420,9 @@ class PanoDataServiceImpl @Inject() (
 
   /** Returns the URL for a pano's backup image if it exists, or None otherwise. */
   def backupImageUrl(panoId: String): Option[String] = if (backupExists(panoId)) Some(s"/backupImage/$panoId") else None
+
+  /** Sets has_backup = true for the given pano (no-op when it's already true). */
+  def markHasBackup(panoId: String): Future[Int] = db.run(panoDataTable.markHasBackup(panoId))
 
   /** Checks whether a crop image file exists for the given label. */
   def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean = {

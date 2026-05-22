@@ -158,6 +158,18 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
+   * Sets has_backup = true for the given pano, but only if it isn't already true.
+   *
+   * @param panoId The ID of the pano whose has_backup flag should be set.
+   */
+  def markHasBackup(panoId: String): DBIO[Int] = {
+    panoDataRecords
+      .filter(p => p.panoId === panoId && !p.hasBackup.getOrElse(false: Rep[Boolean]))
+      .map(_.hasBackup)
+      .update(Some(true))
+  }
+
+  /**
    * Get a list of n least recently checked pano ids that have not been viewed in the last 3 months.
    *
    * Note: only getting panos from GSV for now; we haven't set up imagery checking for other sources yet
