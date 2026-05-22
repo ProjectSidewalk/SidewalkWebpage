@@ -83,6 +83,7 @@ class PannellumViewer extends PanoViewer {
                 keyboardZoom: false,
                 mouseZoom: zoomControl,
                 friction: 1,
+                touchPanSpeedCoeffFactor: 0.4,
                 minHfov: util.pano.zoomToFov(3), // zoom 3 → smallest HFOV (most zoomed in)
                 maxHfov: util.pano.zoomToFov(1), // zoom 1 → largest HFOV
             },

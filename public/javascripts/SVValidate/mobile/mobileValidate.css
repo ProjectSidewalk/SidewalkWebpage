@@ -210,9 +210,11 @@ body {
 
 #validation-button-holder {
     z-index: 1;
-    position: relative;
+    position: absolute;
     height: 9vw;
-    bottom: 15vw;
+    bottom: 6vw;
+    left: 0;
+    right: 0;
     padding: 0 7vw;
 }
 
@@ -241,7 +243,7 @@ body {
     visibility: hidden;
     position: absolute;
     height: 21px;
-    bottom: calc(15vw + 20px);
+    bottom: 15vw; /* = 6vw (button holder bottom) + 9vw (button holder height) */
     z-index: 1;
 }
 
@@ -259,7 +261,7 @@ body {
 .validation-menu-section {
     z-index: 2;
     position: absolute;
-    bottom: calc(15vw + 40px);
+    bottom: calc(15vw + 21px); /* = button holder top (15vw) + notch height (21px) */
     width: 60vw;
     padding: 16px 0;
     flex-direction: column;

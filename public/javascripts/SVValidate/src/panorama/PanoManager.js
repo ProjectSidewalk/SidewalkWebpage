@@ -78,6 +78,7 @@ class PanoManager {
         svv.panoViewer.addListener('pov_changed', () => svv.tracker.push('POV_Changed'));
         if (isMobile()) {
             this.#sizePano();
+            svv.panoViewer.resize(); // Necessary for PannellumViewer for correct vertical position of the label.
         }
 
         // TODO we probably need to do this for any viewer type...
