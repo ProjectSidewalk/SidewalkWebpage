@@ -155,18 +155,21 @@ function Main (param) {
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
 
-        svv.infoPopover = new PanoInfoPopover(
-            svv.ui.viewer.dateHolder, svv.panoViewer, svv.panoViewer.getPosition, svv.panoViewer.getPanoId,
-            function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('streetEdgeId'); },
-            function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('regionId'); },
-            function() { return svv.panoStore.getPanoData(svv.panoViewer.getPanoId()).getProperty('captureDate'); },
-            function() { return svv.panoStore.getPanoData(svv.panoViewer.getPanoId()).getProperty('address'); },
-            svv.panoViewer.getPov, true, function() { svv.tracker.push('PanoInfoButton_Click'); },
-            function() { svv.tracker.push('PanoInfoCopyToClipboard_Click'); },
-            function() { svv.tracker.push('PanoInfoViewInPano_Click'); },
-            function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('labelId'); },
-            function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('labelTimestamp'); }
-        );
+        if (!isMobile()) {
+            svv.infoPopover = new PanoInfoPopover(
+                svv.ui.viewer.dateHolder, svv.panoViewer, svv.panoViewer.getPosition, svv.panoViewer.getPanoId,
+                function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('streetEdgeId'); },
+                function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('regionId'); },
+                function() { return svv.panoStore.getPanoData(svv.panoViewer.getPanoId()).getProperty('captureDate'); },
+                function() { return svv.panoStore.getPanoData(svv.panoViewer.getPanoId()).getProperty('address'); },
+                svv.panoViewer.getPov, true, function() { svv.tracker.push('PanoInfoButton_Click'); },
+                function() { svv.tracker.push('PanoInfoCopyToClipboard_Click'); },
+                function() { svv.tracker.push('PanoInfoViewInPano_Click'); },
+                function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('labelId'); },
+                function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('labelTimestamp'); }
+            );
+        }
+
 
         svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user);
         svv.skipValidation = new SkipValidation(svv.ui.skipValidation);
