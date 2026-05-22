@@ -632,3 +632,38 @@ function UtilitiesMisc (JSON) {
 }
 
 util.misc = UtilitiesMisc(JSON);
+
+/**
+ * Builds the {url, metadata} object needed by Pannellum from a label metadata object sent by the server.
+ *
+ * Returns null if backup_image_url is absent or null, or if pano_data is missing.
+ * @param {object} meta Label metadata object from the server.
+ * @param {string|null} meta.backup_image_url URL for the self-hosted backup image, or null.
+ * @param {object|null} meta.pano_data Nested pano viewer metadata, or null.
+ * @param {string} meta.pano_id The panorama ID.
+ * @param {number} meta.camera_lat Latitude of the camera.
+ * @param {number} meta.camera_lng Longitude of the camera.
+ * @param {string} meta.image_capture_date Date the panorama was captured.
+ * @returns {{url: string, metadata: object}|null}
+ */
+function buildBackupImageData(meta) {
+    if (!meta.backup_image_url || !meta.pano_data) return null;
+    const pd = meta.pano_data;
+    return {
+        url: meta.backup_image_url,
+        metadata: {
+            panoId: meta.pano_id,
+            width: pd.width,
+            height: pd.height,
+            tileWidth: pd.tile_width,
+            tileHeight: pd.tile_height,
+            lat: meta.camera_lat,
+            lng: meta.camera_lng,
+            cameraHeading: pd.camera_heading,
+            cameraPitch: pd.camera_pitch,
+            cameraRoll: pd.camera_roll,
+            captureDate: meta.image_capture_date,
+            copyright: pd.copyright
+        }
+    };
+}

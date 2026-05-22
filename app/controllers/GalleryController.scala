@@ -118,20 +118,16 @@ class GalleryController @Inject() (
         // Get labels from LabelTable.
         labelService
           .getGalleryLabels(n, labelType, loadedLabels, valOptions, regionIds, severities, tags, aiValOptions, userId)
-          .flatMap { labels =>
-            Future
-              .traverse(labels) { l =>
-                panoDataService.getLocalBackupImage(l.panoId).map { backupImageOpt =>
-                  Json.obj(
-                    "label"       -> LabelFormats.validationLabelMetadataToJson(l),
-                    "cropUrl"     -> panoDataService.cropUrl(l.labelId, l.labelType),
-                    "gsvImageUrl" -> panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch,
-                      l.pov.zoom),
-                    "backup_image" -> backupImageOpt.map(p => LabelFormats.localBackupImagePayload(l.panoId, p))
-                  )
-                }
-              }
-              .map { jsonList => Ok(Json.obj("labelsOfType" -> jsonList)) }
+          .map { labels =>
+            val jsonList = labels.map { l =>
+              Json.obj(
+                "label"   -> LabelFormats.validationLabelMetadataToJson(l, panoDataService.backupImageUrl(l.panoId)),
+                "cropUrl" -> panoDataService.cropUrl(l.labelId, l.labelType),
+                "gsvImageUrl" ->
+                  panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
+              )
+            }
+            Ok(Json.obj("labelsOfType" -> jsonList))
           }
       }
     )

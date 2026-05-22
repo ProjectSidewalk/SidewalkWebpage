@@ -52,19 +52,6 @@ class AdminController @Inject() (
   private val logger                         = Logger(this.getClass)
 
   /**
-   * Returns a JsObject with "backup_image" populated when a self-hosted copy exists and all req metadata is present.
-   *
-   * The frontend uses this both as the primary path for expired panos and as a fallback when the live viewer fails.
-   * The payload contains the URL plus the metadata needed to build a frontend PanoData object.
-   */
-  private def backupImageJson(panoId: String): Future[JsObject] = {
-    panoDataService.getLocalBackupImage(panoId).map {
-      case Some(p) => Json.obj("backup_image" -> localBackupImagePayload(panoId, p))
-      case None    => Json.obj("backup_image" -> Json.toJson(Option.empty[JsObject]))
-    }
-  }
-
-  /**
    * Loads the admin page.
    */
   def index = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
@@ -300,13 +287,15 @@ class AdminController @Inject() (
     val userId: String = request.identity.userId
     labelService.getSingleLabelMetadata(labelId, userId).flatMap {
       case Some(metadata) =>
-        for {
-          adminData   <- labelService.getExtraAdminValidateData(Seq(labelId))
-          backupImage <- backupImageJson(metadata.panoId)
-        } yield Ok(
-          labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++
-            Json.obj("crop_url" -> panoDataService.cropUrl(metadata.labelId, metadata.labelType)) ++ backupImage
-        )
+        labelService.getExtraAdminValidateData(Seq(labelId)).map { adminData =>
+          Ok(
+            labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++
+              Json.obj(
+                "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
+                "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId)
+              )
+          )
+        }
       case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
     }
   }
@@ -316,15 +305,16 @@ class AdminController @Inject() (
    */
   def getLabelData(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
     val userId: String = request.identity.userId
-    labelService.getSingleLabelMetadata(labelId, userId).flatMap {
+    labelService.getSingleLabelMetadata(labelId, userId).map {
       case Some(metadata) =>
-        backupImageJson(metadata.panoId).map(backupImage =>
-          Ok(
-            labelMetadataWithValidationToJson(metadata) ++
-              Json.obj("crop_url" -> panoDataService.cropUrl(metadata.labelId, metadata.labelType)) ++ backupImage
-          )
+        Ok(
+          labelMetadataWithValidationToJson(metadata) ++
+            Json.obj(
+              "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
+              "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId)
+            )
         )
-      case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
+      case None => NotFound(s"No label found with ID: $labelId")
     }
   }
 

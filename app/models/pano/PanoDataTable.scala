@@ -11,6 +11,18 @@ import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
+/** Pano metadata needed to render a backup image in Pannellum. */
+case class PanoViewerMetadata(
+    width: Option[Int],
+    height: Option[Int],
+    tileWidth: Option[Int],
+    tileHeight: Option[Int],
+    cameraHeading: Option[Double],
+    cameraPitch: Option[Double],
+    cameraRoll: Option[Double],
+    copyright: Option[String]
+)
+
 case class PanoData(
     panoId: String,
     width: Option[Int],

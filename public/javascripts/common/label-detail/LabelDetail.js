@@ -296,7 +296,9 @@ async function LabelDetail(root, opts) {
             aiGenerated: meta.ai_generated
         };
         self.panoManager.setLabel(popupLabel);
-        self.panoManager.setPano(meta.pano_id, labelPov, meta.crop_url, meta.expired, meta.backup_image);
+        // Accept a pre-constructed backup_image object (Gallery path) or build from server fields (API path).
+        const backupImage = meta.backup_image || buildBackupImageData(meta);
+        self.panoManager.setPano(meta.pano_id, labelPov, meta.crop_url, meta.expired, backupImage);
 
         // Validation counts + AI validation.
         self.validationCounts.Agree    = meta.num_agree;

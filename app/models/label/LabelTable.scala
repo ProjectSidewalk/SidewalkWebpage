@@ -9,7 +9,7 @@ import models.label.LabelTable._
 import models.label.LabelTypeEnum._
 import models.mission.MissionTableDef
 import models.pano.PanoSource.PanoSource
-import models.pano.{PanoData, PanoDataTableDef, PanoSource}
+import models.pano.{PanoData, PanoDataTableDef, PanoSource, PanoViewerMetadata}
 import models.region.RegionTableDef
 import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable}
@@ -157,7 +157,8 @@ case class LabelMetadata(
     cameraLocation: Option[LatLng],
     aiGenerated: Boolean,
     expired: Boolean,
-    fromCurrentUser: Boolean
+    fromCurrentUser: Boolean,
+    panoMetadata: Option[PanoViewerMetadata]
 )
 
 case class LabelComment(username: String, comment: String)
@@ -245,7 +246,8 @@ case class LabelValidationMetadata(
     aiTagsNotPresent: Option[Seq[String]],
     aiGenerated: Boolean,
     comments: Seq[LabelComment] = Seq.empty,
-    fromCurrentUser: Boolean = false
+    fromCurrentUser: Boolean = false,
+    panoMetadata: Option[PanoViewerMetadata] = None
 ) extends BasicLabelMetadata
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
@@ -322,52 +324,70 @@ object LabelTable {
   // Type aliases for the tuple representation of LabelValidationMetadata and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
   type LabelValidationMetadataTuple = (
-      Int,                              // labelId
-      String,                           // labelType
-      String,                           // panoId
-      PanoSource,                       // panoSource
-      Boolean,                          // expired
-      String,                           // imageCaptureDate
-      OffsetDateTime,                   // timestamp
-      (Option[Double], Option[Double]), // location (lat, lng)
-      (Double, Double, Double),         // pov (heading, pitch, zoom)
-      (Int, Int),                       // canvasXY (x, y)
-      Option[Int],                      // severity
-      Option[String],                   // description
-      Int,                              // streetEdgeId
-      Int,                              // regionId
-      (Int, Int, Int, Option[Boolean], Option[Int], Option[Int]), // validationInfo (agree, disagree, unsure, correct, userVal, aiVal)
-      List[String],                     // tags
-      (Option[Double], Option[Double]), // cameraLocation (lat, lng)
-      Option[List[String]],             // aiTags
-      Option[List[String]],             // aiTagsNotPresent
-      Boolean,                          // aiGenerated
-      Option[String],                   // comments (JSON-aggregated)
-      Boolean                           // fromCurrentUser
+      Int,                                                        // 1.  labelId
+      String,                                                     // 2.  labelType
+      String,                                                     // 3.  panoId
+      PanoSource,                                                 // 4.  panoSource
+      Boolean,                                                    // 5.  expired
+      String,                                                     // 6.  imageCaptureDate
+      OffsetDateTime,                                             // 7.  timestamp
+      (Option[Double], Option[Double]),                           // 8.  location (lat, lng)
+      (Double, Double, Double),                                   // 9.  pov (heading, pitch, zoom)
+      (Int, Int),                                                 // 10. canvasXY (x, y)
+      Option[Int],                                                // 11. severity
+      Option[String],                                             // 12. description
+      (Int, Int),                                                 // 13. (streetEdgeId, regionId)
+      (Int, Int, Int, Option[Boolean], Option[Int], Option[Int]), // 14. validationInfo
+      List[String],                                               // 15. tags
+      (Option[Double], Option[Double]),                           // 16. cameraLocation (lat, lng)
+      Option[List[String]],                                       // 17. aiTags
+      Option[List[String]],                                       // 18. aiTagsNotPresent
+      Boolean,                                                    // 19. aiGenerated
+      Option[String],                                             // 20. comments (JSON-aggregated)
+      Boolean,                                                    // 21. fromCurrentUser
+      (
+          Option[Int],
+          Option[Int],
+          Option[Int],
+          Option[Int],
+          Option[Double],
+          Option[Double],
+          Option[Double],
+          Option[String]
+      ) // 22. pano dims & camera
   )
   type LabelValidationMetadataTupleRep = (
-      Rep[Int],                                   // labelId
-      Rep[String],                                // labelType
-      Rep[String],                                // panoId
-      Rep[PanoSource],                            // panoSource
-      Rep[Boolean],                               // expired
-      Rep[String],                                // imageCaptureDate
-      Rep[OffsetDateTime],                        // timestamp
-      (Rep[Option[Double]], Rep[Option[Double]]), // location (lat, lng)
-      (Rep[Double], Rep[Double], Rep[Double]),    // pov (heading, pitch, zoom)
-      (Rep[Int], Rep[Int]),                       // canvasXY (x, y)
-      Rep[Option[Int]],                           // severity
-      Rep[Option[String]],                        // description
-      Rep[Int],                                   // streetEdgeId
-      Rep[Int],                                   // regionId
-      (Rep[Int], Rep[Int], Rep[Int], Rep[Option[Boolean]], Rep[Option[Int]], Rep[Option[Int]]), // validationInfo
-      Rep[List[String]],                                                                        // tags
-      (Rep[Option[Double]], Rep[Option[Double]]), // cameraLocation (lat, lng)
-      Rep[Option[List[String]]],                  // aiTags
-      Rep[Option[List[String]]],                  // aiTagsNotPresent
-      Rep[Boolean],                               // aiGenerated
-      Rep[Option[String]],                        // comments (JSON-aggregated)
-      Rep[Boolean]                                // fromCurrentUser
+      Rep[Int],                                   // 1.  labelId
+      Rep[String],                                // 2.  labelType
+      Rep[String],                                // 3.  panoId
+      Rep[PanoSource],                            // 4.  panoSource
+      Rep[Boolean],                               // 5.  expired
+      Rep[String],                                // 6.  imageCaptureDate
+      Rep[OffsetDateTime],                        // 7.  timestamp
+      (Rep[Option[Double]], Rep[Option[Double]]), // 8.  location (lat, lng)
+      (Rep[Double], Rep[Double], Rep[Double]),    // 9.  pov (heading, pitch, zoom)
+      (Rep[Int], Rep[Int]),                       // 10. canvasXY (x, y)
+      Rep[Option[Int]],                           // 11. severity
+      Rep[Option[String]],                        // 12. description
+      (Rep[Int], Rep[Int]),                       // 13. (streetEdgeId, regionId)
+      (Rep[Int], Rep[Int], Rep[Int], Rep[Option[Boolean]], Rep[Option[Int]], Rep[Option[Int]]), // 14. validationInfo
+      Rep[List[String]],                                                                        // 15. tags
+      (Rep[Option[Double]], Rep[Option[Double]]), // 16. cameraLocation (lat, lng)
+      Rep[Option[List[String]]],                  // 17. aiTags
+      Rep[Option[List[String]]],                  // 18. aiTagsNotPresent
+      Rep[Boolean],                               // 19. aiGenerated
+      Rep[Option[String]],                        // 20. comments (JSON-aggregated)
+      Rep[Boolean],                               // 21. fromCurrentUser
+      (                                           // 22. pano dims & camera
+          Rep[Option[Int]],                       // 1. width
+          Rep[Option[Int]],                       // 2. height
+          Rep[Option[Int]],                       // 3. tileWidth
+          Rep[Option[Int]],                       // 4. tileHeight
+          Rep[Option[Double]],                    // 5. cameraHeading
+          Rep[Option[Double]],                    // 6. cameraPitch
+          Rep[Option[Double]],                    // 7. cameraRoll
+          Rep[Option[String]]                     // 8. copyright
+      )
   )
 
   // Define an implicit conversion from the tuple representation to the case class.
@@ -386,25 +406,27 @@ object LabelTable {
         canvasXY = LocationXY.tupled(t._10),
         severity = t._11,
         description = t._12,
-        streetEdgeId = t._13,
-        regionId = t._14,
-        validationInfo = LabelValidationInfo(t._15._1, t._15._2, t._15._3, t._15._4, t._15._5, t._15._6),
-        tags = t._16,
-        cameraLocation = (t._17._1, t._17._2) match {
+        streetEdgeId = t._13._1,
+        regionId = t._13._2,
+        validationInfo = LabelValidationInfo(t._14._1, t._14._2, t._14._3, t._14._4, t._14._5, t._14._6),
+        tags = t._15,
+        cameraLocation = (t._16._1, t._16._2) match {
           case (Some(lat), Some(lng)) => Some(LatLng(lat, lng))
           case _                      => None
         },
-        aiTags = t._18,
-        aiTagsNotPresent = t._19,
-        aiGenerated = t._20,
-        comments = t._21
+        aiTags = t._17,
+        aiTagsNotPresent = t._18,
+        aiGenerated = t._19,
+        comments = t._20
           .map { json =>
             play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
               LabelComment((obj \ "username").as[String], (obj \ "comment").as[String])
             }
           }
           .getOrElse(Seq.empty),
-        fromCurrentUser = t._22
+        fromCurrentUser = t._21,
+        panoMetadata =
+          Some(PanoViewerMetadata(t._22._1, t._22._2, t._22._3, t._22._4, t._22._5, t._22._6, t._22._7, t._22._8))
       )
     }
 
@@ -631,7 +653,19 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       },
       r.nextBoolean(),
       r.nextBoolean(),
-      r.nextBoolean()
+      r.nextBoolean(),
+      Some(
+        PanoViewerMetadata(
+          r.nextIntOption(),    // width
+          r.nextIntOption(),    // height
+          r.nextIntOption(),    // tileWidth
+          r.nextIntOption(),    // tileHeight
+          r.nextDoubleOption(), // cameraHeading
+          r.nextDoubleOption(), // cameraPitch
+          r.nextDoubleOption(), // cameraRoll
+          r.nextStringOption()  // copyright
+        )
+      )
     )
   }
 
@@ -830,7 +864,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              pano_data.lng AS camera_lng,
              r.role = 'AI' AS ai_generated,
              pano_data.expired,
-             #$fromCurrentUserExpr AS from_current_user
+             #$fromCurrentUserExpr AS from_current_user,
+             pano_data.width AS pano_width,
+             pano_data.height AS pano_height,
+             pano_data.tile_width,
+             pano_data.tile_height,
+             pano_data.camera_heading,
+             pano_data.camera_pitch,
+             pano_data.camera_roll,
+             pano_data.copyright
       FROM label AS lb1
       INNER JOIN pano_data ON lb1.pano_id = pano_data.pano_id
       INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
@@ -1012,8 +1054,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           (lp.canvasX, lp.canvasY),
           l.severity,
           l.description,
-          l.streetEdgeId,
-          regionId,
+          (l.streetEdgeId, regionId),
           // userValidation is always None here bc we only show labels the user hasn't already validated.
           (
             l.agreeCount,
@@ -1033,7 +1074,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
           isAiUser,
           None.asInstanceOf[Option[String]].asColumnOf[Option[String]], // Comments not needed for validation rn.
-          false.bind
+          false.bind,
+          (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll,
+            pd.copyright)
         )
       }
 
@@ -1171,8 +1214,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (lp.canvasX, lp.canvasY),
       lb.severity,
       lb.description,
-      lb.streetEdgeId,
-      regionId,
+      (lb.streetEdgeId, regionId),
       (lb.agreeCount, lb.disagreeCount, lb.unsureCount, lb.correct, uv.map(_.validationResult),
         aiv.map(_.validationResult)),
       lb.tags,
@@ -1182,7 +1224,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
       isAiUser,
       comments.flatMap(_.comments), // pre-aggregated comments string from VIEW
-      lb.userId === userId.bind
+      lb.userId === userId.bind,
+      (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll, pd.copyright)
     )
 
     // Remove duplicates if needed and randomize.

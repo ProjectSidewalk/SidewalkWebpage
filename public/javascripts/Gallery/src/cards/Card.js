@@ -6,7 +6,7 @@
  * @returns {Card}
  * @constructor
  */
-function Card(params, cropUrl, gsvImageUrl, backupImageData) {
+function Card(params, cropUrl, gsvImageUrl) {
     const self = this;
 
     // UI card element.
@@ -318,7 +318,7 @@ function Card(params, cropUrl, gsvImageUrl, backupImageData) {
     }
 
     self.getCropUrl = function() { return cropUrl; };
-    self.getBackupImageData = function() { return backupImageData; };
+    self.getBackupImageData = function() { return buildBackupImageData(params); };
     self.getLabelId = getLabelId;
     self.getLabelType = getLabelType;
     self.getProperties = getProperties;
