@@ -644,26 +644,24 @@ util.misc = UtilitiesMisc(JSON);
  * @param {number} meta.camera_lat Latitude of the camera.
  * @param {number} meta.camera_lng Longitude of the camera.
  * @param {string} meta.image_capture_date Date the panorama was captured.
- * @returns {{url: string, metadata: object}|null}
+ * @returns {{metadata: object}|null}
  */
 function buildBackupImageData(meta) {
     if (!meta.backup_image_url || !meta.pano_data) return null;
     const pd = meta.pano_data;
     return {
-        url: meta.backup_image_url,
-        metadata: {
-            panoId: meta.pano_id,
-            width: pd.width,
-            height: pd.height,
-            tileWidth: pd.tile_width,
-            tileHeight: pd.tile_height,
-            lat: meta.camera_lat,
-            lng: meta.camera_lng,
-            cameraHeading: pd.camera_heading,
-            cameraPitch: pd.camera_pitch,
-            cameraRoll: pd.camera_roll,
-            captureDate: meta.image_capture_date,
-            copyright: pd.copyright
-        }
+        panoId: meta.pano_id,
+        imageUrl: meta.backup_image_url,
+        width: pd.width,
+        height: pd.height,
+        tileWidth: pd.tile_width,
+        tileHeight: pd.tile_height,
+        lat: meta.camera_lat,
+        lng: meta.camera_lng,
+        cameraHeading: pd.camera_heading,
+        cameraPitch: pd.camera_pitch,
+        cameraRoll: pd.camera_roll,
+        captureDate: meta.image_capture_date,
+        copyright: pd.copyright
     };
 }

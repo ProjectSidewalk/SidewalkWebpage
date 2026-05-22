@@ -90,7 +90,7 @@ class PannellumViewer extends PanoViewer {
             scenes: {
                 [panoId]: {
                     type: 'equirectangular',
-                    panorama: `/backupImage/${encodeURIComponent(panoId)}`,
+                    panorama: metadata.imageUrl,
                     haov: 360,
                     vaov: 180,
                     yaw: this.#headingToYaw(startHeading),
@@ -160,7 +160,7 @@ class PannellumViewer extends PanoViewer {
 
         this.#viewer.addScene(panoId, {
             type: 'equirectangular',
-            panorama: `/backupImage/${encodeURIComponent(panoId)}`,
+            panorama: metadata.imageUrl,
             haov: 360,
             vaov: 180,
             northOffset: newCameraHeading,

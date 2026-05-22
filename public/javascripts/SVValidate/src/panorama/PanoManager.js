@@ -37,7 +37,7 @@ class PanoManager {
      * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
      * @param {string} viewerAccessToken An access token used to request images for the pano viewer
      * @param {string} startPanoId The ID of the panorama to load first
-     * @param {{url: string, metadata: object}|null} startBackupImage Self-hosted backup for the first pano, or null.
+     * @param {{object}|null} startBackupImage Self-hosted backup for the first pano, or null.
      * @returns {Promise<void>} A Promise that resolves once the first pano has loaded
      */
     async #init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage) {
@@ -201,7 +201,7 @@ class PanoManager {
     /**
      * Sets the panorama. Tries the primary viewer first; falls back to Pannellum if there's a backup image available.
      * @param {string} panoId The ID for the panorama that we want to move to.
-     * @param {{url: string, metadata: object}|null} backupImage Self-hosted pano data from the backend, or null.
+     * @param {{object}|null} backupImage Self-hosted pano data from the backend, or null.
      * @returns {Promise<PanoData|undefined>}
      */
     async setPanorama(panoId, backupImage = null) {
@@ -251,7 +251,7 @@ class PanoManager {
      * Shows the Pannellum viewer for the given pano. On the first call, creates a PannellumViewer; on subsequent
      * calls, reuses it via loadPano() to avoid recreating the WebGL context. Sets svv.panoViewer to the Pannellum
      * viewer so the rest of the codebase (setPov, getPov, markers) uses the correct viewer.
-     * @param {{url: string, metadata: object}} backupImage
+     * @param {{object}} backupImage
      * @returns {Promise<PanoData>}
      * @private
      */
@@ -259,16 +259,15 @@ class PanoManager {
         this.#panoCanvas.style.display = 'none';
         this.#pannellumCanvas.style.display = '';
 
-        const metadata = backupImage.metadata;
         // Use a neutral POV here; renderPanoMarker will setPov to the correct heading immediately after.
-        const neutralPov = { heading: metadata.cameraHeading || 0, pitch: 0, zoom: 1 };
+        const neutralPov = { heading: backupImage.cameraHeading || 0, pitch: 0, zoom: 1 };
 
         if (this.#pannellumViewer) {
-            await this.#pannellumViewer.loadPano(metadata.panoId, metadata, neutralPov);
+            await this.#pannellumViewer.loadPano(backupImage.panoId, backupImage, neutralPov);
         } else {
             this.#pannellumViewer = await PannellumViewer.create(this.#pannellumCanvas, {
-                panoMetadata: metadata,
-                startPanoId: metadata.panoId,
+                panoMetadata: backupImage,
+                startPanoId: backupImage.panoId,
                 startHeading: neutralPov.heading,
                 startPitch: neutralPov.pitch,
                 startZoom: neutralPov.zoom
@@ -349,7 +348,7 @@ class PanoManager {
      * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
      * @param {string} viewerAccessToken An access token used to request images for the pano viewer
      * @param {string} startPanoId The ID of the panorama to load first
-     * @param {{url: string, metadata: object}|null} startBackupImage Self-hosted backup for the first pano, or null.
+     * @param {{object}|null} startBackupImage Self-hosted backup for the first pano, or null.
      * @returns {Promise<PanoManager>} The panoManager instance, with the first pano already loaded.
      */
     static async create(panoViewerType, viewerAccessToken, startPanoId, startBackupImage = null) {

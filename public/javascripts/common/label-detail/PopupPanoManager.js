@@ -173,7 +173,7 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
     /**
      * Fetches backup image metadata from the backend for Pannellum fallback. Returns null if none exists.
      * @param {string} panoId
-     * @returns {Promise<{url: string, metadata: object}|null>}
+     * @returns {Promise<{object}|null>}
      * @private
      */
     async function _fetchBackupImageMetadata(panoId) {
@@ -196,7 +196,7 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
      * @param {{heading: number, pitch: number, zoom: number}} pov
      * @param {string|null} cropUrl URL for the screenshot fallback image, if available.
      * @param {boolean} expired Whether the primary imagery is known to be expired — when true, skips the live attempt.
-     * @param {{url: string, metadata: object}|null} backupImage Self-hosted pano metadata for this pano.
+     * @param {{object}|null} backupImage Self-hosted pano metadata for this pano.
      *      If null, fetched lazily from /backupImage/:panoId/metadata when the primary viewer fails.
      */
     async function setPano(panoId, pov, cropUrl, expired = false, backupImage = null) {
@@ -258,7 +258,7 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
     /**
      * Shows the Pannellum viewer for the given pano. Creates the viewer on the first call, then reused on later calls.
      *
-     * @param {{url: string, metadata: object}} backupImage
+     * @param {{object}} backupImage
      * @param {{heading: number, pitch: number, zoom: number}} pov
      * @private
      */
@@ -273,11 +273,11 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
         $(self.pannellumCanvas).css('display', 'block');
 
         if (self.pannellumViewer) {
-            await self.pannellumViewer.loadPano(backupImage.metadata.panoId, backupImage.metadata, pov);
+            await self.pannellumViewer.loadPano(backupImage.panoId, backupImage, pov);
         } else {
             self.pannellumViewer = await PannellumViewer.create(self.pannellumCanvas, {
-                panoMetadata: backupImage.metadata,
-                startPanoId: backupImage.metadata.panoId,
+                panoMetadata: backupImage,
+                startPanoId: backupImage.panoId,
                 startHeading: pov.heading,
                 startPitch: pov.pitch,
                 startZoom: pov.zoom

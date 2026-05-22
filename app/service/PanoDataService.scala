@@ -180,7 +180,8 @@ class PanoDataServiceImpl @Inject() (
     implicit val ec: ExecutionContext,
     panoDataTable: PanoDataTable,
     panoHistoryTable: PanoHistoryTable,
-    streetEdgeTable: models.street.StreetEdgeTable
+    streetEdgeTable: models.street.StreetEdgeTable,
+    signingService: ImageSigningService
 ) extends PanoDataService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -418,8 +419,9 @@ class PanoDataServiceImpl @Inject() (
   /** Checks whether a locally-hosted equirectangular backup image exists for the given pano. */
   def backupExists(panoId: String): Boolean = localBackupImageFile(panoId).isDefined
 
-  /** Returns the URL for a pano's backup image if it exists, or None otherwise. */
-  def backupImageUrl(panoId: String): Option[String] = if (backupExists(panoId)) Some(s"/backupImage/$panoId") else None
+  /** Returns a signed URL for a pano's backup image if it exists, or None otherwise. */
+  def backupImageUrl(panoId: String): Option[String] =
+    if (backupExists(panoId)) Some(signingService.signedUrl(s"/backupImage/$panoId")) else None
 
   /** Sets has_backup = true for the given pano (no-op when it's already true). */
   def markHasBackup(panoId: String): Future[Int] = db.run(panoDataTable.markHasBackup(panoId))
@@ -432,9 +434,10 @@ class PanoDataServiceImpl @Inject() (
     file.exists()
   }
 
-  /** Returns the crop image URL if a crop file exists for the given label, or None otherwise. */
+  /** Returns a signed crop image URL if a crop file exists for the given label, or None otherwise. */
   def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String] =
-    if (cropExists(labelId, labelType)) Some(s"/cropImage/${labelType.name}/$labelId") else None
+    if (cropExists(labelId, labelType)) Some(signingService.signedUrl(s"/cropImage/${labelType.name}/$labelId"))
+    else None
 
   /**
    * Returns the on-disk file for a self-hosted pano image if one exists on the filesystem. Images are stored at

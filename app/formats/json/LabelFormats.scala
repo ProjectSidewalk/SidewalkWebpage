@@ -244,27 +244,25 @@ object LabelFormats {
   )
 
   /**
-   * Builds the JSON payload for a self-hosted backup image, used as the value of the "backup_image" key.
-   * @param panoId The pano ID string, used to construct the serving URL.
+   * Builds the JSON payload for the /backupImage/:panoId/metadata endpoint.
    * @param p The PanoData row from the database.
+   * @param url The signed serving URL (e.g. /backupImage/<panoId>?exp=...&sig=...).
    */
-  def localBackupImagePayload(panoId: String, p: PanoData): JsObject = {
+  def localBackupImagePayload(p: PanoData, url: String): JsObject = {
     Json.obj(
-      "url"      -> s"/backupImage/$panoId",
-      "metadata" -> Json.obj(
-        "panoId"        -> p.panoId,
-        "width"         -> p.width,
-        "height"        -> p.height,
-        "tileWidth"     -> p.tileWidth,
-        "tileHeight"    -> p.tileHeight,
-        "lat"           -> p.lat,
-        "lng"           -> p.lng,
-        "cameraHeading" -> p.cameraHeading,
-        "cameraPitch"   -> p.cameraPitch,
-        "cameraRoll"    -> p.cameraRoll,
-        "captureDate"   -> p.captureDate,
-        "copyright"     -> p.copyright
-      )
+      "panoId"        -> p.panoId,
+      "imageUrl"      -> url,
+      "width"         -> p.width,
+      "height"        -> p.height,
+      "tileWidth"     -> p.tileWidth,
+      "tileHeight"    -> p.tileHeight,
+      "lat"           -> p.lat,
+      "lng"           -> p.lng,
+      "cameraHeading" -> p.cameraHeading,
+      "cameraPitch"   -> p.cameraPitch,
+      "cameraRoll"    -> p.cameraRoll,
+      "captureDate"   -> p.captureDate,
+      "copyright"     -> p.copyright
     )
   }
 
