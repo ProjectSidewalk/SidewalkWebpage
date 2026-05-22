@@ -25,6 +25,9 @@ class PanoManager {
     #bottomLinksClickable = false;
     #linksListener = null;
 
+    /** @type {{showPrimaryLogo: Function, showSourceLogo: Function}} */
+    #logo;
+
     /**
      * Initializes panoViewer on the validate page and loads the first pano.
      *
@@ -57,6 +60,10 @@ class PanoManager {
         this.#primaryViewer = await panoViewerType.create(this.#panoCanvas, panoOptions);
         svv.panoViewer = this.#primaryViewer;
 
+        // Set up the imagery source logo. #showPannellumPano will override it if Pannellum takes over below.
+        this.#logo = createPanoViewerLogo(this.#panoCanvas.parentElement, panoViewerType);
+        this.#logo.showPrimaryLogo();
+
         // Load the first pano, falling back to Pannellum if the primary viewer fails.
         try {
             const panoData = await this.#primaryViewer.setPano(startPanoId);
@@ -66,16 +73,6 @@ class PanoManager {
                 const panoData = await this.#showPannellumPano(startBackupImage);
                 this.#setPanoCallback(panoData);
             }
-        }
-        if (panoViewerType === GsvViewer) {
-            $('#imagery-source-logo-holder').remove();
-        } else if (panoViewerType === MapillaryViewer) {
-            $('#imagery-source-logo').attr('src', '/assets/images/logos/mapillary-logo-white.png')
-                .attr('alt', 'Mapillary logo');
-            $('#imagery-source-logo-holder').css        ('padding-left', '5px');
-        } else if (panoViewerType === Infra3dViewer) {
-            $('#imagery-source-logo').attr('src', '/assets/images/logos/infra3d-logo.svg')
-                .attr('alt', 'infra3D logo');
         }
 
         svv.panoViewer.addListener('pov_changed', () => svv.tracker.push('POV_Changed'));
@@ -246,6 +243,7 @@ class PanoManager {
         svv.panoViewer = this.#primaryViewer;
         svv.panoViewer.resize();
         svv.tracker.push('Viewer_Primary');
+        this.#logo.showPrimaryLogo();
     }
 
     /**
@@ -277,6 +275,7 @@ class PanoManager {
         }
         svv.panoViewer = this.#pannellumViewer;
         svv.tracker.push('Viewer_Pannellum');
+        this.#logo.showSourceLogo();
         return svv.panoViewer.currPanoData;
     }
 

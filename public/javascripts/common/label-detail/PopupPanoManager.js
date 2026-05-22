@@ -143,6 +143,9 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
         self.primaryViewer = await viewerType.create(self.panoCanvas, panoOptions);
         self.panoViewer = self.primaryViewer;
 
+        self.logo = createPanoViewerLogo(self.svHolder[0], viewerType);
+        self.logo.showPrimaryLogo();
+
         self.primaryViewer.addListener('pano_changed', () => {
             // Only show the label if we're looking at the correct pano.
             for (let marker of self.labelMarkers) {
@@ -249,6 +252,7 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
     function _teardownPannellum() {
         $(self.pannellumCanvas).css('display', 'none');
         self.panoViewer = self.primaryViewer;
+        if (self.logo) self.logo.showPrimaryLogo();
     }
 
     /**
@@ -280,6 +284,7 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
             });
         }
         self.panoViewer = self.pannellumViewer;
+        if (self.logo) self.logo.showSourceLogo();
 
         if (self.label) renderLabel(self.label);
     }
