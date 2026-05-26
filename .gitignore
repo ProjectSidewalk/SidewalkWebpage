@@ -115,7 +115,8 @@ db/dump
 # Python
 scripts/__pycache__
 
-# Cropped images.
+# Local images.
+.panos/
 .crops/
 
 # VSCode

@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import models.label._
 import models.user.SidewalkUserTable
-import models.utils.CommonUtils.UiSource
+import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.utils.MyPostgresProfile.api._
 import models.utils._
 import models.validation.LabelValidation
@@ -54,8 +54,6 @@ class AiServiceImpl @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger                         = Logger(this.getClass)
   private val cityId: String                 = config.get[String]("city-id")
-  // Strip the "sidewalk_" prefix off DATABASE_USER so the AI API can look up this city's image cache.
-  private val cityForAiApi: String           = config.get[String]("slick.dbs.default.db.user").stripPrefix("sidewalk_")
   private val AI_ENABLED: Boolean            = config.get[Boolean]("ai-enabled")
   private val AI_VALIDATIONS_ON: Boolean     = config.get[Boolean](s"city-params.ai-validation-enabled.$cityId")
   private val AI_TAG_SUGGESTIONS_ON: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$cityId")
@@ -132,7 +130,7 @@ class AiServiceImpl @Inject() (
                 0, labelId, aiValResult, label.severity, label.severity, label.tags, label.tags,
                 SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX), Some(labelPoint.canvasY),
                 labelPoint.heading, labelPoint.pitch, labelPoint.zoom, LabelPointTable.canvasWidth,
-                LabelPointTable.canvasHeight, startTime, aiResults.timestamp, UiSource.SidewalkAI
+                LabelPointTable.canvasHeight, startTime, aiResults.timestamp, UiSource.SidewalkAI, ViewerType.Default
               )
               valId: Option[Int] <- validationService
                 .submitValidationsDbio(
@@ -177,7 +175,7 @@ class AiServiceImpl @Inject() (
       "panorama_id" -> labelData.panoData.panoId,
       "x"           -> (labelData.labelPoint.panoX.toDouble / labelData.panoData.width.get).toString,
       "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.panoData.height.get).toString,
-      "city"        -> cityForAiApi
+      "city"        -> cityId
     )
 
     ws.url(url)

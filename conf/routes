@@ -163,6 +163,8 @@ POST    /saveRoute                                      controllers.RouteBuilder
 # Images
 POST    /saveImage                                      controllers.ImageController.saveImage
 GET     /cropImage/:labelType/:labelId                  controllers.ImageController.serveCropImage(labelType: String, labelId: Int)
+GET     /backupImage/:panoId/metadata                   controllers.ImageController.getBackupImageMetadata(panoId: String)
+GET     /backupImage/:panoId                            controllers.ImageController.serveBackupImage(panoId: String)
 
 # AI
 POST    /ai/analyzeScene                                controllers.AiController.analyzeScene()

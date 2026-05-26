@@ -90,16 +90,8 @@ class PanoManager {
             if (targetPanoId) svl.navigationService.moveToPano(event.target.getAttribute('pano-id'));
         });
 
-        if (panoViewerType === GsvViewer) {
-            $('#imagery-source-logo-holder').remove();
-        } else if (panoViewerType === MapillaryViewer) {
-            $('#imagery-source-logo').attr('src', '/assets/images/logos/mapillary-logo-white.png')
-                .attr('alt', 'Mapillary logo');
-            $('#imagery-source-logo-holder').css('padding-left', '5px');
-        } else if (panoViewerType === Infra3dViewer) {
-            $('#imagery-source-logo').attr('src', '/assets/images/logos/infra3d-logo.svg')
-                .attr('alt', 'infra3D logo');
-        }
+        const panoViewerLogo = createPanoViewerLogo(this.panoCanvas.parentElement, panoViewerType);
+        panoViewerLogo.showPrimaryLogo();
 
         // TODO we probably need to do this for any viewer type...
         if (panoViewerType === GsvViewer) {

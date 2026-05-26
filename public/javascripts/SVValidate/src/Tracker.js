@@ -37,7 +37,7 @@ function Tracker() {
      * @private
      */
     function _createAction(action, notes) {
-        const panoViewer = svv.panoViewer ? svv.panoViewer : null;
+        const panoViewer = svv.panoManager && svv.panoViewer ? svv.panoViewer : null;
         const position = panoViewer ? panoViewer.getPosition() : { lat: null, lng: null };
         const pov = panoViewer ? panoViewer.getPov() : { heading: null, pitch: null, zoom: null };
 

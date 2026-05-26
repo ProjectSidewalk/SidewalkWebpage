@@ -123,7 +123,7 @@ async function LabelContainer(labelList) {
         // Render the new pano and the label on it, updating the surrounding UI given the new label's info.
         currLabel.setProperty('startTimestamp', new Date());
         if (currLabelIndex > 0) { svv.undoValidation.enableUndo(); }
-        await svv.panoManager.setPanorama(currLabel.getAuditProperty('panoId'));
+        await svv.panoManager.setPanorama(currLabel.getAuditProperty('panoId'), currLabel.getAuditProperty('backupImage'));
         svv.labelDescriptionBox.setDescription(currLabel);
         svv.validationMenu.resetMenu(currLabel);
         if (svv.adminVersion) svv.adminInfo.updateAdminInfo(currLabel);
@@ -249,7 +249,8 @@ async function LabelContainer(labelList) {
             zoom: labelMetadata.zoom,
             source: svv.form.getSource(),
             undone: false,
-            redone: redone
+            redone: redone,
+            viewer_type: svv.panoManager.getActiveViewerName()
         };
         labelsToSubmit.push(data);
         lastLabelFormData = data;
