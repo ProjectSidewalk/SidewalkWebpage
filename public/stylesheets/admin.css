@@ -16,11 +16,11 @@
 
 #user-table-container {
     overflow-x: scroll;
-    -webkit-transform: rotateX(180deg); /* Moves scrollbar to top for easier navigation. */
+    transform: rotateX(180deg); /* Moves scrollbar to top for easier navigation. */
     width: 110%;
 }
 #user-table_wrapper {
-    -webkit-transform: rotateX(180deg); /* Adding scrollbar flips all text, this flips it back. */
+    transform: rotateX(180deg); /* Adding scrollbar flips all text, this flips it back. */
     font-size: 11px;
     min-height: 290px;
 }

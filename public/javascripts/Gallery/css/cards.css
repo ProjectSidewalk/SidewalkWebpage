@@ -208,8 +208,6 @@ with respect to the image holder. This allows the validation menu to be placed o
     cursor: pointer;
     /* Prevent text selection. */
     -webkit-user-select: none; /* Safari */
-    -ms-user-select: none; /* IE 10 and IE 11 */
-    user-select: none; /* Standard syntax */
 }
 
 .validation-info-count-container {

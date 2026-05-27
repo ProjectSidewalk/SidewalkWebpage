@@ -89,7 +89,6 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
             height: '100%',
             'object-fit': 'cover',
             'user-select': 'none',
-            '-webkit-user-drag': 'none',
             'pointer-events': 'none'
         })[0];
         self.fallbackMarker = $('<img id="pano-fallback-marker">').addClass('icon-outline').css({
