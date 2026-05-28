@@ -5,8 +5,9 @@ import formats.json.CommentSubmissionFormats.ValidationCommentSubmission
 import formats.json.LabelFormats.labelTypeReads
 import formats.json.PanoFormats._
 import models.label.LabelTypeEnum
-import models.utils.CommonUtils.UiSource
 import models.utils.CommonUtils.UiSource.UiSource
+import models.utils.CommonUtils.ViewerType.ViewerType
+import models.utils.CommonUtils.{UiSource, ViewerType}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{JsError, JsPath, JsSuccess, Reads}
 
@@ -60,7 +61,8 @@ object ValidateFormats {
       endTimestamp: OffsetDateTime,
       source: UiSource,
       undone: Boolean,
-      redone: Boolean
+      redone: Boolean,
+      viewerType: ViewerType
   )
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission], validateParams: ValidateParams)
   case class ValidationMissionProgress(
@@ -101,7 +103,8 @@ object ValidateFormats {
       endTimestamp: OffsetDateTime,
       source: UiSource,
       undone: Boolean,
-      redone: Boolean
+      redone: Boolean,
+      viewerType: ViewerType
   )
 
   implicit val uiSourceReads: Reads[UiSource.Value] = Reads { json =>
@@ -109,7 +112,17 @@ object ValidateFormats {
       Try(UiSource.withName(uiSource)) match {
         case Success(source) => JsSuccess(source)
         case Failure(_)      =>
-          JsError(s"Invalid viewer type: $uiSource. Valid types are: ${UiSource.values.mkString(", ")}.")
+          JsError(s"Invalid ui_source: $uiSource. Valid types are: ${UiSource.values.mkString(", ")}.")
+      }
+    }
+  }
+
+  implicit val viewerTypeReads: Reads[ViewerType.Value] = Reads { json =>
+    json.validate[String].flatMap { viewerType =>
+      Try(ViewerType.withName(viewerType)) match {
+        case Success(vt) => JsSuccess(vt)
+        case Failure(_)  =>
+          JsError(s"Invalid viewer_type: $viewerType. Valid types are: ${ViewerType.values.mkString(", ")}.")
       }
     }
   }
@@ -162,7 +175,8 @@ object ValidateFormats {
       (JsPath \ "end_timestamp").read[OffsetDateTime] and
       (JsPath \ "source").read[UiSource.Value] and
       (JsPath \ "undone").read[Boolean] and
-      (JsPath \ "redone").read[Boolean]
+      (JsPath \ "redone").read[Boolean] and
+      (JsPath \ "viewer_type").read[ViewerType.Value]
   )(LabelValidationSubmission.apply _)
 
   implicit val validationMissionReads: Reads[ValidationMissionProgress] = (
@@ -213,7 +227,8 @@ object ValidateFormats {
       (JsPath \ "end_timestamp").read[OffsetDateTime] and
       (JsPath \ "source").read[UiSource.Value] and
       (JsPath \ "undone").read[Boolean] and
-      (JsPath \ "redone").read[Boolean]
+      (JsPath \ "redone").read[Boolean] and
+      (JsPath \ "viewer_type").read[ViewerType.Value]
   )(LabelMapValidationSubmission.apply _)
 
   implicit val skipLabelReads: Reads[SkipLabelSubmission] = (

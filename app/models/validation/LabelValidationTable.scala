@@ -6,6 +6,7 @@ import models.label.LabelTypeEnum.{labelTypeIdToLabelType, validLabelTypeIds, va
 import models.label._
 import models.user._
 import models.utils.CommonUtils.UiSource.UiSource
+import models.utils.CommonUtils.ViewerType.ViewerType
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTable.validationOptions
@@ -37,7 +38,8 @@ case class LabelValidation(
     canvasWidth: Int,
     startTimestamp: OffsetDateTime,
     endTimestamp: OffsetDateTime,
-    source: UiSource
+    source: UiSource,
+    viewerType: ViewerType
 )
 
 case class ValidationCount(
@@ -77,10 +79,11 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
   def startTimestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("start_timestamp")
   def endTimestamp: Rep[OffsetDateTime]   = column[OffsetDateTime]("end_timestamp")
   def source: Rep[UiSource]               = column[UiSource]("source")
+  def viewerType: Rep[ViewerType]         = column[ViewerType]("viewer_type")
 
   def * = (labelValidationId, labelId, validationResult, oldSeverity, newSeverity, oldTags, newTags, userId, missionId,
-    canvasX, canvasY, heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, source) <>
-    ((LabelValidation.apply _).tupled, LabelValidation.unapply)
+    canvasX, canvasY, heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, source,
+    viewerType) <> ((LabelValidation.apply _).tupled, LabelValidation.unapply)
 
 //  def label: ForeignKeyQuery[LabelTable, Label] =
 //    foreignKey("label_validation_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)

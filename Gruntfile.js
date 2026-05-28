@@ -107,6 +107,8 @@ module.exports = function(grunt) {
                     'public/javascripts/common/pano-viewer/src/MapillaryChunkedDataProvider.js',
                     'public/javascripts/common/pano-viewer/src/MapillaryViewer.js',
                     'public/javascripts/common/pano-viewer/src/Infra3dViewer.js',
+                    'public/javascripts/common/pano-viewer/src/PannellumViewer.js',
+                    'public/javascripts/common/pano-viewer/src/PanoViewerLogo.js',
                     'public/javascripts/common/pano-viewer/src/PanoInfoPopover.js'
                 ],
                 dest: 'public/javascripts/common/pano-viewer/build/pano-viewer.js'

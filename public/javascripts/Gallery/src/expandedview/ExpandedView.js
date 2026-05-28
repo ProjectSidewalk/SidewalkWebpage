@@ -88,6 +88,7 @@ async function ExpandedView(uiModal, panoViewerType, viewerAccessToken) {
             tags: p.tags,
             ai_generated: p.ai_generated,
             crop_url: card.getCropUrl(),
+            backup_image: card.getBackupImageData(),
             from_current_user: p.from_current_user,
             expired: p.expired,
             comments: p.comments

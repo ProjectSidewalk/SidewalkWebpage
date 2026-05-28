@@ -34,7 +34,7 @@ class PanoData {
         });
 
         // Validate parameter types and ranges
-        const validSources = ['gsv', 'mapillary', 'infra3d'];
+        const validSources = ['gsv', 'mapillary', 'infra3d', 'pannellum'];
         if (!validSources.includes(params.source)) {
             throw new Error(`Invalid source. Must be one of: ${validSources.join(', ')}`);
         }

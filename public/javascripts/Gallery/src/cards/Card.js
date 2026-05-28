@@ -318,6 +318,7 @@ function Card(params, cropUrl, gsvImageUrl) {
     }
 
     self.getCropUrl = function() { return cropUrl; };
+    self.getBackupImageData = function() { return buildBackupImageData(params); };
     self.getLabelId = getLabelId;
     self.getLabelType = getLabelType;
     self.getProperties = getProperties;
