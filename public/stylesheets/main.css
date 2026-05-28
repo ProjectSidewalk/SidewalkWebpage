@@ -53,11 +53,6 @@
 
 /* General styles */
 @font-face {
-    font-family: adelle-semibold;
-    src: url(../fonts/Adelle/adelle_semibold-webfont.ttf);
-}
-
-@font-face {
     font-family: adelle-regular;
     src: url(../fonts/Adelle/adelle_reg-webfont.ttf);
 }
@@ -65,11 +60,6 @@
 @font-face {
     font-family: adelle-light;
     src: url(../fonts/Adelle/adelle_light-webfont.ttf);
-}
-
-@font-face {
-    font-family: adelle-heavy;
-    src: url(../fonts/Adelle/adelle_heavy-webfont.ttf);
 }
 
 
