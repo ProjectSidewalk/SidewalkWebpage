@@ -1,3 +1,7 @@
+fieldset {
+    margin-top: 40px;
+}
+
 /* Prevents small phones from zooming in when tapping a text field. */
 .form-control {
     font-size: 24pt;

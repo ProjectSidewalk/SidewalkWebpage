@@ -25,8 +25,6 @@
     transform: None;
 
     border-radius: 3px 3px 3px 3px;
-    -webkit-border-radius: 3px 3px 3px 3px;
-    -moz-border-radius: 3px 3px 3px 3px;
 }
 
 #onboarding-message-holder .button {
@@ -94,19 +92,11 @@
 
 .white-background {
     background: rgba(255, 255, 255, 1);
-    -webkit-transition:background 0.5s;
-    -moz-transition:background 0.5s;
-    -ms-transition:background 0.5s;
-    -o-transition:background 0.5s;
     transition:background 0.5s;
 }
 
 .yellow-background {
     background: rgba(255, 255, 166, 1);
-    -webkit-transition:background 0s;
-    -moz-transition:background 0s;
-    -ms-transition:background 0s;
-    -o-transition:background 0s;
     transition:background 0s;
 }
 

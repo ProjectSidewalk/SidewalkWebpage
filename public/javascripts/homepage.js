@@ -168,7 +168,7 @@ window.appManager.ready(function () {
 
     // Triggered when 'Start Exploring' in video container is clicked.
     // Logs "Click_module=StartExploring_location=Index"
-    $(".body-start-btn").on("click", function(){
+    $("#landing-cta-button").on("click", function(){
         window.logWebpageActivity("Click_module=StartExploring_location=Index");
     });
 
@@ -192,6 +192,18 @@ window.appManager.ready(function () {
 
     // Setup video lazyPlay.
     $(window).on("scroll", onScroll);
+
+    // Toggle the tall-navbar class on scroll so the navbar shrinks once the user starts scrolling.
+    const header = document.getElementById('header');
+    const updateHeaderHeight = () => {
+        if (window.scrollY > 20) {
+            header.classList.remove('header--tall');
+        } else {
+            header.classList.add('header--tall');
+        }
+    };
+    updateHeaderHeight();
+    window.addEventListener('scroll', updateHeaderHeight, { passive: true });
 
     vidBanner = $('#vidbanner')[0];
     bannerVid = $('#bgvid')[0];

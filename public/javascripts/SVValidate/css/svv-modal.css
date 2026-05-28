@@ -24,7 +24,7 @@
 }
 
 .modal-foreground {
-    top: 75px;
+    top: 25px;
     left: 0;
     right: 0;
     padding: 10px;
@@ -38,8 +38,6 @@
 
     border-radius: 3px 3px 3px 3px;
     z-index: 10;
-    -webkit-border-radius: 3px 3px 3px 3px;
-    -moz-border-radius: 3px 3px 3px 3px;
 }
 
 .modal-foreground .button {
@@ -84,7 +82,7 @@
 
 #modal-mission-complete-foreground {
     visibility: hidden;
-    top: 36px;
+    top: 30px;
 }
 
 #modal-mission-complete-title {

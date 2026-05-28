@@ -1,7 +1,7 @@
 /* Container that holds the panorama. */
 #svv-panorama-holder {
     position: absolute;
-    top: 100px;
+    top: 95px;
     width: 730px;
     height: 450px;
 }
@@ -37,10 +37,6 @@
 
     /* http://stackoverflow.com/questions/8942805/chrome-bug-cursor-changes-on-mouse-down-move */
     -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    -o-user-select: none;
     user-select: none;
 }
 

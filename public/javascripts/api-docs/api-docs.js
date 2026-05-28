@@ -334,7 +334,7 @@ function setupScrollSpy() {
     })).sort((a, b) => a.offsetTop - b.offsetTop); // Sort by position
 
     // Calculate offset based on fixed header height + breathing room.
-    const scrollOffset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height') || '50', 10) + 20;
+    const scrollOffset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--navbar-height') || '50', 10) + 20;
 
     function highlightActiveTocItem() {
         const scrollPosition = window.scrollY + scrollOffset;
@@ -381,7 +381,7 @@ function setupSmoothScrolling() {
     const scrollContainers = document.querySelectorAll('.api-toc, .api-sidebar .api-nav');
     if (scrollContainers.length === 0) return;
 
-    const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height') || '50', 10);
+    const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--navbar-height') || '50', 10);
     const scrollPadding = 10; // Extra space above the target.
 
     scrollContainers.forEach(container => {
