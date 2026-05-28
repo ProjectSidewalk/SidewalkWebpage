@@ -12,15 +12,16 @@
 @implicitFieldConstructor = @{ b3.vertical.fieldConstructor() }
 
 <!-- Fixed navbar -->
-<nav id="header">
+@isLanding = @{request.path == "/" || request.path == "/home"}
+<nav id="header"@if(isLanding) { class="header--tall"}>
     <div class="navbar-container">
         <div class="navbar-brand-area">
             <div class="navbar-logo">
-                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@assets.path("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))'></a>
+                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="28" src='@assets.path("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))'></a>
             </div>
             <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
                 <span class="sr-only">Toggle navigation</span>
-                <i class="fa fa-bars fa-2x" aria-hidden="true"></i>
+                <i class="fa fa-bars fa-1x" aria-hidden="true"></i>
             </button>
         </div>
         <div id="navbar" class="collapse">
@@ -157,7 +158,7 @@
                             </li>
                         </ul>
                     } else {
-                        <button id="navbar-sign-in-btn" data-toggle="modal" data-target="#sign-in-modal-container" class="navbar-button button-ps button--primary button--small" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
+                        <button id="navbar-sign-in-btn" data-toggle="modal" data-target="#sign-in-modal-container" class="navbar-button button-ps button--primary button--tiny" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
                     }
                 </li>
 

@@ -16,7 +16,7 @@
 }
 
 #text {
-    padding-top: calc(70px + var(--navbar-height));
+    padding-top: 140px;
     max-width: 500px;
     margin: 0 auto;
 }
@@ -162,7 +162,7 @@ video#bgvid {
     background: url("../assets/psmockup.jpg") no-repeat scroll 0 0 #000;
     background-size: cover;
     bottom: 0;
-    top: 70px;
+    top: var(--navbar-height);
     height: auto;
     perspective: 1000;
     position: fixed;
@@ -177,8 +177,8 @@ video#bgvid {
     width: 100%;
     display: flex;
     justify-content: center;
-    max-height: calc(700px + var(--navbar-height));
-    height: calc(700px + var(--navbar-height));
+    max-height: 770px;
+    height: 770px;
     left: 0;
     transition: background-color 300ms ease;
 }

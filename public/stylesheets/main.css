@@ -47,7 +47,7 @@
     --color-neutral-900: #242424;
     --color-neutral-black: #000000;
 
-    --navbar-height: 70px;
+    --navbar-height: 40px;
 }
 
 
@@ -157,6 +157,11 @@ body {
     text-decoration: none;
 }
 
+.button--tiny {
+    font-size: 13px;
+    padding: 3px 10px;
+    border-radius: 10px;
+}
 .button--small {
     font-size: 13px;
     padding: 6px 16px;
@@ -229,6 +234,7 @@ body {
     left: 0;
     z-index: 1030;
     height: var(--navbar-height);
+    transition: height 0.2s ease 0s;
     background-color: #fff;
     border-bottom: 1px solid #e7e7e7;
     box-shadow: 0 6px 4px -6px #999;
@@ -268,27 +274,24 @@ body {
 }
 
 #language-icon {
-    height: 31px;
-    width: 31px;
+    height: 26px;
+    width: 26px;
 }
 
 .navbar-nav > li > a.navbar-button {
     border-radius: 10px;
-    border: 1px solid #2D2A3F;
     display: inline-block;
     cursor: pointer;
     color: #2D2A3F;
-    font: normal normal normal 13px/1.4em raleway, sans-serif;
+    font-size: 13px;
     font-family: 'Raleway', sans-serif;
-    padding: 5px 17px;
+    padding: 4px 10px;
     text-decoration: none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
     outline: none;
 }
 
 .navbar-nav > li > a.navbar-button#language-button {
-    /* Override some of the navbar-button properties, removing the border. */
-    border: none;
     padding: 0px 12px 0px;
 }
 
@@ -298,9 +301,39 @@ body {
 
 .navbar-nav > li > a.navbar-button:hover {
     background-color: #FCECBE;
-    border: 1px solid #FCECBE;
     color: #2D2A3F;
     text-shadow: none;
+}
+
+/* Taller navbar variant used on the landing page (and removed on scroll). */
+#header.header--tall {
+    height: 70px;
+}
+
+#header.header--tall #navbar-brand img {
+    height: 40px;
+}
+
+#navbar-brand img {
+    transition: height 0.2s ease 0s;
+}
+
+#header.header--tall .navbar-nav > li > a.navbar-button {
+    border: 1px solid #2D2A3F;
+    padding: 5px 17px;
+}
+
+#header.header--tall .navbar-nav > li > a.navbar-button#language-button {
+    border: none;
+    padding: 0px 12px 0px;
+}
+
+#header.header--tall .navbar-nav > li > a.navbar-button:hover {
+    border: 1px solid #FCECBE;
+}
+
+#header.header--tall #navbar-sign-in-btn {
+    padding: 6px 16px;
 }
 
 .new-city {
@@ -606,6 +639,19 @@ kbd {
   background-color: rgb(251, 215, 139);
 }
 
+/* Pin test server banner just below the navbar. */
+body:has(#vidbanner) .test-server-banner {
+  position: fixed;
+  top: var(--navbar-height);
+  left: 0;
+  right: 0;
+  z-index: 1029;
+}
+
+body:has(#header.header--tall) .test-server-banner {
+  top: 70px;
+}
+
 .test-server-banner-content {
   padding: 0.5%;
   max-width: 70%;
@@ -855,7 +901,7 @@ kbd {
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
 */
-@media only screen and (max-width: 1275px) {
+@media only screen and (max-width: 1125px) {
     .navbar-brand-area {
         display: flex;
         align-items: center;
@@ -867,7 +913,7 @@ kbd {
     .navbar-toggle {
         display: block;
         margin: 0;
-        border-color: #ddd;
+        padding: 6px 10px;
     }
 
     .navbar-toggle:hover,
@@ -889,6 +935,10 @@ kbd {
         border-radius: 0px;
         border: none;
         display: block;
+    }
+
+    #header.header--tall .navbar-nav > li > a.navbar-button {
+        border: none;
     }
 
     .navbar-nav > li {
@@ -925,6 +975,10 @@ kbd {
         border: none;
         padding: 0;
         z-index: 1030;
+    }
+
+    #header.header--tall #navbar {
+        top: 70px;
     }
 
     #navbar.collapse:not(.in) {

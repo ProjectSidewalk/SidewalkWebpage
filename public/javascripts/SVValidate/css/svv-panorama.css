@@ -1,7 +1,7 @@
 /* Container that holds the panorama. */
 #svv-panorama-holder {
     position: absolute;
-    top: 100px;
+    top: 95px;
     width: 730px;
     height: 450px;
 }
