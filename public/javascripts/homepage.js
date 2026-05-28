@@ -168,7 +168,7 @@ window.appManager.ready(function () {
 
     // Triggered when 'Start Exploring' in video container is clicked.
     // Logs "Click_module=StartExploring_location=Index"
-    $(".body-start-btn").on("click", function(){
+    $("#landing-cta-button").on("click", function(){
         window.logWebpageActivity("Click_module=StartExploring_location=Index");
     });
 

@@ -1,20 +1,9 @@
 function checkIfPaddingNeeded(){
-    if(window.location.pathname === "/faq" ||
-        window.location.pathname === "/admin" ||
-        window.location.pathname === "/labelingGuide" ||
-        window.location.pathname === "/labelingGuide/curbRamps" ||
-        window.location.pathname === "/labelingGuide/surfaceProblems" ||
-        window.location.pathname === "/labelingGuide/obstacles" ||
-        window.location.pathname === "/labelingGuide/noSidewalk" ||
-        window.location.pathname === "/labelingGuide/occlusion"){
-
-        document.body.style.paddingTop = "60px";
-    } else if (window.location.pathname === "/signInMobile" || window.location.pathname === "/signUpMobile" || window.location.pathname === "/mobileLanding") {
+    if(window.location.pathname === "/" ||
+        window.location.pathname === "/home" ||
+        window.location.pathname === "/signInMobile" ||
+        window.location.pathname === "/signUpMobile" ||
+        window.location.pathname === "/mobileLanding") {
         document.body.style.paddingTop = "0px";
-
-        // Remove the remaining padding for the mobile landing page, since there's a pseudo navbar there.
-        if (window.location.pathname === "/mobileLanding") {
-            document.documentElement.style.paddingTop = "0px";
-        }
     }
 }

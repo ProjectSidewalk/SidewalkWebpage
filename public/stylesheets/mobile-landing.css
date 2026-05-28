@@ -84,7 +84,7 @@
     margin: 0 0 28px;
 }
 
-/* CTA button — matches the desktop .body-start-btn style */
+/* CTA button — matches the desktop #landing-cta-button style */
 .mobile-landing-cta-btn {
     display: inline-block;
     background-color: rgba(251, 215, 139, 1);
