@@ -66,14 +66,7 @@
 .section-subtitle {
     max-width: 450px;
     margin: auto;
-    font-family: adelle-regular, sans-serif;
-    font-size: 16px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: normal;
-    line-height: 1.8em;
-    letter-spacing: 0.1em;
-    text-align: center;
+    font: var(--text-subtitle-regular);
 }
 
 /**** Banner *****/

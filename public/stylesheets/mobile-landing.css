@@ -129,10 +129,7 @@
 }
 
 .mobile-section-subtitle {
-    font-family: adelle-regular, sans-serif;
-    font-size: 15px;
-    line-height: 1.75;
-    letter-spacing: 0.06em;
+    font: var(--text-body-regular);
     color: #2d2a3f;
     margin: 0 auto 28px;
     max-width: 520px;
@@ -183,9 +180,7 @@
 }
 
 .mobile-impact-caption {
-    font-family: adelle-regular, sans-serif;
-    font-size: 14px;
-    line-height: 1.6;
+    font: var(--text-small-regular);
     color: #2d2a3f;
     margin: 0;
     padding-top: 10px;
@@ -200,10 +195,7 @@
 }
 
 .mobile-stats-subtitle {
-    font-family: adelle-regular, sans-serif;
-    font-size: 14px;
-    line-height: 1.7;
-    letter-spacing: 0.05em;
+    font: var(--text-body-regular);
     color: #555;
     margin: 8px auto 0;
     max-width: 400px;
@@ -290,9 +282,7 @@
 }
 
 .mobile-cta-subtext {
-    font-family: adelle-regular, sans-serif;
-    font-size: 15px;
-    line-height: 1.7;
+    font: var(--text-body-regular);
     color: rgba(255, 255, 255, 0.82);
     margin: 0 auto 28px;
     max-width: 440px;

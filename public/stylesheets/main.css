@@ -48,21 +48,40 @@
     --color-neutral-black: #000000;
 
     --navbar-height: 40px;
+
+    /* Font stacks. Mulish and Open Sans don't ship CJK glyphs, so each stack ends with Traditional-Chinese system fonts
+       (PingFang TC on macOS/iOS, Microsoft JhengHei on Windows; Linux/Android fall through to a system CJK font via
+       sans-serif). The browser does per-glyph fallback: Latin renders in Mulish/Open Sans, CJK in the OS CJK font. */
+    --font-display: 'Mulish', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    --font-body:    'Open Sans', 'Noto Sans', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+
+    /* Typography scale: mirrors the Mulish styles from the Figma Design System Tokens file.
+       Format: font-weight font-size/line-height font-family */
+    --text-h3-bold:          700 24px/28px var(--font-display);
+    --text-h3-medium:        500 24px/28px var(--font-display);
+
+    --text-title-bold:       700 20px/24px var(--font-display);
+    --text-title-medium:     500 20px/24px var(--font-display);
+
+    --text-subtitle-bold:    700 18px/22px var(--font-display);
+    --text-subtitle-medium:  500 18px/22px var(--font-display);
+    --text-subtitle-regular: 400 18px/22px var(--font-display);
+
+    --text-body-bold:        700 16px/22px var(--font-display);
+    --text-body-medium:      500 16px/22px var(--font-display);
+    --text-body-regular:     400 16px/22px var(--font-display);
+
+    --text-small-bold:       700 14px/18px var(--font-display);
+    --text-small-medium:     500 14px/18px var(--font-display);
+    --text-small-regular:    400 14px/18px var(--font-display);
+
+    --text-caption-semibold: 600 12px/18px var(--font-display);
+    --text-caption-medium:   500 12px/18px var(--font-display);
+    --text-underline-medium: 500 12px/18px var(--font-display);
 }
 
 
 /* General styles */
-@font-face {
-    font-family: adelle-regular;
-    src: url(../fonts/Adelle/adelle_reg-webfont.ttf);
-}
-
-@font-face {
-    font-family: adelle-light;
-    src: url(../fonts/Adelle/adelle_light-webfont.ttf);
-}
-
-
 @font-face {
     font-family: raleway;
     src: url(../fonts/Raleway/Raleway-Regular.ttf);
