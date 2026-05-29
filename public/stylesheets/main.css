@@ -94,19 +94,8 @@
 }
 
 @font-face {
-    font-family: raleway-regular;
-    src: url(../fonts/Raleway/Raleway-Regular.ttf);
-}
-
-
-@font-face {
     font-family: raleway-bold;
     src: url(../fonts/Raleway/Raleway-Bold.ttf);
-}
-
-@font-face {
-    font-family: raleway-black;
-    src: url(../fonts/Raleway/Raleway-Black.ttf);
 }
 
 @font-face {
