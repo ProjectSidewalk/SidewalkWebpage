@@ -47,7 +47,7 @@
     --color-neutral-900: #242424;
     --color-neutral-black: #000000;
 
-    --navbar-height: 40px;
+    --navbar-height: 38px;
 
     /* Font stacks. Mulish handles ~all type (body, UI, headings H3 and below); Raleway is reserved for top-level H1/H2
        and the Small-Accent style. Mulish doesn't ship CJK glyphs, so its stack ends with Traditional-Chinese system
@@ -241,7 +241,6 @@ body {
     transition: height 0.2s ease 0s;
     background-color: #fff;
     border-bottom: 1px solid #e7e7e7;
-    box-shadow: 0 6px 4px -6px #999;
     display: flex;
 }
 
