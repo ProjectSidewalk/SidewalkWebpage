@@ -85,8 +85,7 @@
     /* ---- Layout ---- */
     --sidebar-width: 270px;
     --toc-width: 250px;
-    --header-height: 60px;
-    --sidebar-height: calc(100vh - var(--header-height));
+    --sidebar-height: calc(100vh - var(--navbar-height));
     --content-max-width: 1200px;
 
     /* ---- UI Elements ---- */
@@ -649,7 +648,7 @@ h6:hover .permalink {
     overflow-y: auto;
     height: var(--sidebar-height);
     position: sticky;
-    top: var(--header-height);
+    top: var(--navbar-height);
 }
 
 .api-nav {
@@ -757,7 +756,7 @@ h6:hover .permalink {
     cursor: pointer;
     font-size: var(--font-size-md);
     position: fixed;
-    top: calc(var(--header-height) + 10px);
+    top: calc(var(--navbar-height) + 10px);
     left: var(--space-sm);
     z-index: var(--z-index-sticky);
 }
@@ -774,7 +773,7 @@ h6:hover .permalink {
     overflow-y: auto;
     height: var(--sidebar-height);
     position: sticky;
-    top: var(--header-height);
+    top: var(--navbar-height);
 }
 
 .api-toc-header {

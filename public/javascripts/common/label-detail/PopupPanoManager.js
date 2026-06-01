@@ -18,7 +18,12 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
         label: undefined,
         labelMarkers: [],
         panoId: undefined,
+        // panoViewer always points at the active viewer (primary or Pannellum). Callers should query it through this
+        // field so that label markers, POV math, and screenshots all hit the right thing per-label.
         panoViewer: undefined,
+        primaryViewer: undefined,    // Always the GSV/Mapillary/Infra3d viewer created at init time.
+        pannellumViewer: undefined,  // Only constructed when an expired pano with a self-hosted image is shown.
+        activeViewerName: '',        // 'Default' (primary viewer), 'Pannellum', 'StaticApi', or 'StaticCrop'.
         admin: admin
     };
 
@@ -51,6 +56,14 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
         self.panoCanvas = $("<div id='pano'>").css({
             width: '100%',
             height: '100%'
+        })[0];
+
+        // Separate container for the Pannellum fallback viewer. Created up-front but only mounted with a Pannellum
+        // instance when we hit an expired pano that has a self-hosted copy.
+        self.pannellumCanvas = $("<div id='pano-pannellum'>").css({
+            width: '100%',
+            height: '100%',
+            display: 'none'
         })[0];
 
         self.panoNotAvailable = $(`<div id='pano-not-avail'>${i18next.t('common:errors.title')}</div>`).css({
@@ -89,7 +102,6 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
             height: '100%',
             'object-fit': 'cover',
             'user-select': 'none',
-            '-webkit-user-drag': 'none',
             'pointer-events': 'none'
         })[0];
         self.fallbackMarker = $('<img id="pano-fallback-marker">').addClass('icon-outline').css({
@@ -104,6 +116,7 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
         $(self.fallbackContainer).append(self.fallbackPanzoomWrap, self.fallbackMarker);
 
         self.svHolder.append($(self.panoCanvas));
+        self.svHolder.append($(self.pannellumCanvas));
         self.svHolder.append($(self.fallbackContainer));
         self.svHolder.append($(self.panoNotAvailable));
         self.svHolder.append($(self.panoNotAvailableDetails));
@@ -120,18 +133,22 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
         });
         self.fallbackPanzoom.on('transform', _updateFallbackMarkerPosition);
 
-        // Load the pano viewer.
+        // Load the primary pano viewer (GSV/Mapillary/Infra3d).
         const panoOptions = {
             accessToken: viewerAccessToken,
             scrollwheel: true,
             defaultNavigation: !!admin // Only allow navigation on admin version, not on normal LabelMap.
         };
-        self.panoViewer = await viewerType.create(self.panoCanvas, panoOptions);
+        self.primaryViewer = await viewerType.create(self.panoCanvas, panoOptions);
+        self.panoViewer = self.primaryViewer;
 
-        self.panoViewer.addListener('pano_changed', () => {
+        self.logo = createPanoViewerLogo(self.svHolder[0], viewerType);
+        self.logo.showPrimaryLogo();
+
+        self.primaryViewer.addListener('pano_changed', () => {
             // Only show the label if we're looking at the correct pano.
             for (let marker of self.labelMarkers) {
-                if (marker.panoId === self.panoViewer.getPanoId()) {
+                if (marker.panoId === self.primaryViewer.getPanoId()) {
                     marker.marker.setVisible(true);
                 } else {
                     marker.marker.setVisible(false);
@@ -153,32 +170,122 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
     }
 
     /**
-     * Sets the panorama ID and POV from label metadata.
+     * Fetches backup image metadata from the backend for Pannellum fallback. Returns null if none exists.
+     * @param {string} panoId
+     * @returns {Promise<{object}|null>}
+     * @private
+     */
+    async function _fetchBackupImageMetadata(panoId) {
+        try {
+            const res = await fetch(`/backupImage/${encodeURIComponent(panoId)}/metadata`);
+            return res.ok ? await res.json() : null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    /**
+     * Sets the panorama ID and POV from label metadata. Fallback chain, in order of preference:
+     *   1. Live primary viewer (GSV/Mapillary/Infra3d) — skipped if `expired` is set.
+     *   2. Self-hosted Pannellum copy from /backupImage/:panoId — used when `backupImage` is provided.
+     *   3. Static screenshot at `cropUrl`.
+     *   4. "Imagery not available" error message.
+     *
      * @param panoId
      * @param {{heading: number, pitch: number, zoom: number}} pov
      * @param {string|null} cropUrl URL for the screenshot fallback image, if available.
-     * @param {boolean} expired Whether the panorama imagery is known to be expired.
+     * @param {boolean} expired Whether the primary imagery is known to be expired — when true, skips the live attempt.
+     * @param {{object}|null} backupImage Self-hosted pano metadata for this pano.
+     *      If null, fetched lazily from /backupImage/:panoId/metadata when the primary viewer fails.
      */
-    async function setPano(panoId, pov, cropUrl, expired = false) {
+    async function setPano(panoId, pov, cropUrl, expired = false, backupImage = null) {
         self.cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
         self.svHolder.css('visibility', 'hidden'); // Hide until we've finished rendering.
         // Reset fallback zoom/pan so a previous label's manipulation doesn't leak into this one.
         _resetFallbackTransform();
-        let panoLoaded = false;
-        // If the imagery is expired and we have a fallback image, skip the pano API call.
-        if (expired && self.cropUrl) {
-            await _panoFailureCallback();
+
+        // Step 1: try the live primary viewer, unless we already know the imagery is gone.
+        if (!expired) {
+            try {
+                await self.primaryViewer.setPano(panoId);
+                _teardownPannellum();
+                self.activeViewerName = 'Default';
+                await _panoSuccessCallback(pov);
+                if (!self.svHolder[0].dataset.closedDuringLoad) self.svHolder.css('visibility', 'visible');
+                return true;
+            } catch (_) {
+                // Primary viewer failed — lazy-fetch backup metadata if caller didn't pre-supply it.
+                if (!backupImage) backupImage = await _fetchBackupImageMetadata(panoId);
+            }
+        } else if (!backupImage) {
+            // Already known expired and no backup pre-supplied — fetch now before trying Pannellum.
+            backupImage = await _fetchBackupImageMetadata(panoId);
+        }
+
+        // Step 2: try the self-hosted Pannellum copy if we have its metadata.
+        if (backupImage) {
+            try {
+                await _showPannellumPano(backupImage, pov);
+                self.activeViewerName = 'Pannellum';
+                if (!self.svHolder[0].dataset.closedDuringLoad) self.svHolder.css('visibility', 'visible');
+                return true;
+            } catch (err) {
+                console.error('PannellumViewer failed to load; falling back to crop:', err);
+                _teardownPannellum();
+            }
         } else {
-            await self.panoViewer.setPano(panoId).then(
-                () => { panoLoaded = true; return _panoSuccessCallback(pov); },
-                _panoFailureCallback
-            );
+            _teardownPannellum();
         }
-        // Skip showing if the host closed the view while this load was in-flight.
-        if (!self.svHolder[0].dataset.closedDuringLoad) {
-            self.svHolder.css('visibility', 'visible');
+
+        // Step 3 & 4: hand off to the existing failure callback, which shows the crop if cropUrl is set
+        // and a generic "imagery not available" message otherwise.
+        self.activeViewerName = 'StaticCrop';
+        await _panoFailureCallback();
+        if (!self.svHolder[0].dataset.closedDuringLoad) self.svHolder.css('visibility', 'visible');
+        return false;
+    }
+
+    /**
+     * Hides the Pannellum canvas and points self.panoViewer back at the primary viewer.
+     */
+    function _teardownPannellum() {
+        $(self.pannellumCanvas).css('display', 'none');
+        self.panoViewer = self.primaryViewer;
+        if (self.logo) self.logo.showPrimaryLogo();
+    }
+
+    /**
+     * Shows the Pannellum viewer for the given pano. Creates the viewer on the first call, then reused on later calls.
+     *
+     * @param {{object}} backupImage
+     * @param {{heading: number, pitch: number, zoom: number}} pov
+     * @private
+     */
+    async function _showPannellumPano(backupImage, pov) {
+        // Hide primary canvas, fallback image, and any error messages.
+        $(self.panoCanvas).css('display', 'none');
+        $(self.fallbackContainer).css('display', 'none');
+        $(self.panoNotAvailable).css('display', 'none');
+        $(self.panoNotAvailableDetails).css('display', 'none');
+        $(self.panoNotAvailableAuditSuggestion).css('display', 'none');
+        $(self.buttonHolder).css('display', '');
+        $(self.pannellumCanvas).css('display', 'block');
+
+        if (self.pannellumViewer) {
+            await self.pannellumViewer.loadPano(backupImage.panoId, backupImage, pov);
+        } else {
+            self.pannellumViewer = await PannellumViewer.create(self.pannellumCanvas, {
+                panoMetadata: backupImage,
+                startPanoId: backupImage.panoId,
+                startHeading: pov.heading,
+                startPitch: pov.pitch,
+                startZoom: pov.zoom
+            });
         }
-        return panoLoaded;
+        self.panoViewer = self.pannellumViewer;
+        if (self.logo) self.logo.showSourceLogo();
+
+        if (self.label) renderLabel(self.label);
     }
 
     /**
@@ -289,8 +396,10 @@ async function PopupPanoManager(svHolder, buttonHolder, admin, viewerType, viewe
         const pos = util.pano.canvasCoordToCenteredPov(
             label.pov, label.canvasX, label.canvasY, label.originalCanvasWidth, label.originalCanvasHeight
         );
+        // Mount the marker inside whichever canvas is currently visible so it sits over the right viewer.
+        const activeCanvas = self.panoViewer === self.pannellumViewer ? self.pannellumCanvas : self.panoCanvas;
         const panoMarker = new PanoMarker({
-            markerContainer: self.panoCanvas,
+            markerContainer: activeCanvas,
             panoViewer: self.panoViewer,
             position: { heading: pos.heading, pitch: pos.pitch },
             icon: icons[label['label_type']],

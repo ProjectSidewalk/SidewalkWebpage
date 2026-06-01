@@ -102,10 +102,10 @@
     padding: 0 10px 10px 10px;
 }
 
-/* Gallery's inline expanded view — host-level sizing for the LabelDetail inline card.  Height is 100vh minus the fixed
-   navbar height ~71px and some margin. Note that the top is also set dynamically as the user scrolls in Main.js. */
+/* Gallery's inline expanded view — host-level sizing for the LabelDetail inline card. Height is 100vh minus the fixed
+   navbar height and some margin. Note that the top is also set dynamically as the user scrolls in Main.js. */
 .gallery-expanded-view {
-    height: calc(100vh - 71px - 2vh);
+    height: calc(100vh - var(--navbar-height) - 2vh);
     top: 1vh;
     width: 52vw;
     right: 3vw;

@@ -31,8 +31,6 @@ text {
 }
 
 .button {
-    background: -moz-linear-gradient(center top , #fff, #eee);
-    background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee));
     border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
     color: rgba(96,96,96,1);
     cursor: pointer;
@@ -45,15 +43,11 @@ text {
     width: 200px;
 
     border-radius: 3px 3px 0 0;
-    -webkit-border-radius: 3px 3px 0 0;
-    -moz-border-radius: 3px 3px 0 0;
 }
 
 /* Pseudo-classes
 * http://www.w3schools.com/css/css_pseudo_classes.asp */
 .button:hover {
-    background: -moz-linear-gradient(center top , #ccc, #bbb);
-    background: -webkit-gradient(linear, left top, left bottom, from(#ccc), to(#bbb));
     color: #222;
 }
 
@@ -123,10 +117,6 @@ input[type="radio"] {
 /* http://stackoverflow.com/questions/8942805/chrome-bug-cursor-changes-on-mouse-down-move */
 #view-control-layer {
     -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    -o-user-select: none;
     user-select: none;
 }
 
@@ -134,15 +124,6 @@ input[type="radio"] {
     pointer-events: none;
     cursor: default;
     opacity: 0.5;
-}
-
-#imagery-source-logo-holder {
-    display: flex;
-    height: 29px;
-    position: absolute;
-    bottom: 0;
-    z-index: 1;
-    padding: 4px 0 6px 10px;
 }
 
 #svl-panorama-date-holder {

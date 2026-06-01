@@ -1,3 +1,10 @@
+/**
+ * NOTE This is now used only for the mission start screens on mobile!
+ * @param uiModalMission
+ * @param user
+ * @returns {ModalMission}
+ * @constructor
+ */
 function ModalMission (uiModalMission, user) {
     const self = this;
 

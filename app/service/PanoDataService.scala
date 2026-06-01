@@ -161,8 +161,14 @@ trait PanoDataService {
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
   def getAllPanos: Future[Seq[PanoDataSlim]]
   def checkForImagery: Future[String]
+  def backupExists(panoId: String): Boolean
+  def backupImageUrl(panoId: String): Option[String]
+  def markHasBackup(panoId: String): Future[Int]
   def getCropDirectory: String
   def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean
+  def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String]
+  def localBackupImageFile(panoId: String): Option[File]
+  def getLocalBackupImage(panoId: String): Future[Option[PanoData]]
 }
 
 @Singleton
@@ -174,7 +180,8 @@ class PanoDataServiceImpl @Inject() (
     implicit val ec: ExecutionContext,
     panoDataTable: PanoDataTable,
     panoHistoryTable: PanoHistoryTable,
-    streetEdgeTable: models.street.StreetEdgeTable
+    streetEdgeTable: models.street.StreetEdgeTable,
+    signingService: ImageSigningService
 ) extends PanoDataService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -191,6 +198,8 @@ class PanoDataServiceImpl @Inject() (
   val sha1Key: SecretKeySpec = new SecretKeySpec(secretKey, "HmacSHA1")
 
   private val cropsDirName: String = getCropDirectory
+  private val panosBaseDir: String =
+    config.get[String]("pano.images.directory") + File.separator + config.get[String]("city-id")
 
   def getInfra3dToken(cityId: String): Future[String] = {
     // Token expires after 60 minutes, so we don't need to get a new token every time.
@@ -237,9 +246,11 @@ class PanoDataServiceImpl @Inject() (
         val imageExists: Boolean = imageStatus == "OK"
 
         if (imageExists || imageStatus == "ZERO_RESULTS") {
-          // Mark the expired status, last_checked, and last_viewed columns in the db.
+          // Mark the expired status, has_backup, last_checked, and last_viewed columns in the db.
           val timestamp = OffsetDateTime.now
-          db.run(panoDataTable.updateExpiredStatus(panoId, !imageExists, timestamp)).map(_ => Some(imageExists))
+          val hasBackup = Some(backupExists(panoId))
+          db.run(panoDataTable.updateExpiredStatus(panoId, !imageExists, hasBackup, timestamp))
+            .map(_ => Some(imageExists))
         } else {
           // For any other response status, we don't want to assume that the panorama doesn't exist. Log it for now.
           logger.info(s"$imageStatus - $panoId")
@@ -405,11 +416,53 @@ class PanoDataServiceImpl @Inject() (
   def getCropDirectory: String =
     config.get[String]("cropped.image.directory") + File.separator + config.get[String]("city-id")
 
+  /** Checks whether a locally-hosted equirectangular backup image exists for the given pano. */
+  def backupExists(panoId: String): Boolean = localBackupImageFile(panoId).isDefined
+
+  /** Returns a signed URL for a pano's backup image if it exists, or None otherwise. */
+  def backupImageUrl(panoId: String): Option[String] =
+    if (backupExists(panoId)) Some(signingService.signedUrl(s"/backupImage/$panoId")) else None
+
+  /** Sets has_backup = true for the given pano (no-op when it's already true). */
+  def markHasBackup(panoId: String): Future[Int] = db.run(panoDataTable.markHasBackup(panoId))
+
   /** Checks whether a crop image file exists for the given label. */
   def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean = {
     val file = new java.io.File(
       cropsDirName + java.io.File.separator + labelType.name + java.io.File.separator + "crop_" + labelId + ".png"
     )
     file.exists()
+  }
+
+  /** Returns a signed crop image URL if a crop file exists for the given label, or None otherwise. */
+  def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String] =
+    if (cropExists(labelId, labelType)) Some(signingService.signedUrl(s"/cropImage/${labelType.name}/$labelId"))
+    else None
+
+  /**
+   * Returns the on-disk file for a self-hosted pano image if one exists on the filesystem. Images are stored at
+   * `<pano.images.directory>/<city-id>/<panoId[0:2]>/<panoId>.<ext>`. Tries jpg/jpeg/png in order.
+   */
+  def localBackupImageFile(panoId: String): Option[File] = {
+    val dir = new File(panosBaseDir, panoId.take(2))
+    Seq("jpg", "jpeg", "png").iterator
+      .map(ext => new File(dir, s"$panoId.$ext"))
+      .find(_.exists())
+  }
+
+  /**
+   * Returns the pano_data row for a pano if a self-hosted image exists AND all required fields are populated.
+   */
+  def getLocalBackupImage(panoId: String): Future[Option[PanoData]] = {
+    if (localBackupImageFile(panoId).isEmpty) {
+      Future.successful(None)
+    } else {
+      db.run(panoDataTable.getPano(panoId))
+        .map(
+          _.filter(p =>
+            p.width.isDefined && p.height.isDefined && p.lat.isDefined && p.lng.isDefined && p.cameraHeading.isDefined && p.cameraPitch.isDefined
+          )
+        )
+    }
   }
 }

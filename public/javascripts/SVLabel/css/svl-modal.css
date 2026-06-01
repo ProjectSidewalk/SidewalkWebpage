@@ -30,8 +30,6 @@
     z-index: 1;
 
     border-radius: 3px 3px 3px 3px;
-    -webkit-border-radius: 3px 3px 3px 3px;
-    -moz-border-radius: 3px 3px 3px 3px;
 }
 
 .modal-foreground {
@@ -49,8 +47,6 @@
 
     border-radius: 3px 3px 3px 3px;
     z-index: 4;
-    -webkit-border-radius: 3px 3px 3px 3px;
-    -moz-border-radius: 3px 3px 3px 3px;
 }
 
 .modal-foreground h1 {
@@ -166,8 +162,6 @@
     width: 100%;
     margin: 5px 0 10px 0;
     border-radius: 3px 3px 3px 3px;
-    -webkit-border-radius: 3px 3px 3px 3px;
-    -moz-border-radius: 3px 3px 3px 3px;
 }
 
 #modal-mission-complete-map {

@@ -80,7 +80,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 
 .card-header {
     padding: 5px 5px 3px 7px;
-    font-family: 'raleway-bold', sans-serif;
+    font: var(--text-body-bold);
     font-size: 1vw;
 }
 
@@ -88,8 +88,6 @@ with respect to the image holder. This allows the validation menu to be placed o
     padding-bottom: 0.5vw;
     padding-left: 0.5vw;
     padding-right: 0.5vw;
-    font-size: 0.9vw;
-    font-family: 'raleway-regular', sans-serif;
     color: #2d2a3f;
     border-width: 0 1px 1px 1px;
     border-color: #dcdbdb;
@@ -107,7 +105,8 @@ with respect to the image holder. This allows the validation menu to be placed o
     align-items: center;
     justify-content: center;
     flex-direction: row;
-    font-size: .7vw;
+    font: var(--text-small-regular);
+    font-size: 0.6vw;
     height: 2.5vh;
 }
 
@@ -208,8 +207,6 @@ with respect to the image holder. This allows the validation menu to be placed o
     cursor: pointer;
     /* Prevent text selection. */
     -webkit-user-select: none; /* Safari */
-    -ms-user-select: none; /* IE 10 and IE 11 */
-    user-select: none; /* Standard syntax */
 }
 
 .validation-info-count-container {
@@ -239,9 +236,8 @@ with respect to the image holder. This allows the validation menu to be placed o
 
 .validation-button, .validation-button-selected {
     opacity: 0;
+    font: var(--text-body-bold);
     font-size: 0.75vw;
-    font-weight: bold;
-    font-family: 'raleway-regular', sans-serif;
     background-color: white;
     border-style: none;
     color: #2d2a3f;

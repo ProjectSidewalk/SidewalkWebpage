@@ -1,10 +1,12 @@
 package controllers
 
 import controllers.base._
+import formats.json.LabelFormats
 import models.label.LabelTypeEnum
-import play.api.Logger
+import play.api.{Configuration, Logger}
 import play.api.libs.json._
-import play.api.mvc.{AnyContent, Request}
+import play.api.mvc.{AnyContent, Request, RequestHeader}
+import service.ImageSigningService
 
 import java.awt.Image
 import java.awt.image.BufferedImage
@@ -13,15 +15,23 @@ import java.util.Base64
 import javax.imageio.ImageIO
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 @Singleton
-class ImageController @Inject() (cc: CustomControllerComponents, panoDataService: service.PanoDataService)(implicit
-    ec: ExecutionContext
-) extends CustomBaseController(cc) {
+class ImageController @Inject() (
+    cc: CustomControllerComponents,
+    panoDataService: service.PanoDataService,
+    signingService: ImageSigningService,
+    config: Configuration
+)(implicit ec: ExecutionContext)
+    extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 
   // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
   private val CROPS_DIR_NAME = panoDataService.getCropDirectory
+
+  // Allowed characters in a pano ID: GSV uses base64url-style (alphanumeric + - + _); Mapillary uses digits.
+  private val PANO_ID_PATTERN = "^[A-Za-z0-9_-]+$".r
 
   // 2x the actual size of the pano window as retina screen can give us 2x the pixel density.
   val CROP_WIDTH  = 1440
@@ -63,6 +73,44 @@ class ImageController @Inject() (cc: CustomControllerComponents, panoDataService
     }
   }
 
+  /**
+   * Returns true if the request's Referer or Origin header (when present) points to an allowed host.
+   *
+   * Missing headers are treated as allowed — they are legitimately absent in some privacy modes
+   * and on direct requests. Only explicit cross-origin indicators from a disallowed host are rejected.
+   * @param request The incoming request to check.
+   */
+  private def refererAllowed(request: RequestHeader): Boolean = {
+    val allowedHosts                       = config.get[Seq[String]]("play.filters.hosts.allowed")
+    def hostAllowed(host: String): Boolean = allowedHosts.exists { pattern =>
+      val patternHost = pattern.split(":")(0) // strip port, e.g. "localhost:9000" → "localhost"
+      if (patternHost.startsWith(".")) host.endsWith(patternHost) || host == patternHost.drop(1)
+      else host == patternHost
+    }
+    def extractHost(header: String): Option[String] =
+      Try(new java.net.URL(header).getHost).toOption
+
+    val originOk  = request.headers.get("Origin").flatMap(extractHost).forall(hostAllowed)
+    val refererOk = request.headers.get("Referer").flatMap(extractHost).forall(hostAllowed)
+    originOk && refererOk
+  }
+
+  /**
+   * Validates the ?exp and ?sig query parameters against the expected HMAC for this request path.
+   *
+   * Returns a Forbidden result if the signature is missing, invalid, or expired.
+   * @param request The incoming request.
+   * @param path    The canonical path to verify (e.g. "/backupImage/myPanoId").
+   */
+  private def verifySignature(request: RequestHeader, path: String): Option[play.api.mvc.Result] = {
+    val exp = request.getQueryString("exp").flatMap(s => Try(s.toLong).toOption)
+    val sig = request.getQueryString("sig")
+    (exp, sig) match {
+      case (Some(e), Some(s)) if signingService.verify(path, e, s) => None
+      case _                                                       => Some(Forbidden("Invalid or expired image URL."))
+    }
+  }
+
   // Creates the base directory for the crops if it doesn't exist. Uses subdirectories /<city-id>/<label-type>.
   private def initializeDirIfNeeded(labelType: String): Unit = {
     val file = new File(CROPS_DIR_NAME + File.separator + labelType)
@@ -74,19 +122,77 @@ class ImageController @Inject() (cc: CustomControllerComponents, panoDataService
     }
   }
 
-  /** Serves a previously-saved crop image for a label. */
-  def serveCropImage(labelType: String, labelId: Int) = cc.securityService.SecuredAction { _ =>
-    if (!LabelTypeEnum.validLabelTypes.contains(labelType)) {
-      Future.successful(
-        BadRequest(s"Invalid label type provided: $labelType. Valid label types are: ${LabelTypeEnum.validLabelTypes.mkString(", ")}.")
-      )
+  /**
+   * Returns the backup image metadata for a pano as JSON, used by PopupPanoManager's lazy-fetch fallback.
+   */
+  def getBackupImageMetadata(panoId: String) = cc.securityService.SecuredAction { implicit request =>
+    if (!refererAllowed(request)) {
+      Future.successful(Forbidden("Request origin not allowed."))
+    } else if (PANO_ID_PATTERN.findFirstIn(panoId).isEmpty) {
+      Future.successful(BadRequest(s"Invalid pano ID: $panoId"))
     } else {
-      val file = new File(CROPS_DIR_NAME + File.separator + labelType + File.separator + "crop_" + labelId + ".png")
-      if (file.exists()) {
-        Future.successful(Ok.sendFile(file, inline = true).as("image/png"))
-      } else {
-        Future.successful(NotFound("Crop image not found"))
+      panoDataService.getLocalBackupImage(panoId).map {
+        case Some(p) =>
+          val url = signingService.signedUrl(s"/backupImage/$panoId")
+          Ok(LabelFormats.localBackupImagePayload(p, url))
+        case None => NotFound(s"No backup image found for pano: $panoId")
       }
+    }
+  }
+
+  /**
+   * Serves a self-hosted equirectangular panorama image.
+   *
+   * Requires a valid HMAC signature (?exp=...&sig=...) and an allowed Referer/Origin.
+   */
+  def serveBackupImage(panoId: String) = cc.securityService.SecuredAction { implicit request =>
+    val earlyReject =
+      if (!refererAllowed(request)) Some(Forbidden("Request origin not allowed."))
+      else if (PANO_ID_PATTERN.findFirstIn(panoId).isEmpty) Some(BadRequest(s"Invalid pano ID: $panoId"))
+      else verifySignature(request, s"/backupImage/$panoId")
+
+    earlyReject match {
+      case Some(result) => Future.successful(result)
+      case None         =>
+        panoDataService.localBackupImageFile(panoId) match {
+          case Some(file) =>
+            // Fire-and-forget: keep pano_data.has_backup in sync with what's on disk. No-op when already true.
+            panoDataService.markHasBackup(panoId).failed.foreach { e =>
+              logger.warn(s"Failed to update has_backup for pano $panoId: ${e.getMessage}")
+            }
+            val contentType = if (file.getName.toLowerCase.endsWith(".png")) "image/png" else "image/jpeg"
+            Future.successful(Ok.sendFile(file, inline = true).as(contentType))
+          case None =>
+            Future.successful(NotFound(s"Pano image not found: $panoId"))
+        }
+    }
+  }
+
+  /**
+   * Serves a previously-saved crop image for a label.
+   *
+   * Requires a valid HMAC signature (?exp=...&sig=...) and an allowed Referer/Origin.
+   */
+  def serveCropImage(labelType: String, labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+    val earlyReject =
+      if (!refererAllowed(request)) Some(Forbidden("Request origin not allowed."))
+      else if (!LabelTypeEnum.validLabelTypes.contains(labelType))
+        Some(
+          BadRequest(
+            s"Invalid label type provided: $labelType. Valid label types are: ${LabelTypeEnum.validLabelTypes.mkString(", ")}."
+          )
+        )
+      else verifySignature(request, s"/cropImage/$labelType/$labelId")
+
+    earlyReject match {
+      case Some(result) => Future.successful(result)
+      case None         =>
+        val file = new File(CROPS_DIR_NAME + File.separator + labelType + File.separator + "crop_" + labelId + ".png")
+        if (file.exists()) {
+          Future.successful(Ok.sendFile(file, inline = true).as("image/png"))
+        } else {
+          Future.successful(NotFound("Crop image not found"))
+        }
     }
   }
 

@@ -11,7 +11,7 @@ import models.utils.MyPostgresProfile
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.Messages
-import play.api.libs.json.{JsError, JsObject, JsValue, Json}
+import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, Result}
 import play.silhouette.api.Silhouette
 import service.{ConfigService, LabelService, PanoDataService, RegionService}
@@ -119,20 +119,15 @@ class GalleryController @Inject() (
         labelService
           .getGalleryLabels(n, labelType, loadedLabels, valOptions, regionIds, severities, tags, aiValOptions, userId)
           .map { labels =>
-            val jsonList: Seq[JsObject] = labels.map { l =>
-              val cropUrl: Option[String] =
-                if (panoDataService.cropExists(l.labelId, l.labelType))
-                  Some(s"/cropImage/${l.labelType.name}/${l.labelId}")
-                else None
+            val jsonList = labels.map { l =>
               Json.obj(
-                "label"       -> LabelFormats.validationLabelMetadataToJson(l),
-                "cropUrl"     -> cropUrl,
-                "gsvImageUrl" -> panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch,
-                  l.pov.zoom)
+                "label"   -> LabelFormats.validationLabelMetadataToJson(l, panoDataService.backupImageUrl(l.panoId)),
+                "cropUrl" -> panoDataService.cropUrl(l.labelId, l.labelType),
+                "gsvImageUrl" ->
+                  panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
               )
             }
-            val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)
-            Ok(labelList)
+            Ok(Json.obj("labelsOfType" -> jsonList))
           }
       }
     )

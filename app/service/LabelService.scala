@@ -315,7 +315,7 @@ class LabelServiceImpl @Inject() (
 
   // Checks each label in a batch for imagery availability. When useCrops is true, labels with a locally-saved crop
   // image are accepted without querying the API; only labels lacking a crop are checked. When useCrops is false, all
-  // labels are checked via panoExists(), which returns Some(false) for non-GSV labels.
+  // labels are checked via panoExists(); labels with a locally-hosted backup pass as well.
   private def checkImageryBatch[A <: BasicLabelMetadata](labels: Seq[A], useCrops: Boolean): Future[Seq[A]] = {
     if (useCrops) {
       // Partition: labels with local crops pass immediately; the rest are checked via panoExists().
@@ -333,7 +333,7 @@ class LabelServiceImpl @Inject() (
         .traverse(labels) { label =>
           panoDataService.panoExists(label.panoId, label.panoSource).map {
             case Some(true) => Some(label)
-            case _          => None
+            case _          => if (panoDataService.backupExists(label.panoId)) Some(label) else None
           }
         }
         .map(_.flatten)

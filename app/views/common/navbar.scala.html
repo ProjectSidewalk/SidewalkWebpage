@@ -12,35 +12,36 @@
 @implicitFieldConstructor = @{ b3.vertical.fieldConstructor() }
 
 <!-- Fixed navbar -->
-<nav id="header" class="navbar navbar-default navbar-fixed-top">
-    <div id="header-container" class="navbar-container container-fluid">
-        <div class="navbar-header">
+@isLanding = @{request.path == "/" || request.path == "/home"}
+<nav id="header"@if(isLanding) { class="header--tall"}>
+    <div class="navbar-container">
+        <div class="navbar-brand-area">
             <div class="navbar-logo">
-                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@assets.path("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))'></a>
+                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="28" src='@assets.path("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))'></a>
             </div>
             <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
                 <span class="sr-only">Toggle navigation</span>
-                <i class="fa fa-bars fa-2x" aria-hidden="true"></i>
+                <i class="fa fa-bars fa-1x" aria-hidden="true"></i>
             </button>
         </div>
-        <div id="navbar" class="collapse navbar-collapse">
-            <ul class="nav navbar-nav navbar-right" id="topbuttons">
+        <div id="navbar" class="collapse">
+            <ul class="navbar-nav" id="topbuttons">
                 @if(request.path == "/explore") {
-                    <li class="active navbar-lnk">
+                    <li class="navbar-lnk">
                         <a class="navbar-button" href="#" id="navbar-retake-tutorial-btn">@Messages("navbar.retake.tutorial")</a>
                     </li>
                 }
                 @if(request.path != "/explore") {
-                    <li class="active navbar-lnk">
+                    <li class="navbar-lnk">
                         <a class="navbar-button" id="navbar-start-btn" href="@routes.ExploreController.explore()">@Messages("navbar.explore")</a>
                     </li>
                 }
                 @if(request.path != "/validate") {
-                    <li class="active navbar-lnk">
+                    <li class="navbar-lnk">
                         <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidateController.validate()">@Messages("navbar.validate")</a>
                     </li>
                 }
-                <li class="active navbar-lnk">
+                <li class="navbar-lnk">
                     @if(currentCityInfo.countryId == "taiwan") {
                         <a class="navbar-button" id="navbar-guide-btn" href="@assets.path("documents/labeling-guide-Taiwan.pdf")" target="_blank">@Messages("navbar.howto")</a>
                     } else {
@@ -48,20 +49,20 @@
                     }
                 </li>
                 @if(request.path == "/explore") {
-                    <li class = "active navbar-lnk">
+                    <li class="navbar-lnk">
                         <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank">@Messages("navbar.help")</a>
                     </li>
                 }
 
-                <li class="active navbar-lnk">
+                <li class="navbar-lnk">
                     <a class="navbar-button" id="navbar-cities-btn" href="@routes.ApplicationController.cities" aria-label="Deployment Sites Dashboard">@Messages("navbar.cities")</a>
                 </li>
 
-                <li class="active navbar-lnk">
+                <li class="navbar-lnk">
                     <a class="navbar-button" id="navbar-api-btn" href="@routes.ApiDocsController.index" aria-label="Developer API">@Messages("navbar.api")</a>
                 </li>
 
-                <li class="active dropdown navbar-lnk" id="navbar-data-dropdown-list">
+                <li class="dropdown navbar-lnk" id="navbar-data-dropdown-list">
                     <a id="nav-data-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
                         @Messages("navbar.tools")
                         <b class="caret"></b>
@@ -89,7 +90,7 @@
                     </ul>
                 </li>
 
-                <li id="navbar-city-dropdown" class="active dropdown navbar-lnk">
+                <li id="navbar-city-dropdown" class="dropdown navbar-lnk">
                     <a id="nav-city-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="City selection dropdown">
                         @currentCityInfo.cityNameShort
                         <b class="caret"></b>
@@ -116,7 +117,7 @@
                     </ul>
                 </li>
 
-                <li class="active dropdown navbar-lnk" id="navbar-user-dropdown-list">
+                <li class="dropdown navbar-lnk" id="navbar-user-dropdown-list">
                     @if(user.isDefined && user.get.role != "Anonymous") {
                         <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="User options dropdown for @user.get.username">
                             @user.get.username
@@ -157,11 +158,11 @@
                             </li>
                         </ul>
                     } else {
-                        <button id="navbar-sign-in-btn" data-toggle="modal" data-target="#sign-in-modal-container" class="gray-btn" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
+                        <button id="navbar-sign-in-btn" data-toggle="modal" data-target="#sign-in-modal-container" class="navbar-button button-ps button--primary button--tiny" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
                     }
                 </li>
 
-                <li class="active dropdown navbar-lnk" id="language-dropdown">
+                <li class="dropdown navbar-lnk" id="language-dropdown">
                     <a class="navbar-button" id="language-button" data-toggle="dropdown" href="#" aria-label="@Messages("navbar.lang.aria")" >
                         <img id="language-icon" src="@assets.path("assets/language-icon.png")" alt="@Messages("navbar.lang.icon.alt")">
                             @Messages(s"lang.name.${messages.lang.code}")

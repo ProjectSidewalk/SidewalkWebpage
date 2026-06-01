@@ -5,7 +5,7 @@ import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
 import models.label.AiImageSource
 import models.pano.PanoSource
-import models.utils.CommonUtils.UiSource
+import models.utils.CommonUtils.{UiSource, ViewerType}
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
 import org.n52.jackson.datatype.jts.JtsModule
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
@@ -114,6 +114,10 @@ trait MyPostgresProfile
     // Mapper for ai_image_source enum type.
     implicit val aiImageSourceMapper: BaseColumnType[AiImageSource.Value] =
       createEnumJdbcType[AiImageSource.Value]("ai_image_source", _.toString, AiImageSource.withName, quoteName = false)
+
+    // Mapper for viewer_type enum type.
+    implicit val viewerTypeMapper: BaseColumnType[ViewerType.Value] =
+      createEnumJdbcType[ViewerType.Value]("viewer_type", _.toString, ViewerType.withName, quoteName = false)
   }
 }
 

@@ -1,6 +1,7 @@
 package formats.json
 
 import models.label._
+import models.pano.{PanoData, PanoViewerMetadata}
 import models.validation.LabelValidationTable
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -96,6 +97,7 @@ object LabelFormats {
 
   def validationLabelMetadataToJson(
       labelMetadata: LabelValidationMetadata,
+      backupImageUrl: Option[String],
       adminData: Option[AdminValidationData] = None
   ): JsObject = {
     Json.obj(
@@ -130,6 +132,8 @@ object LabelFormats {
       "expired"             -> labelMetadata.expired,
       "comments"            -> labelMetadata.comments.map(_.comment),
       "from_current_user"   -> labelMetadata.fromCurrentUser,
+      "backup_image_url"    -> backupImageUrl,
+      "pano_data"           -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson),
       "admin_data"          -> adminData.map(ad =>
         Json.obj(
           "username"             -> ad.username,
@@ -173,7 +177,8 @@ object LabelFormats {
       "tags"               -> labelMetadata.tags,
       "ai_generated"       -> labelMetadata.aiGenerated,
       "expired"            -> labelMetadata.expired,
-      "from_current_user"  -> labelMetadata.fromCurrentUser
+      "from_current_user"  -> labelMetadata.fromCurrentUser,
+      "pano_data"          -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson)
     )
   }
 
@@ -225,6 +230,41 @@ object LabelFormats {
       (__ \ "tag_name").write[String] and
       (__ \ "mutually_exclusive_with").writeNullable[String]
   )(unlift(Tag.unapply))
+
+  /** Serializes a PanoViewerMetadata to the JSON shape the frontend expects under the "pano_data" key. */
+  private def panoViewerMetadataToJson(pm: PanoViewerMetadata): JsObject = Json.obj(
+    "width"          -> pm.width,
+    "height"         -> pm.height,
+    "tile_width"     -> pm.tileWidth,
+    "tile_height"    -> pm.tileHeight,
+    "camera_heading" -> pm.cameraHeading,
+    "camera_pitch"   -> pm.cameraPitch,
+    "camera_roll"    -> pm.cameraRoll,
+    "copyright"      -> pm.copyright
+  )
+
+  /**
+   * Builds the JSON payload for the /backupImage/:panoId/metadata endpoint.
+   * @param p The PanoData row from the database.
+   * @param url The signed serving URL (e.g. /backupImage/<panoId>?exp=...&sig=...).
+   */
+  def localBackupImagePayload(p: PanoData, url: String): JsObject = {
+    Json.obj(
+      "panoId"        -> p.panoId,
+      "imageUrl"      -> url,
+      "width"         -> p.width,
+      "height"        -> p.height,
+      "tileWidth"     -> p.tileWidth,
+      "tileHeight"    -> p.tileHeight,
+      "lat"           -> p.lat,
+      "lng"           -> p.lng,
+      "cameraHeading" -> p.cameraHeading,
+      "cameraPitch"   -> p.cameraPitch,
+      "cameraRoll"    -> p.cameraRoll,
+      "captureDate"   -> p.captureDate,
+      "copyright"     -> p.copyright
+    )
+  }
 
   def resumeLabelMetadatatoJson(label: ResumeLabelMetadata, allTags: Seq[Tag]): JsObject = {
     Json.obj(

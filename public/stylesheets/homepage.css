@@ -16,7 +16,7 @@
 }
 
 #text {
-    padding-top: 70px;
+    padding-top: 140px;
     max-width: 500px;
     margin: 0 auto;
 }
@@ -66,14 +66,7 @@
 .section-subtitle {
     max-width: 450px;
     margin: auto;
-    font-family: adelle-regular, sans-serif;
-    font-size: 16px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: normal;
-    line-height: 1.8em;
-    letter-spacing: 0.1em;
-    text-align: center;
+    font: var(--text-subtitle-regular);
 }
 
 /**** Banner *****/
@@ -162,7 +155,7 @@ video#bgvid {
     background: url("../assets/psmockup.jpg") no-repeat scroll 0 0 #000;
     background-size: cover;
     bottom: 0;
-    top: 70px;
+    top: var(--navbar-height);
     height: auto;
     perspective: 1000;
     position: fixed;
@@ -177,8 +170,8 @@ video#bgvid {
     width: 100%;
     display: flex;
     justify-content: center;
-    max-height: 700px;
-    height: 700px;
+    max-height: 770px;
+    height: 770px;
     left: 0;
     transition: background-color 300ms ease;
 }
@@ -196,36 +189,6 @@ video#bgvid {
     font-weight: bold;
     line-height: 1em;
     color: #fff;
-}
-
-/* Start Button */
-.body-start-btn {
-    background-color: rgba(251, 215, 139, 1);
-    -moz-border-radius: 15px;
-    -webkit-border-radius: 15px;
-    border-radius: 10px;
-    border: 0px solid #fbd78b;
-    display: inline-block;
-    cursor: pointer;
-    color: #2d2a3f;
-    font: normal normal normal 14px/1.4em raleway, sans-serif;
-    font-family: "Raleway", sans-serif;
-    font-size: 14px;
-    padding: 10px 75px;
-    text-decoration: none;
-    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
-}
-
-.body-start-btn:hover, body-start-btn:focus {
-    background-color: #fcecbe;
-    border: 0px solid #eb734d;
-    color: #2d2a3f;
-    text-shadow: none;
-}
-
-.body-start-btn:active {
-    position: relative;
-    top: 1px;
 }
 
 .instructional-video-container {

@@ -24,8 +24,6 @@ text {
 }
 
 .button {
-    background: -moz-linear-gradient(center top , #fff, #eee);
-    background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee));
     border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
     color: rgba(96,96,96,1);
     cursor: pointer;
@@ -35,15 +33,11 @@ text {
     width: 200px;
 
     border-radius: 3px 3px 0 0;
-    -webkit-border-radius: 3px 3px 0 0;
-    -moz-border-radius: 3px 3px 0 0;
 }
 
 /* Pseudo-classes
 * http://www.w3schools.com/css/css_pseudo_classes.asp */
 .button:hover {
-    background: -moz-linear-gradient(center top , #ccc, #bbb);
-    background: -webkit-gradient(linear, left top, left bottom, from(#ccc), to(#bbb));
     color: #222;
 }
 

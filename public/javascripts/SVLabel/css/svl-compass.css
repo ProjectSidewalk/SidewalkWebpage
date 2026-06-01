@@ -7,8 +7,6 @@
     min-width: 120px;
     white-space: nowrap;
     border-radius: 3px 3px 3px 3px;
-    -webkit-border-radius: 3px 3px 3px 3px;
-    -moz-border-radius: 3px 3px 3px 3px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
     transition: background-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }

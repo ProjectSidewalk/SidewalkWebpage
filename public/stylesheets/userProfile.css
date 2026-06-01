@@ -20,8 +20,7 @@ svg {
     flex-direction: row;
     align-items: center;
     gap: 20px;
-    margin: 0px;
-    margin-top: 7px;
+    margin: 5px 0px 0px;
 }
 
 #username {
@@ -118,8 +117,8 @@ svg {
 }
 
 #map-row {
-    height: 620px;
-    margin-top: 10px;
+    height: 645px;
+    margin-top: 8px;
 }
 #map-column {
     height: 100%;

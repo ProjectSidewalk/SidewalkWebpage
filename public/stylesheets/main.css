@@ -24,50 +24,78 @@
     --color-asphalt-700: #1B1926;
     --color-asphalt-800: #121119;
     --color-asphalt-900: #09080D;
+
+    --color-banana-100: #FEF7E8;
+    --color-banana-200: #FDF0D1;
+    --color-banana-300: #FDE8BA;
+    --color-banana-400: #FCE1A3;
+    --color-banana-500: #FBD98C;
+    --color-banana-600: #FFCD64;
+    --color-banana-700: #F1B12A;
+    --color-banana-800: #CB8F11;
+    --color-banana-900: #A87303;
+
+    --color-neutral-white: #FFFFFF;
+    --color-neutral-100: #F0F0F0;
+    --color-neutral-200: #E1E1E1;
+    --color-neutral-300: #D1D1D1;
+    --color-neutral-400: #C2C2C2;
+    --color-neutral-500: #B3B3B3;
+    --color-neutral-600: #8F8F8F;
+    --color-neutral-700: #6B6B6B;
+    --color-neutral-800: #484848;
+    --color-neutral-900: #242424;
+    --color-neutral-black: #000000;
+
+    --navbar-height: 38px;
+
+    /* Font stacks. Mulish handles ~all type (body, UI, headings H3 and below); Raleway is reserved for top-level H1/H2
+       and the Small-Accent style. Mulish doesn't ship CJK glyphs, so its stack ends with Traditional-Chinese system
+       fonts (PingFang TC on macOS/iOS, Microsoft JhengHei on Windows; Linux/Android fall through via sans-serif). The
+       browser does per-glyph fallback: Latin renders in Mulish, CJK in the OS CJK font. */
+    --font-primary: 'Mulish', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    --font-accent:  'Raleway', sans-serif;
+
+    /* Typography scale: mirrors the Figma Design System Tokens file.
+       Format: font-weight font-size/line-height font-family */
+    --text-h1-bold:          700 32px/38px var(--font-accent);
+
+    --text-h2-bold:          700 28px/34px var(--font-accent);
+
+    --text-h3-bold:          700 24px/28px var(--font-primary);
+    --text-h3-medium:        500 24px/28px var(--font-primary);
+
+    --text-title-bold:       700 20px/24px var(--font-primary);
+    --text-title-medium:     500 20px/24px var(--font-primary);
+
+    --text-subtitle-bold:    700 18px/22px var(--font-primary);
+    --text-subtitle-medium:  500 18px/22px var(--font-primary);
+    --text-subtitle-regular: 400 18px/22px var(--font-primary);
+
+    --text-body-bold:        700 16px/22px var(--font-primary);
+    --text-body-medium:      500 16px/22px var(--font-primary);
+    --text-body-regular:     400 16px/22px var(--font-primary);
+
+    --text-small-bold:       700 14px/18px var(--font-primary);
+    --text-small-medium:     500 14px/18px var(--font-primary);
+    --text-small-regular:    400 14px/18px var(--font-primary);
+    --text-small-accent:     400 14px/18px var(--font-accent);
+
+    --text-caption-semibold: 600 12px/18px var(--font-primary);
+    --text-caption-medium:   500 12px/18px var(--font-primary);
+    --text-underline-medium: 500 12px/18px var(--font-primary);
 }
 
 
 /* General styles */
-@font-face {
-    font-family: adelle-semibold;
-    src: url(../fonts/Adelle/adelle_semibold-webfont.ttf);
-}
-
-@font-face {
-    font-family: adelle-regular;
-    src: url(../fonts/Adelle/adelle_reg-webfont.ttf);
-}
-
-@font-face {
-    font-family: adelle-light;
-    src: url(../fonts/Adelle/adelle_light-webfont.ttf);
-}
-
-@font-face {
-    font-family: adelle-heavy;
-    src: url(../fonts/Adelle/adelle_heavy-webfont.ttf);
-}
-
-
 @font-face {
     font-family: raleway;
     src: url(../fonts/Raleway/Raleway-Regular.ttf);
 }
 
 @font-face {
-    font-family: raleway-regular;
-    src: url(../fonts/Raleway/Raleway-Regular.ttf);
-}
-
-
-@font-face {
     font-family: raleway-bold;
     src: url(../fonts/Raleway/Raleway-Bold.ttf);
-}
-
-@font-face {
-    font-family: raleway-black;
-    src: url(../fonts/Raleway/Raleway-Black.ttf);
 }
 
 @font-face {
@@ -78,10 +106,18 @@
 
 html,
 body {
-    padding-top: 35px;
     font-family:'Open Sans', 'Noto Sans', sans-serif;
     overflow-x: hidden; /* Prevent scroll on narrow devices */
 }
+
+/* Moves all page content down to start just below the navbar. */
+body {
+    padding-top: var(--navbar-height);
+}
+
+.spacer10 { height: 10px; }
+.spacer20 { height: 20px; }
+
 footer {
     padding: 30px 0;
 }
@@ -110,6 +146,78 @@ body {
 /*
  * Custom styles
  */
+
+/* TODO when we get rid of bootstrap, can rename this to just "button". */
+.button-ps {
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    font-weight: 500;
+    font-family: 'Raleway', sans-serif;
+    text-decoration: none;
+    transition: background-color 0.4s ease 0s;
+}
+.button-ps:hover {
+    text-decoration: none;
+}
+
+.button--tiny {
+    font-size: 13px;
+    padding: 3px 10px;
+    border-radius: 10px;
+}
+.button--small {
+    font-size: 13px;
+    padding: 6px 16px;
+    border-radius: 10px;
+}
+.button--medium {
+    font-size: 14px;
+    padding: 8px 20px;
+    border-radius: 12px;
+}
+.button--large {
+    font-size: 15px;
+    padding: 12px 36px;
+    border-radius: 16px;
+}
+
+.button--primary {
+    background-color: var(--color-banana-500);
+    color: var(--color-neutral-black);
+}
+.button--primary:hover {
+    background-color: var(--color-banana-200);
+    color: var(--color-neutral-black);
+}
+.button--primary:focus {
+    outline: 1px solid var(--color-banana-800);
+    color: var(--color-neutral-black);
+}
+.button--primary:disabled {
+    background-color: var(--color-neutral-200);
+    color: var(--color-neutral-700)
+}
+
+.button--secondary {
+    background-color: var(--color-neutral-white);
+    color: var(--color-neutral-900);
+    outline: 1px solid var(--color-neutral-800);
+}
+.button--secondary:hover {
+    background-color: var(--color-banana-200);
+    color: var(--color-neutral-900);
+}
+.button--secondary:focus {
+    outline: 1px solid var(--color-banana-600);
+    color: var(--color-neutral-900);
+}
+.button--secondary:disabled {
+    background-color: var(--color-neutral-200);
+    color: var(--color-neutral-700);
+    outline: 1px solid var(--color-neutral-600);
+}
+
 .label-icon {
     position: absolute;
     border: 1px solid black;
@@ -123,18 +231,28 @@ body {
     outline: .5px solid white;
 }
 
-.navbar-container {
-    padding: 20px 0 20px 0;
+#header {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 1030;
+    height: var(--navbar-height);
+    transition: height 0.2s ease 0s;
+    background-color: #fff;
+    border-bottom: 1px solid #e7e7e7;
+    display: flex;
 }
 
-.navbar-logo {
-    float: left;
-    margin-top: 7px;
+.navbar-container {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    padding: 0 4.5%;
 }
 
 .navbar-lnk {
     display: inline;
-    margin-top: 4px;
     margin-left: 8px;
 }
 
@@ -144,20 +262,11 @@ body {
     font-size: 12px;
 }
 
-#nav-language-menu {
-    margin-top: -12px;
-    min-width: 69px;
-}
-
-.navbar-container {
-    transition: 0.8s;
-    -webkit-transition:  0.8s;
-}
 #navbar {
-    max-width: 100%;
-    max-height: 100%;
-    margin-left: auto;
-    margin-right: auto;
+    flex: 1;
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-end;
 }
 
 #status-neighborhood-link {
@@ -167,85 +276,67 @@ body {
     overflow: hidden;
 }
 
-#language-dropdown {
-    margin-top: 4px;
-    margin-left: 9px;
-}
-
 #language-icon {
-    height: 31px;
-    width: 31px;
+    height: 26px;
+    width: 26px;
 }
 
 .navbar-nav > li > a.navbar-button {
-    -moz-border-radius: 15px;
-    -webkit-border-radius: 15px;
     border-radius: 10px;
-    border: 1px solid #2D2A3F;
     display: inline-block;
-    position: relative;
-    top: 8px;
     cursor: pointer;
     color: #2D2A3F;
-    font: normal normal normal 13px/1.4em raleway, sans-serif;
+    font-size: 13px;
     font-family: 'Raleway', sans-serif;
-    padding: 5px 17px;
+    padding: 4px 10px;
     text-decoration: none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
     outline: none;
 }
 
 .navbar-nav > li > a.navbar-button#language-button {
-    /* Override some of the navbar-button properties, removing the border. */
-    border: none;
-    padding: 0px 10px 0px;
+    padding: 0px 12px 0px;
 }
 
-.navbar-default .navbar-nav > .active > a {
-    background-color: #ffffff;
+.navbar-nav > li > a {
+    background-color: transparent;
 }
 
-.navbar-nav > .active > a.navbar-button:hover {
+.navbar-nav > li > a.navbar-button:hover {
     background-color: #FCECBE;
-    border: 1px solid #FCECBE;
     color: #2D2A3F;
     text-shadow: none;
 }
 
-.navbar-start-btn:active {
-    position:relative;
-    top:8px;
+/* Taller navbar variant used on the landing page (and removed on scroll). */
+#header.header--tall {
+    height: 70px;
 }
 
-.gray-btn {
-    position: relative;
-    background-color: rgba(251, 215, 139, 1);
-    -moz-border-radius:15px;
-    -webkit-border-radius:15px;
-    border-radius:10px;
-    border:1px solid rgba(251, 215, 139, 1);
-    display:inline-block;
-    top:8px;
-    cursor:pointer;
-    color:#2D2A3F;
-    font: normal normal normal 13px/1.4em raleway,sans-serif;
-    font-family: 'Raleway', sans-serif;
-    text-align: start;
-    font-weight: bolder;
+#header.header--tall #navbar-brand img {
+    height: 40px;
+}
+
+#navbar-brand img {
+    transition: height 0.2s ease 0s;
+}
+
+#header.header--tall .navbar-nav > li > a.navbar-button {
+    border: 1px solid #2D2A3F;
     padding: 5px 17px;
-    text-decoration:none;
-    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
 
-.gray-btn:hover {
-    background-color:#fff;
-    border:1px solid #fff;
-    color: #2D2A3F;
-    text-shadow: none;
+#header.header--tall .navbar-nav > li > a.navbar-button#language-button {
+    border: none;
+    padding: 0px 12px 0px;
 }
-.gray:active {
-    position:relative;
-    top:1px;
+
+#header.header--tall .navbar-nav > li > a.navbar-button:hover {
+    border: 1px solid #FCECBE;
+}
+
+#header.header--tall #navbar-sign-in-btn {
+    padding: 6px 16px;
 }
 
 .new-city {
@@ -256,13 +347,6 @@ body {
     cursor: default;
 }
 
-#header-container {
-    position: relative;
-    top: -11px;
-    background-color: #fff;
-    max-width: 91%;
-    max-height: 70px;
-}
 
 #content {
     position: relative;
@@ -486,12 +570,6 @@ body {
     font-weight: bold;
 }
 
-#header {
-    background-color: #fff;
-    -webkit-box-shadow: 0 6px 4px -6px #999;
-    -moz-box-shadow: 0 6px 4px -6px #999;
-    box-shadow: 0 6px 4px -6px #999;
-}
 
 
 kbd {
@@ -564,6 +642,19 @@ kbd {
   background-color: rgb(251, 215, 139);
 }
 
+/* Pin test server banner just below the navbar. */
+body:has(#vidbanner) .test-server-banner {
+  position: fixed;
+  top: var(--navbar-height);
+  left: 0;
+  right: 0;
+  z-index: 1029;
+}
+
+body:has(#header.header--tall) .test-server-banner {
+  top: 70px;
+}
+
 .test-server-banner-content {
   padding: 0.5%;
   max-width: 70%;
@@ -611,26 +702,21 @@ kbd {
 }
 
 
-.navbar-nav>li, .navbar-nav {
-    float: left;
-}
-
-.navbar-nav.navbar-right:last-child {
-    margin-right: -15px;
-}
-
-.navbar-right {
-    float: right;
+.navbar-nav {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    margin: 0;
+    padding: 0;
 }
 
 .navbar-nav .open .dropdown-menu {
     position: absolute;
-    top: 125%;
+    top: 100%;
     right: 0;
     left: auto;
     z-index: 1000;
     display: block;
-    float: left;
     min-width: 160px;
     padding: 5px 0;
     margin: 2px 0 0;
@@ -638,18 +724,16 @@ kbd {
     font-size: 13px;
     list-style: none;
     background-color: #fff;
-    -webkit-background-clip: padding-box;
     background-clip: padding-box;
     border: 1px solid #ccc;
     border: 1px solid rgba(0,0,0,.15);
     border-radius: 4px;
-    -webkit-box-shadow: 0 6px 12px rgba(0,0,0,.175);
     box-shadow: 0 6px 12px rgba(0,0,0,.175);
 }
 
 .navbar-nav .open .dropdown-menu#nav-language-menu {
     /* Override dropdown menu properties for the languages dropdown. */
-    top: 160%;
+    top: 100%;
 }
 
 .tool-ui {
@@ -657,7 +741,7 @@ kbd {
 }
 
 .dropdown-toggle {
-    margin-top: 13px;
+    margin-top: 0;
 }
 
 /*Overlay box - start*/
@@ -714,7 +798,7 @@ kbd {
 .anchor {
     display: block;
     position: relative;
-    top: -85px;
+    top: calc(-1 * var(--navbar-height) - 15px);
     visibility: hidden;
 }
 
@@ -820,75 +904,91 @@ kbd {
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
 */
-@media only screen and (max-width: 1275px) {
-    .navbar-header {
-        float: none;
+@media only screen and (max-width: 1125px) {
+    .navbar-brand-area {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        min-height: var(--navbar-height);
     }
 
     .navbar-toggle {
         display: block;
-        margin-top: 1px;
-        margin-bottom: 0px;
+        margin: 0;
+        padding: 6px 10px;
+    }
+
+    .navbar-toggle:hover,
+    .navbar-toggle:focus {
+        background-color: #ddd;
     }
 
     .navbar-nav {
+        display: block;
         background-color: white;
-        -moz-box-shadow: 0px 1px 8px 0px #999;
-        -webkit-box-shadow: 0px 1px 8px 0px #999;
         box-shadow: 0px 1px 8px 0px #999;
-        -moz-border-radius: 5px;
-        -webkit-border-radius: 5px;
         border-radius: 5px;
-        margin: 5px 0 5px 0;
+        margin: 0;
         padding-top: 10px;
         padding-bottom: 10px;
+    }
+
+    .navbar-nav > li > a.navbar-button {
+        border-radius: 0px;
+        border: none;
+        display: block;
+    }
+
+    #header.header--tall .navbar-nav > li > a.navbar-button {
+        border: none;
     }
 
     .navbar-nav > li {
         float: none;
     }
 
-    .navbar-nav > li > a.navbar-button {
-        -moz-border-radius: 0px;
-        -webkit-border-radius: 0px;
-        border-radius: 0px;
-        border: none;
-        display: block;
-        top: 0px;
-    }
-
     .navbar-lnk {
-        margin-top: 0px;
+        display: block;
         margin-left: 0px;
     }
 
-    .gray-btn {
-        top: 0px;
+    .navbar-button {
         border: none;
         width: 100%;
-        -moz-border-radius: 0 0 5px 5px;
-        -webkit-border-radius: 0 0 5px 5px;
         border-radius: 0 0 5px 5px;
     }
 
-    .container-fluid > .navbar-header {
+    .navbar-container {
+        position: relative;
+    }
+
+    .navbar-container > .navbar-brand-area {
         margin-left: 0px;
     }
 
-    .navbar-nav > .active > a.navbar-button:hover {
+    .navbar-nav > li > a.navbar-button:hover {
         border: none;
     }
 
-    .navbar-fixed-top .navbar-collapse {
+    #navbar {
+        position: absolute;
+        top: var(--navbar-height);
+        right: 4.5%;
         border: none;
-        padding-right: 15px;
+        padding: 0;
+        z-index: 1030;
     }
 
-    .navbar-collapse.collapse {
+    #header.header--tall #navbar {
+        top: 70px;
+    }
+
+    #navbar.collapse:not(.in) {
         display: none !important;
     }
 
-    .collapse.in {
+    #navbar.collapse.in {
         display: block !important;
         overflow: hidden !important;
     }
@@ -896,28 +996,11 @@ kbd {
     .navbar-nav .open .dropdown-menu {
         position: relative;
         border: none;
-        -moz-border-radius: 0 0 5px 5px;
-        -webkit-border-radius: 0 0 5px 5px;
         border-radius: 0 0 5px 5px;
         width: 100%;
     }
 
-    #language-dropdown {
-        margin-top: 0px;
-        width: 100%
-    }
-
-    #language-dropdown > #language-button {
-        left: -9px;
-        padding-left: 19px;
-    }
-
-    .navbar-nav .open .dropdown-menu#nav-language-menu {
-        margin-top: initial;
-        left: -9px;
-    }
-
-    .navbar-nav.navbar-right:last-child {
+    .navbar-nav:last-child {
         margin-right: 0px;
     }
 }
@@ -929,13 +1012,12 @@ kbd {
 
 /* Permalink styling and behavior. */
 .permalink-anchor {
-    scroll-margin-top: 85px; /* Offset for the fixed navbar plus a little extra. */
+    scroll-margin-top: calc(var(--navbar-height) + 15px);
 }
 
 .permalink-icon {
     height: 18px;
     opacity: 0;
-    -webkit-transition: opacity 200ms ease-in-out;
     transition: opacity 200ms ease-in-out;
 }
 

@@ -27,7 +27,7 @@
 
 .routebuilder-centered-overlay {
     width: 590px;
-    top: calc(4% + 85px); /* 2% + navbar height + map margin-top */
+    top: calc(4% + var(--navbar-height) + 15px); /* 2% + navbar height + map margin-top */
     left: calc(50% - 295px); /* 50% - width/2 */
 }
 
@@ -49,7 +49,7 @@
 
 #creating-route-overlay {
     visibility: hidden; /* Show once the first street has been selected. */
-    top: calc(2% + 85px); /* 2% + navbar height + map margin-top */
+    top: calc(2% + var(--navbar-height) + 15px); /* 2% + navbar height + map margin-top */
     right: 3%;
     width: 320px;
     gap: 16px;
@@ -107,7 +107,7 @@
 
 .routebuilder-overlay-backdrop {
     visibility: hidden; /* Show using JS at the appropriate times. */
-    height: 935px; /* navbar height + map height and margin + filler */
+    height: calc(var(--navbar-height) + 865px); /* navbar height + map height and margin + filler */
     width: 100%;
     position: fixed;
     top: 0;
