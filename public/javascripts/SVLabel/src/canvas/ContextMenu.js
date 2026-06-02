@@ -476,9 +476,10 @@ function ContextMenu (uiContextMenu) {
             util.getImage(`/assets/images/examples/severity/${labelType}_Severity${sev}.png`).then(img => {
                 const tooltipHeader = i18next.t(`common:${tooltipKey}-${sev}`);
                 const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-                $(`#severity-${sev}`).tooltip({
+                $(`.severity-button[data-severity="${sev}"]`).tooltip({
                     placement: 'top', html: true, delay: { 'show': 300, 'hide': 10 },
-                    title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`,
+                    // The example images are 200x160, so width 138 keeps the aspect ratio at height 110.
+                    title: `${tooltipHeader}<br/><img src=${img} width="138" height="110"/><br/>${tooltipFooter}`,
                     container: 'body',
                     // Add template so we can attach a custom CSS class.
                     template: '<div class="tooltip context-menu-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
@@ -492,8 +493,8 @@ function ContextMenu (uiContextMenu) {
      * @private
      */
     function _removePrevSeverityTooltips() {
-        for (let severity = 0; severity < 4; severity++) {
-            $(`#severity-${severity}`).tooltip('destroy');
+        for (let severity = 1; severity < 4; severity++) {
+            $(`.severity-button[data-severity="${severity}"]`).tooltip('destroy');
         }
     }
 

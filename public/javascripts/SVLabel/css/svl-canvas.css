@@ -20,7 +20,7 @@
 /* Shared button look pano-overlay-buttons.css; this rule only positions the holder in the top-right of the pano. */
 #zoom-buttons-holder {
     position: absolute;
-    z-index: 3;
+    z-index: 2;
     top: 5px;
     right: 5px;
 }
@@ -29,7 +29,7 @@
    here we only position the holder and drive the expand/collapse of the optional buttons. */
 #explore-control-buttons-holder {
     position: absolute;
-    z-index: 3;
+    z-index: 2;
     top: 5px;
     left: 5px;
 }
