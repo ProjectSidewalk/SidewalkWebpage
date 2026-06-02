@@ -29,6 +29,7 @@
     "complete": "voltooid",
     "zoom-in": "Inzoomen",
     "zoom-out": "Uitzoomen",
+    "more-options": "Meer opties",
     "map": {
         "distance-left": "Nog maar {{n}} kilometer te gaan!",
         "distance-left-one-unit": "Nog maar 1 kilometer te gaan!",

@@ -141,28 +141,6 @@
             </div>
         </div>
         <div id="svl-application-holder">
-            <div id="left-column-control-pane">
-                <div id="left-column-button-holder">
-                    <div id="left-column-sound-button" class="button">
-                        <img src='@assets.path("javascripts/SVLabel/img/icons/sound.png")' id="left-column-sound-icon" class="visible" alt="Sound icon">
-                        <img src='@assets.path("javascripts/SVLabel/img/icons/sound_mute.png")' id="left-column-mute-icon" class="hidden" alt="Mute icon">
-                        <br>
-                        @Messages("audit.left.ui.sound")
-                    </div>
-                    <div id="left-column-stuck-button" class="button" title="@Messages("audit.left.ui.stuck.tooltip")" data-toggle="tooltip" data-placement="top">
-                        <img src='@assets.path("javascripts/SVLabel/img/icons/noun_lost_1779388.png")'  alt="Stuck icon">
-                        <br>
-                        @Messages("audit.left.ui.stuck")
-                    </div>
-                    <div id="left-column-feedback-button" class="button" data-toggle="popover" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-placement="top" data-content='@Messages("feedback.submitted")' data-trigger="manual">
-                        <div id="feedback-button-tooltip" title="@Messages("feedback.tooltip")" data-toggle="tooltip" data-placement="top">
-                            <img src='@assets.path("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
-                            <br>
-                            @Html(Messages("feedback"))
-                        </div>
-                    </div>
-                </div>
-            </div>
             <div id="ribbon-menu-holder">
                 <div id="ribbon-menu-label-type-button-holder">
                     <div id="ribbon-menu-title-holder-ramp" class="ribbon-menu-title-holder audit-selectable">
@@ -296,12 +274,33 @@
                     <div id="svl-panorama-date-holder">
                         <span id="svl-panorama-date"></span>
                     </div>
+                    @* Stuck / sound / feedback controls at top-left of the pano. Collapsed by default. *@
+                    <div id="explore-control-buttons-holder" class="pano-overlay-button-group">
+                        <div id="left-column-stuck-button" class="pano-overlay-button" title="@Messages("audit.left.ui.stuck.tooltip")" data-toggle="tooltip" data-placement="bottom">
+                            <img class="pano-overlay-button-icon" src='@assets.path("images/icons/stuck-white-noun.svg")' alt="">
+                            <span class="pano-overlay-button-label">@Messages("audit.left.ui.stuck")</span>
+                        </div>
+                        <div id="left-column-sound-button" class="pano-overlay-button collapsible-control-button">
+                            <img class="pano-overlay-button-icon visible" id="left-column-sound-icon" src='@assets.path("images/icons/volume-on-feather.svg")' alt="">
+                            <img class="pano-overlay-button-icon hidden" id="left-column-mute-icon" src='@assets.path("images/icons/volume-off-feather.svg")' alt="">
+                            <span class="pano-overlay-button-label">@Messages("audit.left.ui.sound")</span>
+                        </div>
+                        <div id="left-column-feedback-button" class="pano-overlay-button collapsible-control-button" data-toggle="popover" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-placement="bottom" data-content='@Messages("feedback.submitted")' data-trigger="manual">
+                            <div id="feedback-button-tooltip" class="pano-overlay-button-inner" title="@Messages("feedback.tooltip")" data-toggle="tooltip" data-placement="bottom">
+                                <img class="pano-overlay-button-icon" src='@assets.path("images/icons/comment-material.svg")' alt="">
+                                <span class="pano-overlay-button-label">@Html(Messages("feedback"))</span>
+                            </div>
+                        </div>
+                        <button id="explore-control-buttons-toggle" class="pano-overlay-button pano-overlay-toggle" aria-label="More options" data-i18n-aria-label="common:more-options" aria-expanded="false">
+                            <img id="explore-control-buttons-toggle-icon" class="pano-overlay-button-icon" src='@assets.path("images/icons/chevron-right-white-feather.svg")' alt="">
+                        </button>
+                    </div>
                     <div id="zoom-buttons-holder" class="zoom-buttons-holder">
                         <button id="zoom-in-button" class="zoom-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
-                            <img class="zoom-button-icon" src='@assets.path("images/icons/plus-white.svg")' alt="">
+                            <img class="zoom-button-icon" src='@assets.path("images/icons/plus-white-material.svg")' alt="">
                         </button>
                         <button id="zoom-out-button" class="zoom-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
-                            <img class="zoom-button-icon" src='@assets.path("images/icons/minus-white.svg")' alt="">
+                            <img class="zoom-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
                         </button>
                     </div>
                     <div id="ribbon-street-view-connector"><!-- border --></div>

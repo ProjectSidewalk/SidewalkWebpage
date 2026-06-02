@@ -20,7 +20,7 @@
     height: 22px;
     cursor: pointer;
     box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
-    background-color: var(--color-asphalt-500);
+    background-color: var(--color-asphalt-400);
     border-style: none;
     padding: 0;
     outline: none;
@@ -53,4 +53,54 @@
 
 .zoom-button:hover .zoom-button-icon {
     transform: scale(1.15);
+}
+
+/*
+ * Stuck/sound/feedback buttons look; positioning and the expand/collapse behavior live in the {svl,svv}-canvas.css.
+ */
+.pano-overlay-button-group {
+    display: flex;
+    gap: 3px;
+    align-items: stretch;
+}
+
+.pano-overlay-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 8px;
+    border-radius: 7px;
+    background-color: var(--color-asphalt-400);
+    color: #fff;
+    font: var(--text-caption-semibold);
+    white-space: nowrap;
+    cursor: pointer;
+    border-style: none;
+    outline: none;
+}
+
+/* The feedback button wraps its icon + label in an inner tooltip target; lay that out the same way. */
+.pano-overlay-button-inner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pano-overlay-button-icon {
+    display: block;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.pano-overlay-button:hover {
+    background-color: var(--color-asphalt-400);
+}
+
+/* Chevron-only toggle: a square pill with no label, sitting at the end of the row. */
+.pano-overlay-toggle {
+    width: 28px;
+    padding: 0;
+    justify-content: center;
 }

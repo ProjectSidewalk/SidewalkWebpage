@@ -19,6 +19,20 @@ class LeftMenu {
 
         // Initialize Event Listeners.
         this.enableStuckButton();
+        this.uiLeftColumn.controlButtonsToggle.on('click', this.#handleToggleControls);
+    }
+
+    /**
+     * Callback for the chevron toggle: expands/collapses the optional control buttons (sound, feedback).
+     * Swaps the chevron direction and updates aria-expanded for screen readers.
+     * @param {Event} e
+     */
+    #handleToggleControls = (e) => {
+        e.preventDefault();
+        const expanded = this.uiLeftColumn.controlButtonsHolder.toggleClass('expanded').hasClass('expanded');
+        this.uiLeftColumn.controlButtonsToggle.attr('aria-expanded', expanded);
+        const chevron = expanded ? 'chevron-left-white-feather.svg' : 'chevron-right-white-feather.svg';
+        this.uiLeftColumn.controlButtonsToggleIcon.attr('src', `/assets/images/icons/${chevron}`);
     }
 
     /**

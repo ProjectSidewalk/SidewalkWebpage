@@ -29,6 +29,7 @@
     "complete": "completo",
     "zoom-in": "Aumentar zoom",
     "zoom-out": "Diminuir zoom",
+    "more-options": "Mais opções",
     "map": {
         "distance-left": "Apenas {{n}} quilômetros restantes!",
         "distance-left-one-unit": "Apenas 1 quilômetro restante!",

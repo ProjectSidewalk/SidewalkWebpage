@@ -25,6 +25,24 @@
     right: 5px;
 }
 
+/* Stuck/sound/feedback controls in the top-left. Shared pill look lives in pano-overlay-buttons.css;
+   here we only position the holder and drive the expand/collapse of the optional buttons. */
+#explore-control-buttons-holder {
+    position: absolute;
+    z-index: 3;
+    top: 5px;
+    left: 5px;
+}
+
+/* Collapsed by default: only the Stuck button and chevron toggle show. */
+#explore-control-buttons-holder .collapsible-control-button {
+    display: none;
+}
+
+#explore-control-buttons-holder.expanded .collapsible-control-button {
+    display: flex;
+}
+
 #nav-arrows-container {
     position: absolute;
     top: 50%;
@@ -80,9 +98,9 @@
     width: 60px;
     height: 70px;
     padding: 3px;
-    margin-top: -7px;
-    margin-left: -4px;
+    margin-left: 2px;
     left: 0;
+    bottom: 22px;
     border-radius: 5px;
     position: absolute;
     z-index: 1;

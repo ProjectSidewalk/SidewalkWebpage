@@ -29,6 +29,7 @@
     "complete": "完成",
     "zoom-in": "放大",
     "zoom-out": "縮小",
+    "more-options": "更多選項",
     "map": {
         "distance-left": "只剩下{{n}}公里了!",
         "distance-left-one-unit": "只剩下1公里了!",

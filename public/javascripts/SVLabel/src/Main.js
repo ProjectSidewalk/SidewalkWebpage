@@ -554,6 +554,9 @@ function Main (params) {
         svl.ui.leftColumn.soundIcon = $("#left-column-sound-icon");
         svl.ui.leftColumn.stuck = $("#left-column-stuck-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
+        svl.ui.leftColumn.controlButtonsHolder = $("#explore-control-buttons-holder");
+        svl.ui.leftColumn.controlButtonsToggle = $("#explore-control-buttons-toggle");
+        svl.ui.leftColumn.controlButtonsToggleIcon = $("#explore-control-buttons-toggle-icon");
 
         // Navigation compass.
         svl.ui.compass = {};
