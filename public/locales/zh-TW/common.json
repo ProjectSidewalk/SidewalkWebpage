@@ -27,6 +27,8 @@
     "close": "關閉",
     "sign-in": "登入",
     "complete": "完成",
+    "zoom-in": "放大",
+    "zoom-out": "縮小",
     "map": {
         "distance-left": "只剩下{{n}}公里了!",
         "distance-left-one-unit": "只剩下1公里了!",

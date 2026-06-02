@@ -211,8 +211,6 @@ audit.ribbon.signal = <u>P</u>edestrian Signal
 audit.ribbon.other = Other
 audit.ribbon.occlusion = Can''t See the Sidewalk (<u>B</u>)
 
-audit.left.ui.zoom.in = <u>Z</u>oom In
-audit.left.ui.zoom.out = Zoom Out
 audit.left.ui.sound = Sound
 audit.left.ui.stuck = Stuck
 audit.left.ui.stuck.tooltip = We''ll try to move you back to your mission

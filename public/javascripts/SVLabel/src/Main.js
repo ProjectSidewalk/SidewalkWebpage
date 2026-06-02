@@ -540,8 +540,8 @@ function Main (params) {
 
         // Zoom control.
         svl.ui.zoomControl = {};
-        svl.ui.zoomControl.zoomIn = $("#left-column-zoom-in-button");
-        svl.ui.zoomControl.zoomOut = $("#left-column-zoom-out-button");
+        svl.ui.zoomControl.zoomIn = $("#zoom-in-button");
+        svl.ui.zoomControl.zoomOut = $("#zoom-out-button");
 
         // Form/logging.
         svl.ui.form = {};

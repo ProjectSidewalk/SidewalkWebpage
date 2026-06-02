@@ -16,6 +16,7 @@
     @common.navbar(commonData, Some(user))
 
     <link rel="stylesheet" href='@assets.path("javascripts/SVLabel/build/SVLabel.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/pano-overlay-buttons.css")'/>
     <link rel="stylesheet" href='@assets.path("stylesheets/animate.css")'/>
 
     <script>
@@ -142,14 +143,6 @@
         <div id="svl-application-holder">
             <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
-                    <div id="left-column-zoom-in-button" class="button zoom-control-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
-                        <img src='@assets.path("javascripts/SVLabel/img/icons/ZoomIn.svg")' class="zoom-button-icon" alt="Zoom in">
-                        <br>@Html(Messages("audit.left.ui.zoom.in"))
-                    </div>
-                    <div id="left-column-zoom-out-button" class="button zoom-control-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
-                        <img src='@assets.path("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out">
-                        <br>@Html(Messages("audit.left.ui.zoom.out"))
-                    </div>
                     <div id="left-column-sound-button" class="button">
                         <img src='@assets.path("javascripts/SVLabel/img/icons/sound.png")' id="left-column-sound-icon" class="visible" alt="Sound icon">
                         <img src='@assets.path("javascripts/SVLabel/img/icons/sound_mute.png")' id="left-column-mute-icon" class="hidden" alt="Mute icon">
@@ -302,6 +295,14 @@
                     </div>
                     <div id="svl-panorama-date-holder">
                         <span id="svl-panorama-date"></span>
+                    </div>
+                    <div id="zoom-buttons-holder" class="zoom-buttons-holder">
+                        <button id="zoom-in-button" class="zoom-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
+                            <img class="zoom-button-icon" src='@assets.path("images/icons/plus-white.svg")' alt="">
+                        </button>
+                        <button id="zoom-out-button" class="zoom-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
+                            <img class="zoom-button-icon" src='@assets.path("images/icons/minus-white.svg")' alt="">
+                        </button>
                     </div>
                     <div id="ribbon-street-view-connector"><!-- border --></div>
                     <!-- You can put an extra div element on top of the pano div panel to disable any of pano control. -->

@@ -35,6 +35,7 @@
     <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
     <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/pano-overlay-buttons.css")'/>
 
     @common.missionStartTutorial()
     @common.panoInfoPopover()
@@ -108,13 +109,12 @@
                     <div id="svv-panorama-date-holder">
                         <span id="svv-panorama-date"></span>
                     </div>
-                    <div id="zoom-buttons-holder">
-                        <button id="zoom-in-button" class="zoom-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top" aria-label="zoom in">
-                            <svg viewBox="0 0 20 20" aria-hidden="true"><use xlink:href="#plus"></use></svg>
+                    <div id="zoom-buttons-holder" class="zoom-buttons-holder">
+                        <button id="zoom-in-button" class="zoom-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
+                            <img class="zoom-button-icon" src='@assets.path("images/icons/plus-white.svg")' alt="">
                         </button>
-                        <div id="zoom-button-divider"></div>
-                        <button id="zoom-out-button" class="zoom-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top" aria-label="zoom out">
-                            <svg viewBox="0 0 20 20" aria-hidden="true"><use xlink:href="#minus"></use></svg>
+                        <button id="zoom-out-button" class="zoom-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
+                            <img class="zoom-button-icon" src='@assets.path("images/icons/minus-white.svg")' alt="">
                         </button>
                     </div>
                 </div>

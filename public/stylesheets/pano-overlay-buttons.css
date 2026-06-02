@@ -1,0 +1,56 @@
+/*
+ * Shared styling for compact buttons that float over the panorama (Explore and Validate).
+ * This file owns only the LOOK of the buttons; each page positions the holder itself.
+ */
+
+/* Stacked +/- zoom control: two square buttons separated by a small gap. */
+.zoom-buttons-holder {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.zoom-buttons-holder .tooltip {
+    width: 70px;
+    font-size: 10px;
+}
+
+.zoom-button {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+    background-color: var(--color-asphalt-500);
+    border-style: none;
+    padding: 0;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Round only the outer corners so the gap-separated pair still reads as one stacked control. */
+.zoom-button:first-of-type {
+    border-radius: 7px 7px 0 0;
+}
+
+.zoom-button:last-of-type {
+    border-radius: 0 0 7px 7px;
+}
+
+/* Greyed-out look when a direction is unavailable (max/min zoom or explicitly disabled). */
+.zoom-button.disabled {
+    opacity: 0.7;
+}
+
+/* White +/- glyphs (public/images/icons/{plus,minus}-white.svg) shown over the black pill. */
+.zoom-button-icon {
+    display: block;
+    width: 18px;
+    height: 18px;
+    transition: transform 0.1s ease;
+}
+
+.zoom-button:hover .zoom-button-icon {
+    transform: scale(1.15);
+}

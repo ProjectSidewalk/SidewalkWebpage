@@ -214,8 +214,6 @@ audit.ribbon.signal = Semáforo de <u>p</u>edestres
 audit.ribbon.other = Outro
 audit.ribbon.occlusion = Não consigo ver a calçada (<u>B</u>)
 
-audit.left.ui.zoom.in = Aumentar <u>Z</u>oom
-audit.left.ui.zoom.out = Diminuir Zoom
 audit.left.ui.sound = Som
 audit.left.ui.stuck = Travado
 audit.left.ui.stuck.tooltip = Vamos tentar fazê-lo voltar à sua missão

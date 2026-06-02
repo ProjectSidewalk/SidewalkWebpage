@@ -206,8 +206,6 @@ audit.ribbon.signal = Verkeerslicht (<u>P</u>)
 audit.ribbon.other = Anders
 audit.ribbon.occlusion = Het Trottoir is niet Zicht<u>b</u>aar
 
-audit.left.ui.zoom.in = <u>Z</u>oom In
-audit.left.ui.zoom.out = Zoom Uit
 audit.left.ui.sound = Geluid
 audit.left.ui.stuck = Vastgelopen
 audit.left.ui.stuck.tooltip = We zullen proberen u terug te brengen naar uw missie

@@ -17,6 +17,14 @@
     width: 720px;
 }
 
+/* Shared button look pano-overlay-buttons.css; this rule only positions the holder in the top-right of the pano. */
+#zoom-buttons-holder {
+    position: absolute;
+    z-index: 3;
+    top: 5px;
+    right: 5px;
+}
+
 #nav-arrows-container {
     position: absolute;
     top: 50%;
@@ -73,8 +81,8 @@
     height: 70px;
     padding: 3px;
     margin-top: -7px;
-    margin-right: -4px;
-    right: 0;
+    margin-left: -4px;
+    left: 0;
     border-radius: 5px;
     position: absolute;
     z-index: 1;
@@ -87,7 +95,7 @@
     height: 75px;
     padding: 0px;
     margin-top: -10px;
-    margin-right: -10px;
+    margin-left: -10px;
     border-radius: 100%;
     transform: scale(0.6);
 }

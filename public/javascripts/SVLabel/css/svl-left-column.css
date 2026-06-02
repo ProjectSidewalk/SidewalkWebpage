@@ -16,18 +16,6 @@
     overflow-wrap: break-word;
 }
 
-#left-column-button-holder .zoom-control-button {
-    height: 51px;
-}
-
-#left-column-zoom-out-button {
-    margin: 3px 0 35px 0;
-}
-
 #left-column-button-holder img {
     width: 35px;
-}
-.zoom-button-icon {
-    height: 18px;
-    margin-top: 2px;
 }

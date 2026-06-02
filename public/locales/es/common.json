@@ -27,6 +27,8 @@
     "close": "Cerrar",
     "sign-in": "Iniciar sesión",
     "complete": "completado",
+    "zoom-in": "Acercar",
+    "zoom-out": "Alejar",
     "map": {
         "distance-left": "Sólo faltan {{n}} kilómetros!",
         "distance-left-one-unit": "Sólo faltan 1 kilómetro!",

@@ -55,23 +55,10 @@ function ZoomControl () {
      * Zoom levels: { 1 (Zoom-out Disabled), 2 (Both buttons enabled), 3 (Zoom-In Disabled) }
      */
     function updateZoomAvailability() {
-        let zoomLevel = svv.panoViewer.getPov().zoom;
-        if (zoomLevel >= 3) {
-            zoomInButton.css('opacity', 0.5);
-            zoomInButton.addClass('disabled');
-            zoomOutButton.css('opacity', 1);
-            zoomOutButton.removeClass('disabled');
-        } else if (zoomLevel <= 1) {
-            zoomOutButton.css('opacity', 0.5);
-            zoomOutButton.addClass('disabled');
-            zoomInButton.css('opacity', 1);
-            zoomInButton.removeClass('disabled');
-        } else {
-            zoomOutButton.css('opacity', 1);
-            zoomOutButton.removeClass('disabled');
-            zoomInButton.css('opacity', 1);
-            zoomInButton.removeClass('disabled');
-        }
+        const zoomLevel = svv.panoViewer.getPov().zoom;
+        // The `disabled` class greys the button out (and blocks clicks); see pano-overlay-buttons.css.
+        zoomInButton.toggleClass('disabled', zoomLevel >= 3);
+        zoomOutButton.toggleClass('disabled', zoomLevel <= 1);
     }
 
     zoomInButton.on('click', clickZoomIn);

@@ -309,26 +309,14 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
      * @returns {updateOpacity}
      */
     function updateOpacity () {
-        var pov = svl.panoViewer.getPov();
+        const pov = svl.panoViewer.getPov();
 
         if (pov && uiZoomControl) {
-            var zoom = pov.zoom;
-            // Change opacity
-            if (zoom >= properties.maxZoomLevel) {
-                uiZoomControl.zoomIn.css('opacity', 0.5);
-                uiZoomControl.zoomOut.css('opacity', 1);
-            } else if (zoom <= properties.minZoomLevel) {
-                uiZoomControl.zoomIn.css('opacity', 1);
-                uiZoomControl.zoomOut.css('opacity', 0.5);
-            } else {
-                uiZoomControl.zoomIn.css('opacity', 1);
-                uiZoomControl.zoomOut.css('opacity', 1);
-            }
+            const zoom = pov.zoom;
+            // Disable the zoom-in button at max zoom and the zoom-out button at min zoom.
+            uiZoomControl.zoomIn.toggleClass('disabled', zoom >= properties.maxZoomLevel || status.disableZoomIn);
+            uiZoomControl.zoomOut.toggleClass('disabled', zoom <= properties.minZoomLevel || status.disableZoomOut);
         }
-
-        // If zoom in and out are disabled, fade them out anyway.
-        if (status.disableZoomIn) { uiZoomControl.zoomIn.css('opacity', 0.5); }
-        if (status.disableZoomOut) { uiZoomControl.zoomOut.css('opacity', 0.5); }
         return this;
     }
 

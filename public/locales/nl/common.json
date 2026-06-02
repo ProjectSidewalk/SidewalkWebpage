@@ -27,6 +27,8 @@
     "close": "Sluiten",
     "sign-in": "Log in",
     "complete": "voltooid",
+    "zoom-in": "Inzoomen",
+    "zoom-out": "Uitzoomen",
     "map": {
         "distance-left": "Nog maar {{n}} kilometer te gaan!",
         "distance-left-one-unit": "Nog maar 1 kilometer te gaan!",

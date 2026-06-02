@@ -218,8 +218,6 @@ audit.ribbon.signal = Semáforo <u>p</u>eatonal
 audit.ribbon.other = Otro
 audit.ribbon.occlusion = <span style="font-size: 13px;">No puedo ver la <u>b</u>anqueta</span>
 
-audit.left.ui.zoom.in = Acercar (<u>Z</u>)
-audit.left.ui.zoom.out = Alejar
 audit.left.ui.sound = Sonido
 audit.left.ui.stuck = Atorado
 audit.left.ui.stuck.tooltip = Intentaremos llevarte de regreso a tu misión

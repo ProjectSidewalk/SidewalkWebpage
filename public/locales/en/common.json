@@ -27,6 +27,8 @@
     "sign-up": "Sign up",
     "sign-in": "Sign in",
     "complete": "complete",
+    "zoom-in": "Zoom in",
+    "zoom-out": "Zoom out",
     "map": {
         "distance-left": "Only {{n}} kilometers left!",
         "distance-left-one-unit": "Only 1 kilometer left!",
