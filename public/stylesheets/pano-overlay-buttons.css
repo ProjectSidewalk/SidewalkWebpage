@@ -19,7 +19,6 @@
     width: 22px;
     height: 22px;
     cursor: pointer;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
     background-color: var(--color-asphalt-400);
     border-style: none;
     padding: 0;

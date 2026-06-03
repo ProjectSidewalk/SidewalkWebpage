@@ -14,9 +14,9 @@
 
 /* The panorama viewport. The 3px border is recolored to match the selected label type by RibbonMenu. */
 #pano {
-    border: 3px solid black;
+    border: 3px solid var(--color-asphalt-400);
     border-radius: 4px;
-    background-color: black;
+    background-color: var(--color-asphalt-400);
     overflow: hidden;
 }
 

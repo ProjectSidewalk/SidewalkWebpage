@@ -5,7 +5,8 @@ class PanoManager {
     constructor() {
         this.panoCanvas = document.getElementById('pano');
         this.status = {
-            bottomLinksClickable: false,
+            panoLinksClickable: false,
+            minimapLinksClickable: false,
             disablePanning: false,
             lockDisablePanning: false,
             lockShowingNavArrows: false
@@ -95,6 +96,7 @@ class PanoManager {
 
         // TODO we probably need to do this for any viewer type...
         if (panoViewerType === GsvViewer) {
+            this.#makeLinksClickable();
             this.linksListener = svl.panoViewer.gsvPano.addListener('links_changed', this.#makeLinksClickable);
         }
 
@@ -166,28 +168,58 @@ class PanoManager {
     }
 
     /**
-     * Moves the buttons on the bottom-right of the GSV image to the top layer so they are clickable.
+     * Moves the GSV and minimap bottom links to the top layer so they are clickable.
+     *
+     * Google injects the .gm-style-cc links asynchronously after each map/pano renders, so the pano's and minimap's
+     * links can become available at different times. The two are handled independently (and guarded separately) so
+     * the pano links get processed on the first call even if the minimap hasn't rendered its links yet.
      * @private
      */
     #makeLinksClickable = () => {
-        // Bring the links on the bottom of GSV and the mini map to the top layer so they are clickable.
-        let bottomLinks = $('.gm-style-cc');
-        if (!this.status.bottomLinksClickable && bottomLinks.length > 7) {
-            this.status.bottomLinksClickable = true;
-            bottomLinks[0].remove(); // Remove GSV keyboard shortcuts link.
-            bottomLinks[4].remove(); // Remove mini map keyboard shortcuts link.
-            bottomLinks[5].remove(); // Remove mini map copyright text (duplicate of GSV).
-            bottomLinks[7].remove(); // Remove mini map terms of use link (duplicate of GSV).
-            svl.ui.streetview.viewControlLayer.append($(bottomLinks[1]).parent().parent());
-            svl.ui.minimap.overlay.append($(bottomLinks[8]).parent().parent());
-        }
+        this.#makePanoLinksClickable();
+        this.#makeMinimapLinksClickable();
 
         if (util.getBrowser() === 'mozilla') {
             // A bug in Firefox? The canvas in the div element with the largest z-index.
             svl.ui.streetview.viewControlLayer.append(svl.ui.streetview.canvas);
         }
 
-        google.maps.event.removeListener(this.linksListener);
+        // Stop listening for link changes once both the pano and minimap links have been handled.
+        if (this.status.panoLinksClickable && this.status.minimapLinksClickable) {
+            google.maps.event.removeListener(this.linksListener);
+        }
+    }
+
+    /**
+     * Moves the GSV pano's bottom links to the top layer so they are clickable.
+     * @private
+     */
+    #makePanoLinksClickable = () => {
+        let panoLinks = $('.gm-style-cc', this.panoCanvas);
+        if (!this.status.panoLinksClickable && panoLinks.length > 3) {
+            this.status.panoLinksClickable = true;
+
+            // Remove the first child of each GSV link because it looks better.
+            panoLinks.each((i, el) => el.firstElementChild && el.firstElementChild.remove());
+
+            panoLinks[0].remove(); // Remove GSV keyboard shortcuts link.
+            svl.ui.streetview.viewControlLayer.append($(panoLinks[1]).parent().parent());
+        }
+    }
+
+    /**
+     * Moves the minimap's links to the top layer so they are clickable, removing the ones that duplicate the GSV links.
+     * @private
+     */
+    #makeMinimapLinksClickable = () => {
+        let minimapLinks = $('.gm-style-cc', '#minimap');
+        if (!this.status.minimapLinksClickable && minimapLinks.length > 4) {
+            this.status.minimapLinksClickable = true;
+            minimapLinks[0].remove(); // Remove mini map keyboard shortcuts link.
+            minimapLinks[1].remove(); // Remove mini map copyright text (duplicate of GSV).
+            minimapLinks[3].remove(); // Remove mini map terms of use link (duplicate of GSV).
+            svl.ui.minimap.overlay.append($(minimapLinks[4]).parent().parent());
+        }
     }
 
     hideNavArrows() {

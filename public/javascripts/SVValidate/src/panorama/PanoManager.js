@@ -83,6 +83,7 @@ class PanoManager {
 
         // TODO we probably need to do this for any viewer type...
         if (panoViewerType === GsvViewer && !isMobile()) {
+            this.#makeLinksClickable();
             this.#linksListener = this.#primaryViewer.gsvPano.addListener('links_changed', this.#makeLinksClickable.bind(this));
         }
     }
@@ -146,6 +147,10 @@ class PanoManager {
         let bottomLinks = $('.gm-style-cc');
         if (!this.#bottomLinksClickable && bottomLinks.length > 3) {
             this.#bottomLinksClickable = true;
+
+            // Remove the first child of each remaining .gm-style-cc element because it looks better.
+            bottomLinks.each((i, el) => el.firstElementChild && el.firstElementChild.remove());
+
             bottomLinks[0].remove(); // Remove GSV keyboard shortcuts link.
             svv.ui.viewer.controlLayer.append($(bottomLinks[1]).parent().parent()); // Makes remaining links clickable.
         }
@@ -320,27 +325,21 @@ class PanoManager {
     #sizePano() {
         let panoHolderElem = document.getElementById('svv-panorama-holder');
         let controlLayerElem = document.getElementById('view-control-layer');
-        let panoOutlineElem = document.getElementById('svv-panorama-outline');
         let heightOffset = panoHolderElem.getBoundingClientRect().top;
-        const h = window.innerHeight - heightOffset - 10;
-        const w = window.innerWidth - 10;
-        const outlineH = h + 10;
-        const outlineW = w + 10;
+        const h = window.innerHeight - heightOffset;
+        const w = window.innerWidth;
         const left = 0;
         this.#panoCanvas.style.height = h + 'px';
         this.#pannellumCanvas.style.height = h + 'px';
         panoHolderElem.style.height = h + 'px';
         controlLayerElem.style.height = h + 'px';
-        panoOutlineElem.style.height = outlineH + 'px';
         this.#panoCanvas.style.width = w + 'px';
         this.#pannellumCanvas.style.width = w + 'px';
         panoHolderElem.style.width = w + 'px';
         controlLayerElem.style.width = w + 'px';
-        panoOutlineElem.style.width = outlineW + 'px';
         this.#panoCanvas.style.left = left + 'px';
         panoHolderElem.style.left = left + 'px';
         controlLayerElem.style.left = left + 'px';
-        panoOutlineElem.style.left = left + 'px';
     }
 
     /**

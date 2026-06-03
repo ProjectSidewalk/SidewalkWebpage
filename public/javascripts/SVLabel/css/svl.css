@@ -140,6 +140,14 @@ input[type="radio"] {
     color: white;
 }
 
+/* Modify Google's terms / report an issue buttons' color to match our own buttons. */
+#view-control-layer .gm-style-cc div { background-color: var(--color-asphalt-400); }
+#view-control-layer .gm-style-cc div div { background-color: var(--color-asphalt-400) !important; }
+#view-control-layer div:has(> .gmnoprint) {
+    bottom: 3px !important;
+    right: 2px !important;
+}
+
 #svl-panorama-date {
     padding: 5px;
 }

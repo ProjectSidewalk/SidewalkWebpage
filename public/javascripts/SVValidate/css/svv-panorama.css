@@ -1,28 +1,22 @@
-/* Container that holds the panorama. */
+/* Container for the panorama and its overlay controls (zoom, date, speed limit, etc.). */
 #svv-panorama-holder {
     position: absolute;
     top: 95px;
-    width: 730px;
-    height: 450px;
+    width: 720px;
+    height: 440px;
 }
 
+/* The panorama viewport. The 3px border frames the image; overflow is clipped to round the corners. */
 #svv-panorama {
-    left: 0px;
-    top: 0px;
+    position: absolute;
+    left: 0;
+    top: 0;
     height: 440px;
     width: 720px;
-}
-
-/* Black outline around panorama. */
-#svv-panorama-outline {
-    border: 5px solid black;
-    border-radius: 5px;
-    position: absolute;
-    left: 0px;
-    top: 0px;
-    /* Making the width/height of the outline slightly smaller bc there are gaps for some reason. */
-    height: 449px;
-    width: 729px;
+    border: 3px solid var(--color-asphalt-400);
+    border-radius: 4px;
+    background-color: black;
+    overflow: hidden;
 }
 
 #view-control-layer {
@@ -112,7 +106,7 @@
     justify-content: flex-start;
     height: 29px;
     position: absolute;
-    bottom: 0px;
+    bottom: 3px;
     left: 69px;
     z-index: 2;
     font-family: sans-serif;
@@ -129,6 +123,14 @@
     margin-left: 4px;
     margin-top: 7px;
     height: 16px;
+}
+
+/* Modify Google's terms / report an issue buttons' color to match our own buttons. */
+.gm-style-cc div { background-color: var(--color-asphalt-400); }
+.gm-style-cc div div { background-color: var(--color-asphalt-400) !important; }
+div:has(> .gmnoprint) {
+    bottom: 3px !important;
+    right: 2px !important;
 }
 
 .button-on-pano {
