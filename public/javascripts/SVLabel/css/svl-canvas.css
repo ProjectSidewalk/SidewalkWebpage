@@ -1,28 +1,31 @@
 #street-view-holder {
-    border: 5px solid black;
-    border-radius: 5px;
-    background-color: black;
-    position: absolute;
-    left: 0px;
-    top:0px;
-    height: 490px;
-    width: 730px;
+    position: relative;
+    height: 480px;
+    width: 720px;
 }
 
 .window-streetview {
     position: absolute;
     left: 0;
-    top:0;
+    top: 0;
     height: 480px;
     width: 720px;
+}
+
+/* The panorama viewport. The 3px border is recolored to match the selected label type by RibbonMenu. */
+#pano {
+    border: 3px solid black;
+    border-radius: 4px;
+    background-color: black;
+    overflow: hidden;
 }
 
 /* Shared button look pano-overlay-buttons.css; this rule only positions the holder in the top-right of the pano. */
 #zoom-buttons-holder {
     position: absolute;
     z-index: 2;
-    top: 5px;
-    right: 5px;
+    top: 7px;
+    right: 7px;
 }
 
 /* Stuck/sound/feedback controls in the top-left. Shared pill look lives in pano-overlay-buttons.css;
@@ -30,8 +33,8 @@
 #explore-control-buttons-holder {
     position: absolute;
     z-index: 2;
-    top: 5px;
-    left: 5px;
+    top: 7px;
+    left: 7px;
 }
 
 /* Collapsed by default: only the Stuck button and chevron toggle show. */
@@ -100,7 +103,7 @@
     padding: 3px;
     margin-left: 2px;
     left: 0;
-    bottom: 22px;
+    bottom: 25px;
     border-radius: 5px;
     position: absolute;
     z-index: 1;

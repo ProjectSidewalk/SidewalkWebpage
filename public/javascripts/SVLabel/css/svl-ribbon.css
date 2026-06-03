@@ -122,15 +122,6 @@
     width: 730px;
 }
 
-#ribbon-street-view-connector {
-    border-left: 12px solid black;
-    position: absolute;
-    left: 25px;
-    top: -14px;
-    height: 10px;
-    width: 0;
-}
-
 #ribbon-menu-other-subcategory-holder {
     position: absolute;
     top: 54px;

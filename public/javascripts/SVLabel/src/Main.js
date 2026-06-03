@@ -481,9 +481,8 @@ function Main (params) {
         // Ribbon menu DOMs.
         svl.ui.ribbonMenu = {};
         svl.ui.ribbonMenu.holder = $("#ribbon-menu-label-type-button-holder");
-        svl.ui.ribbonMenu.streetViewHolder = $("#street-view-holder");
+        svl.ui.ribbonMenu.pano = $("#pano");
         svl.ui.ribbonMenu.buttons = $('.label-type-button-holder');
-        svl.ui.ribbonMenu.connector = $("#ribbon-street-view-connector");
         svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
         svl.ui.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategory");
 

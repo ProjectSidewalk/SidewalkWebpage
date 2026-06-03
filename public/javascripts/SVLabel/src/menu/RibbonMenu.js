@@ -105,27 +105,9 @@ function RibbonMenu(tracker, uiRibbonMenu) {
             if (uiRibbonMenu) {
                 setLabelTypeButtonBorderColors(mode);
 
-                const connectorWidth = parseInt(uiRibbonMenu.connector.css('border-left-width'));
-                const panoBorderWidth = parseInt(uiRibbonMenu.streetViewHolder.css('border-left-width'));
-                const selectedType = mode === 'Occlusion' ? 'Other' : mode;
-                let currLabelType;
-                $.each(uiRibbonMenu.buttons, function (i, v) {
-                    currLabelType = $(v).attr('val');
-                    if (currLabelType === selectedType) {
-                        const buttonLeft = $(this).position().left;
-                        const buttonWidth = $(this).width();
-                        const connectorLeft = buttonLeft + buttonWidth / 2 - panoBorderWidth - connectorWidth / 2;
-                        uiRibbonMenu.connector.css("left", connectorLeft);
-                    }
-                });
-
-                const labelColors = util.misc.getLabelColors();
-                const borderColor = labelColors[mode].fillStyle;
-                uiRibbonMenu.connector.css("border-left-color", borderColor);
-                uiRibbonMenu.streetViewHolder.css({
-                    "border-color": borderColor,
-                    "background-color": borderColor
-                });
+                // Recolor the panorama border to match the selected label type (black while in Walk mode).
+                const borderColor = util.misc.getLabelColors()[mode].fillStyle;
+                uiRibbonMenu.pano.css('border-color', borderColor);
             }
         }
     }

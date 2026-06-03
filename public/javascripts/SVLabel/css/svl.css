@@ -131,7 +131,7 @@ input[type="radio"] {
     justify-content: flex-start;
     height: 29px;
     position: absolute;
-    bottom: 0px;
+    bottom: 2px;
     left: 69px;
     z-index: 1;
     font-family: sans-serif;
