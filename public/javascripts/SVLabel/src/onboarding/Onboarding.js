@@ -375,10 +375,14 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             uiOnboarding.messageHolder.toggleClass("yellow-background");
         }, 100);
 
+        // Tutorial positions/sizes are authored in the fixed 720x480 logical frame; scale them to on-screen
+        // pixels since the message holder is a DOM element positioned over the (larger) displayed pano.
+        const scale = util.exploreDisplayScale();
+
         uiOnboarding.messageHolder.css({
             top: 0,
             left: 0,
-            width: 300
+            width: 300 * scale
         });
 
         uiOnboarding.messageHolder.removeClass("animated fadeIn fadeInLeft fadeInRight fadeInDown fadeInUp");
@@ -389,15 +393,15 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         uiOnboarding.background.css("visibility", "hidden");
         if (parameters) {
             if ("width" in parameters) {
-                uiOnboarding.messageHolder.css("width", parameters.width);
+                uiOnboarding.messageHolder.css("width", parameters.width * scale);
             }
 
             if ("left" in parameters) {
-                uiOnboarding.messageHolder.css("left", parameters.left);
+                uiOnboarding.messageHolder.css("left", parameters.left * scale);
             }
 
             if ("top" in parameters) {
-                uiOnboarding.messageHolder.css("top", parameters.top);
+                uiOnboarding.messageHolder.css("top", parameters.top * scale);
             }
 
             if ("background" in parameters && parameters.background) {

@@ -1,7 +1,8 @@
 #minimap-holder {
     position: absolute;
-    left: 735px;
-    top: 403px;
+    left: var(--sidebar-left);
+    /* Sit near the bottom of the pano within the sidebar column. */
+    top: calc(var(--street-view-top) + var(--pano-height) - 200px);
     width: 200px;
     height: 200px;
 }

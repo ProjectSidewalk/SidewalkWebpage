@@ -35,8 +35,14 @@ function Canvas(ribbon) {
             return false;
         }
         ctx = el.getContext('2d');
-        canvasProperties.width = el.width;
-        canvasProperties.height = el.height;
+
+        // Render the canvas at its on-screen (and HiDPI) resolution now that pano may be displayed at a different size
+        // than the 720x480 logical frame, while keeping all drawing code in that logical frame via a context transform.
+        _sizeCanvasToDisplay(el);
+
+        // clearRect() operates in the logical frame thanks to the context transform set in _sizeCanvasToDisplay.
+        canvasProperties.width = util.EXPLORE_CANVAS_WIDTH;
+        canvasProperties.height = util.EXPLORE_CANVAS_HEIGHT;
 
         // Attach listeners to dom elements. view-control-layer handles panning, drawing-layer handles adding labels.
         svl.ui.canvas.drawingLayer.bind('mousedown', _handleDrawingLayerMouseDown);
@@ -49,6 +55,23 @@ function Canvas(ribbon) {
         svl.ui.streetview.viewControlLayer.bind('mousemove', _handlerViewControlLayerMouseMove);
         svl.ui.streetview.viewControlLayer.bind('mouseleave', _handlerViewControlLayerMouseLeave);
         svl.ui.streetview.viewControlLayer[0].onselectstart = function () { return false; };
+    }
+
+    /**
+     * Sizes the label canvas bitmap to its on-screen size times the device pixel ratio, and scales the 2D
+     * context so all drawing done in the fixed 720x480 logical frame renders at full resolution.
+     * @param {HTMLCanvasElement} el The label canvas element
+     */
+    function _sizeCanvasToDisplay(el) {
+        const rect = el.getBoundingClientRect();
+        const displayWidth = rect.width || util.EXPLORE_CANVAS_WIDTH;
+        const dpr = window.devicePixelRatio || 1;
+        el.width = Math.round(displayWidth * dpr);
+        el.height = Math.round(displayWidth / util.EXPLORE_CANVAS_ASPECT_RATIO * dpr);
+        // Map the 720x480 logical frame onto the full-resolution bitmap. Setting el.width/height above resets
+        // the context, so this transform must be (re)applied here.
+        const scale = el.width / util.EXPLORE_CANVAS_WIDTH;
+        ctx.setTransform(scale, 0, 0, scale, 0, 0);
     }
 
     /**
@@ -133,11 +156,27 @@ function Canvas(ribbon) {
     }
 
     /**
+     * Returns the cursor position in the fixed 720x480 logical canvas frame.
+     *
+     * The street view is displayed larger than the logical frame (see the --pano-width CSS variable), so we
+     * divide the on-screen position by the display scale.
+     *
+     * @param {MouseEvent} e The mouse event
+     * @param {HTMLElement} dom The element the listener is bound to
+     * @returns {{x: number, y: number}}
+     */
+    function _canvasMousePosition(e, dom) {
+        const pos = util.mousePosition(e, dom);
+        const scale = util.exploreDisplayScale();
+        return { x: Math.round(pos.x / scale), y: Math.round(pos.y / scale) };
+    }
+
+    /**
      * Callback that is fired with the mousedown event on the view control layer (where you control street view angle).
      * @param e
      */
     function _handlerViewControlLayerMouseDown(e) {
-        const currMousePosition = util.mouseposition(e, this);
+        const currMousePosition = _canvasMousePosition(e, this);
         mouseStatus.isLeftDown = true;
         svl.tracker.push('ViewControl_MouseDown', currMousePosition);
         _setViewControlLayerCursor('ClosedHand');
@@ -148,7 +187,7 @@ function Canvas(ribbon) {
      * @param e
      */
     function _handlerViewControlLayerMouseUp(e) {
-        const currMousePosition = util.mouseposition(e, this);
+        const currMousePosition = _canvasMousePosition(e, this);
         mouseStatus.isLeftDown = false;
         svl.tracker.push('ViewControl_MouseUp', currMousePosition);
         const currTime = new Date();
@@ -186,7 +225,7 @@ function Canvas(ribbon) {
      * Callback that is fired when a user moves a mouse on the view control layer where you change the pov.
      */
     function _handlerViewControlLayerMouseMove(e) {
-        const currMousePosition = util.mouseposition(e, this);
+        const currMousePosition = _canvasMousePosition(e, this);
 
         const item = onLabel(currMousePosition.x, currMousePosition.y);
         if (mouseStatus.isLeftDown && svl.panoManager.getStatus('disablePanning') === false) {
@@ -225,14 +264,14 @@ function Canvas(ribbon) {
      * Record locations of mouse-down event. Most functionality happens on mouse-up, but mouse-down context matters.
      */
     function _handleDrawingLayerMouseDown(e) {
-        svl.tracker.push('LabelingCanvas_MouseDown', util.mouseposition(e, this));
+        svl.tracker.push('LabelingCanvas_MouseDown', _canvasMousePosition(e, this));
     }
 
     /**
      * Create a new label on mouse-up if we are in a labeling mode.
      */
     async function _handleDrawingLayerMouseUp(e) {
-        const currMousePosition = util.mouseposition(e, this);
+        const currMousePosition = _canvasMousePosition(e, this);
 
         if (!status.disableLabeling) {
             createLabel(currMousePosition.x, currMousePosition.y);
@@ -405,8 +444,9 @@ function Canvas(ribbon) {
                     needToRerender = true;
                     labels[i].setHoverInfoVisibility('hidden');
 
-                    // All labels share one delete icon that gets moved around. So if not hovering over label, hide the button.
+                    // Hide delete icon and hover tooltip when no label is hovered.
                     svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
+                    svl.ui.canvas.hoverInfoHolder.css('visibility', 'hidden');
                 }
             }
         }

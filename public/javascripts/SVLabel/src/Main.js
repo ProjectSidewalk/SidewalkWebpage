@@ -447,6 +447,11 @@ function Main (params) {
         svl.ui.canvas.severityIconHolder = $("#severity-icon-holder");
         svl.ui.canvas.deleteIcon = $("#label-delete-icon");
         svl.ui.canvas.severityIcon = $("#severity-icon");
+        svl.ui.canvas.hoverInfoHolder = $("#label-hover-info");
+        svl.ui.canvas.hoverInfoType = $("#label-hover-info-type");
+        svl.ui.canvas.hoverInfoSeverity = $("#label-hover-info-severity");
+        svl.ui.canvas.hoverInfoSeverityIcon = $("#label-hover-info-severity-icon");
+        svl.ui.canvas.hoverInfoSeverityText = $("#label-hover-info-severity-text");
 
         // Status holder.
         svl.ui.status = {};

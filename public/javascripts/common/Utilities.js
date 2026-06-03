@@ -5,6 +5,21 @@ util.EXPLORE_CANVAS_WIDTH = 720;
 util.EXPLORE_CANVAS_HEIGHT = 480;
 util.EXPLORE_CANVAS_ASPECT_RATIO = util.EXPLORE_CANVAS_WIDTH / util.EXPLORE_CANVAS_HEIGHT;
 
+/**
+ * Ratio between the Explore street view's on-screen size and its fixed 720x480 logical coordinate frame.
+ *
+ * The pano is displayed larger than the logical frame (see the --pano-width CSS variable), but all coordinate
+ * math, stored canvas_x/canvas_y, and pano_x/pano_y stay in the 720x480 frame. This ratio converts between the
+ * two: multiply a logical coordinate by it to position a DOM element over the pano, or divide an on-screen
+ * coordinate by it to map a click back into the logical frame. Measured live so it is robust to any scaling.
+ *
+ * @returns {number} displayWidth / EXPLORE_CANVAS_WIDTH, or 1 if the street view is not present
+ */
+util.exploreDisplayScale = function() {
+    const layer = document.getElementById('labelDrawingLayer');
+    return layer ? layer.getBoundingClientRect().width / util.EXPLORE_CANVAS_WIDTH : 1;
+};
+
 // Browser detection helpers backed by Bowser 2.x.
 const _bowserParser = bowser.getParser(window.navigator.userAgent);
 util.getBrowserName = () => _bowserParser.getBrowserName();
@@ -13,7 +28,7 @@ util.isChrome = () => util.getBrowserName() === 'Chrome';
 util.isFirefox = () => util.getBrowserName() === 'Firefox';
 
 // A cross-browser function to capture a mouse position.
-function mouseposition(e, dom) {
+function mousePosition(e, dom) {
     var mx, my, zoomFactor;
     var toolUIElem = dom.closest('.tool-ui')
     if (toolUIElem && toolUIElem.style.zoom) {
@@ -25,7 +40,7 @@ function mouseposition(e, dom) {
     my = (e.pageY / zoomFactor) - $(dom).offset().top;
     return {'x': parseInt(mx, 10) , 'y': parseInt(my, 10) };
 }
-util.mouseposition = mouseposition;
+util.mousePosition = mousePosition;
 
 // Object prototype
 // http://www.smipple.net/snippet/insin/jQuery.fn.disableTextSelection

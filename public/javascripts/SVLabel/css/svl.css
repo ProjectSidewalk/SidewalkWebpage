@@ -32,14 +32,11 @@ text {
 
 .button {
     border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
-    color: rgba(96,96,96,1);
+    color: var(--color-neutral-700);
     cursor: pointer;
     font-size: 14px;
     margin-top: 3px;
-    padding-bottom: 2px;
-    padding-left: 5px;
-    padding-right: 5px;
-    padding-top: 2px;
+    padding: 2px 5px;
     width: 200px;
 
     border-radius: 3px 3px 0 0;
@@ -48,7 +45,7 @@ text {
 /* Pseudo-classes
 * http://www.w3schools.com/css/css_pseudo_classes.asp */
 .button:hover {
-    color: #222;
+    color: var(--color-neutral-900);
 }
 
 b { font-weight: bold; }
@@ -78,27 +75,44 @@ input[type="radio"] {
 }
 
 .tool-ui {
-    width: 1170px; /* Used to override bootstrap .container media queries. We want to keep a consistent width. */
+    /* === Explore layout dimensions ===
+     * The pano & label canvas keep a fixed 720x480 *logical* coordinate frame (see util.EXPLORE_CANVAS_WIDTH/HEIGHT) so
+     * pano_x/pano_y, canvas_x/canvas_y, & crop placement are unaffected by display size. These variables control only
+     * the on-screen *display* size of the pano, which scales proportionally. Keep --pano-width : --pano-height at the
+     * same 3:2 ratio as the logical frame so the canvas/crop coordinates continue to map correctly. */
+    --pano-width: 720px;
+    --pano-height: 480px;
+    --sidebar-width: 200px;  /* Right-hand status/minimap column. */
+    --sidebar-gap: 15px;     /* Horizontal gap between the pano and the sidebar. */
+    --ribbon-top: 4px;       /* Offset of the ribbon menu from the top of the app holder. */
+    --ribbon-height: 110px;  /* Height of the ribbon menu sitting above the pano. */
+
+    /* Derived positions — these keep the rest of the layout in sync with the pano size automatically. */
+    --street-view-top: calc(var(--ribbon-top) + var(--ribbon-height)); /* Top of the pano area. */
+    --sidebar-left: calc(var(--pano-width) + var(--sidebar-gap));       /* Left edge of the sidebar column. */
+    --app-width: calc(var(--pano-width) + var(--sidebar-gap) + var(--sidebar-width));
+
+    width: var(--app-width); /* Overrides bootstrap .container media queries to keep a consistent width. */
 }
 
 #svl-application-holder {
-    background: rgba(255,255,255,1);
+    background: var(--color-neutral-white);
     margin: 0 auto;
     position: relative;
-    height: 625px;
-    width: 960px;
+    height: calc(var(--street-view-top) + var(--pano-height) + 31px);
+    width: var(--app-width);
 }
 
 #interaction-area-holder {
     position: absolute;
-    top: 114px; /* ribbon-menu-holder height + top */
-    height: 480px;
-    width: 720px;
+    top: var(--street-view-top);
+    height: var(--pano-height);
+    width: var(--pano-width);
 }
 
 
 #page-overlay-holder {
-    background: rgba(255,255,255,0.5);
+    background: var(--color-neutral-white);
     left: 0;
     height: 100%;
     position: absolute;
@@ -134,8 +148,8 @@ input[type="radio"] {
     z-index: 1;
     font-family: sans-serif;
     font-size: 15px;
-    text-shadow: 1px 1px 1px black;
-    color: white;
+    text-shadow: 1px 1px 1px var(--color-neutral-black);
+    color: var(--color-neutral-white);
 }
 
 /* Modify Google's terms / report an issue buttons' color to match our own buttons. */

@@ -86,9 +86,9 @@
 #ribbon-menu-holder {
     background: transparent;
     position: absolute;
-    top: 4px;
-    height: 110px;
-    width: 720px;
+    top: var(--ribbon-top);
+    height: var(--ribbon-height);
+    width: var(--pano-width);
     /* Height reserved for each group's section-title row. Used to line up all icons. */
     --ribbon-title-height: 14px;
     /* Center the button row vertically within the holder, to avoid pooling whitespace in some languages. */

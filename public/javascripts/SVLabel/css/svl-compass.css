@@ -1,7 +1,8 @@
 #compass-message-holder {
     position: absolute;
-    right: 246px;
-    top: 520px;
+    right: 7px;
+    bottom: 20px;
+    z-index: 2;
     padding: 5px 10px 10px 5px;
     height: 55px;
     min-width: 120px;

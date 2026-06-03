@@ -3,14 +3,26 @@
 }
 
 #onboarding-background {
-    width: 1025px;
-    height: 620px;
+    /* Covers the pano area (plus the ribbon above and some margin) during the tutorial; grows with the pano. */
+    width: calc(var(--pano-width) + 305px);
+    height: calc(var(--pano-height) + 140px);
     background: rgba(255, 255, 255, 1.0);
     position: absolute;
     top: -110px;
     left: -65px;
     z-index: 3;
     visibility: hidden;
+}
+
+/* The grab-and-drag hand animation is drawn on a fixed 720-wide Kinetic canvas; stretch it to the displayed
+   pano width so it scales proportionally like the other canvas layers. */
+#hand-gesture-holder {
+    width: var(--pano-width) !important;
+}
+
+#hand-gesture-holder canvas {
+    width: 100% !important;
+    height: auto !important;
 }
 
 #onboarding-message-holder {

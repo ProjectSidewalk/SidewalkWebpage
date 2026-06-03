@@ -3,9 +3,9 @@
     margin: 0;
     padding: 0;
     position: absolute;
-    left: 735px;
+    left: var(--sidebar-left);
     top: 4px;
-    width: 200px;
+    width: var(--sidebar-width);
     color: rgb(75, 75, 75, 1);
 }
 

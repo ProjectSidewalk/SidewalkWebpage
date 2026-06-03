@@ -1,15 +1,17 @@
 #street-view-holder {
     position: relative;
-    height: 480px;
-    width: 720px;
+    height: var(--pano-height);
+    width: var(--pano-width);
 }
 
+/* The pano viewer, label canvas, and interaction layers fill the (display-sized) street view. The canvas
+   elements keep their fixed 720x480 bitmap resolution and are scaled up to this size by the browser. */
 .window-streetview {
     position: absolute;
     left: 0;
     top: 0;
-    height: 480px;
-    width: 720px;
+    height: var(--pano-height);
+    width: var(--pano-width);
 }
 
 /* The panorama viewport. The 3px border is recolored to match the selected label type by RibbonMenu. */
@@ -63,19 +65,19 @@
 
 #arrow-group image {
     cursor: pointer;
-    filter: drop-shadow(0 0 0.05rem black) drop-shadow(0 0 0.05rem black); /* Adds black outline. */
+    filter: drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black)); /* Adds black outline. */
 }
 
 #arrow-group image:hover {
     filter:
-        drop-shadow(0 0 0.05rem black) drop-shadow(0 0 0.05rem black) /* Adds black outline. */
+        drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black)) /* Adds black outline. */
         sepia(1) saturate(2) hue-rotate(315deg); /* Adds yellow highlight on hover. */
 }
 
 /* Used to highlight/blink the nav arrows in the tutorial. */
 #arrow-group image.highlight {
     filter:
-        drop-shadow(0 0 0.05rem black) drop-shadow(0 0 0.05rem black) /* Adds black outline. */
+        drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black)) /* Adds black outline. */
         sepia(1) saturate(5) hue-rotate(315deg); /* Adds yellow highlight. */
 }
 
@@ -94,6 +96,36 @@
     height: 20px;
     width: 20px;
     position: absolute;
+}
+
+/* Tooltip shown over a hovered label (filled/positioned by Label.js). Background color is set per label type in JS. */
+.label-hover-info {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 2; /* Above the pano's view-control-layer (z-index: 1). */
+    visibility: hidden;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 5px 9px;
+    border: 1px solid var(--color-neutral-white);
+    border-radius: 4px;
+    color: var(--color-neutral-white);
+    font: var(--text-caption-medium);
+    white-space: nowrap;
+}
+
+.label-hover-info-severity {
+    display: none; /* Toggled to flex by Label.js for label types that have a severity. */
+    align-items: center;
+    gap: 5px;
+}
+
+.label-hover-info-severity-icon {
+    width: 16px;
+    height: 16px;
 }
 
 .speed-limit-sign {
@@ -127,7 +159,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 5px;
-    border: 3px solid black;
+    border: 3px solid var(--color-neutral-black);
 }
 
 .speed-limit-sign[data-design-style="non-us-canada"] .speed-limit-holder {

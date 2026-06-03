@@ -8,7 +8,7 @@
 function Label(params) {
     var self = { className: 'Label' };
 
-    var googleMarker;
+    let googleMarker;
 
     // Parameters determined from a series of linear regressions. Here links to the analysis and relevant GitHub issues:
     // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
@@ -37,7 +37,6 @@ function Label(params) {
             distanceCanvasYSlope: 0.0011071
         }
     };
-    const HOVER_INFO_HEIGHT = 20;
 
     const properties = {
         labelId: 'DefaultValue',
@@ -199,8 +198,8 @@ function Label(params) {
     function render(ctx, pov) {
         if (!status.deleted && status.visibility === 'visible') {
             if (status.hoverInfoVisibility === 'visible') {
-                // Render hover info and delete button.
-                renderHoverInfo(ctx);
+                // Show the hover info tooltip and delete button.
+                updateHoverInfo();
                 showDeleteButton();
             }
 
@@ -234,94 +233,77 @@ function Label(params) {
     }
 
     /**
-     * Renders hover info on a canvas to show an overview of the label info.
-     * @param ctx
-     * @returns {boolean}
+     * Shows the hover info tooltip next to this label, displaying its type and severity.
+     *
+     * The tooltip is a single shared DOM element positioned in on-screen pixels, so the label's logical canvas
+     * coordinate is scaled to the displayed pano size (see util.exploreDisplayScale).
      */
-    function renderHoverInfo(ctx) {
-        if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
-            return false;
+    function updateHoverInfo() {
+        // Don't show the hover tooltip while the context menu is open or before the label has a canvas position.
+        if (('contextMenu' in svl && svl.contextMenu.isOpen()) || !properties.currCanvasXY) {
+            hideHoverInfo();
+            return;
         }
 
-        // labelCoordinate represents the upper left corner of the hover info.
-        var labelCoordinate = getCanvasXY(),
-            cornerRadius = 3,
-            hasSeverity = util.misc.labelTypeHasSeverity(properties.labelType),
-            width = 0,
-            labelRows = 1,
-            severityImage = new Image(),
-            severityImageLoaded = false,
-            severityMessage = i18next.t('center-ui.context-menu.severity'),
-            labelTypeText = i18next.t('common:' + util.camelToKebab(properties.labelType)).replace('&shy;', ''),
-            padding = { left: 12, right: 5, bottom: 0, top: 18 };
+        const labelType = properties.labelType;
+        const hasSeverity = util.misc.labelTypeHasSeverity(labelType);
 
+        svl.ui.canvas.hoverInfoType.text(
+            i18next.t('common:' + util.camelToKebab(labelType)).replace('&shy;', '')
+        );
+        svl.ui.canvas.hoverInfoHolder.css('background-color', util.misc.getLabelColors(labelType));
+
+        // Severity row: hidden for label types without severity; otherwise show the rating (or a prompt to rate).
         if (hasSeverity) {
-            labelRows = 2;
             if (properties.severity !== null) {
-                severityImage.src = util.misc.getSmileyIconPath(properties.severity, properties.labelType, true);
-                severityImageLoaded = true;
-                severityMessage = hoverInfoProperties[properties.severity].message;
+                svl.ui.canvas.hoverInfoSeverityText.text(hoverInfoProperties[properties.severity].message);
+                svl.ui.canvas.hoverInfoSeverityIcon
+                    .attr('src', util.misc.getSmileyIconPath(properties.severity, labelType, true))
+                    .css('display', '');
+            } else {
+                svl.ui.canvas.hoverInfoSeverityText.text(i18next.t('center-ui.context-menu.severity'));
+                svl.ui.canvas.hoverInfoSeverityIcon.css('display', 'none');
             }
+            svl.ui.canvas.hoverInfoSeverity.css('display', 'flex');
+        } else {
+            svl.ui.canvas.hoverInfoSeverity.css('display', 'none');
         }
 
-        // Set rendering properties and draw the hover info.
-        ctx.font = '13px Open Sans';
-        var height = HOVER_INFO_HEIGHT * labelRows;
+        // Position the tooltip to the right of the label icon, or to the left if there isn't room on the right.
+        const coord = getCanvasXY();
+        const scale = util.exploreDisplayScale();
+        const holder = svl.ui.canvas.hoverInfoHolder;
+        const centerX = coord.x * scale;
+        const centerY = coord.y * scale;
+        const radius = svl.LABEL_ICON_RADIUS * scale;
+        const gap = 4; // On-screen pixels between the icon and the tooltip.
 
-        // Width of the hover info is determined by the width of the longest row.
-        var firstRow = ctx.measureText(labelTypeText).width;
-        var secondRow = -1;
-
-        // Do additional adjustments on the width to make room for smiley icon.
-        if (hasSeverity) {
-            secondRow = ctx.measureText(severityMessage).width;
-            if (severityImageLoaded) {
-                if (firstRow - secondRow > 0 && firstRow - secondRow < 15) {
-                    width += 15 - firstRow + secondRow;
-                } else if (firstRow - secondRow < 0) {
-                    width += 20;
-                }
-            }
+        let left = centerX + radius + gap;
+        if (left + holder.outerWidth() > util.EXPLORE_CANVAS_WIDTH * scale) {
+            left = centerX - radius - gap - holder.outerWidth();
         }
+        holder.css({
+            visibility: 'visible',
+            left: left,
+            top: centerY - holder.outerHeight() / 2
+        });
+    }
 
-        width += Math.max(firstRow, secondRow) + 5;
-
-        ctx.lineCap = 'square';
-        ctx.lineWidth = 2;
-        ctx.fillStyle = util.misc.getLabelColors(getProperty('labelType'));
-        ctx.strokeStyle = 'rgba(255,255,255,1)';
-
-
-        // Hover info background.
-        ctx.beginPath();
-        ctx.moveTo(labelCoordinate.x + cornerRadius, labelCoordinate.y);
-        ctx.lineTo(labelCoordinate.x + width + padding.left + padding.right - cornerRadius, labelCoordinate.y);
-        ctx.arc(labelCoordinate.x + width + padding.left + padding.right, labelCoordinate.y + cornerRadius, cornerRadius, 3 * Math.PI / 2, 0, false); // Corner
-        ctx.lineTo(labelCoordinate.x + width + padding.left + padding.right + cornerRadius, labelCoordinate.y + height + padding.bottom);
-        ctx.arc(labelCoordinate.x + width + padding.left + padding.right, labelCoordinate.y + height + cornerRadius, cornerRadius, 0, Math.PI / 2, false); // Corner
-        ctx.lineTo(labelCoordinate.x + cornerRadius, labelCoordinate.y + height + 2 * cornerRadius);
-        ctx.arc(labelCoordinate.x + cornerRadius, labelCoordinate.y + height + cornerRadius, cornerRadius, Math.PI / 2, Math.PI, false);
-        ctx.lineTo(labelCoordinate.x, labelCoordinate.y + cornerRadius);
-        ctx.fill();
-        ctx.stroke();
-        ctx.closePath();
-
-        // Hover info text and image.
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(labelTypeText, labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
-        if (hasSeverity) {
-            ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + HOVER_INFO_HEIGHT + padding.top);
-            if (properties.severity !== null) {
-                ctx.drawImage(severityImage, labelCoordinate.x + padding.left +
-                    ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
-            }
-        }
+    /**
+     * Hides the shared hover info tooltip.
+     */
+    function hideHoverInfo() {
+        svl.ui.canvas.hoverInfoHolder.css('visibility', 'hidden');
     }
 
     function showDeleteButton() {
         if (status.hoverInfoVisibility !== 'hidden') {
-            var coord = getCanvasXY();
-            svl.ui.canvas.deleteIconHolder.css({ visibility: 'visible', left : coord.x + 5, top : coord.y - 20 });
+            // coord is in the logical 720x480 frame; scale to on-screen pixels.
+            const coord = getCanvasXY();
+            const scale = util.exploreDisplayScale();
+            svl.ui.canvas.deleteIconHolder.css({
+                visibility: 'visible', left: coord.x * scale + 5, top: coord.y * scale - 25
+            });
         }
     }
 

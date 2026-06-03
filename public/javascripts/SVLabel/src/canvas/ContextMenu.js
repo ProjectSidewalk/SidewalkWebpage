@@ -507,8 +507,8 @@ function ContextMenu (uiContextMenu) {
         $severityRadios.prop('checked', false);
         $descriptionTextBox.val(null);
 
-        var labelType = targetLabel.getLabelType();
-        var labelCoord = targetLabel.getCanvasXY();
+        const labelType = targetLabel.getLabelType();
+        const labelCoord = targetLabel.getCanvasXY();
 
         if (labelType !== 'Occlusion') {
             setStatus('targetLabel', targetLabel);
@@ -522,10 +522,14 @@ function ContextMenu (uiContextMenu) {
             } else {
                 $severityMenu.addClass('hidden');
             }
-            var menuHeight = $menuWindow.outerHeight();
+            // labelCoord is in the logical 720x480 frame; the menu is a DOM element sized in on-screen pixels.
+            // Do the placement math in the logical frame (so the constants below stay valid), converting the
+            // menu's measured height into that frame, then scale the final position to pixels when positioning.
+            const scale = util.exploreDisplayScale();
+            const menuHeight = $menuWindow.outerHeight() / scale;
 
             // Determine coordinates for context menu to display below the label.
-            var topCoordinate = labelCoord.y + svl.LABEL_ICON_RADIUS + LABEL_TO_MENU_GAP;
+            let topCoordinate = labelCoord.y + svl.LABEL_ICON_RADIUS + LABEL_TO_MENU_GAP;
 
             // If there isn't enough room to show the context menu below the label, determine coords to display above.
             // labelCoord.y is top-left of label but is center of rendered label, so we must add the icon radius.
@@ -534,8 +538,8 @@ function ContextMenu (uiContextMenu) {
             }
 
             // Set the menu value if label has it's value set.
-            var severity = targetLabel.getProperty('severity');
-            var description = targetLabel.getProperty('description');
+            const severity = targetLabel.getProperty('severity');
+            const description = targetLabel.getProperty('description');
             if (severity) {
                 $severityRadios.each(function(i, v) {
                     if (severity === i + 1) { $(this).prop("checked", true); }
@@ -552,8 +556,8 @@ function ContextMenu (uiContextMenu) {
 
             $menuWindow.css({
                 visibility: 'visible',
-                left: labelCoord.x - windowWidth / 2,
-                top: topCoordinate
+                left: labelCoord.x * scale - windowWidth / 2,
+                top: topCoordinate * scale
             });
 
             setStatus('visibility', 'visible');
@@ -561,7 +565,7 @@ function ContextMenu (uiContextMenu) {
             if (description) {
                 $descriptionTextBox.val(description);
             }
-            var labelProps = status.targetLabel.getProperties();
+            const labelProps = status.targetLabel.getProperties();
 
             // Don't push event on Occlusion labels; they don't open ContextMenus.
             svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProps.auditTaskId}, {'temporaryLabelId': labelProps.temporaryLabelId});
