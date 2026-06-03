@@ -90,10 +90,8 @@ input[type="radio"] {
 }
 
 #interaction-area-holder {
-    border: 3px solid transparent;
     position: absolute;
-    left: 0;
-    top: 110px;
+    top: 114px; /* ribbon-menu-holder height + top */
     height: 480px;
     width: 720px;
 }

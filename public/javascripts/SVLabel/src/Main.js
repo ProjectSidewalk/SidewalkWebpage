@@ -480,7 +480,7 @@ function Main (params) {
 
         // Ribbon menu DOMs.
         svl.ui.ribbonMenu = {};
-        svl.ui.ribbonMenu.holder = $("#ribbon-menu-label-type-button-holder");
+        svl.ui.ribbonMenu.holder = $("#ribbon-menu-holder");
         svl.ui.ribbonMenu.pano = $("#pano");
         svl.ui.ribbonMenu.buttons = $('.label-type-button-holder');
         svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");

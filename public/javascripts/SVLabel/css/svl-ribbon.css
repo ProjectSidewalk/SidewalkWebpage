@@ -1,10 +1,3 @@
-#ribbon-menu-holder {
-    position: absolute;
-    left: 3px;
-    top: 0;
-    height: 100px;
-}
-
 .icon-ribbon-menu-medium {
     height: 35px;
     margin: 0 5px 0 5px;
@@ -21,22 +14,15 @@
 
 .label-type-button-holder {
     cursor: pointer;
-    display: inline-block;
     position: relative;
-    height: 78px;
-    width: 75px;
+    width: 77px;
 }
 
 #label-type-divider-major {
     border-left: 2px solid lightgray;
-    position: relative;
-    bottom: 19px;
-    margin-right: 5px;
-    margin-left: 2px;
-}
-
-#label-type-divider-minor {
-    margin: 0 3px;
+    align-self: center;
+    top: var(--ribbon-title-height);
+    height: 20px;
 }
 
 .label-type-icon {
@@ -53,8 +39,7 @@
     font-size: 8px;
     line-height: 0.9;
     text-align: center;
-    position: absolute;
-    top: 65px;
+    display: block;
     width: 100%;
     padding-top: 3px;
 }
@@ -66,28 +51,12 @@
 }
 
 .ribbon-menu-title-holder {
+    height: var(--ribbon-title-height);
     overflow: hidden;
-    top: -3px;
     text-align: center;
-}
-
-#ribbon-menu-title-holder-ramp {
-    width: 150px;
-    float: left;
-    left: 90px;
-    position: relative;
-}
-#ribbon-menu-title-holder-sidewalk {
-    overflow: hidden;
-    margin-left: 254px;
-    width: 228px;
-    position: absolute;
-}
-#ribbon-menu-title-holder-other {
-    overflow: hidden;
-    margin-left: 496px;
-    width: 228px;
-    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #ribbon-menu-title {
@@ -114,12 +83,40 @@
     margin-left: 5px;
 }
 
-#ribbon-menu-label-type-button-holder {
+#ribbon-menu-holder {
     background: transparent;
     position: absolute;
-    top: 5px;
-    height: 108px;
-    width: 730px;
+    top: 4px;
+    height: 110px;
+    width: 720px;
+    /* Height reserved for each group's section-title row. Used to line up all icons. */
+    --ribbon-title-height: 14px;
+    /* Center the button row vertically within the holder, to avoid pooling whitespace in some languages. */
+    display: flex;
+    align-items: center;
+}
+
+#ribbon-menu-buttons {
+    flex: 1;
+    display: flex;
+    align-items: stretch;          /* groups share a height so their button rows (and icons) line up */
+    justify-content: space-between;
+}
+
+/* The Explore button has no section title above it, so offset it by the title height to line. */
+#mode-switch-button-walk {
+    margin-top: var(--ribbon-title-height);
+}
+
+/* A labeled section (e.g. Curb Ramp): the title sits on top, its buttons in a row beneath. */
+.ribbon-menu-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.ribbon-menu-group-buttons {
+    display: flex;
+    align-items: stretch;          /* buttons in the row share a height so their icons line up */
 }
 
 #ribbon-menu-other-subcategory-holder {
@@ -137,8 +134,9 @@
     margin: 5px 5px 0 5px;
     background: white;
     border-radius: 28px;
+    border: 1px solid var(--color-neutral-200);
 }
 
 .ribbon-menu-other-subcategory:hover {
-    background-color: #eee;
+    background-color: var(--color-neutral-200);
 }
