@@ -30,8 +30,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     function blink() {
         self.stopBlinking();
         blinkInterval = window.setInterval(function() {
-            uiCompass.messageHolder.toggleClass('white-background-75');
-            uiCompass.messageHolder.toggleClass('highlight-50');
+            uiCompass.messageHolder.toggleClass('highlight-100');
         }, 500);
     }
 
@@ -200,7 +199,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         const image = `<img src="${directionToImagePath(direction)}" class="compass-turn-images" alt="Turn icon"/>`;
         const message =
             `<span class="compass-message-small">${i18next.t('center-ui.compass.unlabeled-problems')}</span>` +
-            `<br/>${image}<span class="bold">${_directionToDirectionMessage(direction)}</span>`;
+            `<br/>${image}<span class="compass-message-large">${_directionToDirectionMessage(direction)}</span>`;
         uiCompass.message.html(message);
     }
 
@@ -232,8 +231,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     function stopBlinking() {
         window.clearInterval(blinkInterval);
         blinkInterval = null;
-        uiCompass.messageHolder.addClass('white-background-75');
-        uiCompass.messageHolder.removeClass('highlight-50');
+        uiCompass.messageHolder.removeClass('highlight-100');
     }
 
     /**

@@ -52,7 +52,7 @@
 }
 
 .deployment-popup .mapboxgl-popup-tip {
-    border-top-color: #ffffff;
+    border-top-color: var(--color-neutral-white);
 }
 
 .popup-content {
@@ -72,7 +72,7 @@
     display: inline-block;
     padding: 8px 16px;
     background-color: #3b82f6;
-    color: white !important;
+    color: var(--color-neutral-white) !important;
     text-decoration: none !important;
     border-radius: 6px;
     font-size: 14px;

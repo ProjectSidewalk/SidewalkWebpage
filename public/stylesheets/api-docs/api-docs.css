@@ -39,13 +39,13 @@
     /* ---- Colors ---- */
     --color-text-primary: #222222;
     --color-text-secondary: #5a7785;
-    --color-text-tertiary: #666666;
+    --color-text-tertiary: var(--color-neutral-700);
     --color-text-light: #999999;
     --color-text-heading: #263238;
-    --color-text-on-accent: #ffffff;
+    --color-text-on-accent: var(--color-neutral-white);
     --color-text-code: #c7254e;
 
-    --color-bg-body: #ffffff;
+    --color-bg-body: var(--color-neutral-white);
     --color-bg-sidebar: #f8f9fa;
     --color-bg-table-header: #f5f5f5;
     --color-bg-table-row-odd: #fdfdfd;
@@ -627,7 +627,7 @@ h6:hover .permalink {
 /* Counter badge - Used for displaying counts */
 .counter-badge {
     font-size: var(--font-size-xs);
-    background-color: white;
+    background-color: var(--color-neutral-white);
     padding: var(--space-xs) var(--space-sm);
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);

@@ -20,6 +20,44 @@ util.exploreDisplayScale = function() {
     return layer ? layer.getBoundingClientRect().width / util.EXPLORE_CANVAS_WIDTH : 1;
 };
 
+/**
+ * Uniformly scales the whole Explore tool to fit the available viewport, like browser zoom.
+ *
+ * Sets the --ui-scale CSS variable on .tool-ui; every Explore dimension is expressed as base-size * var(--ui-scale),
+ * so the pano, ribbon, sidebar, and text all grow/shrink together in proportion.
+ * @returns {number} The applied scale factor.
+ */
+util.applyExploreScale = function() {
+    const toolUI = document.querySelector('.tool-ui');
+    if (!toolUI) return 1;
+
+    // Reference layout size at --ui-scale = 1, read from the unscaled base dimensions defined in svl.css.
+    const styles = getComputedStyle(toolUI);
+    const cssPx = (name) => parseFloat(styles.getPropertyValue(name));
+    const refWidth = cssPx('--pano-base-width') + cssPx('--sidebar-base-gap') + cssPx('--sidebar-base-width');
+    const refHeight = cssPx('--ribbon-base-top') + cssPx('--ribbon-base-height') + cssPx('--pano-base-height');
+    if (!refWidth || !refHeight) return 1; // Base vars missing (page doesn't load svl.css); leave --ui-scale at 1.
+    const MIN_SCALE = 0.65;
+    const MAX_SCALE = 1.8;
+    const H_MARGIN = 24;       // Breathing room on each side of the tool.
+    const BOTTOM_RESERVE = 50; // Space below the tool for the footer and a little margin.
+
+    // Everything above the tool (the navbar) is fixed chrome that does not scale, so reserve it.
+    const topOffset = Math.max(0, toolUI.getBoundingClientRect().top + window.scrollY);
+    const availWidth = window.innerWidth - H_MARGIN * 2;
+    const availHeight = window.innerHeight - topOffset - BOTTOM_RESERVE;
+
+    let scale = Math.min(availWidth / refWidth, availHeight / refHeight);
+    scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
+    const scaleStr = scale.toFixed(4);
+    toolUI.style.setProperty('--ui-scale', scaleStr);
+    // Also expose the scale at the document root so self-contained overlays rendered outside .tool-ui (e.g. the
+    // mission-complete modal) can scale to match via var(--ui-scale, 1).
+    document.documentElement.style.setProperty('--ui-scale', scaleStr);
+
+    return scale;
+};
+
 // Browser detection helpers backed by Bowser 2.x.
 const _bowserParser = bowser.getParser(window.navigator.userAgent);
 util.getBrowserName = () => _bowserParser.getBrowserName();
@@ -27,18 +65,12 @@ util.isSafari = () => util.getBrowserName() === 'Safari';
 util.isChrome = () => util.getBrowserName() === 'Chrome';
 util.isFirefox = () => util.getBrowserName() === 'Firefox';
 
-// A cross-browser function to capture a mouse position.
+// A cross-browser function to capture a mouse position, relative to the given DOM element. The UI is scaled through
+// real layout sizes (var(--ui-scale)), so offset() already reflects the scaled position and no compensation is needed.
 function mousePosition(e, dom) {
-    var mx, my, zoomFactor;
-    var toolUIElem = dom.closest('.tool-ui')
-    if (toolUIElem && toolUIElem.style.zoom) {
-        zoomFactor = parseFloat(toolUIElem.style.zoom) / 100.0 || 1;
-    } else {
-        zoomFactor = 1;
-    }
-    mx = (e.pageX / zoomFactor) - $(dom).offset().left;
-    my = (e.pageY / zoomFactor) - $(dom).offset().top;
-    return {'x': parseInt(mx, 10) , 'y': parseInt(my, 10) };
+    const mx = e.pageX - $(dom).offset().left;
+    const my = e.pageY - $(dom).offset().top;
+    return { 'x': parseInt(mx, 10), 'y': parseInt(my, 10) };
 }
 util.mousePosition = mousePosition;
 
@@ -184,69 +216,6 @@ function camelToKebab(theString) {
     return theString.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
 }
 util.camelToKebab = camelToKebab;
-
-/**
- * Scales the UI on the Explore or Validate pages using CSS zoom. This is necessary because the UI is not responsive.
- *
- * This should only be called from the Explore or Validate pages at this time. We can always make this function more
- * generic in the future.
- * @returns {number}
- */
-function scaleUI() {
-    var toolCSSZoom = 100;
-    if (!util.isSafari()) return toolCSSZoom; // Only tested for Chrome/Safari so far.
-
-    var toolUI = document.querySelector('.tool-ui');
-    var mst = document.querySelector('.mst-content');
-    var zoomPercent = 50;
-
-    // Start with the tool-ui at 50% zoom and find the maximum zoom level that is still visible.
-    if (!!toolUI.offsetParent) {
-        zoomPercent = _findMaxZoomLevel(toolUI, zoomPercent);
-        toolCSSZoom = zoomPercent;
-    }
-
-    // If the Mission Start Tutorial is visible, scale it as well.
-    if (!!mst.offsetParent) {
-        document.querySelector('.mission-start-tutorial-overlay').style.height = 'calc(100% - 70px)';
-        if (zoomPercent > 50) zoomPercent -= 20; // Should be similar as tool-ui, don't need to start at 50%.
-        zoomPercent = _findMaxZoomLevel(mst, zoomPercent);
-    }
-
-    return toolCSSZoom;
-}
-util.scaleUI = scaleUI;
-
-// Returns true if the element is fully visible, false otherwise. Takes into account CSS zoom (tested on chrome/safari).
-function _isVisible(elem) {
-    var zoomFactor = parseFloat(elem.style.zoom) / 100.0 || 1;
-    var scaledRect = elem.getBoundingClientRect();
-    if (zoomFactor !== 1) {
-        scaledRect = {
-            left: scaledRect.left * zoomFactor,
-            bottom: scaledRect.bottom * zoomFactor,
-            right: scaledRect.right * zoomFactor
-        };
-    }
-    return scaledRect.left >= 0 &&
-        scaledRect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-        scaledRect.right <= (window.innerWidth || document.documentElement.clientWidth);
-}
-
-// Finds the maximum CSS zoom level for an element (tested on chrome/safari).
-function _findMaxZoomLevel(elem, startZoom) {
-    var zoomPercent = startZoom;
-    elem.style.zoom = zoomPercent + '%';
-    while (_isVisible(elem) && zoomPercent < 500) {
-        zoomPercent += 10;
-        elem.style.zoom = zoomPercent + '%';
-    }
-    while (!_isVisible(elem) && zoomPercent > 10) {
-        zoomPercent -= 1;
-        elem.style.zoom = zoomPercent + '%';
-    }
-    return zoomPercent;
-}
 
 function escapeHTML(str) {
     return str.replace(/[&<>"']/g, function(match) {

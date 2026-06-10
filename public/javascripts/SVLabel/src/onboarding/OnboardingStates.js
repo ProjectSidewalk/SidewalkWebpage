@@ -34,9 +34,6 @@ function OnboardingStates (contextMenu, compass, panoManager) {
                     return dom ? dom.innerHTML : "";
                 },
                 "width": 1000,
-                "top": -105,
-                "left": -70,
-                "padding": "100px 10px 100px 10px",
                 "background": true
             },
             "panoId": panoId,
@@ -408,11 +405,9 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             },
             "message": {
                 "message": i18next.t('tutorial.zoom-in'),
-                "arrow": "left",
-                "fade-direction": "fadeIn",
-                "top": 30,
-                "left": 5,
-                "transform": "translateY(-50%)"
+                "anchor": "#zoom-in-button",
+                "placement": "left",
+                "fade-direction": "fadeIn"
             },
             "panoId": panoId,
             "annotations": null,
@@ -1009,10 +1004,8 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.zoom-out'),
                 "fade-direction": "fadeIn",
-                "arrow": "left",
-                "top": 80,
-                "left": 5,
-                "transform": "translateY(-50%)"
+                "anchor": "#zoom-out-button",
+                "placement": "left"
             },
             "panoId": panoId,
             "annotations": null,
@@ -1394,7 +1387,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
                 "message": i18next.t('tutorial.tag-attribute-7') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingMissingSidewalk.gif` +
                     '" class="width-75" style="margin: 5px auto;display:block;">',
-                "left": 410
+                "position": "top-right"
             },
             "panoId": panoId,
             "annotations": null,
@@ -1427,7 +1420,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
                 "message": i18next.t('tutorial.redo-tag-attribute-7') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingMissingSidewalk.gif` +
                     '" class="width-75" style="margin: 5px auto;display:block;">',
-                "left": 410
+                "position": "top-right"
             },
             "panoId": panoId,
             "annotations": null,
@@ -1800,10 +1793,8 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.walk-1'),
                 "fade-direction": "fadeIn",
-                "arrow": "right",
-                "top": 377,
-                "left": 403,
-                "transform": "translateY(-50%)"
+                "anchor": "#minimap-holder",
+                "placement": "top"
             },
             "panoId": panoId,
             "transition": function () {
@@ -1830,10 +1821,8 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.walk-2'),
                 "fade-direction": "fadeIn",
-                "arrow": "bottom",
-                "top": 391,
-                "left": 590,
-                "transform": "translate(-50%, -100%)"
+                "anchor": "#compass-message-holder",
+                "placement": "top"
             },
             "panoId": panoId,
             "annotations": null,
@@ -1873,11 +1862,9 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.walk-4'),
                 "width": 350,
-                "arrow": "right",
                 "fade-direction": "fadeIn",
-                "top": 377,
-                "left": 353,
-                "transform": "translateY(-50%)"
+                "anchor": "#minimap-holder",
+                "placement": "top"
             },
             "panoId": afterWalkPanoId,
             "annotations": null,
@@ -1994,11 +1981,9 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             },
             "message": {
                 "message": i18next.t('tutorial.instruction-1'),
-                "arrow": "right",
                 "fade-direction": "fadeIn",
-                "top": 377,
-                "left": 403,
-                "transform": "translateY(-50%)"
+                "anchor": "#minimap-holder",
+                "placement": "top"
             },
             "panoId": afterWalkPanoId,
             "annotations": null,
@@ -2016,10 +2001,8 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.instruction-2'),
                 "fade-direction": "fadeIn",
-                "arrow": "left",
-                "top": 265,
-                "left": 5,
-                "transform": "translateY(-50%)"
+                "anchor": "#left-column-stuck-button",
+                "placement": "right"
             },
             "panoId": afterWalkPanoId,
             "annotations": null,
@@ -2041,9 +2024,6 @@ function OnboardingStates (contextMenu, compass, panoManager) {
                     return document.getElementById("onboarding-outro").innerHTML;
                 },
                 "width": 1000,
-                "top": -105,
-                "left": -70,
-                "padding": "100px 10px 100px 10px",
                 "background": true
             },
             "okButton": false,

@@ -38,7 +38,7 @@
 .leaderboard-table-striped>tbody>tr:nth-child(even)>td,
 .leaderboard-table-striped>tbody>tr:nth-child(even)>th {
     background-color: #fce6b5;
-    color: black;
+    color: var(--color-neutral-black);
 }
 
 .leaderboard-container {

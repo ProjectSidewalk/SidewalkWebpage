@@ -13,23 +13,12 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
     let status = {
         disableClickOK: true
     };
-    let blinkInterval;
 
     let _uiModalComment = uiModalComment;
     let _uiLeftColumn = uiLeftColumn;  // This should not be this module's responsibility.
 
     // Initializing feedback popover
     _uiLeftColumn.feedback.popover();
-
-    /**
-     * Blink the feedback button on the left
-     */
-    self.blink = function() {
-        self.stopBlinking();
-        blinkInterval = window.setInterval(function () {
-            _uiLeftColumn.feedback.toggleClass("highlight-50");
-        }, 500);
-    };
 
     /**
      * A callback function for clicking the feedback button on the left
@@ -120,14 +109,6 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
         _uiModalComment.ok.removeClass("disabled");
         status.disableClickOK = false;
     }
-
-    /**
-     * Stop blinking the feedback button on the left column
-     */
-    self.stopBlinking = function() {
-        window.clearInterval(blinkInterval);
-        _uiLeftColumn.feedback.removeClass("highlight-50");
-    };
 
     /**
      * Submit the comment.

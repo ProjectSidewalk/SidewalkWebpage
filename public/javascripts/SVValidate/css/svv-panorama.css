@@ -15,7 +15,7 @@
     width: 720px;
     border: 3px solid var(--color-asphalt-400);
     border-radius: 4px;
-    background-color: black;
+    background-color: var(--color-neutral-black);
     overflow: hidden;
 }
 
@@ -73,7 +73,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 5px;
-    border: 3px solid black;
+    border: 3px solid var(--color-neutral-black);
 }
 
 .speed-limit-sign[data-design-style="non-us-canada"] .speed-limit-holder {
@@ -111,8 +111,8 @@
     z-index: 2;
     font-family: sans-serif;
     font-size: 15px;
-    text-shadow: 1px 1px 1px black;
-    color: white;
+    text-shadow: 1px 1px 1px var(--color-neutral-black);
+    color: var(--color-neutral-white);
 }
 
 #svv-panorama-date {
@@ -142,7 +142,7 @@ div:has(> .gmnoprint) {
     height: 30px;
     padding: 8px 12px;
     gap: 8px;
-    background: #fff;
+    background: var(--color-neutral-white);
     border-radius: 6px;
     border: 1.5px solid #525252;
     color: #2D2A3F;
@@ -178,11 +178,11 @@ div:has(> .gmnoprint) {
     min-width: 165px;
     max-width: 260px;
     position: absolute;
-    color: white;
+    color: var(--color-neutral-white);
     font-family: "Open sans";
     padding: 3px 10px;
     border-radius: 5px;
-    border: white solid 2px;
+    border: var(--color-neutral-white) solid 2px;
     font-size: 12px;
     z-index: 1;
 }

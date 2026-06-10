@@ -1,16 +1,21 @@
-/* Shared tag pill styles — used in map sidebar filters and label detail popups. */
+/* Shared tag pill styles — used in Explore, Validate, map sidebar filters, and label detail popups. */
 .tag-pill {
     display: inline-flex;
+    justify-content: center;
     align-items: center;
-    padding: 6px 10px;
-    border: 1px solid #666;
-    border-radius: 16px;
-    font-family: "Raleway", sans-serif;
-    font-weight: 600;
-    font-size: 10px;
-    color: #000;
-    background: #fff;
+    gap: 3px;
+    padding: 3px 10px;
+    outline: 1px solid var(--color-neutral-900);
+    border: none;
+    border-radius: 200px;
+    background: var(--color-neutral-white);
     white-space: nowrap;
+}
+
+.tag-pill__label {
+    font: var(--text-tiny-semibold);
+    color: var(--color-neutral-black);
+    pointer-events: none;
 }
 
 /* Interactive pills (toggleable filters, clickable actions, etc.) */
@@ -19,13 +24,16 @@
 }
 
 .tag-pill--interactive:hover {
-    background: var(--color-pine-100);
+    background: var(--color-pine-200);
+    outline: none;
 }
 
 .tag-pill--interactive.tag-pill--active {
-    background: var(--color-pine-400);
+    background: var(--color-pine-300);
+    outline: none;
 }
 
 .tag-pill--interactive.tag-pill--active:hover {
     background: var(--color-pine-300);
+    outline: 1px solid var(--color-pine-500);
 }

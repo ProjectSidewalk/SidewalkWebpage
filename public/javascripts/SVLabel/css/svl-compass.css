@@ -1,30 +1,33 @@
 #compass-message-holder {
     position: absolute;
-    right: 7px;
-    bottom: 20px;
+    right: calc(7px * var(--ui-scale));
+    bottom: calc(20px * var(--ui-scale));
     z-index: 2;
-    padding: 5px 10px 10px 5px;
-    height: 55px;
-    min-width: 120px;
+    padding: calc(5px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(5px * var(--ui-scale));
+    height: calc(55px * var(--ui-scale));
+    min-width: calc(120px * var(--ui-scale));
     white-space: nowrap;
-    border-radius: 3px 3px 3px 3px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-    transition: background-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+    border-radius: calc(3px * var(--ui-scale));
+    transition: background-color 150ms ease, transform 150ms ease;
+    background-color: rgb(from var(--color-neutral-white) r g b / 75%);
 }
 
 #compass-message-holder[style*="cursor: pointer"]:hover {
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    background-color: var(--color-neutral-white);
+}
+
+.compass-message-large {
+    font: var(--text-body-bold);
 }
 
 .compass-message-small {
-    font-size: 8pt;
-    margin: 5px;
+    font: var(--text-caption-regular);
+    margin: calc(5px * var(--ui-scale));
 }
 
 .compass-turn-images {
     position: relative;
-    bottom: 2px;
-    width: 25px;
-    margin: 0 10px 0 0
+    bottom: calc(2px * var(--ui-scale));
+    width: calc(25px * var(--ui-scale));
+    margin: 0 calc(10px * var(--ui-scale)) 0 0
 }

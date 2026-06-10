@@ -1,82 +1,86 @@
+/* Feedback dialog. Centered card over the tool area; scales with the UI via var(--ui-scale). */
 #modal-comment-holder {
     position: absolute;
     left: 0;
     top: 0;
     height: 100%;
     width: 100%;
-    text-align: justify;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #modal-comment-background {
     position: absolute;
-    left: 0px;
+    left: 0;
     top: 0;
-    background: rgba(255, 255, 255, 0.5);
+    background: rgb(from var(--color-neutral-white) r g b / 50%);
     visibility: hidden;
     height: 100%;
-    width: 110%;
+    width: 100%;
 }
 
 #modal-comment-box {
-    background: rgba(255, 255, 255, 1);
-    color: rgba(80, 80, 80, 1);
-    font-size: 13pt;
-    padding: 10px;
-    position: absolute;
-    top: 35%;
-    left: 8px;
-    visibility: visible;
-    width: 720px;
+    position: relative;
+    box-sizing: border-box;
     z-index: 1;
+    width: calc(480px * var(--ui-scale));
+    max-width: 70%;
+    margin-right: var(--sidebar-width);
+    padding: calc(24px * var(--ui-scale));
+    background: var(--color-neutral-white);
+    color: var(--color-asphalt-500);
+    border-radius: calc(12px * var(--ui-scale));
+    box-shadow: 0 calc(5px * var(--ui-scale)) calc(5px * var(--ui-scale)) rgb(from var(--color-asphalt-900) r g b / 25%);
+}
 
-    border-radius: 3px 3px 3px 3px;
+#modal-comment-title {
+    font: var(--text-subtitle-bold);
+    margin-bottom: calc(12px * var(--ui-scale));
+}
+
+#modal-comment-title p {
+    margin: 0;
+}
+
+.modal-comment-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: calc(10px * var(--ui-scale));
 }
 
 .modal-foreground {
-    top: 110px;
+    top: var(--street-view-top);
     left: 0;
     right: 0;
-    padding: 10px;
-    height: 496px;
-    background: rgba(255, 255, 255, 1);
-    color: rgba(80, 80, 80, 1);
-    font-size: 14pt;
+    padding: calc(10px * var(--ui-scale, 1));
+    height: var(--pano-height);
+    background: var(--color-neutral-white);
     position: absolute;
-    min-height: 480px;
-    border: 5px solid black;
-
-    border-radius: 3px 3px 3px 3px;
+    overflow: hidden;
+    border: calc(4px * var(--ui-scale, 1)) solid var(--color-neutral-black);
+    border-radius: calc(5px * var(--ui-scale, 1));
     z-index: 4;
 }
 
 .modal-foreground h1 {
-    font-size: 18pt;
-    margin: 3px 0 10px 0;
-}
-
-.modal-foreground h2 {
-    font-size: 16pt;
-    margin: 3px 0 10px 0;
-
+    font: var(--text-h3-medium);
+    margin: calc(3px * var(--ui-scale, 1)) 0 calc(10px * var(--ui-scale, 1)) 0;
 }
 
 .modal-foreground h3 {
-    font-size: 14pt;
-    margin: 3px 0 5px 0;
-}
-
-.modal-foreground p {
-    font-size: 12pt;
+    font:var(--text-subtitle-medium);
+    margin: calc(3px * var(--ui-scale, 1)) 0 calc(5px * var(--ui-scale, 1)) 0;
 }
 
 .modal-foreground .table {
-    margin-bottom: 10px !important;
+    margin-bottom: calc(10px * var(--ui-scale, 1)) !important;
 }
 
 .modal-foreground th, .modal-foreground td {
-    padding: 3px !important;
-    font-size: 9pt;
-    font-weight: normal;
+    padding: calc(3px * var(--ui-scale, 1)) !important;
+    font: var(--text-caption-regular);
 }
 
 .modal-foreground .col-right {
@@ -84,38 +88,34 @@
     text-align: center;
 }
 
-.modal-foreground #modal-mission-complete-message {
-    font-size: 11pt;
-}
-
 .modal-foreground .blue-btn {
-    color: white;
-    font-size: 14pt;
+    color: var(--color-neutral-white);
+    font: var(--text-body-regular);
 }
 
 .modal-foreground .btn-primary {
-    color: white;
+    color: var(--color-neutral-white);
     cursor: pointer;
-    border: 1px solid transparent;
-    font-size: 14pt;
+    border: calc(1px * var(--ui-scale, 1)) solid transparent;
+    font: var(--text-body-regular);
     opacity: 1.0;
 }
 
 .modal-foreground .btn-secondary {
-    color: black;
-    background: white;
+    color: var(--color-neutral-black);
+    background: var(--color-neutral-white);
     cursor: pointer;
-    border: 1px solid black;
-    font-size: 14pt;
+    border: calc(1px * var(--ui-scale, 1)) solid var(--color-neutral-black);
+    font: var(--text-body-regular);
     opacity: 1.0;
 }
 
 .modal-foreground .btn-loading {
-    color: white;
-    background: #7f7f7f;
+    color: var(--color-neutral-white);
+    background: var(--color-neutral-600);
     cursor: wait;
-    border: 1px solid transparent;
-    font-size: 14pt;
+    border: calc(1px * var(--ui-scale, 1)) solid transparent;
+    font: var(--text-body-regular);
     opacity: 0.35;
 }
 
@@ -124,55 +124,77 @@
 }
 .modal-foreground .mapbox{
     position: relative;
+    height: calc(var(--pano-height) - 75px * var(--ui-scale, 1));
 }
 .modal-foreground .mapbox #map-legend {
-    font-size: 8pt;
+    font: var(--text-caption-regular);
     position: absolute;
-    top: 360px;
-    right: 20px;
-    width: 145px;
-    height: 55px;
-    border-radius: 3px;
-    background-color: rgba(240,240,240,1);
+    bottom: calc(18px * var(--ui-scale, 1));
+    right: calc(6px * var(--ui-scale, 1));
+    width: calc(145px * var(--ui-scale, 1));
+    height: calc(60px * var(--ui-scale, 1));
+    border-radius: calc(3px * var(--ui-scale, 1));
+    background-color: var(--color-neutral-100);
 }
 
 .modal-foreground .mapbox #map-legend .legend-label {
-    margin-left: 5px;
-    margin-top: 5px;
+    margin-left: calc(5px * var(--ui-scale, 1));
+    margin-top: calc(5px * var(--ui-scale, 1));
 }
 
 .legend-label {
-    margin-right: 5px;
+    width: calc(10px * var(--ui-scale, 1));
+    height: calc(10px * var(--ui-scale, 1));
+    margin-right: calc(5px * var(--ui-scale, 1));
+}
+
+/* The colored square is sized via CSS geometry so it scales with the legend (the svg's 10x10 attributes do not). */
+.legend-label rect {
+    width: calc(10px * var(--ui-scale, 1));
+    height: calc(10px * var(--ui-scale, 1));
 }
 
 .modal-foreground .mapbox #map-legend #green-square {
-    fill: rgba(20,220,120,1);
+    fill: var(--color-success-200);
 }
 
 .modal-foreground .mapbox #map-legend #blue-square {
-    fill: rgba(70,130,180,1);
+    fill: var(--color-link-100);
 }
 
 .modal-foreground .mapbox #map-legend #gray-square {
-    fill: rgba(100,100,100,1);
+    fill: var(--color-neutral-700);
 }
 
 #modal-comment-textarea {
-    height: 100px;
+    box-sizing: border-box;
+    height: calc(120px * var(--ui-scale));
     width: 100%;
-    margin: 5px 0 10px 0;
-    border-radius: 3px 3px 3px 3px;
+    margin: 0 0 calc(16px * var(--ui-scale)) 0;
+    padding: calc(10px * var(--ui-scale)) calc(12px * var(--ui-scale));
+    border: 1px solid var(--color-neutral-300);
+    border-radius: calc(8px * var(--ui-scale));
+    font: var(--text-small-regular);
+    color: var(--color-asphalt-500);
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#modal-comment-textarea:focus {
+    border-color: var(--color-asphalt-300);
+    box-shadow: 0 0 0 calc(3px * var(--ui-scale)) rgb(from var(--color-asphalt-400) r g b / 15%);
 }
 
 #modal-mission-complete-map {
     position: absolute;
-    width: 530px;
-    height: 420px;
+    width: calc(530px * var(--ui-scale, 1));
+    height: calc(var(--pano-height) - 75px * var(--ui-scale, 1)); /* subtract title height. */
 }
 
 .modal-mission-left-column-images {
     width: 100%;
-    padding: 25px 0 0 0;
+    padding: calc(25px * var(--ui-scale, 1)) 0 0 0;
 }
 
 #modal-mission-complete-holder {
@@ -189,9 +211,9 @@
 
 .modal-background {
     position: absolute;
-    left: -55px;
+    left: calc(-55px * var(--ui-scale, 1));
     top: 0;
-    background: rgba(255, 255, 255, 0.5);
+    background: rgb(from var(--color-neutral-white) r g b / 50%);
     height: 100%;
     width: 110%;
 }

@@ -18,7 +18,6 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory, storage) {
     };
     audios.drip.volume = 0.25;
     audios.success.volume = 0.05;
-    var blinkInterval;
 
     uiSoundButton.sound.on('click', toggleSound);
 
@@ -33,16 +32,6 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory, storage) {
     this._model.on("playAudio", function (parameter) {
         play(parameter.audioType);
     });
-
-    /**
-     * Blink
-     */
-    function blink () {
-        stopBlinking();
-        blinkInterval = window.setInterval(function () {
-            uiSoundButton.sound.toggleClass("highlight-50");
-        }, 500);
-    }
 
     /**
      * Callback for button click
@@ -90,23 +79,13 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory, storage) {
         return this;
     }
 
-    /**
-     * Stop blinking the button
-     */
-    function stopBlinking () {
-        window.clearInterval(blinkInterval);
-        uiSoundButton.sound.removeClass("highlight-50");
-    }
-
     // To add the appropriate style to the sound button based on the storage when the document is loaded
     if(storage.get("muted"))
         mute();
     else
         unmute();
 
-    self.blink = blink;
     self.load = load;
     self.play = play;
-    self.stopBlinking = stopBlinking;
     return self;
 }

@@ -6,7 +6,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px 16px;
-    background: white;
+    background: var(--color-neutral-white);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     position: sticky;
     top: 0;
@@ -78,7 +78,7 @@
     font-family: Raleway-bold, sans-serif;
     font-size: 30px;
     font-weight: bold;
-    color: #fff;
+    color: var(--color-neutral-white);
     line-height: 1.2;
     letter-spacing: 0.04em;
     margin: 0 0 28px;
@@ -230,7 +230,7 @@
 /* Collaborators section */
 #mobile-collaborators {
     padding: 40px 20px;
-    background: white;
+    background: var(--color-neutral-white);
     text-align: center;
 }
 
@@ -276,7 +276,7 @@
     font-family: Raleway-bold, sans-serif;
     font-size: 26px;
     font-weight: bold;
-    color: #fff;
+    color: var(--color-neutral-white);
     margin: 0 0 12px;
     line-height: 1.2;
 }

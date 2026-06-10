@@ -73,6 +73,9 @@ function Main (params) {
         svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
 
+        // Warm the label-icon cache up front so canvas renders draw icons in the right order. See Label.preloadIcons.
+        svl.iconsPreloaded = Label.preloadIcons();
+
         svl.navigationService = new NavigationService(svl.neighborhoodModel, svl.ui.streetview);
 
         svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl, svl.tracker);
@@ -88,7 +91,6 @@ function Main (params) {
         svl.jumpModel = new JumpModel();
         svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
 
-        svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldOverall = new StatusFieldOverall(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.user, svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
@@ -273,10 +275,9 @@ function Main (params) {
         }
 
         if (!("onboarding" in svl && svl.onboarding)) {
-            svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form, onboardingHandAnimation,
-                svl.navigationService, svl.missionContainer, svl.modalComment, svl.leftMenu, onboardingStates,
-                svl.ribbon, svl.statusField, svl.tracker, svl.canvas, svl.ui.canvas, svl.contextMenu, svl.ui.onboarding,
-                svl.ui.leftColumn, svl.user, svl.zoomControl);
+            svl.onboarding = new Onboarding(svl, svl.compass, onboardingHandAnimation, svl.navigationService,
+                svl.missionContainer, svl.leftMenu, onboardingStates, svl.ribbon, svl.tracker, svl.canvas,
+                svl.ui.canvas, svl.contextMenu, svl.ui.onboarding, svl.ui.leftColumn, svl.zoomControl);
         }
         svl.onboarding.start();
     }
@@ -301,7 +302,8 @@ function Main (params) {
         svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), function (result) {
             svl.statusFieldNeighborhood.setLabelCount(svl.labelContainer.countLabels());
             svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
-            svl.canvas.render();
+            // Wait for the icon cache before this first paint (resolves immediately if already warm).
+            svl.iconsPreloaded.then(function() { svl.canvas.render(); });
 
             // Count the labels of each label type to initialize the current mission label counts.
             var counter = {'CurbRamp': 0, 'NoCurbRamp': 0, 'Obstacle': 0, 'SurfaceProblem': 0, 'NoSidewalk': 0, 'Other': 0};
@@ -377,12 +379,27 @@ function Main (params) {
             svl.observedArea.panoChanged();
             svl.observedArea.update();
 
-            // Use CSS zoom to scale the UI for users with high resolution screens.
-            // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
-            if (util.isSafari()) {
-                svl.cssZoom = util.scaleUI();
-                window.addEventListener('resize', (e) => { svl.cssZoom = util.scaleUI(); });
+            // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale).
+            util.applyExploreScale();
+            // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
+            if (svl.canvas) svl.canvas.resize();
+            if (svl.observedArea) svl.observedArea.update();
+            // Redraw fog of war after the rescale. Minimap does this async, so we have to listen on this event.
+            if (svl.observedArea && svl.minimap) {
+                google.maps.event.addListenerOnce(svl.minimap.getMap(), 'bounds_changed',
+                    () => svl.observedArea.update());
             }
+            window.dispatchEvent(new Event('resize'));
+
+            let resizeRasterTimer;
+            window.addEventListener('resize', () => {
+                util.applyExploreScale();
+                clearTimeout(resizeRasterTimer);
+                resizeRasterTimer = setTimeout(() => {
+                    if (svl.canvas) svl.canvas.resize();
+                    if (svl.observedArea) svl.observedArea.update();
+                }, 150);
+            });
         }
     }
 
@@ -487,6 +504,7 @@ function Main (params) {
         svl.ui.ribbonMenu = {};
         svl.ui.ribbonMenu.holder = $("#ribbon-menu-holder");
         svl.ui.ribbonMenu.pano = $("#pano");
+        svl.ui.ribbonMenu.panoFrame = $("#pano-border-frame");
         svl.ui.ribbonMenu.buttons = $('.label-type-button-holder');
         svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
         svl.ui.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategory");
@@ -519,7 +537,6 @@ function Main (params) {
         svl.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
         svl.ui.modalMissionComplete.background = $("#modal-mission-complete-background");
         svl.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
-        svl.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
         svl.ui.modalMissionComplete.mapLegendLabel1 = $("#modal-mission-complete-map-legend-label-1");
         svl.ui.modalMissionComplete.mapLegendLabel2 = $("#modal-mission-complete-map-legend-label-2");

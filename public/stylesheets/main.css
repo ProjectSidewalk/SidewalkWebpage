@@ -3,8 +3,19 @@
 * --------------------------------------------------
 */
 
-/* Project Sidewalk color pallete */
+/* Global constants, primarily from our Design System Tokens. */
 :root {
+    /* Project Sidewalk primary color pallete. */
+    --color-asphalt-100: #D5D3E4;
+    --color-asphalt-200: #9F9DB1;
+    --color-asphalt-300: #615E78;
+    --color-asphalt-400: #424055;
+    --color-asphalt-500: #2D2A3F;
+    --color-asphalt-600: #242232;
+    --color-asphalt-700: #1B1926;
+    --color-asphalt-800: #121119;
+    --color-asphalt-900: #09080D;
+
     --color-pine-100: #E4F4EE;
     --color-pine-200: #C9E9DD;
     --color-pine-300: #AEDFCD;
@@ -15,15 +26,15 @@
     --color-pine-800: #305044;
     --color-pine-900: #182822;
 
-    --color-asphalt-100: #D5D3E4;
-    --color-asphalt-200: #9F9DB1;
-    --color-asphalt-300: #615E78;
-    --color-asphalt-400: #424055;
-    --color-asphalt-500: #2D2A3F;
-    --color-asphalt-600: #242232;
-    --color-asphalt-700: #1B1926;
-    --color-asphalt-800: #121119;
-    --color-asphalt-900: #09080D;
+    --color-orange-100: #FDEDE8;
+    --color-orange-200: #FBE3DC;
+    --color-orange-300: #F6B6A2;
+    --color-orange-400: #F29173;
+    --color-orange-500: #EB724E;
+    --color-orange-600: #A74D32;
+    --color-orange-700: #8D442F;
+    --color-orange-800: #5E2E1F;
+    --color-orange-900: #2F1710;
 
     --color-banana-100: #FEF7E8;
     --color-banana-200: #FDF0D1;
@@ -47,7 +58,28 @@
     --color-neutral-900: #242424;
     --color-neutral-black: #000000;
 
-    --navbar-height: 38px;
+    /* Project Sidewalk functional color pallete. */
+    --color-success-100: #43EF8E;
+    --color-success-200: #11C961;
+
+    --color-error-100: #F47178;
+    --color-error-200: #ED1C24;
+
+    --color-warning-100: #FFEF92;
+    --color-warning-200: #FFDE24;
+
+    --color-link-100: #3E8BD9;
+    --color-link-200: #0F5FAF;
+
+    /* Project Sidewalk label-type color palette. The canonical color for each accessibility label type. */
+    /* TODO these have different shades defined in Figma, not sure if we need those. */
+    --color-label-curb-ramp: #8FC31E;
+    --color-label-no-curb-ramp: #E679B5;
+    --color-label-obstacle: #78B0EA;
+    --color-label-surface-problem: #F68D3E;
+    --color-label-no-sidewalk: #BE87D8;
+    --color-label-crosswalk: #FABF1C;
+    --color-label-signal: #62C0AB;
 
     /* Font stacks. Mulish handles ~all type (body, UI, headings H3 and below); Raleway is reserved for top-level H1/H2
        and the Small-Accent style. Mulish doesn't ship CJK glyphs, so its stack ends with Traditional-Chinese system
@@ -57,33 +89,45 @@
     --font-accent:  'Raleway', sans-serif;
 
     /* Typography scale: mirrors the Figma Design System Tokens file.
-       Format: font-weight font-size/line-height font-family */
-    --text-h1-bold:          700 32px/38px var(--font-accent);
+       Format: font-weight font-size/line-height font-family. The font-size and line-height are each multiplied by
+       var(--ui-scale, 1) so every type token scales with uniform UI scaling that we have on some pages. Pages that
+       don't set --ui-scale fall back to 1, leaving the tokens at their native sizes. */
+    --text-h1-bold:          700 calc(32px * var(--ui-scale, 1))/calc(38px * var(--ui-scale, 1)) var(--font-accent);
 
-    --text-h2-bold:          700 28px/34px var(--font-accent);
+    --text-h2-bold:          700 calc(28px * var(--ui-scale, 1))/calc(34px * var(--ui-scale, 1)) var(--font-accent);
 
-    --text-h3-bold:          700 24px/28px var(--font-primary);
-    --text-h3-medium:        500 24px/28px var(--font-primary);
+    --text-h3-bold:          700 calc(24px * var(--ui-scale, 1))/calc(28px * var(--ui-scale, 1)) var(--font-primary);
+    --text-h3-medium:        500 calc(24px * var(--ui-scale, 1))/calc(28px * var(--ui-scale, 1)) var(--font-primary);
 
-    --text-title-bold:       700 20px/24px var(--font-primary);
-    --text-title-medium:     500 20px/24px var(--font-primary);
+    --text-title-bold:       700 calc(20px * var(--ui-scale, 1))/calc(24px * var(--ui-scale, 1)) var(--font-primary);
+    --text-title-medium:     500 calc(20px * var(--ui-scale, 1))/calc(24px * var(--ui-scale, 1)) var(--font-primary);
 
-    --text-subtitle-bold:    700 18px/22px var(--font-primary);
-    --text-subtitle-medium:  500 18px/22px var(--font-primary);
-    --text-subtitle-regular: 400 18px/22px var(--font-primary);
+    --text-subtitle-bold:    700 calc(18px * var(--ui-scale, 1))/calc(22px * var(--ui-scale, 1)) var(--font-primary);
+    --text-subtitle-medium:  500 calc(18px * var(--ui-scale, 1))/calc(22px * var(--ui-scale, 1)) var(--font-primary);
+    --text-subtitle-regular: 400 calc(18px * var(--ui-scale, 1))/calc(22px * var(--ui-scale, 1)) var(--font-primary);
 
-    --text-body-bold:        700 16px/22px var(--font-primary);
-    --text-body-medium:      500 16px/22px var(--font-primary);
-    --text-body-regular:     400 16px/22px var(--font-primary);
+    --text-body-bold:        700 calc(16px * var(--ui-scale, 1))/calc(22px * var(--ui-scale, 1)) var(--font-primary);
+    --text-body-medium:      500 calc(16px * var(--ui-scale, 1))/calc(22px * var(--ui-scale, 1)) var(--font-primary);
+    --text-body-regular:     400 calc(16px * var(--ui-scale, 1))/calc(22px * var(--ui-scale, 1)) var(--font-primary);
 
-    --text-small-bold:       700 14px/18px var(--font-primary);
-    --text-small-medium:     500 14px/18px var(--font-primary);
-    --text-small-regular:    400 14px/18px var(--font-primary);
-    --text-small-accent:     400 14px/18px var(--font-accent);
+    --text-small-bold:       700 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
+    --text-small-medium:     500 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
+    --text-small-regular:    400 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
+    --text-small-accent:     400 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-accent);
 
-    --text-caption-semibold: 600 12px/18px var(--font-primary);
-    --text-caption-medium:   500 12px/18px var(--font-primary);
-    --text-underline-medium: 500 12px/18px var(--font-primary);
+    --text-caption-semibold: 600 calc(12px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
+    --text-caption-medium:   500 calc(12px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
+    --text-caption-regular:  400 calc(12px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
+    --text-underline-medium: 500 calc(12px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
+
+    /* Try to avoid using such tiny text!! */
+    --text-tiny-semibold: 600 calc(10px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
+    --text-tiny-medium:   500 calc(10px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
+    --text-tiny-regular:  400 calc(10px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
+
+    /* Other globals. */
+    --navbar-height: 38px;
+    --navbar-z-index: 1030;
 }
 
 
@@ -104,10 +148,14 @@
 }
 
 
+/* TODO we should be using Mulish here. */
 html,
 body {
     font-family:'Open Sans', 'Noto Sans', sans-serif;
-    overflow-x: hidden; /* Prevent scroll on narrow devices */
+}
+
+body {
+    overflow-x: clip; /* Prevent horizontal scroll on narrow devices */
 }
 
 /* Moves all page content down to start just below the navbar. */
@@ -156,9 +204,13 @@ body {
     font-family: 'Raleway', sans-serif;
     text-decoration: none;
     transition: background-color 0.4s ease 0s;
+    cursor: pointer;
 }
 .button-ps:hover {
     text-decoration: none;
+}
+.button-ps:disabled {
+    cursor: default;
 }
 
 .button--tiny {
@@ -220,15 +272,15 @@ body {
 
 .label-icon {
     position: absolute;
-    border: 1px solid black;
+    border: 1px solid var(--color-neutral-black);
     border-radius: 100%;
-    outline: 0.5px solid white;
+    outline: 0.5px solid var(--color-neutral-white);
 }
 
 .icon-outline {
-    border: 1px solid black;
+    border: 1px solid var(--color-neutral-black);
     border-radius: 25px;
-    outline: .5px solid white;
+    outline: .5px solid var(--color-neutral-white);
 }
 
 #header {
@@ -236,10 +288,10 @@ body {
     top: 0;
     right: 0;
     left: 0;
-    z-index: 1030;
+    z-index: var(--navbar-z-index);
     height: var(--navbar-height);
     transition: height 0.2s ease 0s;
-    background-color: #fff;
+    background-color: var(--color-neutral-white);
     border-bottom: 1px solid #e7e7e7;
     display: flex;
 }
@@ -267,13 +319,6 @@ body {
     display: flex !important;
     align-items: center;
     justify-content: flex-end;
-}
-
-#status-neighborhood-link {
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
 }
 
 #language-icon {
@@ -351,7 +396,7 @@ body {
 #content {
     position: relative;
     top: 0px;
-    background-color: #fff;
+    background-color: var(--color-neutral-white);
 }
 
 #wrap {
@@ -410,16 +455,17 @@ body {
     text-align: center;
     font-family: raleway;
     font-size: 12px;
-    color: #fff;
+    color: var(--color-neutral-white);
     line-height: 1.6em;
 
 }
 #info-footer a {
-    color:#fff;
+    color:var(--color-neutral-white);
     text-decoration:underline;
 }
 
 /* Pano Info Popover styling. */
+/* Sizes scale with --ui-scale for pages that have it, falling back to a multiplier of 1 on other pages. */
 .pano-info-popover {
     position: fixed;
     inset: unset;        /* Override the browser's default centered placement. */
@@ -427,13 +473,13 @@ body {
     left: -9999px;       /* Off-screen until JS positions it. */
     top: -9999px;
     overflow: visible;   /* Allow the CSS arrow to extend beyond the box. */
-    min-width: 280px;
-    max-width: 400px;
-    padding: 14px;
-    background: white;
-    border: 1px solid #9c9c9c;
-    border-radius: 12px;
-    font-size: 14px;
+    min-width: calc(280px * var(--ui-scale, 1));
+    max-width: calc(400px * var(--ui-scale, 1));
+    padding: calc(14px * var(--ui-scale, 1));
+    background: var(--color-neutral-white);
+    border: 1px solid var(--color-neutral-600);
+    border-radius: calc(12px * var(--ui-scale, 1));
+    font-size: calc(14px * var(--ui-scale, 1));
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
@@ -450,26 +496,26 @@ body {
 }
 
 .pano-info-popover::before {
-    bottom: -10px;
-    border-width: 10px 9px 0;
-    border-color: #9c9c9c transparent transparent;
+    bottom: calc(-10px * var(--ui-scale, 1));
+    border-width: calc(10px * var(--ui-scale, 1)) calc(9px * var(--ui-scale, 1)) 0;
+    border-color: var(--color-neutral-600) transparent transparent;
 }
 
 .pano-info-popover::after {
-    bottom: -9px;
-    border-width: 9px 8px 0;
-    border-color: white transparent transparent;
+    bottom: calc(-9px * var(--ui-scale, 1));
+    border-width: calc(9px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1)) 0;
+    border-color: var(--color-neutral-white) transparent transparent;
 }
 
 .pano-info-popover__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: calc(10px * var(--ui-scale, 1));
 }
 
 .pano-info-popover__title {
-    font-size: 15px;
+    font-size: calc(15px * var(--ui-scale, 1));
     font-weight: bold;
 }
 
@@ -491,21 +537,21 @@ body {
 }
 
 .pano-info-popover__clipboard img {
-    width: 18px;
-    height: 18px;
+    width: calc(18px * var(--ui-scale, 1));
+    height: calc(18px * var(--ui-scale, 1));
 }
 
 /* Shown briefly after clipboard copy. Absolutely positioned so it doesn't shift the body rows. */
 .pano-info-popover__copied:not([hidden]) {
     display: block;
     position: absolute;
-    top: 44px;   /* below the header (12px padding-top + ~30px header + 2px gap) */
-    right: 8px;
+    top: calc(44px * var(--ui-scale, 1));   /* below the header (12px padding-top + ~30px header + 2px gap) */
+    right: calc(8px * var(--ui-scale, 1));
     background: rgba(40, 40, 40, 0.85);
-    color: white;
-    font-size: 11px;
-    padding: 3px 8px;
-    border-radius: 4px;
+    color: var(--color-neutral-white);
+    font-size: calc(11px * var(--ui-scale, 1));
+    padding: calc(3px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
+    border-radius: calc(4px * var(--ui-scale, 1));
     white-space: nowrap;
     pointer-events: none;
     z-index: 1;
@@ -514,7 +560,7 @@ body {
 .pano-info-popover__body {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: calc(6px * var(--ui-scale, 1));
 }
 
 .pano-info-popover__row {
@@ -539,7 +585,7 @@ body {
     text-align: center;
     color: #4990cc;
     text-decoration: none;
-    margin-top: 4px;
+    margin-top: calc(4px * var(--ui-scale, 1));
 }
 
 .pano-info-popover__view-link:hover {
@@ -574,14 +620,15 @@ body {
 
 kbd {
     /*overriding bootstraps's ugly kbd tag*/
-    background-color: white;
-    box-shadow: 0 1px 0 rgba(0,0,0,.2);
-    border: 1px solid rgba(0, 0, 0, 0.2);
+    background-color: var(--color-neutral-white);
+    box-shadow: 0 1px 0 rgb(0 0 0 / 20%);
+    border: 1px solid rgb(0 0 0 / 20%);
     border-radius: 3px;
     color: #444;
-    font-weight:normal;
-    font-size: small;
+    font-weight: normal;
+    font-size: 0.9em; /* Scale with surrounding text rather than a fixed size. */
     padding: 2px 6px;
+    vertical-align: middle; /* Center the pill on the text line instead of hanging it off the baseline. */
 }
 
 #page-loading {
@@ -723,7 +770,7 @@ body:has(#header.header--tall) .test-server-banner {
     margin-top: 0;
     font-size: 13px;
     list-style: none;
-    background-color: #fff;
+    background-color: var(--color-neutral-white);
     background-clip: padding-box;
     border: 1px solid #ccc;
     border: 1px solid rgba(0,0,0,.15);
@@ -758,7 +805,7 @@ body:has(#header.header--tall) .test-server-banner {
     z-index: 5;
 }
 #area-completion-overlay, #already-completed-neighborhood-text {
-    color: white;
+    color: var(--color-neutral-white);
     text-align: center;
     width: 70%;
     position: relative;
@@ -781,13 +828,13 @@ body:has(#header.header--tall) .test-server-banner {
 .overlay-option {
     margin: 20px 5px;
     padding: 7px;
-    border: 1px solid white;
+    border: 1px solid var(--color-neutral-white);
     border-radius: 5px;
     display: inline-block;
 }
 .overlay-option:hover {
-    background-color: white;
-    color: black;
+    background-color: var(--color-neutral-white);
+    color: var(--color-neutral-black);
     cursor: pointer;
 }
 #accept-redirect {
@@ -811,9 +858,9 @@ body:has(#header.header--tall) .test-server-banner {
     background-color:#eeeeee;
     border-style:solid;
     border-width:1px;
-    border-color:black;
+    border-color: var(--color-neutral-black);
     padding:3px;
-    color:black;
+    color: var(--color-neutral-black);
     left:20px;
     font-size: 14px;
     font-weight: normal;
@@ -838,7 +885,7 @@ body:has(#header.header--tall) .test-server-banner {
     height: 33px;
     width: 388px;
     background-color: "#F5F5F5";
-    color: black;
+    color: var(--color-neutral-black);
     border-radius: 5px;
     padding: 5px;
     line-height: normal;
@@ -858,7 +905,7 @@ body:has(#header.header--tall) .test-server-banner {
 
 .feedback-popover {
     background-color:rgba(58,58,58, 0.9);
-    color: white;
+    color: var(--color-neutral-white);
     width: 150px;
     z-index: 1151 !important;
     text-align: center;
@@ -926,7 +973,7 @@ body:has(#header.header--tall) .test-server-banner {
 
     .navbar-nav {
         display: block;
-        background-color: white;
+        background-color: var(--color-neutral-white);
         box-shadow: 0px 1px 8px 0px #999;
         border-radius: 5px;
         margin: 0;
@@ -977,7 +1024,7 @@ body:has(#header.header--tall) .test-server-banner {
         right: 4.5%;
         border: none;
         padding: 0;
-        z-index: 1030;
+        z-index: var(--navbar-z-index);
     }
 
     #header.header--tall #navbar {
@@ -1049,7 +1096,7 @@ body:has(#header.header--tall) .test-server-banner {
 }
 
 .ai-tooltip .tooltip-inner {
-    max-width: 220px;
+    max-width: calc(220px * var(--ui-scale, 1));
 }
 
 .tooltip.ai-tooltip {
@@ -1064,8 +1111,8 @@ body:has(#header.header--tall) .test-server-banner {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
-    padding: 4px 6px;
+    gap: calc(5px * var(--ui-scale, 1));
+    padding: calc(4px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
     margin: 0;
     border-radius: 6px;
     background: none;
@@ -1098,16 +1145,13 @@ body:has(#header.header--tall) .test-server-banner {
 }
 
 .severity-button__icon {
-    width: 24px;
-    height: 24px;
+    width: calc(24px * var(--ui-scale, 1));
+    height: calc(24px * var(--ui-scale, 1));
     display: block;
 }
 
 .severity-button__label {
-    font-family: 'Raleway', sans-serif;
-    font-weight: 600;
-    font-size: 11px;
-    color: var(--color-asphalt-400);
+    font: var(--text-caption-medium);
     text-align: center;
     white-space: nowrap;
 }

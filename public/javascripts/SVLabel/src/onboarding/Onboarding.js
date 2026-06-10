@@ -2,31 +2,25 @@
  * Onboarding module.
  * Todo. So many dependencies! If possible, break the module down into pieces.
  * @param svl
- * @param audioEffect
  * @param compass
- * @param form
  * @param handAnimation
  * @param navigationService
  * @param missionContainer
- * @param modalComment
  * @param leftMenu
  * @param onboardingStates
  * @param ribbon
- * @param statusField
  * @param tracker
  * @param canvas
  * @param uiCanvas
  * @param contextMenu
  * @param uiOnboarding
  * @param uiLeft
- * @param user
  * @param zoomControl
  * @returns {{className: string}}
  * @constructor
  */
-function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationService, missionContainer, modalComment,
-                    leftMenu, onboardingStates, ribbon, statusField, tracker, canvas, uiCanvas, contextMenu,
-                    uiOnboarding, uiLeft, user, zoomControl) {
+function Onboarding(svl, compass, handAnimation, navigationService, missionContainer, leftMenu, onboardingStates,
+                    ribbon, tracker, canvas, uiCanvas, contextMenu, uiOnboarding, uiLeft, zoomControl) {
     var self = this;
     var ctx;
     var blink_timer = 0;
@@ -36,7 +30,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
     var savedAnnotations = [];
 
     var _mouseDownCanvasDrawingHandler;
-    var currentLabelState;
     var map = svl.minimap.getMap();
     var currentLabelId;
 
@@ -45,11 +38,11 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
 
         adjustMap();
 
-        $("#navbar-retake-tutorial-btn").css("display", "none");
+        $('#navbar-retake-tutorial-btn').css('display', 'none');
 
         var canvasUI = uiOnboarding.canvas.get(0);
         if (canvasUI) ctx = canvasUI.getContext('2d');
-        uiOnboarding.holder.css("visibility", "visible");
+        uiOnboarding.holder.css('visibility', 'visible');
 
         svl.panoManager.lockShowingNavArrows();
 
@@ -74,6 +67,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         ribbon.unlockDisableMode();
 
         uiLeft.stuck.addClass('disabled');
+        uiLeft.controlButtonsToggle.addClass('disabled');
 
         compass.hideMessage();
         compass.disableCompassClick();
@@ -90,7 +84,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             uiOnboarding.messageHolder.css('z-index', 1100);
         });
 
-        _visit(getState("initialize"));
+        _visit(getState('initialize'));
         handAnimation.initializeHandAnimation();
     };
 
@@ -98,12 +92,20 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
      * Sets the mini map to be transparent for everything except for yellow pin.
      */
     function adjustMap() {
-        svl.ui.minimap.holder.css('backgroundImage', `url('${svl.rootDirectory}img/onboarding/TutorialMiniMap.jpg')`);
+        // Render the minimap at its native size and scale the whole holder visually (see .minimap-tutorial) so the
+        // static screenshot, the Google label markers, and the fog all share one coordinate frame and stay aligned.
+        svl.ui.minimap.holder.addClass('minimap-tutorial');
+        svl.ui.minimap.holder.css({
+            'backgroundImage': `url('${svl.rootDirectory}img/onboarding/TutorialMiniMap.jpg')`,
+            'backgroundSize': 'cover',
+            'backgroundRepeat': 'no-repeat',
+            'backgroundPosition': 'center'
+        });
         // TODO could use cloud-based maps styling for this potentially as well..? Hiding something in dom as workaround.
-        // map.setOptions({styles: [{ featureType: "all", stylers: [{ visibility: "off" }] }]});
+        // map.setOptions({styles: [{ featureType: 'all', stylers: [{ visibility: 'off' }] }]});
         setTimeout(() => {
             // TODO extra hacky to set a timeout because the div wasn't ready even though map theoretically loaded.
-            const mapToHide = document.querySelector("#minimap")?.firstChild?.children[2]?.firstChild?.firstChild;
+            const mapToHide = document.querySelector('#minimap')?.firstChild?.children[2]?.firstChild?.firstChild;
             mapToHide.style.display = 'none';
         }, 1000);
     }
@@ -213,9 +215,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             blink_timer = (blink_timer + 1) % max_frequency;
             var param;
             if (blink_timer < blink_period * max_frequency) {
-                parameters["fill"] = originalFillColor;
+                parameters['fill'] = originalFillColor;
             } else {
-                parameters["fill"] = "white";
+                parameters['fill'] = 'white';
             }
             param = parameters;
             _drawArrow(x1, y1, x2, y2, param);
@@ -237,11 +239,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
     function _stopAllBlinking() {
         svl.minimap.stopBlinkingMinimap();
         compass.stopBlinking();
-        statusField.stopBlinking();
         zoomControl.stopBlinking();
-        audioEffect.stopBlinking();
         leftMenu.stopBlinkingStuckButton();
-        modalComment.stopBlinking();
     }
 
     function _drawAnnotations(state) {
@@ -267,7 +266,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
 
         var blink_frequency_modifier = 0;
         for (i = 0, len = currAnnotations.length; i < len; i++) {
-            if (currAnnotations[i].type === "arrow") {
+            if (currAnnotations[i].type === 'arrow') {
                 blink_frequency_modifier = blink_frequency_modifier + 1;
             }
         }
@@ -291,8 +290,10 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             const canvasCoord = util.pano.centeredPovToCanvasCoord(
                 centeredPov, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
             ) || { x: null, y: null };
+            const onCanvas = canvasCoord.x !== null;
 
-            if (annotation.type === "arrow") {
+            if (annotation.type === 'arrow') {
+                if (!onCanvas) continue;
                 lineLength = annotation.length;
                 lineAngle = annotation.angle;
                 x2 = canvasCoord.x;
@@ -309,25 +310,29 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
                     strokeStyle: 'rgba(0, 0, 0, 1)'
                 };
 
-                if (annotation.fill == null || annotation.fill === "white") {
+                if (annotation.fill == null || annotation.fill === 'white') {
                     _drawArrow(x1, y1, x2, y2, params);
                 }
                 else {
                     _drawBlinkingArrow(x1, y1, x2, y2, params, blink_frequency_modifier);
                 }
-            } else if (annotation.type === "box") {
+            } else if (annotation.type === 'box') {
+                if (!onCanvas) continue;
                 lineAngle = annotation.angle;
                 params = {
                     lineWidth: 4,
                     strokeStyle: 'rgba(255, 255, 255, 1)'
                 };
                 _drawBox(canvasCoord.x, canvasCoord.y, annotation.width, annotation.height, params);
-            } else if (annotation.type === "label") {
-                _drawStaticLabel(annotation.labelType, canvasCoord.x, canvasCoord.y);
-                // The first time we draw the label, create the marker on the minimap.
+            } else if (annotation.type === 'label') {
+                // Only draw the label icon when it's on-screen; the minimap marker is still created below regardless.
+                if (onCanvas) {
+                    _drawStaticLabel(annotation.labelType, canvasCoord.x, canvasCoord.y);
+                }
+                // The first time we encounter the label, create the marker on the minimap.
                 if (!annotation.firstDraw) {
                     var googleMarker = Label.createMinimapMarker(annotation.labelType, { lat: annotation.lat, lng: annotation.lng });
-                    googleMarker.setMap(svl.minimap.getMap());
+                    googleMarker.map = svl.minimap.getMap();
                     annotation.firstDraw = true;
                 }
             }
@@ -345,7 +350,11 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
      * Hide the message box.
      */
     function hideMessage() {
-        if (uiOnboarding.messageHolder.is(":visible")) uiOnboarding.messageHolder.hide();
+        if (floatingCleanup) {
+            floatingCleanup();
+            floatingCleanup = null;
+        }
+        if (uiOnboarding.messageHolder.is(':visible')) uiOnboarding.messageHolder.hide();
     }
 
     /**
@@ -354,7 +363,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
      * @param params Optional parameters that might be used by transition function.
      */
     function next(nextState, params) {
-        if (typeof nextState === "function") {
+        if (typeof nextState === 'function') {
             _visit(getState(nextState.call(this, params)));
         } else if (states.find(state => state.id === nextState)) {
             _visit(getState(nextState));
@@ -363,98 +372,144 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         }
     }
 
+    // Floating UI autoUpdate cleanup for the currently anchored message, if any.
+    let floatingCleanup = null;
+
+    /**
+     * Position the onboarding message box beside a live UI element using Floating UI lib, with an arrow pointing at it.
+     * @param {string} anchorSelector CSS selector of the element to point the box at.
+     * @param {string} placement Preferred Floating UI placement (e.g. 'left', 'right', 'top', 'bottom').
+     */
+    function _anchorMessageTo(anchorSelector, placement) {
+        const reference = document.querySelector(anchorSelector);
+        const floating = uiOnboarding.messageHolder.get(0);
+        if (!reference || !floating || typeof FloatingUIDOM === 'undefined') return;
+
+        // (Re)create the arrow element Floating UI positions; showMessage's html() call wipes the box's contents.
+        let arrowEl = floating.querySelector('.fui-arrow');
+        if (!arrowEl) {
+            arrowEl = document.createElement('div');
+            arrowEl.className = 'fui-arrow';
+            floating.appendChild(arrowEl);
+        }
+        floating.style.position = 'absolute';
+
+        // Recompute on scroll/resize/layout changes so the box keeps tracking the element.
+        const update = () => {
+            // The arrow is a square rotated 45deg centered on the box edge, so its tip protrudes by half its diagonal.
+            // Gap the box from the element by that distance so the tip just reaches the near edge. Re-measured each
+            // update since the arrow scales with --ui-scale.
+            const arrowHalf = arrowEl.offsetWidth / 2;
+            const arrowProtrusion = arrowHalf * Math.SQRT2;
+            FloatingUIDOM.computePosition(reference, floating, {
+                placement,
+                middleware: [
+                    FloatingUIDOM.offset(arrowProtrusion),
+                    FloatingUIDOM.flip(),
+                    FloatingUIDOM.shift({ padding: 8 })
+                ]
+            }).then(({ x, y, placement: finalPlacement }) => {
+                Object.assign(floating.style, { left: `${x}px`, top: `${y}px`, transform: 'none' });
+
+                // Point the arrow at the center of the element's near edge, computed from live rects so it stays
+                // centered even when shift() nudged the box along that axis.
+                const side = finalPlacement.split('-')[0];
+                const staticSide = { top: 'bottom', right: 'left', bottom: 'top', left: 'right' }[side];
+                const refRect = reference.getBoundingClientRect();
+                const floatRect = floating.getBoundingClientRect();
+                Object.assign(arrowEl.style, { left: '', top: '', right: '', bottom: '' });
+                if (side === 'left' || side === 'right') {
+                    arrowEl.style.top = `${refRect.top + refRect.height / 2 - floatRect.top - arrowHalf}px`;
+                } else {
+                    arrowEl.style.left = `${refRect.left + refRect.width / 2 - floatRect.left - arrowHalf}px`;
+                }
+                arrowEl.style[staticSide] = `${-arrowHalf}px`;
+            });
+        };
+
+        floatingCleanup = FloatingUIDOM.autoUpdate(reference, floating, update);
+    }
+
     /**
      * Show a message box.
      * @param parameters
      */
     function showMessage(parameters) {
-        var message = parameters.message;
-        // Make the message flash yellow once to catch your attention.
-        uiOnboarding.messageHolder.toggleClass("yellow-background");
-        setTimeout(function () {
-            uiOnboarding.messageHolder.toggleClass("yellow-background");
-        }, 100);
+        const message = parameters.message;
+        // Flash the box yellow once to catch the user's attention.
+        uiOnboarding.messageHolder.toggleClass('yellow-background');
+        setTimeout(() => uiOnboarding.messageHolder.toggleClass('yellow-background'), 100);
 
-        // Tutorial positions/sizes are authored in the fixed 720x480 logical frame; scale them to on-screen
-        // pixels since the message holder is a DOM element positioned over the (larger) displayed pano.
-        const scale = util.exploreDisplayScale();
-
-        uiOnboarding.messageHolder.css({
-            top: 0,
-            left: 0,
-            width: 300 * scale
-        });
-
-        uiOnboarding.messageHolder.removeClass("animated fadeIn fadeInLeft fadeInRight fadeInDown fadeInUp");
-        uiOnboarding.messageHolder.removeClass("callout top bottom left right lower-right");
-
-        if (!uiOnboarding.messageHolder.is(":visible")) uiOnboarding.messageHolder.show();
-
-        uiOnboarding.background.css("visibility", "hidden");
-        if (parameters) {
-            if ("width" in parameters) {
-                uiOnboarding.messageHolder.css("width", parameters.width * scale);
-            }
-
-            if ("left" in parameters) {
-                uiOnboarding.messageHolder.css("left", parameters.left * scale);
-            }
-
-            if ("top" in parameters) {
-                uiOnboarding.messageHolder.css("top", parameters.top * scale);
-            }
-
-            if ("background" in parameters && parameters.background) {
-                uiOnboarding.background.css("visibility", "visible");
-            }
-
-            if ("arrow" in parameters) {
-                uiOnboarding.messageHolder.addClass("callout " + parameters.arrow);
-            }
-
-            if ("fade-direction" in parameters) {
-                uiOnboarding.messageHolder.addClass("animated " + parameters["fade-direction"]);
-            }
-
-            if ("transform" in parameters) {
-                uiOnboarding.messageHolder.css("transform", parameters.transform);
-            } else {
-                uiOnboarding.messageHolder.css("transform", "None");
-            }
+        // Tear down anchor positioning from the previous message.
+        if (floatingCleanup) {
+            floatingCleanup();
+            floatingCleanup = null;
         }
 
-        uiOnboarding.messageHolder.html((typeof message === "function" ? message() : message));
+        // Reset positioning state so each message starts clean.
+        uiOnboarding.messageHolder
+            .removeClass('animated fadeIn fadeInLeft fadeInRight fadeInDown fadeInUp callout-floating ' +
+                'onboarding-message-takeover onboarding-message-top-right')
+            .css({ position: '', top: '', left: '', transform: '', width: '' });
+        uiOnboarding.background.css('visibility', 'hidden');
+
+        uiOnboarding.messageHolder.show();
+
+        if ('fade-direction' in parameters) {
+            uiOnboarding.messageHolder.addClass('animated ' + parameters['fade-direction']);
+        }
+
+        // Width is authored in logical (pre-scale) pixels; scale it to on-screen pixels.
+        if ('width' in parameters) {
+            uiOnboarding.messageHolder.css('width', parameters.width * util.exploreDisplayScale());
+        }
+
+        uiOnboarding.messageHolder.html(typeof message === 'function' ? message() : message);
+
+        // Place the message in one of three coordinate-free modes; otherwise it keeps its default top-left corner.
+        if (parameters.background) {
+            // Full-page intro/outro takeover: dim the viewport and center the panel on it.
+            uiOnboarding.background.css('visibility', 'visible');
+            uiOnboarding.messageHolder.addClass('onboarding-message-takeover');
+        } else if (parameters.anchor) {
+            // Anchor to a live UI element; Floating UI computes the position and arrow.
+            uiOnboarding.messageHolder.addClass('callout-floating');
+            _anchorMessageTo(parameters.anchor, parameters.placement || 'right');
+        } else if (parameters.position === 'top-right') {
+            // Pin to the pano's top-right corner (used when the default top-left would cover the labeled feature).
+            uiOnboarding.messageHolder.addClass('onboarding-message-top-right');
+        }
     }
 
     function _endTheOnboarding(skip) {
         var mapStyleOptions = [
             {
-                featureType: "all",
+                featureType: 'all',
                 stylers: [
-                    { visibility: "off" }
+                    { visibility: 'off' }
                 ]
             },
             {
-                featureType: "road",
+                featureType: 'road',
                 stylers: [
-                    { visibility: "on" }
+                    { visibility: 'on' }
                 ]
             },
             {
-                "elementType": "labels",
-                "stylers": [
-                    { "visibility": "off" }
+                'elementType': 'labels',
+                'stylers': [
+                    { 'visibility': 'off' }
                 ]
             }
         ];
         if (map) map.setOptions({styles: mapStyleOptions});
         map.setOptions({styles: mapStyleOptions});
         if (skip) {
-            tracker.push("Onboarding_Skip");
-            missionContainer.getCurrentMission().setProperty("skipped", true);
+            tracker.push('Onboarding_Skip');
+            missionContainer.getCurrentMission().setProperty('skipped', true);
         }
         tracker.push('Onboarding_End');
-        missionContainer.getCurrentMission().setProperty("isComplete", true);
+        missionContainer.getCurrentMission().setProperty('isComplete', true);
 
         // Makes sure all data has been submitted to server, then refreshes the page.
         svl.form.submitData().then(function() {
@@ -463,45 +518,29 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
     }
 
     function _onboardingStateAnnotationExists(state) {
-        return "annotations" in state && state.annotations;
+        return 'annotations' in state && state.annotations;
     }
 
     function _onboardingStateMessageExists(state) {
-        return "message" in state && state.message;
-    }
-
-    function getCurrentLabelState() {
-        return currentLabelState;
+        return 'message' in state && state.message;
     }
 
     function blinkInterface(state) {
         // Blink parts of the interface.
-        if ("blinks" in state.properties && state.properties.blinks) {
+        if ('blinks' in state.properties && state.properties.blinks) {
             var len = state.properties.blinks.length;
             for (var i = 0; i < len; i++) {
                 switch (state.properties.blinks[i]) {
-                    case "minimap":
+                    case 'minimap':
                         svl.minimap.blinkMinimap();
                         break;
-                    case "compass":
+                    case 'compass':
                         compass.blink();
                         break;
-                    case "status-field":
-                        statusField.blink();
-                        break;
-                    case "zoom":
-                        zoomControl.blink();
-                        break;
-                    case "sound":
-                        audioEffect.blink();
-                        break;
-                    case "stuck":
+                    case 'stuck':
                         leftMenu.blinkStuckButton();
                         break;
-                    case "feedback":
-                        modalComment.blink();
-                        break;
-                    case "movement-arrow":
+                    case 'movement-arrow':
                         svl.panoManager.blinkNavigationArrows();
                         break;
                 }
@@ -532,8 +571,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         _removeFlashingFromArrow();
 
         // End the onboarding if there is no transition state is specified. Move to the actual task
-        if ("end-onboarding" in state) {
-            _endTheOnboarding(state["end-onboarding"]["skip"]);
+        if ('end-onboarding' in state) {
+            _endTheOnboarding(state['end-onboarding']['skip']);
             return;
         } else {
             hideMessage();
@@ -547,7 +586,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         // Draw arrows to annotate target accessibility attributes
         if (_onboardingStateAnnotationExists(state) || savedAnnotations.length > 0) {
             _drawAnnotations(state);
-            annotationListener = google.maps.event.addListener(svl.panoViewer.gsvPano, "pov_changed", function () {
+            annotationListener = google.maps.event.addListener(svl.panoViewer.gsvPano, 'pov_changed', function () {
                 // Stop the animation for the blinking arrows.
                 _removeFlashingFromArrow();
                 _drawAnnotations(state);
@@ -555,7 +594,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         }
 
         // Change behavior based on the current state.
-        if ("properties" in state) {
+        if ('properties' in state) {
             // Remove blinking if necessary.
             if (state.properties.stopBlinking) {
                 _stopAllBlinking();
@@ -567,31 +606,31 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
 
                 // Ideally we need a for loop that goes through every element of the property array and calls the
                 // corresponding action's handler. Not just the label accessibility attribute's handler.
-                if (state.properties[0].action === "LabelAccessibilityAttribute") {
+                if (state.properties[0].action === 'LabelAccessibilityAttribute') {
                     _visitLabelAccessibilityAttributeState(state, annotationListener);
                 }
             }
             else {
                 // Restrict panning.
                 svl.panoManager.setHeadingRange({ min: state.properties.minHeading, max: state.properties.maxHeading });
-                if (state.properties.action === "Introduction") {
+                if (state.properties.action === 'Introduction') {
                     _visitIntroduction(state, annotationListener);
-                } else if (state.properties.action === "SelectLabelType" || state.properties.action === "RedoSelectLabelType") {
+                } else if (state.properties.action === 'SelectLabelType' || state.properties.action === 'RedoSelectLabelType') {
                     _visitSelectLabelTypeState(state, annotationListener);
-                } else if (state.properties.action === "DeleteAccessibilityAttribute") {
+                } else if (state.properties.action === 'DeleteAccessibilityAttribute') {
                     _visitDeleteAccessibilityAttributeState(state, annotationListener);
                     contextMenu.hide();
-                } else if (state.properties.action === "Zoom") {
+                } else if (state.properties.action === 'Zoom') {
                     _visitZoomState(state, annotationListener);
-                } else if (state.properties.action === "RateSeverity" || state.properties.action === "RedoRateSeverity") {
+                } else if (state.properties.action === 'RateSeverity' || state.properties.action === 'RedoRateSeverity') {
                     _visitRateSeverity(state, annotationListener);
-                } else if (state.properties.action === "AddTag" || state.properties.action === "RedoAddTag") {
+                } else if (state.properties.action === 'AddTag' || state.properties.action === 'RedoAddTag') {
                     _visitAddTag(state, annotationListener);
-                } else if (state.properties.action === "AdjustHeadingAngle") {
+                } else if (state.properties.action === 'AdjustHeadingAngle') {
                     _visitAdjustHeadingAngle(state, annotationListener);
-                } else if (state.properties.action === "WalkTowards") {
+                } else if (state.properties.action === 'WalkTowards') {
                     _visitWalkTowards(state, annotationListener);
-                } else if (state.properties.action === "Instruction") {
+                } else if (state.properties.action === 'Instruction') {
                     _visitInstruction(state, annotationListener);
                 }
             }
@@ -599,12 +638,12 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
     }
 
     function _visitIntroduction(state, listener) {
-        // When user clicks "Let's get started!" to start the tutorial, we set the pano's POV and move to next state.
-        const $target = $("#onboarding-message-holder").find(".onboarding-transition-trigger");
-        $(".onboarding-transition-trigger").css({ 'cursor': 'pointer' });
+        // When user clicks 'Let's get started!' to start the tutorial, we set the pano's POV and move to next state.
+        const $target = $('#onboarding-message-holder').find('.onboarding-transition-trigger');
+        $('.onboarding-transition-trigger').css({ 'cursor': 'pointer' });
         function callback () {
             if (listener) google.maps.event.removeListener(listener);
-            $target.off("click", callback);
+            $target.off('click', callback);
             svl.panoManager.setPov({
                 heading: state.properties.heading,
                 pitch: state.properties.pitch,
@@ -613,7 +652,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             next.call(this, state.transition);
         }
 
-        $target.on("click", callback);
+        $target.on('click', callback);
     }
 
     /**
@@ -656,7 +695,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
     function _visitAdjustHeadingAngle(state, listener) {
         var $target;
         var interval;
-        interval = handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
+        interval = handAnimation.showGrabAndDragAnimation({direction: 'left-to-right'});
 
         var callback = function () {
             var pov = svl.panoViewer.getPov();
@@ -669,7 +708,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             }
         };
 
-        $target = google.maps.event.addListener(svl.panoViewer.gsvPano, "pov_changed", callback);
+        $target = google.maps.event.addListener(svl.panoViewer.gsvPano, 'pov_changed', callback);
     }
 
     function _visitRateSeverity(state, listener) {
@@ -677,54 +716,53 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         var $target = svl.ui.contextMenu.radioButtons;
         var callback = function () {
             if (listener) google.maps.event.removeListener(listener);
-            $target.off("change", callback);
+            $target.off('change', callback);
             contextMenu.disableRatingSeverity();
             next.call(this, state.transition);
         };
-        $target.on("change", callback);
+        $target.on('change', callback);
     }
     function _visitAddTag(state, listener) {
         contextMenu.enableTaggingForTutorialLabel(state.properties.labelNumber);
         var $target = svl.ui.contextMenu.tagHolder; // Grab tag holder so we can add an event listener.
         var callback = function () {
             if (listener) google.maps.event.removeListener(listener);
-            $target.off("tagIds-updated", callback);
+            $target.off('tagIds-updated', callback);
             contextMenu.disableTagging();
             next.call(contextMenu.getTargetLabel(), state.transition);
         };
         // We use a custom event here to ensure that this is triggered after the tags have been updated.
-        $target.on("tagIds-updated", callback);
+        $target.on('tagIds-updated', callback);
     }
 
     function _visitInstruction(state, listener) {
-        if (state === getState("outro")) {
-            $("#mini-footer-audit").css("visibility", "hidden");
-            // Remove listeners that alter instruction z-index, and make sure z-index is higher than mini-map.
+        if (state === getState('outro')) {
+            $('#mini-footer-audit').css('visibility', 'hidden');
+            // Remove the hover listeners that adjust the instruction box's z-index.
             svl.ui.contextMenu.holder.off('mouseover mouseout');
-            uiOnboarding.messageHolder.css('z-index', 3);
         }
         blinkInterface(state);
 
-        if (!("okButton" in state) || state.okButton) {
+        if (!('okButton' in state) || state.okButton) {
             // Insert an ok button.
-            var okButtonText = 'OK';
-            if (state.okButtonText) {
-                okButtonText = state.okButtonText;
-            }
-            uiOnboarding.messageHolder.append("<br/><button id='onboarding-ok-button' class='button width-50'>" +
-                okButtonText + "</button>");
+            const okButtonText = state.okButtonText || 'Ok';
+            uiOnboarding.messageHolder.append(
+                `<div class='onboarding-ok-button-holder'>` +
+                    `<button id='onboarding-ok-button' class='button-ps button--medium button--secondary'>${okButtonText}</button>` +
+                `</div>`
+            );
         }
 
-        var $target = $("#onboarding-ok-button");
-        var callback = function () {
+        const $target = $('#onboarding-ok-button');
+        const callback = function () {
             if (listener) google.maps.event.removeListener(listener);
-            $target.off("click", callback);
-            if ("blinks" in state.properties && state.properties.blinks) {
+            $target.off('click', callback);
+            if ('blinks' in state.properties && state.properties.blinks) {
                 _stopAllBlinking();
             }
             next.call(this, state.transition);
         };
-        $target.on("click", callback);
+        $target.on('click', callback);
     }
 
     /**
@@ -737,8 +775,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
     function _visitSelectLabelTypeState(state, listener) {
         var labelType = state.properties.labelType;
 
-        if (state === getState("select-label-type-1")) {
-            $("#mini-footer-audit").css("visibility", "visible");
+        if (state === getState('select-label-type-1')) {
+            $('#mini-footer-audit').css('visibility', 'visible');
         }
         ribbon.enableMode(labelType);
         ribbon.startBlinking(labelType);
@@ -749,10 +787,10 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         };
 
         var callback = function () {
-            ribbon.enableMode("Walk");
+            ribbon.enableMode('Walk');
 
             // Disable only when the user places the label
-            uiCanvas.drawingLayer.on("mousedown", _mouseDownCanvasDrawingHandler);
+            uiCanvas.drawingLayer.on('mousedown', _mouseDownCanvasDrawingHandler);
 
             ribbon.stopBlinking();
             $(document).off('ModeSwitch_' + labelType, callback);
@@ -773,7 +811,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
         var zoomType = state.properties.type;
         var event;
 
-        if (zoomType === "in") {
+        if (zoomType === 'in') {
             event = 'ZoomIn';
             zoomControl.blinkZoomIn();
             zoomControl.unlockDisableZoomIn();
@@ -792,7 +830,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
 
         var callback = function () {
             zoomControl.stopBlinking();
-            if (zoomType === "in") {
+            if (zoomType === 'in') {
                 // Disable zoom-in
                 zoomControl.unlockDisableZoomIn();
                 zoomControl.disableZoomIn();
@@ -804,7 +842,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
                 zoomControl.disableZoomOut();
                 zoomControl.lockDisableZoomOut();
             }
-            ribbon.enableMode("Walk");
+            ribbon.enableMode('Walk');
             $(document).off(event, callback);
 
             if (listener) google.maps.event.removeListener(listener);
@@ -836,7 +874,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
             const tolerance = properties.tolerance;
 
             const distance = (imageX - panoX) * (imageX - panoX) + (imageY - panoY) * (imageY - panoY);
-            currentLabelState = state;
 
             // If the label was placed close enough to the target, move on to the next state.
             if (distance < tolerance * tolerance) {
@@ -849,8 +886,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
 
                 // Disable labeling mode.
                 ribbon.disableMode(label.getLabelType());
-                ribbon.enableMode("Walk");
-                uiCanvas.drawingLayer.off("mousedown", _mouseDownCanvasDrawingHandler);
+                ribbon.enableMode('Walk');
+                uiCanvas.drawingLayer.off('mousedown', _mouseDownCanvasDrawingHandler);
 
                 next(transition[0], { accurate: true });
             } else {
@@ -869,7 +906,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, navigationSe
      */
     function _visitDeleteAccessibilityAttributeState(state, listener) {
         ribbon.disableMode(state.properties.labelType);
-        ribbon.enableMode("Walk");
+        ribbon.enableMode('Walk');
         canvas.unlockDisableLabelDelete();
         canvas.enableLabelDelete();
         canvas.lockDisableLabelDelete();

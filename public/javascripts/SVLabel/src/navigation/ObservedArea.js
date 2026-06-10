@@ -11,23 +11,48 @@ function ObservedArea(uiMinimap) {
     let observedAreas = [];  // List of observed areas (panoId, latLng, minAngle, maxAngle).
     let currArea = {}; // Current observed area (panoId, latLng, minAngle, maxAngle).
     let fractionObserved = 0;  // User's current fraction of 360 degrees observed.
-    const radius = 40;  // FOV radius in pixels.
-    const width = uiMinimap.fogOfWar.width();  // Canvas width.
-    const height = uiMinimap.fogOfWar.height();  // Canvas height.
+    // Minimap size (px) at UI scale 1, read from the base dimension defined in svl-minimap.css.
+    const BASE_SIZE = parseFloat(getComputedStyle(uiMinimap.holder[0]).getPropertyValue('--minimap-base-size'));
+    const baseRadius = 40;  // FOV radius in pixels at UI scale 1.
+    // The canvas bitmaps are kept in sync with the displayed minimap size (which scales with the UI). This is required
+    // because the fog is positioned via the map's projection, which returns coordinates in displayed pixels; if the
+    // bitmap didn't match, the fog would be offset (e.g. drawn at displayed/2 inside a smaller bitmap).
+    let width = 0;          // Canvas bitmap width (set by syncCanvasSize).
+    let height = 0;         // Canvas bitmap height.
+    let scaleFactor = 1;    // width / BASE_SIZE; scales the FOV/progress geometry to match the minimap.
     // Get canvas context for the various components of the fog of war view on the mini map.
     const fogOfWarCtx = uiMinimap.fogOfWar[0].getContext('2d');
     const fovCtx = uiMinimap.fov[0].getContext('2d');
     const progressCircleCtx = uiMinimap.progressCircle[0].getContext('2d');
 
     function initialize() {
-        // Set up some ctx stuff that never changes here so that we don't do it repeatedly.
-        uiMinimap.percentObserved.css('color', '#404040')
+        syncCanvasSize();
+    }
+
+    /**
+     * Sizes the three minimap canvases' bitmaps to the current displayed minimap size and (re)applies the persistent
+     * context state. Setting canvas.width/height resets the context, so the styles must be applied here, after sizing.
+     */
+    function syncCanvasSize() {
+        const displayedWidth = Math.round(uiMinimap.fogOfWar.width()) || BASE_SIZE;
+        const displayedHeight = Math.round(uiMinimap.fogOfWar.height()) || BASE_SIZE;
+        if (displayedWidth !== width || displayedHeight !== height) {
+            width = displayedWidth;
+            height = displayedHeight;
+            scaleFactor = width / BASE_SIZE;
+            for (const canvas of [uiMinimap.fogOfWar[0], uiMinimap.fov[0], uiMinimap.progressCircle[0]]) {
+                canvas.width = width;
+                canvas.height = height;
+            }
+        }
+        // Set up ctx state that doesn't change between renders (and is reset by any resize above).
+        uiMinimap.percentObserved.css('color', '#404040');
         fogOfWarCtx.fillStyle = '#888888';
-        fogOfWarCtx.filter = 'blur(5px)';
+        fogOfWarCtx.filter = `blur(${5 * scaleFactor}px)`;
         fovCtx.fillStyle = '#8080ff';
         progressCircleCtx.fillStyle = '#8080ff';
         progressCircleCtx.lineCap = 'round';
-        progressCircleCtx.lineWidth = 2;
+        progressCircleCtx.lineWidth = 2 * scaleFactor;
     }
 
     /**
@@ -112,7 +137,7 @@ function ObservedArea(uiMinimap) {
             if (observedArea.maxAngle - observedArea.minAngle < 360) {
                 fogOfWarCtx.moveTo(center.x, center.y);
             }
-            fogOfWarCtx.arc(center.x, center.y, radius,
+            fogOfWarCtx.arc(center.x, center.y, baseRadius * scaleFactor,
                 toRadians(observedArea.minAngle - 90), toRadians(observedArea.maxAngle - 90));
                 fogOfWarCtx.fill();
         }
@@ -126,7 +151,7 @@ function ObservedArea(uiMinimap) {
         fovCtx.clearRect(0, 0, width, height);
         fovCtx.beginPath();
         fovCtx.moveTo(width / 2, height / 2);
-        fovCtx.arc(width / 2, height / 2, radius, toRadians(leftAngle - 90), toRadians(rightAngle - 90));
+        fovCtx.arc(width / 2, height / 2, baseRadius * scaleFactor, toRadians(leftAngle - 90), toRadians(rightAngle - 90));
         fovCtx.fill();
     }
 
@@ -137,7 +162,8 @@ function ObservedArea(uiMinimap) {
         progressCircleCtx.clearRect(0, 0, width, height);
         progressCircleCtx.strokeStyle = fractionObserved === 1 ? '#00dd00' : '#404040';
         progressCircleCtx.beginPath();
-        progressCircleCtx.arc(width - 20, 20, 16, toRadians(-90), toRadians(fractionObserved * 360 - 90));
+        progressCircleCtx.arc(width - 20 * scaleFactor, 20 * scaleFactor, 16 * scaleFactor,
+            toRadians(-90), toRadians(fractionObserved * 360 - 90));
         progressCircleCtx.stroke();
     }
 
@@ -150,6 +176,7 @@ function ObservedArea(uiMinimap) {
      */
     this.update = function() {
         if (observedAreas.length > 0) {
+            syncCanvasSize();
             updateAngles();
             renderFogOfWar();
             renderFov();

@@ -105,9 +105,9 @@ function RibbonMenu(tracker, uiRibbonMenu) {
             if (uiRibbonMenu) {
                 setLabelTypeButtonBorderColors(mode);
 
-                // Recolor the panorama border to match the selected label type (black while in Walk mode).
+                // Recolor the panorama frame to match the selected label type (black while in Walk mode).
                 const borderColor = util.misc.getLabelColors()[mode].fillStyle;
-                uiRibbonMenu.pano.css('border-color', borderColor);
+                uiRibbonMenu.panoFrame.css('border-color', borderColor);
             }
         }
     }

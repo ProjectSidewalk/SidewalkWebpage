@@ -1,53 +1,53 @@
 .icon-ribbon-menu-medium {
-    height: 35px;
-    margin: 0 5px 0 5px;
+    height: calc(35px * var(--ui-scale));
+    margin: 0 calc(5px * var(--ui-scale));
     position: relative;
     left: 0;
-    top: -2px;
+    top: calc(-2px * var(--ui-scale));
 }
 
 #icon-explore {
-    height: 38px;
-    left: 5px;
-    top: 2px;
+    height: calc(38px * var(--ui-scale));
+    left: calc(5px * var(--ui-scale));
+    top: calc(2px * var(--ui-scale));
 }
 
 .label-type-button-holder {
     cursor: pointer;
     position: relative;
-    width: 77px;
+    width: calc(77px * var(--ui-scale));
 }
 
 #label-type-divider-major {
-    border-left: 2px solid lightgray;
+    border-left: 2px solid var(--color-neutral-300);
     align-self: center;
     top: var(--ribbon-title-height);
-    height: 20px;
+    height: calc(20px * var(--ui-scale));
 }
 
 .label-type-icon {
     display: block;
     margin: auto;
-    height: 66px;
+    height: calc(66px * var(--ui-scale));
     border-color: transparent;
     border-style: solid;
-    border-width: 5px;
+    border-width: calc(5px * var(--ui-scale));
     border-radius: 50%;
 }
 
 .label-type-name {
-    font-size: 8px;
-    line-height: 0.9;
+    font-size: calc(8px * var(--ui-scale));
+    line-height: 0.9; /* Tighter than the token's line-height so two-line names fit in the fixed-height ribbon. */
     text-align: center;
     display: block;
     width: 100%;
-    padding-top: 3px;
+    padding-top: calc(3px * var(--ui-scale));
 }
 
 #mode-switch-walk {
-    width: 56px;
-    border: 3px solid rgba(0, 0, 0, 1);
-    background: rgb(204, 204, 204);
+    width: calc(56px * var(--ui-scale));
+    border: calc(3px * var(--ui-scale)) solid var(--color-neutral-black);
+    background: var(--color-neutral-300);
 }
 
 .ribbon-menu-title-holder {
@@ -60,8 +60,7 @@
 }
 
 #ribbon-menu-title {
-    font-size: 8px;
-    font-weight: 600;
+    font: var(--text-tiny-regular);
     position: relative;
 }
 
@@ -72,15 +71,15 @@
     width: 1000px; /* Set to a very large value, cut off from outer div with overflow: hidden. */
     height: 1px;
     content: '';
-    background-color: lightgray;
+    background-color: var(--color-neutral-300);
 }
 #ribbon-menu-title:before {
     right: 100%;
-    margin-right: 5px;
+    margin-right: calc(5px * var(--ui-scale));
 }
 #ribbon-menu-title:after {
     left: 100%;
-    margin-left: 5px;
+    margin-left: calc(5px * var(--ui-scale));
 }
 
 #ribbon-menu-holder {
@@ -89,11 +88,11 @@
     top: var(--ribbon-top);
     height: var(--ribbon-height);
     width: var(--pano-width);
-    /* Height reserved for each group's section-title row. Used to line up all icons. */
-    --ribbon-title-height: 14px;
     /* Center the button row vertically within the holder, to avoid pooling whitespace in some languages. */
     display: flex;
     align-items: center;
+
+    --ribbon-title-height: calc(14px * var(--ui-scale));
 }
 
 #ribbon-menu-buttons {
@@ -121,20 +120,20 @@
 
 #ribbon-menu-other-subcategory-holder {
     position: absolute;
-    top: 54px;
-    left: -10px;
-    width: 260px;
-    padding: 10px;
+    top: calc(54px * var(--ui-scale));
+    left: calc(-10px * var(--ui-scale));
+    width: calc(260px * var(--ui-scale));
+    padding: calc(10px * var(--ui-scale));
     z-index: 4;
     visibility: hidden;
 }
 
 .ribbon-menu-other-subcategory {
-    padding: 10px 5px;
-    margin: 5px 5px 0 5px;
-    background: white;
-    border-radius: 28px;
-    border: 1px solid var(--color-neutral-200);
+    padding: calc(10px * var(--ui-scale)) calc(5px * var(--ui-scale));
+    margin: calc(5px * var(--ui-scale)) calc(5px * var(--ui-scale)) 0 calc(5px * var(--ui-scale));
+    background: var(--color-neutral-white);
+    border-radius: calc(28px * var(--ui-scale));
+    border: calc(1px * var(--ui-scale)) solid var(--color-neutral-200);
 }
 
 .ribbon-menu-other-subcategory:hover {

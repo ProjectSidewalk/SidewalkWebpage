@@ -142,7 +142,7 @@ body {
 
 #mission-title {
     font-size: 38px;
-    color: white;
+    color: var(--color-neutral-white);
     top: 20px;
     left: 0;
     height: 60px;

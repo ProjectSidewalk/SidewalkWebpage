@@ -29,12 +29,12 @@
     right: 0;
     padding: 10px;
     height: 560px;
-    background: rgba(255, 255, 255, 1);
+    background: var(--color-neutral-white);
     color: rgba(80, 80, 80, 1);
     font-size: 14pt;
     position: absolute;
     min-height: 480px;
-    border: 5px solid black;
+    border: 5px solid var(--color-neutral-black);
 
     border-radius: 3px 3px 3px 3px;
     z-index: 10;
@@ -100,7 +100,7 @@
 }
 
 .modal-foreground .btn-primary {
-    color: white;
+    color: var(--color-neutral-white);
     background: #3182bd;
     cursor: pointer;
     border: 1px solid transparent;
@@ -109,16 +109,16 @@
 }
 
 .modal-foreground .btn-secondary {
-    color: black;
-    background: white;
+    color: var(--color-neutral-black);
+    background: var(--color-neutral-white);
     cursor: pointer;
-    border: 1px solid black;
+    border: 1px solid var(--color-neutral-black);
     font-size: 14pt;
     opacity: 1.0;
 }
 
 .modal-foreground .btn-loading {
-    color: white;
+    color: var(--color-neutral-white);
     background: #7f7f7f;
     cursor: wait;
     border: 1px solid transparent;

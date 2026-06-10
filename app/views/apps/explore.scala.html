@@ -115,7 +115,7 @@
             <div class="overlay-text">
                 <div id="area-completion-overlay">
                     <p id="area-completion-title" class="overlay-header">Neighborhood Complete!</p>
-                    <p id="area-completion-body"><b>Hurray!</b> You just helped complete this neighborhood! You can:</p>
+                    <p id="area-completion-body">Hurray! You just helped complete this neighborhood! You can:</p>
                     <span class="overlay-option" id="continue-current">Continue in this neighborhood</span>
                     <span class="overlay-option" id="redirect-new">Go to a new neighborhood</span>
                 </div>
@@ -338,6 +338,8 @@
                         </div>
                     </div>
 
+                    <div id="pano-border-frame" class="window-streetview"></div>
+
                     <div id="delete-icon-holder">
                         <img src='@assets.path("javascripts/SVLabel/img/icons/Icon_Delete.png")' id="label-delete-icon" />
                     </div>
@@ -353,7 +355,7 @@
                     <div id="context-menu-holder">
                         <div id="context-menu-close-button-holder">
                             <button id="context-menu-close-button">
-                                <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="min-width: 20px; min-height: 20px;">
+                                <svg width="100%" height="100%" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M15 5L5 15M5 5L15 15" stroke="#9F9DB1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                                 </svg>
                             </button>
@@ -370,23 +372,23 @@
                                 />
                             </div>
                             <div id="context-menu-tag-holder" class="context-menu-section">
-                                <button class="context-menu-tag" name='tag' id="0"></button>
-                                <button class="context-menu-tag" name='tag' id="1"></button>
-                                <button class="context-menu-tag" name='tag' id="2"></button>
-                                <button class="context-menu-tag" name='tag' id="3"></button>
-                                <button class="context-menu-tag" name='tag' id="4"></button>
-                                <button class="context-menu-tag" name='tag' id="5"></button>
-                                <button class="context-menu-tag" name='tag' id="6"></button>
-                                <button class="context-menu-tag" name='tag' id="7"></button>
-                                <button class="context-menu-tag" name='tag' id="8"></button>
-                                <button class="context-menu-tag" name='tag' id="9"></button>
-                                <button class="context-menu-tag" name='tag' id="10"></button>
-                                <button class="context-menu-tag" name='tag' id="11"></button>
-                                <button class="context-menu-tag" name='tag' id="12"></button>
-                                <button class="context-menu-tag" name='tag' id="13"></button>
-                                <button class="context-menu-tag" name='tag' id="14"></button>
-                                <button class="context-menu-tag" name='tag' id="15"></button>
-                                <button class="context-menu-tag" name='tag' id="16"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="0"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="1"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="2"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="3"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="4"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="5"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="6"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="7"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="8"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="9"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="10"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="11"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="12"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="13"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="14"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="15"></button>
+                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="16"></button>
                             </div>
                         </div>
 
@@ -433,7 +435,7 @@
                         </div>
                     </div>
                     @* Compass message, anchored to the bottom-right of the pano viewer (see svl-compass.css). *@
-                    <div id="compass-message-holder" class="animated white-background-75">
+                    <div id="compass-message-holder" class="animated">
                         <span id="compass-message"></span>
                     </div>
                 </div>
@@ -452,7 +454,7 @@
             <div id="pop-up-message-holder" class="hidden">
                 <div id="pop-up-message-background"></div>
                 <div id="pop-up-message-foreground">
-                    <h2 id="pop-up-message-title" class="bold">Title</h2>
+                    <h2 id="pop-up-message-title">Title</h2>
                     <p id="pop-up-message-content">Content</p>
                     <div id="pop-up-message-img-holder"></div>
                     <div id="pop-up-message-button-holder"></div>
@@ -462,15 +464,19 @@
                 <div id="modal-comment-background"></div>
                 <div id="modal-comment-box">
                     <form id="comment-form">
-                        <div id="modal-comment-title" class="bold">
+                        <div id="modal-comment-title">
                             <p>@Html(Messages("feedback.title"))</p>
                         </div>
                         <div id="modal-comment-content">
                             <textarea id="modal-comment-textarea" placeholder=""></textarea>
                         </div>
-                        <div>
-                            <button class="button" id="modal-comment-ok-button">@Messages("ok")</button>&nbsp;
-                            <button class="button" id="modal-comment-cancel-button">@Messages("cancel")</button>
+                        <div class="modal-comment-buttons">
+                            <button id="modal-comment-cancel-button" class="button-ps button--secondary button--medium">
+                                @Messages("cancel")
+                            </button>
+                            <button id="modal-comment-ok-button" class="button-ps button--primary button--medium">
+                                @Messages("ok")
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -478,7 +484,7 @@
             <div id="modal-mission-complete-holder">
                 <div id="modal-mission-complete-background" class="modal-background"></div>
                 <div id="modal-mission-complete-foreground" class="modal-foreground">
-                    <h1><span class="normal" id="modal-mission-complete-title"></span></h1>
+                    <h1><span id="modal-mission-complete-title"></span></h1>
                     <div class="row">
                         <div class="mapbox col-sm-7">
                             <div id="modal-mission-complete-map"></div>
@@ -490,7 +496,6 @@
 
                         </div>
                         <div class="col-sm-5">
-                            <p><span id="modal-mission-complete-message"></span></p>
                             <h3>@Messages("audit.mission.complete.labels.title")</h3>
                             <table class="table">
                                 <tr>
@@ -566,11 +571,11 @@
 
             </div>
             <div class="col-md-6">
-                <p><span class="bold">@Messages("audit.tutorial.welcome.2")</span></p>
+                <p><span>@Messages("audit.tutorial.welcome.2")</span></p>
             </div>
             <div class="col-md-offset-3 col-md-3">
                 <p>
-                    <button class="button onboarding-transition-trigger" id="onboarding-ok-button" value="OK" style="position: relative; top: -4px;">@Messages("audit.tutorial.welcome.3")</button>
+                    <button class="button-ps button--large button--secondary onboarding-transition-trigger" id="onboarding-ok-button" value="OK" style="position: relative; top: -4px;">@Messages("audit.tutorial.welcome.3")</button>
                 </p>
             </div>
 
@@ -619,9 +624,9 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-md-10"></div>
-            <div class="col-md-2">
-                <button class="button" id="onboarding-ok-button">OK</button>
+            <div class="col-md-11"></div>
+            <div class="col-md-1">
+                <button class="button-ps button--large button--secondary" id="onboarding-ok-button">OK</button>
             </div>
         </div>
     </template>
@@ -634,6 +639,8 @@
         <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
     }
     <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
+    <script src='@assets.path("javascripts/lib/floating-ui.core-1.7.5.umd.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/floating-ui.dom-1.7.6.umd.min.js")'></script>
     <script src='@assets.path("javascripts/SVLabel/build/SVLabel.js")'></script>
     <script src='@assets.path("javascripts/lib/kinetic-v4.4.3.min.js")'></script>
     <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
@@ -647,6 +654,7 @@
     <script src='@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
     <link href='@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/tag-pills.css")' rel="stylesheet"/>
 
     <script>
         $(document).ready(function() {

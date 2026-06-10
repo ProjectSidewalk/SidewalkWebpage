@@ -4,39 +4,55 @@
     top: 0;
 }
 
+/* Semi-transparent overlay covering the pano while a pop-up is shown, blocking interactions behind it. */
 #pop-up-message-background {
     position: absolute;
-    left: -60px;
+    left: 0;
     top: 0;
-    background: rgba(255, 255, 255, 0.5);
+    background: rgb(from var(--color-neutral-white) r g b / 50%);
     height: 100%;
-    width: 1000px;
+    width: 100%;
 }
 
+/* The pop-up box itself. The holder spans the whole app holder (so the overlay covers the ribbon etc.), so the
+ * box is centered over the pano area specifically using the layout variables from .tool-ui. */
 #pop-up-message-foreground {
-    background: rgba(255, 255, 255, 1); /* rgba(69,183,214,1); */
-    border: 3px solid rgba(200,200,200,1);
-    font-size: 14pt;
-    padding: 10px;
+    background: var(--color-neutral-white);
+    border: calc(1px * var(--ui-scale)) solid var(--color-neutral-400);
+    border-radius: calc(8px * var(--ui-scale, 1));
+    font: var(--text-subtitle-regular);
+    padding: calc(10px * var(--ui-scale));
     position: absolute;
-    top: 0;
-    left: 0;
-    visibility: visible;
-    width: 730px;
+    left: calc(var(--pano-width) / 2);
+    top: calc(var(--street-view-top) + var(--pano-height) / 2);
+    transform: translate(-50%, -50%);
+    width: calc(480px * var(--ui-scale));
+    z-index: 2;
     text-align: center;
 }
 
+/* Pop-ups containing an example image need extra room. */
+#pop-up-message-foreground.has-image {
+    width: calc(640px * var(--ui-scale));
+}
+
+#pop-up-message-foreground h2 {
+    font: var(--text-h2-bold);
+    margin-top: calc(10px * var(--ui-scale, 1));
+}
+
 #pop-up-message-foreground p {
-    padding-left: 1px;
+    padding-left: calc(1px * var(--ui-scale));
 }
 
 #pop-up-message-foreground a {
-    color: rgba(20, 20, 20, 1);
+    color: var(--color-neutral-900);
 }
 
 #pop-up-message-button-holder {
     display: flex;
     flex-direction: row;
-    justify-content: center;
-    gap: 20px;
+    justify-content: flex-end;
+    gap: calc(20px * var(--ui-scale));
+    padding-top: calc(5px * var(--ui-scale));
 }

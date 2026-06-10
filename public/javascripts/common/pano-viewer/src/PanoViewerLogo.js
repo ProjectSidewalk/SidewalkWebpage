@@ -25,8 +25,8 @@ function createPanoViewerLogo(container, primaryViewerType) {
         bottom: '0',
         left: '0',
         zIndex: '1',
-        height: '29px',
-        padding: '4px 0 3px 10px',
+        height: 'calc(29px * var(--ui-scale, 1))',
+        padding: 'calc(4px * var(--ui-scale, 1)) 0 calc(3px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1))',
         boxSizing: 'border-box',
     });
     const img = document.createElement('img');
@@ -43,7 +43,7 @@ function createPanoViewerLogo(container, primaryViewerType) {
         if (!info) return;
         img.src = info.src;
         img.alt = info.alt;
-        holder.style.paddingLeft = info.paddingLeft;
+        holder.style.paddingLeft = `calc(${info.paddingLeft} * var(--ui-scale, 1))`;
         holder.style.display = 'flex';
     }
 

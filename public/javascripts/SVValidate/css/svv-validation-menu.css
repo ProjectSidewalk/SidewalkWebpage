@@ -63,7 +63,7 @@
     font-weight: 600;
     line-height: normal;
 
-    background-color: white;
+    background-color: var(--color-neutral-white);
     outline: none; /* Removes focus outline that shows up when I press shift after clicking on a button. */
 }
 
@@ -82,7 +82,7 @@
 
 #validate-unsure-button.chosen {
     background: #1A1A1A;
-    color: white;
+    color: var(--color-neutral-white);
 }
 
 /* Only show hover states on non-touch devices. Same CSS as for chosen state. */
@@ -95,7 +95,7 @@
     }
     #validate-unsure-button:hover {
         background: #1A1A1A;
-        color: white;
+        color: var(--color-neutral-white);
     }
 }
 
@@ -167,7 +167,7 @@
 #validate-submit-button {
     background: #5A9E85;
     border-color: #5A9E85;
-    color: white;
+    color: var(--color-neutral-white);
 }
 #validate-submit-button:disabled {
     background: #A9C5B9;
@@ -194,7 +194,7 @@
     flex-shrink: 0 !important;
     border-radius: 6px 6px !important;
     border: 1.3px solid #ACADAD !important;
-    background: white !important;
+    background: var(--color-neutral-white) !important;
 }
 
 .selectize-input.focus.input-active.has-options {
@@ -223,7 +223,7 @@
     background: #78C9AB;
 
     cursor: default;
-    color: #FFF;
+    color: var(--color-neutral-white);
     text-align: center;
     font-family: Raleway;
     font-size: 9px;
@@ -236,7 +236,7 @@
     cursor: pointer;
     width: 9px;
     height: 9px;
-    fill: white;
+    fill: var(--color-neutral-white);
 }
 
 .selectize-dropdown-content {
@@ -276,7 +276,7 @@
 
 .selectize-dropdown .option:hover {
     background: #78C9AB;
-    color: #FFF;
+    color: var(--color-neutral-white);
     border-color: #78C9AB;
 }
 
@@ -307,7 +307,7 @@
     flex-shrink: 0;
     border-radius: 6px;
     border: 1px solid #666;
-    background-color: white;
+    background-color: var(--color-neutral-white);
 
     color: #666;
     font-family: Raleway;
@@ -320,12 +320,12 @@
 #no-reason-options .validation-reason-button.chosen {
     background: #F29173;
     border-color: #F29173;
-    color: white;
+    color: var(--color-neutral-white);
 }
 #unsure-reason-options .validation-reason-button.chosen {
     background: #1A1A1A;
     border-color: #1A1A1A;
-    color: white;
+    color: var(--color-neutral-white);
 }
 
 #add-disagree-comment.chosen {
@@ -337,12 +337,12 @@
     #no-reason-options .validation-reason-button:hover {
         background: #F29173;
         border-color: #F29173;
-        color: white;
+        color: var(--color-neutral-white);
     }
     #unsure-reason-options .validation-reason-button:hover {
         background: #1A1A1A;
         border-color: #1A1A1A;
-        color: white;
+        color: var(--color-neutral-white);
     }
     #add-disagree-comment:hover {
         border-color: #F29173 !important;

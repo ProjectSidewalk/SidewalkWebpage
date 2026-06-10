@@ -42,24 +42,13 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
     }
 
     /**
-     * Blink the zoom in and zoom-out buttons
-     */
-    function blink () {
-        stopBlinking();
-        blinkInterval = window.setInterval(function () {
-            uiZoomControl.zoomIn.toggleClass("highlight-50");
-            uiZoomControl.zoomOut.toggleClass("highlight-50");
-        }, 500);
-    }
-
-    /**
      * Blink the zoom in button
      */
     function blinkZoomIn () {
         stopBlinking();
         zoomBlink.isBlinking = true;
         blinkInterval = window.setInterval(function () {
-            uiZoomControl.zoomIn.toggleClass("highlight-100");
+            uiZoomControl.zoomIn.toggleClass("highlight-50");
         }, 500);
     }
 
@@ -70,7 +59,7 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
         stopBlinking();
         zoomBlink.isBlinking = true;
         blinkInterval = window.setInterval(function () {
-            uiZoomControl.zoomOut.toggleClass("highlight-100");
+            uiZoomControl.zoomOut.toggleClass("highlight-50");
         }, 500);
     }
 
@@ -270,9 +259,6 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
         if (uiZoomControl) {
             uiZoomControl.zoomIn.removeClass("highlight-50");
             uiZoomControl.zoomOut.removeClass("highlight-50");
-
-            uiZoomControl.zoomIn.removeClass("highlight-100");
-            uiZoomControl.zoomOut.removeClass("highlight-100");
         }
     }
 
@@ -320,7 +306,6 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
         return this;
     }
 
-    self.blink = blink;
     self.blinkZoomIn = blinkZoomIn;
     self.blinkZoomOut = blinkZoomOut;
     self.disableZoomIn = disableZoomIn;

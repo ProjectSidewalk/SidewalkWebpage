@@ -98,7 +98,7 @@ function Label(params) {
         // Create the marker on the minimap.
         const latlng = toLatLng();
         googleMarker = Label.createMinimapMarker(properties.labelType, latlng);
-        googleMarker.setMap(svl.minimap.getMap());
+        googleMarker.map = svl.minimap.getMap();
     }
 
     // Some functions for easy access to commonly accessed properties.
@@ -222,11 +222,11 @@ function Label(params) {
         // Show the label on the Google Maps pane.
         if (!isDeleted()) {
             if (googleMarker && !googleMarker.map) {
-                googleMarker.setMap(svl.minimap.getMap());
+                googleMarker.map = svl.minimap.getMap();
             }
         } else {
             if (googleMarker && googleMarker.map) {
-                googleMarker.setMap(null);
+                googleMarker.map = null;
             }
         }
         return this;
@@ -298,12 +298,25 @@ function Label(params) {
 
     function showDeleteButton() {
         if (status.hoverInfoVisibility !== 'hidden') {
-            // coord is in the logical 720x480 frame; scale to on-screen pixels.
+            const holder = svl.ui.canvas.deleteIconHolder;
+
+            // Hide if the label is not on the canvas.
             const coord = getCanvasXY();
+            if (!coord) {
+                holder.css('visibility', 'hidden');
+                return;
+            }
+
+            // Place the button at the upper-right of the label. Hide if it doesn't fit.
             const scale = util.exploreDisplayScale();
-            svl.ui.canvas.deleteIconHolder.css({
-                visibility: 'visible', left: coord.x * scale + 5, top: coord.y * scale - 25
-            });
+            const gap = 5 * scale;
+            const left = coord.x * scale + gap;
+            const top = coord.y * scale - 25 * scale;
+            if (left + holder.outerWidth() > util.EXPLORE_CANVAS_WIDTH * scale || top < 0) {
+                holder.css('visibility', 'hidden');
+                return;
+            }
+            holder.css({ visibility: 'visible', left: left, top: top });
         }
     }
 
@@ -324,7 +337,10 @@ function Label(params) {
 
         // Draws text.
         ctx.beginPath();
-        ctx.font = "12px Open Sans";
+
+        // Canvas fonts can't resolve CSS variables, so the design system's --font-primary stack is read from :root.
+        // No --ui-scale here: this canvas keeps its fixed logical size and is scaled up by the browser.
+        ctx.font = `400 12px ${getComputedStyle(document.documentElement).getPropertyValue('--font-primary')}`;
         ctx.fillStyle = 'rgb(255, 255, 255)';
         ctx.fillText('?', x - 17.5, y - 6);
         ctx.closePath();
@@ -459,30 +475,34 @@ if (!window.labelIconCache) {
     window.labelIconCache = {};
 }
 
-// There is a static rendering method for a label, allowing us to draw labels in the tutorial with no interactions.
+/**
+ * Preloads and caches every label-type icon. renderLabelIcon draws only from this cache, so warming it up front lets
+ * the icon, its outline, and any overlay drawn after it (e.g. the severity "?" alert) paint together in the right
+ * order — a lazily-loaded icon would instead paint asynchronously, on top of those overlays.
+ * @returns {Promise} Resolves once all icons have loaded (or failed) so callers can render with the cache warm.
+ */
+Label.preloadIcons = function() {
+    const iconPaths = util.misc.getIconImagePaths();
+    const loads = Object.keys(iconPaths).map(function(labelType) {
+        const iconPath = iconPaths[labelType].iconImagePath;
+        if (!iconPath || window.labelIconCache[iconPath]) return Promise.resolve();
+        return new Promise(function(resolve) {
+            const imageObj = new Image();
+            imageObj.onload = function() { window.labelIconCache[iconPath] = imageObj; resolve(); };
+            imageObj.onerror = function() { resolve(); }; // Don't let one missing icon block the rest.
+            imageObj.src = iconPath;
+        });
+    });
+    return Promise.all(loads);
+};
+
+// Draws a label icon and its circular outline. The icon comes from the cache warmed by Label.preloadIcons; the outline
+// is drawn after it so the ring sits on top of the icon's edge. Static (also used to draw tutorial example labels).
 Label.renderLabelIcon = function(ctx, labelType, x, y) {
-    var imageHeight, imageWidth;
-    imageHeight = imageWidth = 2 * svl.LABEL_ICON_RADIUS - 3;
-    var imageX = x - svl.LABEL_ICON_RADIUS + 2;
-    var imageY = y - svl.LABEL_ICON_RADIUS + 2;
-    var iconPath = util.misc.getIconImagePaths(labelType).iconImagePath;
+    const size = 2 * svl.LABEL_ICON_RADIUS - 3;
+    const icon = window.labelIconCache[util.misc.getIconImagePaths(labelType).iconImagePath];
+    if (icon) ctx.drawImage(icon, x - svl.LABEL_ICON_RADIUS + 2, y - svl.LABEL_ICON_RADIUS + 2, size, size);
 
-    // Check if we already have this image in cache, then draw the label icon.
-    if (window.labelIconCache[iconPath]) {
-        ctx.drawImage(window.labelIconCache[iconPath], imageX, imageY, imageHeight, imageWidth);
-    } else {
-        // Load, cache, and draw the image.
-        var imageObj = new Image();
-        imageObj.src = iconPath;
-        imageObj.onload = function() {
-            window.labelIconCache[iconPath] = imageObj;
-            ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-        };
-    }
-
-    // Draws label outline.
-    ctx.beginPath();
-    ctx.fillStyle = util.misc.getLabelColors()[labelType].fillStyle;
     ctx.lineWidth = 0.7;
     ctx.beginPath();
     ctx.arc(x, y, 15.3, 0, 2 * Math.PI);
@@ -495,17 +515,17 @@ Label.renderLabelIcon = function(ctx, labelType, x, y) {
 }
 
 /**
- * This method creates a Google Maps marker.
- * https://developers.google.com/maps/documentation/javascript/markers
- * https://developers.google.com/maps/documentation/javascript/examples/marker-remove
+ * Creates the marker shown for this label on the minimap using Google Maps AdvancedMarkerElement.
  * @param {string} labelType
  * @param {{lat: number, lng: number}} latLng
- * @returns {google.maps.Marker}
+ * @returns {google.maps.marker.AdvancedMarkerElement}
  */
 Label.createMinimapMarker = function(labelType, latLng) {
-    return new google.maps.Marker({
+    const content = document.createElement('img');
+    content.src = util.misc.getIconImagePaths()[labelType].minimapIconImagePath;
+    return new google.maps.marker.AdvancedMarkerElement({
         position: new google.maps.LatLng(latLng.lat, latLng.lng),
         map: svl.minimap.getMap(),
-        icon: util.misc.getIconImagePaths()[labelType].minimapIconImagePath
+        content: content
     });
 }

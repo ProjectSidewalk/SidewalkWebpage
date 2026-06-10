@@ -24,8 +24,9 @@
         @if(tagsByLabelType.getOrElse(labelType, Seq.empty).nonEmpty) {
             <div class="map-sidebar__tag-pills" hidden>
                 @for(tag <- tagsByLabelType(labelType)) {
-                    <button class="tag-pill tag-pill--interactive" data-tag="@tag.tag" data-label-type="@labelType"
-                            data-i18n="common:tag.@{tag.tag.replace(":", "-")}">@tag.tag</button>
+                    <button class="tag-pill tag-pill--interactive" data-tag="@tag.tag" data-label-type="@labelType">
+                        <span class="tag-pill__label" data-i18n="common:tag.@{tag.tag.replace(":", "-")}">@tag.tag</span>
+                    </button>
                 }
             </div>
         }

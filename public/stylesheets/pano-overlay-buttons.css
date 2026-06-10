@@ -1,23 +1,23 @@
 /*
  * Shared styling for compact buttons that float over the panorama (Explore and Validate).
- * This file owns only the LOOK of the buttons; each page positions the holder itself.
+ * This file owns only the LOOK of the buttons (scaled by --ui-scale); each page positions the holder itself.
  */
 
 /* Stacked +/- zoom control: two square buttons separated by a small gap. */
 .zoom-buttons-holder {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: calc(2px * var(--ui-scale, 1));
 }
 
 .zoom-buttons-holder .tooltip {
-    width: 70px;
-    font-size: 10px;
+    width: calc(70px * var(--ui-scale, 1));
+    font: var(--text-caption-regular);
 }
 
 .zoom-button {
-    width: 22px;
-    height: 22px;
+    width: calc(22px * var(--ui-scale, 1));
+    height: calc(22px * var(--ui-scale, 1));
     cursor: pointer;
     background-color: var(--color-asphalt-400);
     border-style: none;
@@ -30,14 +30,12 @@
 
 /* Round only the outer corners so the gap-separated pair still reads as one stacked control. */
 .zoom-button:first-of-type {
-    border-radius: 7px 7px 0 0;
+    border-radius: calc(7px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1)) 0 0;
 }
-
 .zoom-button:last-of-type {
-    border-radius: 0 0 7px 7px;
+    border-radius: 0 0 calc(7px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1));
 }
 
-/* Greyed-out look when a direction is unavailable (max/min zoom or explicitly disabled). */
 .zoom-button.disabled {
     opacity: 0.7;
 }
@@ -45,8 +43,8 @@
 /* White +/- glyphs (public/images/icons/{plus,minus}-white.svg) shown over the black pill. */
 .zoom-button-icon {
     display: block;
-    width: 18px;
-    height: 18px;
+    width: calc(18px * var(--ui-scale, 1));
+    height: calc(18px * var(--ui-scale, 1));
     transition: transform 0.1s ease;
 }
 
@@ -54,24 +52,22 @@
     transform: scale(1.15);
 }
 
-/*
- * Stuck/sound/feedback buttons look; positioning and the expand/collapse behavior live in the {svl,svv}-canvas.css.
- */
+/* Stuck/sound/feedback buttons look; positioning and the expand/collapse behavior in the {svl,svv}-canvas.css. */
 .pano-overlay-button-group {
     display: flex;
-    gap: 3px;
+    gap: calc(3px * var(--ui-scale, 1));
     align-items: stretch;
 }
 
 .pano-overlay-button {
     display: flex;
     align-items: center;
-    gap: 6px;
-    height: 30px;
-    padding: 0 8px;
-    border-radius: 7px;
+    gap: calc(6px * var(--ui-scale, 1));
+    height: calc(30px * var(--ui-scale, 1));
+    padding: 0 calc(8px * var(--ui-scale, 1));
+    border-radius: calc(7px * var(--ui-scale, 1));
     background-color: var(--color-asphalt-400);
-    color: #fff;
+    color: var(--color-neutral-white);
     font: var(--text-caption-semibold);
     white-space: nowrap;
     cursor: pointer;
@@ -79,17 +75,16 @@
     outline: none;
 }
 
-/* The feedback button wraps its icon + label in an inner tooltip target; lay that out the same way. */
 .pano-overlay-button-inner {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(6px * var(--ui-scale, 1));
 }
 
 .pano-overlay-button-icon {
     display: block;
-    width: 20px;
-    height: 20px;
+    width: calc(20px * var(--ui-scale, 1));
+    height: calc(20px * var(--ui-scale, 1));
     flex-shrink: 0;
 }
 
@@ -99,7 +94,7 @@
 
 /* Chevron-only toggle: a square pill with no label, sitting at the end of the row. */
 .pano-overlay-toggle {
-    width: 28px;
+    width: calc(28px * var(--ui-scale, 1));
     padding: 0;
     justify-content: center;
 }

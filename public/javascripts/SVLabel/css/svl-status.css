@@ -6,34 +6,34 @@
     left: var(--sidebar-left);
     top: 4px;
     width: var(--sidebar-width);
-    color: rgb(75, 75, 75, 1);
+    color: var(--color-neutral-800);
 }
 
 .status-box {
-    border-bottom: 1px dotted #ccc;
+    border-bottom: 1px dotted var(--color-neutral-300);
     margin: 3px 0 5px 0;
     padding: 0 0 5px 0;
     text-align: left;
 }
 
 .status-box a {
-    color: rgb(75, 75, 75, 1);
+    color: var(--color-neutral-800);
     text-decoration: underline;
 }
 
 .status-box h1 {
-    font-size: 11pt;
+    font-size: calc(11pt * var(--ui-scale));
     margin: 0 0 4px 0;
 }
 
 .status-box h2 {
-    font-size: 8.5pt;
+    font-size: calc(8.5pt * var(--ui-scale));
     font-weight: normal;
     margin: 1px 0 5px 1px;
 }
 
 .status-box span {
-    font-size: 10pt;
+    font-size: calc(10pt * var(--ui-scale));
     vertical-align: middle;
 }
 
@@ -43,6 +43,13 @@
 
 #status-holder-neighborhood-name {
     vertical-align: inherit;
+}
+
+#status-neighborhood-link {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 #label-counter-status-box {
@@ -59,7 +66,7 @@
 
 #mission-guidance-status {
     display: inline-block;
-    font-size: 7.5pt;
+    font-size: calc(7.5pt * var(--ui-scale));
 }
 
 #mission-guidance-status:hover::after {
@@ -67,23 +74,23 @@
      position: absolute;
      top: 60%;
      left: 0;
-     background: #333;
-     color: white;
+     background: var(--color-neutral-900);
+     color: var(--color-neutral-white);
      padding: 8px;
      border-radius: 4px;
      white-space: pre-wrap;
      z-index: 1000;
      max-width: 300px;
-     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+     box-shadow: 0 2px 8px rgb(from var(--color-neutral-black) r g b / 20%);
  }
 
 .status-icon {
-    width: 20px;
+    width: calc(20px * var(--ui-scale));
 }
 
 .status-tooltip {
-    background-color: rgba(58, 58, 58, 0.9);
-    color: white;
+    background-color: rgb(from var(--color-neutral-800) r g b / 90%);
+    color: var(--color-neutral-white);
     width: 276px;
     top: 18px;
     border-radius: 15px;
@@ -91,7 +98,7 @@
 }
 
 .status-tooltip a {
-    color: white;
+    color: var(--color-neutral-white);
 }
 
 .status-tooltip > .popover-content {
@@ -101,7 +108,7 @@
 
 .status-tooltip.top > .arrow {
     bottom: -10px; /* Adjusting from default -11px to remove small visual gap. */
-    border-top-color: rgba(58, 58, 58, 0.9);
+    border-top-color: rgb(from var(--color-neutral-800) r g b / 90%);
 }
 
 #accuracy-rating-tooltip.top > .arrow {
@@ -110,5 +117,5 @@
 
 .status-tooltip.top > .arrow:after {
     bottom: 2px;
-    border-top-color: rgba(58, 58, 58, 0.9);
+    border-top-color: rgb(from var(--color-neutral-800) r g b / 90%);
 }

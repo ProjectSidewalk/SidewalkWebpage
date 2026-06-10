@@ -14,20 +14,31 @@
     width: var(--pano-width);
 }
 
-/* The panorama viewport. The 3px border is recolored to match the selected label type by RibbonMenu. */
+/* The panorama viewport. It fills the full street-view area (no border) so the label canvas, which is the same size,
+   overlays the GSV imagery exactly. The colored frame is drawn on top by #pano-border-frame instead. */
 #pano {
-    border: 3px solid var(--color-asphalt-400);
-    border-radius: 4px;
+    border-radius: calc(4px * var(--ui-scale));
     background-color: var(--color-asphalt-400);
     overflow: hidden;
 }
 
-/* Shared button look pano-overlay-buttons.css; this rule only positions the holder in the top-right of the pano. */
+/* Colored frame on top of the pano and label layers. Drawing it above the canvases (rather than as the pano's own
+   border underneath) means a label placed at the very edge is clipped by the frame instead of rendering on top of it.
+   The border color is set per label type by RibbonMenu. */
+#pano-border-frame {
+    z-index: 2;
+    pointer-events: none;
+    box-sizing: border-box;
+    border: calc(3px * var(--ui-scale)) solid var(--color-asphalt-400);
+    border-radius: calc(4px * var(--ui-scale));
+}
+
+/* Shared button look in pano-overlay-buttons.css; this rule only positions the holder in the top-right of the pano. */
 #zoom-buttons-holder {
     position: absolute;
     z-index: 2;
-    top: 7px;
-    right: 7px;
+    top: calc(7px * var(--ui-scale));
+    right: calc(7px * var(--ui-scale));
 }
 
 /* Stuck/sound/feedback controls in the top-left. Shared pill look lives in pano-overlay-buttons.css;
@@ -35,8 +46,8 @@
 #explore-control-buttons-holder {
     position: absolute;
     z-index: 2;
-    top: 7px;
-    left: 7px;
+    top: calc(7px * var(--ui-scale));
+    left: calc(7px * var(--ui-scale));
 }
 
 /* Collapsed by default: only the Stuck button and chevron toggle show. */
@@ -51,14 +62,17 @@
 #nav-arrows-container {
     position: absolute;
     top: 50%;
-    left: calc(50% - 90px);
-    width: 220px;
-    height: 220px;
-    perspective: 285px;
+    left: calc(50% - 90px * var(--ui-scale));
+    width: calc(220px * var(--ui-scale));
+    height: calc(220px * var(--ui-scale));
+    perspective: calc(285px * var(--ui-scale));
 }
 
-/* Used to make it look like there's a 3D perspective for the arrows. */
+/* Used to make it look like there's a 3D perspective for the arrows. The SVG markup has fixed width/height attributes,
+   so override them to fill the (scaled) container; its viewBox keeps the arrows proportional. */
 #nav-arrows-container svg {
+     width: 100%;
+     height: 100%;
      transform: rotateX(45deg);
      transform-style: preserve-3d;
 }
@@ -84,17 +98,16 @@
 #delete-icon-holder {
     cursor: pointer;
     visibility: hidden;
-    /* Position */
     position: absolute;
-    width: 20px;
-    height: 20px;
+    width: calc(20px * var(--ui-scale));
+    height: calc(20px * var(--ui-scale));
     left: 0;
-    top: 10px;
+    top: calc(10px * var(--ui-scale));
 }
 
 #label-delete-icon {
-    height: 20px;
-    width: 20px;
+    height: calc(20px * var(--ui-scale));
+    width: calc(20px * var(--ui-scale));
     position: absolute;
 }
 
@@ -108,10 +121,10 @@
     pointer-events: none;
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 5px 9px;
+    gap: calc(2px * var(--ui-scale));
+    padding: calc(5px * var(--ui-scale)) calc(9px * var(--ui-scale));
     border: 1px solid var(--color-neutral-white);
-    border-radius: 4px;
+    border-radius: calc(4px * var(--ui-scale));
     color: var(--color-neutral-white);
     font: var(--text-caption-medium);
     white-space: nowrap;
@@ -120,23 +133,23 @@
 .label-hover-info-severity {
     display: none; /* Toggled to flex by Label.js for label types that have a severity. */
     align-items: center;
-    gap: 5px;
+    gap: calc(5px * var(--ui-scale));
 }
 
 .label-hover-info-severity-icon {
-    width: 16px;
-    height: 16px;
+    width: calc(16px * var(--ui-scale));
+    height: calc(16px * var(--ui-scale));
 }
 
 .speed-limit-sign {
     display: none;
-    width: 60px;
-    height: 70px;
-    padding: 3px;
-    margin-left: 2px;
+    width: calc(60px * var(--ui-scale));
+    height: calc(70px * var(--ui-scale));
+    padding: calc(3px * var(--ui-scale));
+    margin-left: calc(2px * var(--ui-scale));
     left: 0;
-    bottom: 25px;
-    border-radius: 5px;
+    bottom: calc(25px * var(--ui-scale));
+    border-radius: calc(5px * var(--ui-scale));
     position: absolute;
     z-index: 1;
     pointer-events: none;
@@ -144,11 +157,11 @@
 }
 
 .speed-limit-sign[data-design-style="non-us-canada"] {
-    width: 75px;
-    height: 75px;
+    width: calc(75px * var(--ui-scale));
+    height: calc(75px * var(--ui-scale));
     padding: 0px;
-    margin-top: -10px;
-    margin-left: -10px;
+    margin-top: calc(-10px * var(--ui-scale));
+    margin-left: calc(-10px * var(--ui-scale));
     border-radius: 100%;
     transform: scale(0.6);
 }
@@ -158,23 +171,23 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 5px;
-    border: 3px solid var(--color-neutral-black);
+    border-radius: calc(5px * var(--ui-scale));
+    border: calc(3px * var(--ui-scale)) solid var(--color-neutral-black);
 }
 
 .speed-limit-sign[data-design-style="non-us-canada"] .speed-limit-holder {
     border-radius: 100%;
-    border: 7px solid #f7000096;
+    border: calc(7px * var(--ui-scale)) solid var(--color-error-200);
 }
 
 .speed-limit-text {
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale));
     font-weight: bold;
     text-align: center;
 }
 
 #speed-limit {
-    font-size: 30px;
+    font-size: calc(30px * var(--ui-scale));
     display: block;
-    margin-bottom: -7px;
+    margin-bottom: calc(-7px * var(--ui-scale));
 }

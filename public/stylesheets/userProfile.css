@@ -48,7 +48,7 @@ svg {
     border-radius: 10px;
     border: 1px solid #2D2A3F;
     color: #2D2A3F;
-    background-color: white;
+    background-color: var(--color-neutral-white);
     font: normal normal normal 13px/1.3em 'Raleway', sans-serif;
     text-align: center;
     padding: 5px 20px;
@@ -200,7 +200,7 @@ svg {
     top: 0;
     padding-top: 10px;
     padding-bottom: 0;
-    color: black;
+    color: var(--color-neutral-black);
     text-shadow: none;
 }
 

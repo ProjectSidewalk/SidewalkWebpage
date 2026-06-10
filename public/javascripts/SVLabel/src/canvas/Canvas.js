@@ -407,6 +407,17 @@ function Canvas(ribbon) {
         return this;
     }
 
+    /**
+     * Re-rasterizes the label canvas to the current displayed pano size and redraws all labels.
+     * Call this after the UI scale changes (e.g. on window resize) so the canvas stays crisp and correctly placed.
+     */
+    function resize() {
+        const el = document.getElementById('label-canvas');
+        if (!el || !ctx) return;
+        _sizeCanvasToDisplay(el);
+        self.clear().render();
+    }
+
     function setCurrentLabel(label) {
         status.currentLabel = label;
     }
@@ -510,6 +521,7 @@ function Canvas(ribbon) {
     self.onLabel = onLabel;
     self.lockDisableLabelDelete = lockDisableLabelDelete;
     self.render = render;
+    self.resize = resize;
     self.setCurrentLabel = setCurrentLabel;
     self.setStatus = setStatus;
     self.showLabelHoverInfo = showLabelHoverInfo;

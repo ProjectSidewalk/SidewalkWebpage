@@ -2,118 +2,105 @@
     visibility: hidden;
 }
 
+/* Dims everything below the navbar while a full-page takeover message is shown. */
 #onboarding-background {
-    /* Covers the pano area (plus the ribbon above and some margin) during the tutorial; grows with the pano. */
-    width: calc(var(--pano-width) + 305px);
-    height: calc(var(--pano-height) + 140px);
-    background: rgba(255, 255, 255, 1.0);
-    position: absolute;
-    top: -110px;
-    left: -65px;
-    z-index: 3;
+    position: fixed;
+    top: var(--navbar-height);
+    left: 0;
+    width: 100%;
+    height: calc(100% - var(--navbar-height));
+    background: var(--color-neutral-white);
+    z-index: 1028;
     visibility: hidden;
 }
 
-/* The grab-and-drag hand animation is drawn on a fixed 720-wide Kinetic canvas; stretch it to the displayed
-   pano width so it scales proportionally like the other canvas layers. */
 #hand-gesture-holder {
-    width: var(--pano-width) !important;
+    width: var(--pano-width);
 }
 
+#hand-gesture-holder .kineticjs-content,
 #hand-gesture-holder canvas {
     width: 100% !important;
     height: auto !important;
 }
 
 #onboarding-message-holder {
-    width: 300px;
-    margin: 5px;
-    padding: 10px;
+    width: calc(300px * var(--ui-scale));
+    margin: calc(10px * var(--ui-scale));
+    padding: calc(10px * var(--ui-scale));
     position: absolute;
     top: 0;
     left: 0;
     z-index: 3;
-    font-size: 14pt;
+    font: var(--text-subtitle-regular);
     transform: None;
 
-    border-radius: 3px 3px 3px 3px;
+    border-radius: calc(3px * var(--ui-scale));
 }
 
 #onboarding-message-holder .button {
     width: 100%;
 }
 
-.callout {
-    position: relative;
-    padding: 24px;
-    border-radius: 3px;
-    margin: 25px;
-    min-height: 50px;
-    box-shadow: 0px 0px 20px rgba(0,0,0,0.5);
+.onboarding-ok-button-holder {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: calc(5px * var(--ui-scale));
 }
 
-.callout:before {
-    content: "";
-    width: 0px;
-    height: 0px;
-    border: 0.8em solid transparent;
+/* Anchored boxes: no margin (Floating UI positions by the border box; the id beats #onboarding-message-holder's
+   margin). drop-shadow (not box-shadow) follows the combined silhouette of the box and its child arrow, so the arrow's
+   inner edges merge in and only its outer edges cast a shadow — keeping the white-on-white arrow visible. */
+#onboarding-message-holder.callout-floating {
+    margin: 0;
+    filter: drop-shadow(0px 0px calc(5px * var(--ui-scale, 1)) rgb(from var(--color-neutral-black) r g b / 50%));
+}
+
+/* Arrow for anchor-based instruction boxes positioned by Floating UI. A rotated square sits behind the box so only
+   the half protruding toward the anchored element is visible; Floating UI sets its position along the relevant edge. */
+.fui-arrow {
     position: absolute;
-    z-index:-10;
+    width: calc(16px * var(--ui-scale));
+    height: calc(16px * var(--ui-scale));
+    background: var(--color-neutral-white);
+    transform: rotate(45deg);
+    z-index: -1;
 }
 
-.callout.bottom:before {
-    left: 45%;
-    bottom: -24px;
-    border-top: 10px solid white;
+/* Pin a message to the pano's top-right corner. */
+#onboarding-message-holder.onboarding-message-top-right {
+    left: auto;
+    right: 0;
 }
 
-.callout.top:before {
-    left: 45%;
-    top: -24px;
-    border-bottom: 10px solid white;
-}
-
-.callout.right:before {
-    right: -25px;
-    top: 40%;
-    border-left: 10px solid white;
-}
-
-.callout.left:before {
-    left: -24px;
-    top: 40%;
-    border-right: 10px solid white;
-}
-
-.callout.bottom-left:before {
-    left: 7px;
-    bottom: -24px;
-    border-top: 10px solid white;
-}
-
-.callout.bottom-right:before {
-    right: 7px;
-    bottom: -24px;
-    border-top: 10px solid white;
-}
-.callout.lower-right:before {
-    right: -25px;
-    top: 80%;
-    border-left: 10px solid white;
+/* Full-page intro/outro takeover: center the panel on the viewport, above all UI except the navbar. z-index sits just
+   below the navbar (#header, z-index: 1030) so the takeover covers everything but it. */
+#onboarding-message-holder.onboarding-message-takeover {
+    position: fixed;
+    top: 45%;
+    left: 50%;
+    margin: 0;
+    transform: translate(-50%, -50%);
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    z-index: 1029;
 }
 
 .white-background {
-    background: rgba(255, 255, 255, 1);
+    background: var(--color-neutral-white);
     transition:background 0.5s;
 }
 
 .yellow-background {
-    background: rgba(255, 255, 166, 1);
-    transition:background 0s;
+    background: var(--color-warning-100);
+    transition: background 0s;
 }
 
 #onboarding-example-image-1, #onboarding-example-image-2 {
-    width: 980px;
+    width: calc(980px * var(--ui-scale));
+    max-width: 100%;
 }
 
 .tutorial-table {
@@ -133,5 +120,5 @@
 }
 
 .tutorial-spacer {
-    padding-bottom: 8px;
+    padding-bottom: calc(8px * var(--ui-scale));
 }
