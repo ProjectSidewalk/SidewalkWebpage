@@ -19,7 +19,7 @@
 #pop-up-message-foreground {
     background: var(--color-neutral-white);
     border: calc(1px * var(--ui-scale)) solid var(--color-neutral-400);
-    border-radius: calc(8px * var(--ui-scale, 1));
+    border-radius: calc(8px * var(--ui-scale));
     font: var(--text-subtitle-regular);
     padding: calc(10px * var(--ui-scale));
     position: absolute;

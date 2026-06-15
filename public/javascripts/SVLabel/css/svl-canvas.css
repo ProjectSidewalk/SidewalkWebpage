@@ -160,8 +160,8 @@
     width: calc(75px * var(--ui-scale));
     height: calc(75px * var(--ui-scale));
     padding: 0px;
-    margin-top: calc(-10px * var(--ui-scale));
-    margin-left: calc(-10px * var(--ui-scale));
+    margin-left: calc(-5px * var(--ui-scale));
+    margin-bottom: calc(-10px * var(--ui-scale));
     border-radius: 100%;
     transform: scale(0.6);
 }
@@ -181,13 +181,13 @@
 }
 
 .speed-limit-text {
-    font-size: calc(12px * var(--ui-scale));
-    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+    font: var(--text-small-bold);
     text-align: center;
 }
 
 #speed-limit {
+    font: var(--text-h3-bold);
     font-size: calc(30px * var(--ui-scale));
-    display: block;
-    margin-bottom: calc(-7px * var(--ui-scale));
 }

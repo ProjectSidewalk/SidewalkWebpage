@@ -1,16 +1,14 @@
 #validation-menu-holder {
     margin: 0;
-    padding: 0px 12px;
     position: absolute;
-    left: 730px;
-    top: 95px; /* top from svv-panorama-holder. */
-    width: 320px;
-    height: 440px;
-    color: rgb(127, 127, 127);
+    left: var(--menu-left);
+    top: var(--header-height);
+    width: var(--menu-width);
+    height: var(--pano-height);
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    gap: 20px;
+    gap: calc(20px * var(--ui-scale));
 }
 
 .validate-disabled {
@@ -34,13 +32,8 @@
 }
 
 .validation-menu-section-header {
-    color: #2D2A3F;
-    font-family: "Open Sans";
-    font-size: 14px;
-    font-style: normal;
-    font-weight: 600;
-    line-height: normal;
-    margin-bottom: 10px;
+    font: var(--text-small-bold);
+    margin-bottom: calc(10px * var(--ui-scale));
 }
 
 #validation-button-holder {
@@ -50,18 +43,13 @@
 
 .validate-page-button {
     display: inline-block;
-    width: 86px;
-    height: 32px;
-    border-radius: 6px;
-    border: 1px solid #2D2A3F;
-
-    color: #2D2A3F;
+    width: calc(86px * var(--ui-scale));
+    height: calc(32px * var(--ui-scale));
+    border-radius: calc(6px * var(--ui-scale));
+    border: 1px solid var(--color-asphalt-500);
+    color: var(--color-asphalt-500);
+    font: var(--text-caption-semibold);
     text-align: center;
-    font-family: Raleway;
-    font-size: 12px;
-    font-style: normal;
-    font-weight: 600;
-    line-height: normal;
 
     background-color: var(--color-neutral-white);
     outline: none; /* Removes focus outline that shows up when I press shift after clicking on a button. */
@@ -71,107 +59,90 @@
     cursor: not-allowed;
 }
 
-/*#validate-yes-button:hover, #validate-yes-button.chosen {*/
 #validate-yes-button.chosen {
-    background: #76C9AB;
+    background: var(--color-pine-500);
 }
 
 #validate-no-button.chosen {
-    background: #F29173;
+    background: var(--color-orange-400);
 }
 
 #validate-unsure-button.chosen {
-    background: #1A1A1A;
+    background: var(--color-neutral-900);
     color: var(--color-neutral-white);
 }
 
 /* Only show hover states on non-touch devices. Same CSS as for chosen state. */
 @media (hover: hover) {
     #validate-yes-button:hover {
-        background: #76C9AB;
+        background: var(--color-pine-500);
     }
     #validate-no-button:hover {
-        background: #F29173;
+        background: var(--color-orange-400);
     }
     #validate-unsure-button:hover {
-        background: #1A1A1A;
+        background: var(--color-neutral-900);
         color: var(--color-neutral-white);
     }
 }
 
 #sidewalk-ai-suggestions-block {
-    margin-top: 15px;
-    margin-bottom: 15px;
+    margin-top: calc(15px * var(--ui-scale));
+    margin-bottom: calc(15px * var(--ui-scale));
 }
 
 .sidewalk-ai-suggestions-header {
-    color: #2D2A3F;
-    font-family: "Open Sans";
-    font-size: 10px;
-    font-style: normal;
-    font-weight: 600;
-    line-height: normal;
-    margin-bottom: 6px;
+    font: var(--text-tiny-semibold);
+    margin-bottom: calc(6px * var(--ui-scale));
 }
 
 .ai-icon {
-    width: 16px;
-    height: 16px;
+    width: calc(16px * var(--ui-scale));
+    height: calc(16px * var(--ui-scale));
 }
 
 .sidewalk-ai-suggestions-list-holder {
     display: flex;
-    gap: 5px;
+    gap: calc(5px * var(--ui-scale));
     flex-wrap: wrap;
 }
 
+/* Shared pill look from tag-pills.css; these modifiers add the AI add/remove color semantics. The pill text is set
+   directly on the element (no label span), so the pill font lives here. */
 .sidewalk-ai-suggested-tag {
-    display: flex;
-    width: fit-content;
-    padding: 6px 8px;
-    justify-content: center;
-    align-items: flex-end;
-    gap: 3px;
-    border-radius: 100px;
-
+    font: var(--text-tiny-semibold);
     cursor: pointer;
-
-    text-align: center;
-    font-family: Raleway;
-    font-size: 9px;
-    font-style: normal;
-    font-weight: 600;
-    line-height: normal;
-
     transition: all 0.3s;
 }
 
-.sidewalk-ai-suggested-tag.to-add:hover {
-    background: #78c9ab36;
-}
-
-.sidewalk-ai-suggested-tag.to-remove:hover {
-    background: #ee714e27;
-}
-
 .sidewalk-ai-suggested-tag.to-add {
-    border: 1px solid #5A9E85;
-    color: #5A9E85;
+    outline-color: var(--color-pine-700);
+    color: var(--color-pine-700);
 }
 
 .sidewalk-ai-suggested-tag.to-remove {
-    border: 1px solid #EE724E;
-    color: #EE724E;
+    outline-color: var(--color-orange-500);
+    color: var(--color-orange-500);
+}
+
+.sidewalk-ai-suggested-tag.to-add:hover {
+    background: rgb(from var(--color-pine-500) r g b / 21%);
+    outline-color: var(--color-pine-600);
+}
+
+.sidewalk-ai-suggested-tag.to-remove:hover {
+    background: rgb(from var(--color-orange-500) r g b / 15%);
+    outline-color: var(--color-orange-500);
 }
 
 #validate-submit-button {
-    background: #5A9E85;
-    border-color: #5A9E85;
+    background: var(--color-pine-600);
+    border-color: var(--color-pine-600);
     color: var(--color-neutral-white);
 }
 #validate-submit-button:disabled {
-    background: #A9C5B9;
-    border-color: #A9C5B9;
+    background: var(--color-pine-300);
+    border-color: var(--color-pine-300);
 }
 
 #validate-undo-button:disabled {
@@ -179,92 +150,84 @@
 }
 
 .validate-text-input {
-    width: 295px;
-    margin-top: 10px;
+    width: 100%;
+    margin-top: calc(10px * var(--ui-scale));
 }
 
-/* Bootstrap is getting loaded after this file hence overriding this. To avoid it, I am adding important but ideally the order of inclusion should be flipped. */
+/* Bootstrap is getting loaded after this file hence overriding this. To avoid it, I am adding important but ideally the
+  order of inclusion should be flipped. */
 .validate-text-input input, .selectize-input {
     display: flex !important;
     width: 100% !important;
-    height: 36px !important;
-    padding: 8px 18px !important;
+    height: calc(36px * var(--ui-scale)) !important;
+    padding: calc(8px * var(--ui-scale)) calc(18px * var(--ui-scale)) !important;
     align-items: center !important;
-    gap: 4px !important;
+    gap: calc(4px * var(--ui-scale)) !important;
     flex-shrink: 0 !important;
-    border-radius: 6px 6px !important;
-    border: 1.3px solid #ACADAD !important;
+    border-radius: calc(6px * var(--ui-scale)) !important;
+    border: calc(1px * var(--ui-scale)) solid var(--color-neutral-500) !important;
     background: var(--color-neutral-white) !important;
+    font: var(--text-tiny-semibold) !important;
+
 }
 
 .selectize-input.focus.input-active.has-options {
-    border-radius: 6px 6px 0 0;
+    border-radius: calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale)) 0 0;
 }
 
 .selectize-dropdown {
-    border-radius: 0 0 6px 6px !important;
+    border-radius: 0 0 calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale)) !important;
+}
+
+.selectize-input input {
+    font: var(--text-tiny-semibold);
+    width: 100% !important; /* Text was getting cut off by default. */
 }
 
 #current-tags-list {
     display: flex; /* display:none when there are no tags, display: flex when there are; updated in JS. */
     flex-wrap: wrap;
-    row-gap: 5px;
-    column-gap: 5px;
-    margin-bottom: 10px;
+    row-gap: calc(5px * var(--ui-scale));
+    column-gap: calc(5px * var(--ui-scale));
+    margin-bottom: calc(10px * var(--ui-scale));
 }
 
-.current-tag {
-    display: inline-flex;
-    padding: 6px 8px;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    border-radius: 100px;
-    background: #78C9AB;
-
+/* Shared pill look (including the active green background) from tag-pills.css; this only adds the X-to-remove gap. */
+.current-tag.tag-pill {
     cursor: default;
-    color: var(--color-neutral-white);
-    text-align: center;
-    font-family: Raleway;
-    font-size: 9px;
-    font-style: normal;
-    font-weight: 600;
-    line-height: normal;
 }
 
 .remove-tag-x {
     cursor: pointer;
-    width: 9px;
-    height: 9px;
-    fill: var(--color-neutral-white);
+    width: calc(9px * var(--ui-scale));
+    height: calc(9px * var(--ui-scale));
+    fill: var(--color-neutral-black);
+}
+
+.remove-tag-x svg {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
 .selectize-dropdown-content {
     display: flex;
-    width: 285px;
+    width: calc(285px * var(--ui-scale));
     height: fit-content;
-    padding: 12px;
+    max-height: calc(200px * var(--ui-scale)); /* Selectize's own stylesheet caps this at a fixed 200px. */
+    padding: calc(12px * var(--ui-scale));
     align-items: center;
     align-content: center;
-    gap: 6px;
+    gap: calc(6px * var(--ui-scale));
     flex-wrap: wrap;
 }
 
-.selectize-dropdown .option {
-    padding: 6px 8px;
-    justify-content: center;
-    align-items: center;
-
-    border-radius: 100px;
-    border: 1px solid #666;
-
+/* Selectize renders its own .option nodes; DesktopValidationMenu adds the tag-pill classes so they pick up the
+   shared pill look. These rules out-rank selectize's own stylesheet, which is more specific than .tag-pill. */
+.selectize-dropdown .option.tag-pill {
+    padding: calc(3px * var(--ui-scale)) calc(10px * var(--ui-scale));
+    font: var(--text-tiny-semibold);
     text-align: center;
-    font-family: Raleway, sans-serif;
-    font-size: 9px;
-    font-style: normal;
-    font-weight: 600;
-    line-height: normal;
-
     transition: all 0.3s;
 }
 
@@ -274,16 +237,15 @@
     color: inherit;
 }
 
-.selectize-dropdown .option:hover {
-    background: #78C9AB;
-    color: var(--color-neutral-white);
-    border-color: #78C9AB;
+.selectize-dropdown .option.tag-pill:hover {
+    background: var(--color-pine-200);
+    outline: none;
 }
 
 #severity-radio-holder {
     display: flex;
     align-items: center;
-    gap: 16px;  /* This can be used to control the distance between the severity icons. */
+    gap: calc(16px * var(--ui-scale));
 }
 
 #optional-comment-input {
@@ -293,58 +255,54 @@
 #no-reason-options, #unsure-reason-options {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: calc(10px * var(--ui-scale));
 }
 
 .validation-reason-button {
     display: flex;
-    width: 295px;
-    height: 36px;
-    padding: 10px 14px;
+    height: calc(36px * var(--ui-scale));
     justify-content: center;
     align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-    border-radius: 6px;
-    border: 1px solid #666;
+    border-radius: calc(6px * var(--ui-scale));
+    border: calc(1px * var(--ui-scale)) solid var(--color-neutral-700);
+    font: var(--text-caption-semibold);
     background-color: var(--color-neutral-white);
-
-    color: #666;
-    font-family: Raleway;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: normal;
 }
 
 /* Matching style of 'No' and 'Unsure' button for now. */
 #no-reason-options .validation-reason-button.chosen {
-    background: #F29173;
-    border-color: #F29173;
+    background: var(--color-orange-400);
+    border-color: var(--color-orange-400);
     color: var(--color-neutral-white);
 }
 #unsure-reason-options .validation-reason-button.chosen {
-    background: #1A1A1A;
-    border-color: #1A1A1A;
+    background: var(--color-neutral-900);
+    border-color: var(--color-neutral-900);
     color: var(--color-neutral-white);
 }
 
 #add-disagree-comment.chosen {
-    border-color: #F29173 !important;
+    border-color: var(--color-orange-400) !important;
 }
 
 /* Only show hover states on non-touch devices. Same CSS as for chosen state. */
 @media (hover: hover) {
     #no-reason-options .validation-reason-button:hover {
-        background: #F29173;
-        border-color: #F29173;
+        background: var(--color-orange-400);
+        border-color: var(--color-orange-400);
         color: var(--color-neutral-white);
     }
     #unsure-reason-options .validation-reason-button:hover {
-        background: #1A1A1A;
-        border-color: #1A1A1A;
+        background: var(--color-neutral-900);
+        border-color: var(--color-neutral-900);
         color: var(--color-neutral-white);
     }
     #add-disagree-comment:hover {
-        border-color: #F29173 !important;
+        border-color: var(--color-orange-400) !important;
     }
+}
+
+/* Tooltip example images (reason buttons, tags, severity) are sized by JS via this class so they scale with the UI. */
+.validate-tooltip-img {
+    height: calc(140px * var(--ui-scale));
 }

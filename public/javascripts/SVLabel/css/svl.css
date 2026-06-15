@@ -38,12 +38,12 @@ input[type="radio"] {
      * same 3:2 ratio as the logical frame so the canvas/crop coordinates continue to map correctly.
      *
      * --ui-scale is a single uniform scale factor for the whole tool, like browser zoom. JS sets it from the available
-     * viewport size (see util.applyExploreScale); every dimension below is expressed as base-size * var(--ui-scale) so
+     * viewport size (see util.applyToolScale); every dimension below is expressed as base-size * var(--ui-scale) so
      * the pano, ribbon, sidebar, and text all grow and shrink together in proportion. This keeps the layout looking
      * identical at every size (only zoomed). */
-    --ui-scale: 1; /* The single scale knob. Overridden inline by util.applyExploreScale() on load and resize. */
+    --ui-scale: 1; /* The single scale knob. Overridden inline by util.applyToolScale() on load and resize. */
 
-    /* Base sizes at --ui-scale = 1. util.applyExploreScale() reads these to compute the tool's reference footprint,
+    /* Base sizes at --ui-scale = 1. util.applyToolScale() reads these to compute the tool's reference footprint,
      * so they must stay plain px values (no var()/calc()). */
     --pano-base-width: 720px;  /* Pano display size at --ui-scale = 1 (matches the logical frame, 3:2). */
     --pano-base-height: 480px;
@@ -159,7 +159,7 @@ input[type="radio"] {
     max-width: calc(200px * var(--ui-scale, 1));
 }
 
-/* Survey. Lives outside .tool-ui, so it reads --ui-scale from :root (set by util.applyExploreScale). */
+/* Survey. Lives outside .tool-ui, so it reads --ui-scale from :root (set by util.applyToolScale). */
 #survey-form {
     padding-right: calc(20px * var(--ui-scale, 1));
 }

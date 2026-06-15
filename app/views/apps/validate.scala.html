@@ -36,6 +36,7 @@
     <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@assets.path("stylesheets/pano-overlay-buttons.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/tag-pills.css")'/>
 
     @common.missionStartTutorial()
     @common.panoInfoPopover()
@@ -52,8 +53,8 @@
 
         @* These are templates and are not visible on the screen directly. *@
         @* JS clones them, adjusts the attributes and then appends to DOM. *@
-        <div class="current-tag template">
-            <div class="tag-name"></div>
+        <div class="current-tag tag-pill tag-pill--interactive tag-pill--active template">
+            <div class="tag-name tag-pill__label"></div>
             <div class="remove-tag-x">
                 <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>
             </div>
@@ -96,12 +97,13 @@
             <div id="svv-panorama-holder">
                 <div id="svv-panorama"></div>
                 <div id="view-control-layer">
-                    <button id="label-visibility-button-on-label" class="button label-visibility-button-on-label" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
+                    <button id="label-visibility-button-on-label" class="label-visibility-button-on-label" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
                     <div id="label-description-box"></div>
                 </div>
+                <div id="pano-border-frame"></div>
                 <div id="speed-limit-sign" class="speed-limit-sign speed-limit-sign-left" data-design-style="us-canada">
                     <div class="speed-limit-holder">
-                        <p class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></p>
+                        <span class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></span>
                     </div>
                 </div>
                 <button id="label-visibility-control-button" class="button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"></button>
@@ -122,13 +124,13 @@
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center"></h1>
                     <div id="modal-mission-instruction"></div>
-                    <button class="button" id="modal-mission-close-button">OK</button>
+                    <button class="button-ps button--primary button--large" id="modal-mission-close-button">OK</button>
                 </div>
             </div>
             <div id="modal-mission-complete-holder">
                 <div id="modal-mission-complete-background" class="modal-background"></div>
                 <div id="modal-mission-complete-foreground" class="modal-foreground">
-                    <h1 class="normal" id="modal-mission-complete-title"></h1>
+                    <h1 id="modal-mission-complete-title"></h1>
                     <p><div id="modal-mission-complete-message"></div></p>
                     <div id="modal-mission-complete-table">
                         <div class="col-sm-10">
@@ -186,7 +188,7 @@
                             @Messages("validate.suggestions")
                         </div>
                         <div class="sidewalk-ai-suggestions-list-holder">
-                            <div class="sidewalk-ai-suggested-tag template"></div>
+                            <div class="sidewalk-ai-suggested-tag tag-pill template"></div>
                         </div>
                     </div>
                     <select id="select-tag" multiple></select>

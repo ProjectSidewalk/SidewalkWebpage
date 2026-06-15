@@ -1,6 +1,5 @@
 /**
- * Validation description box. Manages the information
- * displayed on the description box.
+ * Validation description box. Manages the information displayed on the description box.
  *
  * @returns {LabelDescriptionBox}
  * @constructor
@@ -12,8 +11,7 @@ function LabelDescriptionBox () {
     /**
      * Sets the box's descriptions for the given label.
      *
-     * @param label The label whose information is to be shown
-     * on the box.
+     * @param label The label whose information is to be shown on the box.
      */
     function setDescription(label) {
         let desBox = descriptionBox[0];
@@ -58,12 +56,12 @@ function LabelDescriptionBox () {
             desBox.appendChild(htmlString);
         }
 
-        // Set the width of the des box.
-        let bound = desBox.getBoundingClientRect();
-        let width = ((bound.right - bound.left) * (isMobile() ? window.devicePixelRatio : 1)) + 'px';
-        desBox.style.width = width;
-
+        // On mobile, freeze an explicit width that accounts for the device pixel ratio. On desktop the box is
+        // anchored via `right` and shrink-wraps between the scaled min/max-widths in CSS, so width stays 'auto'
+        // and keeps tracking the UI scale.
         if (isMobile()) {
+            let bound = desBox.getBoundingClientRect();
+            desBox.style.width = (bound.right - bound.left) * window.devicePixelRatio + 'px';
             desBox.style.fontSize = '30px';
         }
     }

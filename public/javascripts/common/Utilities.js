@@ -21,26 +21,29 @@ util.exploreDisplayScale = function() {
 };
 
 /**
- * Uniformly scales the whole Explore tool to fit the available viewport, like browser zoom.
+ * Uniformly scales a whole tool (Explore, Validate) to fit the available viewport, like browser zoom.
  *
- * Sets the --ui-scale CSS variable on .tool-ui; every Explore dimension is expressed as base-size * var(--ui-scale),
- * so the pano, ribbon, sidebar, and text all grow/shrink together in proportion.
+ * Sets the --ui-scale CSS variable on .tool-ui; every tool dimension is expressed as base-size * var(--ui-scale),
+ * so the pano, menus, and text all grow/shrink together in proportion. The tool's reference footprint at
+ * --ui-scale = 1 is the sum of the given base-size CSS variables, which each tool defines on its .tool-ui element.
+ * @param {string[]} widthVarNames Base-size CSS variables that sum to the tool's reference width.
+ * @param {string[]} heightVarNames Base-size CSS variables that sum to the tool's reference height.
  * @returns {number} The applied scale factor.
  */
-util.applyExploreScale = function() {
+util.applyToolScale = function(widthVarNames, heightVarNames) {
     const toolUI = document.querySelector('.tool-ui');
     if (!toolUI) return 1;
 
-    // Reference layout size at --ui-scale = 1, read from the unscaled base dimensions defined in svl.css.
+    // Reference layout size at --ui-scale = 1, read from the unscaled base dimensions in the tool's CSS.
     const styles = getComputedStyle(toolUI);
     const cssPx = (name) => parseFloat(styles.getPropertyValue(name));
-    const refWidth = cssPx('--pano-base-width') + cssPx('--sidebar-base-gap') + cssPx('--sidebar-base-width');
-    const refHeight = cssPx('--ribbon-base-top') + cssPx('--ribbon-base-height') + cssPx('--pano-base-height');
-    if (!refWidth || !refHeight) return 1; // Base vars missing (page doesn't load svl.css); leave --ui-scale at 1.
+    const refWidth = widthVarNames.reduce((sum, name) => sum + cssPx(name), 0);
+    const refHeight = heightVarNames.reduce((sum, name) => sum + cssPx(name), 0);
+    if (!refWidth || !refHeight) return 1; // Base vars missing (page doesn't define them); leave --ui-scale at 1.
     const MIN_SCALE = 0.65;
     const MAX_SCALE = 1.8;
     const H_MARGIN = 24;       // Breathing room on each side of the tool.
-    const BOTTOM_RESERVE = 50; // Space below the tool for the footer and a little margin.
+    const BOTTOM_RESERVE = 60; // Space below the tool for the footer and a little margin.
 
     // Everything above the tool (the navbar) is fixed chrome that does not scale, so reserve it.
     const topOffset = Math.max(0, toolUI.getBoundingClientRect().top + window.scrollY);
@@ -52,10 +55,18 @@ util.applyExploreScale = function() {
     const scaleStr = scale.toFixed(4);
     toolUI.style.setProperty('--ui-scale', scaleStr);
     // Also expose the scale at the document root so self-contained overlays rendered outside .tool-ui (e.g. the
-    // mission-complete modal) can scale to match via var(--ui-scale, 1).
+    // mission-complete modal) can scale to match via var(--ui-scale).
     document.documentElement.style.setProperty('--ui-scale', scaleStr);
 
     return scale;
+};
+
+/**
+ * Returns the uniform UI scale factor currently applied to the page (see util.applyToolScale), or 1 if unscaled.
+ * @returns {number} The current --ui-scale value.
+ */
+util.uiScale = function() {
+    return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
 };
 
 // Browser detection helpers backed by Bowser 2.x.

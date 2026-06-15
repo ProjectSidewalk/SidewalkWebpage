@@ -186,13 +186,14 @@ class PanoManager {
 
         if (!this.labelMarker) {
             const markerLayer = document.getElementById('view-control-layer');
+            const markerDiameter = Math.round((svv.labelRadius * 2 + 2) * util.uiScale());
             this.labelMarker = new PanoMarker({
                 id: 'validate-pano-marker',
                 markerContainer: markerLayer,
                 panoViewer: svv.panoViewer,
                 position: { heading: labelPov.heading, pitch: labelPov.pitch },
                 icon: url,
-                size: { width: svv.labelRadius * 2 + 2, height: svv.labelRadius * 2 + 2 },
+                size: { width: markerDiameter, height: markerDiameter },
                 zIndex: 2
             });
             this.#markerViewer = svv.panoViewer;
@@ -305,6 +306,16 @@ class PanoManager {
             $(existingIndicator).tooltip('destroy');
             existingIndicator.remove();
         }
+    }
+
+    /**
+     * Resizes the label marker to match the given UI scale factor.
+     * @param {number} scale The current UI scale factor (see util.applyToolScale).
+     */
+    setMarkerScale(scale) {
+        if (!this.labelMarker) return;
+        const markerDiameter = Math.round((svv.labelRadius * 2 + 2) * scale);
+        this.labelMarker.setSize({ width: markerDiameter, height: markerDiameter });
     }
 
     /**

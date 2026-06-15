@@ -12,7 +12,7 @@ body {
     text-align: center;
     padding: 2vh 10vw;
     font-family: raleway, sans-serif;
-    color: #777;
+    color: var(--color-neutral-black);
 }
 
 .tool-ui {
@@ -55,6 +55,7 @@ body {
     height: 100%;
     width: 100%;
     font-size: 40pt;
+    line-height: 125%;
 }
 
 #modal-landscape-description {
@@ -86,11 +87,17 @@ body {
 
 #modal-mission-header {
     font-size: 46pt;
+    line-height: 110%;
     margin: 5vw 5vw;
 }
 
 #modal-mission-complete-title {
     font-size: 50pt;
+    line-height: 100%;
+}
+
+.modal-foreground .btn-primary {
+    line-height: 125%;
 }
 
 #modal-mission-complete-message {
@@ -274,6 +281,7 @@ body {
 
 .validation-menu-section-header {
     font-size: 28px;
+    line-height: 100%;
     display: flex;
     padding: 0 32px;
     align-items: flex-start;
@@ -293,7 +301,7 @@ body {
     height: 80px;
     justify-content: center;
     border-radius: 16px;
-    border: 3px solid #666;
+    border: 2px solid #666;
 
     color: #2D2A3F;
     font-size: 24px;

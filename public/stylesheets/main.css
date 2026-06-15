@@ -216,7 +216,7 @@ body {
 .button--tiny {
     font-size: 13px;
     padding: 3px 10px;
-    border-radius: 10px;
+    border-radius: 8px;
 }
 .button--small {
     font-size: 13px;
@@ -1074,10 +1074,10 @@ body:has(#header.header--tall) .test-server-banner {
 
 .ai-icon-marker {
     position: absolute;
-    width: 14px;
-    height: 14px;
-    top: -6px;
-    left: -6px;
+    width: calc(14px * var(--ui-scale, 1));
+    height: calc(14px * var(--ui-scale, 1));
+    top: calc(-6px * var(--ui-scale, 1));
+    left: calc(-6px * var(--ui-scale, 1));
     pointer-events: auto;
     cursor: pointer;
     z-index: 3;

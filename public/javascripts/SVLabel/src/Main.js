@@ -380,7 +380,11 @@ function Main (params) {
             svl.observedArea.update();
 
             // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale).
-            util.applyExploreScale();
+            const applyExploreScale = () => util.applyToolScale(
+                ['--pano-base-width', '--sidebar-base-gap', '--sidebar-base-width'],
+                ['--ribbon-base-top', '--ribbon-base-height', '--pano-base-height']
+            );
+            applyExploreScale();
             // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
             if (svl.canvas) svl.canvas.resize();
             if (svl.observedArea) svl.observedArea.update();
@@ -393,7 +397,7 @@ function Main (params) {
 
             let resizeRasterTimer;
             window.addEventListener('resize', () => {
-                util.applyExploreScale();
+                applyExploreScale();
                 clearTimeout(resizeRasterTimer);
                 resizeRasterTimer = setTimeout(() => {
                     if (svl.canvas) svl.canvas.resize();

@@ -56,13 +56,16 @@ class AdminInfo {
             }
         }
 
-        // Destroy the old popover and create a new one with the info for the new label.
+        // Destroy the old popover and create a new one with the info for the new label. The custom class on the
+        // template lets us override Bootstrap's small default max-width (see svv-upper-row.css).
         this.$adminInfoButton.popover('destroy').popover({
             content: newAdminContent.prop('outerHTML'),
             placement: 'bottom',
             html: true,
             container: 'body',
-            trigger: 'click'
+            trigger: 'click',
+            template: '<div class="popover admin-info-popover" role="tooltip"><div class="arrow"></div>' +
+                '<h3 class="popover-title"></h3><div class="popover-content"></div></div>'
         });
     }
 }
