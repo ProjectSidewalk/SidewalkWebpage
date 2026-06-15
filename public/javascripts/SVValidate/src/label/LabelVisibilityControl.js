@@ -100,6 +100,8 @@ function LabelVisibilityControl() {
     labelVisibilityControlButton.on('click', clickAdjustLabel);
     labelVisibilityButtonOnPano.on('click', clickAdjustLabel);
     labelVisibilityButtonOnPano.on('mouseover', function (e) {
+        // Don't re-show the hover info if the cursor passes over the button mid-pan (a mouse button is held down).
+        if (e.buttons) return;
         showTagsAndDeleteButton();
         e.stopPropagation();
     });

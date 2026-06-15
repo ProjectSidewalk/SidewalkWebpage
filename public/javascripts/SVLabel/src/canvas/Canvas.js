@@ -236,6 +236,10 @@ function Canvas(ribbon) {
             const dy = (currMousePosition.y - mouseStatus.prevY) / zoomScaling;
             svl.panoManager.updatePov(dx, dy);
             _setViewControlLayerCursor('ClosedHand');
+
+            // Hide any label hover info while panning so it doesn't linger over the moving pano.
+            showLabelHoverInfo(undefined);
+            setCurrentLabel(undefined);
         } else if (item && item.className === 'Label') {
             // Show label delete menu and update cursor when hovering over a label.
             _setViewControlLayerCursor('Pointer');

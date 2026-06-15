@@ -149,7 +149,9 @@ class PanoMarker {
                     }
                 }.bind(this), false);
             } else {
-                marker.addEventListener("mouseover", function () {
+                marker.addEventListener("mouseover", function (e) {
+                    // Don't re-show the hover info if the cursor passes over the marker mid-pan (a mouse button is held).
+                    if (e.buttons) return;
                     svv.labelVisibilityControl.showTagsAndDeleteButton();
                 });
 

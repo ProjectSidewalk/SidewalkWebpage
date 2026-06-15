@@ -37,6 +37,9 @@ function PanoOverlay () {
         mouseStatus.isLeftDown = true;
         viewControlLayer.css("cursor", "url(/assets/images/icons/closedhand.cur) 4 4, move");
 
+        // Hide the label's hover info as soon as panning starts so it doesn't linger over the moving pano.
+        if (svv.labelVisibilityControl) svv.labelVisibilityControl.hideTagsAndDeleteButton();
+
         // This is necessary for supporting touch devices, because there is no mouse hover.
         mouseStatus.prevX = mousePosition(e, this).x;
         mouseStatus.prevY = mousePosition(e, this).y;
