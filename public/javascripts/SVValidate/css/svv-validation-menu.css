@@ -59,6 +59,14 @@
     cursor: not-allowed;
 }
 
+.validate-button:hover {
+    border: none;
+}
+
+.validate-button.chosen {
+    border: none;
+}
+
 #validate-yes-button.chosen {
     background: var(--color-pine-500);
 }
@@ -72,17 +80,28 @@
     color: var(--color-neutral-white);
 }
 
-/* Only show hover states on non-touch devices. Same CSS as for chosen state. */
+/* Only show hover states on non-touch devices. */
 @media (hover: hover) {
     #validate-yes-button:hover {
+        background: var(--color-pine-300);
+    }
+    #validate-yes-button.chosen:hover {
         background: var(--color-pine-500);
     }
+
     #validate-no-button:hover {
+        background: var(--color-orange-300);
+    }
+    #validate-no-button.chosen:hover {
         background: var(--color-orange-400);
     }
+
     #validate-unsure-button:hover {
-        background: var(--color-neutral-900);
+        background: var(--color-neutral-700);
         color: var(--color-neutral-white);
+    }
+    #validate-unsure-button.chosen:hover {
+        background: var(--color-neutral-900);
     }
 }
 
@@ -272,33 +291,54 @@
 /* Matching style of 'No' and 'Unsure' button for now. */
 #no-reason-options .validation-reason-button.chosen {
     background: var(--color-orange-400);
-    border-color: var(--color-orange-400);
+    border: none;
     color: var(--color-neutral-white);
 }
-#unsure-reason-options .validation-reason-button.chosen {
-    background: var(--color-neutral-900);
-    border-color: var(--color-neutral-900);
-    color: var(--color-neutral-white);
-}
-
 #add-disagree-comment.chosen {
     border-color: var(--color-orange-400) !important;
+}
+
+#unsure-reason-options .validation-reason-button.chosen {
+    background: var(--color-neutral-900);
+    border: none;
+    color: var(--color-neutral-white);
+}
+#add-unsure-comment.chosen {
+    border-color: var(--color-orange-900) !important;
 }
 
 /* Only show hover states on non-touch devices. Same CSS as for chosen state. */
 @media (hover: hover) {
     #no-reason-options .validation-reason-button:hover {
+        background: var(--color-orange-300);
+        border: none;
+        color: var(--color-neutral-white);
+    }
+    #no-reason-options .validation-reason-button.chosen:hover {
         background: var(--color-orange-400);
-        border-color: var(--color-orange-400);
-        color: var(--color-neutral-white);
     }
-    #unsure-reason-options .validation-reason-button:hover {
-        background: var(--color-neutral-900);
-        border-color: var(--color-neutral-900);
-        color: var(--color-neutral-white);
-    }
+
     #add-disagree-comment:hover {
+        border-color: var(--color-orange-300) !important;
+    }
+    #add-disagree-comment.chosen:hover {
         border-color: var(--color-orange-400) !important;
+    }
+
+    #unsure-reason-options .validation-reason-button:hover {
+        background: var(--color-neutral-700);
+        border: none;
+        color: var(--color-neutral-white);
+    }
+    #unsure-reason-options .validation-reason-button.chosen:hover {
+        background: var(--color-neutral-900);
+    }
+
+    #add-unsure-comment:hover {
+        border-color: var(--color-neutral-700) !important;
+    }
+    #add-unsure-comment.chosen:hover {
+        border-color: var(--color-neutral-900) !important;
     }
 }
 
