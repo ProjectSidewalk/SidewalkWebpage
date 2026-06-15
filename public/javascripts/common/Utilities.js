@@ -42,7 +42,7 @@ util.applyToolScale = function(widthVarNames, heightVarNames) {
     if (!refWidth || !refHeight) return 1; // Base vars missing (page doesn't define them); leave --ui-scale at 1.
     const MIN_SCALE = 0.65;
     const MAX_SCALE = 1.8;
-    const H_MARGIN = 24;       // Breathing room on each side of the tool.
+    const H_MARGIN = 40;       // Breathing room on each side of the tool.
     const BOTTOM_RESERVE = 60; // Space below the tool for the footer and a little margin.
 
     // Everything above the tool (the navbar) is fixed chrome that does not scale, so reserve it.
@@ -57,6 +57,21 @@ util.applyToolScale = function(widthVarNames, heightVarNames) {
     // Also expose the scale at the document root so self-contained overlays rendered outside .tool-ui (e.g. the
     // mission-complete modal) can scale to match via var(--ui-scale).
     document.documentElement.style.setProperty('--ui-scale', scaleStr);
+
+    // The mission-start-tutorial overlay's content is wider than the tool's reference footprint, so when the tool's
+    // scale is limited by height it can overflow the viewport horizontally (its nav arrow runs off the right edge).
+    // Give the overlay its own --ui-scale, capped so its fixed-width content plus a little breathing room always fits.
+    const mstOverlay = document.querySelector('.mission-start-tutorial-overlay');
+    if (mstOverlay) {
+        // The reference width and breathing room live in missionStartTutorial.css so they stay in one place.
+        const mstStyles = getComputedStyle(mstOverlay);
+        const mstRefWidth = parseFloat(mstStyles.getPropertyValue('--mst-base-width'));
+        const mstHMargin = parseFloat(mstStyles.getPropertyValue('--mst-h-margin'));
+        if (mstRefWidth) {
+            const mstScale = Math.max(MIN_SCALE, Math.min(scale, (window.innerWidth - mstHMargin * 2) / mstRefWidth));
+            mstOverlay.style.setProperty('--ui-scale', mstScale.toFixed(4));
+        }
+    }
 
     return scale;
 };
