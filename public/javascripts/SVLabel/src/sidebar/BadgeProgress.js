@@ -11,24 +11,85 @@ class BadgeProgress {
     static #DISTANCE_THRESHOLDS_MILES = [0.5, 2, 5, 10, 20];
     static #ROMAN = ['I', 'II', 'III', 'IV', 'V'];
 
+    // Gap (px, before --ui-scale) between the cursor and the enlarged preview floating above it.
+    static #PREVIEW_GAP = 16;
+    // Minimum distance (px) the preview keeps from the viewport edges when clamped.
+    static #PREVIEW_MARGIN = 8;
+
     #labelsRow;
     #distanceRow;
+    #preview;
 
     constructor() {
         this.#labelsRow = this.#cacheRow('explore-sidebar__badge-labels');
         this.#distanceRow = this.#cacheRow('explore-sidebar__badge-distance');
+
+        // The sidebar clips its overflow, so the enlarged preview lives on <body> and is positioned on hover.
+        this.#preview = document.createElement('img');
+        this.#preview.className = 'explore-sidebar__badge-preview';
+        this.#preview.alt = '';
+        this.#preview.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(this.#preview);
+
+        this.#attachHover(this.#labelsRow);
+        this.#attachHover(this.#distanceRow);
     }
 
     /** Caches the child elements of a badge row by its container id. */
     #cacheRow(containerId) {
         const container = document.getElementById(containerId);
         return {
+            icon: container.querySelector('.explore-sidebar__badge-icon'),
             iconBase: container.querySelector('.explore-sidebar__badge-icon-base'),
             iconFill: container.querySelector('.explore-sidebar__badge-icon-fill'),
             name: container.querySelector('.explore-sidebar__badge-name'),
             barFill: container.querySelector('.explore-sidebar__progress-fill'),
-            count: container.querySelector('.explore-sidebar__badge-count')
+            count: container.querySelector('.explore-sidebar__badge-count'),
+            // The next-badge image source, set during render and shown enlarged on hover.
+            iconSrc: null
         };
+    }
+
+    /** Wires a badge row's icon to show, follow, and hide the enlarged preview on hover. */
+    #attachHover(row) {
+        row.icon.addEventListener('mouseenter', (event) => this.#showPreview(row, event));
+        row.icon.addEventListener('mousemove', (event) => this.#positionPreview(event));
+        row.icon.addEventListener('mouseleave', () => this.#hidePreview());
+    }
+
+    /**
+     * Shows the enlarged, full-color preview of a row's next-badge icon, floating above the cursor.
+     * @param row Cached row elements.
+     * @param {MouseEvent} event The triggering pointer event, used for initial placement.
+     */
+    #showPreview(row, event) {
+        if (!row.iconSrc) return;
+        if (this.#preview.getAttribute('src') !== row.iconSrc) this.#preview.src = row.iconSrc;
+        this.#positionPreview(event);
+        this.#preview.classList.add('explore-sidebar__badge-preview--visible');
+    }
+
+    /**
+     * Positions the preview centered just above the cursor, clamped within the viewport.
+     * @param {MouseEvent} event The pointer event providing the cursor position.
+     */
+    #positionPreview(event) {
+        const previewRect = this.#preview.getBoundingClientRect();
+        const gap = BadgeProgress.#PREVIEW_GAP * util.uiScale();
+        const margin = BadgeProgress.#PREVIEW_MARGIN;
+
+        let left = event.clientX - previewRect.width / 2;
+        left = Math.max(margin, Math.min(left, window.innerWidth - previewRect.width - margin));
+        let top = event.clientY - previewRect.height - gap;
+        if (top < margin) top = event.clientY + gap;
+
+        this.#preview.style.left = `${left}px`;
+        this.#preview.style.top = `${top}px`;
+    }
+
+    /** Hides the enlarged badge preview. */
+    #hidePreview() {
+        this.#preview.classList.remove('explore-sidebar__badge-preview--visible');
     }
 
     /** Formats a number using the locale-aware i18next number formatter. */
@@ -90,6 +151,7 @@ class BadgeProgress {
             row.iconBase.src = iconSrc;
             row.iconFill.src = iconSrc;
         }
+        row.iconSrc = iconSrc;
         row.iconFill.style.setProperty('--badge-fill', fraction);
 
         row.name.textContent = `${i18next.t(nameKey)} ${BadgeProgress.#ROMAN[nextIndex]}`;

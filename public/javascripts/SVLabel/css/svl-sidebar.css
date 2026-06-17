@@ -91,7 +91,7 @@
 }
 
 .explore-sidebar__stat-icon {
-    height: calc(28px * var(--ui-scale));
+    height: calc(26px * var(--ui-scale));
     width: auto;
     object-fit: contain;
 }
@@ -128,8 +128,9 @@
 .explore-sidebar__badge-icon {
     position: relative;
     flex: 0 0 auto;
-    width: calc(44px * var(--ui-scale));
-    height: calc(50px * var(--ui-scale));
+    width: calc(36px * var(--ui-scale));
+    height: calc(36px * var(--ui-scale));
+    cursor: zoom-in;
 }
 
 .explore-sidebar__badge-icon img {
@@ -152,12 +153,32 @@
     transition: clip-path 0.3s ease;
 }
 
+/* Enlarged badge shown on hover so the small icon's detail is legible. */
+.explore-sidebar__badge-preview {
+    position: fixed;
+    width: calc(100px * var(--ui-scale));
+    height: calc(100px * var(--ui-scale));
+    object-fit: contain;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.85);
+    transform-origin: center bottom;
+    transition: opacity 0.12s ease, transform 0.12s ease;
+    z-index: calc(var(--navbar-z-index) - 1);
+}
+
+.explore-sidebar__badge-preview--visible {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+}
+
 .explore-sidebar__badge-info {
     flex: 1 1 auto;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: calc(4px * var(--ui-scale));
 }
 
 .explore-sidebar__badge-name {
