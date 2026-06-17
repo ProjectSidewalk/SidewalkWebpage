@@ -214,58 +214,111 @@
                 </div>
             </div>
             <div id="action-stack-control-holder"></div>
-            <div id="status-holder" class="audit-selectable">
-                <div id="user-stats-status-box" class="status-box">
-                    <h1 class="status-holder-header-1">@Messages("audit.right.ui.overall.stats")</h1>
-                    <div class="status-row">
-                        <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("distance.icon.alt")"/>
-                        <span><strong id="status-overall-audited-distance"></strong> <small>@Messages("audit.right.ui.distance")</small></span>
+            @* Right-hand sidebar: current mission, global stats, badge progress, and the neighborhood minimap. *@
+            <div id="explore-sidebar" class="audit-selectable">
+                @* Current mission: header, description, and completion progress bar. *@
+                <section id="explore-sidebar__mission" class="explore-sidebar__section">
+                    <h1 id="current-mission-header" class="explore-sidebar__heading"></h1>
+                    <p id="current-mission-description" class="explore-sidebar__mission-desc"></p>
+                    <div class="explore-sidebar__mission-progress">
+                        <div id="status-current-mission-completion-bar" class="explore-sidebar__progress-track explore-sidebar__progress-track--mission">
+                            <div id="status-current-mission-completion-bar-filler" class="explore-sidebar__progress-fill"></div>
+                        </div>
+                        <span id="status-current-mission-completion-rate" class="explore-sidebar__progress-pct"></span>
                     </div>
-                    <div class="status-row">
-                        <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' class="status-icon" alt="@Messages("label.icon.alt")"/>
-                        <span><strong id="status-overall-label-count"></strong> <small>@Messages("labels")</small></span>
-                    </div>
-                    <div id="accuracy-status-row" class="status-row" data-toggle="popover">
-                        <img src='@assets.path("images/icons/noun_target_3485590_cropped.png")' class="status-icon" alt="@Messages("accuracy.icon.alt")"/>
-                        <span><strong id="status-overall-accuracy"></strong> <small>@Messages("accuracy")</small></span>
-                    </div>
-                </div>
-                <div id="neighborhood-stats-status-box" class="status-box">
-                    <h1 class="status-holder-header-1">@Messages("audit.right.ui.current.neighborhood")</h1>
-                    <a href="" target="_blank" id="status-neighborhood-link">
-                        <span id="status-neighborhood-name">
-                            <span id="status-holder-neighborhood-name"></span>@currentCity.cityNameShort
-                        </span>
-                    </a>
-                    <div class="status-row" id="neighborhood-status-row">
-                        <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("distance.icon.alt")">
-                        <span><strong id="status-audited-distance">0.00</strong> <small>@Messages("audit.right.ui.distance")</small></span>
-                    </div>
-                    <div class="status-row" id="neighborhood-status-row">
-                        <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' class="status-icon" alt="@Messages("label.icon.alt")">
-                        <span><strong id="status-neighborhood-label-count">0</strong> <small>@Messages("labels")</small></span>
-                    </div>
-                </div>
-                <div id="mission-completion-status-box" class="status-box">
-                    <h1 id="current-mission-header"></h1>
-                    <h2 id="current-mission-description"></h2>
-                    <div id='status-current-mission-completion-bar'>
-                        <div id='status-current-mission-completion-bar-filler'>
-                            <div id='status-current-mission-completion-rate'></div>
+                </section>
+
+                @if(currentCity.cityId == "chandigarh-india") {
+                    <section id="mission-guidance-status-box" class="explore-sidebar__section">
+                        <h1 id="mission-guidance-header" class="explore-sidebar__heading">Mission Guidance</h1>
+                        <span id="mission-guidance-status"></span>
+                    </section>
+                }
+
+                @* Global user stats, matching the user dashboard (label count, accuracy, distance). *@
+                <section id="explore-sidebar__stats" class="explore-sidebar__section">
+                    <h1 class="explore-sidebar__heading">@Messages("audit.right.ui.overall.stats")</h1>
+                    <div class="explore-sidebar__stats-row">
+                        <div class="explore-sidebar__stat">
+                            <img class="explore-sidebar__stat-icon" src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")">
+                            <div class="explore-sidebar__stat-text">
+                                <span class="explore-sidebar__stat-value" id="explore-sidebar__stat-labels">–</span>
+                                <span class="explore-sidebar__stat-label">@Messages("labels")</span>
+                            </div>
+                        </div>
+                        <div class="explore-sidebar__stat" id="explore-sidebar__stat-accuracy-holder">
+                            <img class="explore-sidebar__stat-icon" src='@assets.path("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")">
+                            <div class="explore-sidebar__stat-text">
+                                <span class="explore-sidebar__stat-value" id="explore-sidebar__stat-accuracy">–</span>
+                                <span class="explore-sidebar__stat-label">@Messages("accuracy")</span>
+                            </div>
+                        </div>
+                        <div class="explore-sidebar__stat">
+                            <img class="explore-sidebar__stat-icon" src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")">
+                            <div class="explore-sidebar__stat-text">
+                                <span class="explore-sidebar__stat-value" id="explore-sidebar__stat-distance">–</span>
+                                <span class="explore-sidebar__stat-label" id="explore-sidebar__stat-distance-unit"></span>
+                            </div>
                         </div>
                     </div>
-                    <br class="clear">
-                </div>
-                @if(currentCity.cityId == "chandigarh-india") {
-                    <div id="mission-guidance-status-box" class="status-box">
-                        <h1 id="mission-guidance-header">Mission Guidance</h1>
-                        <span id="mission-guidance-status"></span>
+                </section>
+
+                @* Progress toward the next labeling and exploring badges. Populated by BadgeProgress. *@
+                <section id="explore-sidebar__badges" class="explore-sidebar__section">
+                    <h1 class="explore-sidebar__heading" data-i18n="audit:right-ui.badges.title">Badges</h1>
+                    <div class="explore-sidebar__badge-list">
+                        <div class="explore-sidebar__badge" id="explore-sidebar__badge-labels">
+                            <div class="explore-sidebar__badge-icon">
+                                <img class="explore-sidebar__badge-icon-base" alt="">
+                                <img class="explore-sidebar__badge-icon-fill" alt="">
+                            </div>
+                            <div class="explore-sidebar__badge-info">
+                                <span class="explore-sidebar__badge-name"></span>
+                                <div class="explore-sidebar__badge-progress">
+                                    <div class="explore-sidebar__progress-track explore-sidebar__progress-track--badge">
+                                        <div class="explore-sidebar__progress-fill"></div>
+                                    </div>
+                                    <span class="explore-sidebar__badge-count"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="explore-sidebar__badge" id="explore-sidebar__badge-distance">
+                            <div class="explore-sidebar__badge-icon">
+                                <img class="explore-sidebar__badge-icon-base" alt="">
+                                <img class="explore-sidebar__badge-icon-fill" alt="">
+                            </div>
+                            <div class="explore-sidebar__badge-info">
+                                <span class="explore-sidebar__badge-name"></span>
+                                <div class="explore-sidebar__badge-progress">
+                                    <div class="explore-sidebar__progress-track explore-sidebar__progress-track--badge">
+                                        <div class="explore-sidebar__progress-fill"></div>
+                                    </div>
+                                    <span class="explore-sidebar__badge-count"></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                } else {
-                    <div id="label-counter-status-box" class="status-box">
-                        <div id="label-counter"></div>
+                    <a id="explore-sidebar__see-all-badges" class="explore-sidebar__see-all" href="/dashboard#achievements">
+                        <span data-i18n="audit:right-ui.badges.see-all">See all badges</span>
+                        <svg class="explore-sidebar__see-all-chevron" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
+                            <path d="M7.5 4.5L13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                    </a>
+                </section>
+
+                @* Current neighborhood name and the minimap that fills the remaining sidebar height. *@
+                <section id="explore-sidebar__neighborhood" class="explore-sidebar__section explore-sidebar__section--map">
+                    <h1 class="explore-sidebar__heading explore-sidebar__neighborhood-name">@{data.region.name}, @currentCity.cityNameShort</h1>
+                    <div id="minimap-holder">
+                        <div id="minimap" class="minimap-pane"></div>
+                        <div id="minimap-overlay" class="minimap-pane"></div>
+                        <div id="minimap-message" class="minimap-pane"></div>
+                        <canvas id="minimap-fog-of-war-canvas" class="minimap-pane" height="200" width="200"></canvas>
+                        <canvas id="minimap-fov-canvas" class="minimap-pane" height="200" width="200"></canvas>
+                        <canvas id="minimap-progress-circle-canvas" class="minimap-pane" height="200" width="200"></canvas>
+                        <div id="minimap-percent-observed" class="minimap-pane"></div>
                     </div>
-                }
+                </section>
             </div>
             <div id="interaction-area-holder" onSelectStart="return true;">
                 <div id="alert-holder" style="display: none">
@@ -439,15 +492,6 @@
                         <span id="compass-message"></span>
                     </div>
                 </div>
-            </div>
-            <div id="minimap-holder">
-                <div id="minimap" class="minimap-pane"></div>
-                <div id="minimap-overlay" class="minimap-pane"></div>
-                <div id="minimap-message" class="minimap-pane"></div>
-                <canvas id="minimap-fog-of-war-canvas" class="minimap-pane" height="200" width="200"></canvas>
-                <canvas id="minimap-fov-canvas" class="minimap-pane" height="200" width="200"></canvas>
-                <canvas id="minimap-progress-circle-canvas" class="minimap-pane" height="200" width="200"></canvas>
-                <div id="minimap-percent-observed" class="minimap-pane"></div>
             </div>
             <div id="page-overlay-holder">
             </div>

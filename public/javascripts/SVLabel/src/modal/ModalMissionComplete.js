@@ -1,278 +1,268 @@
 /**
- *
- * @param svl. Todo. Get rid of this dependency eventually.
- * @param missionContainer
- * @param missionModel
- * @param taskContainer
- * @param modalMissionCompleteMap
- * @param modalMissionProgressBar
- * @param uiModalMissionComplete
- * @param modalModel
- * @param statusModel
- * @returns {{className: string}}
- * @constructor
+ * Manages the "mission complete" modal: shows/hides it, populates its stats and map, and decides which continue
+ * button(s) to show (keep exploring vs. start validating).
  */
-function ModalMissionComplete (svl, missionContainer, missionModel, taskContainer, modalMissionCompleteMap,
-                               modalMissionProgressBar, uiModalMissionComplete, modalModel, statusModel) {
-    var self = this;
-    var _missionModel = missionModel;
-    var _missionContainer = missionContainer;
-    var _modalModel = modalModel;
+class ModalMissionComplete {
+    #missionContainer;
+    #taskContainer;
+    #modalMissionCompleteMap;
+    #modalMissionProgressBar;
+    #ui;
 
-    this._status = {
+    #status = {
         isOpen: false,
         primaryAction: null,
         secondaryAction: null
     };
-    this.showingMissionCompleteScreen = false;
-    this._canShowContinueButton = false;
+    #showingMissionCompleteScreen = false;
+    #canShowContinueButton = false;
 
-    this._uiModalMissionComplete = uiModalMissionComplete;
-    this._modalMissionCompleteMap = modalMissionCompleteMap;
-
-    // Initialize the mission complete modal differently if it's a designated route vs free auditing of a neighborhood.
-    if (svl.neighborhoodModel.isRoute) {
-        this._uiModalMissionComplete.mapLegendLabel3.html(i18next.t('mission-complete.progress-route-remaining'));
-        this._uiModalMissionComplete.progressTitle.html(i18next.t('mission-complete.progress-route-title'));
-        this._uiModalMissionComplete.progressYou.html(i18next.t('mission-complete.progress-route-you'));
-        this._uiModalMissionComplete.progressRemaining.html(i18next.t('mission-complete.progress-route-remaining'));
-
-        // If this is a designated route, remove element(s) related to the entire neighborhood.
-        this._uiModalMissionComplete.progressOthers.parent().remove();
-    } else {
-        this._uiModalMissionComplete.mapLegendLabel3.html(i18next.t('mission-complete.map-legend-label-other-users'));
-        this._uiModalMissionComplete.progressTitle.html(i18next.t('mission-complete.progress-neighborhood-title'));
-        this._uiModalMissionComplete.progressYou.html(i18next.t('mission-complete.progress-neighborhood-you'));
-        this._uiModalMissionComplete.progressRemaining.html(i18next.t('mission-complete.progress-neighborhood-remaining'));
-    }
-
-    _modalModel.on("ModalMissionComplete:update", function (parameters) {
-        self.update(parameters.mission, parameters.neighborhood);
-    });
-
-    _modalModel.on("ModalMissionComplete:show", function () {
-        // Play mission complete sound effect.
-        svl.gameEffectModel.loadAudio({ audioType: "success" });
-        svl.gameEffectModel.playAudio({ audioType: "success" });
-
-        self.show();
-    });
-
-    _modalModel.on("ModalMissionComplete:one", function (parameters) {
-        self.one(parameters.uiComponent, parameters.eventType, parameters.callback);
-    });
-
-    _missionModel.on("MissionProgress:complete", function (parameters) {
-        self._canShowContinueButton = false;
-    });
-
-    _missionContainer.on("MissionContainer:missionLoaded", function(mission) {
-        self._canShowContinueButton = true;
-        if (self.showingMissionCompleteScreen) {
-            self._enableContinueButton();
-        }
-    });
-
-    // Enables clicking of continue button. Only enabled when next mission loaded mission complete modal shown.
-    this._enableContinueButton = function() {
-        uiModalMissionComplete.closeButtonPrimary.on("click", { button: 'primary' }, self._handleCloseButtonClick);
-        uiModalMissionComplete.closeButtonSecondary.on("click", { button: 'secondary' }, self._handleCloseButtonClick);
-
-        uiModalMissionComplete.closeButtonPrimary.removeClass('btn-loading');
-        uiModalMissionComplete.closeButtonPrimary.addClass('btn-primary');
-
-        uiModalMissionComplete.closeButtonSecondary.removeClass('btn-loading');
-        uiModalMissionComplete.closeButtonSecondary.addClass('btn-secondary');
-    };
-
-    // Disables clicking of continue button. Only enabled when next mission loaded mission complete modal shown.
-    this._disableContinueButton = function() {
-        uiModalMissionComplete.closeButtonPrimary.off('click');
-        uiModalMissionComplete.closeButtonSecondary.off('click');
-
-        uiModalMissionComplete.closeButtonPrimary.removeClass('btn-primary');
-        uiModalMissionComplete.closeButtonPrimary.addClass('btn-loading');
-
-        uiModalMissionComplete.closeButtonSecondary.removeClass('btn-secondary');
-        uiModalMissionComplete.closeButtonSecondary.addClass('btn-loading');
-    };
-
-    // TODO maybe deal with lost connection causing modal to not close
-    this._handleCloseButtonClick = function (event) {
-        self._closeModal(event);
-    };
+    // Closes the modal when a continue button is clicked. jQuery sets event.data.button to 'primary' / 'secondary'.
+    #handleCloseButtonClick = (event) => this.#closeModal(event);
 
     /**
-     * Closes mission complete modal. Either starts a new mission or loads the validation page.
-     *
-     * If the user clicks the 'Start validating' button send them to the validation page (only shows up if this was
-     * their first audit mission in the neighborhood or their third audit mission in a row). If they just finished a
-     * neighborhood, reload the explore page, otherwise start a new explore mission like normal.
-     * @param event
-     * @private
+     * @param missionContainer
+     * @param missionModel
+     * @param taskContainer
+     * @param modalMissionCompleteMap
+     * @param modalMissionProgressBar
+     * @param uiModalMissionComplete
      */
-    this._closeModal = function (event) {
-        var action = event.data.button === 'primary' ? this._status.primaryAction : this._status.secondaryAction;
+    constructor(missionContainer, missionModel, taskContainer, modalMissionCompleteMap, modalMissionProgressBar,
+                uiModalMissionComplete) {
+        this.#missionContainer = missionContainer;
+        this.#taskContainer = taskContainer;
+        this.#modalMissionCompleteMap = modalMissionCompleteMap;
+        this.#modalMissionProgressBar = modalMissionProgressBar;
+        this.#ui = uiModalMissionComplete;
+
+        // Initialize the modal differently if it's a designated route vs free auditing of a neighborhood.
+        if (svl.neighborhoodModel.isRoute) {
+            this.#ui.mapLegendLabel3.html(i18next.t('mission-complete.progress-route-remaining'));
+            this.#ui.progressTitle.html(i18next.t('mission-complete.progress-route-title'));
+            this.#ui.progressYou.html(i18next.t('mission-complete.progress-route-you'));
+            this.#ui.progressRemaining.html(i18next.t('mission-complete.progress-route-remaining'));
+
+            // If this is a designated route, remove element(s) related to the entire neighborhood.
+            this.#ui.progressOthers.parent().remove();
+        } else {
+            this.#ui.mapLegendLabel3.html(i18next.t('mission-complete.map-legend-label-other-users'));
+            this.#ui.progressTitle.html(i18next.t('mission-complete.progress-neighborhood-title'));
+            this.#ui.progressYou.html(i18next.t('mission-complete.progress-neighborhood-you'));
+            this.#ui.progressRemaining.html(i18next.t('mission-complete.progress-neighborhood-remaining'));
+        }
+
+        missionModel.on("MissionProgress:complete", () => {
+            this.#canShowContinueButton = false;
+        });
+
+        missionContainer.on("MissionContainer:missionLoaded", () => {
+            this.#canShowContinueButton = true;
+            if (this.#showingMissionCompleteScreen) {
+                this.#enableContinueButton();
+            }
+        });
+
+        this.#ui.closeButtonPrimary.on("click", { button: 'primary' }, this.#handleCloseButtonClick);
+        this.hide();
+    }
+
+    // Enables clicking of the continue button(s). Only enabled once the next mission has loaded and the modal is shown.
+    #enableContinueButton() {
+        this.#ui.closeButtonPrimary.on("click", { button: 'primary' }, this.#handleCloseButtonClick);
+        this.#ui.closeButtonSecondary.on("click", { button: 'secondary' }, this.#handleCloseButtonClick);
+
+        this.#ui.closeButtonPrimary.removeClass('btn-loading');
+        this.#ui.closeButtonPrimary.addClass('btn-primary');
+
+        this.#ui.closeButtonSecondary.removeClass('btn-loading');
+        this.#ui.closeButtonSecondary.addClass('btn-secondary');
+    }
+
+    // Disables clicking of the continue button(s) while the next mission is still loading.
+    #disableContinueButton() {
+        this.#ui.closeButtonPrimary.off('click');
+        this.#ui.closeButtonSecondary.off('click');
+
+        this.#ui.closeButtonPrimary.removeClass('btn-primary');
+        this.#ui.closeButtonPrimary.addClass('btn-loading');
+
+        this.#ui.closeButtonSecondary.removeClass('btn-secondary');
+        this.#ui.closeButtonSecondary.addClass('btn-loading');
+    }
+
+    /**
+     * Closes the mission complete modal: either starts a new mission or loads the validation page.
+     *
+     * If the user clicks the 'Start validating' button, send them to the validation page (only shown if this was their
+     * first audit mission in the neighborhood or their third audit mission in a row). If they just finished a
+     * neighborhood, reload the explore page; otherwise start a new explore mission like normal.
+     * @param event The jQuery click event; event.data.button is 'primary' or 'secondary'.
+     */
+    // TODO maybe deal with lost connection causing modal to not close.
+    #closeModal(event) {
+        const action = event.data.button === 'primary' ? this.#status.primaryAction : this.#status.secondaryAction;
         if (action === 'validate') {
             window.location.replace('/validate');
         } else if (action === 'reloadExplore') {
             window.location.replace('/explore');
         } else {
-            var nextMission = missionContainer.getCurrentMission();
-            _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
+            const nextMission = this.#missionContainer.getCurrentMission();
+            svl.missionPanel.setMessage(nextMission);
             svl.navigationService.unlockDisableWalking();
             svl.navigationService.enableWalking();
-            self.hide();
+            this.hide();
         }
-    };
+    }
 
     // Hides all the pieces of the mission complete modal.
-    this.hide = function () {
-        this._status.isOpen = false;
-        this._uiModalMissionComplete.holder.css('visibility', 'hidden');
-        this._uiModalMissionComplete.foreground.css('visibility', "hidden");
-        this._uiModalMissionComplete.background.css('visibility', "hidden");
-        this._uiModalMissionComplete.closeButtonPrimary.css('visibility', "hidden");
-        this._uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
-        this._uiModalMissionComplete.closeButtonPrimary.off('click');
-        this._uiModalMissionComplete.closeButtonSecondary.off('click');
+    hide() {
+        this.#status.isOpen = false;
+        this.#ui.holder.css('visibility', 'hidden');
+        this.#ui.foreground.css('visibility', "hidden");
+        this.#ui.background.css('visibility', "hidden");
+        this.#ui.closeButtonPrimary.css('visibility', "hidden");
+        this.#ui.closeButtonSecondary.css('visibility', "hidden");
+        this.#ui.closeButtonPrimary.off('click');
+        this.#ui.closeButtonSecondary.off('click');
 
-        statusModel.setProgressBar(0);
-        statusModel.setMissionCompletionRate(0);
-        self.showingMissionCompleteScreen = false;
-    };
+        svl.missionProgressBar.setBar(0);
+        svl.missionProgressBar.setCompletionRate(0);
+        this.#showingMissionCompleteScreen = false;
+    }
 
     /**
-     * Shows all components of mission complete modal. Decides which continue button(s) to show (audit or validation).
+     * Shows all components of the mission complete modal. Decides which continue button(s) to show (audit or validation).
      */
-    this.show = function () {
-        this._status.isOpen = true;
+    show() {
+        this.#status.isOpen = true;
+
+        // Play mission complete sound effect.
+        svl.audioEffect.load('success');
+        svl.audioEffect.play('success');
+
         svl.navigationService.disableWalking();
         svl.navigationService.lockDisableWalking();
-        uiModalMissionComplete.holder.css('visibility', 'visible');
-        uiModalMissionComplete.foreground.css('visibility', "visible");
-        uiModalMissionComplete.background.css('visibility', "visible");
-        uiModalMissionComplete.background.off("click");
-        uiModalMissionComplete.closeButtonPrimary.css('visibility', "visible");
+        this.#ui.holder.css('visibility', 'visible');
+        this.#ui.foreground.css('visibility', "visible");
+        this.#ui.background.css('visibility', "visible");
+        this.#ui.background.off("click");
+        this.#ui.closeButtonPrimary.css('visibility', "visible");
 
-        // Set mission complete title text differently if user finished their route or the whole neighborhood.
+        // Set the mission complete title differently if the user finished their route or the whole neighborhood.
         if (svl.neighborhoodModel.isRouteComplete) {
-            self.setMissionTitle(i18next.t('mission-complete.title-route-complete'));
-            self._canShowContinueButton = true;
+            this.#setMissionTitle(i18next.t('mission-complete.title-route-complete'));
+            this.#canShowContinueButton = true;
         } else if (svl.neighborhoodModel.isNeighborhoodComplete) {
-            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-            var neighborhoodName = neighborhood.getProperty("name");
-            self.setMissionTitle(i18next.t('mission-complete.title-neighborhood-complete', { neighborhoodName: neighborhoodName }));
-            self._canShowContinueButton = true;
+            const neighborhood = svl.neighborhoodModel.currentNeighborhood();
+            const neighborhoodName = neighborhood.getProperty("name");
+            this.#setMissionTitle(i18next.t('mission-complete.title-neighborhood-complete', { neighborhoodName: neighborhoodName }));
+            this.#canShowContinueButton = true;
         }
 
         // If the user just completed their first audit mission ever, or they finished their third in a row, make the
         // primary button send them to Validate and have the secondary button let them continue exploring. On any other
         // mission just show a 'Continue' button that has them explore more.
-        var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
+        const firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
         if ((firstMission || svl.missionsCompleted % 3 === 0 || svl.neighborhoodModel.isRouteOrNeighborhoodComplete())) {
-            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.button-start-validating'));
-            this._status.primaryAction = 'validate';
+            this.#ui.closeButtonPrimary.html(i18next.t('mission-complete.button-start-validating'));
+            this.#status.primaryAction = 'validate';
 
-            uiModalMissionComplete.closeButtonPrimary.css('width', "50%");
-            uiModalMissionComplete.closeButtonSecondary.css('visibility', "visible");
-            uiModalMissionComplete.closeButtonSecondary.css('width', "48%");
-            uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete.button-keep-exploring'));
+            this.#ui.closeButtonPrimary.css('width', "50%");
+            this.#ui.closeButtonSecondary.css('visibility', "visible");
+            this.#ui.closeButtonSecondary.css('width', "48%");
+            this.#ui.closeButtonSecondary.html(i18next.t('mission-complete.button-keep-exploring'));
             if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
-                this._status.secondaryAction = 'reloadExplore';
+                this.#status.secondaryAction = 'reloadExplore';
             } else {
-                this._status.secondaryAction = 'explore';
+                this.#status.secondaryAction = 'explore';
             }
         } else {
-            uiModalMissionComplete.closeButtonPrimary.css('width', "100%");
-            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.button-continue'));
-            this._status.primaryAction = 'explore';
-            uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
+            this.#ui.closeButtonPrimary.css('width', "100%");
+            this.#ui.closeButtonPrimary.html(i18next.t('mission-complete.button-continue'));
+            this.#status.primaryAction = 'explore';
+            this.#ui.closeButtonSecondary.css('visibility', "hidden");
         }
 
-        self.showingMissionCompleteScreen = true;
-        if (self._canShowContinueButton) {
-            self._enableContinueButton();
+        this.#showingMissionCompleteScreen = true;
+        if (this.#canShowContinueButton) {
+            this.#enableContinueButton();
         } else {
-            self._disableContinueButton();
+            this.#disableContinueButton();
         }
-    };
-
-    this.update = function (mission, neighborhood) {
-        // Update the horizontal bar chart to show the distance the user has audited.
-        var unit = {units: i18next.t('common:unit-distance')};
-
-        var missionDistance = mission.getDistance(unit.units);
-        var userAuditedDistance = neighborhood.completedLineDistance(unit);
-        var allAuditedDistance = neighborhood.completedLineDistanceAcrossAllUsersUsingPriority();
-        var otherAuditedDistance = allAuditedDistance - userAuditedDistance;
-        if (svl.neighborhoodModel.isRoute) otherAuditedDistance = 0; // Only show this user's data if on a route.
-        var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - allAuditedDistance;
-
-        var userCompletedTasks = taskContainer.getCompletedTasks();
-        var allCompletedTasks = taskContainer.getCompletedTasksAllUsersUsingPriority();
-        var incompleteTasks = taskContainer.getIncompleteTasks();
-        mission.pushATaskToTheRoute(taskContainer.getCurrentTask());
-        var missionTasks = mission.getRoute();
-        var totalLineDistance = taskContainer.totalLineDistanceInNeighborhood(unit);
-        var missionDistanceRate = missionDistance / totalLineDistance;
-        var userAuditedDistanceRate = Math.max(0, userAuditedDistance / totalLineDistance - missionDistanceRate);
-        var otherAuditedDistanceRate = Math.max(0, otherAuditedDistance / totalLineDistance);
-
-        var labelCount = mission.getLabelCount(),
-            curbRampCount = labelCount ? labelCount["CurbRamp"] : 0,
-            noCurbRampCount = labelCount ? labelCount["NoCurbRamp"] : 0 ,
-            obstacleCount = labelCount ? labelCount["Obstacle"] : 0,
-            surfaceProblemCount = labelCount ? labelCount["SurfaceProblem"] : 0,
-            noSidewalkCount = labelCount ? labelCount["NoSidewalk"] : 0,
-            otherCount = labelCount ? labelCount["Other"] : 0;
-
-        var neighborhoodName = neighborhood.getProperty("name");
-        this.setMissionTitle(neighborhoodName + ": " + i18next.t('mission-complete.title-generic'));
-
-        modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks, mission.getProperty('missionId'), incompleteTasks);
-        modalMissionProgressBar.update(missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate);
-
-        this._updateMissionProgressStatistics(missionDistance, userAuditedDistance, otherAuditedDistance, remainingDistance);
-        this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount);
-    };
-
-    uiModalMissionComplete.closeButtonPrimary.on("click", { button: 'primary' }, this._handleCloseButtonClick);
-    this.hide();
-}
-
-
-
-ModalMissionComplete.prototype.isOpen = function () {
-    return this._status.isOpen;
-};
-
-ModalMissionComplete.prototype.one = function (uiComponent, eventType, callback) {
-    this._uiModalMissionComplete[uiComponent].one(eventType, callback);
-};
-
-ModalMissionComplete.prototype.setMissionTitle = function (missionTitle) {
-    this._uiModalMissionComplete.missionTitle.html(missionTitle);
-};
-
-ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, userTotalDistance, othersAuditedDistance, remainingDistance) {
-    var distanceType = i18next.t('mission-complete.distance-type-display-string');
-    if(remainingDistance > 0.00 && remainingDistance <= 0.10){
-        remainingDistance = 0.1;
     }
-    var positiveRemainingDistance = Math.max(remainingDistance, 0);
-    var positiveOthersAuditedDistance = Math.max(othersAuditedDistance, 0);
-    this._uiModalMissionComplete.missionDistance.html(`${missionDistance.toFixed(1)} ${distanceType}`);
-    this._uiModalMissionComplete.totalAuditedDistance.html(`${userTotalDistance.toFixed(1)} ${distanceType}`);
-    this._uiModalMissionComplete.othersAuditedDistance.html(`${positiveOthersAuditedDistance.toFixed(1)} ${distanceType}`);
-    this._uiModalMissionComplete.remainingDistance.html(`${positiveRemainingDistance.toFixed(1)} ${distanceType}`);
-};
 
-ModalMissionComplete.prototype._updateMissionLabelStatistics = function (curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount) {
-    this._uiModalMissionComplete.curbRampCount.html(curbRampCount);
-    this._uiModalMissionComplete.noCurbRampCount.html(noCurbRampCount);
-    this._uiModalMissionComplete.obstacleCount.html(obstacleCount);
-    this._uiModalMissionComplete.surfaceProblemCount.html(surfaceProblemCount);
-    this._uiModalMissionComplete.noSidewalk.html(noSidewalkCount);
-    this._uiModalMissionComplete.otherCount.html(otherCount);
-};
+    /**
+     * Populates the modal's stats, map, and progress bar for the just-completed mission.
+     * @param mission The completed mission.
+     * @param neighborhood The neighborhood the mission was in.
+     */
+    update(mission, neighborhood) {
+        // Update the horizontal bar chart to show the distance the user has audited.
+        const unit = { units: i18next.t('common:unit-distance') };
+
+        const missionDistance = mission.getDistance(unit.units);
+        const userAuditedDistance = neighborhood.completedLineDistance(unit);
+        const allAuditedDistance = neighborhood.completedLineDistanceAcrossAllUsersUsingPriority();
+        let otherAuditedDistance = allAuditedDistance - userAuditedDistance;
+        if (svl.neighborhoodModel.isRoute) otherAuditedDistance = 0; // Only show this user's data if on a route.
+        const remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - allAuditedDistance;
+
+        const userCompletedTasks = this.#taskContainer.getCompletedTasks();
+        const allCompletedTasks = this.#taskContainer.getCompletedTasksAllUsersUsingPriority();
+        const incompleteTasks = this.#taskContainer.getIncompleteTasks();
+        mission.pushATaskToTheRoute(this.#taskContainer.getCurrentTask());
+        const missionTasks = mission.getRoute();
+        const totalLineDistance = this.#taskContainer.totalLineDistanceInNeighborhood(unit);
+        const missionDistanceRate = missionDistance / totalLineDistance;
+        const userAuditedDistanceRate = Math.max(0, userAuditedDistance / totalLineDistance - missionDistanceRate);
+        const otherAuditedDistanceRate = Math.max(0, otherAuditedDistance / totalLineDistance);
+
+        const labelCount = mission.getLabelCount();
+        const curbRampCount = labelCount ? labelCount["CurbRamp"] : 0;
+        const noCurbRampCount = labelCount ? labelCount["NoCurbRamp"] : 0;
+        const obstacleCount = labelCount ? labelCount["Obstacle"] : 0;
+        const surfaceProblemCount = labelCount ? labelCount["SurfaceProblem"] : 0;
+        const noSidewalkCount = labelCount ? labelCount["NoSidewalk"] : 0;
+        const otherCount = labelCount ? labelCount["Other"] : 0;
+
+        const neighborhoodName = neighborhood.getProperty("name");
+        this.#setMissionTitle(neighborhoodName + ": " + i18next.t('mission-complete.title-generic'));
+
+        this.#modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks, mission.getProperty('missionId'), incompleteTasks);
+        this.#modalMissionProgressBar.update(missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate);
+
+        this.#updateMissionProgressStatistics(missionDistance, userAuditedDistance, otherAuditedDistance, remainingDistance);
+        this.#updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount);
+    }
+
+    isOpen() {
+        return this.#status.isOpen;
+    }
+
+    #setMissionTitle(missionTitle) {
+        this.#ui.missionTitle.html(missionTitle);
+    }
+
+    #updateMissionProgressStatistics(missionDistance, userTotalDistance, othersAuditedDistance, remainingDistance) {
+        const distanceType = i18next.t('mission-complete.distance-type-display-string');
+        if (remainingDistance > 0.00 && remainingDistance <= 0.10) {
+            remainingDistance = 0.1;
+        }
+        const positiveRemainingDistance = Math.max(remainingDistance, 0);
+        const positiveOthersAuditedDistance = Math.max(othersAuditedDistance, 0);
+        this.#ui.missionDistance.html(`${missionDistance.toFixed(1)} ${distanceType}`);
+        this.#ui.totalAuditedDistance.html(`${userTotalDistance.toFixed(1)} ${distanceType}`);
+        this.#ui.othersAuditedDistance.html(`${positiveOthersAuditedDistance.toFixed(1)} ${distanceType}`);
+        this.#ui.remainingDistance.html(`${positiveRemainingDistance.toFixed(1)} ${distanceType}`);
+    }
+
+    #updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount) {
+        this.#ui.curbRampCount.html(curbRampCount);
+        this.#ui.noCurbRampCount.html(noCurbRampCount);
+        this.#ui.obstacleCount.html(obstacleCount);
+        this.#ui.surfaceProblemCount.html(surfaceProblemCount);
+        this.#ui.noSidewalk.html(noSidewalkCount);
+        this.#ui.otherCount.html(otherCount);
+    }
+}

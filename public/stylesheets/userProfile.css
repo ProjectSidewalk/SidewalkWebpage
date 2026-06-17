@@ -141,6 +141,10 @@ svg {
     font-family: raleway-extrabold, sans-serif;
 }
 
+#achievements {
+    scroll-margin-top: var(--navbar-height);
+}
+
 .achievements-outer-grid {
     display: grid;
     grid-template-columns: 2fr 0.3fr 2fr;

@@ -47,8 +47,8 @@ input[type="radio"] {
      * so they must stay plain px values (no var()/calc()). */
     --pano-base-width: 720px;  /* Pano display size at --ui-scale = 1 (matches the logical frame, 3:2). */
     --pano-base-height: 480px;
-    --sidebar-base-width: 200px; /* Right-hand status/minimap column. */
-    --sidebar-base-gap: 15px;    /* Horizontal gap between the pano and the sidebar. */
+    --sidebar-base-width: 250px; /* Right-hand status/minimap column. */
+    --sidebar-base-gap: 10px;    /* Horizontal gap between the pano and the sidebar. */
     --ribbon-base-top: 4px;      /* Offset of the ribbon menu from the top of the app holder. */
     --ribbon-base-height: 110px; /* Height of the ribbon menu sitting above the pano. */
 

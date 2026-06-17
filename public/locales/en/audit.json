@@ -104,6 +104,12 @@
         "minimap": {
             "follow-red-line": "Follow the red line to continue the mission",
             "explore-current-location": "Turn 360 degrees to make sure nothing is missed."
+        },
+        "badges": {
+            "title": "Badges",
+            "see-all": "See all badges",
+            "labeler-name": "Labeler",
+            "explorer-name": "Explorer"
         }
     },
     "center-ui": {

@@ -104,6 +104,12 @@
         "minimap": {
             "follow-red-line": "Folgen Sie der roten Linie, um die Mission fortzusetzen.",
             "explore-current-location": "Drehen Sie sich um 360 Grad, um sicherzustellen, dass nichts übersehen wird."
+        },
+        "badges": {
+            "title": "Abzeichen",
+            "see-all": "Alle Abzeichen anzeigen",
+            "labeler-name": "Beschrifter",
+            "explorer-name": "Erkunder"
         }
     },
     "center-ui": {

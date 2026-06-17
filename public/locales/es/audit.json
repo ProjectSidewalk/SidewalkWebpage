@@ -104,6 +104,12 @@
         "minimap": {
             "follow-red-line": "Sigue la línea roja para continuar la misión",
             "explore-current-location": "Gire 360 ​​grados para asegurarse de que no se pierda nada."
+        },
+        "badges": {
+            "title": "Insignias",
+            "see-all": "Ver todas las insignias",
+            "labeler-name": "Etiquetador",
+            "explorer-name": "Explorador"
         }
     },
     "center-ui": {

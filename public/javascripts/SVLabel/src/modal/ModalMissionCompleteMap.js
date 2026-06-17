@@ -31,7 +31,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete, mapboxApiKey) {
         ];
 
         // Add a small buffer around the neighborhood because it looks prettier.
-        var neighborhoodGeom = svl.neighborhoodContainer.getCurrentNeighborhood().getGeoJSON();
+        var neighborhoodGeom = svl.neighborhoodModel.currentNeighborhood().getGeoJSON();
         var neighborhoodBuffer = turf.buffer(neighborhoodGeom, 0.04, { units: 'miles' });
         var overlayPolygon = {
             'type': 'FeatureCollection',

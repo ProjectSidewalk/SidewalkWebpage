@@ -104,6 +104,12 @@
         "minimap": {
             "follow-red-line": "請沿著紅線繼續任務",
             "explore-current-location": "旋轉 360 度以確保沒有遺漏任何內容。"
+        },
+        "badges": {
+            "title": "徽章",
+            "see-all": "查看所有徽章",
+            "labeler-name": "標記者",
+            "explorer-name": "探索者"
         }
     },
     "center-ui": {

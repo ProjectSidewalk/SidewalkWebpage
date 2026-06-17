@@ -421,13 +421,12 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
      */
     function updateAuditedDistance() {
         let distance = 0;
-        const neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+        const neighborhood = svl.neighborhoodModel.currentNeighborhood();
 
         if (neighborhood) {
             distance = getCompletedTaskDistance({ units: i18next.t('common:unit-distance') });
         }
-        svl.statusFieldNeighborhood.setAuditedDistance(distance);
-        svl.statusFieldOverall.setNeighborhoodAuditedDistance(distance);
+        svl.overallStats.setNeighborhoodAuditedDistance(distance);
         return this;
     }
 

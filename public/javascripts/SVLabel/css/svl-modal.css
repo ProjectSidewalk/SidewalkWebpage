@@ -130,7 +130,7 @@
     font: var(--text-caption-regular);
     position: absolute;
     bottom: calc(18px * var(--ui-scale, 1));
-    right: calc(6px * var(--ui-scale, 1));
+    right: calc(32px * var(--ui-scale, 1));
     width: calc(145px * var(--ui-scale, 1));
     height: calc(60px * var(--ui-scale, 1));
     border-radius: calc(3px * var(--ui-scale, 1));

@@ -1,37 +1,43 @@
+/* The minimap fills the bottom "neighborhood" section of the right sidebar, growing to take remaining vertical space.
+   The minimap overlays (fow, fov, progress; see ObservedArea) read their displayed width/height at render time. */
 #minimap-holder {
-    --minimap-base-size: 200px;
-    --minimap-size: calc(var(--minimap-base-size) * var(--ui-scale));
-    position: absolute;
-    left: var(--sidebar-left);
-    /* Sit near the bottom of the pano within the sidebar column. */
-    top: calc(var(--street-view-top) + var(--pano-height) - var(--minimap-size));
-    width: var(--minimap-size);
-    height: var(--minimap-size);
+    /* Reference size (px) used by ObservedArea to scale the FOV/progress geometry. Read via getComputedStyle. */
+    --minimap-base-size: var(--sidebar-base-width);
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    border: calc(1px * var(--ui-scale)) solid var(--color-neutral-400);
+    border-radius: calc(12px * var(--ui-scale));
+    overflow: hidden;
 }
 
 .minimap-pane {
-    border: 0 solid var(--color-neutral-black);
     position: absolute;
-    left: 0;
-    top:0;
-    width: var(--minimap-size);
-    height: var(--minimap-size);
+    inset: 0;
+    width: 100%;
+    height: 100%;
 }
 
-/* During the tutorial the minimap shows a fixed-size static screenshot, so the Google map, its label markers, and the
-   fog must all share one coordinate frame to line up with it. Render the minimap at its native (unscaled) size and
-   scale the whole holder visually (like browser zoom) so everything stays aligned. The live minimap instead renders
-   natively at the scaled size (staying crisp); only the tutorial needs this because of the fixed-size screenshot. The
-   bottom-left origin keeps it anchored to the bottom of the pano as it scales. */
+/* During the tutorial the minimap shows a fixed-size square screenshot, so everything inside renders at its native
+   (unscaled) square size and the whole holder is scaled (transform) to fill the column. Onboarding's
+   sizeTutorialMinimap() sets a non-uniform scale at runtime — full width, but height capped to what fits the sidebar —
+   so the screenshot, Google markers, peg, and fog all stretch together (staying aligned) and the holder isn't clipped.
+   The transform-origin keeps it anchored top-left; the scale() here is just the pre-script default. */
 #minimap-holder.minimap-tutorial {
-    --minimap-size: var(--minimap-base-size);
+    flex: 0 0 auto;
+    width: var(--minimap-base-size);
+    height: var(--minimap-base-size);
+    /* Native border sizing; the transform scales it like everything else. */
+    border-width: 1px;
+    border-radius: 12px;
+    background-size: cover;
     transform: scale(var(--ui-scale));
-    transform-origin: bottom left;
+    transform-origin: top left;
 }
 
-/* Everything inside the tutorial minimap (message, percent-observed, fog/fov/progress canvases, etc.) renders at native
-   size — the holder's transform above does the scaling. Resetting --ui-scale to 1 here stops these from being scaled
-   twice (once by their own calc(... * var(--ui-scale)) and again by the transform). */
+/* Panes render at native size; --ui-scale is reset to 1 so their own calc(... * var(--ui-scale)) values aren't scaled
+   twice (once here and again by the holder's zoom). */
 #minimap-holder.minimap-tutorial .minimap-pane {
     --ui-scale: 1;
 }
@@ -41,13 +47,19 @@
 }
 
 #minimap-message {
-    font: var(--text-caption-regular);
-    z-index: 1;
-    width: calc(150px * var(--ui-scale));
-    padding-left: calc(3px * var(--ui-scale));
+    font: var(--text-tiny-regular);
+    line-height: 125%;
+    inset: auto;
+    left: calc(3px * var(--ui-scale));
+    top: calc(3px * var(--ui-scale));
+    width: 60%;
+    height: auto;
+    padding: calc(2px * var(--ui-scale)) calc(4px * var(--ui-scale));
+    z-index: 3;
 }
 
-#minimap-fog-of-war-canvas, #minimap-fov-canvas {
+#minimap-fog-of-war-canvas,
+#minimap-fov-canvas {
     opacity: 0.3;
 }
 
@@ -55,11 +67,20 @@
     opacity: 0.6;
 }
 
+/* Centered over the 360°-observed progress circle that ObservedArea draws at (width - 20, 20) with radius 16 (scaled
+   by --ui-scale). This box matches that circle's bounding box so the percentage sits in its center. */
 #minimap-percent-observed {
     font: var(--text-tiny-medium);
+    inset: auto;
+    top: calc(4px * var(--ui-scale));
+    right: calc(4px * var(--ui-scale));
+    width: calc(32px * var(--ui-scale));
+    height: calc(32px * var(--ui-scale));
+    display: flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
-    padding-left: calc(161px * var(--ui-scale));
-    padding-top: calc(12px * var(--ui-scale));
+    z-index: 3;
 }
 
 .gm-svpc {

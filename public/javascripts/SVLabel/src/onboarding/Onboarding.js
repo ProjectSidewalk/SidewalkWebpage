@@ -32,6 +32,7 @@ function Onboarding(svl, compass, handAnimation, navigationService, missionConta
     var _mouseDownCanvasDrawingHandler;
     var map = svl.minimap.getMap();
     var currentLabelId;
+    let _tutorialMinimapResizeObserver = null;
 
     this.start = function () {
         tracker.push('Onboarding_Start');
@@ -92,8 +93,8 @@ function Onboarding(svl, compass, handAnimation, navigationService, missionConta
      * Sets the mini map to be transparent for everything except for yellow pin.
      */
     function adjustMap() {
-        // Render the minimap at its native size and scale the whole holder visually (see .minimap-tutorial) so the
-        // static screenshot, the Google label markers, and the fog all share one coordinate frame and stay aligned.
+        // Render the minimap at its native square size and zoom the whole holder uniformly (see .minimap-tutorial) so
+        // the static screenshot, the Google label markers, and the fog all share one coordinate frame and stay aligned.
         svl.ui.minimap.holder.addClass('minimap-tutorial');
         svl.ui.minimap.holder.css({
             'backgroundImage': `url('${svl.rootDirectory}img/onboarding/TutorialMiniMap.jpg')`,
@@ -101,13 +102,52 @@ function Onboarding(svl, compass, handAnimation, navigationService, missionConta
             'backgroundRepeat': 'no-repeat',
             'backgroundPosition': 'center'
         });
-        // TODO could use cloud-based maps styling for this potentially as well..? Hiding something in dom as workaround.
+
+        // Fit the square to the available sidebar height now and whenever the sidebar resizes (e.g. UI-scale changes).
+        sizeTutorialMinimap();
+        if (window.ResizeObserver && !_tutorialMinimapResizeObserver) {
+            _tutorialMinimapResizeObserver = new ResizeObserver(() => sizeTutorialMinimap());
+            _tutorialMinimapResizeObserver.observe(svl.ui.minimap.holder[0].parentElement);
+        }
+
+        // TODO use cloud-based maps styling for this potentially as well..? Hiding something in dom as workaround.
         // map.setOptions({styles: [{ featureType: 'all', stylers: [{ visibility: 'off' }] }]});
         setTimeout(() => {
             // TODO extra hacky to set a timeout because the div wasn't ready even though map theoretically loaded.
             const mapToHide = document.querySelector('#minimap')?.firstChild?.children[2]?.firstChild?.firstChild;
             mapToHide.style.display = 'none';
         }, 1000);
+    }
+
+    /**
+     * Sizes the tutorial minimap to the largest square that fits the sidebar space below the neighborhood heading.
+     *
+     * The minimap renders at a native square size and is zoomed up uniformly, which keeps the screenshot, Google
+     * markers, and fog aligned. We cap that zoom at the available height so the whole rounded square stays visible and
+     * the peg stays centered, rather than overflowing the sidebar and getting clipped.
+     */
+    function sizeTutorialMinimap() {
+        const holder = svl.ui.minimap.holder[0];
+        const sidebar = document.getElementById('explore-sidebar');
+        if (!holder || !sidebar) return;
+
+        const baseSize = parseFloat(getComputedStyle(holder).getPropertyValue('--minimap-base-size'));
+        const uiScale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
+
+        // The holder sits just below the heading; its space runs from its top down to the bottom of the sidebar. Its
+        // top is anchored at the (unscaled) heading above it, so it's stable regardless of the transform we apply.
+        const availableWidth = holder.parentElement.getBoundingClientRect().width;
+        const availableHeight = sidebar.getBoundingClientRect().bottom - holder.getBoundingClientRect().top;
+        if (availableWidth <= 0 || availableHeight <= 0) return;
+
+        // Stretch horizontally to fill the column's full width, but cap the vertical scale at what fits the available
+        // height (less 2px so the bottom corners stay visible). When the space is shorter than it is wide this squishes
+        // the minimap a little, which is an acceptable trade for using the full width. The whole holder is scaled, so
+        // the screenshot, markers, peg, and fog all stretch together and stay aligned with one another.
+        const scaleX = availableWidth / baseSize;
+        const scaleY = Math.min(uiScale, (availableHeight - 2) / baseSize);
+        holder.style.transform = `scale(${scaleX}, ${scaleY})`;
+        holder.style.transformOrigin = 'top left';
     }
 
     /**
@@ -557,8 +597,8 @@ function Onboarding(svl, compass, handAnimation, navigationService, missionConta
         var stepNum = statesWithProgress.findIndex(s => s.id === state.id);
         if (stepNum !== -1 && !state.visited) {
             var completionRate = stepNum / statesWithProgress.length;
-            svl.statusModel.setMissionCompletionRate(completionRate);
-            svl.statusModel.setProgressBar(completionRate);
+            svl.missionProgressBar.setCompletionRate(completionRate);
+            svl.missionProgressBar.setBar(completionRate);
             tracker.push('Onboarding_Transition', { onboardingTransition: state.id, step: stepNum });
         } else {
             tracker.push('Onboarding_Transition', { onboardingTransition: state.id });

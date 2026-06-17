@@ -1,20 +1,26 @@
-/*
- * Defines triggers to display jump tip message after the jump operation happens
+/**
+ * Displays the tip message shown after the user jumps to a new street.
  */
-function JumpAlert(alertHandler, jumpModel) {
-    var self = this;
-    var _jumpModel = jumpModel;
+class JumpAlert {
+    #alertHandler;
 
-    this.showJumpTipMessage = function (message) {
-        alertHandler.showAlert(message, 'jumpTipMessage' , true);
-    };
+    /**
+     * @param alertHandler Alert object used to render the message.
+     */
+    constructor(alertHandler) {
+        this.#alertHandler = alertHandler;
+    }
 
-    _jumpModel.on("JumpAlert:clickJumpMsg", function () {
-        self.showJumpTipMessage(i18next.t('popup.jump'));
-    });
+    /**
+     * Shows a jump-tip alert with the given message.
+     * @param {string} message The message to display.
+     */
+    showJumpTipMessage(message) {
+        this.#alertHandler.showAlert(message, 'jumpTipMessage', true);
+    }
 
-    _jumpModel.on("JumpAlert:tooFar", function () {
-        self.showJumpTipMessage(i18next.t('popup.jump-auto'));
-    });
-
+    // Called when the user clicks the "jump" message to relocate to a new street.
+    onClickJumpMessage() {
+        this.showJumpTipMessage(i18next.t('popup.jump'));
+    }
 }
