@@ -110,6 +110,11 @@
             "see-all": "See all badges",
             "labeler-name": "Labeler",
             "explorer-name": "Explorer"
+        },
+        "neighborhood-progress": {
+            "title": "Neighborhood progress",
+            "you-tooltip": "Your contributions",
+            "community-tooltip": "Community contributions"
         }
     },
     "center-ui": {

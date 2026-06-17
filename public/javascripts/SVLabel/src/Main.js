@@ -89,6 +89,7 @@ function Main (params) {
         svl.badgeProgress = new BadgeProgress();
         svl.overallStats = new OverallStats();
         svl.missionProgressBar = new MissionProgressBar();
+        svl.neighborhoodProgressBar = new NeighborhoodProgressBar();
         svl.missionPanel = new MissionPanel();
 
         svl.labelCounter = new LabelCounter();

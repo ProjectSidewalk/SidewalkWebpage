@@ -110,6 +110,11 @@
             "see-all": "Alle Abzeichen anzeigen",
             "labeler-name": "Beschrifter",
             "explorer-name": "Erkunder"
+        },
+        "neighborhood-progress": {
+            "title": "Fortschritt im Quartier",
+            "you-tooltip": "Ihre Beiträge",
+            "community-tooltip": "Beiträge der Gemeinschaft"
         }
     },
     "center-ui": {

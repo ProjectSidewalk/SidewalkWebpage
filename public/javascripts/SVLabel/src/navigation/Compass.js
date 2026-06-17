@@ -39,7 +39,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     }
 
     /**
-     * Get the angle necessary to move further down the street (using 10 meters further along street as target point).
+     * Get the angle necessary to move further down the street (using 15 meters further along street as target point).
      * @returns {number}
      */
     function getTargetAngle() {
@@ -50,8 +50,8 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         const streetEnd = turf.point([task.getEndCoordinate().lng, task.getEndCoordinate().lat]);
         const remainder = turf.cleanCoords(turf.lineSlice(startLatLng, streetEnd, geometry));
 
-        // Get the point representing 10 meters further along the street (or the endpoint if there's fewer than 10m).
-        const distIncrement = Math.min(0.01, turf.length(remainder));
+        // Get the point representing 15 meters further along the street (or the endpoint if there's fewer than 15m).
+        const distIncrement = Math.min(0.015, turf.length(remainder));
         const goalLoc = turf.along(remainder, distIncrement).geometry.coordinates;
 
         // Compute the angle from the current location to the goal location, with respect to true north.

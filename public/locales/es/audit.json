@@ -110,6 +110,11 @@
             "see-all": "Ver todas las insignias",
             "labeler-name": "Etiquetador",
             "explorer-name": "Explorador"
+        },
+        "neighborhood-progress": {
+            "title": "Progreso del barrio",
+            "you-tooltip": "Tus contribuciones",
+            "community-tooltip": "Contribuciones de la comunidad"
         }
     },
     "center-ui": {

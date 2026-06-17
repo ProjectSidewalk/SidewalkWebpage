@@ -31,17 +31,22 @@
     margin: 0 0 calc(4px * var(--ui-scale)) 0;
 }
 
-/* Current mission */
-.explore-sidebar__mission-desc {
+.explore-sidebar__subheading {
     font: var(--text-caption-regular);
     margin: 0 0 calc(2px * var(--ui-scale)) 0;
 }
 
 .explore-sidebar__mission-progress,
-.explore-sidebar__badge-progress {
+.explore-sidebar__badge-progress,
+.explore-sidebar__neighborhood-progress {
     display: flex;
     align-items: center;
     gap: calc(10px * var(--ui-scale));
+}
+
+.explore-sidebar__neighborhood-progress {
+    flex: 0 0 auto;
+    margin-bottom: var(--exp-sidebar-section-gap);
 }
 
 .explore-sidebar__progress-track {
@@ -61,12 +66,36 @@
     background: var(--color-neutral-200);
 }
 
+.explore-sidebar__progress-track--neighborhood {
+    height: calc(12px * var(--ui-scale));
+    background: var(--color-neutral-200);
+}
+
+.explore-sidebar__neighborhood-progress-fill {
+    height: 100%;
+    width: 0;
+    display: flex;
+    border-radius: inherit;
+    overflow: hidden;
+    transition: width 0.3s ease;
+}
+
 .explore-sidebar__progress-fill {
     height: 100%;
     width: 0;
     background: var(--exp-sidebar-progress-fill);
     border-radius: inherit;
     transition: width 0.3s ease;
+}
+
+/* The two segments fill the rounded pill and meet flush, so they're square — the pill clips them to its shape. */
+.explore-sidebar__progress-fill--community,
+.explore-sidebar__progress-fill--you {
+    border-radius: 0;
+}
+
+.explore-sidebar__progress-fill--you {
+    background: var(--color-link-100);
 }
 
 .explore-sidebar__progress-pct {

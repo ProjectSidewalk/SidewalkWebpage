@@ -219,7 +219,7 @@
                 @* Current mission: header, description, and completion progress bar. *@
                 <section id="explore-sidebar__mission" class="explore-sidebar__section">
                     <h1 id="current-mission-header" class="explore-sidebar__heading"></h1>
-                    <p id="current-mission-description" class="explore-sidebar__mission-desc"></p>
+                    <p id="current-mission-description" class="explore-sidebar__subheading"></p>
                     <div class="explore-sidebar__mission-progress">
                         <div id="status-current-mission-completion-bar" class="explore-sidebar__progress-track explore-sidebar__progress-track--mission">
                             <div id="status-current-mission-completion-bar-filler" class="explore-sidebar__progress-fill"></div>
@@ -309,6 +309,19 @@
                 @* Current neighborhood name and the minimap that fills the remaining sidebar height. *@
                 <section id="explore-sidebar__neighborhood" class="explore-sidebar__section explore-sidebar__section--map">
                     <h1 class="explore-sidebar__heading explore-sidebar__neighborhood-name">@{data.region.name}, @currentCity.cityNameShort</h1>
+
+                    @* Progress toward the whole neighborhood being audited. *@
+                    <p class="explore-sidebar__subheading" data-i18n="audit:right-ui.neighborhood-progress.title">Neighborhood progress</p>
+                    <div class="explore-sidebar__neighborhood-progress">
+                        <div id="neighborhood-progress-bar" class="explore-sidebar__progress-track explore-sidebar__progress-track--neighborhood">
+                            <div id="neighborhood-progress-fill" class="explore-sidebar__neighborhood-progress-fill">
+                                <div id="neighborhood-progress-community" class="explore-sidebar__progress-fill explore-sidebar__progress-fill--community" data-i18n-title="audit:right-ui.neighborhood-progress.community-tooltip" data-i18n-aria-label="audit:right-ui.neighborhood-progress.community-tooltip"></div>
+                                <div id="neighborhood-progress-you" class="explore-sidebar__progress-fill explore-sidebar__progress-fill--you" data-i18n-title="audit:right-ui.neighborhood-progress.you-tooltip" data-i18n-aria-label="audit:right-ui.neighborhood-progress.you-tooltip"></div>
+                            </div>
+                        </div>
+                        <span id="neighborhood-progress-rate" class="explore-sidebar__progress-pct"></span>
+                    </div>
+
                     <div id="minimap-holder">
                         <div id="minimap" class="minimap-pane"></div>
                         <div id="minimap-overlay" class="minimap-pane"></div>

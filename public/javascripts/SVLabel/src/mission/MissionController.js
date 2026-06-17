@@ -89,6 +89,9 @@ class MissionController {
         const distance = svl.taskContainer.getCompletedTaskDistance();
         svl.overallStats.setNeighborhoodAuditedDistance(distance);
 
+        // Update the neighborhood progress bar (this user's vs. the community's share of the neighborhood).
+        svl.neighborhoodProgressBar.update();
+
         // Update mission completion rate in the right sidebar.
         const completionRate = currentMission.getMissionCompletionRate();
         svl.missionProgressBar.setCompletionRate(completionRate);

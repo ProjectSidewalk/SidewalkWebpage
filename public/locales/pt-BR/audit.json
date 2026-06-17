@@ -110,6 +110,11 @@
             "see-all": "Ver todas as insígnias",
             "labeler-name": "Rotulador",
             "explorer-name": "Explorador"
+        },
+        "neighborhood-progress": {
+            "title": "Progresso do bairro",
+            "you-tooltip": "Suas contribuições",
+            "community-tooltip": "Contribuições da comunidade"
         }
     },
     "center-ui": {
