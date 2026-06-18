@@ -1554,12 +1554,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
     // Apply the rest of the existing filters.
     if (filters.labelTypes.isDefined && filters.labelTypes.get.nonEmpty) {
-      val labelTypeList = filters.labelTypes.get.map(lt => s"'$lt'").mkString(", ")
+      val labelTypeList = filters.labelTypes.get.map(lt => s"'${lt.replace("'", "''")}'").mkString(", ")
       whereConditions :+= s"label_type.label_type IN ($labelTypeList)"
     }
 
     if (filters.tags.isDefined && filters.tags.get.nonEmpty) {
-      val tagConditions = filters.tags.get.map(tag => s"'$tag' = ANY(label.tags)").mkString(" OR ")
+      val tagConditions = filters.tags.get.map(tag => s"'${tag.replace("'", "''")}' = ANY(label.tags)").mkString(" OR ")
       whereConditions :+= s"($tagConditions)"
     }
 
