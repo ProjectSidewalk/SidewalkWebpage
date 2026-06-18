@@ -108,9 +108,7 @@
         },
         "badges": {
             "title": "Abzeichen",
-            "see-all": "Alle Abzeichen anzeigen",
-            "labeler-name": "Beschrifter",
-            "explorer-name": "Erkunder"
+            "see-all": "Alle Abzeichen anzeigen"
         },
         "neighborhood-progress": {
             "title": "Fortschritt im Quartier",

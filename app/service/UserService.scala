@@ -42,6 +42,7 @@ trait UserService {
   def getDistanceAudited(userId: String): Future[Double]
   def countLabelsFromUser(userId: String): Future[Int]
   def countCompletedMissions(userId: String): Future[Int]
+  def countValidations(userId: String): Future[Int]
   def getUserAccuracy(userId: String): Future[Option[Double]]
 
   /**
@@ -146,6 +147,8 @@ class UserServiceImpl @Inject() (
 
   def countCompletedMissions(userId: String): Future[Int] =
     db.run(missionTable.countCompletedMissions(userId, includeOnboarding = true, includeSkipped = false))
+
+  def countValidations(userId: String): Future[Int] = db.run(labelValidationTable.countValidations(userId))
 
   def getUserAccuracy(userId: String): Future[Option[Double]] = db.run(labelValidationTable.getUserAccuracy(userId))
 

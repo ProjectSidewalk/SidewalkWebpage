@@ -24,6 +24,15 @@
     "other": "Outro",
     "surface-problems": "Problemas de Superfície",
     "close": "Fechar",
+    "badges": {
+        "congratulations": "Parabéns!",
+        "you-earned": "Você ganhou a insígnia “{{badge}}”!",
+        "my-dashboard": "Meu painel",
+        "labeler-name": "Rotulador",
+        "explorer-name": "Explorador",
+        "adventurer-name": "Aventureiro",
+        "validator-name": "Validador"
+    },
     "sign-up": "Registrar",
     "sign-in": "Entrar",
     "complete": "completo",

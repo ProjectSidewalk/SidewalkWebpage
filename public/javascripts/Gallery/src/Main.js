@@ -73,6 +73,9 @@ async function Main (params) {
     async function _init() {
         sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
+        // Seed the all-time counts so validating a card can celebrate a newly unlocked validation badge.
+        BadgeAchievements.seedCounts();
+
         // Initialize functional components of UI elements.
         sg.cityMenu = new CityMenu(sg.ui.cityMenu);
         sg.labelTypeMenu = new LabelTypeMenu(sg.ui.labelTypeMenu, params.initialFilters.labelType);

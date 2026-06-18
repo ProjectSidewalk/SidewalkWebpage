@@ -74,7 +74,7 @@ Two standalone scripts (run via the Python deps in `requirements.txt`, installed
 - Functions should have comments, even if they are private. Incredibly trivial functions are okay to leave without a comment.
     - They should include @param lines as well (including their type in JS), and those should almost always be restricted to a single line
     - Function comments should start with a one-line summary. If more detail is necessary, then longer details can be added with an empty comment line between one-line summary and the further details. But those details can also just be added throughout the function's code instead, where appropriate.
-- When writing comments, DO NOT waste time describing how something has changed from how it used to work.
+- When writing comments, DO NOT waste time describing how something has changed from how it used to work. Just because something was edited doesn't mean that a comment even needs to be added.
 
 ## Linting Rules (will be enforced by `make lint` some day, but not being run now)
 - ESLint: ES6+, `const`/`let` only (no `var`), arrow functions, template literals, semicolons required, 120-char line limit

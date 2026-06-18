@@ -25,6 +25,15 @@
     "surface-problems": "Problemas en superficie",
     "sign-up": "Regístrate",
     "close": "Cerrar",
+    "badges": {
+        "congratulations": "¡Felicidades!",
+        "you-earned": "¡Has ganado la insignia “{{badge}}”!",
+        "my-dashboard": "Mi panel",
+        "labeler-name": "Etiquetador",
+        "explorer-name": "Explorador",
+        "adventurer-name": "Aventurero",
+        "validator-name": "Validador"
+    },
     "sign-in": "Iniciar sesión",
     "complete": "completado",
     "zoom-in": "Acercar",

@@ -25,7 +25,8 @@ svg {
 
 #username {
     font-size: 40px;
-    font-family: raleway-bold, sans-serif;
+    font-family: 'Mulish', sans-serif;
+    font-weight: bold;
 }
 
 #team-container {

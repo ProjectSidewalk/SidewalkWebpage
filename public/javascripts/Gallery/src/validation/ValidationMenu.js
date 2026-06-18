@@ -202,10 +202,14 @@ function ValidationMenu(referenceCard, gsvImage) {
             viewer_type: refCard.getImageSource() === 'crop' ? 'StaticCrop' : 'StaticApi'
         };
 
+        const isNewValidation = refCard.getProperty('user_validation') === null;
         return fetch('/labelmap/validate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
+        }).then((res) => {
+            if (res.ok && isNewValidation) BadgeAchievements.recordValidation();
+            return res;
         });
     }
 

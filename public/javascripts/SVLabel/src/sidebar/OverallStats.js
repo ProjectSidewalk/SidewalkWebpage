@@ -15,6 +15,9 @@ class OverallStats {
     #sessionStartMissionCount = null;
     #stats = { distance: 0, labelCount: 0, accuracy: null };
 
+    // Becomes true once basicStats has seeded the totals, so the seed itself never triggers a badge-unlock toast.
+    #seeded = false;
+
     constructor() {
         this.#labelsEl = document.getElementById('explore-sidebar__stat-labels');
         this.#accuracyEl = document.getElementById('explore-sidebar__stat-accuracy');
@@ -56,8 +59,10 @@ class OverallStats {
     /** Increments the global label count when a label is added. Tutorial labels aren't saved, so they don't count. */
     incrementLabelCount() {
         if (svl.isOnboarding()) return;
+        const prev = this.#stats.labelCount;
         this.#stats.labelCount += 1;
         this.#renderLabelCount();
+        this.#checkBadgeUnlock('labels', prev, this.#stats.labelCount);
     }
 
     /** Decrements the global label count when a label is removed. Tutorial labels aren't saved, so they don't count. */
@@ -77,8 +82,24 @@ class OverallStats {
         if (svl.isOnboarding()) return;
         if (this.#sessionStartNeighborhoodDist === null) this.#sessionStartNeighborhoodDist = neighborhoodDistance;
         if (this.#sessionStartTotalDist === null) return; // basicStats not loaded yet.
+        const prev = this.#stats.distance;
         this.#stats.distance = this.#sessionStartTotalDist - this.#sessionStartNeighborhoodDist + neighborhoodDistance;
         this.#renderDistance();
+        this.#checkBadgeUnlock('distance', prev, this.#stats.distance, { isMetric: this.#isMetric });
+    }
+
+    /**
+     * Shows a badge-unlock toast over the pano if the value just crossed into a new badge level.
+     * @param {string} type Badge type ('labels' or 'distance').
+     * @param {number} oldValue The value before this update, in the user's units.
+     * @param {number} newValue The value after this update, in the user's units.
+     * @param {Object} [opts] Passed through to BadgeAchievements (e.g. { isMetric }).
+     */
+    #checkBadgeUnlock(type, oldValue, newValue, opts = {}) {
+        if (!this.#seeded) return;
+        const badge = BadgeAchievements.detectUnlock(type, oldValue, newValue, opts);
+        // The toast floats over the pano from <body>, so it just needs the pano's geometry as a positioning reference.
+        if (badge) BadgeAchievements.showUnlockToast(badge, document.getElementById('pano'));
     }
 
     /**
@@ -102,6 +123,7 @@ class OverallStats {
                 this.#renderDistance();
                 this.#renderLabelCount();
                 this.#renderAccuracy(result.accuracy);
+                this.#seeded = true;
             })
             .catch(e => console.error('Failed to load basic user stats.', e));
     }

@@ -24,6 +24,15 @@
     "other": "Other",
     "surface-problems": "Surface Problems",
     "close": "Close",
+    "badges": {
+        "congratulations": "Congratulations!",
+        "you-earned": "You earned the “{{badge}}” badge!",
+        "my-dashboard": "My Dashboard",
+        "labeler-name": "Labeler",
+        "explorer-name": "Explorer",
+        "adventurer-name": "Adventurer",
+        "validator-name": "Validator"
+    },
     "sign-up": "Sign up",
     "sign-in": "Sign in",
     "complete": "complete",

@@ -24,6 +24,15 @@
     "other": "Andere",
     "surface-problems": "Oberflächen&shy;probleme",
     "close": "Schließen",
+    "badges": {
+        "congratulations": "Glückwunsch!",
+        "you-earned": "Du hast das Abzeichen „{{badge}}“ erhalten!",
+        "my-dashboard": "Mein Dashboard",
+        "labeler-name": "Beschrifter",
+        "explorer-name": "Erkunder",
+        "adventurer-name": "Abenteurer",
+        "validator-name": "Validierer"
+    },
     "sign-up": "Registrieren",
     "sign-in": "Anmelden",
     "complete": "vollständig",

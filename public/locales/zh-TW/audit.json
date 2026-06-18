@@ -108,9 +108,7 @@
         },
         "badges": {
             "title": "徽章",
-            "see-all": "查看所有徽章",
-            "labeler-name": "標記者",
-            "explorer-name": "探索者"
+            "see-all": "查看所有徽章"
         },
         "neighborhood-progress": {
             "title": "鄰里進度",

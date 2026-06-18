@@ -108,9 +108,7 @@
         },
         "badges": {
             "title": "Badges",
-            "see-all": "See all badges",
-            "labeler-name": "Labeler",
-            "explorer-name": "Explorer"
+            "see-all": "See all badges"
         },
         "neighborhood-progress": {
             "title": "Neighborhood progress",

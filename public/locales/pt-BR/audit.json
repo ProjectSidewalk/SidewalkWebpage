@@ -108,9 +108,7 @@
         },
         "badges": {
             "title": "Insígnias",
-            "see-all": "Ver todas as insígnias",
-            "labeler-name": "Rotulador",
-            "explorer-name": "Explorador"
+            "see-all": "Ver todas as insígnias"
         },
         "neighborhood-progress": {
             "title": "Progresso do bairro",

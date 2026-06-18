@@ -121,6 +121,8 @@ function Main (param) {
 
         svv.statusField = new StatusField(param.completedValidations);
         svv.tracker = new Tracker();
+
+        BadgeAchievements.seedCounts();
         svv.labelDescriptionBox = new LabelDescriptionBox();
 
         svv.panoStore = new PanoStore();

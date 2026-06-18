@@ -2,7 +2,7 @@
    minimap. Sits to the right of the pano and spans the app's full height; the minimap section grows to fill whatever
    vertical space the other sections leave. All sizes scale with --ui-scale like the rest of the tool. */
 #explore-sidebar {
-    --exp-sidebar-section-gap: calc(16px * var(--ui-scale));
+    --exp-sidebar-section-gap: calc(18px * var(--ui-scale));
     /* Shared green for the mission and badge progress bars (matches the Figma mission bar, color-pine-600). */
     --exp-sidebar-progress-fill: var(--color-pine-600);
     --exp-sidebar-link: var(--color-link-200);
@@ -107,7 +107,7 @@
 }
 
 .explore-sidebar__progress-fill--you {
-    background: var(--color-pine-800);
+    background: var(--color-pine-700);
 }
 
 .explore-sidebar__progress-pct {

@@ -108,9 +108,7 @@
         },
         "badges": {
             "title": "Badges",
-            "see-all": "Alle badges bekijken",
-            "labeler-name": "Labelaar",
-            "explorer-name": "Ontdekker"
+            "see-all": "Alle badges bekijken"
         },
         "neighborhood-progress": {
             "title": "Wijk voortgang",

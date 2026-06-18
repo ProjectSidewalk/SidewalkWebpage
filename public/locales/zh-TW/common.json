@@ -25,6 +25,15 @@
     "surface-problems": "鋪面問題",
     "sign-up": "註冊",
     "close": "關閉",
+    "badges": {
+        "congratulations": "恭喜！",
+        "you-earned": "您獲得了「{{badge}}」徽章！",
+        "my-dashboard": "我的儀錶板",
+        "labeler-name": "標記者",
+        "explorer-name": "探索者",
+        "adventurer-name": "冒險家",
+        "validator-name": "驗證者"
+    },
     "sign-in": "登入",
     "complete": "完成",
     "zoom-in": "放大",

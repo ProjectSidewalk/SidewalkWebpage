@@ -5,12 +5,6 @@
  * and converted to kilometers for metric users so the displayed values and badge level match the user's unit system.
  */
 class BadgeProgress {
-    // Label-count thresholds for each badge level.
-    static #LABEL_THRESHOLDS = [50, 200, 500, 1000, 2000];
-    // Distance thresholds (miles) for each badge level.
-    static #DISTANCE_THRESHOLDS_MILES = [0.5, 2, 5, 10, 20];
-    static #ROMAN = ['I', 'II', 'III', 'IV', 'V'];
-
     // Gap (px, before --ui-scale) between the cursor and the enlarged preview floating above it.
     static #PREVIEW_GAP = 16;
     // Minimum distance (px) the preview keeps from the viewport edges when clamped.
@@ -106,20 +100,20 @@ class BadgeProgress {
     render(labelCount, distance, isMetric) {
         this.#renderRow(this.#labelsRow, {
             value: labelCount,
-            thresholds: BadgeProgress.#LABEL_THRESHOLDS,
-            nameKey: 'right-ui.badges.labeler-name',
+            thresholds: BadgeAchievements.THRESHOLDS.labels,
+            nameKey: 'common:badges.labeler-name',
             iconFor: (level) => `/assets/images/badges/badge_labels_badge${level}.png`,
             unit: '',
             decimals: 0
         });
 
         const distanceThresholds = isMetric
-            ? BadgeProgress.#DISTANCE_THRESHOLDS_MILES.map(util.math.milesToKms)
-            : BadgeProgress.#DISTANCE_THRESHOLDS_MILES;
+            ? BadgeAchievements.THRESHOLDS.distance.map(util.math.milesToKms)
+            : BadgeAchievements.THRESHOLDS.distance;
         this.#renderRow(this.#distanceRow, {
             value: distance,
             thresholds: distanceThresholds,
-            nameKey: 'right-ui.badges.explorer-name',
+            nameKey: 'common:badges.explorer-name',
             iconFor: (level) => isMetric
                 ? `/assets/images/badges/badge_distance_km_badge${level}.png`
                 : `/assets/images/badges/badge_distance_badge${level}.png`,
@@ -154,7 +148,7 @@ class BadgeProgress {
         row.iconSrc = iconSrc;
         row.iconFill.style.setProperty('--badge-fill', fraction);
 
-        row.name.textContent = `${i18next.t(nameKey)} ${BadgeProgress.#ROMAN[nextIndex]}`;
+        row.name.textContent = `${i18next.t(nameKey)} ${BadgeAchievements.ROMAN[nextIndex]}`;
         row.barFill.style.width = `${(fraction * 100).toFixed(0)}%`;
 
         // Floor (don't round) the displayed value so it never shows the target before the bar is actually full.

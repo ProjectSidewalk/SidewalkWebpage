@@ -26,7 +26,20 @@ function StatusField(completedValidationsParam) {
      * Increments the number of labels the user has validated.
      */
     function incrementLabelCounts(){
+        let prevCount = completedValidations;
         completedValidations++;
+        checkBadgeUnlock(prevCount, completedValidations);
+    }
+
+    /**
+     * Shows a badge-unlock toast over the panorama if this validation crossed into a new validation-badge level.
+     *
+     * @param {number} oldCount The user's all-time validation count before this validation.
+     * @param {number} newCount The user's all-time validation count after this validation.
+     */
+    function checkBadgeUnlock(oldCount, newCount) {
+        let badge = BadgeAchievements.detectUnlock('validations', oldCount, newCount);
+        if (badge) BadgeAchievements.showUnlockToast(badge, document.getElementById('svv-panorama-holder'));
     }
 
     /**

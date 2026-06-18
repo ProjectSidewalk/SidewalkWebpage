@@ -76,8 +76,8 @@
 
 /* The three street tiers on the modal map; shared by the map layers (read in JS) and the legend swatches. */
 :root {
-    --mc-line-this-mission: var(--color-pine-800);
-    --mc-line-previous: var(--color-pine-600);
+    --mc-line-this-mission: var(--color-pine-700);
+    --mc-line-previous: var(--color-pine-500);
     --mc-line-community: var(--color-pine-300);
 }
 

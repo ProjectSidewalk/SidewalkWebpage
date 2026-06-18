@@ -4,9 +4,6 @@
  *  neighborhood's progress, and distance/label totals for the neighborhood.
  */
 class ModalMissionComplete {
-    // The mission-count thresholds for each badge level, mirroring the user dashboard (see AchievementTracker).
-    static #MISSION_BADGE_THRESHOLDS = [5, 25, 75, 150, 250];
-
     #missionContainer;
     #taskContainer;
     #map;
@@ -136,7 +133,7 @@ class ModalMissionComplete {
     #updateBadge() {
         const liveCount = svl.overallStats.getLiveMissionCount();
         const missionCount = liveCount === null ? svl.missionsCompleted : liveCount;
-        const earnedLevel = ModalMissionComplete.#MISSION_BADGE_THRESHOLDS.filter(t => missionCount >= t).length;
+        const earnedLevel = BadgeAchievements.getLevelForValue('missions', missionCount);
 
         // Show the highest earned badge; before the first is earned (or the first badge if none earned yet).
         const displayLevel = Math.max(1, earnedLevel);
@@ -307,6 +304,18 @@ class ModalMissionComplete {
 
         this.#showingScreen = true;
         this.#updateButtonsEnabled();
+
+        this.#checkMissionBadgeUnlock();
+    }
+
+    /**
+     * Shows a badge-unlock toast over the modal if completing this mission crossed into a new mission-badge level.
+     */
+    #checkMissionBadgeUnlock() {
+        const liveCount = svl.overallStats.getLiveMissionCount();
+        if (liveCount === null) return;
+        const badge = BadgeAchievements.detectUnlock('missions', liveCount - 1, liveCount);
+        if (badge) BadgeAchievements.showUnlockToast(badge, this.#els.foreground);
     }
 
     /** Hides the modal and resets the sidebar mission progress bar. */
