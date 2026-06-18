@@ -110,8 +110,6 @@ landing.how.you.help.content = Explore virtualmente as ruas da cidade em {0} par
 landing.how.you.help.explore = EXPLORAR
 landing.how.you.help.find = ENCONTRAR PROBLEMAS
 landing.how.you.help.assess = AVALIAR A SEVERIDADE
-landing.video.title = O que é o Project Sidewalk?
-landing.video.watch = Assistir agora
 landing.choropleth.title = Escolha um bairro
 landing.choropleth.content = Escolha um bairro para explorar abaixo ou clique no botão <a href="/explore">"Explorar"</a> e você receberá um bairro automaticamente!
 landing.choropleth.legend = Percentual do bairro concluído
@@ -149,23 +147,11 @@ landing.collaborators.logo.city.of.amsterdam.alt = Logotipo da Cidade de Amsterd
 landing.collaborators.logo.amsterdam.intelligence.alt = Logotipo do Amsterdam Intelligence
 landing.collaborators.logo.public.nudge.alt = Logotipo do Public Nudge
 landing.clouds.alt = Nuvens brancas cobrindo parcialmente a imagem acima, com estatísticas exibidas sobre as nuvens.
-landing.skyline1.png.alt = Uma ilustração de um cruzamento com pessoas atravessando a rua.
-landing.skyline2.png.alt = Uma ilustração de um cruzamento com pessoas atravessando a rua. Uma bandeira com as cores da bandeira do México aparece ao fundo.
-landing.skyline-seattle.png.alt = Uma ilustração mostrando o horizonte de Seattle, Washington.
 landing.mobile.start.validating = Começar a validar em {0}
 landing.mobile.how.you.help.content = Ajude a melhorar os dados de acessibilidade de {0} validando etiquetas colocadas por outros usuários—direto do seu celular!
-landing.mobile.step1 = VISUALIZAR
-landing.mobile.step2 = AVALIAR
-landing.mobile.step3 = DECIDIR
-landing.mobile.step1.desc = Veja uma etiqueta colocada por outro usuário
-landing.mobile.step2.desc = Examine a cena da rua
-landing.mobile.step3.desc = Concorde, discorde ou marque como incerto
-landing.mobile.val.yes.desc = Etiqueta parece correta
 landing.mobile.impact.step1 = Um voluntário identifica um problema de acessibilidade e coloca um rótulo
 landing.mobile.impact.step2 = Você vê o mesmo local e opina se o rótulo está correto
 landing.mobile.impact.step3 = Rótulos confirmados tornam-se dados confiáveis para cidades, pesquisadores e aplicativos de navegação
-landing.mobile.val.unsure.desc = Não tenho certeza
-landing.mobile.val.no.desc = Etiqueta parece errada
 landing.mobile.stats.content = Voluntários como você colocaram esses rótulos, coletando dados de calçadas para planejadores urbanos, pesquisadores e pessoas com deficiência.
 landing.mobile.laptop.heading = Quer fazer ainda mais?
 landing.mobile.laptop.content = Realize missões de rotulagem no seu laptop para mapear as calçadas de {0} você mesmo.
@@ -198,8 +184,6 @@ audit.tutorial.examples.surface.problem = Calçadas com <span style="color:orang
 audit.tutorial.end.1 = Ótimo! Você aprendeu a usar a interface! Agora vá em frente e <span class="bold">rotule os seguintes atributos de acessibilidade nas imagens do Street View</span> que afetam significativamente a forma como usuários de cadeira de rodas se deslocam pela cidade:
 audit.tutorial.end.2 = Mais uma vez, obrigado por <span class="bold">tornar o mundo mais acessível para todos!</span>
 audit.tutorial.examples = Exemplos de atributos de acessibilidade: rampas de calçada, rampas de calçada ausentes, obstáculos no caminho e problemas na superfície.
-
-audit.ribbon.find.and.label = Encontre e rotule o seguinte
 audit.ribbon.curb.ramp.labels = RÓTULOS DE RAMPA DE CALÇADA
 audit.ribbon.sidewalk.labels = RÓTULOS DE CALÇADA
 audit.ribbon.other.labels = OUTROS RÓTULOS DE ACESSIBILIDADE
@@ -219,19 +203,10 @@ audit.left.ui.stuck = Travado
 audit.left.ui.stuck.tooltip = Vamos tentar fazê-lo voltar à sua missão
 
 audit.right.ui.overall.stats = Estatísticas Gerais
-audit.right.ui.current.neighborhood = Bairro Atual
-audit.right.ui.distance = quilômetros
-
 audit.center.ui.tags.header = Adicionar etiquetas
 audit.center.ui.tags.info = Adicione etiquetas aos seus rótulos para enriquecer os dados com informações úteis. Passe o mouse sobre as tags para ver exemplos.
 audit.center.ui.description.header = Descreva (opcional)
 audit.center.ui.description.placeholder = Descrição
-
-audit.mission.complete.labels.title = Rótulos da missão
-audit.mission.complete.progress.mission.you = Você explorou nesta missão
-audit.mission.complete.progress.neighborhood.others = Outros exploraram neste bairro
-audit.mission.complete.legend.this.mission = Esta Missão
-audit.mission.complete.legend.previous.missions = Missões Anteriores
 
 audit.survey.title = Por favor, participe desta pesquisa única sobre o <i>Project Sidewalk</i>
 audit.survey.enjoyment.question = Quanto você está gostando de usar o <i>Project Sidewalk</i>?
@@ -281,7 +256,6 @@ authenticate.signin.with.credentials = Entrar com suas credenciais
 
 user.exists = E-mail já existe
 authenticate.error.username.exists = Nome de usuário já existe
-authenticate.error.username.invalid = Nomes de usuário não podem conter ", '', <, >, &
 authenticate.error.password.mismatch = Senhas não correspondem
 authenticate.error.invalid.credentials = Credenciais inválidas!
 
@@ -306,9 +280,6 @@ dashboard.current.team.greeting = Equipe: {0}
 dashboard.leave.team = Sair da equipe: {0}
 dashboard.create.team = Criar uma equipe
 dashboard.join.team = Entrar em uma equipe!
-dashboard.total.distance.explored = Distância total explorada
-dashboard.number.completed.missions = Número de missões concluídas
-dashboard.number.of.labels = Número de etiquetas
 dashboard.missions = Missões
 dashboard.your.missions = Suas missões
 dashboard.distance = Distância
@@ -327,7 +298,6 @@ dashboard.label.badge = distintivo de {0} etiquetas
 dashboard.validation.badge = distintivo de {0} validações
 dashboard.mistakes.header = Seus erros recentes de rotulagem
 dashboard.mistakes.tooltip = Esses erros foram determinados por outros usuários na página de validação. Às vezes erros acontecem durante a validação e frequentemente há variações nessas avaliações.
-dashboard.mistakes.tooltip.alt = Ícone de ponto de interrogação para dica de ajuda.
 dashboard.team.title = Criar uma nova equipe
 dashboard.team.name = Nome da equipe
 dashboard.team.description = Descrição da equipe (opcional)
@@ -352,7 +322,6 @@ leaderboard.header.labels = Rótulos
 leaderboard.header.missions = Missões
 leaderboard.header.distance = Distância
 leaderboard.tooltip.accuracy = A precisão é exibida apenas se pelo menos 10 de seus rótulos tiverem sido validados
-leaderboard.tooltip.weekly.reset = As estatísticas são reiniciadas todas as segundas-feiras às 4 horas da manhã (hora de Brasília)
 leaderboard.encouragement = Quer entrar no Top 10? <a id="encouragement-link" href="/explore"><u>Comece a explorar!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Cadastre-se</u></a> para acompanhar seu progresso!
 leaderboard.encouragement.no.team = Quer melhorar sua precisão? Leia nosso <a id="encouragement-link" href="{0}" target="_blank"><u>guia de rotulagem</u></a> e veja sueus rótulos incorretos recentes no <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>seu painel</u></a>

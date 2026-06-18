@@ -89,6 +89,7 @@ function Canvas(ribbon) {
         );
         const param = {
             tutorial: svl.missionContainer.getCurrentMission().getProperty('missionType') === 'auditOnboarding',
+            missionId: svl.missionContainer.getCurrentMission().getProperty('missionId'),
             auditTaskId: svl.taskContainer.getCurrentTask().getAuditTaskId(),
             labelType: labelType,
             originalCanvasXY: { x: canvasX, y: canvasY },

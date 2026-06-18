@@ -538,71 +538,75 @@
                     </form>
                 </div>
             </div>
+            @* Mission complete modal: a centered card over a dimmed, non-interactive tool. *@
             <div id="modal-mission-complete-holder">
                 <div id="modal-mission-complete-background" class="modal-background"></div>
-                <div id="modal-mission-complete-foreground" class="modal-foreground">
-                    <h1><span id="modal-mission-complete-title"></span></h1>
-                    <div class="row">
-                        <div class="mapbox col-sm-7">
-                            <div id="modal-mission-complete-map"></div>
-                            <div id="map-legend">
-                                <svg class="legend-label" width="10" height="10"><rect width="10" height="10" id="green-square"></rect></svg><span id="modal-mission-complete-map-legend-label-1">@Messages("audit.mission.complete.legend.this.mission")</span><br>
-                                <svg class="legend-label" width="10" height="10"><rect width="10" height="10" id="blue-square"></rect></svg><span id="modal-mission-complete-map-legend-label-2">@Messages("audit.mission.complete.legend.previous.missions")</span><br>
-                                <svg class="legend-label" width="10" height="10"><rect width="10" height="10" id="gray-square"></rect></svg><span id="modal-mission-complete-map-legend-label-3">@Messages("audit.mission.complete.legend.others.missions")</span>
-                            </div>
+                <div id="modal-mission-complete-foreground" class="modal-foreground" role="dialog" aria-modal="true" aria-labelledby="modal-mission-complete-title">
+                    <header class="mission-complete__header">
+                        <img id="modal-mission-complete-badge" class="mission-complete__badge" alt="">
+                        <div class="mission-complete__heading">
+                            <h1 id="modal-mission-complete-title"></h1>
+                            <p id="modal-mission-complete-subtitle" class="mission-complete__subtitle"></p>
+                        </div>
+                    </header>
 
+                    <div class="mission-complete__map-wrap">
+                        <div id="modal-mission-complete-map"></div>
+
+                        @* Left overlay: label-type legend and street-tier legend. Both populated by ModalMissionComplete. *@
+                        <div class="mission-complete__overlay mission-complete__overlay--left">
+                            <h2 class="mission-complete__overlay-title" data-i18n="audit:mission-complete.legend-title"></h2>
+                            <ul id="modal-mission-complete-label-legend" class="mission-complete__legend-list"></ul>
+                            <hr class="mission-complete__overlay-divider">
+                            <ul class="mission-complete__legend-list">
+                                <li class="mission-complete__legend-item">
+                                    <span class="mission-complete__legend-line mission-complete__legend-line--this-mission"></span>
+                                    <span data-i18n="audit:mission-complete.legend-this-mission"></span>
+                                </li>
+                                <li class="mission-complete__legend-item">
+                                    <span class="mission-complete__legend-line mission-complete__legend-line--previous"></span>
+                                    <span data-i18n="audit:mission-complete.legend-previous-missions"></span>
+                                </li>
+                                <li class="mission-complete__legend-item" id="modal-mission-complete-legend-community">
+                                    <span class="mission-complete__legend-line mission-complete__legend-line--community"></span>
+                                    <span data-i18n="audit:mission-complete.legend-community"></span>
+                                </li>
+                            </ul>
                         </div>
-                        <div class="col-sm-5">
-                            <h3>@Messages("audit.mission.complete.labels.title")</h3>
-                            <table class="table">
-                                <tr>
-                                    <th class="width-50-percent">@Messages("curb.ramp")</th>
-                                    <td id="modal-mission-complete-curb-ramp-count" class="col-right"></td>
-                                </tr>
-                                <tr>
-                                    <th>@Messages("missing.ramp")</th>
-                                    <td id="modal-mission-complete-no-curb-ramp-count" class="col-right"></td>
-                                </tr>
-                                <tr>
-                                    <th>@Messages("obstacle")</th>
-                                    <td id="modal-mission-complete-obstacle-count" class="col-right"></td>
-                                </tr>
-                                <tr>
-                                    <th>@Messages("surface.problem")</th>
-                                    <td id="modal-mission-complete-surface-problem-count" class="col-right"></td>
-                                </tr>
-                                <tr>
-                                    <th>@Messages("no.sidewalk")</th>
-                                    <td id="modal-mission-complete-no-sidewalk-count" class="col-right"></td>
-                                </tr>
-                                <tr>
-                                    <th>@Messages("other")</th>
-                                    <td id="modal-mission-complete-other-count" class="col-right"></td>
-                                </tr>
-                            </table>
-                            <h3 id="modal-mission-complete-progress-title"></h3>
-                            <div id="modal-mission-complete-complete-bar"></div>
-                            <table class="table">
-                                <tr>
-                                    <th>@Messages("audit.mission.complete.progress.mission.you")</th>
-                                    <td id="modal-mission-complete-mission-distance" class="col-right"></td>
-                                </tr>
-                                <tr>
-                                    <th id="modal-mission-complete-progress-you"></th>
-                                    <td id="modal-mission-complete-total-audited-distance" class="col-right"></td>
-                                </tr>
-                                <tr>
-                                    <th id="modal-mission-complete-progress-others">@Messages("audit.mission.complete.progress.neighborhood.others")</th>
-                                    <td id="modal-mission-complete-others-distance" class="col-right"></td>
-                                </tr>
-                                <tr>
-                                    <th id="modal-mission-complete-progress-remaining"></th>
-                                    <td id="modal-mission-complete-remaining-distance" class="col-right"></td>
-                                </tr>
-                            </table>
-                            <button class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
-                            <button class="btn btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
+
+                        @* Right overlay: the neighborhood progress bar (reused from the sidebar) plus distance/label stats. *@
+                        <div class="mission-complete__overlay mission-complete__overlay--right">
+                            <h2 class="mission-complete__overlay-title" data-i18n="audit:right-ui.neighborhood-progress.title"></h2>
+                            <div class="mission-complete__progress">
+                                <div class="explore-sidebar__progress-track explore-sidebar__progress-track--neighborhood">
+                                    <div id="modal-neighborhood-progress-fill" class="explore-sidebar__neighborhood-progress-fill">
+                                        <div id="modal-neighborhood-progress-community" class="explore-sidebar__progress-fill explore-sidebar__progress-fill--community"></div>
+                                        <div id="modal-neighborhood-progress-you" class="explore-sidebar__progress-fill explore-sidebar__progress-fill--you"></div>
+                                    </div>
+                                </div>
+                                <span id="modal-neighborhood-progress-rate" class="explore-sidebar__progress-pct"></span>
+                            </div>
+                            <hr class="mission-complete__overlay-divider">
+                            <div class="mission-complete__stat">
+                                <img class="mission-complete__stat-icon" src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' alt="">
+                                <div class="mission-complete__stat-text">
+                                    <span class="mission-complete__stat-all" id="modal-mission-complete-distance-all"></span>
+                                    <span class="mission-complete__stat-you" id="modal-mission-complete-distance-you"></span>
+                                </div>
+                            </div>
+                            <div class="mission-complete__stat">
+                                <img class="mission-complete__stat-icon" src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' alt="">
+                                <div class="mission-complete__stat-text">
+                                    <span class="mission-complete__stat-all" id="modal-mission-complete-labels-all"></span>
+                                    <span class="mission-complete__stat-you" id="modal-mission-complete-labels-you"></span>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+
+                    <div class="mission-complete__buttons">
+                        <button class="button-ps button--medium button--secondary" id="modal-mission-complete-close-button-secondary"></button>
+                        <button class="button-ps button--medium button--primary" id="modal-mission-complete-close-button-primary"></button>
                     </div>
                 </div>
             </div>
@@ -632,7 +636,7 @@
             </div>
             <div class="col-md-offset-3 col-md-3">
                 <p>
-                    <button class="button-ps button--large button--secondary onboarding-transition-trigger" id="onboarding-ok-button" value="OK" style="position: relative; top: -4px;">@Messages("audit.tutorial.welcome.3")</button>
+                    <button class="button-ps button--medium button--secondary onboarding-transition-trigger" id="onboarding-ok-button" value="OK" style="position: relative; top: -4px;">@Messages("audit.tutorial.welcome.3")</button>
                 </p>
             </div>
 
@@ -699,6 +703,7 @@
     <script src='@assets.path("javascripts/lib/floating-ui.core-1.7.5.umd.min.js")'></script>
     <script src='@assets.path("javascripts/lib/floating-ui.dom-1.7.6.umd.min.js")'></script>
     <script src='@assets.path("javascripts/SVLabel/build/SVLabel.js")'></script>
+    <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
     <script src='@assets.path("javascripts/lib/kinetic-v4.4.3.min.js")'></script>
     <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
     <script src='@assets.path("javascripts/lib/d3-3.5.6.js")'></script>

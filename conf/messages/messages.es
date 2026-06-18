@@ -114,8 +114,6 @@ landing.how.you.help.content = Explora virtualmente las calles de la ciudad en {
 landing.how.you.help.explore = EXPLORA
 landing.how.you.help.find = ENCUENTRA PROBLEMAS
 landing.how.you.help.assess = EVALÚA LA GRAVEDAD
-landing.video.title = ¿Qué es Project Sidewalk?
-landing.video.watch = Ver Ahora
 landing.choropleth.title = Elige un barrio
 landing.choropleth.content = Elige un vecindario para explorar a continuación o haz clic en el botón <a href="/explore">''Explorar''</a> y se te asignará un vecindario automáticamente.
 landing.choropleth.legend = Porcentaje del barrio completo
@@ -153,23 +151,11 @@ landing.collaborators.logo.city.of.amsterdam.alt = Logotipo de la ciudad de Áms
 landing.collaborators.logo.amsterdam.intelligence.alt = Logotipo de Inteligencia de Ámsterdam
 landing.collaborators.logo.public.nudge.alt = Logotipo de Nudge Public
 landing.clouds.alt = Nubes blancas que cubren parcialmente la imagen de arriba, con estadísticas mostradas encima de las nubes.
-landing.skyline1.png.alt = Una ilustración de una intersección con personas cruzando la calle.
-landing.skyline2.png.alt = Una ilustración de una intersección con personas cruzando la calle. Al fondo hay una bandera que muestra los colores de la bandera de México.
-landing.skyline-seattle.png.alt = Una ilustración que muestra el horizonte de Seattle, Washington.
 landing.mobile.start.validating = Comenzar a validar en {0}
 landing.mobile.how.you.help.content = ¡Ayuda a mejorar los datos de accesibilidad de {0} validando etiquetas colocadas por otros usuarios, directamente desde tu teléfono!
-landing.mobile.step1 = VER
-landing.mobile.step2 = EVALUAR
-landing.mobile.step3 = DECIDIR
-landing.mobile.step1.desc = Observa una etiqueta colocada por otro usuario
-landing.mobile.step2.desc = Examina la escena de la calle
-landing.mobile.step3.desc = Acepta, rechaza o marca como inseguro
-landing.mobile.val.yes.desc = La etiqueta parece correcta
 landing.mobile.impact.step1 = Un voluntario detecta un problema de accesibilidad y coloca una etiqueta
 landing.mobile.impact.step2 = Tú ves el mismo lugar y opinas si lo hicieron bien
 landing.mobile.impact.step3 = Las etiquetas confirmadas se convierten en datos confiables para ciudades, investigadores y aplicaciones de navegación
-landing.mobile.val.unsure.desc = No estoy seguro
-landing.mobile.val.no.desc = La etiqueta parece incorrecta
 landing.mobile.stats.content = Voluntarios como tú han colocado estas etiquetas, recopilando datos de aceras para planificadores urbanos, investigadores y personas con discapacidades.
 landing.mobile.laptop.heading = ¿Quieres hacer aún más?
 landing.mobile.laptop.content = Realiza misiones de etiquetado en tu laptop para mapear las aceras de {0} tú mismo.
@@ -202,8 +188,6 @@ audit.tutorial.examples.surface.problem = Las banquetas con <span style="color:o
 audit.tutorial.end.1 = ¡Excelente! ¡Has aprendido a usar la interfaz! Ahora, sigue adelante y <span class="bold">Etiquetar los siguientes atributos de accesibilidad en imágenes de Street View</span>, que afectan significativamente la forma en que las personas usuarias de sillas de ruedas se mueven por la ciudad:
 audit.tutorial.end.2 = Nuevamente, ¡gracias por <b>hacer que el mundo sea más accesible para todas!</b>
 audit.tutorial.examples = Ejemplos de atributos de accesibilidad: rampas peatonales, rampas peatonales ausentes, obstáculos en la banqueta, y problemas en superficie.
-
-audit.ribbon.find.and.label = Encuentra y etiqueta lo siguiente
 audit.ribbon.curb.ramp.labels = ETIQUETAS DE RAMPA PEATONAL
 audit.ribbon.sidewalk.labels = ETIQUETAS DE BANQUETA
 audit.ribbon.other.labels = OTRAS ETIQUETAS DE ACCESIBILIDAD
@@ -223,19 +207,10 @@ audit.left.ui.stuck = Atorado
 audit.left.ui.stuck.tooltip = Intentaremos llevarte de regreso a tu misión
 
 audit.right.ui.overall.stats = Estadísticas generales
-audit.right.ui.current.neighborhood = Colonia actual
-audit.right.ui.distance = kilómetros
-
 audit.center.ui.tags.header = Agregar etiquetas
 audit.center.ui.tags.info = Añade etiquetas a tus etiquetas para enriquecer los datos con información útil. Pasa el cursor sobre las etiquetas para ver ejemplos.
 audit.center.ui.description.header = Describe (opcional)
 audit.center.ui.description.placeholder = Descripción
-
-audit.mission.complete.labels.title = Etiquetas de la misión
-audit.mission.complete.progress.mission.you = Exploraste en esta misión
-audit.mission.complete.progress.neighborhood.others = Otras personas exploraron en este barrio
-audit.mission.complete.legend.this.mission = Esta misión
-audit.mission.complete.legend.previous.missions = Misiones anteriores
 
 audit.survey.title = Por favor, realiza esta encuesta sobre <i>Project Sidewalk</i>
 audit.survey.enjoyment.question = ¿Cuánto has disfrutado usando <i>Project Sidewalk</i>?
@@ -285,7 +260,6 @@ authenticate.signin.with.credentials = Inicia sesión con tus credenciales
 
 user.exists = El correo electrónico ya existe
 authenticate.error.username.exists = El nombre de usuario ya existe
-authenticate.error.username.invalid = Los nombres de usuario no pueden contener ", '', <, >, &
 authenticate.error.password.mismatch = Las contraseñas no coinciden
 authenticate.error.invalid.credentials = Credenciales inválidas
 
@@ -310,9 +284,6 @@ dashboard.current.team.greeting = Equipo: {0}
 dashboard.leave.team = Dejar el equipo: {0}
 dashboard.create.team = Crear un equipo
 dashboard.join.team = ¡Únete a un equipo!
-dashboard.total.distance.explored = Distancia total explorada
-dashboard.number.completed.missions = Número de misiones completadas
-dashboard.number.of.labels = Número de etiquetas
 dashboard.missions = Misiones
 dashboard.your.missions = Tus misiones
 dashboard.distance = Distancia
@@ -331,7 +302,6 @@ dashboard.label.badge = {0} insignia de etiqueta
 dashboard.validation.badge = {0} insignia de validación
 dashboard.mistakes.header = Sus errores de etiquetado recientes
 dashboard.mistakes.tooltip = Estos son errores determinados por otros usuarios desde la página Validar. A veces ocurren errores durante la validación y, a menudo, hay matices en estas evaluaciones.
-dashboard.mistakes.tooltip.alt = Icono de signo de interrogación para información sobre herramientas útil.
 dashboard.team.title = Crear un nuevo equipo
 dashboard.team.name = Nombre del equipo
 dashboard.team.description = Descripción del equipo (opcional)
@@ -356,7 +326,6 @@ leaderboard.header.labels = Etiquetas
 leaderboard.header.missions = Misiones
 leaderboard.header.distance = Distancia
 leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de tus etiquetas han sido validadas
-leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
 leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a id="encouragement-link" href="/explore"><u>¡Empieza a explorar!</u></a>
 leaderboard.encouragement.no.user = ¡<a id="encouragement-link" href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
 leaderboard.encouragement.no.team = ¿Quieres mejorar tu precisión? Lea nuestra <a id="encouragement-link" href="{0}" target="_blank"><u>guía de etiquetado</u></a> y vea sus etiquetas incorrectas recientes en <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>su tablero</u></a>

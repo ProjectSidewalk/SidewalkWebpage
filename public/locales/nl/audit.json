@@ -74,20 +74,21 @@
         }
     },
     "mission-complete": {
-        "distance-type-display-string": "kilometers",
         "title-generic": "Missie geslaagd!",
         "title-neighborhood-complete": "Bravo! Je hebt de {{neighborhoodName}} -buurt voltooid!",
         "title-route-complete": "Bravo! Je hebt je route voltooid!",
-        "map-legend-label-other-users": "Missies Van Anderen",
-        "progress-neighborhood-title": "Wijk voortgang",
-        "progress-route-title": "Routevoortgang",
-        "progress-neighborhood-you": "Je ontdekte in deze wijk",
-        "progress-route-you": "Verkend in je route",
-        "progress-neighborhood-remaining": "Overblijvenden in deze wijk",
-        "progress-route-remaining": "Op uw route blijven",
-        "button-start-validating": "Start met valideren",
-        "button-keep-exploring": "Blijf verkennen",
-        "button-continue": "Ga verder"
+        "subtitle": "Verken {{distance}} van {{neighborhoodName}}",
+        "badge-alt": "Je missiebadge",
+        "legend-title": "Missievoortgang",
+        "legend-this-mission": "Deze missie",
+        "legend-previous-missions": "Vorige missies",
+        "legend-community": "Voortgang van de gemeenschap",
+        "stat-distance-all": "{{distance}} verkend",
+        "stat-distance-you": "Jij verkende {{distance}}",
+        "stat-labels-all": "{{count}} labels gemaakt",
+        "stat-labels-you": "Jij voegde {{count}} labels toe",
+        "button-next-mission": "Volgende verkenningsmissie",
+        "button-try-validation": "Validatie proberen"
     },
     "top-ui": {
         "press-key": "Druk op de \"{{key}}\" knop"

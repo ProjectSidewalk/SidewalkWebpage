@@ -12,6 +12,7 @@ class OverallStats {
     #isMetric;
     #sessionStartTotalDist = null;
     #sessionStartNeighborhoodDist = null;
+    #sessionStartMissionCount = null;
     #stats = { distance: 0, labelCount: 0, accuracy: null };
 
     constructor() {
@@ -80,12 +81,21 @@ class OverallStats {
         this.#renderDistance();
     }
 
+    /**
+     * The user's total completed-mission count at the moment they finished the just-completed mission.
+     */
+    getLiveMissionCount() {
+        if (this.#sessionStartMissionCount === null) return null;
+        return this.#sessionStartMissionCount + svl.missionsCompleted;
+    }
+
     /** Fetches the user's basic stats and seeds the sidebar values. */
     #fetchBasicStats() {
         fetch('/userapi/basicStats', { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(result => {
                 this.#sessionStartTotalDist = result.distance_audited;
+                this.#sessionStartMissionCount = result.mission_count;
                 this.#stats.distance = result.distance_audited;
                 this.#stats.labelCount += result.label_count;
 

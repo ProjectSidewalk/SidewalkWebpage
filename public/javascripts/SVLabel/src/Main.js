@@ -92,7 +92,6 @@ function Main (params) {
         svl.neighborhoodProgressBar = new NeighborhoodProgressBar();
         svl.missionPanel = new MissionPanel();
 
-        svl.labelCounter = new LabelCounter();
         svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
 
         // Game effects
@@ -139,10 +138,9 @@ function Main (params) {
         logPageFocus();
 
         // Modals
-        var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete, params.mapboxApiKey);
-        var modalMissionCompleteProgressBar = new ModalMissionCompleteProgressBar(svl.ui.modalMissionComplete);
+        var modalMissionCompleteMap = new ModalMissionCompleteMap('modal-mission-complete-map', params.mapboxApiKey);
         svl.modalMissionComplete = new ModalMissionComplete(svl.missionContainer, svl.missionModel,
-            svl.taskContainer, modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete);
+            svl.taskContainer, modalMissionCompleteMap);
         svl.modalMissionComplete.hide();
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment);
@@ -288,22 +286,6 @@ function Main (params) {
             svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
             // Wait for the icon cache before this first paint (resolves immediately if already warm).
             svl.iconsPreloaded.then(function() { svl.canvas.render(); });
-
-            // Count the labels of each label type to initialize the current mission label counts.
-            var counter = {'CurbRamp': 0, 'NoCurbRamp': 0, 'Obstacle': 0, 'SurfaceProblem': 0, 'NoSidewalk': 0, 'Other': 0};
-            for (var i = 0, len = result.labels.length; i < len; i++) {
-                var currLabel = result.labels[i];
-                if (currLabel.missionId === mission.getProperty('missionId')) {
-                    if (Object.keys(counter).indexOf(currLabel.labelType) !== -1) {
-                        counter[currLabel.labelType] += 1;
-                    } else {
-                        counter['Other'] += 1;
-                    }
-                }
-            }
-            Object.keys(counter).forEach(function (key) {
-                svl.labelCounter.set(key, counter[key]);
-            });
         });
 
         svl.taskContainer.renderAllTasks();
@@ -500,34 +482,6 @@ function Main (params) {
         svl.ui.modalSurvey.container = $("#survey-modal-container");
         svl.ui.modalSurvey.form = $("#survey-form");
         svl.ui.modalSurvey.skipButton = $('#survey-skip-button')
-
-        // Modal Mission Complete.
-        svl.ui.modalMissionComplete = {};
-        svl.ui.modalMissionComplete.holder = $("#modal-mission-complete-holder");
-        svl.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
-        svl.ui.modalMissionComplete.background = $("#modal-mission-complete-background");
-        svl.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
-        svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
-        svl.ui.modalMissionComplete.mapLegendLabel1 = $("#modal-mission-complete-map-legend-label-1");
-        svl.ui.modalMissionComplete.mapLegendLabel2 = $("#modal-mission-complete-map-legend-label-2");
-        svl.ui.modalMissionComplete.mapLegendLabel3 = $("#modal-mission-complete-map-legend-label-3");
-        svl.ui.modalMissionComplete.curbRampCount = $("#modal-mission-complete-curb-ramp-count");
-        svl.ui.modalMissionComplete.noCurbRampCount = $("#modal-mission-complete-no-curb-ramp-count");
-        svl.ui.modalMissionComplete.obstacleCount = $("#modal-mission-complete-obstacle-count");
-        svl.ui.modalMissionComplete.surfaceProblemCount = $("#modal-mission-complete-surface-problem-count");
-        svl.ui.modalMissionComplete.noSidewalk = $("#modal-mission-complete-no-sidewalk-count");
-        svl.ui.modalMissionComplete.otherCount = $("#modal-mission-complete-other-count");
-        svl.ui.modalMissionComplete.progressTitle = $("#modal-mission-complete-progress-title");
-        svl.ui.modalMissionComplete.completeBar = $("#modal-mission-complete-complete-bar");
-        svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
-        svl.ui.modalMissionComplete.progressYou = $("#modal-mission-complete-progress-you");
-        svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
-        svl.ui.modalMissionComplete.progressOthers = $("#modal-mission-complete-progress-others");
-        svl.ui.modalMissionComplete.othersAuditedDistance = $("#modal-mission-complete-others-distance");
-        svl.ui.modalMissionComplete.progressRemaining = $("#modal-mission-complete-progress-remaining");
-        svl.ui.modalMissionComplete.remainingDistance = $("#modal-mission-complete-remaining-distance");
-        svl.ui.modalMissionComplete.closeButtonPrimary = $("#modal-mission-complete-close-button-primary");
-        svl.ui.modalMissionComplete.closeButtonSecondary = $("#modal-mission-complete-close-button-secondary");
 
         // Zoom control.
         svl.ui.zoomControl = {};

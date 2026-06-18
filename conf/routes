@@ -43,7 +43,7 @@ PUT     /updateVolunteerStatus                          controllers.UserControll
 
 # Security policy endpoints.
 + nocsrf
-POST    /cspReport                                     controllers.SecurityPolicyController.cspReport
+POST    /cspReport                                      controllers.SecurityPolicyController.cspReport
 
 # City config params.
 GET     /cityMapParams                                  controllers.ConfigController.getCityMapParams()
@@ -123,6 +123,7 @@ POST    /labelmap/comment                               controllers.ValidateCont
 # Labels
 GET     /label/tags                                     controllers.LabelController.getLabelTags
 GET     /label/resumeMission                            controllers.LabelController.getLabelsToResumeMission(regionId: Int)
+GET     /label/countInRegion                            controllers.LabelController.getRegionLabelCount(regionId: Int)
 POST    /label/labels                                   controllers.GalleryController.getLabels
 POST    /label/geo/random/:labelType/:labelId           controllers.ValidateController.getRandomLabelData(labelType: Int, labelId: Int)
 
@@ -149,7 +150,7 @@ POST    /userapi/createTeam                             controllers.UserProfileC
 GET     /userapi/getTeams                               controllers.UserProfileController.getTeams
 
 # Map resources from the /public folder to the /assets URL path. Prefix must match `play.assets.urlPrefix`
-GET     /assets/*file                                    controllers.Assets.versioned(file)
+GET     /assets/*file                                   controllers.Assets.versioned(file)
 
 # Clustering
 GET     /clustering                                     controllers.ClusterController.index

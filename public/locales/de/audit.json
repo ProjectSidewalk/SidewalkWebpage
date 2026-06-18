@@ -74,20 +74,21 @@
         }
     },
     "mission-complete": {
-        "distance-type-display-string": "Kilometer",
         "title-generic": "Mission erfüllt!",
         "title-neighborhood-complete": "Bravo! Sie haben die {{neighborhoodName}} -Nachbarschaft abgeschlossen!",
         "title-route-complete": "Bravo! Sie haben Ihre Route beendet!",
-        "map-legend-label-other-users": "Missionen anderer Nutzenden",
-        "progress-neighborhood-title": "Fortschritt im Quartier",
-        "progress-route-title": "Fortschritt auf der Route",
-        "progress-neighborhood-you": "Sie haben dieses Quartier erkundet",
-        "progress-route-you": "Auf Ihrer Route erkundet",
-        "progress-neighborhood-remaining": "Verbleibend in diesem Quartier",
-        "progress-route-remaining": "Verbleibend auf Ihrer Route",
-        "button-start-validating": "Validierung starten",
-        "button-keep-exploring": "Weiter erkunden",
-        "button-continue": "Fortsetzen"
+        "subtitle": "Erkunden Sie {{distance}} von {{neighborhoodName}}",
+        "badge-alt": "Ihr Missions-Abzeichen",
+        "legend-title": "Missionsfortschritt",
+        "legend-this-mission": "Diese Mission",
+        "legend-previous-missions": "Frühere Missionen",
+        "legend-community": "Fortschritt der Gemeinschaft",
+        "stat-distance-all": "{{distance}} erkundet",
+        "stat-distance-you": "Sie haben {{distance}} erkundet",
+        "stat-labels-all": "{{count}} Markierungen erstellt",
+        "stat-labels-you": "Sie haben {{count}} Markierungen hinzugefügt",
+        "button-next-mission": "Nächste Erkundungsmission",
+        "button-try-validation": "Validierung starten"
     },
     "top-ui": {
         "press-key": "Drücken Sie auf die \"{{key}}\" Taste"

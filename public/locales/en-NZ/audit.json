@@ -44,11 +44,6 @@
             "redo-rate-crosswalk-sev-1": "Uh-oh, you should rate this pedestrian crossing as Low. The surface looks smooth and the paint isn't fading. <span class=\"bold\">Let’s click \"Low\" to set its quality.</span>"
         }
     },
-    "mission-complete": {
-        "distance-type-display-string": "kilometres",
-        "progress-neighborhood-you": "You explored in this neighbourhood",
-        "progress-neighborhood-remaining": "Remaining in this neighbourhood"
-    },
     "right-ui": {
         "current-mission": {
             "message-first-mission": "Explore for __PLACEHOLDER__ and find all the footpath accessibility attributes",

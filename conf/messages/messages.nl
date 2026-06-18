@@ -102,8 +102,6 @@ landing.how.you.help.content = Verken virtueel de straten van de stad in {0} om 
 landing.how.you.help.explore = VERKEN
 landing.how.you.help.find = ONTDEK PROBLEMEN
 landing.how.you.help.assess = BEOORDEEL DE ERNST
-landing.video.title = Wat is Project Sidewalk?
-landing.video.watch = Bekijk Nu
 landing.choropleth.title = Selecteer een wijk
 landing.choropleth.content = Kies hieronder een buurt die je wilt verkennen, of klik op de knop <a href="/explore">''Verkennen''</a> en er wordt automatisch een buurt aan je toegewezen!
 landing.choropleth.legend = Procent van de wijk compleet
@@ -141,23 +139,11 @@ landing.collaborators.logo.city.of.amsterdam.alt = Logo gemeente Amsterdam
 landing.collaborators.logo.amsterdam.intelligence.alt = Amsterdam Intelligence-logo
 landing.collaborators.logo.public.nudge.alt = Public Nudge -logo
 landing.clouds.alt = Witte wolken bedekken de afbeelding hierboven gedeeltelijk, terwijl de statistieken bovenop de wolken worden weergegeven.
-landing.skyline1.png.alt = Een illustratie van een kruispunt met mensen die de straat oversteken.
-landing.skyline2.png.alt = Een illustratie van een kruispunt met mensen die de straat oversteken. Op de achtergrond staat een vlag met de kleuren van de vlag van Mexico.
-landing.skyline-seattle.png.alt = Een illustratie van de skyline van Seattle, Washington.
 landing.mobile.start.validating = Beginnen met valideren in {0}
 landing.mobile.how.you.help.content = Help de toegankelijkheidsgegevens voor {0} te verbeteren door labels van andere gebruikers te valideren—direct vanuit uw telefoon!
-landing.mobile.step1 = BEKIJKEN
-landing.mobile.step2 = BEOORDELEN
-landing.mobile.step3 = BESLISSEN
-landing.mobile.step1.desc = Bekijk een label geplaatst door een andere gebruiker
-landing.mobile.step2.desc = Onderzoek de straatscène
-landing.mobile.step3.desc = Ga akkoord, ga niet akkoord of markeer als onzeker
-landing.mobile.val.yes.desc = Label ziet er correct uit
 landing.mobile.impact.step1 = Een vrijwilliger ontdekt een toegankelijkheidsprobleem en plaatst een label
 landing.mobile.impact.step2 = U bekijkt dezelfde plek en geeft uw mening of het label klopt
 landing.mobile.impact.step3 = Bevestigde labels worden betrouwbare data voor steden, onderzoekers en navigatie-apps
-landing.mobile.val.unsure.desc = Niet zeker
-landing.mobile.val.no.desc = Label lijkt onjuist
 landing.mobile.stats.content = Vrijwilligers zoals u hebben deze labels geplaatst en zo voetpadgegevens verzameld voor stadsplanners, onderzoekers en mensen met een beperking.
 landing.mobile.laptop.heading = Wilt u nog meer doen?
 landing.mobile.laptop.content = Neem labelmissies aan op uw laptop en breng de voetpaden van {0} zelf in kaart.
@@ -190,8 +176,6 @@ audit.tutorial.examples.surface.problem = Trottoirs met <span style="color:orang
 audit.tutorial.end.1 = Goed! Je hebt geleerd hoe je de interface moet gebruiken! Ga nu verder en <span class="bold">Label de volgende toegankelijkheidskenmerken in Street View-beelden.</span> wat positief impact zal hebben op hoe rolstoelgebruikers zich kunnen bewegen door de stad:
 audit.tutorial.end.2 = Nogmaals, dank voor <span class="bold">je bijdrage aan een toegankelijke wereld voor iedereen!</span>
 audit.tutorial.examples = Voorbeelden van toegankelijkheidskenmerken: stoep opritten, ontbrekende stoep opritten, obstakels in het pad, en oppervlakteproblemen.
-
-audit.ribbon.find.and.label = Vind en label het volgende
 audit.ribbon.curb.ramp.labels = TROTTOIR OPRIT LABELS
 audit.ribbon.sidewalk.labels = TROTTOIR LABELS
 audit.ribbon.other.labels = ANDERE TOEGANKELIJKHEIDSLABELS
@@ -211,19 +195,10 @@ audit.left.ui.stuck = Vastgelopen
 audit.left.ui.stuck.tooltip = We zullen proberen u terug te brengen naar uw missie
 
 audit.right.ui.overall.stats = Algemene statistieken
-audit.right.ui.current.neighborhood = Huidige Wijk
-audit.right.ui.distance = kilometer
-
 audit.center.ui.tags.header = Voeg tags toe
 audit.center.ui.tags.info = Voeg tags toe aan uw labels om de gegevens te verrijken met nuttige informatie. Beweeg de muis over de tags voor voorbeelden.
 audit.center.ui.description.header = Beschrijf (optioneel)
 audit.center.ui.description.placeholder = Beschrijving
-
-audit.mission.complete.labels.title = Missie labels
-audit.mission.complete.progress.mission.you = Je ontdekte in deze missie
-audit.mission.complete.progress.neighborhood.others = Anderen ontdekten in deze wijk
-audit.mission.complete.legend.this.mission = Deze Missie
-audit.mission.complete.legend.previous.missions = Vorige Missies
 
 audit.survey.title = Een vriendelijk verzoek om deze eenmalige enquete over Project Sidewalk in te vullen
 audit.survey.enjoyment.question = Hoe vond je het om Project Sidewalk te gebruiken?
@@ -273,7 +248,6 @@ authenticate.signin.with.credentials = Log in met je inloggegevens
 
 user.exists = E-mail bestaat al
 authenticate.error.username.exists = Gebruikersnaam bestaat al
-authenticate.error.username.invalid = Gebruikersnamen mogen geen ", '', <, >, & bevatten
 authenticate.error.password.mismatch = Wachtwoorden komen niet overeen
 authenticate.error.invalid.credentials = Ongeldige inloggegevens!
 
@@ -298,9 +272,6 @@ dashboard.current.team.greeting = Team: {0}
 dashboard.leave.team = Verlaat team: {0}
 dashboard.create.team = Creëer een team
 dashboard.join.team = Sluit je aan bij een team!
-dashboard.total.distance.explored = Totale afgelegde afstand
-dashboard.number.completed.missions = Aantal voltooide missies
-dashboard.number.of.labels = Aantal labels
 dashboard.missions = Missies
 dashboard.your.missions = Jouw missies
 dashboard.distance = Afstand
@@ -319,7 +290,6 @@ dashboard.label.badge = {0} labelbadge
 dashboard.validation.badge = {0} validatiebadge
 dashboard.mistakes.header = Uw recente etiketteringsfouten
 dashboard.mistakes.tooltip = Dit zijn fouten zoals vastgesteld door andere gebruikers op de pagina Valideren. Soms gebeuren er fouten tijdens het valideren, en vaak zit er nuance in deze evaluaties.
-dashboard.mistakes.tooltip.alt = Vraagtekenpictogram voor handige tooltip.
 dashboard.team.title = Creëer een nieuw team
 dashboard.team.name = Teamnaam
 dashboard.team.description = Teambeschrijving (optioneel)
@@ -343,7 +313,6 @@ leaderboard.header.labels = Labels
 leaderboard.header.missions = Missies
 leaderboard.header.distance = Afstand
 leaderboard.tooltip.accuracy = Nauwkeurigheid wordt alleen weergegeven als ten minste 10 van je labels zijn gevalideerd
-leaderboard.tooltip.weekly.reset = Statistieken worden elke zondagochtend om 12.00 uur Pacific Time gereset
 leaderboard.encouragement = Wil je in de Top 10 komen? <a id="encouragement-link" href="/explore"><u>Begin met verkennen!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Meld je aan</u></a> om je voortgang bij te houden!
 leaderboard.encouragement.no.team = Wilt u uw nauwkeurigheid verbeteren? Lees onze <a id="encouragement-link" href="{0}" target="_blank"><u>labelgids</u></a> en bekijk uw recente onjuiste labels op <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>uw dashboard</u></a>

@@ -50,129 +50,13 @@
     gap: calc(10px * var(--ui-scale));
 }
 
-.modal-foreground {
-    top: var(--street-view-top);
-    left: 0;
-    right: 0;
-    padding: calc(10px * var(--ui-scale, 1));
-    height: var(--pano-height);
-    background: var(--color-neutral-white);
-    position: absolute;
-    overflow: hidden;
-    border: calc(4px * var(--ui-scale, 1)) solid var(--color-neutral-black);
-    border-radius: calc(5px * var(--ui-scale, 1));
-    z-index: 4;
-}
-
-.modal-foreground h1 {
-    font: var(--text-h3-medium);
-    margin: calc(3px * var(--ui-scale, 1)) 0 calc(10px * var(--ui-scale, 1)) 0;
-}
-
-.modal-foreground h3 {
-    font:var(--text-subtitle-medium);
-    margin: calc(3px * var(--ui-scale, 1)) 0 calc(5px * var(--ui-scale, 1)) 0;
-}
-
-.modal-foreground .table {
-    margin-bottom: calc(10px * var(--ui-scale, 1)) !important;
-}
-
-.modal-foreground th, .modal-foreground td {
-    padding: calc(3px * var(--ui-scale, 1)) !important;
-    font: var(--text-caption-regular);
-}
-
-.modal-foreground .col-right {
-    width: 30%;
-    text-align: center;
-}
-
-.modal-foreground .blue-btn {
-    color: var(--color-neutral-white);
-    font: var(--text-body-regular);
-}
-
-.modal-foreground .btn-primary {
-    color: var(--color-neutral-white);
-    cursor: pointer;
-    border: calc(1px * var(--ui-scale, 1)) solid transparent;
-    font: var(--text-body-regular);
-    opacity: 1.0;
-}
-
-.modal-foreground .btn-secondary {
-    color: var(--color-neutral-black);
-    background: var(--color-neutral-white);
-    cursor: pointer;
-    border: calc(1px * var(--ui-scale, 1)) solid var(--color-neutral-black);
-    font: var(--text-body-regular);
-    opacity: 1.0;
-}
-
-.modal-foreground .btn-loading {
-    color: var(--color-neutral-white);
-    background: var(--color-neutral-600);
-    cursor: wait;
-    border: calc(1px * var(--ui-scale, 1)) solid transparent;
-    font: var(--text-body-regular);
-    opacity: 0.35;
-}
-
-.modal-foreground .button {
-    width: 100%;
-}
-.modal-foreground .mapbox{
-    position: relative;
-    height: calc(var(--pano-height) - 75px * var(--ui-scale, 1));
-}
-.modal-foreground .mapbox #map-legend {
-    font: var(--text-caption-regular);
-    position: absolute;
-    bottom: calc(18px * var(--ui-scale, 1));
-    right: calc(32px * var(--ui-scale, 1));
-    width: calc(145px * var(--ui-scale, 1));
-    height: calc(60px * var(--ui-scale, 1));
-    border-radius: calc(3px * var(--ui-scale, 1));
-    background-color: var(--color-neutral-100);
-}
-
-.modal-foreground .mapbox #map-legend .legend-label {
-    margin-left: calc(5px * var(--ui-scale, 1));
-    margin-top: calc(5px * var(--ui-scale, 1));
-}
-
-.legend-label {
-    width: calc(10px * var(--ui-scale, 1));
-    height: calc(10px * var(--ui-scale, 1));
-    margin-right: calc(5px * var(--ui-scale, 1));
-}
-
-/* The colored square is sized via CSS geometry so it scales with the legend (the svg's 10x10 attributes do not). */
-.legend-label rect {
-    width: calc(10px * var(--ui-scale, 1));
-    height: calc(10px * var(--ui-scale, 1));
-}
-
-.modal-foreground .mapbox #map-legend #green-square {
-    fill: var(--color-success-200);
-}
-
-.modal-foreground .mapbox #map-legend #blue-square {
-    fill: var(--color-link-100);
-}
-
-.modal-foreground .mapbox #map-legend #gray-square {
-    fill: var(--color-neutral-700);
-}
-
 #modal-comment-textarea {
     box-sizing: border-box;
     height: calc(120px * var(--ui-scale));
     width: 100%;
     margin: 0 0 calc(16px * var(--ui-scale)) 0;
     padding: calc(10px * var(--ui-scale)) calc(12px * var(--ui-scale));
-    border: 1px solid var(--color-neutral-300);
+    border: calc(1px * var(--ui-scale)) solid var(--color-neutral-300);
     border-radius: calc(8px * var(--ui-scale));
     font: var(--text-small-regular);
     color: var(--color-asphalt-500);
@@ -186,34 +70,208 @@
     box-shadow: 0 0 0 calc(3px * var(--ui-scale)) rgb(from var(--color-asphalt-400) r g b / 15%);
 }
 
-#modal-mission-complete-map {
-    position: absolute;
-    width: calc(530px * var(--ui-scale, 1));
-    height: calc(var(--pano-height) - 75px * var(--ui-scale, 1)); /* subtract title height. */
-}
+/*
+ * Mission complete modal. A centered card shown over the dimmed, non-interactive Explore tool.
+ */
 
-.modal-mission-left-column-images {
-    width: 100%;
-    padding: calc(25px * var(--ui-scale, 1)) 0 0 0;
+/* The three street tiers on the modal map; shared by the map layers (read in JS) and the legend swatches. */
+:root {
+    --mc-line-this-mission: var(--color-link-100);
+    --mc-line-previous: #C6E0FA;
+    --mc-line-community: var(--color-pine-300);
 }
 
 #modal-mission-complete-holder {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     visibility: hidden;
 }
 
-#modal-mission-complete-foreground {
-    visibility: hidden;
-}
-
-#modal-mission-complete-holder .button {
-    width: 100%;
-}
-
+/* Dim, click-blocking layer behind the card (catches clicks so the tool can't be interacted with). */
 .modal-background {
     position: absolute;
-    left: calc(-55px * var(--ui-scale, 1));
-    top: 0;
-    background: rgb(from var(--color-neutral-white) r g b / 50%);
-    height: 100%;
-    width: 110%;
+    inset: 0;
+    background: rgb(from var(--color-neutral-black) r g b / 50%);
+}
+
+/* The centered card itself, filling roughly two-thirds of the page width. */
+.modal-foreground {
+    /* Community segment color for the reused neighborhood progress bar (normally scoped to the sidebar). */
+    --exp-sidebar-progress-fill: var(--color-pine-600);
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: calc(16px * var(--ui-scale));
+    width: 60%;
+    max-width: calc(900px * var(--ui-scale));
+    max-height: 80%;
+    overflow: auto;
+    padding: calc(22px * var(--ui-scale)) calc(28px * var(--ui-scale));
+    background: var(--color-neutral-white);
+    border-radius: calc(20px * var(--ui-scale));
+    box-shadow: 0 calc(8px * var(--ui-scale)) calc(16px * var(--ui-scale)) rgb(from var(--color-asphalt-900) r g b / 25%);
+}
+
+.mission-complete__header {
+    display: flex;
+    align-items: center;
+    gap: calc(24px * var(--ui-scale));
+}
+
+.mission-complete__header h1 {
+    font: var(--text-title-bold);
+    margin: 0;
+}
+
+.mission-complete__subtitle {
+    font: var(--text-small-regular);
+    margin: calc(4px * var(--ui-scale)) 0 0 0;
+}
+
+.mission-complete__badge {
+    flex-shrink: 0;
+    width: calc(50px * var(--ui-scale));
+    height: calc(50px * var(--ui-scale));
+}
+
+.mission-complete__map-wrap {
+    position: relative;
+    width: 100%;
+    height: calc(360px * var(--ui-scale));
+    border-radius: calc(8px * var(--ui-scale));
+    overflow: hidden;
+}
+
+#modal-mission-complete-map {
+    position: absolute;
+    inset: 0;
+}
+
+/* Map overlay cards (label/street legend on the left, neighborhood progress on the right). */
+.mission-complete__overlay {
+    position: absolute;
+    top: calc(12px * var(--ui-scale));
+    z-index: 1;
+    box-sizing: border-box;
+    padding: calc(12px * var(--ui-scale)) calc(16px * var(--ui-scale));
+    background: var(--color-neutral-white);
+    border: calc(1px * var(--ui-scale)) solid var(--color-neutral-300);
+    border-radius: calc(6px * var(--ui-scale));
+    box-shadow: 0 calc(2px * var(--ui-scale)) calc(6px * var(--ui-scale)) rgb(from var(--color-asphalt-900) r g b / 15%);
+    font: var(--text-caption-regular);
+}
+
+.mission-complete__overlay--left {
+    left: calc(12px * var(--ui-scale));
+}
+
+.mission-complete__overlay--right {
+    right: calc(12px * var(--ui-scale));
+    width: calc(210px * var(--ui-scale));
+}
+
+.mission-complete__overlay-title {
+    font: var(--text-small-bold);
+    margin: 0 0 calc(6px * var(--ui-scale)) 0;
+}
+
+.mission-complete__overlay-divider {
+    border: none;
+    border-top: 1px solid var(--color-neutral-200);
+    margin: calc(10px * var(--ui-scale)) 0;
+}
+
+.mission-complete__legend-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(3px * var(--ui-scale));
+}
+
+.mission-complete__legend-item {
+    display: flex;
+    align-items: center;
+    gap: calc(8px * var(--ui-scale));
+}
+
+.mission-complete__legend-dot {
+    flex-shrink: 0;
+    width: calc(10px * var(--ui-scale));
+    height: calc(10px * var(--ui-scale));
+    border-radius: 50%;
+    border: calc(1px * var(--ui-scale)) solid var(--color-neutral-black);
+}
+
+.mission-complete__legend-line {
+    flex-shrink: 0;
+    width: calc(16px * var(--ui-scale));
+    height: calc(4px * var(--ui-scale));
+    border-radius: calc(2px * var(--ui-scale));
+}
+
+.mission-complete__legend-line--this-mission {
+    background: var(--mc-line-this-mission);
+}
+
+.mission-complete__legend-line--previous {
+    background: var(--mc-line-previous);
+}
+
+.mission-complete__legend-line--community {
+    background: var(--mc-line-community);
+}
+
+.mission-complete__progress {
+    display: flex;
+    align-items: center;
+    gap: calc(8px * var(--ui-scale));
+}
+
+.mission-complete__progress .explore-sidebar__progress-track {
+    flex: 1;
+}
+
+.mission-complete__stat {
+    display: flex;
+    align-items: center;
+    gap: calc(8px * var(--ui-scale));
+}
+
+.mission-complete__stat + .mission-complete__stat {
+    margin-top: calc(12px * var(--ui-scale));
+}
+
+.mission-complete__stat-icon {
+    flex-shrink: 0;
+    width: calc(22px * var(--ui-scale));
+    height: calc(22px * var(--ui-scale));
+    object-fit: contain;
+}
+
+.mission-complete__stat-text {
+    display: flex;
+    flex-direction: column;
+    gap: calc(2px * var(--ui-scale));
+}
+
+.mission-complete__stat-all {
+    font: var(--text-small-bold);
+}
+
+.mission-complete__stat-you {
+    font: var(--text-caption-regular);
+}
+
+.mission-complete__buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: calc(12px * var(--ui-scale));
 }

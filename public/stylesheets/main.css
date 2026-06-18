@@ -152,6 +152,7 @@
 html,
 body {
     font-family:'Open Sans', 'Noto Sans', sans-serif;
+    color: var(--color-neutral-black);
 }
 
 body {
@@ -182,9 +183,6 @@ a {
 }
 
 /* Replacing bootstrap 3 colors with bootstrap 5, which have a better color contrast. */
-body {
-    color: #222222;
-}
 .btn-primary {
     background-color: #0D6EFD;
     border: #0D6EFD;
@@ -213,25 +211,26 @@ body {
     cursor: default;
 }
 
+/* TODO This one is used in the navbar, which we aren't scaling with --ui-scale. Need to address this another way. */
 .button--tiny {
     font-size: 13px;
     padding: 3px 10px;
     border-radius: 8px;
 }
 .button--small {
-    font-size: 13px;
-    padding: 6px 16px;
-    border-radius: 10px;
+    font-size: calc(13px * var(--ui-scale, 1));
+    padding: calc(6px * var(--ui-scale, 1)) calc(16px * var(--ui-scale, 1));
+    border-radius: calc(10px * var(--ui-scale, 1));
 }
 .button--medium {
-    font-size: 14px;
-    padding: 8px 20px;
-    border-radius: 12px;
+    font: var(--text-small-regular);
+    padding: calc(8px * var(--ui-scale, 1)) calc(20px * var(--ui-scale, 1));
+    border-radius: calc(12px * var(--ui-scale, 1));
 }
 .button--large {
-    font-size: 15px;
-    padding: 12px 36px;
-    border-radius: 16px;
+    font-size: calc(15px * var(--ui-scale, 1));
+    padding: calc(12px * var(--ui-scale, 1)) calc(36px * var(--ui-scale, 1));
+    border-radius: calc(16px * var(--ui-scale, 1));
 }
 
 .button--primary {

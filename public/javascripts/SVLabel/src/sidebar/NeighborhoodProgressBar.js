@@ -10,11 +10,25 @@ class NeighborhoodProgressBar {
     #communityEl;
     #rateEl;
 
-    constructor() {
-        this.#fillEl = document.getElementById('neighborhood-progress-fill');
-        this.#youEl = document.getElementById('neighborhood-progress-you');
-        this.#communityEl = document.getElementById('neighborhood-progress-community');
-        this.#rateEl = document.getElementById('neighborhood-progress-rate');
+    /**
+     * @param {object} [elementIds] Overrides for the element ids, letting the same bar be reused elsewhere.
+     * @param {string} [elementIds.fill] Id of the rounded fill pill.
+     * @param {string} [elementIds.you] Id of the current-user segment.
+     * @param {string} [elementIds.community] Id of the community segment.
+     * @param {string} [elementIds.rate] Id of the percentage label.
+     */
+    constructor(elementIds = {}) {
+        const ids = {
+            fill: 'neighborhood-progress-fill',
+            you: 'neighborhood-progress-you',
+            community: 'neighborhood-progress-community',
+            rate: 'neighborhood-progress-rate',
+            ...elementIds
+        };
+        this.#fillEl = document.getElementById(ids.fill);
+        this.#youEl = document.getElementById(ids.you);
+        this.#communityEl = document.getElementById(ids.community);
+        this.#rateEl = document.getElementById(ids.rate);
     }
 
     /**

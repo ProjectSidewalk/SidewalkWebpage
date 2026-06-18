@@ -1,202 +1,125 @@
-function ModalMissionCompleteMap(uiModalMissionComplete, mapboxApiKey) {
-    var self = this;
+/**
+ * The Mapbox map inside the mission-complete modal. It shows the streets the user worked on, split into three tiers
+ * (the just-finished mission, the user's earlier missions, and everyone's community progress), plus the labels the user
+ * placed during the mission. The view is framed to the streets from the mission that just finished.
+ */
+class ModalMissionCompleteMap {
+    #mapPromise;
+    #map = null;
+    #labelLayerNames = [];
 
-    // These two are defined globally so that they can be added in show and removed in hide.
-    this._ui = uiModalMissionComplete;
-    this._completedTasksLayer = [];
-    this.neighborhoodBounds = null;
-
-    $.getJSON('/cityMapParams', function(data) {
-        mapboxgl.accessToken = mapboxApiKey;
-        self._map = new mapboxgl.Map({
-            container: uiModalMissionComplete.map.get(0),
-            style: 'mapbox://styles/mapbox/light-v11?optimize=true',
-            center: [data.city_center.lng, data.city_center.lat],
-            zoom: data.default_zoom,
-            minZoom: 10,
-            maxZoom: 19,
-            maxBounds: [
-                [data.southwest_boundary.lng, data.southwest_boundary.lat],
-                [data.northeast_boundary.lng, data.northeast_boundary.lat]
-            ]
-        }).addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }))
-            .addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
-
-        // Gray out a large area around the city with the neighborhood cut out to highlight the neighborhood.
-        var largeBoundary = [
-            [data.southwest_boundary.lng + 5,data.southwest_boundary.lat - 5],
-            [data.southwest_boundary.lng + 5,data.southwest_boundary.lat + 5],
-            [data.southwest_boundary.lng - 5, data.southwest_boundary.lat + 5],
-            [data.southwest_boundary.lng - 5,data.southwest_boundary.lat - 5]
-        ];
-
-        // Add a small buffer around the neighborhood because it looks prettier.
-        var neighborhoodGeom = svl.neighborhoodModel.currentNeighborhood().getGeoJSON();
-        var neighborhoodBuffer = turf.buffer(neighborhoodGeom, 0.04, { units: 'miles' });
-        var overlayPolygon = {
-            'type': 'FeatureCollection',
-            'features': [{
-                'type': 'Feature',
-                'geometry': {'type': 'Polygon', 'coordinates': [largeBoundary, neighborhoodBuffer.geometry.coordinates[0]]}
-            }]};
-        self._map.on('load', function() {
-            self._map.addSource('overlay-polygon', {
-                type: 'geojson',
-                data: overlayPolygon
-            });
-            self._map.addLayer({
-                id: 'overlay-polygon',
-                type: 'fill',
-                source: 'overlay-polygon',
-                paint: {
-                    'fill-color': 'rgb(110, 110, 110)',
-                    'fill-opacity': 0.25
-                }
-            });
-
-            // Zoom/pan the map to the neighborhood.
-            self.neighborhoodBounds = turf.bbox(turf.buffer(neighborhoodBuffer, 0.05, { units: 'miles' }));
-            self._map.fitBounds(self.neighborhoodBounds);
-
-            // Add empty sources & layers for the completed tasks and the current mission tasks.
-            self._completedTasksLayer = {type: 'FeatureCollection', features: []};
-            self._userCompletedTasks = {type: 'FeatureCollection', features: []};
-            self._missionTasks = { type: 'FeatureCollection', features: [] };
-            self._map.addSource('completed-tasks', {type: 'geojson', data: self._completedTasksLayer});
-            self._map.addSource('user-completed-tasks', {type: 'geojson', data: self._userCompletedTasks});
-            self._map.addSource('mission-tasks', {type: 'geojson', data: self._missionTasks});
-            self._map.addLayer({
-                id: 'completed-tasks',
-                type: 'line',
-                source: 'completed-tasks',
-                layout: { 'line-join': 'round', 'line-cap': 'round' },
-                paint: {
-                    'line-color': 'rgb(100, 100, 100)',
-                    'line-width': 3,
-                    'line-opacity': 1
-                }
-            });
-            self._map.addLayer({
-                id: 'user-completed-tasks',
-                type: 'line',
-                source: 'user-completed-tasks',
-                layout: { 'line-join': 'round', 'line-cap': 'round' },
-                paint: {
-                    'line-color': 'rgb(70, 130, 180)',
-                    'line-width': 4,
-                    'line-opacity': 1
-                }
-            });
-            self._map.addLayer({
-                id: 'mission-tasks',
-                type: 'line',
-                source: 'mission-tasks',
-                layout: { 'line-join': 'round', 'line-cap': 'round' },
-                paint: {
-                    'line-color': 'rgb(20, 220, 120)',
-                    'line-width': 4,
-                    'line-opacity': 1
-                }
-            });
-        });
-    });
-
-    // TODO We removed the animation when switching to Mapbox GL JS bc we are redoing the Mission Complete modal soon.
-    this._addMissionTasksAndAnimate = function(completedTasks, missionId) {
-        var route;
-        var missionStart;
-        for (var i = 0; i < completedTasks.length; i++) {
-            // If only part of this street was completed during the mission, get the corresponding subset of the
-            // coordinates for the street, otherwise we can just use the full route.
-            missionStart = completedTasks[i].getMissionStart(missionId);
-            if (missionStart || !completedTasks[i].isComplete()) {
-                var start = missionStart ? missionStart : completedTasks[i].getStartCoordinate();
-                var end;
-                if (completedTasks[i].isComplete()) {
-                    end = completedTasks[i].getEndCoordinate();
-                } else {
-                    var farthestPoint = completedTasks[i].getFurthestPointReached().geometry.coordinates;
-                    end = { lat: farthestPoint[1], lng: farthestPoint[0] };
-                }
-                route = completedTasks[i].getSubsetOfCoordinates(start, end)
-            } else {
-                route = completedTasks[i].getFeature().coordinates;
-            }
-            this._missionTasks.features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: route } });
-        }
-
-        // Add the lines to the map.
-        this._map.getSource('mission-tasks').setData(this._missionTasks);
-    };
+    // The three street tiers, drawn bottom-to-top. Colors come from CSS so the map matches the legend.
+    static #STREET_TIERS = [
+        { id: 'mc-street-community', colorVar: '--mc-line-community', width: 3 },
+        { id: 'mc-street-previous', colorVar: '--mc-line-previous', width: 4 },
+        { id: 'mc-street-this-mission', colorVar: '--mc-line-this-mission', width: 5 }
+    ];
 
     /**
-     * This method takes tasks that has been completed in the current mission and *all* the tasks completed in the
-     * current neighborhood so far.
-     * WARNING: `completedTasks` include tasks completed in the current mission too.
-     *
-     * @param missionTasks
-     * @param completedTasks
-     * @param allCompletedTasks
-     * @param missionId
-     * @param incompleteTasks
-     * @private
+     * @param {string} mapContainerId HTML id of the element that holds the map.
+     * @param {string} mapboxApiKey Mapbox API key.
      */
-    this.updateStreetSegments = function (missionTasks, completedTasks, allCompletedTasks, missionId, incompleteTasks) {
-        // Reset map zoom to show the whole neighborhood.
-        self._map.fitBounds(self.neighborhoodBounds);
+    constructor(mapContainerId, mapboxApiKey) {
+        this.#mapPromise = this.#createMap(mapContainerId, mapboxApiKey);
+    }
 
-        // Remove previous tasks.
-        this._completedTasksLayer = { type: 'FeatureCollection', features: [] };
-        this._userCompletedTasks = { type: 'FeatureCollection', features: [] };
-        this._missionTasks = { type: 'FeatureCollection', features: [] };
+    /**
+     * Creates the Mapbox map centered on the city and resolves once it has loaded.
+     * @param {string} containerId HTML id of the map container.
+     * @param {string} mapboxApiKey Mapbox API key.
+     * @returns {Promise} Resolves with the loaded Mapbox map.
+     */
+    #createMap(containerId, mapboxApiKey) {
+        return fetch('/cityMapParams', { headers: { Accept: 'application/json' } })
+            .then(response => response.json())
+            .then(data => {
+                mapboxgl.accessToken = mapboxApiKey;
+                const map = new mapboxgl.Map({
+                    container: containerId,
+                    style: 'mapbox://styles/mapbox/light-v11?optimize=true',
+                    center: [data.city_center.lng, data.city_center.lat],
+                    zoom: data.default_zoom,
+                    minZoom: 10,
+                    maxZoom: 19,
+                    maxBounds: [
+                        [data.southwest_boundary.lng, data.southwest_boundary.lat],
+                        [data.northeast_boundary.lng, data.northeast_boundary.lat]
+                    ]
+                });
+                map.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
+                map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'bottom-right');
+                this.#map = map;
+                return new Promise(resolve => {
+                    if (map.loaded()) resolve(map);
+                    else map.on('load', () => resolve(map));
+                });
+            });
+    }
 
-        // If the current street is long enough that the user started their mission mid-street and finished their
-        // mission before completing the street, then we add to `completedTasks` so that we can draw the old part.
-        var currTask = missionTasks.filter(function (t) { return !t.isComplete() && t.getMissionStart(missionId); })[0];
-        if (currTask) completedTasks.push(currTask);
+    /**
+     * Draws the street tiers and mission labels, then frames the just-finished mission's streets.
+     * @param {object} streetTiers GeoJSON FeatureCollections keyed by tier: { thisMission, previous, community }.
+     * @param {object} labelData GeoJSON FeatureCollection of labels placed during the mission.
+     */
+    async update(streetTiers, labelData) {
+        const map = await this.#mapPromise;
+        this.#clearLayers(map);
 
-        var newStreets = missionTasks.map( function (t) { return t.getStreetEdgeId(); });
-
-        // If on a route, add all streets that haven't been finished yet. Otherwise, add all streets that have been
-        // completed by other users. These lines are drawn in gray.
-        if (svl.neighborhoodModel.isRoute) {
-            this._completedTasksLayer.features = incompleteTasks.map(function (t) { return t.getFeature(); });
-        } else {
-            this._completedTasksLayer.features = allCompletedTasks.map(function (t) { return t.getFeature(); });
+        const tierData = {
+            'mc-street-community': streetTiers.community,
+            'mc-street-previous': streetTiers.previous,
+            'mc-street-this-mission': streetTiers.thisMission
+        };
+        for (const tier of ModalMissionCompleteMap.#STREET_TIERS) {
+            const color = getComputedStyle(document.documentElement).getPropertyValue(tier.colorVar).trim();
+            map.addSource(tier.id, { type: 'geojson', data: tierData[tier.id] });
+            map.addLayer({
+                id: tier.id,
+                type: 'line',
+                source: tier.id,
+                layout: { 'line-join': 'round', 'line-cap': 'round' },
+                paint: { 'line-color': color, 'line-width': tier.width, 'line-opacity': 1 }
+            });
         }
 
-        // Add the completed task layer.
-        for (var i = 0; i < completedTasks.length; i++) {
-            // If the street was not part of this mission, draw the full street.
-            var newStreetIdx = newStreets.indexOf(completedTasks[i].getStreetEdgeId());
-            if (newStreetIdx === -1) {
-                this._userCompletedTasks.features.push(completedTasks[i].getFeature());
-            } else {
-                // If a nontrivial part of a street in this mission was completed in a previous mission (say, 3 meters),
-                // draw the part that was completed in previous missions.
-                var currStreet = missionTasks[newStreetIdx];
-                var missionStart = currStreet ? currStreet.getMissionStart(missionId) : null;
-                var streetStart = currStreet ? currStreet.getStartCoordinate() : null;
-                var distFromStart = null;
-                if (missionStart && streetStart) {
-                    distFromStart = turf.distance(turf.point([streetStart.lng, streetStart.lat]),
-                                                  turf.point([missionStart.lng, missionStart.lat]));
-                }
-                if (missionStart && streetStart && distFromStart > 0.003) {
-                    var route = currStreet.getSubsetOfCoordinates(streetStart, missionStart);
-                    var reversedRoute = [];
-                    route.forEach(coord => reversedRoute.push([coord[1], coord[0]]));
-                    this._userCompletedTasks.features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: reversedRoute } });
-                }
-            }
+        // Reuse PSMap's label rendering so the dots match the label map. Mark labels as unvalidated so the default
+        // filter shows them, and skip the high-quality filter (no param) since these are the user's own fresh labels.
+        const mapData = await AddLabelsToMap(map, labelData, {});
+        this.#labelLayerNames = Object.values(mapData.layerNames);
 
-            // Update the source data and rerender.
-            this._map.getSource('completed-tasks').setData(this._completedTasksLayer);
-            this._map.getSource('user-completed-tasks').setData(this._userCompletedTasks);
-            this._map.getSource('mission-tasks').setData(this._missionTasks);
+        this.#frameMission(map, streetTiers);
+    }
+
+    /** Resizes the map to its container, needed because the map is created while the modal is hidden. */
+    resize() {
+        this.#mapPromise.then(map => map.resize());
+    }
+
+    /** Removes the street and label layers/sources from a previous mission so they can be re-added. */
+    #clearLayers(map) {
+        const layerIds = ModalMissionCompleteMap.#STREET_TIERS.map(tier => tier.id).concat(this.#labelLayerNames);
+        for (const layerId of layerIds) {
+            if (map.getLayer(layerId)) map.removeLayer(layerId);
+            if (map.getSource(layerId)) map.removeSource(layerId);
         }
+        this.#labelLayerNames = [];
+    }
 
-        // Add the current mission animation layer.
-        self._addMissionTasksAndAnimate(missionTasks, missionId);
-    };
+    /**
+     * Fits the map to the streets from the just-finished mission, leaving room for the overlay cards. Falls back to all
+     * worked streets if the mission tier is somehow empty.
+     */
+    #frameMission(map, streetTiers) {
+        const target = streetTiers.thisMission.features.length ? streetTiers.thisMission : {
+            type: 'FeatureCollection',
+            features: [...streetTiers.previous.features, ...streetTiers.community.features]
+        };
+        if (!target.features.length) return;
+
+        const scale = util.uiScale();
+        map.fitBounds(turf.bbox(target), {
+            padding: { top: 60 * scale, bottom: 30 * scale, left: 210 * scale, right: 210 * scale },
+            animate: false
+        });
+    }
 }

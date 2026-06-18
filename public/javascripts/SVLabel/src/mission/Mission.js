@@ -1,5 +1,5 @@
 /**
- * Mission objects, stores data from mission table, as well as label counts and associated tasks.
+ * Mission objects, stores data from mission table, as well as associated tasks.
  */
 class Mission {
     #properties = {
@@ -12,7 +12,6 @@ class Mission {
         skipped: false
     };
     #tasksForTheMission = [];
-    #labelCountsAtCompletion;
 
     /**
      * Fills in the #properties object with the data for the mission table.
@@ -51,30 +50,9 @@ class Mission {
             svl.missionContainer.setTasksMissionsOffset(newOffset);
         }
 
-        // Reset the label counter
-        if ('labelCounter' in svl) {
-            this.#labelCountsAtCompletion = {
-                'CurbRamp': svl.labelCounter.countLabel('CurbRamp'),
-                'NoCurbRamp': svl.labelCounter.countLabel('NoCurbRamp'),
-                'Obstacle': svl.labelCounter.countLabel('Obstacle'),
-                'SurfaceProblem': svl.labelCounter.countLabel('SurfaceProblem'),
-                'NoSidewalk': svl.labelCounter.countLabel('NoSidewalk'),
-                'Other': svl.labelCounter.countLabel('Other')
-            };
-            svl.labelCounter.reset();
-        }
-
         if (!svl.isOnboarding()) {
             svl.storage.set('completedFirstMission', true);
         }
-    };
-
-    /**
-     * This method returns the label count object
-     * @returns {object}
-     */
-    getLabelCount = () => {
-        return this.#labelCountsAtCompletion;
     };
 
     /**

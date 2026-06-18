@@ -74,20 +74,21 @@
         }
     },
     "mission-complete": {
-        "distance-type-display-string": "kilometers",
         "title-generic": "Mission Complete!",
         "title-neighborhood-complete": "Bravo! You completed the {{neighborhoodName}} neighborhood!",
         "title-route-complete": "Bravo! You completed your route!",
-        "map-legend-label-other-users": "Other Users' Missions",
-        "progress-neighborhood-title": "Neighborhood Progress",
-        "progress-route-title": "Route Progress",
-        "progress-neighborhood-you": "You explored in this neighborhood",
-        "progress-route-you": "Explored in your route",
-        "progress-neighborhood-remaining": "Remaining in this neighborhood",
-        "progress-route-remaining": "Remaining in your route",
-        "button-start-validating": "Start validating",
-        "button-keep-exploring": "Keep exploring",
-        "button-continue": "Continue"
+        "subtitle": "Explore {{distance}} of {{neighborhoodName}}",
+        "badge-alt": "Your missions badge",
+        "legend-title": "Mission Progress",
+        "legend-this-mission": "This mission",
+        "legend-previous-missions": "Previous missions",
+        "legend-community": "Community progress",
+        "stat-distance-all": "{{distance}} explored",
+        "stat-distance-you": "You've explored {{distance}}",
+        "stat-labels-all": "{{count}} labels created",
+        "stat-labels-you": "You've added {{count}} labels",
+        "button-next-mission": "Next Explore Mission",
+        "button-try-validation": "Try Validation"
     },
     "top-ui": {
         "press-key": "Press the \"{{key}}\" key"
