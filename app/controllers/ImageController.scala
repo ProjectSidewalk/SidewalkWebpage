@@ -33,9 +33,6 @@ class ImageController @Inject() (
   // Allowed characters in a pano ID: GSV uses base64url-style (alphanumeric + - + _); Mapillary uses digits.
   private val PANO_ID_PATTERN = "^[A-Za-z0-9_-]+$".r
 
-  // Crop filenames must be a simple token (no path separators or dots) to prevent path traversal in saveImage.
-  private val CROP_NAME_PATTERN = "^[A-Za-z0-9_-]+$".r
-
   // 2x the actual size of the pano window as retina screen can give us 2x the pixel density.
   val CROP_WIDTH  = 1440
   val CROP_HEIGHT = 960
@@ -190,7 +187,7 @@ class ImageController @Inject() (
     earlyReject match {
       case Some(result) => Future.successful(result)
       case None         =>
-        val file = new File(CROPS_DIR_NAME + File.separator + labelType + File.separator + "crop_" + labelId + ".png")
+        val file = panoDataService.cropFile(labelId, labelType)
         if (file.exists()) {
           Future.successful(Ok.sendFile(file, inline = true).as("image/png"))
         } else {
@@ -207,20 +204,17 @@ class ImageController @Inject() (
     jsonBody
       .map { json =>
         val labelType: String = (json \ "label_type").as[String]
-        val name: String      = (json \ "name").as[String]
-        // Validate untrusted input before using it to build a filesystem path (prevents path traversal). The label
-        // type must be a known type (matching serveCropImage) and the name a path-separator-free token.
+        val labelId: Int      = (json \ "label_id").as[Int]
+        // Validate the label type (matching serveCropImage) before using it to build a filesystem path.
         if (!LabelTypeEnum.validLabelTypes.contains(labelType)) {
           Future.successful(BadRequest(s"Invalid label type provided: $labelType."))
-        } else if (CROP_NAME_PATTERN.findFirstIn(name).isEmpty) {
-          Future.successful(BadRequest(s"Invalid image name provided: $name."))
         } else {
           initializeDirIfNeeded(labelType)
           val b64String: String = (json \ "b64").as[String].split(",")(1)
-          val filename: String  = CROPS_DIR_NAME + File.separator + labelType + File.separator + name + ".png"
+          val filename: String  = panoDataService.cropFile(labelId, labelType).getPath
           try {
             writeImageFile(filename, b64String)
-            Future.successful(Ok("Got: " + name))
+            Future.successful(Ok("Got: crop_" + labelId))
           } catch {
             case e: Exception =>
               logger.error("Exception when writing image file: " + filename + "\n\t" + e)

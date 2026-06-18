@@ -165,6 +165,7 @@ trait PanoDataService {
   def backupImageUrl(panoId: String): Option[String]
   def markHasBackup(panoId: String): Future[Int]
   def getCropDirectory: String
+  def cropFile(labelId: Int, labelType: String): File
   def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean
   def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String]
   def localBackupImageFile(panoId: String): Option[File]
@@ -426,13 +427,13 @@ class PanoDataServiceImpl @Inject() (
   /** Sets has_backup = true for the given pano (no-op when it's already true). */
   def markHasBackup(panoId: String): Future[Int] = db.run(panoDataTable.markHasBackup(panoId))
 
+  /** Returns the on-disk file where a label's crop image is (or would be) stored. */
+  def cropFile(labelId: Int, labelType: String): File =
+    new File(cropsDirName + File.separator + labelType + File.separator + "crop_" + labelId + ".png")
+
   /** Checks whether a crop image file exists for the given label. */
-  def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean = {
-    val file = new java.io.File(
-      cropsDirName + java.io.File.separator + labelType.name + java.io.File.separator + "crop_" + labelId + ".png"
-    )
-    file.exists()
-  }
+  def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean =
+    cropFile(labelId, labelType.name).exists()
 
   /** Returns a signed crop image URL if a crop file exists for the given label, or None otherwise. */
   def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String] =
