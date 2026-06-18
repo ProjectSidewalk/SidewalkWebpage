@@ -330,13 +330,14 @@ class StreetEdgeTable @Inject() (
       .getOrElse("")
 
     val wayTypeFilter = filters.wayTypes
-      .map { wayTypes => s"AND s.way_type IN (${wayTypes.map(wt => s"'$wt'").mkString(",")})" }
+      .map { wayTypes => s"AND s.way_type IN (${wayTypes.map(wt => s"'${wt.replace("'", "''")}'").mkString(",")})" }
       .getOrElse("")
 
     val regionIdFilter = filters.regionId.map { regionId => s"AND r.region_id = $regionId" }.getOrElse("")
 
     val regionNameFilter =
-      filters.regionName.map { regionName => s"AND LOWER(reg.name) = LOWER('$regionName')" }.getOrElse("")
+      filters.regionName.map { regionName => s"AND LOWER(reg.name) = LOWER('${regionName.replace("'", "''")}')" }
+        .getOrElse("")
 
     val minLabelCountFilter = filters.minLabelCount.map { count => s"AND label_count >= $count" }.getOrElse("")
 
@@ -345,7 +346,8 @@ class StreetEdgeTable @Inject() (
     val minUserCountFilter =
       filters.minUserCount.map { count => s"AND array_length(user_ids, 1) >= $count" }.getOrElse("")
 
-    // Build the query as a string - safer than string interpolation for SQL.
+    // Build the query string. User-supplied string values (wayType, regionName) are single-quote-escaped above and
+    // numeric filters are safe; see #2756 for migrating these raw builders to bound parameters.
     val queryStr = s"""
       WITH filtered_streets AS (
         SELECT s.street_edge_id, s.geom, s.way_type, o.osm_way_id, r.region_id, reg.name as region_name

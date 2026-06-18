@@ -432,7 +432,7 @@ function Label(params) {
         // Upload the crop to the server with filename crop_<labelId>.png.
         setProperty('labelId', labelId);
         let cropData = {
-            name: `crop_${labelId}`,
+            label_id: labelId,
             label_type: getProperty('labelType'),
             b64: getProperty('crop')
         }

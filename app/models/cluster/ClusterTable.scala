@@ -280,7 +280,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
 
     // Apply the rest of the filters.
     if (filters.labelTypes.isDefined && filters.labelTypes.get.nonEmpty) {
-      val labelTypeList = filters.labelTypes.get.map(lt => s"'$lt'").mkString(", ")
+      val labelTypeList = filters.labelTypes.get.map(lt => s"'${lt.replace("'", "''")}'").mkString(", ")
       whereConditions :+= s"label_type.label_type IN ($labelTypeList)"
     }
 
