@@ -2,7 +2,7 @@
    minimap. Sits to the right of the pano and spans the app's full height; the minimap section grows to fill whatever
    vertical space the other sections leave. All sizes scale with --ui-scale like the rest of the tool. */
 #explore-sidebar {
-    --exp-sidebar-section-gap: calc(12px * var(--ui-scale));
+    --exp-sidebar-section-gap: calc(16px * var(--ui-scale));
     /* Shared green for the mission and badge progress bars (matches the Figma mission bar, color-pine-600). */
     --exp-sidebar-progress-fill: var(--color-pine-600);
     --exp-sidebar-link: var(--color-link-200);
@@ -33,7 +33,20 @@
 
 .explore-sidebar__subheading {
     font: var(--text-caption-regular);
-    margin: 0 0 calc(2px * var(--ui-scale)) 0;
+    margin: 0;
+}
+
+/* Holds the mission and neighborhood progress groups, spaced from each other and from the minimap below. */
+.explore-sidebar__progress-groups {
+    display: flex;
+    flex-direction: column;
+    gap: calc(4px * var(--ui-scale));
+    margin-bottom: calc(var(--exp-sidebar-section-gap) / 2);
+}
+
+.explore-sidebar__progress-group {
+    display: flex;
+    flex-direction: column;
 }
 
 .explore-sidebar__mission-progress,
@@ -46,7 +59,6 @@
 
 .explore-sidebar__neighborhood-progress {
     flex: 0 0 auto;
-    margin-bottom: var(--exp-sidebar-section-gap);
 }
 
 .explore-sidebar__progress-track {
@@ -241,16 +253,11 @@
     height: calc(12px * var(--ui-scale));
 }
 
-/* Neighborhood + minimap: this section grows to fill the remaining sidebar height. */
+/* Current mission section (mission progress, neighborhood progress, and minimap): grows to fill the remaining
+   sidebar height so the minimap takes whatever vertical space the other sections leave. */
 .explore-sidebar__section--map {
     flex: 1 1 auto;
     min-height: 0;
-}
-
-.explore-sidebar__neighborhood-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 /* Chandigarh-only AI mission guidance message. */

@@ -100,7 +100,7 @@
             "header": "Missão Atual",
             "header-route": "$t(right-ui.current-mission.header): Rota {{route_number}}",
             "message-first-mission": "Explore por __PLACEHOLDER__ e encontre todos os atributos de acessibilidade da calçada",
-            "message": "Explore __PLACEHOLDER__ deste bairro"
+            "message": "Explore __PLACEHOLDER__ de {{neighborhoodName}}"
         },
         "minimap": {
             "follow-red-line": "Siga a linha vermelha para continuar a missão",

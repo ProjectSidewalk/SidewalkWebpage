@@ -100,7 +100,7 @@
             "header": "Misión actual",
             "header-route": "$t(right-ui.current-mission.header): Ruta {{route_number}}",
             "message-first-mission": "Explora __PLACEHOLDER__ y encuentra todos los atributos de accesibilidad de la banqueta",
-            "message": "Explora __PLACEHOLDER__ de este barrio"
+            "message": "Explora __PLACEHOLDER__ de {{neighborhoodName}}"
         },
         "minimap": {
             "follow-red-line": "Sigue la línea roja para continuar la misión",

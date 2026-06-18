@@ -30,7 +30,10 @@ class MissionPanel {
         } else if (svl.missionContainer.isTheFirstMission()) {
             missionMessage = i18next.t('right-ui.current-mission.message-first-mission');
         } else {
-            missionMessage = i18next.t('right-ui.current-mission.message');
+            // The regular mission message names the neighborhood being explored.
+            const neighborhood = svl.neighborhoodModel.currentNeighborhood();
+            const neighborhoodName = neighborhood ? neighborhood.getProperty('name') : '';
+            missionMessage = i18next.t('right-ui.current-mission.message', { neighborhoodName: neighborhoodName });
         }
 
         if (missionType === 'audit') {
