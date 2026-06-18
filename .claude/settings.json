@@ -1,0 +1,19 @@
+{
+    "$schema": "https://json.schemastore.org/claude-code-settings.json",
+    "respectGitignore": true,
+    "permissions": {
+        "deny": [
+            "Read(docker-compose.override.yml)"
+        ],
+        "allow": [
+            "Edit",
+            "Read(~/.claude)",
+            "Bash(ugrep:*)",
+            "Bash(bfs:*)",
+            "Bash(find:*)",
+            "Bash(ls:*)",
+            "Bash(grep:*)",
+            "Bash(docker exec projectsidewalk-db psql -U readonly_user *)"
+        ]
+    }
+}
