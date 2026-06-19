@@ -100,8 +100,6 @@
 
 /* The centered card itself, filling roughly two-thirds of the page width. */
 .modal-foreground {
-    /* Community segment color for the reused neighborhood progress bar (normally scoped to the sidebar). */
-    --exp-sidebar-progress-fill: var(--color-pine-600);
     position: relative;
     z-index: 1;
     box-sizing: border-box;
@@ -230,13 +228,7 @@
 }
 
 .mission-complete__progress {
-    display: flex;
-    align-items: center;
     gap: calc(8px * var(--ui-scale));
-}
-
-.mission-complete__progress .explore-sidebar__progress-track {
-    flex: 1;
 }
 
 .mission-complete__stat {

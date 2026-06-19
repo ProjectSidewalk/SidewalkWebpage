@@ -113,7 +113,7 @@ class FeedbackModal {
             if (!response.ok) throw new Error(`Comment submission failed: ${response.status}`);
             Toast.show({
                 message: i18next.t('audit:controls.feedback-submitted'),
-                reference: this.#feedbackButton,
+                reference: document.getElementById('pano'),
                 duration: 3000
             });
         }).catch(error => console.error(error));

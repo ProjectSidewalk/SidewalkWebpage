@@ -35,6 +35,7 @@
     <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
     <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/progress-bar.css")'/>
     <link rel="stylesheet" href='@assets.path("stylesheets/pano-overlay-buttons.css")'/>
     <link rel="stylesheet" href='@assets.path("stylesheets/tag-pills.css")'/>
 
@@ -84,13 +85,11 @@
 
         <div id="svv-application-holder">
             <div id="mission-title"></div>
-            <div id="mission-progress-bar-section">
-                <div id="mission-progress-bar">
-                    <div id="mission-progress-bar-complete"></div>
-                    <div id="mission-progress-bar-incomplete"></div>
-                </div>
-                <div id="mission-progress-bar-text">1/10</div>
-            </div>
+            @components.progressBar(
+                rootId = "mission-progress-bar-section",
+                fillId = "mission-progress-bar-complete",
+                labelId = "mission-progress-bar-text"
+            )
             <div id="admin-info-section">
                 <button id="admin-info-button" class="validate-page-button">Admin info</button>
             </div>

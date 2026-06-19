@@ -82,8 +82,6 @@ function Main (param) {
         svv.ui.modalMissionComplete.yourOverallTotalCount = $('#modal-mission-complete-your-overall-total-count');
 
         svv.ui.status = {};
-        svv.ui.status.progressFiller = $('#mission-progress-bar-complete');
-        svv.ui.status.progressText = $('#mission-progress-bar-text');
         svv.ui.status.upperMenuTitle = $('#mission-title');
         svv.ui.status.zoomInButton = $('#zoom-in-button');
         svv.ui.status.zoomOutButton = $('#zoom-out-button');

@@ -595,8 +595,7 @@ function Onboarding(svl, compass, handAnimation, navigationService, missionConta
         var stepNum = statesWithProgress.findIndex(s => s.id === state.id);
         if (stepNum !== -1 && !state.visited) {
             var completionRate = stepNum / statesWithProgress.length;
-            svl.missionProgressBar.setCompletionRate(completionRate);
-            svl.missionProgressBar.setBar(completionRate);
+            svl.missionProgressBar.update(completionRate);
             tracker.push('Onboarding_Transition', { onboardingTransition: state.id, step: stepNum });
         } else {
             tracker.push('Onboarding_Transition', { onboardingTransition: state.id });

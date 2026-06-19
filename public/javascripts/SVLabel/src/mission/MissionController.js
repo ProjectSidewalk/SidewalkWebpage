@@ -1,7 +1,7 @@
 /**
  * Coordinates what happens as the user makes progress on a mission: refreshes the sidebar stats and progress bar,
  * detects when a mission (or the whole route/neighborhood) is complete, and triggers the mission-complete modal. This
- * is the mission controller; visuals handled in sidebar/MissionPanel.js and sidebar/MissionProgressBar.js.
+ * is the mission controller; visuals handled in sidebar/MissionPanel.js and the shared common/ProgressBar.js.
  */
 class MissionController {
     #missionModel;
@@ -94,8 +94,7 @@ class MissionController {
 
         // Update mission completion rate in the right sidebar.
         const completionRate = currentMission.getMissionCompletionRate();
-        svl.missionProgressBar.setCompletionRate(completionRate);
-        svl.missionProgressBar.setBar(completionRate);
+        svl.missionProgressBar.update(completionRate);
         if (!this.#neighborhoodModel.isRouteComplete && !this.#neighborhoodModel.isNeighborhoodComplete) {
             this.#checkMissionComplete(currentMission, currentRegion);
         }

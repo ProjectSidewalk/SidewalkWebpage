@@ -30,6 +30,7 @@
     <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
     <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/progress-bar.css")'/>
 
     <script src='@assets.path("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/mobile/mobileValidate.css")'/>
@@ -43,12 +44,10 @@
     </div>
 
     <div class="container tool-ui">
-        <div id="mission-progress-bar-section">
-            <div id="mission-progress-bar">
-                <div id="mission-progress-bar-complete"></div>
-                <div id="mission-progress-bar-incomplete"></div>
-            </div>
-        </div>
+        @components.progressBar(
+            rootId = "mission-progress-bar-section",
+            fillId = "mission-progress-bar-complete"
+        )
         <div id="mission-title"></div>
         <div id="svv-panorama-holder">
             <div id="svv-panorama"></div>

@@ -15,8 +15,8 @@ class BadgeProgress {
     #preview;
 
     constructor() {
-        this.#labelsRow = this.#cacheRow('explore-sidebar__badge-labels');
-        this.#distanceRow = this.#cacheRow('explore-sidebar__badge-distance');
+        this.#labelsRow = this.#cacheRow('explore-sidebar__badge-labels', 'explore-sidebar__badge-labels-count');
+        this.#distanceRow = this.#cacheRow('explore-sidebar__badge-distance', 'explore-sidebar__badge-distance-count');
 
         // The sidebar clips its overflow, so the enlarged preview lives on <body> and is positioned on hover.
         this.#preview = document.createElement('img');
@@ -29,16 +29,19 @@ class BadgeProgress {
         this.#attachHover(this.#distanceRow);
     }
 
-    /** Caches the child elements of a badge row by its container id. */
-    #cacheRow(containerId) {
+    /**
+     * Caches the child elements of a badge row.
+     * @param {string} containerId Id of the row's container element.
+     * @param {string} countId Id of the row's progress-bar label (the "current / target" count).
+     */
+    #cacheRow(containerId, countId) {
         const container = document.getElementById(containerId);
         return {
             icon: container.querySelector('.explore-sidebar__badge-icon'),
             iconBase: container.querySelector('.explore-sidebar__badge-icon-base'),
             iconFill: container.querySelector('.explore-sidebar__badge-icon-fill'),
             name: container.querySelector('.explore-sidebar__badge-name'),
-            barFill: container.querySelector('.explore-sidebar__progress-fill'),
-            count: container.querySelector('.explore-sidebar__badge-count'),
+            bar: new ProgressBar(container.querySelector('.ps-progress-bar__fill'), countId),
             // The next-badge image source, set during render and shown enlarged on hover.
             iconSrc: null
         };
@@ -149,13 +152,13 @@ class BadgeProgress {
         row.iconFill.style.setProperty('--badge-fill', fraction);
 
         row.name.textContent = `${i18next.t(nameKey)} ${BadgeAchievements.ROMAN[nextIndex]}`;
-        row.barFill.style.width = `${(fraction * 100).toFixed(0)}%`;
+        row.bar.setFraction(fraction);
 
         // Floor (don't round) the displayed value so it never shows the target before the bar is actually full.
         const factor = 10 ** decimals;
         const flooredValue = (Math.floor(value * factor) / factor).toFixed(decimals);
         const valueText = this.#formatNumber(flooredValue);
         const targetText = this.#formatNumber(Number(target.toFixed(1)));
-        row.count.textContent = unit ? `${valueText} / ${targetText} ${unit}` : `${valueText} / ${targetText}`;
+        row.bar.setLabel(unit ? `${valueText} / ${targetText} ${unit}` : `${valueText} / ${targetText}`);
     }
 }

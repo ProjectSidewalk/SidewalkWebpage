@@ -6,36 +6,13 @@
     letter-spacing: 5%;
 }
 
+/* The mission progress bar uses the shared .ps-progress-bar component; this positions it and sets its slim height. */
 #mission-progress-bar-section {
+    --ps-progress-bar-height: calc(7px * var(--ui-scale));
     position: absolute;
     top: calc(50px * var(--ui-scale));
     width: var(--pano-width);
-    display: inline-flex;
-    align-items: center;
     gap: calc(12px * var(--ui-scale));
-}
-
-#mission-progress-bar {
-    flex: 1;
-    height: calc(5px * var(--ui-scale));
-}
-
-#mission-progress-bar-complete {
-    width: 10%;
-    border-radius: calc(5px * var(--ui-scale));
-    background: var(--color-pine-500);
-    z-index: 2;
-    height: inherit;
-    position: relative;
-}
-
-#mission-progress-bar-incomplete {
-    border-radius: calc(5px * var(--ui-scale));
-    background: var(--color-neutral-200);
-    height: inherit;
-    margin-top: calc(-5px * var(--ui-scale)); /* Makes it so that the progress bars are overlapping */
-    z-index: 1;
-    position: relative;
 }
 
 #mission-progress-bar-text {

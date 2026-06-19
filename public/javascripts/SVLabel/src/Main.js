@@ -88,7 +88,10 @@ function Main (params) {
 
         svl.badgeProgress = new BadgeProgress();
         svl.overallStats = new OverallStats();
-        svl.missionProgressBar = new MissionProgressBar();
+        svl.missionProgressBar = new ProgressBar(
+            'status-current-mission-completion-bar-filler', 'status-current-mission-completion-rate'
+        );
+        svl.missionProgressBar.update(0);
         svl.neighborhoodProgressBar = new NeighborhoodProgressBar();
         svl.missionPanel = new MissionPanel();
 

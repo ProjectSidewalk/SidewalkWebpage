@@ -1,8 +1,6 @@
 /**
- * Drives the neighborhood progress bar in the right sidebar. A single rounded "fill" pill is sized to the total
- * audited fraction and clips two flush color segments inside it: the distance audited by everyone else (shown first,
- * in the shared sidebar progress-fill color) and the distance audited by the current user (shown after, in the link
- * color). Together they show how close the whole neighborhood is to being fully audited.
+ * Drives the neighborhood progress bar (the shared .ps-progress-bar component). Filled by the distance audited by
+ * everyone but the current user, then distance audited by the current user.
  */
 class NeighborhoodProgressBar {
     #fillEl;
@@ -69,11 +67,8 @@ class NeighborhoodProgressBar {
             this.#youEl.style.width = `${(youFraction / filledFraction * 100).toFixed(1)}%`;
         }
 
-        // Show the combined neighborhood completion percentage next to the bar. Match the mission bar's rounding so we
+        // Show the combined neighborhood completion percentage next to the bar, using the shared formatter so we
         // never display 100% until the neighborhood is actually fully audited.
-        let pct = filledFraction * 100;
-        if (pct > 100) pct = 100;
-        else if (pct < 100 && pct >= 99.5) pct = 99;
-        this.#rateEl.textContent = `${pct.toFixed(0)}%`;
+        this.#rateEl.textContent = `${ProgressBar.formatPercent(filledFraction)}%`;
     }
 }

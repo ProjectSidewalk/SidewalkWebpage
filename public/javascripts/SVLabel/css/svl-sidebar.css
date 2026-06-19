@@ -3,8 +3,6 @@
    vertical space the other sections leave. All sizes scale with --ui-scale like the rest of the tool. */
 #explore-sidebar {
     --exp-sidebar-section-gap: calc(18px * var(--ui-scale));
-    /* Shared green for the mission and badge progress bars (matches the Figma mission bar, color-pine-600). */
-    --exp-sidebar-progress-fill: var(--color-pine-600);
     --exp-sidebar-link: var(--color-link-200);
 
     position: absolute;
@@ -49,70 +47,12 @@
     flex-direction: column;
 }
 
-.explore-sidebar__mission-progress,
-.explore-sidebar__badge-progress,
-.explore-sidebar__neighborhood-progress {
-    display: flex;
-    align-items: center;
-    gap: calc(10px * var(--ui-scale));
+/* The badge progress bars are slightly slimmer than the mission/neighborhood bars, with a smaller text. */
+.explore-sidebar__badge-progress {
+    --ps-progress-bar-height: calc(10px * var(--ui-scale));
 }
-
-.explore-sidebar__neighborhood-progress {
-    flex: 0 0 auto;
-}
-
-.explore-sidebar__progress-track {
-    position: relative;
-    flex: 1 1 auto;
-    border-radius: calc(6px * var(--ui-scale));
-    overflow: hidden;
-}
-
-.explore-sidebar__progress-track--mission {
-    height: calc(12px * var(--ui-scale));
-    background: rgb(from var(--color-pine-500) r g b / 0.3);
-}
-
-.explore-sidebar__progress-track--badge {
-    height: calc(10px * var(--ui-scale));
-    background: var(--color-neutral-200);
-}
-
-.explore-sidebar__progress-track--neighborhood {
-    height: calc(12px * var(--ui-scale));
-    background: var(--color-neutral-200);
-}
-
-.explore-sidebar__neighborhood-progress-fill {
-    height: 100%;
-    width: 0;
-    display: flex;
-    border-radius: inherit;
-    overflow: hidden;
-    transition: width 0.3s ease;
-}
-
-.explore-sidebar__progress-fill {
-    height: 100%;
-    width: 0;
-    background: var(--exp-sidebar-progress-fill);
-    border-radius: inherit;
-    transition: width 0.3s ease;
-}
-
-/* The two segments fill the rounded pill and meet flush, so they're square — the pill clips them to its shape. */
-.explore-sidebar__progress-fill--community,
-.explore-sidebar__progress-fill--you {
-    border-radius: 0;
-}
-
-.explore-sidebar__progress-fill--you {
-    background: var(--color-pine-700);
-}
-
-.explore-sidebar__progress-pct {
-    font: var(--text-caption-semibold);
-    white-space: nowrap;
+.explore-sidebar__badge-progress .ps-progress-bar__label {
+    font: var(--text-tiny-semibold);
 }
 
 /* Overall stats: three equal columns, each an icon over a value over a label. */
@@ -224,11 +164,6 @@
 
 .explore-sidebar__badge-name {
     font: var(--text-caption-semibold);
-}
-
-.explore-sidebar__badge-count {
-    font: var(--text-tiny-semibold);
-    white-space: nowrap;
 }
 
 .explore-sidebar__see-all {

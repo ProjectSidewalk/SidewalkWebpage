@@ -9,6 +9,7 @@ module.exports = function(grunt) {
                 src: [
                     'public/javascripts/SVLabel/src/*.js',
                     'public/javascripts/SVLabel/src/*/*.js',
+                    'public/javascripts/common/ProgressBar.js',
                     'public/javascripts/common/PanoMarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/SpeedLimit.js',
@@ -74,6 +75,7 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/src/user/*.js',
                     'public/javascripts/SVValidate/src/util/*.js',
                     'public/javascripts/SVValidate/src/zoom/*.js',
+                    'public/javascripts/common/ProgressBar.js',
                     'public/javascripts/common/PanoMarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/SpeedLimit.js',

@@ -326,8 +326,7 @@ class ModalMissionComplete {
         this.#els.foreground.style.visibility = 'hidden';
         this.#els.background.style.visibility = 'hidden';
 
-        svl.missionProgressBar.setBar(0);
-        svl.missionProgressBar.setCompletionRate(0);
+        svl.missionProgressBar.update(0);
     }
 
     /**

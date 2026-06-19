@@ -16,6 +16,7 @@
     @common.navbar(commonData, Some(user))
 
     <link rel="stylesheet" href='@assets.path("javascripts/SVLabel/build/SVLabel.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/progress-bar.css")'/>
     <link rel="stylesheet" href='@assets.path("stylesheets/pano-overlay-buttons.css")'/>
     <link rel="stylesheet" href='@assets.path("stylesheets/animate.css")'/>
 
@@ -255,12 +256,7 @@
                             </div>
                             <div class="explore-sidebar__badge-info">
                                 <span class="explore-sidebar__badge-name"></span>
-                                <div class="explore-sidebar__badge-progress">
-                                    <div class="explore-sidebar__progress-track explore-sidebar__progress-track--badge">
-                                        <div class="explore-sidebar__progress-fill"></div>
-                                    </div>
-                                    <span class="explore-sidebar__badge-count"></span>
-                                </div>
+                                @components.progressBar(rootClass = "explore-sidebar__badge-progress", labelId = "explore-sidebar__badge-labels-count")
                             </div>
                         </div>
                         <div class="explore-sidebar__badge" id="explore-sidebar__badge-distance">
@@ -270,12 +266,7 @@
                             </div>
                             <div class="explore-sidebar__badge-info">
                                 <span class="explore-sidebar__badge-name"></span>
-                                <div class="explore-sidebar__badge-progress">
-                                    <div class="explore-sidebar__progress-track explore-sidebar__progress-track--badge">
-                                        <div class="explore-sidebar__progress-fill"></div>
-                                    </div>
-                                    <span class="explore-sidebar__badge-count"></span>
-                                </div>
+                                @components.progressBar(rootClass = "explore-sidebar__badge-progress", labelId = "explore-sidebar__badge-distance-count")
                             </div>
                         </div>
                     </div>
@@ -296,12 +287,11 @@
                     <div class="explore-sidebar__progress-groups">
                         <div class="explore-sidebar__progress-group">
                             <p id="current-mission-description" class="explore-sidebar__subheading"></p>
-                            <div class="explore-sidebar__mission-progress">
-                                <div id="status-current-mission-completion-bar" class="explore-sidebar__progress-track explore-sidebar__progress-track--mission">
-                                    <div id="status-current-mission-completion-bar-filler" class="explore-sidebar__progress-fill"></div>
-                                </div>
-                                <span id="status-current-mission-completion-rate" class="explore-sidebar__progress-pct"></span>
-                            </div>
+                            @components.progressBar(
+                                trackId = "status-current-mission-completion-bar",
+                                fillId = "status-current-mission-completion-bar-filler",
+                                labelId = "status-current-mission-completion-rate"
+                            )
                         </div>
 
                         @if(currentCity.cityId == "chandigarh-india") {
@@ -314,15 +304,16 @@
                         @* Progress toward the whole neighborhood being audited. *@
                         <div class="explore-sidebar__progress-group">
                             <p class="explore-sidebar__subheading" data-i18n="audit:right-ui.neighborhood-progress.title">Neighborhood progress</p>
-                            <div class="explore-sidebar__neighborhood-progress">
-                                <div id="neighborhood-progress-bar" class="explore-sidebar__progress-track explore-sidebar__progress-track--neighborhood">
-                                    <div id="neighborhood-progress-fill" class="explore-sidebar__neighborhood-progress-fill">
-                                        <div id="neighborhood-progress-community" class="explore-sidebar__progress-fill explore-sidebar__progress-fill--community" data-i18n-title="audit:right-ui.neighborhood-progress.community-tooltip" data-i18n-aria-label="audit:right-ui.neighborhood-progress.community-tooltip"></div>
-                                        <div id="neighborhood-progress-you" class="explore-sidebar__progress-fill explore-sidebar__progress-fill--you" data-i18n-title="audit:right-ui.neighborhood-progress.you-tooltip" data-i18n-aria-label="audit:right-ui.neighborhood-progress.you-tooltip"></div>
-                                    </div>
-                                </div>
-                                <span id="neighborhood-progress-rate" class="explore-sidebar__progress-pct"></span>
-                            </div>
+                            @components.progressBar(
+                                trackId = "neighborhood-progress-bar",
+                                fillId = "neighborhood-progress-fill",
+                                labelId = "neighborhood-progress-rate",
+                                segmented = true,
+                                communityId = "neighborhood-progress-community",
+                                youId = "neighborhood-progress-you",
+                                communityTooltip = "audit:right-ui.neighborhood-progress.community-tooltip",
+                                youTooltip = "audit:right-ui.neighborhood-progress.you-tooltip"
+                            )
                         </div>
                     </div>
 
@@ -577,15 +568,14 @@
                         @* Right overlay: the neighborhood progress bar (reused from the sidebar) plus distance/label stats. *@
                         <div class="mission-complete__overlay mission-complete__overlay--right">
                             <h2 class="mission-complete__overlay-title" data-i18n="audit:right-ui.neighborhood-progress.title"></h2>
-                            <div class="mission-complete__progress">
-                                <div class="explore-sidebar__progress-track explore-sidebar__progress-track--neighborhood">
-                                    <div id="modal-neighborhood-progress-fill" class="explore-sidebar__neighborhood-progress-fill">
-                                        <div id="modal-neighborhood-progress-community" class="explore-sidebar__progress-fill explore-sidebar__progress-fill--community"></div>
-                                        <div id="modal-neighborhood-progress-you" class="explore-sidebar__progress-fill explore-sidebar__progress-fill--you"></div>
-                                    </div>
-                                </div>
-                                <span id="modal-neighborhood-progress-rate" class="explore-sidebar__progress-pct"></span>
-                            </div>
+                            @components.progressBar(
+                                rootClass = "mission-complete__progress",
+                                fillId = "modal-neighborhood-progress-fill",
+                                labelId = "modal-neighborhood-progress-rate",
+                                segmented = true,
+                                communityId = "modal-neighborhood-progress-community",
+                                youId = "modal-neighborhood-progress-you"
+                            )
                             <hr class="mission-complete__overlay-divider">
                             <div class="mission-complete__stat">
                                 <img class="mission-complete__stat-icon" src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' alt="">
