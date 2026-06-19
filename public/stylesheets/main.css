@@ -408,7 +408,7 @@ a {
     height: auto;
 }
 
-#mini-footer-audit {
+#mini-footer {
     position: relative;
     width: 100%;
     min-height: 40px;
@@ -419,7 +419,7 @@ a {
     font-family: raleway, sans-serif;
 }
 
-#mini-footer-audit a {
+#mini-footer a {
       color:#585c63;
       text-decoration:underline;
 }

@@ -14,13 +14,12 @@
  * @param uiCanvas
  * @param contextMenu
  * @param uiOnboarding
- * @param uiLeft
  * @param zoomControl
  * @returns {{className: string}}
  * @constructor
  */
 function Onboarding(svl, compass, handAnimation, navigationService, missionContainer, leftMenu, onboardingStates,
-                    ribbon, tracker, canvas, uiCanvas, contextMenu, uiOnboarding, uiLeft, zoomControl) {
+                    ribbon, tracker, canvas, uiCanvas, contextMenu, uiOnboarding, zoomControl) {
     var self = this;
     var ctx;
     var blink_timer = 0;
@@ -67,8 +66,7 @@ function Onboarding(svl, compass, handAnimation, navigationService, missionConta
 
         ribbon.unlockDisableMode();
 
-        uiLeft.stuck.addClass('disabled');
-        uiLeft.controlButtonsToggle.addClass('disabled');
+        leftMenu.disableButtons();
 
         compass.hideMessage();
         compass.disableCompassClick();
@@ -711,8 +709,7 @@ function Onboarding(svl, compass, handAnimation, navigationService, missionConta
         // A callback to disable walking after user has moved to 2nd pano, then moves to next state.
         const callback = function () {
             navigationService.unlockDisableWalking().disableWalking().lockDisableWalking();
-            svl.ui.compass.messageHolder.off('click', clickToNextPano);
-            svl.ui.compass.messageHolder.css('cursor', 'default');
+            compass.detachMessageClickHandler(clickToNextPano);
             svl.panoManager.lockShowingNavArrows();
             svl.ui.streetview.navArrows.off('click', callback);
             if (listener) google.maps.event.removeListener(listener);
@@ -726,8 +723,7 @@ function Onboarding(svl, compass, handAnimation, navigationService, missionConta
 
         navigationService.unlockDisableWalking().enableWalking().lockDisableWalking();
         svl.ui.streetview.navArrows.off('click').on('click', clickToNextPano);
-        svl.ui.compass.messageHolder.on('click', clickToNextPano);
-        svl.ui.compass.messageHolder.css('cursor', 'pointer');
+        compass.attachMessageClickHandler(clickToNextPano);
 
         blinkInterface(state);
     }
@@ -777,7 +773,6 @@ function Onboarding(svl, compass, handAnimation, navigationService, missionConta
 
     function _visitInstruction(state, listener) {
         if (state === getState('outro')) {
-            $('#mini-footer-audit').css('visibility', 'hidden');
             // Remove the hover listeners that adjust the instruction box's z-index.
             svl.ui.contextMenu.holder.off('mouseover mouseout');
         }
@@ -815,9 +810,6 @@ function Onboarding(svl, compass, handAnimation, navigationService, missionConta
     function _visitSelectLabelTypeState(state, listener) {
         var labelType = state.properties.labelType;
 
-        if (state === getState('select-label-type-1')) {
-            $('#mini-footer-audit').css('visibility', 'visible');
-        }
         ribbon.enableMode(labelType);
         ribbon.startBlinking(labelType);
 

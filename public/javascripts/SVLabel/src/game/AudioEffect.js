@@ -4,16 +4,19 @@
 class AudioEffect {
     #audios;
     #storage;
-    #uiSoundButton;
+    #soundButton;
+    #soundIcon;
+    #muteIcon;
 
     /**
-     * @param uiSoundButton The sound/mute button UI elements.
      * @param {string} fileDirectory Root directory the audio files are served from.
      * @param storage TemporaryStorage used to persist the muted state.
      */
-    constructor(uiSoundButton, fileDirectory, storage) {
-        this.#uiSoundButton = uiSoundButton;
+    constructor(fileDirectory, storage) {
         this.#storage = storage;
+        this.#soundButton = document.getElementById('left-column-sound-button');
+        this.#soundIcon = document.getElementById('left-column-sound-icon');
+        this.#muteIcon = document.getElementById('left-column-mute-icon');
 
         // PhantomJS (used in testing) does not support HTML5 Audio.
         if (typeof Audio == "undefined") Audio = function HTMLAudioElement () {};
@@ -25,7 +28,7 @@ class AudioEffect {
         this.#audios.drip.volume = 0.25;
         this.#audios.success.volume = 0.05;
 
-        uiSoundButton.sound.on('click', () => this.#toggleSound());
+        this.#soundButton.addEventListener('click', () => this.#toggleSound());
 
         // Reflect the persisted muted state on the button when the document loads.
         if (storage.get("muted")) this.#mute();
@@ -39,14 +42,14 @@ class AudioEffect {
     }
 
     #mute() {
-        this.#uiSoundButton.soundIcon.addClass('hidden');
-        this.#uiSoundButton.muteIcon.removeClass('hidden');
+        this.#soundIcon.classList.add('hidden');
+        this.#muteIcon.classList.remove('hidden');
         this.#storage.set("muted", true);
     }
 
     #unmute() {
-        this.#uiSoundButton.muteIcon.addClass('hidden');
-        this.#uiSoundButton.soundIcon.removeClass('hidden');
+        this.#muteIcon.classList.add('hidden');
+        this.#soundIcon.classList.remove('hidden');
         this.#storage.set("muted", false);
     }
 

@@ -66,7 +66,7 @@ function Main (params) {
         svl.minimap = await Minimap.create(currLatLng);
         svl.peg = await Peg.create(svl.minimap.getMap(), currLatLng);
 
-        svl.ribbon = new RibbonMenu(svl.tracker, svl.ui.ribbonMenu);
+        svl.ribbon = new RibbonMenu(svl.tracker);
         svl.canvas = new Canvas(svl.ribbon);
 
         // Warm the label-icon cache up front so canvas renders draw icons in the right order. See Label.preloadIcons.
@@ -80,7 +80,7 @@ function Main (params) {
         svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);
 
         // Set map parameters and instantiate it.
-        svl.compass = new Compass(svl, svl.navigationService, svl.taskContainer, svl.ui.compass);
+        svl.compass = new Compass(svl, svl.navigationService, svl.taskContainer);
         svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alert);
         svl.ratingReminderAlert = new RatingReminderAlert(svl.alert);
         svl.zoomShortcutAlert = new ZoomShortcutAlert(svl.alert);
@@ -95,7 +95,7 @@ function Main (params) {
         svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
 
         // Game effects
-        svl.audioEffect = new AudioEffect(svl.ui.leftColumn, svl.rootDirectory, svl.storage);
+        svl.audioEffect = new AudioEffect(svl.rootDirectory, svl.storage);
 
         const neighborhood = new Neighborhood({ regionId: params.regionId, geoJSON: params.regionGeoJSON, name: params.regionName });
         svl.neighborhoodModel.setCurrentNeighborhood(neighborhood);
@@ -118,7 +118,7 @@ function Main (params) {
         } else {
             await svl.form.submitData(); // Get an audit_task_id from the back end.
         }
-        svl.popUpMessage = new PopUpMessage(svl.form, svl.taskContainer, svl.tracker, svl.user, svl.ui.popUpMessage);
+        svl.popUpMessage = new PopUpMessage(svl.form, svl.taskContainer, svl.tracker, svl.user);
         svl.aiGuidance = new AiGuidance(svl.tracker, svl.popUpMessage);
 
         // Logs when the page's focus changes.
@@ -143,8 +143,8 @@ function Main (params) {
             svl.taskContainer, modalMissionCompleteMap);
         svl.modalMissionComplete.hide();
 
-        svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment);
-        svl.leftMenu = new LeftMenu(svl.ui.leftColumn, svl.tracker, svl.navigationService, svl.stuckAlert);
+        svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer);
+        svl.leftMenu = new LeftMenu(svl.tracker, svl.navigationService, svl.stuckAlert);
 
         svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, svl.panoViewer, svl.panoViewer.getPosition,
             svl.panoViewer.getPanoId, svl.taskContainer.getCurrentTaskStreetEdgeId,
@@ -161,9 +161,9 @@ function Main (params) {
         svl.speedLimit = new SpeedLimit(svl.panoViewer, svl.panoViewer.getPosition, svl.isOnboarding, null, null);
 
         // Survey for select users
-        svl.modalSurvey = new ModalSurvey(svl.ui.modalSurvey);
+        svl.modalSurvey = new ModalSurvey();
 
-        svl.zoomControl = new ZoomControl(svl.canvas, svl.tracker, svl.ui.zoomControl);
+        svl.zoomControl = new ZoomControl(svl.canvas, svl.tracker);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.navigationService, svl.ribbon, svl.zoomControl);
         loadData(svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
 
@@ -185,30 +185,7 @@ function Main (params) {
             $(".tool-ui").css('opacity', 0.5);
         });
 
-        $(svl.ui.ribbonMenu.buttons).each(function() {
-            var val = $(this).attr('val');
-
-            if(val !== 'Walk' && val !== 'Other') {
-                $(this).attr({
-                    'data-toggle': 'tooltip',
-                    'data-placement': 'top',
-                    'title': i18next.t('top-ui.press-key', {key: util.misc.getLabelDescriptions(val)['keyChar']})
-                });
-            }
-        });
-
-        $(svl.ui.ribbonMenu.subcategories).each(function() {
-            var val = $(this).attr('val');
-
-            if(val !== 'Walk' && val !== 'Other') {
-                $(this).attr({
-                    'data-toggle': 'tooltip',
-                    'data-placement': 'left',
-                    'title': i18next.t('top-ui.press-key', {key: util.misc.getLabelDescriptions(val)['keyChar']})
-                });
-            }
-        });
-
+        // Ribbon-button tooltip attributes are set in RibbonMenu (which owns those buttons); this just initializes them.
         $('[data-toggle="tooltip"]').tooltip({
             delay: { "show": 500, "hide": 100 },
             html: true,
@@ -249,8 +226,6 @@ function Main (params) {
         // TODO probably have a GET endpoint to get onboarding mission..?
         //hide any alerts
         svl.alert.hideAlert();
-        //hide footer
-        svl.ui.footer.css("visibility", "hidden");
 
         if (!onboardingHandAnimation) {
             onboardingHandAnimation = new HandAnimation(svl.rootDirectory, svl.ui.onboarding);
@@ -260,7 +235,7 @@ function Main (params) {
         if (!("onboarding" in svl && svl.onboarding)) {
             svl.onboarding = new Onboarding(svl, svl.compass, onboardingHandAnimation, svl.navigationService,
                 svl.missionContainer, svl.leftMenu, onboardingStates, svl.ribbon, svl.tracker, svl.canvas,
-                svl.ui.canvas, svl.contextMenu, svl.ui.onboarding, svl.ui.leftColumn, svl.zoomControl);
+                svl.ui.canvas, svl.contextMenu, svl.ui.onboarding, svl.zoomControl);
         }
         svl.onboarding.start();
     }
@@ -321,11 +296,9 @@ function Main (params) {
             // Check if the user has completed the onboarding tutorial.
             var mission = svl.missionContainer.getCurrentMission();
             if (mission.getProperty("missionType") === "auditOnboarding") {
-                svl.ui.footer.css("visibility", "hidden");
                 startOnboarding();
             } else {
                 _calculateAndSetTasksMissionsOffset();
-                svl.ui.footer.css("visibility", "visible");
 
                 // Initialize explore mission screens focused on a randomized label type, though users can switch between them.
                 var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
@@ -436,31 +409,6 @@ function Main (params) {
         svl.ui.canvas.hoverInfoSeverityIcon = $("#label-hover-info-severity-icon");
         svl.ui.canvas.hoverInfoSeverityText = $("#label-hover-info-severity-text");
 
-        // MissionDescription DOMs.
-        svl.ui.statusMessage = {};
-        svl.ui.statusMessage.holder = $("#current-status-holder");
-        svl.ui.statusMessage.title = $("#current-status-title");
-        svl.ui.statusMessage.description = $("#current-status-description");
-
-        // Pop up message.
-        svl.ui.popUpMessage = {};
-        svl.ui.popUpMessage.holder = $("#pop-up-message-holder");
-        svl.ui.popUpMessage.foreground = $("#pop-up-message-foreground");
-        svl.ui.popUpMessage.background = $("#pop-up-message-background");
-        svl.ui.popUpMessage.title = $("#pop-up-message-title");
-        svl.ui.popUpMessage.content = $("#pop-up-message-content");
-        svl.ui.popUpMessage.imageHolder = $("#pop-up-message-img-holder");
-        svl.ui.popUpMessage.buttonHolder = $("#pop-up-message-button-holder");
-
-        // Ribbon menu DOMs.
-        svl.ui.ribbonMenu = {};
-        svl.ui.ribbonMenu.holder = $("#ribbon-menu-holder");
-        svl.ui.ribbonMenu.pano = $("#pano");
-        svl.ui.ribbonMenu.panoFrame = $("#pano-border-frame");
-        svl.ui.ribbonMenu.buttons = $('.label-type-button-holder');
-        svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
-        svl.ui.ribbonMenu.subcategories = $(".ribbon-menu-other-subcategory");
-
         // Context menu.
         svl.ui.contextMenu = {};
         svl.ui.contextMenu.holder = $("#context-menu-holder");
@@ -472,45 +420,6 @@ function Main (params) {
         svl.ui.contextMenu.textBox = $("#context-menu-description-text-box");
         svl.ui.contextMenu.closeButton = $("#context-menu-close-button");
 
-        // Modal.
-        svl.ui.modalComment = {};
-        svl.ui.modalComment.holder = $("#modal-comment-holder");
-        svl.ui.modalComment.ok = $("#modal-comment-ok-button");
-        svl.ui.modalComment.cancel = $("#modal-comment-cancel-button");
-        svl.ui.modalComment.textarea = $("#modal-comment-textarea");
-        svl.ui.modalSurvey = {};
-        svl.ui.modalSurvey.container = $("#survey-modal-container");
-        svl.ui.modalSurvey.form = $("#survey-form");
-        svl.ui.modalSurvey.skipButton = $('#survey-skip-button')
-
-        // Zoom control.
-        svl.ui.zoomControl = {};
-        svl.ui.zoomControl.zoomIn = $("#zoom-in-button");
-        svl.ui.zoomControl.zoomOut = $("#zoom-out-button");
-
-        // Form/logging.
-        svl.ui.form = {};
-        svl.ui.form.skipButton = $("#skip-button");
-        svl.ui.form.submitButton = $("#submit-button");
-
-        svl.ui.leftColumn = {};
-        svl.ui.leftColumn.sound = $("#left-column-sound-button");
-        svl.ui.leftColumn.muteIcon = $("#left-column-mute-icon");
-        svl.ui.leftColumn.soundIcon = $("#left-column-sound-icon");
-        svl.ui.leftColumn.stuck = $("#left-column-stuck-button");
-        svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
-        svl.ui.leftColumn.controlButtonsHolder = $("#explore-control-buttons-holder");
-        svl.ui.leftColumn.controlButtonsToggle = $("#explore-control-buttons-toggle");
-        svl.ui.leftColumn.controlButtonsToggleIcon = $("#explore-control-buttons-toggle-icon");
-
-        // Navigation compass.
-        svl.ui.compass = {};
-        svl.ui.compass.messageHolder = $("#compass-message-holder");
-        svl.ui.compass.message = $("#compass-message");
-
-        // Interaction viewer.
-        svl.ui.task = {};
-
         // Tutorial.
         svl.ui.onboarding = {};
         svl.ui.onboarding.holder = $("#onboarding-holder");
@@ -520,13 +429,6 @@ function Main (params) {
         svl.ui.onboarding.canvas = $("#onboarding-canvas");
         svl.ui.onboarding.handGestureHolder = $("#hand-gesture-holder");
 
-        // Neighborhood / route complete overlays.
-        svl.ui.areaComplete = {};
-        svl.ui.areaComplete.overlay = $("#area-completion-overlay-wrapper");
-        svl.ui.areaComplete.title = $("#area-completion-title");
-        svl.ui.areaComplete.body = $("#area-completion-body");
-
-        svl.ui.footer = $("#mini-footer-audit");
     }
 
     // Gets all the text on the explore page for the correct language.

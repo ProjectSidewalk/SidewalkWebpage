@@ -265,7 +265,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
             // Indicates neighborhood is complete.
             if (self.getIncompleteTasksAcrossAllUsersUsingPriority().length === 0) {
                 neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
-                svl.ui.areaComplete.overlay.show();
+                $("#area-completion-overlay-wrapper").show();
                 const currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
                 const currentNeighborhoodId = currentNeighborhood.getRegionId();
                 tracker.push("NeighborhoodComplete_AcrossAllUsers", { 'RegionId': currentNeighborhoodId });

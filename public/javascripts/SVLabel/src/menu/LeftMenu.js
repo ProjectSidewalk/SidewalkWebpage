@@ -3,23 +3,31 @@
  */
 class LeftMenu {
     #blinkInterval = null;
+    #stuck;
+    #feedback;
+    #controlButtonsHolder;
+    #controlButtonsToggle;
+    #controlButtonsToggleIcon;
 
     /**
      * Initializes the LeftMenu object's properties from parameters.
-     * @param {object} uiLeftColumn
      * @param {Tracker} tracker
      * @param {NavigationService} navigationService
      * @param {StuckAlert} stuckAlert
      */
-    constructor(uiLeftColumn, tracker, navigationService, stuckAlert) {
-        this.uiLeftColumn = uiLeftColumn;
+    constructor(tracker, navigationService, stuckAlert) {
         this.tracker = tracker;
         this.navigationService = navigationService;
         this.stuckAlert = stuckAlert;
 
+        this.#stuck = document.getElementById('left-column-stuck-button');
+        this.#controlButtonsHolder = document.getElementById('explore-control-buttons-holder');
+        this.#controlButtonsToggle = document.getElementById('explore-control-buttons-toggle');
+        this.#controlButtonsToggleIcon = document.getElementById('explore-control-buttons-toggle-icon');
+
         // Initialize Event Listeners.
         this.enableStuckButton();
-        this.uiLeftColumn.controlButtonsToggle.on('click', this.#handleToggleControls);
+        this.#controlButtonsToggle.addEventListener('click', this.#handleToggleControls);
     }
 
     /**
@@ -29,10 +37,10 @@ class LeftMenu {
      */
     #handleToggleControls = (e) => {
         e.preventDefault();
-        const expanded = this.uiLeftColumn.controlButtonsHolder.toggleClass('expanded').hasClass('expanded');
-        this.uiLeftColumn.controlButtonsToggle.attr('aria-expanded', expanded);
+        const expanded = this.#controlButtonsHolder.classList.toggle('expanded');
+        this.#controlButtonsToggle.setAttribute('aria-expanded', expanded);
         const chevron = expanded ? 'chevron-left-white-feather.svg' : 'chevron-right-white-feather.svg';
-        this.uiLeftColumn.controlButtonsToggleIcon.attr('src', `/assets/images/icons/${chevron}`);
+        this.#controlButtonsToggleIcon.setAttribute('src', `/assets/images/icons/${chevron}`);
     }
 
     /**
@@ -56,25 +64,32 @@ class LeftMenu {
 
     /* Enable the stuck button. */
     enableStuckButton = () => {
-        this.uiLeftColumn.stuck.off('click.stuck').on('click.stuck', this.#handleClickStuck);
+        this.#stuck.removeEventListener('click', this.#handleClickStuck);
+        this.#stuck.addEventListener('click', this.#handleClickStuck);
     }
 
     /* Disable the stuck button. */
     disableStuckButton = () => {
-        this.uiLeftColumn.stuck.off('click.stuck');
+        this.#stuck.removeEventListener('click', this.#handleClickStuck);
+    }
+
+    /* Visually disable the stuck and control-toggle buttons (used while onboarding takes over the UI). */
+    disableButtons = () => {
+        this.#stuck.classList.add('disabled');
+        this.#controlButtonsToggle.classList.add('disabled');
     }
 
     /* Blink the stuck button. */
     blinkStuckButton = () => {
         this.stopBlinkingStuckButton();
         this.#blinkInterval = window.setInterval(() => {
-            this.uiLeftColumn.stuck.toggleClass("highlight-100");
+            this.#stuck.classList.toggle("highlight-100");
         }, 500);
     };
 
     /* Stop blinking the stuck button. */
     stopBlinkingStuckButton = () => {
         window.clearInterval(this.#blinkInterval);
-        this.uiLeftColumn.stuck.removeClass("highlight-100");
+        this.#stuck.classList.remove("highlight-100");
     };
 }

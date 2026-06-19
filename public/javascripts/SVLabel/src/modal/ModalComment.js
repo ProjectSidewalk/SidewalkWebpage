@@ -4,21 +4,25 @@
  * @param tracker
  * @param ribbon
  * @param taskContainer
- * @param uiLeftColumn
- * @param uiModalComment
  * @constructor
  */
-function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment) {
+function ModalComment (svl, tracker, ribbon, taskContainer) {
     const self = this;
     let status = {
         disableClickOK: true
     };
 
-    let _uiModalComment = uiModalComment;
-    let _uiLeftColumn = uiLeftColumn;  // This should not be this module's responsibility.
+    const _uiModalComment = {
+        holder: $("#modal-comment-holder"),
+        ok: $("#modal-comment-ok-button"),
+        cancel: $("#modal-comment-cancel-button"),
+        textarea: $("#modal-comment-textarea")
+    };
+    // The feedback button opens this modal, so this module owns it. Kept as a jQuery object for Bootstrap's popover.
+    const _feedbackButton = $("#left-column-feedback-button");
 
     // Initializing feedback popover
-    _uiLeftColumn.feedback.popover();
+    _feedbackButton.popover();
 
     /**
      * A callback function for clicking the feedback button on the left
@@ -122,8 +126,8 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
-                _uiLeftColumn.feedback.popover('toggle');
-                setTimeout(function(){ _uiLeftColumn.feedback.popover('toggle'); }, 1500);
+                _feedbackButton.popover('toggle');
+                setTimeout(function(){ _feedbackButton.popover('toggle'); }, 1500);
             },
             error: function (result) {
                 console.error(result);
@@ -150,7 +154,7 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
     self._disableClickOK();
     _uiModalComment.ok.off('click').on("click", handleClickOK);
     _uiModalComment.cancel.off('click').on("click", handleClickCancel);
-    _uiLeftColumn.feedback.off('click').on("click", handleClickFeedback);
+    _feedbackButton.off('click').on("click", handleClickFeedback);
     _uiModalComment.textarea.off('focus').on("focus", handleTextareaFocus);
     _uiModalComment.textarea.off('blur').on("blur", handleTextareaBlur);
     _uiModalComment.textarea.off('input').on("input", handleTextareaChange);

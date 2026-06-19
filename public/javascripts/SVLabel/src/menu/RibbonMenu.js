@@ -3,11 +3,10 @@
  * Todo. Split the RibbonMenu UI component and the label type switching logic
  * Todo. Consider moving this under menu instead of ribbon.
  * @param tracker
- * @param uiRibbonMenu
  * @returns {{className: string}}
  * @constructor
  */
-function RibbonMenu(tracker, uiRibbonMenu) {
+function RibbonMenu(tracker) {
     var self = {className: 'RibbonMenu'},
         properties = {
             buttonDefaultBorderColor: "transparent",
@@ -35,7 +34,36 @@ function RibbonMenu(tracker, uiRibbonMenu) {
         },
         blinkInterval;
 
+    const uiRibbonMenu = {
+        holder: $("#ribbon-menu-holder"),
+        panoFrame: $("#pano-border-frame"),
+        buttons: $('.label-type-button-holder'),
+        subcategoryHolder: $("#ribbon-menu-other-subcategory-holder"),
+        subcategories: $(".ribbon-menu-other-subcategory")
+    };
+
+    /**
+     * Adds the tooltip attributes (showing each label type's keyboard shortcut) to the menu buttons.
+     *
+     * The global Bootstrap tooltip initializer in Main reads these attributes when it runs, and it only picks up
+     * elements that already have them — so this must run during construction, before that init call.
+     */
+    function _initTooltipAttributes() {
+        const setKeyTooltip = (el, placement) => {
+            const val = el.getAttribute('val');
+            if (val !== 'Walk' && val !== 'Other') {
+                el.setAttribute('data-toggle', 'tooltip');
+                el.setAttribute('data-placement', placement);
+                el.setAttribute('title', i18next.t('top-ui.press-key', { key: util.misc.getLabelDescriptions(val)['keyChar'] }));
+            }
+        };
+        document.querySelectorAll('.label-type-button-holder').forEach(el => setKeyTooltip(el, 'top'));
+        document.querySelectorAll('.ribbon-menu-other-subcategory').forEach(el => setKeyTooltip(el, 'left'));
+    }
+
     function _init() {
+        _initTooltipAttributes();
+
         // Initialize the jQuery DOM elements.
         if (uiRibbonMenu) {
             setLabelTypeButtonBorderColors(status.mode);

@@ -4,12 +4,19 @@
  * @param {Form} form
  * @param {TaskContainer} taskContainer
  * @param {Tracker} tracker
- * @param {User} user
- * @param {object} uiPopUpMessage
  * @returns {{className: string}}
  * @constructor
  */
-function PopUpMessage (form, taskContainer, tracker, user, uiPopUpMessage) {
+function PopUpMessage (form, taskContainer, tracker) {
+    const uiPopUpMessage = {
+        holder: $("#pop-up-message-holder"),
+        foreground: $("#pop-up-message-foreground"),
+        title: $("#pop-up-message-title"),
+        content: $("#pop-up-message-content"),
+        imageHolder: $("#pop-up-message-img-holder"),
+        buttonHolder: $("#pop-up-message-button-holder")
+    };
+
     const status = { haveAskedToSignIn: false, signUp: false, isVisible: false };
     let buttons = [];
 

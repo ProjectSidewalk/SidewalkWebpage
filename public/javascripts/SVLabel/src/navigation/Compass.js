@@ -3,13 +3,17 @@
  * @param svl SVL name space. Need this for rootDirectory.
  * @param navigationService NavigationService module
  * @param taskContainer TaskContainer module
- * @param uiCompass ui elements. // Todo. Future work. Just pass the top level ui element.
  * @constructor
  */
-function Compass (svl, navigationService, taskContainer, uiCompass) {
+function Compass (svl, navigationService, taskContainer) {
     let self = {className: 'Compass'};
     let blinkInterval;
     let blinkTimer;
+
+    const uiCompass = {
+        messageHolder: $("#compass-message-holder"),
+        message: $("#compass-message")
+    };
 
     const imageDirectories = {
         leftTurn: svl.rootDirectory + 'img/icons/ArrowLeftTurn.png',
@@ -319,8 +323,24 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
             svl.panoManager.setPovToRouteDirection();
         }
     }
+
+    // Attaches an external click handler to the compass message and shows the pointer cursor. Used by onboarding to
+    // override the default compass behavior so that a click advances to the next pano.
+    function attachMessageClickHandler(handler) {
+        uiCompass.messageHolder.off('click', handler).on('click', handler);
+        uiCompass.messageHolder.css('cursor', 'pointer');
+    }
+
+    // Detaches a previously attached external click handler from the compass message and restores the default cursor.
+    function detachMessageClickHandler(handler) {
+        uiCompass.messageHolder.off('click', handler);
+        uiCompass.messageHolder.css('cursor', 'default');
+    }
+
     enableCompassClick();
 
+    self.attachMessageClickHandler = attachMessageClickHandler;
+    self.detachMessageClickHandler = detachMessageClickHandler;
     self.blink = blink;
     self.directionToImagePath = directionToImagePath;
     self.resetBeforeJump = resetBeforeJump;

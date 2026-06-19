@@ -2,12 +2,16 @@
  * Todo. Separate the UI component and the logic component
  * @param canvas
  * @param tracker
- * @param uiZoomControl
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function ZoomControl (canvas, tracker, uiZoomControl) {
+function ZoomControl (canvas, tracker) {
+    const uiZoomControl = {
+        zoomIn: $("#zoom-in-button"),
+        zoomOut: $("#zoom-out-button")
+    };
+
     var self = { 'className' : 'ZoomControl' },
         properties = {
             maxZoomLevel: 3,

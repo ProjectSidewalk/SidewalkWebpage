@@ -78,7 +78,7 @@
 :root {
     --mc-line-this-mission: var(--color-pine-700);
     --mc-line-previous: var(--color-pine-500);
-    --mc-line-community: var(--color-pine-300);
+    --mc-line-community: var(--color-pine-200);
 }
 
 #modal-mission-complete-holder {
