@@ -14,9 +14,9 @@ class AudioEffect {
      */
     constructor(fileDirectory, storage) {
         this.#storage = storage;
-        this.#soundButton = document.getElementById('left-column-sound-button');
-        this.#soundIcon = document.getElementById('left-column-sound-icon');
-        this.#muteIcon = document.getElementById('left-column-mute-icon');
+        this.#soundButton = document.getElementById('explore-control-sound');
+        this.#soundIcon = document.getElementById('explore-control-sound-icon');
+        this.#muteIcon = document.getElementById('explore-control-mute-icon');
 
         // PhantomJS (used in testing) does not support HTML5 Audio.
         if (typeof Audio == "undefined") Audio = function HTMLAudioElement () {};

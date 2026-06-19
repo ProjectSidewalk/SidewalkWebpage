@@ -1,16 +1,17 @@
 /**
- * Handles interaction with the buttons on to the left of the panorama on the Explore page.
+ * Handles the compact control buttons overlaid on the top-left of the panorama on the Explore page: the Stuck button
+ * and the chevron toggle that expands/collapses the optional controls (sound, feedback). The sound and feedback buttons
+ * are owned by AudioEffect and FeedbackModal; this class owns the button group container and the Stuck button.
  */
-class LeftMenu {
+class PanoOverlayControls {
     #blinkInterval = null;
+    #stuckEnabled = true;
     #stuck;
-    #feedback;
     #controlButtonsHolder;
     #controlButtonsToggle;
     #controlButtonsToggleIcon;
 
     /**
-     * Initializes the LeftMenu object's properties from parameters.
      * @param {Tracker} tracker
      * @param {NavigationService} navigationService
      * @param {StuckAlert} stuckAlert
@@ -20,19 +21,18 @@ class LeftMenu {
         this.navigationService = navigationService;
         this.stuckAlert = stuckAlert;
 
-        this.#stuck = document.getElementById('left-column-stuck-button');
+        this.#stuck = document.getElementById('explore-control-stuck');
         this.#controlButtonsHolder = document.getElementById('explore-control-buttons-holder');
         this.#controlButtonsToggle = document.getElementById('explore-control-buttons-toggle');
         this.#controlButtonsToggleIcon = document.getElementById('explore-control-buttons-toggle-icon');
 
-        // Initialize Event Listeners.
-        this.enableStuckButton();
+        // The stuck handler is attached once and gated by #stuckEnabled; enable/disable just flip the flag.
+        this.#stuck.addEventListener('click', this.#handleClickStuck);
         this.#controlButtonsToggle.addEventListener('click', this.#handleToggleControls);
     }
 
     /**
      * Callback for the chevron toggle: expands/collapses the optional control buttons (sound, feedback).
-     * Swaps the chevron direction and updates aria-expanded for screen readers.
      * @param {Event} e
      */
     #handleToggleControls = (e) => {
@@ -44,14 +44,16 @@ class LeftMenu {
     }
 
     /**
-     * Callback for clicking stuck button.
+     * Callback for clicking the stuck button.
      *
      * The algorithm searches for available imagery along the street you are assigned to. If the pano you are put in
      * doesn't help, you can click the Stuck button again; we save the attempted panos so we'll try something new. If we
      * can't find anything along the street, we just mark it as complete and move you to a new street.
+     * @param {Event} e
      */
     #handleClickStuck = (e) => {
         e.preventDefault();
+        if (!this.#stuckEnabled) return;
         this.stuckAlert.compassOrStuckClicked();
         this.tracker.push('ModalStuck_ClickStuck');
         this.navigationService.moveForward()
@@ -64,13 +66,12 @@ class LeftMenu {
 
     /* Enable the stuck button. */
     enableStuckButton = () => {
-        this.#stuck.removeEventListener('click', this.#handleClickStuck);
-        this.#stuck.addEventListener('click', this.#handleClickStuck);
+        this.#stuckEnabled = true;
     }
 
     /* Disable the stuck button. */
     disableStuckButton = () => {
-        this.#stuck.removeEventListener('click', this.#handleClickStuck);
+        this.#stuckEnabled = false;
     }
 
     /* Visually disable the stuck and control-toggle buttons (used while onboarding takes over the UI). */

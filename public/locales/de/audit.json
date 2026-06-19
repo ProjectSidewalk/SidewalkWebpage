@@ -93,6 +93,15 @@
     "top-ui": {
         "press-key": "Drücken Sie auf die \"{{key}}\" Taste"
     },
+    "controls": {
+        "stuck": "Verlaufen",
+        "stuck-tooltip": "Wir werden versuchen, Sie zurück zu Ihrer Mission zu bringen",
+        "sound": "Ton",
+        "feedback": "Rück­meldung",
+        "feedback-tooltip": "Teilen Sie uns Ihre Gedanken mit",
+        "feedback-submitted": "Rückmeldung gesendet",
+        "feedback-title": "Weitere Ideen? War etwas verwirrend? Haben Sie einen Fehler gefunden?<br>Schicken Sie uns eine Rückmeldung!"
+    },
     "right-ui": {
         "accuracy-tooltip": "Die Bewertung Ihrer Genauigkeit basiert auf der Validierung durch andere Nutzende. Wenn Ihre Genauigkeit tief ist, sehen Sie sich häufige Fehler unter <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">Ihrem Dashboard</a> an, um sich zu verbessern!",
         "no-accuracy-tooltip": "Wir benötigen mehr Daten, um Ihre Genauigkeit zu bewerten. Fügen Sie mehr Beschriftungen hinzu und melden Sie sich an, um die Bewertung Ihrer Genauigkeit zu verfolgen!",

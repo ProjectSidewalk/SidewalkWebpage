@@ -19,8 +19,6 @@ medium = 中等的
 high = 高的
 rating = 評分
 not.applicable.abbr = 不適用
-feedback = 回饋
-feedback.tooltip = 和我們分享一下你的想法
 validations = 檢核
 labels = 標記
 labels.caps = 標記
@@ -53,8 +51,6 @@ dont.show.again = 不再顯示
 
 press.key = 點擊 「{0}」 鍵
 press.keys = 點擊 「{0}」 鍵
-feedback.title = 有任何想法或問題嗎？或是找到程式錯誤?<br>歡迎給我們任何回饋喔！
-feedback.submitted = 已送出回饋
 
 city.state = {1}{0}
 
@@ -258,10 +254,6 @@ audit.ribbon.crosswalk = 有標記的行人穿越道<u>W</u>
 audit.ribbon.signal = 行人號誌<u>P</u>
 audit.ribbon.other = 其他
 audit.ribbon.occlusion = 看不到人行道 (<u>B</u>)
-
-audit.left.ui.sound = 音效
-audit.left.ui.stuck = 卡住
-audit.left.ui.stuck.tooltip = 我們會盡力讓您回到您的使命
 
 audit.right.ui.overall.stats = 整體統計數據
 audit.center.ui.tags.header = 新增標籤

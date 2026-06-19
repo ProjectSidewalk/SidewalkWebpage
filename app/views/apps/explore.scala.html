@@ -356,30 +356,28 @@
                     </div>
                     @* Stuck / sound / feedback controls at top-left of the pano. Collapsed by default. *@
                     <div id="explore-control-buttons-holder" class="pano-overlay-button-group">
-                        <div id="left-column-stuck-button" class="pano-overlay-button" title="@Messages("audit.left.ui.stuck.tooltip")" data-toggle="tooltip" data-placement="bottom">
+                        <div id="explore-control-stuck" class="pano-overlay-button" title="We'll try to move you back to your mission" data-i18n-title="audit:controls.stuck-tooltip">
                             <img class="pano-overlay-button-icon" src='@assets.path("images/icons/stuck-white-noun.svg")' alt="">
-                            <span class="pano-overlay-button-label">@Messages("audit.left.ui.stuck")</span>
+                            <span class="pano-overlay-button-label" data-i18n="audit:controls.stuck">Stuck</span>
                         </div>
-                        <div id="left-column-sound-button" class="pano-overlay-button collapsible-control-button">
-                            <img class="pano-overlay-button-icon visible" id="left-column-sound-icon" src='@assets.path("images/icons/volume-on-feather.svg")' alt="">
-                            <img class="pano-overlay-button-icon hidden" id="left-column-mute-icon" src='@assets.path("images/icons/volume-off-feather.svg")' alt="">
-                            <span class="pano-overlay-button-label">@Messages("audit.left.ui.sound")</span>
+                        <div id="explore-control-sound" class="pano-overlay-button collapsible-control-button">
+                            <img class="pano-overlay-button-icon visible" id="explore-control-sound-icon" src='@assets.path("images/icons/volume-on-feather.svg")' alt="">
+                            <img class="pano-overlay-button-icon hidden" id="explore-control-mute-icon" src='@assets.path("images/icons/volume-off-feather.svg")' alt="">
+                            <span class="pano-overlay-button-label" data-i18n="audit:controls.sound">Sound</span>
                         </div>
-                        <div id="left-column-feedback-button" class="pano-overlay-button collapsible-control-button" data-toggle="popover" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-placement="bottom" data-content='@Messages("feedback.submitted")' data-trigger="manual">
-                            <div id="feedback-button-tooltip" class="pano-overlay-button-inner" title="@Messages("feedback.tooltip")" data-toggle="tooltip" data-placement="bottom">
-                                <img class="pano-overlay-button-icon" src='@assets.path("images/icons/comment-material.svg")' alt="">
-                                <span class="pano-overlay-button-label">@Html(Messages("feedback"))</span>
-                            </div>
+                        <div id="explore-control-feedback" class="pano-overlay-button collapsible-control-button" title="Share your thoughts with us" data-i18n-title="audit:controls.feedback-tooltip">
+                            <img class="pano-overlay-button-icon" src='@assets.path("images/icons/comment-material.svg")' alt="">
+                            <span class="pano-overlay-button-label" data-i18n="audit:controls.feedback">Feedback</span>
                         </div>
                         <button id="explore-control-buttons-toggle" class="pano-overlay-button pano-overlay-toggle" aria-label="More options" data-i18n-aria-label="common:more-options" aria-expanded="false">
                             <img id="explore-control-buttons-toggle-icon" class="pano-overlay-button-icon" src='@assets.path("images/icons/chevron-right-white-feather.svg")' alt="">
                         </button>
                     </div>
                     <div id="zoom-buttons-holder" class="zoom-buttons-holder">
-                        <button id="zoom-in-button" class="zoom-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
+                        <button id="zoom-in-button" class="zoom-button" title="@Messages("press.key", "Z")" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
                             <img class="zoom-button-icon" src='@assets.path("images/icons/plus-white-material.svg")' alt="">
                         </button>
-                        <button id="zoom-out-button" class="zoom-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
+                        <button id="zoom-out-button" class="zoom-button" title="@Messages("press.keys", "Shift + Z")" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
                             <img class="zoom-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
                         </button>
                     </div>
@@ -525,9 +523,7 @@
                 <div id="modal-comment-background"></div>
                 <div id="modal-comment-box">
                     <form id="comment-form">
-                        <div id="modal-comment-title">
-                            <p>@Html(Messages("feedback.title"))</p>
-                        </div>
+                        <div id="modal-comment-title"></div>
                         <div id="modal-comment-content">
                             <textarea id="modal-comment-textarea" placeholder=""></textarea>
                         </div>

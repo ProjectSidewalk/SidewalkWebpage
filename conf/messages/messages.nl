@@ -19,8 +19,6 @@ medium = Medium
 high = Hoog
 rating = Beoordeling
 not.applicable.abbr = NVT
-feedback = Feedback
-feedback.tooltip = Deel uw mening met ons
 validations = Validaties
 labels = labels
 labels.caps = Labels
@@ -53,8 +51,6 @@ dont.show.again = Laat niet opnieuw zien
 
 press.key = Druk op de "{0}" toets
 press.keys = Druk op de "{0}" toetsen
-feedback.title = Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!
-feedback.submitted = Feedback Ingediend
 
 city.state = {0}, {1}
 
@@ -189,10 +185,6 @@ audit.ribbon.crosswalk = Gemarkeerde oversteekplaats (<u>W</u>)
 audit.ribbon.signal = Verkeerslicht (<u>P</u>)
 audit.ribbon.other = Anders
 audit.ribbon.occlusion = Het Trottoir is niet Zicht<u>b</u>aar
-
-audit.left.ui.sound = Geluid
-audit.left.ui.stuck = Vastgelopen
-audit.left.ui.stuck.tooltip = We zullen proberen u terug te brengen naar uw missie
 
 audit.right.ui.overall.stats = Algemene statistieken
 audit.center.ui.tags.header = Voeg tags toe

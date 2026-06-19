@@ -19,8 +19,6 @@ medium = Medio
 high = Alto
 rating = Calificación
 not.applicable.abbr = N/A
-feedback = Retroalimentación
-feedback.tooltip = Comparte tus pensamientos con nosotros
 validations = Validaciones
 labels = etiquetas
 labels.caps = Etiquetas
@@ -53,8 +51,6 @@ dont.show.again = No mostrar de nuevo
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
-feedback.title = ¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!
-feedback.submitted = Comentarios enviados
 
 city.state = {0}, {1}
 
@@ -201,10 +197,6 @@ audit.ribbon.crosswalk = Cruce peatonal marcado (<u>W</u>)
 audit.ribbon.signal = Semáforo <u>p</u>eatonal
 audit.ribbon.other = Otro
 audit.ribbon.occlusion = <span style="font-size: 13px;">No puedo ver la <u>b</u>anqueta</span>
-
-audit.left.ui.sound = Sonido
-audit.left.ui.stuck = Atorado
-audit.left.ui.stuck.tooltip = Intentaremos llevarte de regreso a tu misión
 
 audit.right.ui.overall.stats = Estadísticas generales
 audit.center.ui.tags.header = Agregar etiquetas

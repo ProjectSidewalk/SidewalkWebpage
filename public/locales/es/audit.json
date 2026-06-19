@@ -93,6 +93,15 @@
     "top-ui": {
         "press-key": "Presiona la tecla \"{{key}}\""
     },
+    "controls": {
+        "stuck": "Atorado",
+        "stuck-tooltip": "Intentaremos llevarte de regreso a tu misión",
+        "sound": "Sonido",
+        "feedback": "Retroalimentación",
+        "feedback-tooltip": "Comparte tus pensamientos con nosotros",
+        "feedback-submitted": "Comentarios enviados",
+        "feedback-title": "¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!"
+    },
     "right-ui": {
         "accuracy-tooltip": "La precisión se basa en validaciones de otros usuarios. Si su precisión es baja, consulte algunos errores recientes en <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">su panel de usuario</a> para ayudarlo a mejorar.",
         "no-accuracy-tooltip": "Necesitamos más datos para calcular una calificación de precisión para usted. ¡Agregue más etiquetas y regístrese para realizar un seguimiento de su calificación de precisión!",

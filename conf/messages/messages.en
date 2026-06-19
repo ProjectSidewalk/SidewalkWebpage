@@ -19,8 +19,6 @@ medium = Medium
 high = High
 rating = Rating
 not.applicable.abbr = N/A
-feedback = Feedback
-feedback.tooltip = Share your thoughts with us
 validations = Validations
 labels = labels
 labels.caps = Labels
@@ -53,8 +51,6 @@ dont.show.again = Don''t show again
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
-feedback.title = Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!
-feedback.submitted = Feedback Submitted
 
 city.state = {0}, {1}
 
@@ -195,10 +191,6 @@ audit.ribbon.crosswalk = Marked Cross<u>w</u>alk
 audit.ribbon.signal = <u>P</u>edestrian Signal
 audit.ribbon.other = Other
 audit.ribbon.occlusion = Can''t See the Sidewalk (<u>B</u>)
-
-audit.left.ui.sound = Sound
-audit.left.ui.stuck = Stuck
-audit.left.ui.stuck.tooltip = We''ll try to move you back to your mission
 
 audit.right.ui.overall.stats = Overall Stats
 

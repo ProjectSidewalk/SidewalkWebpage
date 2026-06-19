@@ -19,8 +19,6 @@ medium = Médio
 high = Alto
 rating = Classificação
 not.applicable.abbr = N/A
-feedback = Opinião
-feedback.tooltip = Compartilhe suas ideias conosco
 validations = Validações
 labels = rótulos
 labels.caps = Rótulos
@@ -53,8 +51,6 @@ dont.show.again = Não mostrar novamente
 
 press.key = Pressione a tecla "{0}"
 press.keys = Pressione as teclas "{0}"
-feedback.title = Alguma opinião? Encontrou algo confuso? Viu algum bug?<br>Envie seus comentários!
-feedback.submitted = Comentários enviados
 
 city.state = {0}, {1}
 
@@ -197,10 +193,6 @@ audit.ribbon.crosswalk = Faixa de pedestres marcada (<u>W</u>)
 audit.ribbon.signal = Semáforo de <u>p</u>edestres
 audit.ribbon.other = Outro
 audit.ribbon.occlusion = Não consigo ver a calçada (<u>B</u>)
-
-audit.left.ui.sound = Som
-audit.left.ui.stuck = Travado
-audit.left.ui.stuck.tooltip = Vamos tentar fazê-lo voltar à sua missão
 
 audit.right.ui.overall.stats = Estatísticas Gerais
 audit.center.ui.tags.header = Adicionar etiquetas

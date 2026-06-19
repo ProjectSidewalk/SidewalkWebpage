@@ -19,8 +19,6 @@ medium = Medium
 high = Hoch
 rating = Bewertung
 not.applicable.abbr = k.A.
-feedback = Rück&shy;meldung
-feedback.tooltip = Teilen Sie uns Ihre Gedanken mit
 validations = Validierungen
 labels = Beschriftungen
 labels.caps = Beschriftungen
@@ -53,8 +51,6 @@ dont.show.again = Nicht erneut anzeigen.
 
 press.key = Drücken Sie die Taste "{0}"
 press.keys = Drücken Sie die Tasten "{0}"
-feedback.title = Weitere Ideen? War etwas verwirrend? Haben Sie einen Fehler gefunden?<br>Schicken Sie uns eine Rückmeldung!
-feedback.submitted = Rückmeldung gesendet
 
 city.state = {0}, {1}
 
@@ -192,10 +188,6 @@ audit.ribbon.crosswalk = Markierter Fussgängerstreifen (<u>W</u>)
 audit.ribbon.signal = Fussgänger:innensignal (<u>P</u>)
 audit.ribbon.other = Andere
 audit.ribbon.occlusion = Trottoir nicht sichtbar (<u>B</u>)
-
-audit.left.ui.sound = Ton
-audit.left.ui.stuck = Verlaufen
-audit.left.ui.stuck.tooltip = Wir werden versuchen, Sie zurück zu Ihrer Mission zu bringen
 
 audit.right.ui.overall.stats = Gesamtübersicht
 audit.center.ui.tags.header = Tags hinzufügen

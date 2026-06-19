@@ -6,7 +6,7 @@
  * @param handAnimation
  * @param navigationService
  * @param missionContainer
- * @param leftMenu
+ * @param panoOverlayControls
  * @param onboardingStates
  * @param ribbon
  * @param tracker
@@ -18,7 +18,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Onboarding(svl, compass, handAnimation, navigationService, missionContainer, leftMenu, onboardingStates,
+function Onboarding(svl, compass, handAnimation, navigationService, missionContainer, panoOverlayControls, onboardingStates,
                     ribbon, tracker, canvas, uiCanvas, contextMenu, uiOnboarding, zoomControl) {
     var self = this;
     var ctx;
@@ -66,7 +66,7 @@ function Onboarding(svl, compass, handAnimation, navigationService, missionConta
 
         ribbon.unlockDisableMode();
 
-        leftMenu.disableButtons();
+        panoOverlayControls.disableButtons();
 
         compass.hideMessage();
         compass.disableCompassClick();
@@ -278,7 +278,7 @@ function Onboarding(svl, compass, handAnimation, navigationService, missionConta
         svl.minimap.stopBlinkingMinimap();
         compass.stopBlinking();
         zoomControl.stopBlinking();
-        leftMenu.stopBlinkingStuckButton();
+        panoOverlayControls.stopBlinkingStuckButton();
     }
 
     function _drawAnnotations(state) {
@@ -576,7 +576,7 @@ function Onboarding(svl, compass, handAnimation, navigationService, missionConta
                         compass.blink();
                         break;
                     case 'stuck':
-                        leftMenu.blinkStuckButton();
+                        panoOverlayControls.blinkStuckButton();
                         break;
                     case 'movement-arrow':
                         svl.panoManager.blinkNavigationArrows();

@@ -93,6 +93,15 @@
     "top-ui": {
         "press-key": "Druk op de \"{{key}}\" knop"
     },
+    "controls": {
+        "stuck": "Vastgelopen",
+        "stuck-tooltip": "We zullen proberen u terug te brengen naar uw missie",
+        "sound": "Geluid",
+        "feedback": "Feedback",
+        "feedback-tooltip": "Deel uw mening met ons",
+        "feedback-submitted": "Feedback Ingediend",
+        "feedback-title": "Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!"
+    },
     "right-ui": {
         "accuracy-tooltip": "Nauwkeurigheid is gebaseerd op validaties van andere gebruikers. Als uw nauwkeurigheid laag is, bekijk dan enkele recente fouten op <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">uw gebruikersdashboard</a> om u te helpen verbeteren!",
         "no-accuracy-tooltip": "We hebben meer gegevens nodig om een nauwkeurigheidsbeoordeling voor u te berekenen. Voeg meer labels toe en meld u aan om uw nauwkeurigheidsbeoordeling bij te houden!",

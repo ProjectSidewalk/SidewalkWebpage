@@ -2001,7 +2001,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.instruction-2'),
                 "fade-direction": "fadeIn",
-                "anchor": "#left-column-stuck-button",
+                "anchor": "#explore-control-stuck",
                 "placement": "right"
             },
             "panoId": afterWalkPanoId,

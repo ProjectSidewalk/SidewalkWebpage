@@ -48,7 +48,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     function resetWalking() {
         svl.panoManager.resetNavArrows();
         svl.panoManager.showNavArrows();
-        svl.leftMenu.enableStuckButton();
+        svl.panoOverlayControls.enableStuckButton();
         enableWalking();
     }
 
@@ -246,12 +246,12 @@ function NavigationService (neighborhoodModel, uiStreetview) {
      * @private
      */
     function _updateUiBeforeMove() {
-        svl.modalComment.hide();
+        svl.feedbackModal.hide();
         if (svl.contextMenu.isOpen()) {
             svl.contextMenu.hide();
         }
         svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
-        svl.leftMenu.disableStuckButton();
+        svl.panoOverlayControls.disableStuckButton();
         svl.compass.disableCompassClick();
         svl.panoManager.disablePanning();
         svl.canvas.disableLabeling();

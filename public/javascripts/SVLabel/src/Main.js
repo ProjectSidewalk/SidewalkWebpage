@@ -143,8 +143,8 @@ function Main (params) {
             svl.taskContainer, modalMissionCompleteMap);
         svl.modalMissionComplete.hide();
 
-        svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer);
-        svl.leftMenu = new LeftMenu(svl.tracker, svl.navigationService, svl.stuckAlert);
+        svl.feedbackModal = new FeedbackModal(svl, svl.tracker, svl.ribbon, svl.taskContainer);
+        svl.panoOverlayControls = new PanoOverlayControls(svl.tracker, svl.navigationService, svl.stuckAlert);
 
         svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, svl.panoViewer, svl.panoViewer.getPosition,
             svl.panoViewer.getPanoId, svl.taskContainer.getCurrentTaskStreetEdgeId,
@@ -234,7 +234,7 @@ function Main (params) {
 
         if (!("onboarding" in svl && svl.onboarding)) {
             svl.onboarding = new Onboarding(svl, svl.compass, onboardingHandAnimation, svl.navigationService,
-                svl.missionContainer, svl.leftMenu, onboardingStates, svl.ribbon, svl.tracker, svl.canvas,
+                svl.missionContainer, svl.panoOverlayControls, onboardingStates, svl.ribbon, svl.tracker, svl.canvas,
                 svl.ui.canvas, svl.contextMenu, svl.ui.onboarding, svl.zoomControl);
         }
         svl.onboarding.start();

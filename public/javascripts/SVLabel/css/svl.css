@@ -230,6 +230,6 @@ input[type="radio"] {
 
 #pano-info-button {
     margin-left: calc(4px * var(--ui-scale));
-    margin-top: calc(5px * var(--ui-scale));
+    margin-top: calc(4.5px * var(--ui-scale));
     height: calc(16px * var(--ui-scale));
 }
