@@ -527,6 +527,58 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "transition": "label-attribute-3"
         },
         {
+            "id": "tag-attribute-3",
+            "progression": true,
+            "properties": {
+                "action": "AddTag",
+                "labelNumber": 3,
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1]
+            },
+            "message": {
+                "message": i18next.t('tutorial.tag-attribute-3') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif` +
+                    '" class="width-75" style="margin: 5px auto;display:block;">'
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var tags = this.getProperty('tagIds');
+                if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
+                    return "rate-severity-3";
+                } else {
+                    return "redo-tag-attribute-3";
+                }
+            }
+        },
+        {
+            "id": "redo-tag-attribute-3",
+            "progression": false,
+            "properties": {
+                "action": "RedoAddTag",
+                "labelNumber": 3,
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1]
+            },
+            "message": {
+                "message": i18next.t('tutorial.redo-tag-attribute-3') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif` +
+                    '" class="width-75" style="margin: 5px auto;display:block;">'
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var tags = this.getProperty('tagIds');
+                if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
+                    return "rate-severity-3";
+                } else {
+                    return "redo-tag-attribute-3";
+                }
+            }
+        },
+        {
             "id": "rate-severity-3",
             "progression": true,
             "properties": {
@@ -577,58 +629,6 @@ function OnboardingStates (contextMenu, compass, panoManager) {
                     return "select-label-type-4";
                 } else {
                     return "redo-rate-attribute-3";
-                }
-            }
-        },
-        {
-            "id": "tag-attribute-3",
-            "progression": true,
-            "properties": {
-                "action": "AddTag",
-                "labelNumber": 3,
-                "labelType": "CurbRamp",
-                "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
-            },
-            "message": {
-                "message": i18next.t('tutorial.tag-attribute-3') +
-                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                var tags = this.getProperty('tagIds');
-                if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
-                    return "rate-severity-3";
-                } else {
-                    return "redo-tag-attribute-3";
-                }
-            }
-        },
-        {
-            "id": "redo-tag-attribute-3",
-            "progression": false,
-            "properties": {
-                "action": "RedoAddTag",
-                "labelNumber": 3,
-                "labelType": "CurbRamp",
-                "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
-            },
-            "message": {
-                "message": i18next.t('tutorial.redo-tag-attribute-3') +
-                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                var tags = this.getProperty('tagIds');
-                if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
-                    return "rate-severity-3";
-                } else {
-                    return "redo-tag-attribute-3";
                 }
             }
         },
@@ -746,6 +746,58 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "transition": "label-attribute-4"
         },
         {
+            "id": "tag-attribute-4",
+            "progression": true,
+            "properties": {
+                "action": "AddTag",
+                "labelNumber": 4,
+                "labelType": "NoCurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1]
+            },
+            "message": {
+                "message": i18next.t('tutorial.tag-attribute-4') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
+                    '" class="width-75" style="margin: 5px auto;display:block;">'
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var tags = this.getProperty('tagIds');
+                if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
+                    return "rate-severity-4";
+                } else {
+                    return "redo-tag-attribute-4";
+                }
+            }
+        },
+        {
+            "id": "redo-tag-attribute-4",
+            "progression": false,
+            "properties": {
+                "action": "RedoAddTag",
+                "labelNumber": 4,
+                "labelType": "NoCurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1]
+            },
+            "message": {
+                "message": i18next.t('tutorial.redo-tag-attribute-4') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
+                    '" class="width-75" style="margin: 5px auto;display:block;">'
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var tags = this.getProperty('tagIds');
+                if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
+                    return "rate-severity-4";
+                } else {
+                    return "redo-tag-attribute-4";
+                }
+            }
+        },
+        {
             "id": "rate-severity-4",
             "progression": true,
             "properties": {
@@ -796,58 +848,6 @@ function OnboardingStates (contextMenu, compass, panoManager) {
                     return "select-label-type-5";
                 } else {
                     return "redo-rate-attribute-4";
-                }
-            }
-        },
-        {
-            "id": "tag-attribute-4",
-            "progression": true,
-            "properties": {
-                "action": "AddTag",
-                "labelNumber": 4,
-                "labelType": "NoCurbRamp",
-                "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
-            },
-            "message": {
-                "message": i18next.t('tutorial.tag-attribute-4') +
-                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                var tags = this.getProperty('tagIds');
-                if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
-                    return "rate-severity-4";
-                } else {
-                    return "redo-tag-attribute-4";
-                }
-            }
-        },
-        {
-            "id": "redo-tag-attribute-4",
-            "progression": false,
-            "properties": {
-                "action": "RedoAddTag",
-                "labelNumber": 4,
-                "labelType": "NoCurbRamp",
-                "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
-            },
-            "message": {
-                "message": i18next.t('tutorial.redo-tag-attribute-4') +
-                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                var tags = this.getProperty('tagIds');
-                if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
-                    return "rate-severity-4";
-                } else {
-                    return "redo-tag-attribute-4";
                 }
             }
         },
