@@ -202,8 +202,8 @@ function Compass (svl, navigationService, taskContainer) {
 
         const image = `<img src="${directionToImagePath(direction)}" class="compass-turn-images" alt="Turn icon"/>`;
         const message =
-            `<span class="compass-message-small">${i18next.t('center-ui.compass.unlabeled-problems')}</span>` +
-            `<br/>${image}<span class="compass-message-large">${_directionToDirectionMessage(direction)}</span>`;
+            `<div class="compass-message-small">${i18next.t('center-ui.compass.unlabeled-problems')}</div>` +
+            `${image}<span class="compass-message-large">${_directionToDirectionMessage(direction)}</span>`;
         uiCompass.message.html(message);
     }
 

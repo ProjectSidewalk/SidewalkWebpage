@@ -18,6 +18,7 @@ class PanoManager {
             maxHeading: undefined
         }
         this.linksListener = null;
+        this.linksClearanceObserver = null;
     }
 
     /**
@@ -203,8 +204,34 @@ class PanoManager {
             panoLinks.each((i, el) => el.firstElementChild && el.firstElementChild.remove());
 
             panoLinks[0].remove(); // Remove GSV keyboard shortcuts link.
-            svl.ui.streetview.viewControlLayer.append($(panoLinks[1]).parent().parent());
+            const gsvLinksBar = $(panoLinks[1]).parent().parent()[0];
+            svl.ui.streetview.viewControlLayer.append(gsvLinksBar);
+            this.#liftBottomLeftAboveGsvLinks(gsvLinksBar);
         }
+    }
+
+    /**
+     * Lifts the bottom-left pano overlays (the pano date, info button, speed-limit, and logo) above the GSV links.
+     *
+     * Publishes the links bar's height as the --gsv-links-clearance CSS variable, which those overlays add to their
+     * bottom offset. The links exist only for GSV, so default position kept for other viewers.
+     * @param {HTMLElement} gsvLinksBar The GSV links container now anchored at the bottom-left of the pano.
+     * @private
+     */
+    #liftBottomLeftAboveGsvLinks = (gsvLinksBar) => {
+        const root = document.querySelector('.tool-ui');
+        if (!root || !gsvLinksBar) return;
+
+        const publishClearance = () => {
+            // offsetHeight is the layout (pre-transform) height; the overlays multiply it by --ui-scale themselves.
+            const height = gsvLinksBar.offsetHeight;
+            if (height > 0) root.style.setProperty('--gsv-links-clearance', `${height}px`);
+        };
+        publishClearance();
+
+        if (this.linksClearanceObserver) this.linksClearanceObserver.disconnect();
+        this.linksClearanceObserver = new ResizeObserver(publishClearance);
+        this.linksClearanceObserver.observe(gsvLinksBar);
     }
 
     /**

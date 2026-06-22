@@ -1802,8 +1802,8 @@ function OnboardingStates (contextMenu, compass, panoManager) {
                 // Set Compass Message
                 var uiCompassMessageHolder = compass.getCompassMessageHolder();
                 var image = "<img src='" + compass.directionToImagePath("straight") + "' class='compass-turn-images' alt='Turn icon' />";
-                var message = "<span class='compass-message-small'>" + i18next.t('center-ui.compass.unlabeled-problems') +
-                    "</span><br/>" + image + "<span class='bold'>" + i18next.t('center-ui.compass.straight') + "</span>";
+                var message = "<div class='compass-message-small'>" + i18next.t('center-ui.compass.unlabeled-problems') +
+                    "</div>" + image + "<span class='compass-message-large'>" + i18next.t('center-ui.compass.straight') + "</span>";
                 uiCompassMessageHolder.message.html(message);
                 compass.showMessage();
                 return "walk-2";

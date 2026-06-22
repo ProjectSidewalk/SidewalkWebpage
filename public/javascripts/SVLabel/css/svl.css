@@ -119,7 +119,7 @@ input[type="radio"] {
     justify-content: flex-start;
     height: calc(28px * var(--ui-scale));
     position: absolute;
-    bottom: 0;
+    bottom: calc(var(--gsv-links-clearance, 0px) * var(--ui-scale));
     left: calc(71px * var(--ui-scale));
     z-index: 1;
     font: var(--text-small-medium);
@@ -131,19 +131,22 @@ input[type="radio"] {
 #view-control-layer .gm-style-cc div { background-color: var(--color-asphalt-400); }
 #view-control-layer .gm-style-cc div div { background-color: var(--color-asphalt-400) !important; }
 
-/* Scale Google's terms / report-a-problem links (bottom-right; moved here from the pano) with the UI. They're Google's
-   own elements with no scale hooks, so we scale them visually, anchored to the bottom-right corner they sit in. */
+/* Scale Google's terms / report-a-problem links (bottom-left; moved here from the pano) with the UI. They're Google's
+   own elements with no scale hooks, so we scale them visually, anchored to the bottom-left corner they sit in. The
+   other bottom-left overlays (date/info button, speed-limit sign, Google logo) are lifted above these via
+   --gsv-links-clearance, which PanoManager sets to the links' height for GSV imagery. */
 #view-control-layer div:has(> .gmnoprint) {
     bottom: calc(3px * var(--ui-scale)) !important;
-    right: calc(1px * var(--ui-scale)) !important;
+    left: calc(1px * var(--ui-scale)) !important;
+    right: auto !important;
     transform: scale(var(--ui-scale));
-    transform-origin: bottom right;
+    transform-origin: bottom left;
 }
 
 /* Scale Google's own Street View logo with the UI, anchored to its corner. */
 #pano div:has(> a[aria-label*="Google"]) {
     left: calc(2px * var(--ui-scale)) !important;
-    bottom: calc(2px * var(--ui-scale)) !important;
+    bottom: calc((2px + var(--gsv-links-clearance, 0px)) * var(--ui-scale)) !important;
     transform: scale(var(--ui-scale));
     transform-origin: bottom left;
 }

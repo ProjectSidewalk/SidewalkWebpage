@@ -1,7 +1,7 @@
 #compass-message-holder {
     position: absolute;
     right: calc(7px * var(--ui-scale));
-    bottom: calc(20px * var(--ui-scale));
+    bottom: calc(7px * var(--ui-scale));
     z-index: 2;
     padding: calc(5px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(5px * var(--ui-scale));
     height: calc(55px * var(--ui-scale));
