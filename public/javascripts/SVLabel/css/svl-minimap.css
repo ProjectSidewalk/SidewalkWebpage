@@ -86,3 +86,27 @@
 .gm-svpc {
     visibility: hidden;
 }
+
+/* The +/- buttons take their look from the shared .zoom-button styling, with some minor tweaks. */
+#minimap-zoom-controls {
+    position: absolute;
+    inset: auto;
+    right: calc(4px * var(--ui-scale));
+    bottom: calc(10px * var(--ui-scale));
+    z-index: 4;
+}
+
+#minimap-zoom-controls .zoom-button {
+    width: calc(18px * var(--ui-scale, 1));
+    height: calc(18px * var(--ui-scale, 1));
+}
+
+#minimap-zoom-controls .zoom-button-icon {
+    width: calc(14px * var(--ui-scale, 1));
+    height: calc(14px * var(--ui-scale, 1));
+}
+
+/* The tutorial minimap is a static screenshot; hide the live zoom controls there. */
+#minimap-holder.minimap-tutorial #minimap-zoom-controls {
+    display: none;
+}

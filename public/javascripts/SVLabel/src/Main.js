@@ -103,7 +103,7 @@ function Main (params) {
         const neighborhood = new Neighborhood({ regionId: params.regionId, geoJSON: params.regionGeoJSON, name: params.regionName });
         svl.neighborhoodModel.setCurrentNeighborhood(neighborhood);
 
-        svl.observedArea = ObservedArea(svl.ui.minimap);
+        svl.observedArea = new ObservedArea(svl.ui.minimap);
 
         // Mission
         svl.missionContainer = new MissionContainer(svl.missionPanel, svl.missionModel);

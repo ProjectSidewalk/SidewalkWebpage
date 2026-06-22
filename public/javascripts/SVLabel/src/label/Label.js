@@ -523,6 +523,8 @@ Label.renderLabelIcon = function(ctx, labelType, x, y) {
 Label.createMinimapMarker = function(labelType, latLng) {
     const content = document.createElement('img');
     content.src = util.misc.getIconImagePaths()[labelType].minimapIconImagePath;
+    // AdvancedMarkerElement anchors content by its bottom-center; shift it down half its height to center it.
+    content.style.transform = 'translateY(50%)';
     return new google.maps.marker.AdvancedMarkerElement({
         position: new google.maps.LatLng(latLng.lat, latLng.lng),
         map: svl.minimap.getMap(),
