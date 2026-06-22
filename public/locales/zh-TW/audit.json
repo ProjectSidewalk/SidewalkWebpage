@@ -108,7 +108,6 @@
         "current-mission": {
             "header": "目前的任務",
             "header-route": "$t(right-ui.current-mission.header): 路線{{route_number}}",
-            "message-first-mission": "探索__PLACEHOLDER__並找到所有人行道可及性選項",
             "message": "探索{{neighborhoodName}}的__PLACEHOLDER__"
         },
         "minimap": {

@@ -45,10 +45,6 @@
         }
     },
     "right-ui": {
-        "current-mission": {
-            "message-first-mission": "Explore for __PLACEHOLDER__ and find all the footpath accessibility attributes",
-            "message": "Explore __PLACEHOLDER__ of {{neighborhoodName}}"
-        },
         "neighborhood-progress": {
             "title": "Neighbourhood progress"
         }

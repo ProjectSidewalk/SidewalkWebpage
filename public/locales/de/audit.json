@@ -108,7 +108,6 @@
         "current-mission": {
             "header": "Aktuelle Mission",
             "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
-            "message-first-mission": "Erkunden Sie __PLACEHOLDER__ und finden Sie alle Zugänglichkeitsmerkmale entlang des Gehwegs",
             "message": "Erkunden Sie __PLACEHOLDER__ von {{neighborhoodName}}"
         },
         "minimap": {

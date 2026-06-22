@@ -27,8 +27,6 @@ class MissionPanel {
         let missionMessage;
         if (missionType === 'auditOnboarding') {
             missionMessage = i18next.t('tutorial.mission-message');
-        } else if (svl.missionContainer.isTheFirstMission()) {
-            missionMessage = i18next.t('right-ui.current-mission.message-first-mission');
         } else {
             // The regular mission message names the neighborhood being explored.
             const neighborhood = svl.neighborhoodModel.currentNeighborhood();

@@ -108,7 +108,6 @@
         "current-mission": {
             "header": "Huidige Missie",
             "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
-            "message-first-mission": "Zoek voor __PLACEHOLDER__ en vind alle trottoir toegankelijkheidskenmerken",
             "message": "Zoek __PLACEHOLDER__ voor {{neighborhoodName}}"
         },
         "minimap": {

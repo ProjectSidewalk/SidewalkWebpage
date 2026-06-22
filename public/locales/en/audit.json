@@ -108,7 +108,6 @@
         "current-mission": {
             "header": "Current Mission",
             "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
-            "message-first-mission": "Explore for __PLACEHOLDER__ and find all the sidewalk accessibility attributes",
             "message": "Explore __PLACEHOLDER__ of {{neighborhoodName}}"
         },
         "minimap": {
