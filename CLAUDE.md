@@ -69,7 +69,7 @@ Two standalone scripts (run via the Python deps in `requirements.txt`, installed
 - Replace uses of Bootstrap with native JS alternatives as you come across them
 - When writing SQL, avoid table aliases
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
-- When adding or refactoring text, use the fonts defined in main.css :root.
+- When adding or refactoring code, use the fonts, colors, button styling, etc. defined in main.css :root. These are pulled from our "Design System Tokens" Figma, and we are pushing to use these going forward.
 - Max line length of 120 characters, with long line exceptions where appropriate. For multi-line comments, TARGET line length is 120 characters
 - Functions should have comments, even if they are private. Incredibly trivial functions are okay to leave without a comment.
     - They should include @param lines as well (including their type in JS), and those should almost always be restricted to a single line
