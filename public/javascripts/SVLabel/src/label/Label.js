@@ -276,7 +276,7 @@ function Label(params) {
         const centerX = coord.x * scale;
         const centerY = coord.y * scale;
         const radius = svl.LABEL_ICON_RADIUS * scale;
-        const gap = 4; // On-screen pixels between the icon and the tooltip.
+        const gap = 14; // On-screen pixels between the icon and the tooltip.
 
         let left = centerX + radius + gap;
         if (left + holder.outerWidth() > util.EXPLORE_CANVAS_WIDTH * scale) {
