@@ -28,7 +28,11 @@ function ZoomControl (canvas, tracker) {
         zoomBlink = {
           isBlinking: false
         },
-        blinkInterval;
+        blinkInterval,
+        wheelTrackTimeout;
+
+    // Scroll wheel / trackpad zoom tuning.
+    const ZOOM_WHEEL_SENSITIVITY = 0.0015;
 
 
     /**
@@ -193,6 +197,32 @@ function ZoomControl (canvas, tracker) {
     }
 
     /**
+     * Callback for the scroll wheel / trackpad over the pano.
+     * @param e jQuery wheel event
+     */
+    function _handleZoomWheel(e) {
+        // Prevent the page from scrolling while zooming the pano.
+        e.preventDefault();
+
+        // Scrolling up (negative deltaY) zooms in; scrolling down zooms out.
+        const zoomDelta = -e.originalEvent.deltaY * ZOOM_WHEEL_SENSITIVITY;
+
+        // Honor the disable locks (e.g. onboarding) and skip no-op zooms at the min/max.
+        if (zoomDelta > 0 && status.disableZoomIn) return;
+        if (zoomDelta < 0 && status.disableZoomOut) return;
+
+        setZoom(svl.panoViewer.getPov().zoom + zoomDelta);
+
+        // Log scroll zooming, but debounce so a single gesture doesn't flood the tracker.
+        if (tracker) {
+            window.clearTimeout(wheelTrackTimeout);
+            wheelTrackTimeout = window.setTimeout(() => {
+                tracker.push(zoomDelta > 0 ? 'Scroll_ZoomIn' : 'Scroll_ZoomOut');
+            }, 250);
+        }
+    }
+
+    /**
      * These functions are called when the keyboard shortcut for zoomIn/Out is used.
      */
 
@@ -333,5 +363,6 @@ function ZoomControl (canvas, tracker) {
 
     uiZoomControl.zoomIn.bind('click', _handleZoomInButtonClick);
     uiZoomControl.zoomOut.bind('click', _handleZoomOutButtonClick);
+    svl.ui.streetview.viewControlLayer.bind('wheel', _handleZoomWheel);
     return self;
 }

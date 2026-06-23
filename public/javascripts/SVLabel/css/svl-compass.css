@@ -3,8 +3,7 @@
     right: calc(7px * var(--ui-scale));
     bottom: calc(7px * var(--ui-scale));
     z-index: 2;
-    padding: calc(5px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(5px * var(--ui-scale));
-    height: calc(55px * var(--ui-scale));
+    padding: calc(5px * var(--ui-scale));
     min-width: calc(120px * var(--ui-scale));
     white-space: nowrap;
     border-radius: calc(3px * var(--ui-scale));

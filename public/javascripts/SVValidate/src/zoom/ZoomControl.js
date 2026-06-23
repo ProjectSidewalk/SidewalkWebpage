@@ -8,6 +8,14 @@ function ZoomControl () {
     let zoomInButton = $("#zoom-in-button");
     let zoomOutButton = $("#zoom-out-button");
 
+    // Zoom limits for the pano, matching the {1, 2, 3} levels used by the zoom buttons.
+    const MIN_ZOOM = 1;
+    const MAX_ZOOM = 3;
+    // Scroll wheel / trackpad zoom tuning.
+    const ZOOM_WHEEL_SENSITIVITY = 0.0015;
+
+    let wheelTrackTimeout;
+
     /**
      * Logs interaction when the zoom in button is clicked.
      */
@@ -49,6 +57,30 @@ function ZoomControl () {
     }
 
     /**
+     * Callback for the scroll wheel / trackpad over the pano.
+     * @param e jQuery wheel event
+     */
+    function wheelZoom(e) {
+        // Prevent the page from scrolling while zooming the pano.
+        e.preventDefault();
+
+        // Scrolling up (negative deltaY) zooms in; scrolling down zooms out.
+        const zoomDelta = -e.originalEvent.deltaY * ZOOM_WHEEL_SENSITIVITY;
+
+        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, svv.panoViewer.getPov().zoom + zoomDelta));
+        svv.panoManager.setZoom(newZoom);
+        updateZoomAvailability();
+
+        // Log scroll zooming, but debounce so a single gesture doesn't flood the tracker.
+        if (svv.tracker) {
+            window.clearTimeout(wheelTrackTimeout);
+            wheelTrackTimeout = window.setTimeout(() => {
+                svv.tracker.push(zoomDelta > 0 ? 'Scroll_ZoomIn' : 'Scroll_ZoomOut');
+            }, 250);
+        }
+    }
+
+    /**
      * Changes the opacity and enables/disables the zoom buttons depending on the 'zoom level'. It
      * disables and 'greys-out' the zoom in button in the most zoomed in state and the zoom out
      * button in the most zoomed out state.
@@ -63,6 +95,7 @@ function ZoomControl () {
 
     zoomInButton.on('click', clickZoomIn);
     zoomOutButton.on('click', clickZoomOut);
+    svv.ui.viewer.controlLayer.on('wheel', wheelZoom);
 
     self.zoomIn = zoomIn;
     self.zoomOut = zoomOut;
