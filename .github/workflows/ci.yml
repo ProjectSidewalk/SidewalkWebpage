@@ -104,11 +104,21 @@ jobs:
           done
           echo "Database did not initialize in time."; docker compose logs db | tail -50; exit 1
 
-      # Import the smallest city dump (teaneck, ~20MB) into schema sidewalk_teaneck; this also sets the
-      # sidewalk_teaneck role's search_path to that schema (see db/scripts/import-dump.sh). The app then connects as
-      # that role (DATABASE_USER below). Not using `make import-dump` because its `docker exec -it` needs a TTY.
-      - name: Import test city (teaneck)
-        run: docker compose exec -T db /opt/scripts/import-dump.sh sidewalk_teaneck
+      # The real city dumps are git-ignored (too large to commit); CI only has the small, committed sidewalk_init
+      # template that init.sh restored above. So build the test city from that template: rename the schema to
+      # sidewalk_teaneck (matching cityparams.conf's `teaneck-nj = "sidewalk_teaneck"`) and set up its role +
+      # search_path — the working part of db/scripts/create-new-schema.sh. The schema is empty, which is fine here:
+      # PublicApiSpec asserts response *contract/shape*, not data values. The app connects as this role (DATABASE_USER).
+      - name: Create test city schema (teaneck) from the sidewalk_init template
+        run: |
+          docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk -c "
+          DROP SCHEMA IF EXISTS sidewalk_teaneck CASCADE;
+          DROP USER IF EXISTS sidewalk_teaneck;
+          ALTER SCHEMA sidewalk_init RENAME TO sidewalk_teaneck;
+          CREATE USER sidewalk_teaneck;
+          GRANT sidewalk TO sidewalk_teaneck;
+          ALTER SCHEMA sidewalk_teaneck OWNER TO sidewalk;
+          ALTER ROLE sidewalk_teaneck SET search_path = sidewalk_teaneck, sidewalk_login, public;"
 
       # Boot the real app and run the public-API functional tests against the imported city.
       - name: Run public API tests
