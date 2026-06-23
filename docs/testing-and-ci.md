@@ -60,21 +60,21 @@ addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.3.1")
 
 - **Runner: Jest + jsdom** (CommonJS-friendly for the no-module global-script reality; less ESM friction than Vitest). Load each pure util via a small `vm`/require helper that captures its global (`util.math`, the pano-viewer classes) — **no production-code changes required** to start. First targets: `common/UtilitiesMath.js`, `common/pano-viewer/src/PanoUtilities.js`, `common/aggregate-stats.js`.
 - Replace the broken `npm test` (`grunt && grunt test`) with `jest`.
-- **Lint gate** (`make lint`: eslint/htmlhint/stylelint, already configured) wired into CI — advisory first to surface the existing-violation count, then blocking once the baseline is clean. No giant lint-fix in the gate-introducing PR.
+- **Lint gate** (`make lint`: eslint/htmlhint/stylelint, already configured) is **owned by #2487, not this plan.** That issue sequences the linter rollout with the in-progress JS ES5→ES6 migration (dropping a linter into CI mid-migration = large, conflict-prone churn). So linting-in-CI is deliberately **deferred to #2487** and introduced on that track (advisory first, then blocking once the baseline is clean) — *not* part of Phase 0.
 
 ## CI — GitHub Actions (`.github/workflows/ci.yml`)
 
 Two parallel jobs:
 - **backend** — `setup-java@v4` (temurin 17, `cache: sbt` + coursier/`~/.sbt`); `services:` `postgis/postgis:16-3.5` (health-checked); dummy env (`SIDEWALK_APPLICATION_SECRET`, `SILHOUETTE_SIGNER_KEY`/`CRYPTER_KEY`, `INTERNAL_API_KEY`, `DATABASE_USER`/`PASSWORD` required; Mapbox/Google/Gemini/Mapillary/Infra3d/SciStarter dummy). Steps grow by phase.
-- **frontend** — `setup-node@v4` (Node 23, `cache: npm`); `npm ci` → `npm run build` (exercises grunt concat) → `make lint` → (Phase 1+) `jest`.
+- **frontend** — `setup-node@v4` (Node 23); `npm install` → `npx grunt` (exercises grunt concat) → (Phase 1+) `jest`. (`make lint` is **not** here — see #2487. No committed `package-lock.json` yet, so `npm install` not `npm ci`, and no npm cache.)
 
-**PR** runs fast feedback (compile, unit, lint, build); **main/push** adds coverage; **E2E** is a separate **nightly/advisory** workflow. **Gating policy:** `sbt compile` blocking from day one; **scalafmt advisory** (`scalafmtCheckAll` via `continue-on-error`, no reformat pass yet); lint advisory→blocking; test phases advisory ~1 week then blocking on PR; **E2E always advisory**.
+**PR** runs fast feedback (compile, unit, build); **main/push** adds coverage; **E2E** is a separate **nightly/advisory** workflow. **Gating policy:** `sbt compile` blocking from day one; **scalafmt advisory** (`scalafmtCheckAll` via `continue-on-error`, no reformat pass yet); frontend lint deferred to #2487 (its own advisory→blocking ramp there); test phases advisory ~1 week then blocking on PR; **E2E always advisory**.
 
 **Dependency automation:** **Scala Steward** (GitHub Action) for sbt deps — Dependabot has no native sbt updater — plus **`.github/dependabot.yml`** for `npm`, `github-actions`, and `docker` (covers the open Dependabot alerts), weekly, grouped.
 
 ## Phased rollout (each phase independently mergeable)
 
-- **Phase 0 — gate, zero tests required (land first):** add sbt-scalafmt/sbt-scoverage plugins; `ci.yml` with `sbt compile` (blocking) + `scalafmtCheckAll` (advisory) + `make lint` (advisory) + frontend build; `.github/dependabot.yml` + Scala Steward; fix the `npm test` placeholder.
+- **Phase 0 — gate, zero tests required (land first):** add sbt-scalafmt/sbt-scoverage plugins; `ci.yml` with `sbt compile` (blocking) + `scalafmtCheckAll` (advisory) + frontend asset build; `.github/dependabot.yml` + Scala Steward; fix the `npm test` placeholder. (Frontend lint excluded — owned by #2487.) **Implemented on `feature/ci-phase0`.**
 - **Phase 1 — unit:** backend Layer-(a) specs + Jest util tests; run on every PR (no DB service needed for the unit subset).
 - **Phase 2 — DB integration:** PostGIS service + `PostgresTestKit`; #4239 + #4228 regression specs; measure evolution time.
 - **Phase 3 — functional:** silhouette-testkit + `FakeAuth`/`GuiceTestApp`/`WsStubs`; `ImageControllerSpec` + `PublicApiSpec`.
