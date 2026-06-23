@@ -183,6 +183,7 @@ GET     /v3/api/aggregateStats                          controllers.api.StatsApi
 GET     /v3/api/labelClusters                           controllers.api.LabelClustersApiController.getLabelClustersV3(bbox: Option[String], labelType: Option[String], regionId: Option[Int], regionName: Option[String], includeRawLabels: Option[Boolean], clusterSize: Option[Int], avgImageCaptureDate: Option[String], avgLabelDate: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streets                                 controllers.api.StreetsApiController.getStreets(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], minAuditCount: Option[Int], minUserCount: Option[Int], wayType: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streetTypes                             controllers.api.StreetsApiController.getStreetTypes
+GET     /v3/api/regions                                 controllers.api.RegionApiController.getRegions(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/validations                             controllers.api.ValidationApiController.getValidations(labelId: Option[Int], userId: Option[String], validationResult: Option[Int], labelTypeId: Option[Int], validationTimestamp: Option[String], changedTags: Option[Boolean], changedSeverityLevels: Option[Boolean], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/validationResultTypes                   controllers.api.ValidationApiController.getValidationResultTypes
 
@@ -195,6 +196,7 @@ GET     /v3/api-docs/rawLabels                          controllers.ApiDocsContr
 GET     /v3/api-docs/labelClusters                      controllers.ApiDocsController.labelClusters
 GET     /v3/api-docs/streets                            controllers.ApiDocsController.streets
 GET     /v3/api-docs/streetTypes                        controllers.ApiDocsController.streetTypes
+GET     /v3/api-docs/regions                            controllers.ApiDocsController.regions
 GET     /v3/api-docs/validations                        controllers.ApiDocsController.validations
 GET     /v3/api-docs/user-stats                         controllers.ApiDocsController.userStats
 GET     /v3/api-docs/overall-stats                      controllers.ApiDocsController.overallStats

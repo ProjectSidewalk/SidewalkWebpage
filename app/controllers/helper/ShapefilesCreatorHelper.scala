@@ -1,6 +1,6 @@
 package controllers.helper
 
-import models.api.{LabelClusterForApi, LabelDataForApi, RawLabelInClusterDataForApi, StreetDataForApi}
+import models.api.{LabelClusterForApi, LabelDataForApi, RawLabelInClusterDataForApi, RegionDataForApi, StreetDataForApi}
 import models.computation.{RegionScore, StreetScore}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
@@ -987,6 +987,92 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(street.firstLabelDate.map(_.toString).orNull)
       featureBuilder.add(street.lastLabelDate.map(_.toString).orNull)
 
+      featureBuilder.buildFeature(null)
+    }
+
+    createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
+   * Creates a shapefile from RegionDataForApi objects.
+   *
+   * @param source Stream of RegionDataForApi objects
+   * @param outputFile Base filename for the output file (without extension)
+   * @param batchSize Number of features to process in each batch
+   * @return Path to the created shapefile, or None if creation failed
+   */
+  def createRegionDataShapefile(
+      source: Source[RegionDataForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    // Define the feature type schema for RegionDataForApi.
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "Region",
+      "the_geom:MultiPolygon:srid=4326," // the geometry attribute: MultiPolygon type
+      + "regionId:Integer,"              // Region ID
+      + "name:String,"                   // Region name
+      + "labelCount:Integer,"            // Number of labels in this region
+      + "streetCount:Integer,"           // Number of streets in this region
+      + "userCount:Integer,"             // Number of unique users who labeled in this region
+      + "auditCount:Integer,"            // Number of completed audits in this region
+      + "firstLabel:String,"             // First label date
+      + "lastLabel:String"               // Last label date
+    )
+
+    def buildFeature(region: RegionDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      featureBuilder.add(region.geometry)
+      featureBuilder.add(region.regionId)
+      featureBuilder.add(region.name)
+      featureBuilder.add(region.labelCount)
+      featureBuilder.add(region.streetCount)
+      featureBuilder.add(region.userCount)
+      featureBuilder.add(region.auditCount)
+      featureBuilder.add(region.firstLabelDate.map(_.toString).orNull)
+      featureBuilder.add(region.lastLabelDate.map(_.toString).orNull)
+      featureBuilder.buildFeature(null)
+    }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
+   * Creates a GeoPackage file from RegionDataForApi objects.
+   *
+   * @param source Stream of RegionDataForApi objects
+   * @param outputFile Base filename for the output file (without extension)
+   * @param batchSize Number of features to process in each batch
+   * @return Path to the created GeoPackage file, or None if creation failed
+   */
+  def createRegionDataGeopackage(
+      source: Source[RegionDataForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    // Define the feature type schema.
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "regions",
+      "the_geom:MultiPolygon:srid=4326," // MultiPolygon geometry
+      + "region_id:Integer,"             // Region ID
+      + "name:String,"                   // Region name
+      + "label_count:Integer,"           // Number of labels in this region
+      + "street_count:Integer,"          // Number of streets in this region
+      + "user_count:Integer,"            // Number of unique users who labeled in this region
+      + "audit_count:Integer,"           // Number of completed audits in this region
+      + "first_label_time:String,"       // First label date
+      + "last_label_time:String"         // Last label date
+    )
+
+    def buildFeature(region: RegionDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      featureBuilder.add(region.geometry)
+      featureBuilder.add(region.regionId)
+      featureBuilder.add(region.name)
+      featureBuilder.add(region.labelCount)
+      featureBuilder.add(region.streetCount)
+      featureBuilder.add(region.userCount)
+      featureBuilder.add(region.auditCount)
+      featureBuilder.add(region.firstLabelDate.map(_.toString).orNull)
+      featureBuilder.add(region.lastLabelDate.map(_.toString).orNull)
       featureBuilder.buildFeature(null)
     }
 

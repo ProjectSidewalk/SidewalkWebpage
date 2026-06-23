@@ -52,6 +52,38 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
+  "GET /v3/api/regions" should {
+    "return 200 GeoJSON FeatureCollection by default" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/regions")).get
+      status(resp) mustBe OK
+      contentType(resp) mustBe Some("application/json")
+
+      val json = contentAsJson(resp)
+      (json \ "type").as[String] mustBe "FeatureCollection"
+      (json \ "features").asOpt[Seq[JsObject]] mustBe defined
+    }
+
+    "return CSV with the documented header when filetype=csv" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/regions?filetype=csv")).get
+      status(resp) mustBe OK
+      contentAsString(resp) must include(
+        "region_id,name,label_count,street_count,user_count,audit_count,first_label_date,last_label_date,center_point"
+      )
+    }
+
+    "return 400 for a malformed bbox" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/regions?bbox=not-a-bbox")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "bbox"
+    }
+
+    "return 400 for a non-positive regionId" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/regions?regionId=0")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "regionId"
+    }
+  }
+
   "GET /v3/api/cities" should {
     "return 200 JSON" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/cities")).get
