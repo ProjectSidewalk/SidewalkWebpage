@@ -17,6 +17,7 @@ import java.nio.file.Files
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 /**
  * Controller for handling API requests related to label clusters.
@@ -77,59 +78,39 @@ class LabelClustersApiController @Inject() (
       // Parse bbox parameter.
       val parsedBbox: Option[LatLngBBox] = parseBBoxString(bbox)
 
-      // Parse date strings to OffsetDateTime if provided.
-      val parsedAvgImageCaptureDate: Option[OffsetDateTime] = parseDateTimeString(avgImageCaptureDate)
-      val parsedAvgLabelDate: Option[OffsetDateTime]        = parseDateTimeString(avgLabelDate)
+      // Parse and validate date filters (malformed values are reported rather than silently dropped).
+      val parsedAvgImageCaptureDate = parseDateTimeParam(avgImageCaptureDate, "avgImageCaptureDate")
+      val parsedAvgLabelDate        = parseDateTimeParam(avgLabelDate, "avgLabelDate")
 
       // Parse comma-separated lists into sequences.
       val parsedLabelTypes = labelType.map(_.split(",").map(_.trim).toSeq)
 
-      // Handle invalid param error cases.
-      if (bbox.isDefined && parsedBbox.isEmpty) {
-        Future.successful(
-          BadRequest(
-            Json.toJson(
-              ApiError.invalidParameter(
-                "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.",
-                "bbox"
-              )
-            )
-          )
-        )
-      } else if (regionId.isDefined && regionId.get <= 0) {
-        Future.successful(
-          BadRequest(
-            Json.toJson(
-              ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId")
-            )
-          )
-        )
-      } else if (minSeverity.isDefined && (minSeverity.get < 1 || minSeverity.get > 3)) {
-        Future.successful(
-          BadRequest(
-            Json.toJson(
-              ApiError.invalidParameter("Invalid minSeverity value. Must be between 1-3.", "minSeverity")
-            )
-          )
-        )
-      } else if (maxSeverity.isDefined && (maxSeverity.get < 1 || maxSeverity.get > 3)) {
-        Future.successful(
-          BadRequest(
-            Json.toJson(
-              ApiError.invalidParameter("Invalid maxSeverity value. Must be between 1-3.", "maxSeverity")
-            )
-          )
-        )
-      } else if (clusterSize.isDefined && clusterSize.get <= 0) {
-        Future.successful(
-          BadRequest(
-            Json.toJson(
-              ApiError.invalidParameter("Invalid clusterSize value. Must be a positive integer.", "clusterSize")
-            )
-          )
-        )
-      } else {
-        configService.getCityMapParams.flatMap { cityMapParams =>
+      // Collect the first invalid-parameter error, if any.
+      val firstError: Option[ApiError] = Seq(
+        if (bbox.isDefined && parsedBbox.isEmpty)
+          Some(ApiError.invalidParameter(
+            "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox"))
+        else None,
+        if (regionId.exists(_ <= 0))
+          Some(ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId"))
+        else None,
+        if (minSeverity.exists(s => s < 1 || s > 3))
+          Some(ApiError.invalidParameter("Invalid minSeverity value. Must be between 1-3.", "minSeverity"))
+        else None,
+        if (maxSeverity.exists(s => s < 1 || s > 3))
+          Some(ApiError.invalidParameter("Invalid maxSeverity value. Must be between 1-3.", "maxSeverity"))
+        else None,
+        if (clusterSize.exists(_ <= 0))
+          Some(ApiError.invalidParameter("Invalid clusterSize value. Must be a positive integer.", "clusterSize"))
+        else None,
+        parsedAvgImageCaptureDate.left.toOption,
+        parsedAvgLabelDate.left.toOption
+      ).flatten.headOption
+
+      firstError match {
+        case Some(error) => Future.successful(badRequest(error))
+        case None =>
+          configService.getCityMapParams.flatMap { cityMapParams =>
           // If bbox isn't provided, use city defaults.
           val apiBox: LatLngBBox = parsedBbox.getOrElse {
             logger.info("Using default city bounding box")
@@ -162,7 +143,8 @@ class LabelClustersApiController @Inject() (
           val filters = LabelClusterFiltersForApi(
             bbox = finalBbox, labelTypes = parsedLabelTypes, regionId = finalRegionId, regionName = finalRegionName,
             includeRawLabels = includeRawLabels.getOrElse(false), minClusterSize = clusterSize,
-            minAvgImageCaptureDate = parsedAvgImageCaptureDate, minAvgLabelDate = parsedAvgLabelDate,
+            minAvgImageCaptureDate = parsedAvgImageCaptureDate.toOption.flatten,
+            minAvgLabelDate = parsedAvgLabelDate.toOption.flatten,
             minSeverity = minSeverity, maxSeverity = maxSeverity
           )
 
@@ -206,6 +188,19 @@ class LabelClustersApiController @Inject() (
                         (labelCsvPath, baseFileName + "_labels.csv")
                       ),
                       baseFileName
+                    )
+                  }
+                  .recoverWith { case NonFatal(e) =>
+                    // Ensure writers are closed and temp files removed if streaming or zipping failed.
+                    scala.util.Try(clusterWriter.close())
+                    scala.util.Try(labelWriter.close())
+                    Files.deleteIfExists(clusterCsvPath)
+                    Files.deleteIfExists(labelCsvPath)
+                    logger.error(s"Error generating label clusters CSV: ${e.getMessage}", e)
+                    Future.successful(
+                      InternalServerError(
+                        Json.toJson(ApiError.internalServerError(s"Error processing request: ${e.getMessage}"))
+                      )
                     )
                   }
               case Some("csv") =>

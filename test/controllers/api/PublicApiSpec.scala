@@ -91,4 +91,91 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       contentType(resp) mustBe Some("application/json")
     }
   }
+
+  // Parameter-validation contract for the filtered endpoints. These assertions hit the controller's input validation,
+  // which runs before any DB query, so they are fast and independent of whatever the connected DB contains. Each case
+  // pins both the 400 status and the `parameter` field, which together form the documented error contract — and each
+  // guards a specific bug class (an invalid enum or malformed date being silently dropped instead of rejected).
+
+  "GET /v3/api/rawLabels parameter validation" should {
+    // A tiny bbox far from any city keeps the streamed success body cheap while still exercising the happy path.
+    val emptyBbox = "0,0,0.001,0.001"
+
+    "reject an invalid validationStatus with 400 (parameter=validationStatus)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?validationStatus=not-a-status")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "validationStatus"
+    }
+
+    "reject a malformed startDate with 400 (parameter=startDate)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?startDate=not-a-date")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "startDate"
+    }
+
+    "reject a malformed endDate with 400 (parameter=endDate)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?endDate=2020-13-99")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "endDate"
+    }
+
+    "reject a malformed bbox with 400 (parameter=bbox)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?bbox=1,2,3")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "bbox"
+    }
+
+    "accept a valid validationStatus and ISO startDate, returning a GeoJSON FeatureCollection" in {
+      val url  = s"/v3/api/rawLabels?bbox=$emptyBbox&validationStatus=validated_correct&startDate=2021-01-01T00:00:00Z"
+      val resp = route(app, FakeRequest(GET, url)).get
+      status(resp) mustBe OK
+      (contentAsJson(resp) \ "type").as[String] mustBe "FeatureCollection"
+    }
+  }
+
+  "GET /v3/api/validations parameter validation" should {
+    "reject a malformed validationTimestamp with 400 (parameter=validationTimestamp)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/validations?validationTimestamp=nope")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "validationTimestamp"
+    }
+
+    "reject an out-of-range validationResult with 400 (parameter=validationResult)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/validations?validationResult=9")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "validationResult"
+    }
+
+    "reject an unsupported shapefile request with 400 (parameter=filetype)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/validations?filetype=shapefile")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "filetype"
+    }
+  }
+
+  "GET /v3/api/labelClusters parameter validation" should {
+    "reject a malformed avgLabelDate with 400 (parameter=avgLabelDate)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/labelClusters?avgLabelDate=nope")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "avgLabelDate"
+    }
+
+    "reject a malformed avgImageCaptureDate with 400 (parameter=avgImageCaptureDate)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/labelClusters?avgImageCaptureDate=nope")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "avgImageCaptureDate"
+    }
+
+    "reject an out-of-range minSeverity with 400 (parameter=minSeverity)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/labelClusters?minSeverity=9")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "minSeverity"
+    }
+
+    "reject a non-positive clusterSize with 400 (parameter=clusterSize)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/labelClusters?clusterSize=0")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "clusterSize"
+    }
+  }
 }
