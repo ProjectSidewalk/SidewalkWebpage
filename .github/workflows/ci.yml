@@ -106,26 +106,26 @@ jobs:
 
       # The real city dumps are git-ignored (too large to commit); CI only has the small, committed sidewalk_init
       # template that init.sh restored above. So build the test city from that template: rename the schema to
-      # sidewalk_teaneck (matching cityparams.conf's `teaneck-nj = "sidewalk_teaneck"`) and set up its role +
-      # search_path — the working part of db/scripts/create-new-schema.sh. The schema is empty, which is fine here:
-      # PublicApiSpec asserts response *contract/shape*, not data values. The app connects as this role (DATABASE_USER).
+      # sidewalk_teaneck (matching cityparams.conf's `teaneck-nj = "sidewalk_teaneck"`). The schema is empty, which is
+      # fine here: PublicApiSpec asserts response *contract/shape*, not data values.
+      #
+      # We connect the app as the `sidewalk` superuser (DATABASE_USER below), not the per-city role, and point its
+      # search_path at the city schema. Reason: this template is behind the repo's evolution HEAD, so the app
+      # auto-applies pending evolutions on boot; some touch shared sidewalk_login tables (e.g. auth_tokens) that a city
+      # role can't ALTER ("must be owner"). The superuser owns everything, so evolutions apply cleanly. (In dev this
+      # never arises because the imported city dump is already at HEAD.)
       - name: Create test city schema (teaneck) from the sidewalk_init template
         run: |
           docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk -c "
-          DROP SCHEMA IF EXISTS sidewalk_teaneck CASCADE;
-          DROP USER IF EXISTS sidewalk_teaneck;
           ALTER SCHEMA sidewalk_init RENAME TO sidewalk_teaneck;
-          CREATE USER sidewalk_teaneck;
-          GRANT sidewalk TO sidewalk_teaneck;
-          ALTER SCHEMA sidewalk_teaneck OWNER TO sidewalk;
-          ALTER ROLE sidewalk_teaneck SET search_path = sidewalk_teaneck, sidewalk_login, public;"
+          ALTER ROLE sidewalk SET search_path = sidewalk_teaneck, sidewalk_login, public;"
 
       # Boot the real app and run the public-API functional tests against the imported city.
       - name: Run public API tests
         run: sbt "testOnly controllers.api.PublicApiSpec"
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
-          DATABASE_USER: sidewalk_teaneck
+          DATABASE_USER: sidewalk
           DATABASE_PASSWORD: sidewalk
           SIDEWALK_CITY_ID: teaneck-nj
           SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
