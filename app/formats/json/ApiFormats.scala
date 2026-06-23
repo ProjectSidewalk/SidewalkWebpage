@@ -185,6 +185,13 @@ object ApiFormats {
       s"""${a.agreeCount},${a.disagreeCount},${a.unsureCount},${a.labelCount},"[${a.usersList.mkString(",")}]""""
   }
 
+  /** Serializes one validation-vote source (combined/human/ai): a total count plus a per-label-type accuracy block. */
+  private def validationSourceToJson(src: ValidationSourceStats): JsObject = JsObject(
+    Seq("total_validations" -> JsNumber(src.nValidations.toDouble)) ++
+      // Turns into { "Overall" -> { "validated" -> ###, ... }, "CurbRamp" -> { "validated" -> ###, ... }, ... }.
+      src.accuracyByLabelType.toSeq.sorted(labelTypeOrdering).map(s => s._1 -> Json.toJson(s._2))
+  )
+
   def projectSidewalkStatsToJson(stats: ProjectSidewalkStats): JsObject = {
     Json.obj(
       "launch_date"                   -> stats.launchDate,
@@ -213,10 +220,12 @@ object ApiFormats {
           // Turns into { "CurbRamp" -> { "count" -> ###, ... }, ... }.
           stats.severityByLabelType.toSeq.sorted(labelTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2))
       ),
-      "validations" -> JsObject(
-        Seq("total_validations" -> JsNumber(stats.nValidations.toDouble)) ++
-          // Turns into { "Overall" -> { "validated" -> ###, ... }, "CurbRamp" -> { "validated" -> ###, ... }, ... }.
-          stats.accuracyByLabelType.toSeq.sorted(labelTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2))
+      // Validation stats are split three ways. "combined" includes both human and AI votes (AI votes are baked into
+      // the label table's agree/disagree/correct counts); "human" and "ai" isolate each source via the validator role.
+      "validations" -> Json.obj(
+        "combined" -> validationSourceToJson(stats.validations.combined),
+        "human"    -> validationSourceToJson(stats.validations.human),
+        "ai"       -> validationSourceToJson(stats.validations.ai)
       ),
       "ai_stats" -> JsObject(
         // { "Overall" -> "human_maj_vote" -> { "ai_yes_human_concurs": ###, ... }, ... }, "CurbRamp" -> { ... }, ... }.
