@@ -148,7 +148,7 @@
     padding: calc(3px * var(--ui-scale));
     margin-left: calc(2px * var(--ui-scale));
     left: 0;
-    bottom: calc((25px + var(--gsv-links-clearance, 0px)) * var(--ui-scale));
+    bottom: calc((25px + var(--bottom-left-links-clearance, 0px)) * var(--ui-scale));
     border-radius: calc(5px * var(--ui-scale));
     position: absolute;
     z-index: 1;

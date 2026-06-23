@@ -166,6 +166,14 @@
     transform-origin: bottom left;
 }
 
+/* Scale Mapillary's attribution links with the UI. */
+#view-control-layer .mapillary-attribution-container {
+    bottom: calc(3px * var(--ui-scale)) !important;
+    right: calc(2px * var(--ui-scale)) !important;
+    transform: scale(var(--ui-scale));
+    transform-origin: bottom right;
+}
+
 .button-on-pano {
     position: absolute;
     z-index: 2;

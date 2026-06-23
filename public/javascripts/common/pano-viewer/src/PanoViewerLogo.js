@@ -15,14 +15,14 @@ function createPanoViewerLogo(container, primaryViewerType) {
     const LOGOS = new Map([
         [GsvViewer,       { src: '/assets/images/logos/google-logo.svg',          alt: 'Google',    paddingLeft: '10px' }],
         [MapillaryViewer, { src: '/assets/images/logos/mapillary-logo-white.png', alt: 'Mapillary', paddingLeft: '5px'  }],
-        [Infra3dViewer,   { src: '/assets/images/logos/infra3d-logo.svg',         alt: 'infra3D',   paddingLeft: '10px' }],
+        [Infra3dViewer,   { src: '/assets/images/logos/infra3d-logo.svg',         alt: 'infra3D',   paddingLeft: '6px' }],
     ]);
 
     const holder = document.createElement('div');
     Object.assign(holder.style, {
         display: 'none',
         position: 'absolute',
-        bottom: '0',
+        bottom: 'calc(var(--bottom-left-links-clearance, 2px) * var(--ui-scale, 1))',
         left: '0',
         zIndex: '1',
         height: 'calc(29px * var(--ui-scale, 1))',

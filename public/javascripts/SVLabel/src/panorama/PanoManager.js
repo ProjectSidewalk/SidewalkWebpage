@@ -19,6 +19,7 @@ class PanoManager {
         }
         this.linksListener = null;
         this.linksClearanceObserver = null;
+        this.mapillaryAttributionObserver = null;
     }
 
     /**
@@ -95,10 +96,11 @@ class PanoManager {
         const panoViewerLogo = createPanoViewerLogo(this.panoCanvas.parentElement, panoViewerType);
         panoViewerLogo.showPrimaryLogo();
 
-        // TODO we probably need to do this for any viewer type...
         if (panoViewerType === GsvViewer) {
-            this.#makeLinksClickable();
-            this.linksListener = svl.panoViewer.gsvPano.addListener('links_changed', this.#makeLinksClickable);
+            this.#makeGsvAttributionClickable();
+            this.linksListener = svl.panoViewer.gsvPano.addListener('links_changed', this.#makeGsvAttributionClickable);
+        } else if (panoViewerType === MapillaryViewer) {
+            this.#makeMapillaryAttributionClickable();
         }
 
         this.resetNavArrows();
@@ -176,7 +178,7 @@ class PanoManager {
      * the pano links get processed on the first call even if the minimap hasn't rendered its links yet.
      * @private
      */
-    #makeLinksClickable = () => {
+    #makeGsvAttributionClickable = () => {
         this.#makePanoLinksClickable();
         this.#makeMinimapLinksClickable();
 
@@ -206,32 +208,55 @@ class PanoManager {
             panoLinks[0].remove(); // Remove GSV keyboard shortcuts link.
             const gsvLinksBar = $(panoLinks[1]).parent().parent()[0];
             svl.ui.streetview.viewControlLayer.append(gsvLinksBar);
-            this.#liftBottomLeftAboveGsvLinks(gsvLinksBar);
+            this.#liftBottomLeftAboveLinks(gsvLinksBar);
         }
     }
 
     /**
-     * Lifts the bottom-left pano overlays (the pano date, info button, speed-limit, and logo) above the GSV links.
+     * Moves Mapillary's attribution links (image credit/date/report links) to the top layer so they're clickable.
      *
-     * Publishes the links bar's height as the --gsv-links-clearance CSS variable, which those overlays add to their
-     * bottom offset. The links exist only for GSV, so default position kept for other viewers.
-     * @param {HTMLElement} gsvLinksBar The GSV links container now anchored at the bottom-left of the pano.
+     * Mapillary renders these inside the pano canvas itself, where the click-handling view-control-layer covers
+     * them. We move the container up into that layer instead, the same trick used for the GSV links. Mapillary may
+     * re-render its own container back into the pano (e.g. after an image change), so we keep watching for that.
      * @private
      */
-    #liftBottomLeftAboveGsvLinks = (gsvLinksBar) => {
+    #makeMapillaryAttributionClickable = () => {
+        const tryMove = () => {
+            const attributionContainer = this.panoCanvas.querySelector('.mapillary-attribution-container');
+            if (attributionContainer) {
+                svl.ui.streetview.viewControlLayer.append(attributionContainer);
+                this.#liftBottomLeftAboveLinks(attributionContainer);
+            }
+        };
+        tryMove(); // Handle the case where Mapillary already rendered the container before we started observing.
+
+        if (this.mapillaryAttributionObserver) this.mapillaryAttributionObserver.disconnect();
+        this.mapillaryAttributionObserver = new MutationObserver(tryMove);
+        this.mapillaryAttributionObserver.observe(this.panoCanvas, { childList: true, subtree: true });
+    }
+
+    /**
+     * Lifts the bottom-left pano overlays (the pano date, info button, speed-limit, and logo) attribution links.
+     *
+     * Publishes the links bar's height as the --bottom-left-links-clearance CSS variable, which those overlays add
+     * to their bottom offset. Default position is kept for viewers without a bottom-left links bar.
+     * @param {HTMLElement} linksBar The links container now anchored at the bottom-left of the pano.
+     * @private
+     */
+    #liftBottomLeftAboveLinks = (linksBar) => {
         const root = document.querySelector('.tool-ui');
-        if (!root || !gsvLinksBar) return;
+        if (!root || !linksBar) return;
 
         const publishClearance = () => {
             // offsetHeight is the layout (pre-transform) height; the overlays multiply it by --ui-scale themselves.
-            const height = gsvLinksBar.offsetHeight;
-            if (height > 0) root.style.setProperty('--gsv-links-clearance', `${height}px`);
+            const height = linksBar.offsetHeight;
+            if (height > 0) root.style.setProperty('--bottom-left-links-clearance', `${height}px`);
         };
         publishClearance();
 
         if (this.linksClearanceObserver) this.linksClearanceObserver.disconnect();
         this.linksClearanceObserver = new ResizeObserver(publishClearance);
-        this.linksClearanceObserver.observe(gsvLinksBar);
+        this.linksClearanceObserver.observe(linksBar);
     }
 
     /**

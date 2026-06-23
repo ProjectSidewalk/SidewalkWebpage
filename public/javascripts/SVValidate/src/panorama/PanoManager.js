@@ -25,6 +25,9 @@ class PanoManager {
     #bottomLinksClickable = false;
     #linksListener = null;
 
+    /** @type {MutationObserver|null} Watches for Mapillary's attribution container appearing inside the pano canvas. */
+    #mapillaryAttributionObserver = null;
+
     /** @type {{showPrimaryLogo: Function, showSourceLogo: Function}} */
     #logo;
 
@@ -81,10 +84,11 @@ class PanoManager {
             svv.panoViewer.resize(); // Necessary for PannellumViewer for correct vertical position of the label.
         }
 
-        // TODO we probably need to do this for any viewer type...
         if (panoViewerType === GsvViewer && !isMobile()) {
-            this.#makeLinksClickable();
-            this.#linksListener = this.#primaryViewer.gsvPano.addListener('links_changed', this.#makeLinksClickable.bind(this));
+            this.#makeGsvAttributionClickable();
+            this.#linksListener = this.#primaryViewer.gsvPano.addListener('links_changed', this.#makeGsvAttributionClickable.bind(this));
+        } else if (panoViewerType === MapillaryViewer && !isMobile()) {
+            this.#makeMapillaryAttributionClickable();
         }
     }
 
@@ -143,7 +147,7 @@ class PanoManager {
      * Moves the buttons on the bottom-right of the GSV image to the top layer so they are clickable.
      * @private
      */
-    #makeLinksClickable() {
+    #makeGsvAttributionClickable() {
         let bottomLinks = $('.gm-style-cc');
         if (!this.#bottomLinksClickable && bottomLinks.length > 3) {
             this.#bottomLinksClickable = true;
@@ -156,6 +160,26 @@ class PanoManager {
         }
 
         google.maps.event.removeListener(this.#linksListener);
+    }
+
+    /**
+     * Moves Mapillary's attribution links (image credit/date/report links) to the top layer so they're clickable.
+     *
+     * Mapillary renders these inside the pano canvas itself, where the click-handling view-control-layer covers
+     * them. We move the container up into that layer instead, the same trick used for the GSV links. Mapillary may
+     * re-render its own container back into the pano (e.g. after an image change), so we keep watching for that.
+     * @private
+     */
+    #makeMapillaryAttributionClickable() {
+        const tryMove = () => {
+            const attributionContainer = this.#panoCanvas.querySelector('.mapillary-attribution-container');
+            if (attributionContainer) svv.ui.viewer.controlLayer.append(attributionContainer);
+        };
+        tryMove(); // Handle the case where Mapillary already rendered the container before we started observing.
+
+        if (this.#mapillaryAttributionObserver) this.#mapillaryAttributionObserver.disconnect();
+        this.#mapillaryAttributionObserver = new MutationObserver(tryMove);
+        this.#mapillaryAttributionObserver.observe(this.#panoCanvas, { childList: true, subtree: true });
     }
 
     /**

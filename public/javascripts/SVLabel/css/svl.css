@@ -119,7 +119,7 @@ input[type="radio"] {
     justify-content: flex-start;
     height: calc(28px * var(--ui-scale));
     position: absolute;
-    bottom: calc(var(--gsv-links-clearance, 0px) * var(--ui-scale));
+    bottom: calc(var(--bottom-left-links-clearance, 0px) * var(--ui-scale));
     left: calc(71px * var(--ui-scale));
     z-index: 1;
     font: var(--text-small-medium);
@@ -133,8 +133,9 @@ input[type="radio"] {
 
 /* Scale Google's terms / report-a-problem links (bottom-left; moved here from the pano) with the UI. They're Google's
    own elements with no scale hooks, so we scale them visually, anchored to the bottom-left corner they sit in. The
-   other bottom-left overlays (date/info button, speed-limit sign, Google logo) are lifted above these via
-   --gsv-links-clearance, which PanoManager sets to the links' height for GSV imagery. */
+   other bottom-left overlays (date/info button, speed-limit sign, imagery-source logo) are lifted above these via
+   --bottom-left-links-clearance, which PanoManager sets to the links' height for whichever imagery source provides
+   a bottom-left links/attribution bar (GSV's terms/report-a-problem links, Mapillary's attribution links). */
 #view-control-layer div:has(> .gmnoprint) {
     bottom: calc(3px * var(--ui-scale)) !important;
     left: calc(1px * var(--ui-scale)) !important;
@@ -146,7 +147,16 @@ input[type="radio"] {
 /* Scale Google's own Street View logo with the UI, anchored to its corner. */
 #pano div:has(> a[aria-label*="Google"]) {
     left: calc(2px * var(--ui-scale)) !important;
-    bottom: calc((2px + var(--gsv-links-clearance, 0px)) * var(--ui-scale)) !important;
+    bottom: calc((2px + var(--bottom-left-links-clearance, 0px)) * var(--ui-scale)) !important;
+    transform: scale(var(--ui-scale));
+    transform-origin: bottom left;
+}
+
+/* Move Mapillary's attribution links to the bottom-left of the pano, scaling them with the UI. */
+#view-control-layer .mapillary-attribution-container {
+    bottom: calc(3px * var(--ui-scale)) !important;
+    left: calc(1px * var(--ui-scale)) !important;
+    right: auto !important;
     transform: scale(var(--ui-scale));
     transform-origin: bottom left;
 }

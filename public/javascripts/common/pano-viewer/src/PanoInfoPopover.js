@@ -101,7 +101,7 @@ class PanoInfoPopover {
 
         // Hide the view-in-pano link for viewers that have no external URL.
         if (this.#panoViewer.getViewerType() === 'infra3d') {
-            this.#popoverEl.querySelector('.pano-info-popover__view-link').hidden = true;
+            this.#popoverEl.querySelector('.pano-info-popover__view-link').style.display = 'none';
         }
 
         // Toggle the popover on info button click.
