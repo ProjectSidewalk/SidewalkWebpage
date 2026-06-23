@@ -97,6 +97,16 @@ case class TagCount(labelType: String, tag: String, count: Int)
 case class LabelSevStats(n: Int, nWithSeverity: Option[Int], severityMean: Option[Double], severitySD: Option[Double])
 case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Double], nWithValidation: Int)
 case class AiConcurrence(aiYesHumanConcurs: Int, aiYesHumanDiffers: Int, aiNoHumanDiffers: Int, aiNoHumanConcurs: Int)
+
+// Validation stats for a single source of votes (combined = all votes, human = non-AI votes, ai = AI votes). Each
+// source has a raw count of validations (label_validation rows) plus a per-label-type majority-vote breakdown.
+case class ValidationSourceStats(nValidations: Int, accuracyByLabelType: Map[String, LabelAccuracy])
+case class ValidationStats(
+    combined: ValidationSourceStats,
+    human: ValidationSourceStats,
+    ai: ValidationSourceStats
+)
+
 case class ProjectSidewalkStats(
     launchDate: String,
     avgTimestampLast100Labels: Option[OffsetDateTime],
@@ -114,8 +124,7 @@ case class ProjectSidewalkStats(
     avgLabelTimestamp: Option[OffsetDateTime],
     avgImageAgeByLabel: Option[Duration],
     severityByLabelType: Map[String, LabelSevStats],
-    nValidations: Int,
-    accuracyByLabelType: Map[String, LabelAccuracy],
+    validations: ValidationStats,
     aiPerformance: Map[String, Map[String, AiConcurrence]]
 )
 case class LabelTypeValidationsLeft(labelType: LabelTypeEnum.Base, validationsAvailable: Int, validationsNeeded: Int)
@@ -298,6 +307,31 @@ object LabelTable {
   trait TupleConverter[Tuple, A] {
     def fromTuple(tuple: Tuple): A
   }
+
+  // Ordered list of (columnPrefix, labelTypeName) groups used by the validation-stats portion of
+  // getOverallStatsForApi and its result parser (projectSidewalkStatsConverter). "overall" applies no label_type
+  // filter (i.e., all types). ORDER MATTERS: the SQL emits columns in this order and the parser reads them in the same
+  // order, so the two stay in lockstep.
+  val validationStatLabelTypes: Seq[(String, String)] = Seq(
+    "overall"    -> "Overall",
+    "ramp"       -> CurbRamp.name,
+    "noramp"     -> NoCurbRamp.name,
+    "obs"        -> Obstacle.name,
+    "surf"       -> SurfaceProblem.name,
+    "nosidewalk" -> NoSidewalk.name,
+    "crswlk"     -> Crosswalk.name,
+    "signal"     -> Signal.name,
+    "occlusion"  -> Occlusion.name,
+    "other"      -> Other.name
+  )
+
+  // Ordered list of (columnPrefix, SQL role filter) for the three validation-vote sources: combined (all votes),
+  // human (non-AI votes), and ai (AI votes). ORDER MATTERS (see validationStatLabelTypes).
+  val validationStatSources: Seq[(String, String)] = Seq(
+    "comb"  -> "TRUE",
+    "human" -> "role <> 'AI'",
+    "ai"    -> "role = 'AI'"
+  )
 
   // Type aliases for the tuple representation of LabelMetadataUserDash and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
@@ -699,19 +733,23 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         Occlusion.name  -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
         Other.name      -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption())
       ),
-      r.nextInt(),
-      Map(
-        "Overall"           -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
-        CurbRamp.name       -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
-        NoCurbRamp.name     -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
-        Obstacle.name       -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
-        SurfaceProblem.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
-        NoSidewalk.name     -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
-        Crosswalk.name      -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
-        Signal.name         -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
-        Occlusion.name      -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt()),
-        Other.name          -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt())
-      ),
+      {
+        // Read the combined/human/ai validation breakdowns in the exact order getOverallStatsForApi emits them: for
+        // each source, the total validation count followed by one LabelAccuracy per validationStatLabelTypes entry.
+        // Seq.map is strict and left-to-right, so this reads columns positionally in sync with the SELECT.
+        def readSource(): ValidationSourceStats =
+          ValidationSourceStats(
+            r.nextInt(),
+            validationStatLabelTypes.map { case (_, labelType) =>
+              labelType -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(), r.nextInt())
+            }.toMap
+          )
+        // validationStatSources order is (comb, human, ai); read in that exact order.
+        val combined = readSource()
+        val human    = readSource()
+        val ai       = readSource()
+        ValidationStats(combined, human, ai)
+      },
       Map(
         "Overall" -> Map(
           "human_majority_vote" -> AiConcurrence(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
@@ -1686,6 +1724,74 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if (filterLowQuality) "user_stat.high_quality"
       else "NOT user_stat.excluded"
 
+    // Same as `userFilter`, but applied to the LABELER's user_stat (aliased `labeler_stat`) in the per-label
+    // validation-verdict subquery. There, `user_stat` is reused for the validator, so the labeler needs its own alias.
+    val labelerFilter: String =
+      if (filterLowQuality) "labeler_stat.high_quality"
+      else "NOT labeler_stat.excluded"
+
+    // The validation stats are reported three ways: combined (all votes), human (non-AI votes), and ai (AI votes).
+    // Rather than hand-write ~150 nearly-identical SQL columns (and risk drift from projectSidewalkStatsConverter), we
+    // generate the repetitive column lists from the shared, ordered LabelTable.validationStatSources and
+    // LabelTable.validationStatLabelTypes. The parser reads columns in the same order, keeping the two in lockstep.
+    val valSources: Seq[(String, String)]  = LabelTable.validationStatSources
+    val valTypes: Seq[(String, String)]    = LabelTable.validationStatLabelTypes
+    // Per-label-type filter used in the outer aggregation; "overall" matches all label types.
+    def ltCond(prefix: String, labelType: String): String =
+      if (prefix == "overall") "" else s"label_type = '$labelType' AND "
+
+    // (a) Top-level SELECT: for each source, the total validation count then validated/agreed/disagreed/accuracy/
+    // has-a-validation per label type, in the exact order projectSidewalkStatsConverter reads them.
+    val validationSelectCols: String = valSources
+      .map { case (src, _) =>
+        val perType = valTypes
+          .map { case (pfx, _) =>
+            s"""val_counts.${src}_${pfx}_validated,
+               |             val_counts.${src}_${pfx}_agree,
+               |             val_counts.${src}_${pfx}_disagree,
+               |             1.0 * val_counts.${src}_${pfx}_agree / NULLIF(val_counts.${src}_${pfx}_validated, 0) AS ${src}_${pfx}_accuracy,
+               |             val_counts.${src}_${pfx}_with_val""".stripMargin
+          }
+          .mkString(",\n             ")
+        s"total_val_count.${src}_total,\n             $perType"
+      }
+      .mkString(",\n             ")
+
+    // (b) Totals subquery: raw label_validation row counts split by source.
+    val validationTotalsCols: String = valSources
+      .map { case (src, filter) => s"COUNT(CASE WHEN $filter THEN 1 END) AS ${src}_total" }
+      .mkString(",\n                 ")
+
+    // (c) Inner per-label verdict subquery: for each source, the majority vote (1=agree, 2=disagree, 3=tie/none) and a
+    // raw vote count (>0 means this source weighed in, used for has_a_validation).
+    val validationVerdictCols: String = valSources
+      .map { case (src, filter) =>
+        s"""CASE
+           |                         WHEN COUNT(CASE WHEN $filter AND validation_result = 1 THEN 1 END)
+           |                             > COUNT(CASE WHEN $filter AND validation_result = 2 THEN 1 END) THEN 1
+           |                         WHEN COUNT(CASE WHEN $filter AND validation_result = 2 THEN 1 END)
+           |                             > COUNT(CASE WHEN $filter AND validation_result = 1 THEN 1 END) THEN 2
+           |                         ELSE 3
+           |                         END AS ${src}_mv,
+           |                     COUNT(CASE WHEN $filter THEN 1 END) AS ${src}_votes""".stripMargin
+      }
+      .mkString(",\n                     ")
+
+    // (d) Outer aggregation: per source and label type, count labels by their majority verdict.
+    val validationAggCols: String = valSources
+      .map { case (src, _) =>
+        valTypes
+          .map { case (pfx, labelType) =>
+            val cond = ltCond(pfx, labelType)
+            s"""COUNT(CASE WHEN ${cond}${src}_mv IN (1, 2) THEN 1 END) AS ${src}_${pfx}_validated,
+               |                 COUNT(CASE WHEN ${cond}${src}_mv = 1 THEN 1 END) AS ${src}_${pfx}_agree,
+               |                 COUNT(CASE WHEN ${cond}${src}_mv = 2 THEN 1 END) AS ${src}_${pfx}_disagree,
+               |                 COUNT(CASE WHEN ${cond}${src}_votes > 0 THEN 1 END) AS ${src}_${pfx}_with_val""".stripMargin
+          }
+          .mkString(",\n                 ")
+      }
+      .mkString(",\n                 ")
+
     sql"""
       SELECT '#$launchDate' AS launch_date,
              #${avgRecentLabels.map(avg => s"'$avg'").getOrElse("NULL")} AS avg_timestamp_last_100_labels,
@@ -1738,57 +1844,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label_counts_and_severity.n_other_with_sev,
              label_counts_and_severity.other_sev_mean,
              label_counts_and_severity.other_sev_sd,
-             total_val_count.validation_count,
-             val_counts.n_validated,
-             val_counts.n_agree,
-             val_counts.n_disagree,
-             1.0 * val_counts.n_agree / NULLIF(val_counts.n_validated, 0) AS overall_accuracy,
-             n_with_validation,
-             val_counts.n_ramp_total,
-             val_counts.n_ramp_agree,
-             val_counts.n_ramp_disagree,
-             1.0 * val_counts.n_ramp_agree / NULLIF(val_counts.n_ramp_total, 0) AS ramp_accuracy,
-             n_ramp_with_validation,
-             val_counts.n_noramp_total,
-             val_counts.n_noramp_agree,
-             val_counts.n_noramp_disagree,
-             1.0 * val_counts.n_noramp_agree / NULLIF(val_counts.n_noramp_total, 0) AS noramp_accuracy,
-             n_noramp_with_validation,
-             val_counts.n_obs_total,
-             val_counts.n_obs_agree,
-             val_counts.n_obs_disagree,
-             1.0 * val_counts.n_obs_agree / NULLIF(val_counts.n_obs_total, 0) AS obs_accuracy,
-             n_obs_with_validation,
-             val_counts.n_surf_total,
-             val_counts.n_surf_agree,
-             val_counts.n_surf_disagree,
-             1.0 * val_counts.n_surf_agree / NULLIF(val_counts.n_surf_total, 0) AS surf_accuracy,
-             n_surf_with_validation,
-             val_counts.n_nosidewalk_total,
-             val_counts.n_nosidewalk_agree,
-             val_counts.n_nosidewalk_disagree,
-             1.0 * val_counts.n_nosidewalk_agree / NULLIF(val_counts.n_nosidewalk_total, 0) AS nosidewalk_accuracy,
-             n_nosidewalk_with_validation,
-             val_counts.n_crswlk_total,
-             val_counts.n_crswlk_agree,
-             val_counts.n_crswlk_disagree,
-             1.0 * val_counts.n_crswlk_agree / NULLIF(val_counts.n_crswlk_total, 0) AS crswlk_accuracy,
-             n_crswlk_with_validation,
-             val_counts.n_signal_total,
-             val_counts.n_signal_agree,
-             val_counts.n_signal_disagree,
-             1.0 * val_counts.n_signal_agree / NULLIF(val_counts.n_signal_total, 0) AS signal_accuracy,
-             n_signal_with_validation,
-             val_counts.n_occlusion_total,
-             val_counts.n_occlusion_agree,
-             val_counts.n_occlusion_disagree,
-             1.0 * val_counts.n_occlusion_agree / NULLIF(val_counts.n_occlusion_total, 0) AS occlusion_accuracy,
-             n_occlusion_with_validation,
-             val_counts.n_other_total,
-             val_counts.n_other_agree,
-             val_counts.n_other_disagree,
-             1.0 * val_counts.n_other_agree / NULLIF(val_counts.n_other_total, 0) AS other_accuracy,
-             n_other_with_validation,
+             #$validationSelectCols,
              ai_stats.ai_yes_mv_yes,
              ai_stats.ai_yes_mv_no,
              ai_stats.ai_no_mv_yes,
@@ -1923,60 +1979,37 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
               AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
       ) AS label_counts_and_severity, (
-          SELECT COUNT(*) AS validation_count
+          SELECT #$validationTotalsCols
           FROM label_validation
           INNER JOIN user_stat ON label_validation.user_id = user_stat.user_id
+          INNER JOIN user_role ON user_stat.user_id = user_role.user_id
+          INNER JOIN role ON user_role.role_id = role.role_id
           WHERE #$userFilter
       ) AS total_val_count, (
-          SELECT COUNT(CASE WHEN correct THEN 1 END) AS n_agree,
-                 COUNT(CASE WHEN NOT correct THEN 1 END) AS n_disagree,
-                 COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS n_validated,
-                 COUNT(CASE WHEN agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_with_validation,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND correct THEN 1 END) AS n_ramp_agree,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND NOT correct THEN 1 END) AS n_ramp_disagree,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND correct IS NOT NULL THEN 1 END) AS n_ramp_total,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_ramp_with_validation,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct THEN 1 END) AS n_noramp_agree,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND NOT correct THEN 1 END) AS n_noramp_disagree,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct IS NOT NULL THEN 1 END) AS n_noramp_total,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_noramp_with_validation,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND correct THEN 1 END) AS n_obs_agree,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND NOT correct THEN 1 END) AS n_obs_disagree,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND correct IS NOT NULL THEN 1 END) AS n_obs_total,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_obs_with_validation,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct THEN 1 END) AS n_surf_agree,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND NOT correct THEN 1 END) AS n_surf_disagree,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct IS NOT NULL THEN 1 END) AS n_surf_total,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_surf_with_validation,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct THEN 1 END) AS n_nosidewalk_agree,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND NOT correct THEN 1 END) AS n_nosidewalk_disagree,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct IS NOT NULL THEN 1 END) AS n_nosidewalk_total,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_nosidewalk_with_validation,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND correct THEN 1 END) AS n_crswlk_agree,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND NOT correct THEN 1 END) AS n_crswlk_disagree,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND correct IS NOT NULL THEN 1 END) AS n_crswlk_total,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_crswlk_with_validation,
-                 COUNT(CASE WHEN label_type = 'Signal' AND correct THEN 1 END) AS n_signal_agree,
-                 COUNT(CASE WHEN label_type = 'Signal' AND NOT correct THEN 1 END) AS n_signal_disagree,
-                 COUNT(CASE WHEN label_type = 'Signal' AND correct IS NOT NULL THEN 1 END) AS n_signal_total,
-                 COUNT(CASE WHEN label_type = 'Signal' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_signal_with_validation,
-                 COUNT(CASE WHEN label_type = 'Occlusion' AND correct THEN 1 END) AS n_occlusion_agree,
-                 COUNT(CASE WHEN label_type = 'Occlusion' AND NOT correct THEN 1 END) AS n_occlusion_disagree,
-                 COUNT(CASE WHEN label_type = 'Occlusion' AND correct IS NOT NULL THEN 1 END) AS n_occlusion_total,
-                 COUNT(CASE WHEN label_type = 'Occlusion' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_occlusion_with_validation,
-                 COUNT(CASE WHEN label_type = 'Other' AND correct THEN 1 END) AS n_other_agree,
-                 COUNT(CASE WHEN label_type = 'Other' AND NOT correct THEN 1 END) AS n_other_disagree,
-                 COUNT(CASE WHEN label_type = 'Other' AND correct IS NOT NULL THEN 1 END) AS n_other_total,
-                 COUNT(CASE WHEN label_type = 'Other' AND agree_count + disagree_count + unsure_count > 0 THEN 1 END) AS n_other_with_validation
-          FROM label
-          INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-          INNER JOIN user_stat ON label.user_id = user_stat.user_id
-          INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-          WHERE #$userFilter
-              AND deleted = FALSE
-              AND tutorial = FALSE
-              AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-              AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+          SELECT #$validationAggCols
+          FROM (
+              -- One row per validated label: the majority verdict from each vote source plus that source's vote count.
+              -- AI votes are baked into the label table's agree/disagree/correct columns, so we recompute from
+              -- label_validation joined to role to separate human (role <> 'AI') from AI (role = 'AI') from combined.
+              SELECT label.label_id, label_type.label_type,
+                     #$validationVerdictCols
+              FROM label
+              INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+              INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+              INNER JOIN user_stat AS labeler_stat ON label.user_id = labeler_stat.user_id
+              INNER JOIN label_validation ON label.label_id = label_validation.label_id
+              INNER JOIN user_stat AS validator_stat ON label_validation.user_id = validator_stat.user_id
+              INNER JOIN user_role ON validator_stat.user_id = user_role.user_id
+              INNER JOIN role ON user_role.role_id = role.role_id
+              WHERE #$labelerFilter
+                  AND validator_stat.excluded = FALSE
+                  AND label.user_id <> label_validation.user_id -- Exclude users validating their own labels.
+                  AND label.deleted = FALSE
+                  AND label.tutorial = FALSE
+                  AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+                  AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+              GROUP BY label.label_id, label_type.label_type
+          ) AS label_verdicts
       ) AS val_counts, (
           SELECT COUNT(CASE WHEN ai_mv = 1 AND human_mv = 1 THEN 1 END) AS ai_yes_mv_yes,
                  COUNT(CASE WHEN ai_mv = 1 AND human_mv = 2 THEN 1 END) AS ai_yes_mv_no,
