@@ -106,13 +106,21 @@ class StatsApiController @Inject() (
               writer.println(s"$labType Severity Mean,${sevStats.severityMean.map(_.toString).getOrElse("NA")}")
               writer.println(s"$labType Severity SD,${sevStats.severitySD.map(_.toString).getOrElse("NA")}")
             }
-            writer.println(s"Total Validations,${stats.nValidations}")
-            for ((labType, accStats) <- stats.accuracyByLabelType.toSeq.sorted(labelTypeOrdering)) {
-              writer.println(s"$labType Labels Validated,${accStats.n}")
-              writer.println(s"$labType Agreed Count,${accStats.nAgree}")
-              writer.println(s"$labType Disagreed Count,${accStats.nDisagree}")
-              writer.println(s"$labType Accuracy,${accStats.accuracy.map(_.toString).getOrElse("NA")}")
-              writer.println(s"$labType Labels With a Validation,${accStats.nWithValidation}")
+            // Validation stats split three ways: combined (all votes), human (non-AI votes), and AI (AI votes).
+            val validationSources = Seq(
+              ("Combined", stats.validations.combined),
+              ("Human", stats.validations.human),
+              ("AI", stats.validations.ai)
+            )
+            for ((srcLabel, srcStats) <- validationSources) {
+              writer.println(s"$srcLabel Total Validations,${srcStats.nValidations}")
+              for ((labType, accStats) <- srcStats.accuracyByLabelType.toSeq.sorted(labelTypeOrdering)) {
+                writer.println(s"$srcLabel $labType Labels Validated,${accStats.n}")
+                writer.println(s"$srcLabel $labType Agreed Count,${accStats.nAgree}")
+                writer.println(s"$srcLabel $labType Disagreed Count,${accStats.nDisagree}")
+                writer.println(s"$srcLabel $labType Accuracy,${accStats.accuracy.map(_.toString).getOrElse("NA")}")
+                writer.println(s"$srcLabel $labType Labels With a Validation,${accStats.nWithValidation}")
+              }
             }
             for ((labelType, aiStatsMap) <- stats.aiPerformance.toSeq.sorted(labelTypeOrdering)) {
               for ((voteType, aiStats) <- aiStatsMap) {
