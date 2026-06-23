@@ -62,6 +62,7 @@ Two standalone scripts (run via the Python deps in `requirements.txt`, installed
 
 ## Development Guidelines
 - Main development branch is **develop**; **master** is the release branch. PRs target `develop`.
+- If there is an associated Github issue, beging the branch name with the issue number (e.g. `1234-fix-label-popup`).
 - When changing JS behavior, edit `src/` and let `grunt watch` rebuild; if a new `src/` file isn't picked up, check that its path matches a glob in `Gruntfile.js`.
 - When updating code in JavaScript, migrate that code to ECMA6 (`let`/`const` instead of `var`, etc.).
 - When refactoring a JS constructor function (the `function Foo(...) { const self = this; ... return self; }` pattern), convert it to an ES6 `class`. Use `#` private fields/methods. Use arrow functions in event listeners to keep `this` bound correctly.
