@@ -1,0 +1,25 @@
+name: Scala Steward
+
+# Automated dependency updates for sbt/Scala deps (Dependabot has no sbt updater). Opens PRs bumping versions in
+# build.sbt / project/plugins.sbt. Runs weekly and on manual dispatch.
+#
+# SETUP REQUIRED (one time): add a repo secret named SCALA_STEWARD_TOKEN containing a Personal Access Token (classic,
+# `repo` scope) or a fine-grained token with Contents + Pull requests write. A PAT is used (rather than the default
+# GITHUB_TOKEN) so that the PRs Scala Steward opens can themselves trigger the CI workflow.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scala-steward:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Scala Steward
+        uses: scala-steward-org/scala-steward-action@v2
+        with:
+          github-token: ${{ secrets.SCALA_STEWARD_TOKEN }}

@@ -1,0 +1,28 @@
+version: 2
+# Dependabot has no native sbt/Scala updater — those are handled by the Scala Steward workflow
+# (.github/workflows/scala-steward.yml). Dependabot here covers npm, GitHub Actions, and Docker.
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      npm-dependencies:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      docker:
+        patterns: ["*"]
