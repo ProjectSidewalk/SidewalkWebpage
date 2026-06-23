@@ -3,9 +3,9 @@ package controllers
 import controllers.base._
 import formats.json.LabelFormats
 import models.label.LabelTypeEnum
-import play.api.{Configuration, Logger}
 import play.api.libs.json._
 import play.api.mvc.{AnyContent, Request, RequestHeader}
+import play.api.{Configuration, Logger}
 import service.ImageSigningService
 
 import java.awt.Image
@@ -165,6 +165,26 @@ class ImageController @Inject() (
           case None =>
             Future.successful(NotFound(s"Pano image not found: $panoId"))
         }
+    }
+  }
+
+  /**
+   * Returns the crop image metadata (a signed serving URL) for a label as JSON, used to lazily fetch a  /cropImage URL.
+   */
+  def getCropImageMetadata(labelType: String, labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+    if (!refererAllowed(request)) {
+      Future.successful(Forbidden("Request origin not allowed."))
+    } else if (!LabelTypeEnum.validLabelTypes.contains(labelType)) {
+      Future.successful(
+        BadRequest(
+          s"Invalid label type provided: $labelType. Valid label types are: ${LabelTypeEnum.validLabelTypes.mkString(", ")}."
+        )
+      )
+    } else {
+      panoDataService.cropUrl(labelId, LabelTypeEnum.byName(labelType)) match {
+        case Some(url) => Future.successful(Ok(LabelFormats.cropImagePayload(labelId, labelType, url)))
+        case None      => Future.successful(NotFound(s"No crop image found for label: $labelId"))
+      }
     }
   }
 

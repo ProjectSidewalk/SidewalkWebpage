@@ -266,6 +266,20 @@ object LabelFormats {
     )
   }
 
+  /**
+   * Builds the JSON payload for the /cropImage/:labelType/:labelId/metadata endpoint.
+   * @param labelId The label ID.
+   * @param labelType The label type name.
+   * @param url The signed serving URL (e.g. /cropImage/<labelType>/<labelId>?exp=...&sig=...).
+   */
+  def cropImagePayload(labelId: Int, labelType: String, url: String): JsObject = {
+    Json.obj(
+      "labelId"   -> labelId,
+      "labelType" -> labelType,
+      "imageUrl"  -> url
+    )
+  }
+
   def resumeLabelMetadatatoJson(label: ResumeLabelMetadata, allTags: Seq[Tag]): JsObject = {
     Json.obj(
       "labelId"     -> label.labelData.labelId,
