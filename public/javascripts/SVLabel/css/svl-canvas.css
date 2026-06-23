@@ -154,6 +154,7 @@
     z-index: 1;
     pointer-events: none;
     transform: scale(0.75);
+    background: rgb(from var(--color-neutral-white) r g b / 75%);
 }
 
 .speed-limit-sign[data-design-style="non-us-canada"] {

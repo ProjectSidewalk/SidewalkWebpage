@@ -10,21 +10,6 @@ text {
     background: rgb(from var(--color-warning-100) r g b / 50%) !important;
 }
 
-.white-background-75 {
-    background: rgb(from var(--color-neutral-white) r g b / 75%);
-}
-
-.width-50-percent {
-    width: 50%;
-}
-
-.width-75 {
-    width: 75%;
-}
-
-b { font-weight: bold; }
-.bold { font-weight: bold; }
-
 input[type="radio"] {
     height: calc(11px * var(--ui-scale, 1));
     width: calc(11px * var(--ui-scale, 1));
@@ -96,12 +81,6 @@ input[type="radio"] {
     width: 100%;
     visibility: hidden;
 }
-#ajax-loader-image {
-    left: 45%;
-    position: relative;
-    top: 90%;
-}
-
 /* http://stackoverflow.com/questions/8942805/chrome-bug-cursor-changes-on-mouse-down-move */
 #view-control-layer {
     -webkit-user-select: none;

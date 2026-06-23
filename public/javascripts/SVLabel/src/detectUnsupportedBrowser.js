@@ -5,6 +5,6 @@ function hideBrowserVersionAlert(){
 document.addEventListener('DOMContentLoaded', function() {
     if (!util.isChrome() && !util.isFirefox() && !util.isSafari()) {
         document.getElementById('unsupported-browser-alert').style.visibility = 'visible';
-        document.getElementById('page-alert-close').addEventListener('click', hideBrowserVersionAlert);
+        document.getElementById('browser-warning-close').addEventListener('click', hideBrowserVersionAlert);
     }
 }, false);

@@ -38,6 +38,8 @@
 
 .zoom-button.disabled {
     opacity: 0.7;
+    cursor: default;
+    pointer-events: none;
 }
 
 /* White +/- glyphs (public/images/icons/{plus,minus}-white.svg) shown over the black pill. */

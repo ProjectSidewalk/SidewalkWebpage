@@ -36,6 +36,14 @@
     transform: None;
 
     border-radius: calc(3px * var(--ui-scale));
+    background: var(--color-neutral-white);
+    transition: background 0.5s;
+}
+
+/* Flashes the message box's background to draw the user's attention when a new message is shown. */
+#onboarding-message-holder.onboarding-message-flash {
+    background: var(--color-warning-100);
+    transition: background 0s;
 }
 
 #onboarding-message-holder .button {
@@ -94,17 +102,7 @@
     z-index: 1029;
 }
 
-.white-background {
-    background: var(--color-neutral-white);
-    transition:background 0.5s;
-}
-
-.yellow-background {
-    background: var(--color-warning-100);
-    transition: background 0s;
-}
-
-#onboarding-example-image-1, #onboarding-example-image-2 {
+#onboarding-example-image-1, #onboarding-example-image-2-top, #onboarding-example-image-2-bottom {
     width: calc(980px * var(--ui-scale));
     max-width: 100%;
 }
@@ -119,10 +117,6 @@
 
 .tutorial-cell-intro {
     width: 25%;
-}
-
-.tutorial-cell-end {
-    width: 50%
 }
 
 .tutorial-spacer {

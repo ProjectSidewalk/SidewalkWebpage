@@ -6,12 +6,6 @@
     top: calc(-2px * var(--ui-scale));
 }
 
-#icon-explore {
-    height: calc(38px * var(--ui-scale));
-    left: calc(5px * var(--ui-scale));
-    top: calc(2px * var(--ui-scale));
-}
-
 .label-type-button-holder {
     cursor: pointer;
     position: relative;
@@ -42,12 +36,6 @@
     display: block;
     width: 100%;
     padding-top: calc(3px * var(--ui-scale));
-}
-
-#mode-switch-walk {
-    width: calc(56px * var(--ui-scale));
-    border: calc(3px * var(--ui-scale)) solid var(--color-neutral-black);
-    background: var(--color-neutral-300);
 }
 
 .ribbon-menu-title-holder {

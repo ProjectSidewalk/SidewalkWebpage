@@ -208,7 +208,8 @@ a {
     text-decoration: none;
 }
 .button-ps:disabled {
-    cursor: default;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 /* TODO This one is used in the navbar, which we aren't scaling with --ui-scale. Need to address this another way. */

@@ -44,7 +44,7 @@
     text-decoration: underline;
 }
 
-.page-alert-holder {
+.browser-warning-holder {
     z-index: 3;
     width: 75%;
     text-align: center;
@@ -54,7 +54,7 @@
     margin-left: -37.5%;
 }
 
-.page-alert {
+.browser-warning-banner {
     background-color: var(--color-warning-100);
     border-radius: calc(10px * var(--ui-scale));
     box-shadow: 0 1px 1px rgb(from var(--color-neutral-black) r g b / 10%);
@@ -63,6 +63,6 @@
     padding: calc(6px * var(--ui-scale)) calc(10px * var(--ui-scale));
 }
 
-#page-alert-close {
+#browser-warning-close {
     cursor: pointer;
 }

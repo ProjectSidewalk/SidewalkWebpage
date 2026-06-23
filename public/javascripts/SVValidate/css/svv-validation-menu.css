@@ -53,10 +53,6 @@
     outline: none; /* Removes focus outline that shows up when I press shift after clicking on a button. */
 }
 
-.validate-page-button:disabled {
-    cursor: not-allowed;
-}
-
 .validate-button:hover {
     border: none;
 }

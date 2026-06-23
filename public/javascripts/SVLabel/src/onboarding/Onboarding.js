@@ -475,8 +475,8 @@ function Onboarding(svl, compass, handAnimation, navigationService, missionConta
     function showMessage(parameters) {
         const message = parameters.message;
         // Flash the box yellow once to catch the user's attention.
-        uiOnboarding.messageHolder.toggleClass('yellow-background');
-        setTimeout(() => uiOnboarding.messageHolder.toggleClass('yellow-background'), 100);
+        uiOnboarding.messageHolder.toggleClass('onboarding-message-flash');
+        setTimeout(() => uiOnboarding.messageHolder.toggleClass('onboarding-message-flash'), 100);
 
         // Tear down anchor positioning from the previous message.
         if (floatingCleanup) {

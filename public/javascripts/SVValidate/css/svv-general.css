@@ -41,12 +41,6 @@
 
 .normal { font-weight: normal; }
 
-.disabled {
-    pointer-events: none;
-    cursor: default;
-    opacity: 0.5;
-}
-
 /* Scale Bootstrap tooltips (reason-button examples, button hints, etc.) with the UI. They render on <body>, so they
    read --ui-scale from :root. Font/padding are scaled rather than transformed so Bootstrap positioning still works. */
 .tooltip-inner {

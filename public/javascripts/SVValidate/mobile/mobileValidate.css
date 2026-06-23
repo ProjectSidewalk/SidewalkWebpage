@@ -46,10 +46,6 @@ body {
     font-size: 5vw;
 }
 
-.filler, #footer-container, #info-footer {
-    display: none;
-}
-
 .modal-foreground {
     top: 0px;
     height: 100%;
@@ -109,10 +105,6 @@ body {
     width: 94%;
     margin-left: 11%;
     padding-left: 0;
-}
-
-#ps-logo {
-    width: 500px;
 }
 
 #ps-logo-landscape {

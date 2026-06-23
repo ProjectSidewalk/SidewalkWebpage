@@ -88,7 +88,7 @@ function ZoomControl () {
      */
     function updateZoomAvailability() {
         const zoomLevel = svv.panoViewer.getPov().zoom;
-        // The `disabled` class greys the button out (and blocks clicks); see pano-overlay-buttons.css.
+        // The `disabled` class greys the button out; see pano-overlay-buttons.css.
         zoomInButton.toggleClass('disabled', zoomLevel >= 3);
         zoomOutButton.toggleClass('disabled', zoomLevel <= 1);
     }

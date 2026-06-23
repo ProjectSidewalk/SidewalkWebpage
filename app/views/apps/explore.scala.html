@@ -135,10 +135,10 @@
                 </div>
             </div>
         </div>
-        <div class="page-alert-holder" id="unsupported-browser-alert" style="visibility: hidden">
-            <div class="page-alert">
-                <span id="page-alert-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome, with some support for Firefox and Safari. Other browsers are not fully supported yet.&nbsp;</span>
-                <span id="page-alert-close" class="glyphicon glyphicon-remove"></span>
+        <div class="browser-warning-holder" id="unsupported-browser-alert" style="visibility: hidden">
+            <div class="browser-warning-banner">
+                <span id="browser-warning-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome, with some support for Firefox and Safari. Other browsers are not fully supported yet.&nbsp;</span>
+                <span id="browser-warning-close" class="glyphicon glyphicon-remove"></span>
             </div>
         </div>
         <div id="svl-application-holder">
@@ -345,7 +345,7 @@
                     </div>
                 </div>
                 <div id="street-view-holder">
-                    <div id="speed-limit-sign" class="speed-limit-sign white-background-75" data-design-style="us-canada">
+                    <div id="speed-limit-sign" class="speed-limit-sign" data-design-style="us-canada">
                         <div class="speed-limit-holder">
                             <span class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></span>
                         </div>
@@ -386,7 +386,7 @@
                         <canvas id="onboarding-canvas"  class="window-streetview" width="720px" height="480px" style="cursor: default, move;"></canvas>
                         <div id="hand-gesture-holder"></div>
                         <div id="onboarding-background"></div>
-                        <div id="onboarding-message-holder" class="white-background">
+                        <div id="onboarding-message-holder">
                             <p></p>
                         </div>
                     </div>
@@ -657,7 +657,7 @@
                     </tr>
                     <tr>
                         <td colspan=2>
-                            <img id="onboarding-example-image-2" src='@assets.path("javascripts/SVLabel/img/onboarding/ExamplePictures02_top.png")' alt="@Messages("audit.tutorial.examples")">
+                            <img id="onboarding-example-image-2-top" src='@assets.path("javascripts/SVLabel/img/onboarding/ExamplePictures02_top.png")' alt="@Messages("audit.tutorial.examples")">
                         </td>
                     </tr>
                     <tr >
@@ -670,7 +670,7 @@
                     </tr>
                     <tr>
                         <td colspan=2>
-                            <img id="onboarding-example-image-2" src='@assets.path("javascripts/SVLabel/img/onboarding/ExamplePictures02_bot.png")' alt="@Messages("audit.tutorial.examples")" >
+                            <img id="onboarding-example-image-2-bottom" src='@assets.path("javascripts/SVLabel/img/onboarding/ExamplePictures02_bot.png")' alt="@Messages("audit.tutorial.examples")" >
                         </td>
                     </tr>
                     <tr>
