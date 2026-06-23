@@ -1,11 +1,10 @@
 name: CI
 
-# Phase 0 of the testing & CI rollout (see docs/testing-and-ci.md). Establishes the gate with ZERO tests required:
-#   - backend:  `sbt compile` (BLOCKING) + `scalafmtCheckAll` (advisory)
-#   - frontend: asset build (grunt)
+#   - backend:       `sbt compile` (BLOCKING) + `scalafmtCheckAll` (advisory)
+#   - frontend:      asset build (grunt)
+#   - backend-tests: DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now).
 # Frontend linting (eslint/htmlhint/stylelint) is intentionally NOT wired in here: it is owned by issue #2487 and
 # sequenced with the in-progress JS ES5->ES6 migration, so it'll be introduced separately on that track.
-# Later phases add unit/DB/functional test steps and a DB service container.
 
 on:
   pull_request:
@@ -70,3 +69,56 @@ jobs:
       # Exercises the grunt concat/concat_css asset build (the project's `default` grunt task).
       - name: Build assets
         run: npx grunt
+
+  backend-tests:
+    name: Backend tests (API, PostGIS)
+    runs-on: ubuntu-latest
+    # ADVISORY while the suite stabilizes (plan: ramp to blocking once it's proven stable). Does not block PRs yet.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: sbt
+
+      - name: Set up sbt
+        uses: sbt/setup-sbt@v1
+
+      # Bring up Postgres+PostGIS exactly as dev does (db/Dockerfile + init.sh, which restores the shared
+      # sidewalk_login schema and the sidewalk_init template). No data volume is mounted, so init runs fresh each run.
+      - name: Start database
+        run: docker compose up -d --build db
+
+      - name: Wait for database init to finish
+        run: |
+          for i in $(seq 1 90); do
+            if docker compose exec -T db psql -U postgres -d sidewalk -tAc \
+                 "SELECT 1 FROM information_schema.schemata WHERE schema_name='sidewalk_login'" 2>/dev/null | grep -q 1; then
+              echo "Database initialized."; exit 0
+            fi
+            sleep 2
+          done
+          echo "Database did not initialize in time."; docker compose logs db | tail -50; exit 1
+
+      # Import the smallest city dump (teaneck, ~20MB) into schema sidewalk_teaneck; this also sets the
+      # sidewalk_teaneck role's search_path to that schema (see db/scripts/import-dump.sh). The app then connects as
+      # that role (DATABASE_USER below). Not using `make import-dump` because its `docker exec -it` needs a TTY.
+      - name: Import test city (teaneck)
+        run: docker compose exec -T db /opt/scripts/import-dump.sh sidewalk_teaneck
+
+      # Boot the real app and run the public-API functional tests against the imported city.
+      - name: Run public API tests
+        run: sbt "testOnly controllers.api.PublicApiSpec"
+        env:
+          DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
+          DATABASE_USER: sidewalk_teaneck
+          DATABASE_PASSWORD: sidewalk
+          SIDEWALK_CITY_ID: teaneck-nj
+          SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
+          SILHOUETTE_SIGNER_KEY: dummy-ci-signer-key
+          SILHOUETTE_CRYPTER_KEY: dummy-ci-crypter-key
+          INTERNAL_API_KEY: dummy-ci-internal-key
