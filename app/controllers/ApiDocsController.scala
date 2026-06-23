@@ -81,6 +81,16 @@ class ApiDocsController @Inject() (
   }
 
   /**
+   * Displays API documentation for the regions.
+   */
+  def regions = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_Regions")
+      Ok(views.html.apiDocs.regions(commonData, request.identity))
+    }
+  }
+
+  /**
    * Displays API documentation for the street types.
    */
   def streetTypes = cc.securityService.SecuredAction { implicit request =>

@@ -83,6 +83,15 @@ trait ApiService {
   def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, _]
 
   /**
+   * Retrieves regions (neighborhoods) based on the provided filters and returns them as a reactive stream source.
+   *
+   * @param filters   The filters to apply when retrieving regions.
+   * @param batchSize The number of records to fetch in each batch from the database.
+   * @return          A reactive stream source that emits RegionDataForApi objects.
+   */
+  def getRegions(filters: RegionFiltersForApi, batchSize: Int): Source[RegionDataForApi, _]
+
+  /**
    * Retrieves the region with the most labels from the database.
    *
    * @return A `Future` containing an `Option` of `Region`. The `Option` will be:
@@ -186,6 +195,10 @@ class ApiServiceImpl @Inject() (
 
   def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, _] = {
     setUpStreamFromDb(streetEdgeTable.getStreetsForApi(filters), batchSize)
+  }
+
+  def getRegions(filters: RegionFiltersForApi, batchSize: Int): Source[RegionDataForApi, _] = {
+    setUpStreamFromDb(regionTable.getRegionsForApi(filters), batchSize)
   }
 
   def getLabelClusters(filters: LabelClusterFiltersForApi, batchSize: Int): Source[LabelClusterForApi, _] = {

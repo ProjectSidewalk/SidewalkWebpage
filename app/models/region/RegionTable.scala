@@ -1,6 +1,7 @@
 package models.region
 
 import com.google.inject.ImplementedBy
+import models.api.{RegionDataForApi, RegionFiltersForApi}
 import models.audit.AuditTaskTableDef
 import models.label.LabelTable
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
@@ -8,7 +9,11 @@ import models.utils.MyPostgresProfile.api._
 import models.utils.{LatLngBBox, MyPostgresProfile}
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import slick.dbio.Effect
+import slick.jdbc.GetResult
+import slick.sql.SqlStreamingAction
 
+import java.time.{OffsetDateTime, ZoneOffset}
 import javax.inject._
 import scala.concurrent.ExecutionContext
 
@@ -131,6 +136,118 @@ class RegionTable @Inject() (
       .map(_._2)
       .result
       .headOption // Output first region.
+  }
+
+  /**
+   * Gets all region (neighborhood) data for the API with filters applied, designed for streaming.
+   *
+   * @param filters The filters to apply when retrieving regions.
+   * @return        A streaming database action that yields RegionDataForApi objects.
+   */
+  def getRegionsForApi(
+      filters: RegionFiltersForApi
+  ): SqlStreamingAction[Vector[RegionDataForApi], RegionDataForApi, Effect.Read] = {
+    // Set up query filters. User-supplied string values (regionName) are single-quote-escaped and numeric filters are
+    // safe; see #2756 for migrating these raw builders to bound parameters.
+    val bboxFilter = filters.bbox
+      .map { bbox =>
+        s"AND ST_Intersects(region.geom, " +
+          s"ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
+      }
+      .getOrElse("")
+
+    val regionIdFilter = filters.regionId.map { regionId => s"AND region.region_id = $regionId" }.getOrElse("")
+
+    val regionNameFilter =
+      filters.regionName.map { regionName => s"AND LOWER(region.name) = LOWER('${regionName.replace("'", "''")}')" }
+        .getOrElse("")
+
+    val minLabelCountFilter =
+      filters.minLabelCount.map { count => s"AND COALESCE(region_labels.label_count, 0) >= $count" }.getOrElse("")
+
+    val queryStr = s"""
+      WITH filtered_regions AS (
+        SELECT region.region_id, region.name, region.geom
+        FROM region
+        WHERE region.deleted = FALSE
+            $bboxFilter
+            $regionIdFilter
+            $regionNameFilter
+      ),
+      -- Get the number of (non-deleted, non-tutorial) streets in each region.
+      region_streets AS (
+        SELECT street_edge_region.region_id, COUNT(DISTINCT street_edge.street_edge_id) AS street_count
+        FROM street_edge_region
+        JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        WHERE street_edge.deleted = FALSE
+            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+            AND street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
+        GROUP BY street_edge_region.region_id
+      ),
+      -- Get the number of completed audits of streets in each region.
+      region_audits AS (
+        SELECT street_edge_region.region_id, COUNT(audit_task.audit_task_id) AS audit_count
+        FROM street_edge_region
+        JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
+            AND street_edge.deleted = FALSE
+            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+        JOIN audit_task ON street_edge_region.street_edge_id = audit_task.street_edge_id
+            AND audit_task.completed = TRUE
+        WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
+        GROUP BY street_edge_region.region_id
+      ),
+      -- Get label counts, distinct user counts, and label timestamps for each region.
+      region_labels AS (
+        SELECT street_edge_region.region_id,
+               COUNT(label.label_id) AS label_count,
+               COUNT(DISTINCT label.user_id) AS user_count,
+               MIN(label.time_created) AS first_label_date,
+               MAX(label.time_created) AS last_label_date
+        FROM street_edge_region
+        JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
+            AND street_edge.deleted = FALSE
+            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+        JOIN label ON street_edge_region.street_edge_id = label.street_edge_id
+            AND label.deleted = FALSE
+            AND label.tutorial = FALSE
+        JOIN user_stat ON label.user_id = user_stat.user_id
+            AND user_stat.excluded = FALSE
+        WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
+        GROUP BY street_edge_region.region_id
+      )
+      -- Final selection with all aggregates joined back to the filtered regions.
+      SELECT filtered_regions.region_id, filtered_regions.name,
+             COALESCE(region_labels.label_count, 0) AS label_count,
+             COALESCE(region_streets.street_count, 0) AS street_count,
+             COALESCE(region_labels.user_count, 0) AS user_count,
+             COALESCE(region_audits.audit_count, 0) AS audit_count,
+             region_labels.first_label_date,
+             region_labels.last_label_date,
+             filtered_regions.geom
+      FROM filtered_regions
+      LEFT JOIN region_streets ON filtered_regions.region_id = region_streets.region_id
+      LEFT JOIN region_audits ON filtered_regions.region_id = region_audits.region_id
+      LEFT JOIN region_labels ON filtered_regions.region_id = region_labels.region_id
+      WHERE 1=1
+        $minLabelCountFilter
+      ORDER BY filtered_regions.region_id
+    """
+
+    implicit val getRegionDataForApi: GetResult[RegionDataForApi] = GetResult { r =>
+      RegionDataForApi(
+        regionId = r.nextInt(),
+        name = r.nextString(),
+        labelCount = r.nextInt(),
+        streetCount = r.nextInt(),
+        userCount = r.nextInt(),
+        auditCount = r.nextInt(),
+        firstLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
+        lastLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
+        geometry = r.nextGeometry[MultiPolygon]()
+      )
+    }
+
+    sql"""#$queryStr""".as[RegionDataForApi]
   }
 
   /**
