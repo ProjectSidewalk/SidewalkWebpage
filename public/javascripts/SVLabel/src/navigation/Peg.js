@@ -10,6 +10,12 @@ class Peg {
 
     static SPRITE_PATH = '/assets/images/icons/google-maps-peg';
 
+    /** Minimap zoom at which the peg renders at its native size. Should match Minimap's default zoom. */
+    static REFERENCE_ZOOM = 18;
+
+    /** How strongly the peg scales with zoom: 0 = fixed size, 1 = scales with the map. Kept low for a subtle effect. */
+    static ZOOM_SCALE_DAMPING = 0.2;
+
     /**
      * @param {google.maps.Map} map - The Google Map instance.
      * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
@@ -17,13 +23,16 @@ class Peg {
      * @param {typeof google.maps.LatLng} LatLng - Google's LatLng class.
      */
     constructor(map, initialLocation, AdvancedMarkerElement, LatLng) {
+        this.map = map;
         this.LatLng = LatLng;
         this.heading = 0;
 
-        // Create the image element for the peg.
+        // Create the image element for the peg. Scale from the base so the peg stays planted on its location as it zooms.
         this.imgElement = document.createElement('img');
         this.imgElement.style.width = '49px';
         this.imgElement.style.height = '52px';
+        this.imgElement.style.transformOrigin = 'center bottom';
+        this.imgElement.style.transition = 'transform 1s';
         this._updateSprite();
 
         this.marker = new AdvancedMarkerElement({
@@ -33,6 +42,19 @@ class Peg {
             zIndex: 1000,
             anchorTop: '-60%',
         });
+
+        // Gently scale the peg with the minimap zoom (dampened so it doesn't grow as fast as the map itself).
+        this._updateScale();
+        this.map.addListener('zoom_changed', () => this._updateScale());
+    }
+
+    /**
+     * Scales the peg image to the minimap's current zoom, dampened by ZOOM_SCALE_DAMPING relative to REFERENCE_ZOOM.
+     * @private
+     */
+    _updateScale() {
+        const scale = Math.pow(2, (this.map.getZoom() - Peg.REFERENCE_ZOOM) * Peg.ZOOM_SCALE_DAMPING);
+        this.imgElement.style.transform = `scale(${scale})`;
     }
 
     /**

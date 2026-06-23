@@ -1,7 +1,7 @@
 /* For now, this file holds the CSS for maps on the website, except for the legends. */
 .choropleth-container {
     position: relative;
-    background-color: #FFFFFF;
+    background-color: var(--color-neutral-white);
     width: 100%;
 }
 
@@ -22,7 +22,7 @@
 
 .choropleth {
     position: relative;
-    background-color: #FFFFFF;
+    background-color: var(--color-neutral-white);
     width: 100%;
     height: 800px;
 }

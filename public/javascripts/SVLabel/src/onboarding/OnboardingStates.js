@@ -34,9 +34,6 @@ function OnboardingStates (contextMenu, compass, panoManager) {
                     return dom ? dom.innerHTML : "";
                 },
                 "width": 1000,
-                "top": -105,
-                "left": -70,
-                "padding": "100px 10px 100px 10px",
                 "background": true
             },
             "panoId": panoId,
@@ -179,7 +176,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.rate-severity-1') +
                     '<br><img src="' + svl.rootDirectory + 'img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" ' +
-                    'class="width-75" style="margin: 5px auto;display:block;">'
+                    'class="onboarding-gif">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -206,7 +203,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-1') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-severity-2-v3.gif` +
-                    `" class="width-75" style="margin: 5px auto;display:block;"`
+                    `" class="onboarding-gif"`
             },
             "panoId": panoId,
             "annotations": null,
@@ -408,11 +405,9 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             },
             "message": {
                 "message": i18next.t('tutorial.zoom-in'),
-                "arrow": "left",
-                "fade-direction": "fadeIn",
-                "top": 30,
-                "left": 5,
-                "transform": "translateY(-50%)"
+                "anchor": "#zoom-in-button",
+                "placement": "left",
+                "fade-direction": "fadeIn"
             },
             "panoId": panoId,
             "annotations": null,
@@ -532,6 +527,58 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "transition": "label-attribute-3"
         },
         {
+            "id": "tag-attribute-3",
+            "progression": true,
+            "properties": {
+                "action": "AddTag",
+                "labelNumber": 3,
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1]
+            },
+            "message": {
+                "message": i18next.t('tutorial.tag-attribute-3') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif` +
+                    '" class="onboarding-gif">'
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var tags = this.getProperty('tagIds');
+                if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
+                    return "rate-severity-3";
+                } else {
+                    return "redo-tag-attribute-3";
+                }
+            }
+        },
+        {
+            "id": "redo-tag-attribute-3",
+            "progression": false,
+            "properties": {
+                "action": "RedoAddTag",
+                "labelNumber": 3,
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1]
+            },
+            "message": {
+                "message": i18next.t('tutorial.redo-tag-attribute-3') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif` +
+                    '" class="onboarding-gif">'
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var tags = this.getProperty('tagIds');
+                if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
+                    return "rate-severity-3";
+                } else {
+                    return "redo-tag-attribute-3";
+                }
+            }
+        },
+        {
             "id": "rate-severity-3",
             "progression": true,
             "properties": {
@@ -544,7 +591,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.rate-severity-3') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" ` +
-                    'class="width-75" style="margin: 5px auto;display:block;">'
+                    'class="onboarding-gif">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -571,7 +618,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-3') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
+                    '" class="onboarding-gif">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -582,58 +629,6 @@ function OnboardingStates (contextMenu, compass, panoManager) {
                     return "select-label-type-4";
                 } else {
                     return "redo-rate-attribute-3";
-                }
-            }
-        },
-        {
-            "id": "tag-attribute-3",
-            "progression": true,
-            "properties": {
-                "action": "AddTag",
-                "labelNumber": 3,
-                "labelType": "CurbRamp",
-                "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
-            },
-            "message": {
-                "message": i18next.t('tutorial.tag-attribute-3') +
-                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                var tags = this.getProperty('tagIds');
-                if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
-                    return "rate-severity-3";
-                } else {
-                    return "redo-tag-attribute-3";
-                }
-            }
-        },
-        {
-            "id": "redo-tag-attribute-3",
-            "progression": false,
-            "properties": {
-                "action": "RedoAddTag",
-                "labelNumber": 3,
-                "labelType": "CurbRamp",
-                "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
-            },
-            "message": {
-                "message": i18next.t('tutorial.redo-tag-attribute-3') +
-                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                var tags = this.getProperty('tagIds');
-                if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
-                    return "rate-severity-3";
-                } else {
-                    return "redo-tag-attribute-3";
                 }
             }
         },
@@ -751,6 +746,58 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "transition": "label-attribute-4"
         },
         {
+            "id": "tag-attribute-4",
+            "progression": true,
+            "properties": {
+                "action": "AddTag",
+                "labelNumber": 4,
+                "labelType": "NoCurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1]
+            },
+            "message": {
+                "message": i18next.t('tutorial.tag-attribute-4') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
+                    '" class="onboarding-gif">'
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var tags = this.getProperty('tagIds');
+                if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
+                    return "rate-severity-4";
+                } else {
+                    return "redo-tag-attribute-4";
+                }
+            }
+        },
+        {
+            "id": "redo-tag-attribute-4",
+            "progression": false,
+            "properties": {
+                "action": "RedoAddTag",
+                "labelNumber": 4,
+                "labelType": "NoCurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1]
+            },
+            "message": {
+                "message": i18next.t('tutorial.redo-tag-attribute-4') +
+                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
+                    '" class="onboarding-gif">'
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var tags = this.getProperty('tagIds');
+                if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
+                    return "rate-severity-4";
+                } else {
+                    return "redo-tag-attribute-4";
+                }
+            }
+        },
+        {
             "id": "rate-severity-4",
             "progression": true,
             "properties": {
@@ -763,7 +810,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.rate-severity-4') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
+                    '" class="onboarding-gif">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -790,7 +837,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-4') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
+                    '" class="onboarding-gif">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -801,58 +848,6 @@ function OnboardingStates (contextMenu, compass, panoManager) {
                     return "select-label-type-5";
                 } else {
                     return "redo-rate-attribute-4";
-                }
-            }
-        },
-        {
-            "id": "tag-attribute-4",
-            "progression": true,
-            "properties": {
-                "action": "AddTag",
-                "labelNumber": 4,
-                "labelType": "NoCurbRamp",
-                "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
-            },
-            "message": {
-                "message": i18next.t('tutorial.tag-attribute-4') +
-                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                var tags = this.getProperty('tagIds');
-                if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
-                    return "rate-severity-4";
-                } else {
-                    return "redo-tag-attribute-4";
-                }
-            }
-        },
-        {
-            "id": "redo-tag-attribute-4",
-            "progression": false,
-            "properties": {
-                "action": "RedoAddTag",
-                "labelNumber": 4,
-                "labelType": "NoCurbRamp",
-                "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1]
-            },
-            "message": {
-                "message": i18next.t('tutorial.redo-tag-attribute-4') +
-                    `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
-            },
-            "panoId": panoId,
-            "annotations": null,
-            "transition": function () {
-                var tags = this.getProperty('tagIds');
-                if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
-                    return "rate-severity-4";
-                } else {
-                    return "redo-tag-attribute-4";
                 }
             }
         },
@@ -1009,10 +1004,8 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.zoom-out'),
                 "fade-direction": "fadeIn",
-                "arrow": "left",
-                "top": 80,
-                "left": 5,
-                "transform": "translateY(-50%)"
+                "anchor": "#zoom-out-button",
+                "placement": "left"
             },
             "panoId": panoId,
             "annotations": null,
@@ -1393,8 +1386,8 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.tag-attribute-7') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingMissingSidewalk.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">',
-                "left": 410
+                    '" class="onboarding-gif">',
+                "position": "top-right"
             },
             "panoId": panoId,
             "annotations": null,
@@ -1426,8 +1419,8 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.redo-tag-attribute-7') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingMissingSidewalk.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">',
-                "left": 410
+                    '" class="onboarding-gif">',
+                "position": "top-right"
             },
             "panoId": panoId,
             "annotations": null,
@@ -1589,7 +1582,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.rate-severity-8') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-v3.gif` +
-                    `" class="width-75" style="margin: 5px auto;display:block;" `
+                    `" class="onboarding-gif" `
             },
             "panoId": panoId,
             "annotations": null,
@@ -1616,7 +1609,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-8') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-v3.gif` +
-                    `" class="width-75" style="margin: 5px auto;display:block;" `
+                    `" class="onboarding-gif" `
             },
             "panoId": panoId,
             "annotations": null,
@@ -1800,10 +1793,8 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.walk-1'),
                 "fade-direction": "fadeIn",
-                "arrow": "right",
-                "top": 377,
-                "left": 403,
-                "transform": "translateY(-50%)"
+                "anchor": "#minimap-holder",
+                "placement": "top"
             },
             "panoId": panoId,
             "transition": function () {
@@ -1811,8 +1802,8 @@ function OnboardingStates (contextMenu, compass, panoManager) {
                 // Set Compass Message
                 var uiCompassMessageHolder = compass.getCompassMessageHolder();
                 var image = "<img src='" + compass.directionToImagePath("straight") + "' class='compass-turn-images' alt='Turn icon' />";
-                var message = "<span class='compass-message-small'>" + i18next.t('center-ui.compass.unlabeled-problems') +
-                    "</span><br/>" + image + "<span class='bold'>" + i18next.t('center-ui.compass.straight') + "</span>";
+                var message = "<div class='compass-message-small'>" + i18next.t('center-ui.compass.unlabeled-problems') +
+                    "</div>" + image + "<span class='compass-message-large'>" + i18next.t('center-ui.compass.straight') + "</span>";
                 uiCompassMessageHolder.message.html(message);
                 compass.showMessage();
                 return "walk-2";
@@ -1830,10 +1821,8 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.walk-2'),
                 "fade-direction": "fadeIn",
-                "arrow": "bottom",
-                "top": 391,
-                "left": 590,
-                "transform": "translate(-50%, -100%)"
+                "anchor": "#compass-message-holder",
+                "placement": "top"
             },
             "panoId": panoId,
             "annotations": null,
@@ -1873,11 +1862,9 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.walk-4'),
                 "width": 350,
-                "arrow": "right",
                 "fade-direction": "fadeIn",
-                "top": 377,
-                "left": 353,
-                "transform": "translateY(-50%)"
+                "anchor": "#minimap-holder",
+                "placement": "top"
             },
             "panoId": afterWalkPanoId,
             "annotations": null,
@@ -1994,11 +1981,9 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             },
             "message": {
                 "message": i18next.t('tutorial.instruction-1'),
-                "arrow": "right",
                 "fade-direction": "fadeIn",
-                "top": 377,
-                "left": 403,
-                "transform": "translateY(-50%)"
+                "anchor": "#minimap-holder",
+                "placement": "top"
             },
             "panoId": afterWalkPanoId,
             "annotations": null,
@@ -2016,10 +2001,8 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.instruction-2'),
                 "fade-direction": "fadeIn",
-                "arrow": "left",
-                "top": 265,
-                "left": 5,
-                "transform": "translateY(-50%)"
+                "anchor": "#explore-control-stuck",
+                "placement": "right"
             },
             "panoId": afterWalkPanoId,
             "annotations": null,
@@ -2041,9 +2024,6 @@ function OnboardingStates (contextMenu, compass, panoManager) {
                     return document.getElementById("onboarding-outro").innerHTML;
                 },
                 "width": 1000,
-                "top": -105,
-                "left": -70,
-                "padding": "100px 10px 100px 10px",
                 "background": true
             },
             "okButton": false,

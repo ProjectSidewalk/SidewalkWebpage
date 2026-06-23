@@ -91,6 +91,18 @@ function MobileValidationMenu(menuUI) {
         $('#unsure-menu-submit-button').click(function(e) {
             _validateLabel('Unsure', e.isTrigger);
         });
+
+        // Add onclick for the skip-reason buttons, which submit the validation without an associated reason.
+        $('#no-menu-skip-reason-button').click(function(e) {
+            svv.tracker.push('Click=DisagreeReason_Skip');
+            svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
+            _validateLabel('Disagree', e.isTrigger);
+        });
+        $('#unsure-menu-skip-reason-button').click(function(e) {
+            svv.tracker.push('Click=UnsureReason_Skip');
+            svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
+            _validateLabel('Unsure', e.isTrigger);
+        });
     }
 
     function resetMenu(label) {

@@ -74,23 +74,33 @@
         }
     },
     "mission-complete": {
-        "distance-type-display-string": "quilômetros",
         "title-generic": "Missão Completa!",
         "title-neighborhood-complete": "Viva! Você completou o bairro {{neighborhoodName}}!",
         "title-route-complete": "Viva! Você completou sua rota!",
-        "map-legend-label-other-users": "Missões de Outros Usuários",
-        "progress-neighborhood-title": "Progresso do Bairro",
-        "progress-route-title": "Progresso da Rota",
-        "progress-neighborhood-you": "Você explorou neste bairro",
-        "progress-route-you": "Explorado em sua rota",
-        "progress-neighborhood-remaining": "Restante neste bairro",
-        "progress-route-remaining": "Restante em sua rota",
-        "button-start-validating": "Começar a validar",
-        "button-keep-exploring": "Continue explorando",
-        "button-continue": "Continuar"
+        "subtitle": "Explore {{distance}} de {{neighborhoodName}}",
+        "badge-alt": "Seu emblema de missões",
+        "legend-title": "Progresso da missão",
+        "legend-this-mission": "Esta missão",
+        "legend-previous-missions": "Missões anteriores",
+        "legend-community": "Progresso da comunidade",
+        "stat-distance-all": "{{distance}} explorados",
+        "stat-distance-you": "Você explorou {{distance}}",
+        "stat-labels-all": "{{count}} etiquetas criadas",
+        "stat-labels-you": "Você adicionou {{count}} etiquetas",
+        "button-next-mission": "Próxima missão de exploração",
+        "button-try-validation": "Experimentar validação"
     },
     "top-ui": {
         "press-key": "Pressione a tecla \"{{key}}\""
+    },
+    "controls": {
+        "stuck": "Travado",
+        "stuck-tooltip": "Vamos tentar fazê-lo voltar à sua missão",
+        "sound": "Som",
+        "feedback": "Opinião",
+        "feedback-tooltip": "Compartilhe suas ideias conosco",
+        "feedback-submitted": "Comentários enviados",
+        "feedback-title": "Alguma opinião? Encontrou algo confuso? Viu algum bug?<br>Envie seus comentários!"
     },
     "right-ui": {
         "accuracy-tooltip": "A precisão é baseada em validações de outros usuários. Se sua precisão estiver baixa, verifique alguns erros recentes em <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">seu Painel de Usuário</a> para ajudá-lo a melhorar!",
@@ -98,12 +108,20 @@
         "current-mission": {
             "header": "Missão Atual",
             "header-route": "$t(right-ui.current-mission.header): Rota {{route_number}}",
-            "message-first-mission": "Explore por __PLACEHOLDER__ e encontre todos os atributos de acessibilidade da calçada",
-            "message": "Explore __PLACEHOLDER__ deste bairro"
+            "message": "Explore __PLACEHOLDER__ de {{neighborhoodName}}"
         },
         "minimap": {
             "follow-red-line": "Siga a linha vermelha para continuar a missão",
             "explore-current-location": "Vire 360 graus para garantir que nada seja perdido."
+        },
+        "badges": {
+            "title": "Insígnias",
+            "see-all": "Ver todas as insígnias"
+        },
+        "neighborhood-progress": {
+            "title": "Progresso do bairro",
+            "you-tooltip": "Suas contribuições",
+            "community-tooltip": "Contribuições da comunidade"
         }
     },
     "center-ui": {

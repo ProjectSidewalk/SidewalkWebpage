@@ -30,6 +30,7 @@
     <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
     <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/progress-bar.css")'/>
 
     <script src='@assets.path("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/mobile/mobileValidate.css")'/>
@@ -43,65 +44,61 @@
     </div>
 
     <div class="container tool-ui">
-        <div id="mission-progress-bar-section">
-            <div id="mission-progress-bar">
-                <div id="mission-progress-bar-complete"></div>
-                <div id="mission-progress-bar-incomplete"></div>
-            </div>
-        </div>
+        @components.progressBar(
+            rootId = "mission-progress-bar-section",
+            fillId = "mission-progress-bar-complete"
+        )
         <div id="mission-title"></div>
         <div id="svv-panorama-holder">
-            <div id="svv-panorama-outline">
-                <div id="svv-panorama"></div>
-                <div id="view-control-layer">
-                    <div id="label-description-box"></div>
-                </div>
-                <button id="label-visibility-control-button" class="button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"></button>
-                <button id="validate-undo-button" class="button-on-pano">
-                    <img src="assets/images/icons/undo-icon.svg" class="hide-label-button-icon" alt="undo">
-                    <span>@Messages("undo")</span>
+            <div id="svv-panorama"></div>
+            <div id="view-control-layer">
+                <div id="label-description-box"></div>
+            </div>
+            <button id="label-visibility-control-button" class="button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"></button>
+            <button id="validate-undo-button" class="button-on-pano">
+                <img src="assets/images/icons/undo-icon.svg" class="hide-label-button-icon" alt="undo">
+                <span>@Messages("undo")</span>
+            </button>
+            <div id="validation-button-holder">
+                <button id="validate-no-button" class="validate-page-button button-ps button--small">
+                    @Html(Messages("no.caps.shortcut"))
                 </button>
-                <div id="validation-button-holder">
-                    <button id="validate-no-button" class="validate-page-button">
-                        @Html(Messages("no.caps.shortcut"))
-                    </button>
-                    <button id="validate-unsure-button" class="validate-page-button">
-                        @Html(Messages("unsure.caps.shortcut"))
-                    </button>
-                    <button id="validate-yes-button" class="validate-page-button">
-                        @Html(Messages("yes.caps.shortcut"))
-                    </button>
-                </div>
-                <img src='@assets.path("images/icons/mobile-popup-notch.svg")' id="mobile-popup-notch"></img>
-                <div id="validate-why-no-section" class="validation-menu-section">
-                    <div id="validate-why-not-header" class="validation-menu-section-header">@Messages("validate.why.not")</div>
-                    <div id="no-reason-options">
-                        <button id="no-button-1" class="validation-reason-button"></button>
-                        <button id="no-button-2" class="validation-reason-button"></button>
-                        <button id="no-button-3" class="validation-reason-button"></button>
-                        <div class="input-group input-group-sm validate-text-input">
-                            <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
-                        </div>
-                    </div>
-                    <div id="no-submit-section">
-                        <button id="no-menu-skip-reason-button" class="validate-page-button">@Messages("validate.skip.reason")</button>
-                        <button id="no-menu-submit-button" class="validate-page-button">@Messages("submit")</button>
+                <button id="validate-unsure-button" class="validate-page-button button-ps button--small">
+                    @Html(Messages("unsure.caps.shortcut"))
+                </button>
+                <button id="validate-yes-button" class="validate-page-button button-ps button--small">
+                    @Html(Messages("yes.caps.shortcut"))
+                </button>
+            </div>
+            <img src='@assets.path("images/icons/mobile-popup-notch.svg")' id="mobile-popup-notch"></img>
+            <div id="validate-why-no-section" class="validation-menu-section">
+                <div id="validate-why-not-header" class="validation-menu-section-header">@Messages("validate.why.not")</div>
+                <div id="no-reason-options">
+                    <button id="no-button-1" class="validation-reason-button ps-button button--small"></button>
+                    <button id="no-button-2" class="validation-reason-button ps-button button--small"></button>
+                    <button id="no-button-3" class="validation-reason-button ps-button button--small"></button>
+                    <div class="input-group input-group-sm validate-text-input">
+                        <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
                     </div>
                 </div>
-                <div id="validate-why-unsure-section" class="validation-menu-section">
-                    <div id="validate-why-unsure-header" class="validation-menu-section-header">@Messages("validate.why.unsure")</div>
-                    <div id="unsure-reason-options">
-                        <button id="unsure-button-1" class="validation-reason-button"></button>
-                        <button id="unsure-button-2" class="validation-reason-button"></button>
-                        <button id="unsure-button-3" class="validation-reason-button"></button>
-                        <div class="input-group input-group-sm validate-text-input">
-                            <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
-                        </div>
+                <div id="no-submit-section">
+                    <button id="no-menu-skip-reason-button" class="validate-page-button">@Messages("validate.skip.reason")</button>
+                    <button id="no-menu-submit-button" class="validate-page-button">@Messages("submit")</button>
+                </div>
+            </div>
+            <div id="validate-why-unsure-section" class="validation-menu-section">
+                <div id="validate-why-unsure-header" class="validation-menu-section-header">@Messages("validate.why.unsure")</div>
+                <div id="unsure-reason-options">
+                    <button id="unsure-button-1" class="validation-reason-button ps-button button--small"></button>
+                    <button id="unsure-button-2" class="validation-reason-button ps-button button--small"></button>
+                    <button id="unsure-button-3" class="validation-reason-button ps-button button--small"></button>
+                    <div class="input-group input-group-sm validate-text-input">
+                        <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
                     </div>
-                    <div id="unsure-submit-section">
-                        <button id="unsure-menu-skip-reason-button" class="validate-page-button">@Messages("validate.skip.reason")</button>
-                        <button id="unsure-menu-submit-button" class="validate-page-button">@Messages("submit")</button>
-                    </div>
+                </div>
+                <div id="unsure-submit-section">
+                    <button id="unsure-menu-skip-reason-button" class="validate-page-button">@Messages("validate.skip.reason")</button>
+                    <button id="unsure-menu-submit-button" class="validate-page-button">@Messages("submit")</button>
                 </div>
             </div>
         </div>

@@ -247,8 +247,8 @@ function Label(params) {
         let userPov = svv.panoViewer.getPov();
 
         // Calculates the center xy coordinates of the Label on the current viewport.
-        let pixelCoordinates =
-            util.pano.centeredPovToCanvasCoord(centeredPov, userPov, svv.canvasWidth(), svv.canvasHeight(), svv.labelRadius);
+        let pixelCoordinates = util.pano.centeredPovToCanvasCoord(
+            centeredPov, userPov, svv.canvasWidth(), svv.canvasHeight(), svv.labelRadius * util.uiScale());
 
         setProperty('endTimestamp', new Date());
         setProperty('canvasX', pixelCoordinates ? Math.round(pixelCoordinates.x) : null);

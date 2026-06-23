@@ -74,23 +74,33 @@
         }
     },
     "mission-complete": {
-        "distance-type-display-string": "Kilometer",
         "title-generic": "Mission erfüllt!",
         "title-neighborhood-complete": "Bravo! Sie haben die {{neighborhoodName}} -Nachbarschaft abgeschlossen!",
         "title-route-complete": "Bravo! Sie haben Ihre Route beendet!",
-        "map-legend-label-other-users": "Missionen anderer Nutzenden",
-        "progress-neighborhood-title": "Fortschritt im Quartier",
-        "progress-route-title": "Fortschritt auf der Route",
-        "progress-neighborhood-you": "Sie haben dieses Quartier erkundet",
-        "progress-route-you": "Auf Ihrer Route erkundet",
-        "progress-neighborhood-remaining": "Verbleibend in diesem Quartier",
-        "progress-route-remaining": "Verbleibend auf Ihrer Route",
-        "button-start-validating": "Validierung starten",
-        "button-keep-exploring": "Weiter erkunden",
-        "button-continue": "Fortsetzen"
+        "subtitle": "Erkunden Sie {{distance}} von {{neighborhoodName}}",
+        "badge-alt": "Ihr Missions-Abzeichen",
+        "legend-title": "Missionsfortschritt",
+        "legend-this-mission": "Diese Mission",
+        "legend-previous-missions": "Frühere Missionen",
+        "legend-community": "Fortschritt der Gemeinschaft",
+        "stat-distance-all": "{{distance}} erkundet",
+        "stat-distance-you": "Sie haben {{distance}} erkundet",
+        "stat-labels-all": "{{count}} Markierungen erstellt",
+        "stat-labels-you": "Sie haben {{count}} Markierungen hinzugefügt",
+        "button-next-mission": "Nächste Erkundungsmission",
+        "button-try-validation": "Validierung starten"
     },
     "top-ui": {
         "press-key": "Drücken Sie auf die \"{{key}}\" Taste"
+    },
+    "controls": {
+        "stuck": "Verlaufen",
+        "stuck-tooltip": "Wir werden versuchen, Sie zurück zu Ihrer Mission zu bringen",
+        "sound": "Ton",
+        "feedback": "Rück­meldung",
+        "feedback-tooltip": "Teilen Sie uns Ihre Gedanken mit",
+        "feedback-submitted": "Rückmeldung gesendet",
+        "feedback-title": "Weitere Ideen? War etwas verwirrend? Haben Sie einen Fehler gefunden?<br>Schicken Sie uns eine Rückmeldung!"
     },
     "right-ui": {
         "accuracy-tooltip": "Die Bewertung Ihrer Genauigkeit basiert auf der Validierung durch andere Nutzende. Wenn Ihre Genauigkeit tief ist, sehen Sie sich häufige Fehler unter <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">Ihrem Dashboard</a> an, um sich zu verbessern!",
@@ -98,12 +108,20 @@
         "current-mission": {
             "header": "Aktuelle Mission",
             "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
-            "message-first-mission": "Erkunden Sie __PLACEHOLDER__ und finden Sie alle Zugänglichkeitsmerkmale entlang des Gehwegs",
-            "message": "Erkunden Sie __PLACEHOLDER__ von diesem Quartier"
+            "message": "Erkunden Sie __PLACEHOLDER__ von {{neighborhoodName}}"
         },
         "minimap": {
             "follow-red-line": "Folgen Sie der roten Linie, um die Mission fortzusetzen.",
             "explore-current-location": "Drehen Sie sich um 360 Grad, um sicherzustellen, dass nichts übersehen wird."
+        },
+        "badges": {
+            "title": "Abzeichen",
+            "see-all": "Alle Abzeichen anzeigen"
+        },
+        "neighborhood-progress": {
+            "title": "Fortschritt im Quartier",
+            "you-tooltip": "Ihre Beiträge",
+            "community-tooltip": "Beiträge der Gemeinschaft"
         }
     },
     "center-ui": {

@@ -835,6 +835,19 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Counts all non-deleted, non-tutorial labels in the given region across all (non-excluded) users.
+   * @param regionId ID of the region whose labels we're counting
+   */
+  def countLabelsInRegion(regionId: Int): DBIO[Int] = {
+    labels
+      .join(streetEdgeRegions)
+      .on(_.streetEdgeId === _.streetEdgeId)
+      .filter(_._2.regionId === regionId)
+      .length
+      .result
+  }
+
+  /**
    * Gets metadata for the `takeN` most recent labels. Optionally filter by user_id of the labeler.
    * @param takeN Number of labels to retrieve
    * @param labelerId user_id of the person who placed the labels; an optional filter

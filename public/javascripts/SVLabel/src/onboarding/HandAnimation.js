@@ -28,8 +28,8 @@ function HandAnimation (rootDirectory, uiOnboarding) {
                         x: 0,
                         y: stage.getHeight() / 2 - 59,
                         image: ImageObjOpenHand,
-                        width: 128,
-                        height: 128
+                        width: 110,
+                        height: 110
                     });
                     OpenHand.hide();
                     layer.add(OpenHand);
@@ -42,8 +42,8 @@ function HandAnimation (rootDirectory, uiOnboarding) {
                         x: 300,
                         y: stage.getHeight() / 2 - 59,
                         image: ImageObjClosedHand,
-                        width: 96,
-                        height: 96
+                        width: 82,
+                        height: 82
                     });
                     ClosedHand.hide();
                     layer.add(ClosedHand);

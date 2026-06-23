@@ -66,7 +66,7 @@ function DesktopValidationMenu(menuUI) {
                     option: function (item, escape) {
                         // Add an example image tooltip to the tag.
                         const translatedTagName = i18next.t('common:tag.' + item.tag_name.replace(/:/g, '-'));
-                        let $tagDiv = $(`<div class="option">${escape(translatedTagName)}</div>`);
+                        let $tagDiv = $(`<div class="option tag-pill tag-pill--interactive">${escape(translatedTagName)}</div>`);
                         const tooltipText = `"${translatedTagName}" example`
                         _addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${item.tag_id}.png`);
                         return $tagDiv[0];
@@ -278,9 +278,9 @@ function DesktopValidationMenu(menuUI) {
      * @private
      */
     function _addTooltip($elem, tooltipText, img) {
-        const tooltipHtml = img ? `${tooltipText}<br/><img src="${img}" height="140"/>` : tooltipText;
+        const tooltipHtml = img ? `${tooltipText}<br/><img src="${img}" class="validate-tooltip-img"/>` : tooltipText;
         $elem.tooltip(({
-            placement: 'top',
+            placement: 'auto top', // Prefer above the element, but flip below when it doesn't fit in the viewport.
             html: true,
             container: 'body',
             delay: { show: 500, hide: 10 },

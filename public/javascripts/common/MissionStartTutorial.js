@@ -899,7 +899,10 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
          */
         function renderLabelOnImage(position, iconID, labelOnImageTitle, labelOnImageDescription) {
 
-            $labelOnImage.css({'top': position.top, 'left': position.left});
+            $labelOnImage.css({
+                'top': `calc(${position.top} * var(--ui-scale))`,
+                'left': `calc(${position.left} * var(--ui-scale))`
+            });
             $('.label-on-image-type-title', $labelOnImage).html(labelOnImageTitle);
             $('.label-on-image-description', $labelOnImage).html(labelOnImageDescription);
 
@@ -919,7 +922,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         if (language === 'de') {
             $labelOnImageDescription[0].style.transform = 'translateY(' + -16 + '%)';
         } else if (language === 'nl') {
-            $labelOnImage[0].style.maxWidth = '230px';
+            $labelOnImage[0].style.maxWidth = 'calc(230px * var(--ui-scale))';
         }
 
         // Reset the UI first.

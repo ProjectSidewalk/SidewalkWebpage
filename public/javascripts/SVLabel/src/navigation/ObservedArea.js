@@ -1,85 +1,129 @@
 /**
- * ObservedArea module.
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
+ * Tracks and renders the user's observed area on the minimap: the fog of war, the current field-of-view cone, and the
+ * 360°-observed progress circle.
  */
-function ObservedArea(uiMinimap) {
-    let angle = null;  // User's angle.
-    let leftAngle = null;  // Left-most angle of the user's FOV.
-    let rightAngle = null;  // Right-most angle of the user's FOV.
-    let observedAreas = [];  // List of observed areas (panoId, latLng, minAngle, maxAngle).
-    let currArea = {}; // Current observed area (panoId, latLng, minAngle, maxAngle).
-    let fractionObserved = 0;  // User's current fraction of 360 degrees observed.
-    const radius = 40;  // FOV radius in pixels.
-    const width = uiMinimap.fogOfWar.width();  // Canvas width.
-    const height = uiMinimap.fogOfWar.height();  // Canvas height.
-    // Get canvas context for the various components of the fog of war view on the mini map.
-    const fogOfWarCtx = uiMinimap.fogOfWar[0].getContext('2d');
-    const fovCtx = uiMinimap.fov[0].getContext('2d');
-    const progressCircleCtx = uiMinimap.progressCircle[0].getContext('2d');
+class ObservedArea {
 
-    function initialize() {
-        // Set up some ctx stuff that never changes here so that we don't do it repeatedly.
-        uiMinimap.percentObserved.css('color', '#404040')
-        fogOfWarCtx.fillStyle = '#888888';
-        fogOfWarCtx.filter = 'blur(5px)';
-        fovCtx.fillStyle = '#8080ff';
-        progressCircleCtx.fillStyle = '#8080ff';
-        progressCircleCtx.lineCap = 'round';
-        progressCircleCtx.lineWidth = 2;
+    static #BASE_RADIUS = 40;  // FOV radius in pixels at UI scale 1 and REFERENCE_ZOOM.
+
+    // Zoom the minimap was tuned at; BASE_RADIUS is correct here. As the user zooms the minimap, the observed-area
+    // radius is scaled by 2^(zoom - REFERENCE_ZOOM) so the fog/FOV keep covering the same geographic area. Must match
+    // Minimap's default zoom.
+    static #REFERENCE_ZOOM = 18;
+
+    #uiMinimap;
+
+    #angle = null;            // User's angle.
+    #leftAngle = null;        // Left-most angle of the user's FOV.
+    #rightAngle = null;       // Right-most angle of the user's FOV.
+    #observedAreas = [];     // List of observed areas (panoId, latLng, minAngle, maxAngle).
+    #currArea = {};             // Current observed area (panoId, latLng, minAngle, maxAngle).
+    #fractionObserved = 0; // User's current fraction of 360 degrees observed.
+
+    // Minimap size (px) at UI scale 1, read from the base dimension defined in svl-minimap.css.
+    #baseSize;
+
+    // The canvas bitmaps are kept in sync with the displayed minimap size (which scales with the UI). This is required
+    // because the fog is positioned via the map's projection, which returns coordinates in displayed pixels; if the
+    // bitmap didn't match, the fog would be offset (e.g. drawn at displayed/2 inside a smaller bitmap).
+    #width = 0;          // Canvas bitmap width (set by #syncCanvasSize).
+    #height = 0;         // Canvas bitmap height.
+    #scaleFactor = 1;    // width / baseSize; scales the FOV/progress geometry to match the minimap.
+
+    // Canvas contexts for the various components of the fog of war view on the mini map.
+    #fogOfWarCtx;
+    #fovCtx;
+    #progressCircleCtx;
+
+    /**
+     * @param {Object} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
+     */
+    constructor(uiMinimap) {
+        this.#uiMinimap = uiMinimap;
+        this.#baseSize = parseFloat(getComputedStyle(uiMinimap.holder[0]).getPropertyValue('--minimap-base-size'));
+        this.#fogOfWarCtx = uiMinimap.fogOfWar[0].getContext('2d');
+        this.#fovCtx = uiMinimap.fov[0].getContext('2d');
+        this.#progressCircleCtx = uiMinimap.progressCircle[0].getContext('2d');
+        this.#syncCanvasSize();
+    }
+
+    /**
+     * Sizes the three minimap canvases' bitmaps to the current displayed minimap size and (re)applies the persistent
+     * context state. Setting canvas.width/height resets the context, so the styles must be applied here, after sizing.
+     */
+    #syncCanvasSize() {
+        const uiMinimap = this.#uiMinimap;
+        const displayedWidth = Math.round(uiMinimap.fogOfWar.width()) || this.#baseSize;
+        const displayedHeight = Math.round(uiMinimap.fogOfWar.height()) || this.#baseSize;
+        if (displayedWidth !== this.#width || displayedHeight !== this.#height) {
+            this.#width = displayedWidth;
+            this.#height = displayedHeight;
+            this.#scaleFactor = this.#width / this.#baseSize;
+            for (const canvas of [uiMinimap.fogOfWar[0], uiMinimap.fov[0], uiMinimap.progressCircle[0]]) {
+                canvas.width = this.#width;
+                canvas.height = this.#height;
+            }
+        }
+        // Set up ctx state that doesn't change between renders (and is reset by any resize above).
+        uiMinimap.percentObserved.css('color', '#404040');
+        this.#fogOfWarCtx.fillStyle = '#888888';
+        this.#fogOfWarCtx.filter = `blur(${5 * this.#scaleFactor}px)`;
+        this.#fovCtx.fillStyle = '#8080ff';
+        this.#progressCircleCtx.fillStyle = '#8080ff';
+        this.#progressCircleCtx.lineCap = 'round';
+        this.#progressCircleCtx.lineWidth = 2 * this.#scaleFactor;
     }
 
     /**
      * Resets the user's angle and adds user's new pano to 'observedAreas'. Called when the user takes a step.
      */
-     this.panoChanged = function() {
-        angle = null;
-        leftAngle = null;
-        rightAngle = null;
+    panoChanged() {
+        this.#angle = null;
+        this.#leftAngle = null;
+        this.#rightAngle = null;
         const panoId = svl.panoViewer.getPanoId();
-        currArea = observedAreas.find(area => area.panoId === panoId);
+        this.#currArea = this.#observedAreas.find(area => area.panoId === panoId);
 
-        if (!currArea) {
-            currArea = { panoId: panoId, latLng: svl.panoViewer.getPosition(), minAngle: null, maxAngle: null };
-            observedAreas.push(currArea);
+        if (!this.#currArea) {
+            this.#currArea = { panoId: panoId, latLng: svl.panoViewer.getPosition(), minAngle: null, maxAngle: null };
+            this.#observedAreas.push(this.#currArea);
         }
     }
 
     /**
      * Converts degrees to radians.
-     * @param degrees
+     * @param {number} degrees
      * @returns {number}
      */
-    function toRadians(degrees) {
+    static #toRadians(degrees) {
         return degrees / 180 * Math.PI;
     }
 
     /**
      * Updates all the angle variables necessary to keep track of the user's observed area.
      */
-    function updateAngles() {
+    #updateAngles() {
         const pov = svl.panoViewer.getPov();
         let heading = pov.heading;
         const fov = util.pano.zoomToFov(pov.zoom);
-        if (angle) {
-            if (heading - angle > 180) {
+        if (this.#angle) {
+            if (heading - this.#angle > 180) {
                 heading -= 360;
             }
-            if (heading - angle < -180) {
+            if (heading - this.#angle < -180) {
                 heading += 360;
             }
         }
-        angle = heading;
-        leftAngle = angle - fov / 2;
-        rightAngle = angle + fov / 2;
-        if (!currArea.minAngle || leftAngle < currArea.minAngle) {
-            currArea.minAngle = leftAngle;
+        this.#angle = heading;
+        this.#leftAngle = this.#angle - fov / 2;
+        this.#rightAngle = this.#angle + fov / 2;
+        if (!this.#currArea.minAngle || this.#leftAngle < this.#currArea.minAngle) {
+            this.#currArea.minAngle = this.#leftAngle;
         }
-        if (!currArea.maxAngle || rightAngle > currArea.maxAngle) {
-            currArea.maxAngle = rightAngle;
+        if (!this.#currArea.maxAngle || this.#rightAngle > this.#currArea.maxAngle) {
+            this.#currArea.maxAngle = this.#rightAngle;
         }
-        fractionObserved = Math.min(currArea.maxAngle - currArea.minAngle, 360) / 360;
+        this.#fractionObserved = Math.min(this.#currArea.maxAngle - this.#currArea.minAngle, 360) / 360;
     }
 
     /**
@@ -87,7 +131,7 @@ function ObservedArea(uiMinimap) {
      * @param {{lat: number, lng: number}} latLng
      * @returns {{x: number, y: number}}
      */
-    function latLngToPixel(latLng) {
+    #latLngToPixel(latLng) {
         const projection = svl.minimap.getMap().getProjection();
         const bounds = svl.minimap.getMap().getBounds();
         const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
@@ -101,68 +145,83 @@ function ObservedArea(uiMinimap) {
     }
 
     /**
+     * Returns the FOV/observed-area radius in pixels for the minimap's current zoom. Scales BASE_RADIUS by the UI scale
+     * and by the zoom relative to REFERENCE_ZOOM so the fog/FOV cover a constant geographic area as the user zooms.
+     * @returns {number}
+     */
+    #currentRadius() {
+        const zoom = svl.minimap.getMap().getZoom();
+        return ObservedArea.#BASE_RADIUS * this.#scaleFactor * Math.pow(2, zoom - ObservedArea.#REFERENCE_ZOOM);
+    }
+
+    /**
      * Renders the fog of war.
      */
-    function renderFogOfWar() {
-        fogOfWarCtx.fillRect(0, 0, width, height);
-        fogOfWarCtx.globalCompositeOperation = 'destination-out';
-        for (const observedArea of observedAreas) {
-            const center = latLngToPixel(observedArea.latLng);
-            fogOfWarCtx.beginPath();
+    #renderFogOfWar() {
+        const radius = this.#currentRadius();
+        this.#fogOfWarCtx.fillRect(0, 0, this.#width, this.#height);
+        this.#fogOfWarCtx.globalCompositeOperation = 'destination-out';
+        for (const observedArea of this.#observedAreas) {
+            const center = this.#latLngToPixel(observedArea.latLng);
+            this.#fogOfWarCtx.beginPath();
             if (observedArea.maxAngle - observedArea.minAngle < 360) {
-                fogOfWarCtx.moveTo(center.x, center.y);
+                this.#fogOfWarCtx.moveTo(center.x, center.y);
             }
-            fogOfWarCtx.arc(center.x, center.y, radius,
-                toRadians(observedArea.minAngle - 90), toRadians(observedArea.maxAngle - 90));
-                fogOfWarCtx.fill();
+            this.#fogOfWarCtx.arc(center.x, center.y, radius,
+                ObservedArea.#toRadians(observedArea.minAngle - 90), ObservedArea.#toRadians(observedArea.maxAngle - 90));
+            this.#fogOfWarCtx.fill();
         }
-        fogOfWarCtx.globalCompositeOperation = 'source-over';
+        this.#fogOfWarCtx.globalCompositeOperation = 'source-over';
     }
 
     /**
      * Renders the user's FOV.
      */
-    function renderFov() {
-        fovCtx.clearRect(0, 0, width, height);
-        fovCtx.beginPath();
-        fovCtx.moveTo(width / 2, height / 2);
-        fovCtx.arc(width / 2, height / 2, radius, toRadians(leftAngle - 90), toRadians(rightAngle - 90));
-        fovCtx.fill();
+    #renderFov() {
+        this.#fovCtx.clearRect(0, 0, this.#width, this.#height);
+        this.#fovCtx.beginPath();
+        this.#fovCtx.moveTo(this.#width / 2, this.#height / 2);
+        this.#fovCtx.arc(this.#width / 2, this.#height / 2, this.#currentRadius(),
+            ObservedArea.#toRadians(this.#leftAngle - 90), ObservedArea.#toRadians(this.#rightAngle - 90));
+        this.#fovCtx.fill();
     }
 
     /**
      * Renders the user's percentage of 360 degrees observed progress bar. Gray until 100%, then switches to green.
      */
-    function renderProgressCircle() {
-        progressCircleCtx.clearRect(0, 0, width, height);
-        progressCircleCtx.strokeStyle = fractionObserved === 1 ? '#00dd00' : '#404040';
-        progressCircleCtx.beginPath();
-        progressCircleCtx.arc(width - 20, 20, 16, toRadians(-90), toRadians(fractionObserved * 360 - 90));
-        progressCircleCtx.stroke();
+    #renderProgressCircle() {
+        this.#progressCircleCtx.clearRect(0, 0, this.#width, this.#height);
+        this.#progressCircleCtx.strokeStyle = this.#fractionObserved === 1 ? '#00dd00' : '#404040';
+        this.#progressCircleCtx.beginPath();
+        this.#progressCircleCtx.arc(this.#width - 20 * this.#scaleFactor, 20 * this.#scaleFactor, 16 * this.#scaleFactor,
+            ObservedArea.#toRadians(-90), ObservedArea.#toRadians(this.#fractionObserved * 360 - 90));
+        this.#progressCircleCtx.stroke();
     }
 
-    this.getFractionObserved = () => {
-        return fractionObserved;
+    /**
+     * Returns the user's current fraction of 360 degrees observed.
+     * @returns {number}
+     */
+    getFractionObserved() {
+        return this.#fractionObserved;
     }
 
     /**
      * Updates everything relevant to the user's observed area.
      */
-    this.update = function() {
-        if (observedAreas.length > 0) {
-            updateAngles();
-            renderFogOfWar();
-            renderFov();
-            renderProgressCircle();
-            uiMinimap.percentObserved.text(Math.floor(100 * fractionObserved) + '%');
-            if (fractionObserved === 1) {
-                uiMinimap.message.text(i18next.t('right-ui.minimap.follow-red-line'));
+    update() {
+        if (this.#observedAreas.length > 0) {
+            this.#syncCanvasSize();
+            this.#updateAngles();
+            this.#renderFogOfWar();
+            this.#renderFov();
+            this.#renderProgressCircle();
+            this.#uiMinimap.percentObserved.text(Math.floor(100 * this.#fractionObserved) + '%');
+            if (this.#fractionObserved === 1) {
+                this.#uiMinimap.message.text(i18next.t('right-ui.minimap.follow-red-line'));
             } else {
-                uiMinimap.message.text(i18next.t('right-ui.minimap.explore-current-location'));
+                this.#uiMinimap.message.text(i18next.t('right-ui.minimap.explore-current-location'));
             }
         }
     }
-
-    initialize();
-    return this;
 }

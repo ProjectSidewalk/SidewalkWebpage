@@ -24,9 +24,21 @@
     "other": "Other",
     "surface-problems": "Surface Problems",
     "close": "Close",
+    "badges": {
+        "congratulations": "Congratulations!",
+        "you-earned": "You earned the “{{badge}}” badge!",
+        "my-dashboard": "My Dashboard",
+        "labeler-name": "Labeler",
+        "explorer-name": "Explorer",
+        "adventurer-name": "Adventurer",
+        "validator-name": "Validator"
+    },
     "sign-up": "Sign up",
     "sign-in": "Sign in",
     "complete": "complete",
+    "zoom-in": "Zoom in",
+    "zoom-out": "Zoom out",
+    "more-options": "More options",
     "map": {
         "distance-left": "Only {{n}} kilometers left!",
         "distance-left-one-unit": "Only 1 kilometer left!",

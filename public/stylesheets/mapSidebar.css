@@ -8,7 +8,7 @@
     left: 0;
     bottom: 0;
     margin-top: 15px;
-    width: 315px;
+    width: 350px;
     background: #fefefe;
     box-shadow: 2px 0 6px rgba(0, 0, 0, 0.12);
     z-index: 10;
@@ -84,7 +84,7 @@ body.map-sidebar-resizing {
     left: 12px;
     margin-top: 20px;
     z-index: 10;
-    background: #ffffff;
+    background: var(--color-neutral-white);
     border: 1px solid #ccc;
     border-radius: 10px;
     padding: 6px;
@@ -115,7 +115,7 @@ body.map-sidebar-resizing {
     font-family: 'Raleway', sans-serif;
     font-size: 16px;
     font-weight: 700;
-    color: #000;
+    color: var(--color-neutral-black);
     margin: 0;
     line-height: normal;
 }
@@ -190,14 +190,14 @@ body.map-sidebar-resizing {
     margin: 0;
     flex-shrink: 0;
     cursor: pointer;
-    border: 1.5px solid #000;
+    border: 1.5px solid var(--color-neutral-black);
     border-radius: 2px;
-    background: #fff;
+    background: var(--color-neutral-white);
 }
 
 .map-sidebar__item input[type="checkbox"]:checked {
-    background: #000;
-    border-color: #000;
+    background: var(--color-neutral-black);
+    border-color: var(--color-neutral-black);
 }
 
 .map-sidebar__item input[type=checkbox]:focus {
@@ -208,7 +208,7 @@ body.map-sidebar-resizing {
     font-family: 'Raleway', sans-serif;
     font-size: 16px;
     font-weight: 500;
-    color: #000;
+    color: var(--color-neutral-black);
     margin: 0;
     cursor: pointer;
     white-space: nowrap;
@@ -257,7 +257,7 @@ body.map-sidebar-resizing {
 }
 
 .map-sidebar__item .map-sidebar__street-icon--audited path {
-    stroke: #000;
+    stroke: var(--color-neutral-black);
 }
 
 .map-sidebar__item .map-sidebar__street-icon--unaudited path {

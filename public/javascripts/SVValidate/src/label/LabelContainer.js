@@ -79,16 +79,6 @@ async function LabelContainer(labelList) {
     }
 
     /**
-     * Skips the current label and fetches a new label for validation.
-     */
-    async function skipLabel() {
-        labels[currLabelIndex] = await _fetchNewLabel(currLabel.getAuditProperty('labelId'));
-        currLabel = labels[currLabelIndex];
-        svv.missionContainer.updateAMissionSkip();
-        await renderCurrentLabel();
-    }
-
-    /**
      * Moves to the next label in the list. If there are no more labels, shows the mission complete modal.
      * @returns {Promise<void>}
      */
@@ -137,39 +127,6 @@ async function LabelContainer(labelList) {
         svv.ui.viewer.controlLayer.css('cursor', 'url(/assets/images/icons/openhand.cur?' + Date.now() + ') 4 4, move');
         if (svv.keyboard) svv.keyboard.enableKeyboard();
 
-    }
-
-    /**
-     * Fetches a single label from the database to replace a skipped label.
-     * @param skippedLabelId the ID of the label that we are skipping
-     * @returns {Promise<Label|undefined>} A Promise that resolves to a Label object or undefined if there was an error.
-     * @private
-     */
-    async function _fetchNewLabel(skippedLabelId) {
-        let labelTypeId = svv.missionContainer.getCurrentMission().getProperty('labelTypeId');
-        let labelUrl = '/label/geo/random/' + labelTypeId + '/' + skippedLabelId;
-
-        let data = {};
-        data.labels = getLabelsToSubmit();
-        data.validate_params = {
-            admin_version: svv.adminVersion,
-            label_type: svv.validateParams.labelTypeId,
-            user_ids: svv.validateParams.userIds,
-            neighborhood_ids: svv.validateParams.regionIds,
-            unvalidated_only: svv.validateParams.unvalidatedOnly
-        };
-
-        return fetch(labelUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(data)
-        })
-            .then((response) => response.json())
-            .then(labelMetadata => new Label(labelMetadata.label))
-            .catch(error => {
-                console.error('Error fetching new label: ' + error);
-                return undefined;
-            });
     }
 
     /**
@@ -291,7 +248,6 @@ async function LabelContainer(labelList) {
     self.getCurrentLabel = getCurrentLabel;
     self.getPriorLabelFormData = getPriorLabelFormData;
     self.renderCurrentLabel = renderCurrentLabel;
-    self.skipLabel = skipLabel;
     self.undoLabel = undoLabel;
     self.getLabelsToSubmit = getLabelsToSubmit;
     self.pushToLabelsToSubmit = pushToLabelsToSubmit;

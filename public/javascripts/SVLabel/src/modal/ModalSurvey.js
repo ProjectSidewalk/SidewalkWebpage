@@ -1,57 +1,53 @@
 /**
- * ModalSurvey module.
- * @constructor
+ * Shows a survey modal for select users and reports whether it was completed or skipped.
+ *
+ * The modal itself is a Bootstrap modal, so its events and hide call go through jQuery; remaining code is plain JS.
  */
-function ModalSurvey(uiModalSurvey) {
-    var self = this;
+class ModalSurvey {
+    #uiModalSurvey;
 
-    /**
-     * Event Handlers:
-     */
+    constructor() {
+        this.#uiModalSurvey = {
+            container: $("#survey-modal-container"),
+            form: $("#survey-form"),
+            skipButton: $("#survey-skip-button")
+        };
 
-    // Callback for showing the survey modal.
-    this._handleShowSurvey = (e) => {
+        this.#uiModalSurvey.container.on('show.bs.modal', this.#handleShowSurvey);
+        this.#uiModalSurvey.container.on('hide.bs.modal', this.#handleHideSurvey);
+        this.#uiModalSurvey.container.on('keydown', (e) => e.stopPropagation());
+        this.#uiModalSurvey.form.on('submit', this.#handleSubmitSurvey);
+        this.#uiModalSurvey.skipButton.on('click', this.#handleSkipSurvey);
+    }
+
+    // Disables panorama interactions while the survey modal is open.
+    #handleShowSurvey = () => {
         svl.popUpMessage.disableInteractions();
         svl.ribbon.disableModeSwitch();
         svl.zoomControl.disableZoomIn();
         svl.zoomControl.disableZoomOut();
     };
 
-    // Callback for hiding the survey modal.
-    this._handleHideSurvey = (e) => {
+    // Re-enables panorama interactions once the survey modal is closed.
+    #handleHideSurvey = () => {
         svl.popUpMessage.enableInteractions();
         svl.ribbon.enableModeSwitch();
         svl.zoomControl.enableZoomIn();
         svl.zoomControl.enableZoomOut();
-    }
+    };
 
-    // Callback for submitting the survey.
-    this._handleSubmitSurvey = (e) => {
-        $.ajax({
-            async: true,
-            contentType: 'application/json; charset=utf-8',
-            url: '/survey',
-            method: 'POST',
-            dataType: 'json',
-            data: JSON.stringify(uiModalSurvey.form.serializeArray()),
-            success: function (data) {
-                uiModalSurvey.container.modal('hide');
-            }
-        });
-        // Prevents reloading the explore page with the posted data in the url.
-        // https://stackoverflow.com/questions/12624230/jquery-post-returns-querystring-in-address-bar
+    // Submits the survey responses, then hides the modal. Prevents the page from reloading with the posted data.
+    #handleSubmitSurvey = (e) => {
         e.preventDefault();
-    }
+        fetch('/survey', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify(this.#uiModalSurvey.form.serializeArray())
+        }).then(() => this.#uiModalSurvey.container.modal('hide'));
+    };
 
-    // Log whether the survey was skipped or completed to WebpageActivityTable.
-    this._handleSkipSurvey = (e) => {
+    // Logs that the survey was skipped to WebpageActivityTable.
+    #handleSkipSurvey = () => {
         window.logWebpageActivity('SurveySkip', true);
-    }
-
-    // Initialize Event Listeners.
-    uiModalSurvey.container.bind('show.bs.modal', this._handleShowSurvey);
-    uiModalSurvey.container.bind('hide.bs.modal', this._handleHideSurvey);
-    uiModalSurvey.container.bind('keydown', (e) => e.stopPropagation());
-    uiModalSurvey.form.bind('submit', this._handleSubmitSurvey);
-    svl.ui.modalSurvey.skipButton.bind('click', this._handleSkipSurvey);
+    };
 }

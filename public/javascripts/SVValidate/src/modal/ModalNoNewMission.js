@@ -44,9 +44,7 @@ function ModalNoNewMission (uiModalMission) {
             uiModalMission.closeButton.css('margin-right', '12%');
         } else {
             uiModalMission.closeButton.html(i18next.t('mission-complete.no-new-mission-button'));
-            uiModalMission.closeButton.css('font-size', '20pt');
-            uiModalMission.closeButton.css('width', '40%');
-            uiModalMission.closeButton.css('margin-right', '30%');
+            uiModalMission.closeButton.css('width', 'fit-content');
         }
         uiModalMission.closeButton.on('click', _handleButtonClick);
         uiModalMission.holder.css('display', '');

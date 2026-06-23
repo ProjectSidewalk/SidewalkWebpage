@@ -18,8 +18,8 @@
     padding: 22px;
     border: none;
     border-radius: 12px;
-    background: #fff;
-    color: #000;
+    background: var(--color-neutral-white);
+    color: var(--color-neutral-black);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
     font-family: "Open Sans", -apple-system, BlinkMacSystemFont, sans-serif;
     overflow-y: auto;
@@ -74,7 +74,7 @@ dialog.label-detail[open]::backdrop {
     font-weight: 700;
     font-size: 20px;
     line-height: 1.2;
-    color: #000;
+    color: var(--color-neutral-black);
 }
 
 .label-detail__close {
@@ -84,7 +84,7 @@ dialog.label-detail[open]::backdrop {
     padding: 0;
     background: none;
     border: none;
-    color: #000;
+    color: var(--color-neutral-black);
     cursor: pointer;
     border-radius: 4px;
 }
@@ -141,7 +141,7 @@ dialog.label-detail[open]::backdrop {
     height: 56px;
     padding: 16px 16px;
     border: none;
-    color: #000;
+    color: var(--color-neutral-black);
     font-family: "Raleway", sans-serif;
     font-weight: 500;
     font-size: 16px;
@@ -218,7 +218,7 @@ dialog.label-detail[open]::backdrop {
     font-family: "Raleway", sans-serif;
     font-weight: 600;
     font-size: 16px;
-    color: #000;
+    color: var(--color-neutral-black);
 }
 
 .label-detail__col--validations { flex: 0 0 auto; }
@@ -239,7 +239,7 @@ dialog.label-detail[open]::backdrop {
     padding: 0;
     background: none;
     border: none;
-    color: #000;
+    color: var(--color-neutral-black);
     font: inherit;
     font-size: 14px;
     cursor: pointer;
@@ -291,7 +291,7 @@ dialog.label-detail[open]::backdrop {
     font-family: "Raleway", sans-serif;
     font-weight: 400;
     font-size: 12px;
-    color: #000;
+    color: var(--color-neutral-black);
 }
 .label-detail__comment-input:focus { outline: none; border-color: #4a90e2; }
 .label-detail__comment-input::placeholder { color: #807f7f; }
@@ -311,7 +311,7 @@ dialog.label-detail[open]::backdrop {
 }
 .label-detail__comment-submit.is-active {
     background: #37a17b;
-    color: #fff;
+    color: var(--color-neutral-white);
 }
 .label-detail__comment-submit:focus-visible { outline: 2px solid #4a90e2; outline-offset: 2px; }
 
@@ -404,12 +404,12 @@ dialog.label-detail[open]::backdrop {
     padding: 6px 12px;
     border: 1px solid #999;
     border-radius: 4px;
-    background: #fff;
+    background: var(--color-neutral-white);
     font-size: 12px;
     cursor: pointer;
 }
 .label-detail__flag-button.is-active {
-    background: lightgray;
+    background: var(--color-neutral-300);
 }
 
 /* ─── Inline mode (Gallery expanded view) ──────────────────────────────

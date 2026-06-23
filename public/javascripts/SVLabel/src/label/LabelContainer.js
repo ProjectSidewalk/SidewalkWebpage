@@ -48,7 +48,7 @@ function LabelContainer ($, nextTemporaryLabelId) {
         // Add to list of labels. If new, also add to current canvas labels.
         if (isNew) {
             _addLabelToListObject(labelsToLog, label);
-            svl.labelCounter.increment(label.getLabelType());
+            svl.overallStats.incrementLabelCount();
 
             // Save a screenshot of the pano when a new label is placed.
             // Use the setTimeout to avoid blocking UI rendering and interactions.
@@ -160,7 +160,8 @@ function LabelContainer ($, nextTemporaryLabelId) {
     this.removeLabel = function (label) {
         if (!label) { return false; }
         svl.tracker.push('RemoveLabel', {labelType: label.getProperty('labelType')});
-        svl.labelCounter.decrement(label.getProperty("labelType"));
+        if (svl.isOnboarding()) $(document).trigger('RemoveLabel');
+        svl.overallStats.decrementLabelCount();
         label.remove();
         _addLabelToListObject(labelsToLog, label);
         svl.canvas.clear().render();

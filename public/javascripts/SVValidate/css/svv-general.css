@@ -1,68 +1,52 @@
-#svv-application-holder {
-    background: rgba(255,255,255,1);
-    margin: 0 auto;
-    position: relative;
-    height: 635px;
-    width: 1050px;
-}
-
 .tool-ui {
-    width: 1080px; /* Used to override bootstrap .container media queries. We want to keep a consistent width. */
+    /* === Validate layout dimensions ===
+     * --ui-scale is a single uniform scale factor for the whole tool, like browser zoom. JS sets it from the available
+     * viewport size (see util.applyToolScale); every dimension below is expressed as base-size * var(--ui-scale) so
+     * the pano, validation menu, and text all grow and shrink together in proportion. */
+    --ui-scale: 1; /* The single scale knob. Overridden inline by util.applyToolScale() on load and resize. */
+
+    /* Base sizes at --ui-scale = 1. util.applyToolScale() reads these to compute the tool's reference footprint,
+     * so they must stay plain px values (no var()/calc()). */
+    --pano-base-width: 720px;   /* Pano display size at --ui-scale = 1 (3:2, matching Explore). */
+    --pano-base-height: 480px;
+    --menu-base-width: 300px;   /* Right-hand validation menu column. */
+    --menu-base-gap: 16px;      /* Horizontal gap between the pano and the validation menu. */
+    --header-base-height: 80px; /* Mission title + progress bar sitting above the pano. */
+
+    --pano-width: calc(var(--pano-base-width) * var(--ui-scale));
+    --pano-height: calc(var(--pano-base-height) * var(--ui-scale));
+    --menu-width: calc(var(--menu-base-width) * var(--ui-scale));
+    --menu-gap: calc(var(--menu-base-gap) * var(--ui-scale));
+    --header-height: calc(var(--header-base-height) * var(--ui-scale));
+
+    /* Derived positions — these keep the rest of the layout in sync with the pano size automatically. */
+    --menu-left: calc(var(--pano-width) + var(--menu-gap)); /* Left edge of the validation menu column. */
+    --app-width: calc(var(--pano-width) + var(--menu-gap) + var(--menu-width));
+
+    /* Base text size for the whole tool. */
+    font: var(--text-body-regular);
+
+    width: var(--app-width); /* Overrides bootstrap .container media queries to keep a consistent width. */
+    padding: 0; /* Drop bootstrap .container's 15px side padding so the app-width holder inside stays centered. */
     visibility: hidden; /* Hidden until mission start tutorial overlay is ready to cover it. */
 }
 
-text {
-    visibility: hidden;
+#svv-application-holder {
+    background: var(--color-neutral-white);
+    margin: 0 auto;
+    position: relative;
+    height: calc(var(--header-height) + var(--pano-height));
+    width: var(--app-width);
 }
 
-.highlight-100 {
-    background: rgba(255, 255, 0, 1) !important;
-}
-
-.highlight-50 {
-    background: rgba(255, 255, 0, 0.5) !important;
-}
-
-.button {
-    border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
-    color: rgba(96,96,96,1);
-    cursor: pointer;
-    font-size: 14px;
-    margin-top: 3px;
-    padding: 2px 5px;
-    width: 200px;
-
-    border-radius: 3px 3px 0 0;
-}
-
-/* Pseudo-classes
-* http://www.w3schools.com/css/css_pseudo_classes.asp */
-.button:hover {
-    color: #222;
-}
-
-b { font-weight: bold; }
-.bold { font-weight: bold; }
 .normal { font-weight: normal; }
-.underline { text-decoration: underline; }
 
-.inline {
-    float: left;
-}
-
-input[type="radio"] {
-    height: 15px;
-    width: 15px;
-}
-
-.disabled {
-    pointer-events: none;
-    cursor: default;
-    opacity: 0.5;
-}
-
-.tooltip {
-    font-size: 10px;
+/* Scale Bootstrap tooltips (reason-button examples, button hints, etc.) with the UI. They render on <body>, so they
+   read --ui-scale from :root. Font/padding are scaled rather than transformed so Bootstrap positioning still works. */
+.tooltip-inner {
+    font: var(--text-caption-regular);
+    padding: calc(3px * var(--ui-scale)) calc(8px * var(--ui-scale));
+    max-width: calc(200px * var(--ui-scale));
 }
 
 /* Overwriting jquery tooltip styling. */

@@ -1,98 +1,54 @@
-#ribbon-menu-holder {
-    position: absolute;
-    left: 3px;
-    top: 0;
-    height: 100px;
-}
-
 .icon-ribbon-menu-medium {
-    height: 35px;
-    margin: 0 5px 0 5px;
+    height: calc(35px * var(--ui-scale));
+    margin: 0 calc(5px * var(--ui-scale));
     position: relative;
     left: 0;
-    top: -2px;
-}
-
-#icon-explore {
-    height: 38px;
-    left: 5px;
-    top: 2px;
+    top: calc(-2px * var(--ui-scale));
 }
 
 .label-type-button-holder {
     cursor: pointer;
-    display: inline-block;
     position: relative;
-    height: 78px;
-    width: 75px;
+    width: calc(77px * var(--ui-scale));
 }
 
 #label-type-divider-major {
-    border-left: 2px solid lightgray;
-    position: relative;
-    bottom: 19px;
-    margin-right: 5px;
-    margin-left: 2px;
-}
-
-#label-type-divider-minor {
-    margin: 0 3px;
+    border-left: 2px solid var(--color-neutral-300);
+    align-self: center;
+    top: var(--ribbon-title-height);
+    height: calc(20px * var(--ui-scale));
 }
 
 .label-type-icon {
     display: block;
     margin: auto;
-    height: 66px;
+    height: calc(66px * var(--ui-scale));
     border-color: transparent;
     border-style: solid;
-    border-width: 5px;
+    border-width: calc(5px * var(--ui-scale));
     border-radius: 50%;
 }
 
 .label-type-name {
-    font-size: 8px;
-    line-height: 0.9;
+    font-size: calc(8px * var(--ui-scale));
+    line-height: 0.9; /* Tighter than the token's line-height so two-line names fit in the fixed-height ribbon. */
     text-align: center;
-    position: absolute;
-    top: 65px;
+    display: block;
     width: 100%;
-    padding-top: 3px;
-}
-
-#mode-switch-walk {
-    width: 56px;
-    border: 3px solid rgba(0, 0, 0, 1);
-    background: rgb(204, 204, 204);
+    padding-top: calc(3px * var(--ui-scale));
 }
 
 .ribbon-menu-title-holder {
+    height: var(--ribbon-title-height);
     overflow: hidden;
-    top: -3px;
     text-align: center;
-}
-
-#ribbon-menu-title-holder-ramp {
-    width: 150px;
-    float: left;
-    left: 90px;
-    position: relative;
-}
-#ribbon-menu-title-holder-sidewalk {
-    overflow: hidden;
-    margin-left: 254px;
-    width: 228px;
-    position: absolute;
-}
-#ribbon-menu-title-holder-other {
-    overflow: hidden;
-    margin-left: 496px;
-    width: 228px;
-    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #ribbon-menu-title {
-    font-size: 8px;
-    font-weight: 600;
+    font: var(--text-tiny-regular);
     position: relative;
 }
 
@@ -103,51 +59,71 @@
     width: 1000px; /* Set to a very large value, cut off from outer div with overflow: hidden. */
     height: 1px;
     content: '';
-    background-color: lightgray;
+    background-color: var(--color-neutral-300);
 }
 #ribbon-menu-title:before {
     right: 100%;
-    margin-right: 5px;
+    margin-right: calc(5px * var(--ui-scale));
 }
 #ribbon-menu-title:after {
     left: 100%;
-    margin-left: 5px;
+    margin-left: calc(5px * var(--ui-scale));
 }
 
-#ribbon-menu-label-type-button-holder {
+#ribbon-menu-holder {
     background: transparent;
     position: absolute;
-    top: 5px;
-    height: 108px;
-    width: 730px;
+    top: var(--ribbon-top);
+    height: var(--ribbon-height);
+    width: var(--pano-width);
+    /* Center the button row vertically within the holder, to avoid pooling whitespace in some languages. */
+    display: flex;
+    align-items: center;
+
+    --ribbon-title-height: calc(14px * var(--ui-scale));
 }
 
-#ribbon-street-view-connector {
-    border-left: 12px solid black;
-    position: absolute;
-    left: 25px;
-    top: -14px;
-    height: 10px;
-    width: 0;
+#ribbon-menu-buttons {
+    flex: 1;
+    display: flex;
+    align-items: stretch;          /* groups share a height so their button rows (and icons) line up */
+    justify-content: space-between;
+}
+
+/* The Explore button has no section title above it, so offset it by the title height to line. */
+#mode-switch-button-walk {
+    margin-top: var(--ribbon-title-height);
+}
+
+/* A labeled section (e.g. Curb Ramp): the title sits on top, its buttons in a row beneath. */
+.ribbon-menu-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.ribbon-menu-group-buttons {
+    display: flex;
+    align-items: stretch;          /* buttons in the row share a height so their icons line up */
 }
 
 #ribbon-menu-other-subcategory-holder {
     position: absolute;
-    top: 54px;
-    left: -10px;
-    width: 260px;
-    padding: 10px;
+    top: calc(54px * var(--ui-scale));
+    left: calc(-10px * var(--ui-scale));
+    width: calc(260px * var(--ui-scale));
+    padding: calc(10px * var(--ui-scale));
     z-index: 4;
     visibility: hidden;
 }
 
 .ribbon-menu-other-subcategory {
-    padding: 10px 5px;
-    margin: 5px 5px 0 5px;
-    background: white;
-    border-radius: 28px;
+    padding: calc(10px * var(--ui-scale)) calc(5px * var(--ui-scale));
+    margin: calc(5px * var(--ui-scale)) calc(5px * var(--ui-scale)) 0 calc(5px * var(--ui-scale));
+    background: var(--color-neutral-white);
+    border-radius: calc(28px * var(--ui-scale));
+    border: calc(1px * var(--ui-scale)) solid var(--color-neutral-200);
 }
 
 .ribbon-menu-other-subcategory:hover {
-    background-color: #eee;
+    background-color: var(--color-neutral-200);
 }

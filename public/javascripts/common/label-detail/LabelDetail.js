@@ -72,6 +72,9 @@ async function LabelDetail(root, opts) {
         );
 
         _initInfoPopover();
+
+        // Seed the all-time counts so a validation here can celebrate a newly unlocked validation badge.
+        BadgeAchievements.seedCounts();
     }
 
     /**
@@ -331,7 +334,10 @@ async function LabelDetail(root, opts) {
             for (const tag of meta.tags) {
                 const pill = document.createElement('span');
                 pill.className = 'tag-pill';
-                pill.textContent = i18next.t(`common:tag.${tag.replace(/:/g, '-')}`);
+                const pillLabel = document.createElement('span');
+                pillLabel.className = 'tag-pill__label';
+                pillLabel.textContent = i18next.t(`common:tag.${tag.replace(/:/g, '-')}`);
+                pill.appendChild(pillLabel);
                 els.tags.appendChild(pill);
             }
         } else {
@@ -412,6 +418,7 @@ async function LabelDetail(root, opts) {
      * @private
      */
     function _validateLabel(action, source) {
+        const isNewValidation = !self.prevAction;
         const validationTimestamp = new Date();
         const canvasWidth  = self.panoManager.svHolder.width();
         const canvasHeight = self.panoManager.svHolder.height();
@@ -454,6 +461,7 @@ async function LabelDetail(root, opts) {
             _updateVoteCount(action);
             _highlightVote(action);
             _setVoteButtonsDisabled(false);
+            if (isNewValidation) BadgeAchievements.recordValidation(self.panoManager.svHolder[0]);
             if (typeof onVote === 'function') onVote(action, currentLabelMeta);
         }).catch((err) => {
             console.error(err);
