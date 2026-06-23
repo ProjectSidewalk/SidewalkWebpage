@@ -41,14 +41,12 @@
     justify-content: space-between;
 }
 
+/* Overriding some of our design system tokens, though we could likely bring them more in line with DST. */
 .validate-page-button {
     display: inline-block;
     width: calc(86px * var(--ui-scale));
     height: calc(32px * var(--ui-scale));
-    border-radius: calc(6px * var(--ui-scale));
     border: 1px solid var(--color-asphalt-500);
-    color: var(--color-asphalt-500);
-    font: var(--text-caption-semibold);
     text-align: center;
 
     background-color: var(--color-neutral-white);
@@ -152,20 +150,6 @@
 .sidewalk-ai-suggested-tag.to-remove:hover {
     background: rgb(from var(--color-orange-500) r g b / 15%);
     outline-color: var(--color-orange-500);
-}
-
-#validate-submit-button {
-    background: var(--color-pine-600);
-    border-color: var(--color-pine-600);
-    color: var(--color-neutral-white);
-}
-#validate-submit-button:disabled {
-    background: var(--color-pine-300);
-    border-color: var(--color-pine-300);
-}
-
-#validate-undo-button:disabled {
-    opacity: 0.5;
 }
 
 .validate-text-input {
@@ -282,9 +266,7 @@
     height: calc(36px * var(--ui-scale));
     justify-content: center;
     align-items: center;
-    border-radius: calc(6px * var(--ui-scale));
     border: calc(1px * var(--ui-scale)) solid var(--color-neutral-700);
-    font: var(--text-caption-semibold);
     background-color: var(--color-neutral-white);
 }
 

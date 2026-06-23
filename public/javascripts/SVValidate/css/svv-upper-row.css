@@ -23,7 +23,7 @@
 #admin-info-section {
     display: none;
     position: absolute;
-    top: calc(38px * var(--ui-scale));
+    top: calc(43px * var(--ui-scale));
     left: var(--menu-left);
 }
 

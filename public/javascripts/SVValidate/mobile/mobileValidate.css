@@ -214,8 +214,6 @@ body {
     width: 25vw;
     height: inherit;
     border-radius: 16px;
-    border: 4px solid #2d2a3f;
-    color: #2d2a3f;
     font-size: 28px;
 }
 
@@ -291,11 +289,7 @@ body {
 .validation-reason-button {
     width: unset;
     height: 80px;
-    justify-content: center;
     border-radius: 16px;
-    border: 2px solid #666;
-
-    color: #2D2A3F;
     font-size: 24px;
     align-self: stretch;
 }
