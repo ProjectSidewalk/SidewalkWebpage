@@ -176,7 +176,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.rate-severity-1') +
                     '<br><img src="' + svl.rootDirectory + 'img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" ' +
-                    'class="width-75" style="margin: 5px auto;display:block;">'
+                    'class="onboarding-gif">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -203,7 +203,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-1') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-severity-2-v3.gif` +
-                    `" class="width-75" style="margin: 5px auto;display:block;"`
+                    `" class="onboarding-gif"`
             },
             "panoId": panoId,
             "annotations": null,
@@ -539,7 +539,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.tag-attribute-3') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
+                    '" class="onboarding-gif">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -565,7 +565,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.redo-tag-attribute-3') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
+                    '" class="onboarding-gif">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -591,7 +591,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.rate-severity-3') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" ` +
-                    'class="width-75" style="margin: 5px auto;display:block;">'
+                    'class="onboarding-gif">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -618,7 +618,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-3') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
+                    '" class="onboarding-gif">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -758,7 +758,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.tag-attribute-4') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
+                    '" class="onboarding-gif">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -784,7 +784,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.redo-tag-attribute-4') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
+                    '" class="onboarding-gif">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -810,7 +810,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.rate-severity-4') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
+                    '" class="onboarding-gif">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -837,7 +837,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-4') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">'
+                    '" class="onboarding-gif">'
             },
             "panoId": panoId,
             "annotations": null,
@@ -1386,7 +1386,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.tag-attribute-7') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingMissingSidewalk.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">',
+                    '" class="onboarding-gif">',
                 "position": "top-right"
             },
             "panoId": panoId,
@@ -1419,7 +1419,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.redo-tag-attribute-7') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingMissingSidewalk.gif` +
-                    '" class="width-75" style="margin: 5px auto;display:block;">',
+                    '" class="onboarding-gif">',
                 "position": "top-right"
             },
             "panoId": panoId,
@@ -1582,7 +1582,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.rate-severity-8') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-v3.gif` +
-                    `" class="width-75" style="margin: 5px auto;display:block;" `
+                    `" class="onboarding-gif" `
             },
             "panoId": panoId,
             "annotations": null,
@@ -1609,7 +1609,7 @@ function OnboardingStates (contextMenu, compass, panoManager) {
             "message": {
                 "message": i18next.t('tutorial.redo-rate-attribute-8') +
                     `<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-v3.gif` +
-                    `" class="width-75" style="margin: 5px auto;display:block;" `
+                    `" class="onboarding-gif" `
             },
             "panoId": panoId,
             "annotations": null,

@@ -42,6 +42,12 @@
     width: 100%;
 }
 
+.onboarding-gif {
+    display: block;
+    width: 95%;
+    margin: calc(5px * var(--ui-scale)) auto;
+}
+
 .onboarding-ok-button-holder {
     display: flex;
     justify-content: flex-end;

@@ -56,3 +56,8 @@
     gap: calc(20px * var(--ui-scale));
     padding-top: calc(5px * var(--ui-scale));
 }
+
+.popup-up-message-image {
+    border-radius: calc(8px * var(--ui-scale));
+    margin-top: calc(5px * var(--ui-scale))
+}
