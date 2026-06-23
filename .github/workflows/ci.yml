@@ -123,12 +123,26 @@ jobs:
       # Boot the real app and run the public-API functional tests against the imported city.
       - name: Run public API tests
         run: sbt "testOnly controllers.api.PublicApiSpec"
+        # Dummy env mirroring docker-compose.yml's web service, so the app boots exactly as it does in dev. The
+        # application secret must be >=256 bits (32+ chars) for Play's HS256 JWT sessions, hence the long value.
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk
           DATABASE_PASSWORD: sidewalk
           SIDEWALK_CITY_ID: teaneck-nj
-          SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
-          SILHOUETTE_SIGNER_KEY: dummy-ci-signer-key
-          SILHOUETTE_CRYPTER_KEY: dummy-ci-crypter-key
-          INTERNAL_API_KEY: dummy-ci-internal-key
+          SIDEWALK_APPLICATION_SECRET: DUMMY_APPLICATION_SECRET_SET_CORRECTLY_ON_PRODUCTION
+          SILHOUETTE_SIGNER_KEY: DUMMY_SILHOUETTE_SIGNER_KEY
+          SILHOUETTE_CRYPTER_KEY: DUMMY_SILHOUETTE_CRYPTER_KEY
+          INTERNAL_API_KEY: DUMMY_INTERNAL_API_KEY
+          MAPBOX_API_KEY: DUMMY_MAPBOX_API_KEY
+          GOOGLE_MAPS_API_KEY: DUMMY_GOOGLE_API_KEY
+          GOOGLE_MAPS_SECRET: DUMMY_GOOGLE_SECRET
+          GEMINI_API_KEY: DUMMY_GEMINI_API_KEY
+          SCISTARTER_API_KEY: DUMMY_SCISTARTER_API_KEY
+          MAPILLARY_ACCESS_TOKEN: DUMMY_MAPILLARY_ACCESS_TOKEN
+          INFRA3D_CLIENT_ID_ZURICH: DUMMY_INFRA3D_CLIENT_ID
+          INFRA3D_CLIENT_ID_WINTERTHUR: DUMMY_INFRA3D_CLIENT_ID
+          INFRA3D_CLIENT_SECRET_ZURICH: DUMMY_INFRA3D_CLIENT_SECRET
+          INFRA3D_CLIENT_SECRET_WINTERTHUR: DUMMY_INFRA3D_CLIENT_SECRET
+          ENV_TYPE: local
+          SIDEWALK_IMAGES_DIR: .crops
