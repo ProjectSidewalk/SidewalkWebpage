@@ -1,0 +1,72 @@
+name: CI
+
+# Phase 0 of the testing & CI rollout (see docs/testing-and-ci.md). Establishes the gate with ZERO tests required:
+#   - backend:  `sbt compile` (BLOCKING) + `scalafmtCheckAll` (advisory)
+#   - frontend: asset build (grunt)
+# Frontend linting (eslint/htmlhint/stylelint) is intentionally NOT wired in here: it is owned by issue #2487 and
+# sequenced with the in-progress JS ES5->ES6 migration, so it'll be introduced separately on that track.
+# Later phases add unit/DB/functional test steps and a DB service container.
+
+on:
+  pull_request:
+  push:
+    branches: [develop, master, main]
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (compile + scalafmt)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: sbt
+
+      - name: Set up sbt
+        uses: sbt/setup-sbt@v1
+
+      # Dummy env so any config evaluation during compile has values. Compilation does not touch the database, so no
+      # DB service is needed in Phase 0 (that arrives with the DB-integration phase).
+      - name: Compile (blocking gate)
+        run: sbt -v compile
+        env:
+          SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
+          INTERNAL_API_KEY: dummy-ci-internal-key
+
+      # Advisory only for now: the codebase has not had a repo-wide reformat pass, so this is expected to report
+      # findings. It must not block PRs yet (continue-on-error). Flip to blocking once the baseline is clean.
+      - name: scalafmt check (advisory)
+        continue-on-error: true
+        run: sbt scalafmtCheckAll
+
+  frontend:
+    name: Frontend (build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 23
+        uses: actions/setup-node@v4
+        with:
+          node-version: '23'
+          # No npm cache and `npm install` (not `npm ci`) because the repo has no committed package-lock.json yet.
+          # Adding a lockfile later enables `npm ci` + caching and tighter Dependabot npm updates.
+
+      - name: Install dependencies
+        run: npm install
+
+      # Exercises the grunt concat/concat_css asset build (the project's `default` grunt task).
+      - name: Build assets
+        run: npx grunt
