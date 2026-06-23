@@ -70,11 +70,11 @@ Two parallel jobs:
 
 **PR** runs fast feedback (compile, unit, build); **main/push** adds coverage; **E2E** is a separate **nightly/advisory** workflow. **Gating policy:** `sbt compile` blocking from day one; **scalafmt advisory** (`scalafmtCheckAll` via `continue-on-error`, no reformat pass yet); frontend lint deferred to #2487 (its own advisory→blocking ramp there); test phases advisory ~1 week then blocking on PR; **E2E always advisory**.
 
-**Dependency automation:** **Scala Steward** (GitHub Action) for sbt deps — Dependabot has no native sbt updater — plus **`.github/dependabot.yml`** for `npm`, `github-actions`, and `docker` (covers the open Dependabot alerts), weekly, grouped.
+**Dependency automation:** sbt deps are kept current by **VirtusLab's hosted Scala Steward instance** (register the repo via a one-line PR to `VirtusLab/scala-steward-repos`) — no token, secret, or Actions minutes, which suits a long-lived public OSS repo better than a self-hosted workflow + PAT. Dependabot has no native sbt updater, so **`.github/dependabot.yml`** covers `npm`, `github-actions`, and `docker` (also covers the open Dependabot alerts), weekly, grouped.
 
 ## Phased rollout (each phase independently mergeable)
 
-- **Phase 0 — gate, zero tests required (land first):** add sbt-scalafmt/sbt-scoverage plugins; `ci.yml` with `sbt compile` (blocking) + `scalafmtCheckAll` (advisory) + frontend asset build; `.github/dependabot.yml` + Scala Steward; fix the `npm test` placeholder. (Frontend lint excluded — owned by #2487.) **Implemented on `feature/ci-phase0`.**
+- **Phase 0 — gate, zero tests required (land first):** add sbt-scalafmt/sbt-scoverage plugins; `ci.yml` with `sbt compile` (blocking) + `scalafmtCheckAll` (advisory) + frontend asset build; `.github/dependabot.yml` + register with hosted Scala Steward; fix the `npm test` placeholder. (Frontend lint excluded — owned by #2487.) **Implemented on `feature/ci-phase0`.**
 - **Phase 1 — unit:** backend Layer-(a) specs + Jest util tests; run on every PR (no DB service needed for the unit subset).
 - **Phase 2 — DB integration:** PostGIS service + `PostgresTestKit`; #4239 + #4228 regression specs; measure evolution time.
 - **Phase 3 — functional:** silhouette-testkit + `FakeAuth`/`GuiceTestApp`/`WsStubs`; `ImageControllerSpec` + `PublicApiSpec`.
