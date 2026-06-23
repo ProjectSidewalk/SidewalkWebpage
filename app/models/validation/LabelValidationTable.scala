@@ -221,7 +221,7 @@ class LabelValidationTable @Inject() (
    */
   def getValidatedCountsPerUser: DBIO[Seq[(String, (Int, Int))]] = {
     humanValidations
-      .filter(_.labelValidationId =!= 3) // Exclude "unsure" validations.
+      .filter(_.validationResult =!= 3) // Exclude "unsure" validations.
       .groupBy(_.userId)
       .map { case (userId, group) =>
         // Sum up the agreed validations and total validations (just agreed + disagreed).
