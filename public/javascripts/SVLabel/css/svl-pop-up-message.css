@@ -52,12 +52,12 @@
 #pop-up-message-button-holder {
     display: flex;
     flex-direction: row;
-    justify-content: flex-end;
+    justify-content: center;
     gap: calc(20px * var(--ui-scale));
-    padding-top: calc(5px * var(--ui-scale));
+    padding-top: calc(6px * var(--ui-scale));
 }
 
-.popup-up-message-image {
+#pop-up-message-image {
     border-radius: calc(8px * var(--ui-scale));
-    margin-top: calc(5px * var(--ui-scale))
+    margin: calc(5px * var(--ui-scale))
 }

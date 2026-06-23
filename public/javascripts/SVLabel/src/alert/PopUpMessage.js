@@ -60,7 +60,7 @@ function PopUpMessage (form, taskContainer, tracker) {
 
     const _appendOkButton = () => {
         const OkButton =
-            '<button id="pop-up-message-ok-button" class="button-ps button--medium button--secondary">OK</button>';
+            '<button id="pop-up-message-ok-button" class="button-ps button--medium button--primary">OK</button>';
         const handleClickOk = () => {
             tracker.push('PopUpMessage_ClickOk');
             this.enableInteractions();
