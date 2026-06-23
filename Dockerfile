@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jdk-focal
+FROM eclipse-temurin:19-jdk-focal
 
 RUN apt-get update && apt-get upgrade -y
 
