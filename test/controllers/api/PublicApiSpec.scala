@@ -104,6 +104,12 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
     // A tiny bbox far from any city keeps the streamed success body cheap while still exercising the happy path.
     val emptyBbox = "0,0,0.001,0.001"
 
+    "reject a non-positive regionId with 400 (parameter=regionId)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?regionId=-1")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "regionId"
+    }
+
     "reject an invalid validationStatus with 400 (parameter=validationStatus)" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?validationStatus=not-a-status")).get
       status(resp) mustBe BAD_REQUEST
@@ -157,6 +163,18 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
   }
 
   "GET /v3/api/labelClusters parameter validation" should {
+    "reject a malformed bbox with 400 (parameter=bbox)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/labelClusters?bbox=not-a-bbox")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "bbox"
+    }
+
+    "reject a non-positive regionId with 400 (parameter=regionId)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/labelClusters?regionId=0")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "regionId"
+    }
+
     "reject a malformed avgLabelDate with 400 (parameter=avgLabelDate)" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/labelClusters?avgLabelDate=nope")).get
       status(resp) mustBe BAD_REQUEST

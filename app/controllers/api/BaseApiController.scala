@@ -110,69 +110,18 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
   /** Builds a 400 Bad Request response from an `ApiError`. */
   protected def badRequest(error: ApiError): Result = BadRequest(Json.toJson(error))
 
-  /**
-   * Returns an ApiError if `bbox` was supplied but could not be parsed.
-   *
-   * @param bbox    The raw bbox query parameter value.
-   * @param parsed  The result of running `parseBBoxString(bbox)`.
-   */
+  // Instance method wrappers — delegate to the companion object so the pure logic is unit-testable without DI.
   protected def validateBBoxParam(bbox: Option[String], parsed: Option[LatLngBBox]): Option[ApiError] =
-    if (bbox.isDefined && parsed.isEmpty)
-      Some(ApiError.invalidParameter(
-        "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox"))
-    else None
-
-  /**
-   * Returns an ApiError if `regionId` is defined but not a positive integer.
-   *
-   * @param regionId The optional regionId query parameter.
-   */
+    BaseApiController.validateBBoxParam(bbox, parsed)
   protected def validateRegionId(regionId: Option[Int]): Option[ApiError] =
-    if (regionId.exists(_ <= 0))
-      Some(ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId"))
-    else None
-
-  /**
-   * Resolves the effective bbox/regionId/regionName filters, applying the standard v3 precedence rules:
-   * - An explicit valid bbox takes precedence over region filters.
-   * - regionId takes precedence over regionName.
-   * - If neither a bbox nor a region filter is provided, the city default bbox is used.
-   *
-   * @param bbox          The raw bbox query parameter.
-   * @param parsedBbox    The result of running `parseBBoxString(bbox)`.
-   * @param regionId      The optional regionId query parameter.
-   * @param regionName    The optional regionName query parameter.
-   * @param cityMapParams Default map parameters for the current city.
-   * @return A triple of (finalBbox, finalRegionId, finalRegionName) after applying precedence.
-   */
+    BaseApiController.validateRegionId(regionId)
   protected def resolveGeoFilters(
-      bbox: Option[String],
-      parsedBbox: Option[LatLngBBox],
-      regionId: Option[Int],
-      regionName: Option[String],
-      cityMapParams: MapParams
-  ): (Option[LatLngBBox], Option[Int], Option[String]) = {
-    val defaultBox = LatLngBBox(
-      minLng = Math.min(cityMapParams.lng1, cityMapParams.lng2),
-      minLat = Math.min(cityMapParams.lat1, cityMapParams.lat2),
-      maxLng = Math.max(cityMapParams.lng1, cityMapParams.lng2),
-      maxLat = Math.max(cityMapParams.lat1, cityMapParams.lat2)
-    )
-    val bboxActive  = bbox.isDefined && parsedBbox.isDefined
-    val finalBbox   = if (bboxActive) parsedBbox else if (regionId.isDefined || regionName.isDefined) None else Some(defaultBox)
-    val finalRegId  = if (bboxActive) None else regionId
-    val finalRegName = if (bboxActive || regionId.isDefined) None else regionName
-    (finalBbox, finalRegId, finalRegName)
-  }
-
-  /**
-   * Parses a comma-separated query parameter into a sequence of trimmed strings.
-   *
-   * @param raw The optional raw query parameter string.
-   * @return `None` if the parameter was absent; otherwise a non-empty `Some(Seq(...))`.
-   */
+      bbox: Option[String], parsedBbox: Option[LatLngBBox], regionId: Option[Int],
+      regionName: Option[String], cityMapParams: MapParams
+  ): (Option[LatLngBBox], Option[Int], Option[String]) =
+    BaseApiController.resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
   protected def parseCommaSeparated(raw: Option[String]): Option[Seq[String]] =
-    raw.map(_.split(",").map(_.trim).toSeq)
+    BaseApiController.parseCommaSeparated(raw)
 
   /**
    * Outputs a CSV stream from the provided database data stream.
@@ -376,4 +325,77 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
         )
     }
   }
+}
+
+/**
+ * Pure geo-filter helpers shared across v3 API controllers.
+ *
+ * Extracted to a companion object so they can be unit-tested directly without any DI wiring.
+ * The controller instance methods in [[BaseApiController]] delegate here.
+ */
+object BaseApiController {
+
+  /**
+   * Returns an ApiError if `bbox` was supplied but could not be parsed.
+   *
+   * @param bbox   The raw bbox query parameter value.
+   * @param parsed The result of running `parseBBoxString(bbox)`.
+   */
+  def validateBBoxParam(bbox: Option[String], parsed: Option[LatLngBBox]): Option[ApiError] =
+    if (bbox.isDefined && parsed.isEmpty)
+      Some(ApiError.invalidParameter(
+        "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox"))
+    else None
+
+  /**
+   * Returns an ApiError if `regionId` is defined but not a positive integer.
+   *
+   * @param regionId The optional regionId query parameter.
+   */
+  def validateRegionId(regionId: Option[Int]): Option[ApiError] =
+    if (regionId.exists(_ <= 0))
+      Some(ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId"))
+    else None
+
+  /**
+   * Resolves the effective bbox/regionId/regionName filters, applying the standard v3 precedence rules:
+   * - An explicit valid bbox takes precedence over region filters.
+   * - regionId takes precedence over regionName.
+   * - If neither a bbox nor a region filter is provided, the city default bbox is used.
+   *
+   * @param bbox          The raw bbox query parameter (pre-parse string, used only to detect "was it supplied").
+   * @param parsedBbox    The result of running `parseBBoxString(bbox)`.
+   * @param regionId      The optional regionId query parameter.
+   * @param regionName    The optional regionName query parameter.
+   * @param cityMapParams Default map parameters for the current city.
+   * @return A triple of (finalBbox, finalRegionId, finalRegionName) after applying precedence.
+   */
+  def resolveGeoFilters(
+      bbox: Option[String],
+      parsedBbox: Option[LatLngBBox],
+      regionId: Option[Int],
+      regionName: Option[String],
+      cityMapParams: MapParams
+  ): (Option[LatLngBBox], Option[Int], Option[String]) = {
+    val defaultBox = LatLngBBox(
+      minLng = Math.min(cityMapParams.lng1, cityMapParams.lng2),
+      minLat = Math.min(cityMapParams.lat1, cityMapParams.lat2),
+      maxLng = Math.max(cityMapParams.lng1, cityMapParams.lng2),
+      maxLat = Math.max(cityMapParams.lat1, cityMapParams.lat2)
+    )
+    val bboxActive   = bbox.isDefined && parsedBbox.isDefined
+    val finalBbox    = if (bboxActive) parsedBbox else if (regionId.isDefined || regionName.isDefined) None else Some(defaultBox)
+    val finalRegId   = if (bboxActive) None else regionId
+    val finalRegName = if (bboxActive || regionId.isDefined) None else regionName
+    (finalBbox, finalRegId, finalRegName)
+  }
+
+  /**
+   * Parses a comma-separated query parameter into a sequence of trimmed strings.
+   *
+   * @param raw The optional raw query parameter string.
+   * @return `None` if the parameter was absent; a `Some(Seq(...))` of trimmed tokens otherwise.
+   */
+  def parseCommaSeparated(raw: Option[String]): Option[Seq[String]] =
+    raw.map(_.split(",").map(_.trim).toSeq)
 }
