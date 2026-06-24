@@ -2,6 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import com.typesafe.config.ConfigException
+import models.api.DailyStatRecord
 import models.label.LabelTypeEnum
 import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
@@ -14,7 +15,7 @@ import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime}
 import javax.inject._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
@@ -113,6 +114,25 @@ trait ConfigService {
    * @return A Future containing aggregated statistics across all cities
    */
   def getAggregateStats(): Future[AggregateStats]
+
+  /**
+   * Returns daily label and validation counts aggregated across all configured cities.
+   *
+   * Queries each city schema in parallel and sums counts by (date, labelType) across cities.
+   * Cities whose schemas do not exist in the current environment are silently skipped (same
+   * guard as getAggregateStats). The legacy DC dataset is omitted because its schema predates
+   * the label_validation table format used here.
+   *
+   * @param startDate        Inclusive start date (Pacific time); no lower bound if None.
+   * @param endDate          Inclusive end date; no upper bound if None.
+   * @param filterLowQuality If true, restrict to high-quality users.
+   * @return                 Merged, sorted sequence of DailyStatRecord summed across all cities.
+   */
+  def getAggregateStatsByDay(
+      startDate: Option[LocalDate],
+      endDate: Option[LocalDate],
+      filterLowQuality: Boolean
+  ): Future[Seq[DailyStatRecord]]
 
   def getCityMapParams: Future[MapParams]
   def getTutorialStreetId: Future[Int]
@@ -341,6 +361,72 @@ class ConfigServiceImpl @Inject() (
               aggregateCityData(validCityStats :+ legacyDCData, numCities, numCountries, numLanguages)
             }
           }
+        }
+      }
+    }
+  }
+
+  def getAggregateStatsByDay(
+      startDate: Option[LocalDate],
+      endDate: Option[LocalDate],
+      filterLowQuality: Boolean
+  ): Future[Seq[DailyStatRecord]] = {
+    val configuredCityIds = config.get[Seq[String]]("city-params.city-ids")
+
+    val schemaChecks = configuredCityIds.map { cityId =>
+      try {
+        val schema = getCitySchema(cityId)
+        checkSchemaExists(schema).map(cityId -> _).recover { case _ => cityId -> false }
+      } catch {
+        case _: Exception => Future.successful(cityId -> false)
+      }
+    }
+
+    Future.sequence(schemaChecks).flatMap { results =>
+      val availableCities = results.filter(_._2).map(_._1)
+
+      if (availableCities.isEmpty) {
+        Future.successful(Seq.empty)
+      } else {
+        val cityDataFutures = availableCities.map { cityId =>
+          val schema = getCitySchema(cityId)
+          val labelsFuture = db.run(configTable.getCityDailyLabelStatsBySchema(schema, startDate, endDate,
+            filterLowQuality))
+            .recover { case e: Exception =>
+              logger.warn(s"Failed daily label stats for city $cityId: ${e.getMessage}")
+              Seq.empty[(LocalDate, String, Int, Int)]
+            }
+          val valsFuture = db.run(configTable.getCityDailyValidationStatsBySchema(schema, startDate, endDate,
+            filterLowQuality))
+            .recover { case e: Exception =>
+              logger.warn(s"Failed daily validation stats for city $cityId: ${e.getMessage}")
+              Seq.empty[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
+            }
+          for {
+            labels      <- labelsFuture
+            validations <- valsFuture
+          } yield DailyStatRecord.merge(labels, validations)
+        }
+
+        Future.sequence(cityDataFutures).map { cityResults =>
+          // Sum all numeric fields across cities, grouped by (date, labelType).
+          cityResults.flatten
+            .groupBy(r => (r.date, r.labelType))
+            .map { case ((date, labelType), records) =>
+              DailyStatRecord(
+                date                     = date,
+                labelType                = labelType,
+                humanLabels              = records.map(_.humanLabels).sum,
+                aiLabels                 = records.map(_.aiLabels).sum,
+                humanValidationsAgree    = records.map(_.humanValidationsAgree).sum,
+                humanValidationsDisagree = records.map(_.humanValidationsDisagree).sum,
+                humanValidationsUnsure   = records.map(_.humanValidationsUnsure).sum,
+                aiValidationsAgree       = records.map(_.aiValidationsAgree).sum,
+                aiValidationsDisagree    = records.map(_.aiValidationsDisagree).sum,
+                aiValidationsUnsure      = records.map(_.aiValidationsUnsure).sum
+              )
+            }
+            .toSeq.sortBy(r => (r.date, r.labelType))
         }
       }
     }

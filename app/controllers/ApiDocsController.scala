@@ -159,4 +159,24 @@ class ApiDocsController @Inject() (
       Ok(views.html.apiDocs.aggregateStats(commonData, request.identity))
     }
   }
+
+  /**
+   * Displays API documentation for the overall stats by day (time series).
+   */
+  def overallStatsByDay = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_OverallStatsByDay")
+      Ok(views.html.apiDocs.overallStatsByDay(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Displays API documentation for the aggregate stats by day (time series).
+   */
+  def aggregateStatsByDay = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_AggregateStatsByDay")
+      Ok(views.html.apiDocs.aggregateStatsByDay(commonData, request.identity))
+    }
+  }
 }

@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import formats.json.ClusterFormats.{ClusterSubmission, ClusteredLabelSubmission}
-import models.api._
+import models.api.{DailyStatRecord, _}
 import models.cluster._
 import models.label._
 import models.region.{Region, RegionTable}
@@ -20,7 +20,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
 import slick.sql.SqlStreamingAction
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -143,6 +143,23 @@ trait ApiService {
   ): Future[Seq[UserStatApi]]
 
   def getOverallStats(filterLowQuality: Boolean): Future[ProjectSidewalkStats]
+
+  /**
+   * Returns daily label and validation counts for the current city, split by human vs AI and label type.
+   *
+   * Runs two DB queries concurrently (labels by time_created, validations by end_timestamp) then merges
+   * them into one sequence keyed by (date, labelType).
+   *
+   * @param startDate        Inclusive start date (Pacific time); no lower bound if None.
+   * @param endDate          Inclusive end date; no upper bound if None.
+   * @param filterLowQuality If true, restrict to high-quality users (mirrors overallStats).
+   * @return                 Merged sequence of DailyStatRecord, sorted by date then label type.
+   */
+  def getOverallStatsByDay(
+      startDate: Option[LocalDate],
+      endDate: Option[LocalDate],
+      filterLowQuality: Boolean
+  ): Future[Seq[DailyStatRecord]]
 
   /**
    * Retrieves validation data based on the provided filters and returns them as a reactive stream source.
@@ -338,6 +355,19 @@ class ApiServiceImpl @Inject() (
           StreetTypeForApi(wayType, description, count)
         }
     }
+  }
+
+  def getOverallStatsByDay(
+      startDate: Option[LocalDate],
+      endDate: Option[LocalDate],
+      filterLowQuality: Boolean
+  ): Future[Seq[DailyStatRecord]] = {
+    val labelsFuture      = db.run(labelTable.getDailyLabelStats(startDate, endDate, filterLowQuality))
+    val validationsFuture = db.run(labelValidationTable.getDailyValidationStats(startDate, endDate, filterLowQuality))
+    for {
+      labels      <- labelsFuture
+      validations <- validationsFuture
+    } yield DailyStatRecord.merge(labels, validations)
   }
 
   def getValidations(filters: ValidationFiltersForApi, batchSize: Int): Source[ValidationDataForApi, _] = {

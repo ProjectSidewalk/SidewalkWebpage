@@ -26,7 +26,7 @@ import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
 import slick.sql.SqlStreamingAction
 
-import java.time.{Duration, Instant, OffsetDateTime, ZoneOffset}
+import java.time.{Duration, Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
@@ -2205,5 +2205,56 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _pd.cameraPitch.asColumnOf[Double],
       _pd.cameraRoll
     )).sortBy(_._1).result
+  }
+
+  /**
+   * Returns daily label counts split by human vs AI creator and label type.
+   *
+   * Labels are bucketed into US/Pacific calendar dates via label.time_created. Tutorial and deleted
+   * labels are always excluded. The quality filter mirrors the convention in getOverallStatsForApi:
+   * when filterLowQuality is false, only administratively excluded users (user_stat.excluded) are
+   * removed; when true, only high-quality users (user_stat.high_quality) are included.
+   *
+   * @param startDate        Inclusive lower bound on label.time_created (date cast to Pacific time);
+   *                         no lower bound if None.
+   * @param endDate          Inclusive upper bound on label.time_created; no upper bound if None.
+   * @param filterLowQuality If true, restrict to user_stat.high_quality users; otherwise exclude
+   *                         only user_stat.excluded users.
+   * @return                 Sequence of (date, labelType, humanLabels, aiLabels), sorted by date
+   *                         then label type.
+   */
+  def getDailyLabelStats(
+      startDate: Option[LocalDate],
+      endDate: Option[LocalDate],
+      filterLowQuality: Boolean
+  ): DBIO[Seq[(LocalDate, String, Int, Int)]] = {
+    // Mirrors the userFilter convention in getOverallStatsForApi.
+    val userFilter = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
+    val whereClauses = scala.collection.mutable.ListBuffer(
+      "label.deleted = FALSE",
+      "label.tutorial = FALSE",
+      userFilter
+    )
+    startDate.foreach(d => whereClauses += s"label.time_created >= '$d'::date")
+    endDate.foreach(d => whereClauses += s"label.time_created < ('$d'::date + INTERVAL '1 day')")
+    val where = whereClauses.mkString(" AND ")
+
+    implicit val getResult: GetResult[(LocalDate, String, Int, Int)] =
+      GetResult(r => (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt()))
+
+    sql"""
+      SELECT CAST((label.time_created AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
+             label_type.label_type,
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' THEN label.label_id END) AS human_labels,
+             COUNT(CASE WHEN role.role = 'AI'               THEN label.label_id END) AS ai_labels
+      FROM label
+      INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+      INNER JOIN user_stat  ON label.user_id       = user_stat.user_id
+      LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
+      LEFT  JOIN sidewalk_login.role      ON user_role.role_id = role.role_id
+      WHERE #$where
+      GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, label_type.label_type
+      ORDER BY date ASC, label_type.label_type
+    """.as[(LocalDate, String, Int, Int)]
   }
 }

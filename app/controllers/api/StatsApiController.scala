@@ -3,17 +3,18 @@ package controllers.api
 import controllers.base.CustomControllerComponents
 import controllers.helper.ControllerUtils.labelTypeOrdering
 import formats.json.ApiFormats._
-import models.api.ApiError
+import models.api.{ApiError, DailyStatRecord}
 import models.label.ProjectSidewalkStats
 import models.user.UserStatApi
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
+import play.api.mvc.Result
 import play.silhouette.api.Silhouette
 import service.{AggregateStats, ApiService, ConfigService}
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime}
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class StatsApiController @Inject() (
@@ -273,5 +274,116 @@ class StatsApiController @Inject() (
     // Combine all statistics
     val allStats = basicStats ++ labelTypeStats
     header + allStats.mkString("\n")
+  }
+
+  /**
+   * Parses a pair of optional YYYY-MM-DD date strings into Option[LocalDate] values.
+   *
+   * @param startDateStr Optional start date in YYYY-MM-DD format.
+   * @param endDateStr   Optional end date in YYYY-MM-DD format.
+   * @return             Right((startDate, endDate)) on success, Left(ApiError) on bad input.
+   */
+  private def parseDateParams(
+      startDateStr: Option[String],
+      endDateStr: Option[String]
+  ): Either[ApiError, (Option[LocalDate], Option[LocalDate])] = {
+    def parseOpt(opt: Option[String], paramName: String): Either[ApiError, Option[LocalDate]] =
+      opt match {
+        case None => Right(None)
+        case Some(s) =>
+          try Right(Some(LocalDate.parse(s)))
+          catch {
+            case _: Exception =>
+              Left(ApiError.invalidParameter(s"Invalid date '$s': expected YYYY-MM-DD format.", paramName))
+          }
+      }
+    for {
+      start <- parseOpt(startDateStr, "startDate")
+      end   <- parseOpt(endDateStr, "endDate")
+      _ <- (start, end) match {
+        case (Some(s), Some(e)) if s.isAfter(e) =>
+          Left(ApiError.invalidParameter("startDate must not be after endDate.", "startDate"))
+        case _ => Right(())
+      }
+    } yield (start, end)
+  }
+
+  /**
+   * Renders a sequence of DailyStatRecord as JSON or as a downloadable CSV file.
+   *
+   * @param stats    The daily stats to render.
+   * @param filetype Optional "csv" to trigger CSV output; defaults to JSON.
+   * @param baseName Base filename stem for the CSV download (timestamp appended automatically).
+   * @return         Play Result with appropriate content type.
+   */
+  private def renderDailyStats(stats: Seq[DailyStatRecord], filetype: Option[String], baseName: String): Result = {
+    filetype match {
+      case Some("csv") =>
+        val file   = new java.io.File(s"${baseName}_${OffsetDateTime.now()}.csv")
+        val writer = new java.io.PrintStream(file, "UTF-8")
+        writer.print(DailyStatRecord.csvHeader)
+        stats.foreach { r =>
+          writer.println(
+            s"${r.date},${r.labelType},${r.humanLabels},${r.aiLabels}," +
+              s"${r.humanValidationsAgree},${r.humanValidationsDisagree},${r.humanValidationsUnsure}," +
+              s"${r.aiValidationsAgree},${r.aiValidationsDisagree},${r.aiValidationsUnsure}"
+          )
+        }
+        writer.close()
+        Ok.sendFile(content = file, onClose = () => { file.delete(); () })
+      case _ =>
+        Ok(Json.obj("status" -> "OK", "data" -> stats))
+    }
+  }
+
+  /**
+   * Returns daily label and validation counts for the current city split by human vs AI and label type.
+   *
+   * @param startDate        Optional start date (YYYY-MM-DD); no lower bound if absent.
+   * @param endDate          Optional end date (YYYY-MM-DD); no upper bound if absent.
+   * @param filterLowQuality If true, exclude low-quality users. Defaults to false.
+   * @param filetype         Output format: "json" (default) or "csv".
+   * @return                 Daily stats in the requested format.
+   */
+  def getOverallStatsByDay(
+      startDate: Option[String],
+      endDate: Option[String],
+      filterLowQuality: Boolean,
+      filetype: Option[String]
+  ) = silhouette.UserAwareAction.async { implicit request =>
+    parseDateParams(startDate, endDate) match {
+      case Left(err) => Future.successful(BadRequest(Json.toJson(err)))
+      case Right((start, end)) =>
+        apiService.getOverallStatsByDay(start, end, filterLowQuality).map { stats =>
+          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+          renderDailyStats(stats, filetype, "overallStatsByDay")
+        }
+    }
+  }
+
+  /**
+   * Returns daily label and validation counts aggregated across all configured cities, split by human
+   * vs AI and label type.
+   *
+   * @param startDate        Optional start date (YYYY-MM-DD); no lower bound if absent.
+   * @param endDate          Optional end date (YYYY-MM-DD); no upper bound if absent.
+   * @param filterLowQuality If true, exclude low-quality users. Defaults to false.
+   * @param filetype         Output format: "json" (default) or "csv".
+   * @return                 Daily aggregate stats in the requested format.
+   */
+  def getAggregateStatsByDay(
+      startDate: Option[String],
+      endDate: Option[String],
+      filterLowQuality: Boolean,
+      filetype: Option[String]
+  ) = silhouette.UserAwareAction.async { implicit request =>
+    parseDateParams(startDate, endDate) match {
+      case Left(err) => Future.successful(BadRequest(Json.toJson(err)))
+      case Right((start, end)) =>
+        configService.getAggregateStatsByDay(start, end, filterLowQuality).map { stats =>
+          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+          renderDailyStats(stats, filetype, "aggregateStatsByDay")
+        }
+    }
   }
 }

@@ -1,0 +1,180 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@content = {
+    <script>
+        document.documentElement.setAttribute('data-api-base-url', '/v3/api');
+        document.documentElement.setAttribute('data-api-endpoint', 'aggregateStatsByDay');
+    </script>
+
+    <div class="api-section" id="aggregate-stats-by-day-intro-section">
+        <h1 class="api-heading" id="aggregate-stats-by-day-api">
+            Aggregate Stats by Day API <a href="#aggregate-stats-by-day-api" class="permalink">#</a>
+        </h1>
+        <p>
+            The Aggregate Stats by Day API provides a <strong>daily time series</strong> of label and
+            validation activity <strong>summed across every Project Sidewalk deployment</strong>, broken down
+            by label type and by whether the actor was a human user or an AI.
+        </p>
+        <p>
+            Each record covers one calendar day (US/Pacific time) and one label type. Counts from all
+            configured city deployments are summed together. Days with no activity for a label type across
+            any city are omitted.
+        </p>
+        <p>
+            For per-city daily data, see the
+            <a href="@routes.ApiDocsController.overallStatsByDay">Overall Stats by Day API</a>. For a
+            project-wide snapshot (not a time series), see the
+            <a href="@routes.ApiDocsController.aggregateStats">Aggregate Stats API</a>.
+        </p>
+    </div>
+
+    <div class="api-section" id="endpoint-section">
+        <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
+        <p>Returns daily label and validation counts summed across all Project Sidewalk deployments.</p>
+        <p><code>GET /v3/api/aggregateStatsByDay</code></p>
+        <div class="api-subsection" id="endpoint-example-section">
+            <h3 class="api-heading" id="endpoint-examples">Examples <a href="#endpoint-examples" class="permalink">#</a></h3>
+            <p>
+                <code><a target="_blank" href="/v3/api/aggregateStatsByDay">/v3/api/aggregateStatsByDay</a></code>
+                All-time aggregate data in JSON
+            </p>
+            <p>
+                <code><a target="_blank" href="/v3/api/aggregateStatsByDay?startDate=2025-01-01&amp;endDate=2025-03-31">/v3/api/aggregateStatsByDay?startDate=2025-01-01&amp;endDate=2025-03-31</a></code>
+                First quarter of 2025 in JSON
+            </p>
+            <p>
+                <code><a href="/v3/api/aggregateStatsByDay?filetype=csv">/v3/api/aggregateStatsByDay?filetype=csv</a></code>
+                All-time aggregate data as CSV
+            </p>
+        </div>
+    </div>
+
+    <div class="api-section" id="query-parameters-section">
+        <h2 class="api-heading" id="query-parameters">Query Parameters <a href="#query-parameters" class="permalink">#</a></h2>
+        <div class="api-table-wrapper">
+            <table class="api-table">
+                <thead>
+                    <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>startDate</code></td>
+                        <td><code>string</code></td>
+                        <td><em>none</em></td>
+                        <td>
+                            Inclusive lower bound on the activity date in <code>YYYY-MM-DD</code> format
+                            (US/Pacific calendar date). If omitted, all data from the beginning of the
+                            earliest deployment is returned.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>endDate</code></td>
+                        <td><code>string</code></td>
+                        <td><em>none</em></td>
+                        <td>
+                            Inclusive upper bound on the activity date in <code>YYYY-MM-DD</code> format.
+                            If omitted, data up to and including today is returned.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>filterLowQuality</code></td>
+                        <td><code>boolean</code></td>
+                        <td><code>false</code></td>
+                        <td>
+                            If <code>true</code>, only include activity from users whose
+                            <code>high_quality</code> flag is set. Applied independently within
+                            each city schema before summing.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>filetype</code></td>
+                        <td><code>string</code></td>
+                        <td><code>json</code></td>
+                        <td>Output format: <code>json</code> (default) or <code>csv</code>.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="api-section" id="response-format-section">
+        <h2 class="api-heading" id="response-format">Response Format <a href="#response-format" class="permalink">#</a></h2>
+        <p>
+            Identical structure to the
+            <a href="@routes.ApiDocsController.overallStatsByDay">Overall Stats by Day</a> response,
+            with counts summed across all city deployments.
+        </p>
+        <pre><code>{
+  "status": "OK",
+  "data": [
+    {
+      "date": "2025-01-15",
+      "label_type": "CurbRamp",
+      "human_labels": 2340,
+      "ai_labels": 0,
+      "human_validations_agree": 1870,
+      "human_validations_disagree": 280,
+      "human_validations_unsure": 95,
+      "ai_validations_agree": 0,
+      "ai_validations_disagree": 0,
+      "ai_validations_unsure": 0
+    }
+  ]
+}</code></pre>
+
+        <h3 class="api-heading" id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h3>
+        <p>All fields are identical to the <a href="@routes.ApiDocsController.overallStatsByDay">Overall Stats by Day API</a>.</p>
+        <div class="api-table-wrapper">
+            <table class="api-table">
+                <thead>
+                    <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>date</code></td><td><code>string</code></td>
+                        <td>Calendar date in <code>YYYY-MM-DD</code> format (US/Pacific time).</td></tr>
+                    <tr><td><code>label_type</code></td><td><code>string</code></td>
+                        <td>Label type name (e.g. <code>CurbRamp</code>, <code>NoCurbRamp</code>).</td></tr>
+                    <tr><td><code>human_labels</code></td><td><code>integer</code></td>
+                        <td>Labels placed by human users across all cities on this date.</td></tr>
+                    <tr><td><code>ai_labels</code></td><td><code>integer</code></td>
+                        <td>Labels placed by AI across all cities on this date.</td></tr>
+                    <tr><td><code>human_validations_agree</code></td><td><code>integer</code></td>
+                        <td>Human agree validations across all cities on this date.</td></tr>
+                    <tr><td><code>human_validations_disagree</code></td><td><code>integer</code></td>
+                        <td>Human disagree validations across all cities on this date.</td></tr>
+                    <tr><td><code>human_validations_unsure</code></td><td><code>integer</code></td>
+                        <td>Human unsure validations across all cities on this date.</td></tr>
+                    <tr><td><code>ai_validations_agree</code></td><td><code>integer</code></td>
+                        <td>AI agree validations across all cities on this date.</td></tr>
+                    <tr><td><code>ai_validations_disagree</code></td><td><code>integer</code></td>
+                        <td>AI disagree validations across all cities on this date.</td></tr>
+                    <tr><td><code>ai_validations_unsure</code></td><td><code>integer</code></td>
+                        <td>AI unsure validations across all cities on this date.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="api-section" id="quick-download-section">
+        <h2 class="api-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
+        <p>Download the project-wide daily stats time series in your preferred format:</p>
+        <div class="download-buttons">
+            <button class="download-btn" data-format="json">
+                <span class="format-icon">📄</span> JSON
+                <span class="format-hint">Standard format</span>
+            </button>
+            <button class="download-btn" data-format="csv">
+                <span class="format-icon">📊</span> CSV
+                <span class="format-hint">Spreadsheet friendly</span>
+            </button>
+        </div>
+    </div>
+}
+
+@common.main(commonData, "API Docs") {
+    @common.navbar(commonData, Some(user))
+    @apiDocs.layout("aggregate-stats-by-day")(content)
+}
