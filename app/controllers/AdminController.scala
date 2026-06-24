@@ -51,16 +51,10 @@ class AdminController @Inject() (
   private val logger                         = Logger(this.getClass)
 
   /**
-   * Loads the admin page.
+   * Redirects /admin to /admin/overview for backward compatibility.
    */
-  def index = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    for {
-      commonData <- configService.getCommonPageData(request2Messages.lang)
-      tags       <- labelService.getTagsForCurrentCity
-    } yield {
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin")
-      Ok(views.html.admin.index(commonData, "Sidewalk - Admin", request.identity, tags))
-    }
+  def index = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    Future.successful(Redirect(routes.AdminController.overview))
   }
 
   /**

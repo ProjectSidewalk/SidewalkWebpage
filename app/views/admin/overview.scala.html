@@ -270,7 +270,7 @@
             const viewerType = '@commonData.imagerySource.toString' === 'gsv'
                 ? GSVPanoViewer : MapillaryPanoViewer;
             const accessToken = '@commonData.imageryAccessToken';
-            await initOverview(viewerType, accessToken, "@user.username");
+            await initOverview('@commonData.mapboxApiKey', viewerType, accessToken, "@user.username");
         });
     </script>
 }
