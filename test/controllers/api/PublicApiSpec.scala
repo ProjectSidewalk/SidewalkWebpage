@@ -45,10 +45,13 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       (json \ "validations").asOpt[JsObject] mustBe defined
     }
 
-    "return CSV when filetype=csv" in {
+    "return CSV with snake_case keys when filetype=csv" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/overallStats?filetype=csv")).get
       status(resp) mustBe OK
-      contentAsString(resp) must include("Launch Date")
+      val body = contentAsString(resp)
+      body must include("launch_date")
+      body must include("km_explored")
+      body must not include "Launch Date" // old Title-Case key gone
     }
   }
 

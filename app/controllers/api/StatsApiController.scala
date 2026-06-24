@@ -26,6 +26,18 @@ class StatsApiController @Inject() (
   private val logger = Logger(this.getClass)
 
   /**
+   * Converts a human-readable or camelCase/PascalCase label into a snake_case CSV key (#3871).
+   *
+   * @param label The label to convert, e.g. "KM Explored" or "CurbRamp Count".
+   * @return The snake_case key, e.g. "km_explored" or "curb_ramp_count".
+   */
+  private def toSnakeKey(label: String): String =
+    label.trim
+      .replaceAll("([a-z\\d])([A-Z])", "$1_$2") // split camelCase/PascalCase boundaries
+      .replaceAll("\\s+", "_")                  // spaces to underscores
+      .toLowerCase
+
+  /**
    * Returns statistics for registered users in either JSON or CSV format with optional filtering.
    *
    * @param minLabels Optional minimum number of labels a user must have to be included
@@ -82,29 +94,32 @@ class StatsApiController @Inject() (
         filetype match {
           case Some("csv") =>
             val sidewalkStatsFile = new java.io.File(s"$baseFileName.csv")
-            val writer            = new java.io.PrintStream(sidewalkStatsFile)
+            val writer            = new java.io.PrintStream(sidewalkStatsFile, "UTF-8")
 
-            writer.println(s"Launch Date, ${stats.launchDate}")
-            writer.println(s"Recent Labels Average Timestamp, ${stats.avgTimestampLast100Labels.getOrElse("NA")}")
-            writer.println(s"KM Explored,${stats.kmExplored}")
-            writer.println(s"KM Explored Without Overlap,${stats.kmExploreNoOverlap}")
-            writer.println(s"Total User Count,${stats.nUsers}")
-            writer.println(s"Explore User Count,${stats.nExplorers}")
-            writer.println(s"Validate User Count,${stats.nValidators}")
-            writer.println(s"Registered User Count,${stats.nRegistered}")
-            writer.println(s"Anonymous User Count,${stats.nAnon}")
-            writer.println(s"Turker User Count,${stats.nTurker}")
-            writer.println(s"Researcher User Count,${stats.nResearcher}")
-            writer.println(s"Total Label Count,${stats.nLabels}")
-            writer.println(s"Total Label Count With Severity,${stats.nLabelsWithSeverity}")
-            writer.println(s"Average Label Timestamp,${stats.avgLabelTimestamp.getOrElse("NA")}")
+            // Each row is "snake_case_key,value" per the v3 API convention (#3871); toSnakeKey normalizes the label.
+            def row(label: String, value: Any): Unit = writer.println(s"${toSnakeKey(label)},$value")
+
+            row("Launch Date", stats.launchDate)
+            row("Recent Labels Average Timestamp", stats.avgTimestampLast100Labels.getOrElse("NA"))
+            row("KM Explored", stats.kmExplored)
+            row("KM Explored Without Overlap", stats.kmExploreNoOverlap)
+            row("Total User Count", stats.nUsers)
+            row("Explore User Count", stats.nExplorers)
+            row("Validate User Count", stats.nValidators)
+            row("Registered User Count", stats.nRegistered)
+            row("Anonymous User Count", stats.nAnon)
+            row("Turker User Count", stats.nTurker)
+            row("Researcher User Count", stats.nResearcher)
+            row("Total Label Count", stats.nLabels)
+            row("Total Label Count With Severity", stats.nLabelsWithSeverity)
+            row("Average Label Timestamp", stats.avgLabelTimestamp.getOrElse("NA"))
             val avgImgAge: String = stats.avgImageAgeByLabel.map(avg => s"${avg.toDays} Days").getOrElse("NA")
-            writer.println(s"Average Age of Image When Labeled,$avgImgAge")
+            row("Average Age of Image When Labeled", avgImgAge)
             for ((labType, sevStats) <- stats.severityByLabelType.toSeq.sorted(labelTypeOrdering)) {
-              writer.println(s"$labType Count,${sevStats.n}")
-              writer.println(s"$labType Count With Severity,${sevStats.nWithSeverity.getOrElse("NA")}")
-              writer.println(s"$labType Severity Mean,${sevStats.severityMean.map(_.toString).getOrElse("NA")}")
-              writer.println(s"$labType Severity SD,${sevStats.severitySD.map(_.toString).getOrElse("NA")}")
+              row(s"$labType Count", sevStats.n)
+              row(s"$labType Count With Severity", sevStats.nWithSeverity.getOrElse("NA"))
+              row(s"$labType Severity Mean", sevStats.severityMean.map(_.toString).getOrElse("NA"))
+              row(s"$labType Severity SD", sevStats.severitySD.map(_.toString).getOrElse("NA"))
             }
             // Validation stats split three ways: combined (all votes), human (non-AI votes), and AI (AI votes).
             val validationSources = Seq(
@@ -113,23 +128,23 @@ class StatsApiController @Inject() (
               ("AI", stats.validations.ai)
             )
             for ((srcLabel, srcStats) <- validationSources) {
-              writer.println(s"$srcLabel Total Validations,${srcStats.nValidations}")
+              row(s"$srcLabel Total Validations", srcStats.nValidations)
               for ((labType, accStats) <- srcStats.accuracyByLabelType.toSeq.sorted(labelTypeOrdering)) {
-                writer.println(s"$srcLabel $labType Labels Validated,${accStats.n}")
-                writer.println(s"$srcLabel $labType Agreed Count,${accStats.nAgree}")
-                writer.println(s"$srcLabel $labType Disagreed Count,${accStats.nDisagree}")
-                writer.println(s"$srcLabel $labType Accuracy,${accStats.accuracy.map(_.toString).getOrElse("NA")}")
-                writer.println(s"$srcLabel $labType Labels With a Validation,${accStats.nWithValidation}")
+                row(s"$srcLabel $labType Labels Validated", accStats.n)
+                row(s"$srcLabel $labType Agreed Count", accStats.nAgree)
+                row(s"$srcLabel $labType Disagreed Count", accStats.nDisagree)
+                row(s"$srcLabel $labType Accuracy", accStats.accuracy.map(_.toString).getOrElse("NA"))
+                row(s"$srcLabel $labType Labels With a Validation", accStats.nWithValidation)
               }
             }
             for ((labelType, aiStatsMap) <- stats.aiPerformance.toSeq.sorted(labelTypeOrdering)) {
               for ((voteType, aiStats) <- aiStatsMap) {
                 val voteTypeText: String =
                   if (voteType == "human_majority_vote") "Human Majority Vote" else "Admin Majority Vote"
-                writer.println(s"$labelType AI Yes and $voteTypeText Concurs,${aiStats.aiYesHumanConcurs}")
-                writer.println(s"$labelType AI Yes but $voteTypeText Differs,${aiStats.aiYesHumanDiffers}")
-                writer.println(s"$labelType AI No but $voteTypeText Differs,${aiStats.aiNoHumanDiffers}")
-                writer.println(s"$labelType AI No and $voteTypeText Concurs,${aiStats.aiNoHumanConcurs}")
+                row(s"$labelType AI Yes and $voteTypeText Concurs", aiStats.aiYesHumanConcurs)
+                row(s"$labelType AI Yes but $voteTypeText Differs", aiStats.aiYesHumanDiffers)
+                row(s"$labelType AI No but $voteTypeText Differs", aiStats.aiNoHumanDiffers)
+                row(s"$labelType AI No and $voteTypeText Concurs", aiStats.aiNoHumanConcurs)
               }
             }
 
