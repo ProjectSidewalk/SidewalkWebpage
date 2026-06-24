@@ -8,18 +8,6 @@
  * @requires Chart.js library (chart-4.5.1.min.js)
  */
 (function() {
-    const LABEL_TYPE_COLORS = {
-        CurbRamp: '#5cb85c',
-        NoCurbRamp: '#d9534f',
-        Obstacle: '#f0ad4e',
-        SurfaceProblem: '#9b59b6',
-        NoSidewalk: '#d35400',
-        Crosswalk: '#3498db',
-        Signal: '#1abc9c',
-        Occlusion: '#95a5a6',
-        Other: '#7f8c8d'
-    };
-
     /** @type {{apiBaseUrl: string, containerId: string, cityName: string}} */
     let config = {
         apiBaseUrl: '/v3/api',
@@ -189,7 +177,7 @@
                         datasets: labelTypes.map(lt => ({
                             label: lt,
                             data: dates.map(d => ((byDay.get(d) || new Map()).get(lt) || {}).human_labels || 0),
-                            borderColor: LABEL_TYPE_COLORS[lt] || '#999',
+                            borderColor: util.misc.getLabelColors(lt) || '#B3B3B3',
                             backgroundColor: 'transparent',
                             tension: 0.3,
                             pointRadius: dates.length > 60 ? 0 : 2
