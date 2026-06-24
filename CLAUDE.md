@@ -73,10 +73,119 @@ Two standalone scripts (run via the Python deps in `requirements.txt`, installed
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
 - When adding or refactoring code, use the fonts, colors, button styling, etc. defined in main.css :root. These are pulled from our "Design System Tokens" Figma, and we are pushing to use these going forward.
 - Max line length of 120 characters, with long line exceptions where appropriate. For multi-line comments, TARGET line length is 120 characters
-- Functions should have comments, even if they are private. Incredibly trivial functions are okay to leave without a comment.
-    - They should include @param lines as well (including their type in JS), and those should almost always be restricted to a single line
-    - Function comments should start with a one-line summary. If more detail is necessary, then longer details can be added with an empty comment line between one-line summary and the further details. But those details can also just be added throughout the function's code instead, where appropriate.
-- When writing comments, DO NOT waste time describing how something has changed from how it used to work. Just because something was edited doesn't mean that a comment even needs to be added.
+
+## Code Commenting Standards
+
+Comments communicate **why** code makes a choice — not **what** it does (well-named identifiers handle that). Follow the
+language-specific conventions below so that IDEs, documentation generators, and the next developer can consume them.
+
+### Scala (ScalaDoc)
+
+Use `/** ... */` for all ScalaDoc. Every class, trait, object, and non-trivial method gets one — including `private`
+methods. Private methods are read by the next developer, not just public API consumers.
+
+**Method / function:**
+```scala
+/**
+ * One-line summary of what this does or returns.
+ *
+ * Longer description when the contract, preconditions, or edge cases need more room.
+ * Separate from the summary with a blank line; keep each line under 120 chars.
+ *
+ * @param name  Description. Don't repeat the type — it is already in the signature.
+ * @param other Description. Align multi-param descriptions for readability.
+ * @return      What is returned and meaningful edge cases (e.g. `None` if absent,
+ *              `Left(ApiError)` if malformed, `Right(Some(...))` if valid).
+ */
+```
+
+**Class / trait / object / companion:**
+```scala
+/**
+ * One-line description of this type's single responsibility.
+ *
+ * Longer description if construction semantics, lifecycle, or thread-safety matter.
+ *
+ * @param cc  Description of constructor param (omit implicit/DI-only params).
+ */
+```
+
+Rules:
+- Use `@return` (not `@returns`) — that is the ScalaDoc standard.
+- Align `@param` descriptions when there are multiple — consistent with Play/Slick/Scala stdlib style.
+- Omit `@throws` unless the exception is part of the intentional public contract.
+- Do not document implicit params that are pure DI plumbing details.
+- Trivial one-line helpers (simple delegators, obvious getters) may omit the header.
+
+### JavaScript (JSDoc)
+
+Use `/** ... */` for all JSDoc. Every ES6 class and every non-trivial method gets one — including `#private` methods.
+Type annotations in `@param` are especially important in JS because there is no static type checker.
+
+**Method / function:**
+```javascript
+/**
+ * One-line summary.
+ *
+ * Longer description when needed. Keep lines under 120 chars.
+ *
+ * @param {string} name - Description. Mark optional params as {string} [name] = defaultValue.
+ * @param {number} count - Description.
+ * @returns {boolean} What is returned; include edge cases (null if not found, etc.).
+ */
+```
+
+**ES6 class:**
+```javascript
+/**
+ * One-line description of the class's single responsibility.
+ */
+class Foo {
+    /**
+     * @param {string} name - Description.
+     */
+    constructor(name) { ... }
+}
+```
+
+Rules:
+- Use `@returns` (not `@return`) — that is the JSDoc standard (opposite of ScalaDoc).
+- Always include `{Type}` in `@param` and `@returns`.
+- Use `{Type} [paramName]` (square brackets) for optional parameters.
+- Use `{Type} [paramName=default]` when a default exists and is non-obvious.
+- Trivial one-line helpers may omit the header.
+
+### Inline comments
+
+Use `//` for inline comments within a body. Write the **why**, never the what:
+
+```scala
+// bbox takes precedence over region filters per the v3 API contract (#3871).
+val finalBbox = if (bboxActive) parsedBbox else ...
+```
+
+not:
+
+```scala
+// check if bbox is active   ← restates the code; adds no value
+val finalBbox = if (bboxActive) parsedBbox else ...
+```
+
+Good targets for inline comments:
+- Non-obvious algorithmic choices or ordering constraints that must be preserved.
+- Business rules and domain invariants that aren't apparent from identifiers alone.
+- Workarounds for external bugs, framework quirks, or surprising behavior.
+- Why a specific constant or threshold was chosen (link to issue/spec if possible).
+- Branches where the "looks-wrong" path is actually correct.
+- `firstError`-style validation sequences where the order of checks matters.
+
+### What not to comment
+
+- Do not restate what the code obviously does.
+- Do not describe what the code *used to* do — use git history for that.
+- Do not leave `TODO`/`FIXME` in committed code without a linked tracking issue.
+- Do not add a header just because a function was touched; only add one if it is missing
+  and the function is non-trivial.
 
 ## Linting Rules (will be enforced by `make lint` some day, but not being run now)
 - ESLint: ES6+, `const`/`let` only (no `var`), arrow functions, template literals, semicolons required, 120-char line limit
