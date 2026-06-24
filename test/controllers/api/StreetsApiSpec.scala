@@ -65,6 +65,12 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(resp) mustBe BAD_REQUEST
       (contentAsJson(resp) \ "parameter").as[String] mustBe "bbox"
     }
+
+    "return 400 INVALID_PARAMETER for a non-positive regionId" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/streets?regionId=0")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "regionId"
+    }
   }
 
   "GET /v3/api/streetTypes" should {

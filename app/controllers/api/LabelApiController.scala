@@ -5,7 +5,6 @@ import controllers.helper.ShapefilesCreatorHelper
 import formats.json.ApiFormats._
 import models.api._
 import models.label.{LabelCVMetadata, LabelTypeEnum}
-import models.utils.LatLngBBox
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
@@ -155,67 +154,28 @@ class LabelApiController @Inject() (
   ) = silhouette.UserAwareAction.async { implicit request =>
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
-    // Parse bbox parameter.
-    val parsedBbox: Option[LatLngBBox] = parseBBoxString(bbox)
-
-    // Parse and validate date filters (malformed values are reported rather than silently dropped).
-    val parsedStartDate = parseDateTimeParam(startDate, "startDate")
-    val parsedEndDate   = parseDateTimeParam(endDate, "endDate")
-
-    // Validate and map validation status to its internal representation.
+    // Parse bbox and date/validation params.
+    val parsedBbox             = parseBBoxString(bbox)
+    val parsedStartDate        = parseDateTimeParam(startDate, "startDate")
+    val parsedEndDate          = parseDateTimeParam(endDate, "endDate")
     val parsedValidationStatus = parseValidationStatus(validationStatus)
-
-    // Parse comma-separated lists into sequences.
-    val parsedLabelTypes = labelType.map(_.split(",").map(_.trim).toSeq)
-    val parsedTags       = tags.map(_.split(",").map(_.trim).toSeq)
+    val parsedLabelTypes       = parseCommaSeparated(labelType)
+    val parsedTags             = parseCommaSeparated(tags)
 
     // Collect the first invalid-parameter error, if any.
     val firstError: Option[ApiError] = Seq(
-      if (bbox.isDefined && parsedBbox.isEmpty)
-        Some(ApiError.invalidParameter(
-          "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox"))
-      else None,
+      validateBBoxParam(bbox, parsedBbox),
       parsedValidationStatus.left.toOption,
       parsedStartDate.left.toOption,
       parsedEndDate.left.toOption,
-      if (regionId.exists(_ <= 0))
-        Some(ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId"))
-      else None
+      validateRegionId(regionId)
     ).flatten.headOption
 
     firstError match {
       case Some(error) => Future.successful(badRequest(error))
       case None =>
         configService.getCityMapParams.flatMap { cityMapParams =>
-        // If bbox isn't provided, use city defaults.
-        val apiBox = parsedBbox.getOrElse(
-          LatLngBBox(
-            minLng = Math.min(cityMapParams.lng1, cityMapParams.lng2),
-            minLat = Math.min(cityMapParams.lat1, cityMapParams.lat2),
-            maxLng = Math.max(cityMapParams.lng1, cityMapParams.lng2),
-            maxLat = Math.max(cityMapParams.lat1, cityMapParams.lat2)
-          )
-        )
-
-        // Apply filter precedence logic.
-        // If bbox is defined, it takes precedence over region filters.
-        val finalBbox = if (bbox.isDefined && parsedBbox.isDefined) {
-          parsedBbox
-        } else if (regionId.isDefined || regionName.isDefined) {
-          None // If region filters are used, bbox should be None.
-        } else {
-          Some(apiBox) // Default city bbox.
-        }
-
-        // Apply region filter precedence logic.
-        // If bbox is defined, ignore region filters. If regionId is defined, it takes precedence over regionName.
-        val finalRegionId =
-          if (bbox.isDefined && parsedBbox.isDefined) None
-          else regionId
-
-        val finalRegionName =
-          if (bbox.isDefined && parsedBbox.isDefined || regionId.isDefined) None
-          else regionName
+        val (finalBbox, finalRegionId, finalRegionName) = resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
 
         // Create filters object.
         val filters = RawLabelFiltersForApi(
