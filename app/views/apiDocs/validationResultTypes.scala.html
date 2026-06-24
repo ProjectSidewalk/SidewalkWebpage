@@ -18,8 +18,9 @@
             <strong>Agree</strong>, <strong>Disagree</strong>, or are <strong>Unsure</strong> that the label is correct.
         </p>
         <p>
-            Use these IDs with the <code>validationResult</code> filter on the
-            <a href="@routes.ApiDocsController.validations">Validations API</a>.
+            Use these result names with the <code>validationResult</code> filter on the
+            <a href="@routes.ApiDocsController.validations">Validations API</a> (for example
+            <code>?validationResult=Agree</code>).
         </p>
     </div>
 
@@ -60,21 +61,18 @@
     "status": "OK",
     "validation_result_types": [
         {
-            "id": 1,
             "name": "Agree",
             "count": 152340,
             "count_human": 138210,
             "count_ai": 14130
         },
         {
-            "id": 2,
             "name": "Disagree",
             "count": 38112,
             "count_human": 34890,
             "count_ai": 3222
         },
         {
-            "id": 3,
             "name": "Unsure",
             "count": 9045,
             "count_human": 8530,
@@ -105,14 +103,9 @@
                         <td>Array of validation result type objects.</td>
                     </tr>
                     <tr>
-                        <td><code>validation_result_types[].id</code></td>
-                        <td><code>integer</code></td>
-                        <td>The result ID: 1 (Agree), 2 (Disagree), or 3 (Unsure). Use this with the <code>validationResult</code> filter on the Validations API.</td>
-                    </tr>
-                    <tr>
                         <td><code>validation_result_types[].name</code></td>
                         <td><code>string</code></td>
-                        <td>Human-readable name of the result: "Agree", "Disagree", or "Unsure".</td>
+                        <td>Name of the result: "Agree", "Disagree", or "Unsure". Use this with the <code>validationResult</code> filter on the Validations API.</td>
                     </tr>
                     <tr>
                         <td><code>validation_result_types[].count</code></td>
