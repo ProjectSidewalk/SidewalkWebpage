@@ -206,27 +206,27 @@ class StatsApiController @Inject() (
    */
   private def aggregateStatsToJson(stats: AggregateStats): JsObject = {
 
-    // Convert label type statistics to JSON.
+    // Convert label type statistics to JSON. Field names are snake_case per the v3 API convention (#3871).
     val labelTypeJson = stats.byLabelType.map { case (labelType, labelStats) =>
       labelType -> Json.obj(
-        "labels"                  -> labelStats.labels,
-        "labelsValidated"         -> labelStats.labelsValidated,
-        "labelsValidatedAgree"    -> labelStats.labelsValidatedAgree,
-        "labelsValidatedDisagree" -> labelStats.labelsValidatedDisagree
+        "labels"                    -> labelStats.labels,
+        "labels_validated"          -> labelStats.labelsValidated,
+        "labels_validated_agree"    -> labelStats.labelsValidatedAgree,
+        "labels_validated_disagree" -> labelStats.labelsValidatedDisagree
       )
     }
 
     // Create the main JSON response (following the same pattern as other endpoints).
     Json.obj(
-      "status"              -> "OK",
-      "kmExplored"          -> stats.kmExplored,
-      "kmExploredNoOverlap" -> stats.kmExploredNoOverlap,
-      "totalLabels"         -> stats.totalLabels,
-      "totalValidations"    -> stats.totalValidations,
-      "numCities"           -> stats.numCities,
-      "numCountries"        -> stats.numCountries,
-      "numLanguages"        -> stats.numLanguages,
-      "byLabelType"         -> labelTypeJson
+      "status"                 -> "OK",
+      "km_explored"            -> stats.kmExplored,
+      "km_explored_no_overlap" -> stats.kmExploredNoOverlap,
+      "total_labels"           -> stats.totalLabels,
+      "total_validations"      -> stats.totalValidations,
+      "num_cities"             -> stats.numCities,
+      "num_countries"          -> stats.numCountries,
+      "num_languages"          -> stats.numLanguages,
+      "by_label_type"          -> labelTypeJson
     )
   }
 
