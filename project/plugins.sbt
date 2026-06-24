@@ -15,4 +15,4 @@ addSbtPlugin("org.playframework" % "sbt-plugin" % "3.0.10")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.4")
 
 // Test coverage (scoverage). Used in a later CI phase with a low, ratcheting threshold.
-addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.3.1")
+addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.4.4")
