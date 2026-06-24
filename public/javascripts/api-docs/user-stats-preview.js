@@ -121,7 +121,7 @@
          * @returns {Promise} A promise that resolves with the label types data
          */
         fetchLabelTypes: function() {
-            return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}`)
+            return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}?source=apiDocs`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -155,7 +155,7 @@
                 minLabels: config.minLabels
             });
 
-            return fetch(`${config.apiBaseUrl}${config.userStatsEndpoint}?${params}`)
+            return fetch(`${config.apiBaseUrl}${config.userStatsEndpoint}?${params}&source=apiDocs`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);

@@ -116,7 +116,7 @@
          * @returns {Promise} A promise that resolves with the label types data
          */
         fetchLabelTypes: function() {
-            return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}`)
+            return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}?source=apiDocs`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`Failed to fetch label types: HTTP ${response.status}`);
@@ -139,7 +139,7 @@
          * @returns {Promise} A promise that resolves with the validations data
          */
         fetchValidations: function() {
-            return fetch(`${config.apiBaseUrl}${config.validationsEndpoint}`)
+            return fetch(`${config.apiBaseUrl}${config.validationsEndpoint}?source=apiDocs`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`Failed to fetch validations: HTTP ${response.status}`);

@@ -6,6 +6,7 @@ async function Admin($, mapboxApiKey, viewerType, viewerAccessToken, currentUser
     let labelsLoaded = false;
     let usersLoaded = false;
     let teamsLoaded = false;
+    let apiAnalyticsLoaded = false;
     const analyticsTabMapParams = {
         mapName: 'admin-landing-choropleth',
         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
@@ -56,6 +57,9 @@ async function Admin($, mapboxApiKey, viewerType, viewerAccessToken, currentUser
 
         // Create the functionality for the Label Search tab.
         self.adminLabelSearch = AdminLabelSearch(true, self.labelPopup, 'AdminLabelSearchTab');
+
+        // Instantiate the API Analytics tab (sets up its own control listeners).
+        self.apiAnalytics = new AdminApiAnalytics();
 
         // Set up the listeners for the Labels table.
         $('#label-table').on('click', '.labelView', async function(e) {
@@ -1066,6 +1070,11 @@ async function Admin($, mapboxApiKey, viewerType, viewerAccessToken, currentUser
                 $('#tabs-7').css('visibility', 'visible');
             }).catch(function(error) {
                 console.error("Error loading teams:", error);
+            });
+        } else if (e.target.id === "api-analytics" && apiAnalyticsLoaded === false) {
+            apiAnalyticsLoaded = true;
+            self.apiAnalytics.load().catch(function(error) {
+                console.error("Error loading API analytics:", error);
             });
         }
     });

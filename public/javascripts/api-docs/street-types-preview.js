@@ -66,7 +66,7 @@
          * @returns {Promise} A promise that resolves with the street types data
          */
         fetchStreetTypes: function() {
-            return fetch(`${config.apiBaseUrl}${config.endpoint}`)
+            return fetch(`${config.apiBaseUrl}${config.endpoint}?source=apiDocs`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);

@@ -106,7 +106,7 @@
          * @returns {Promise} A promise that resolves with the GeoJSON FeatureCollection
          */
         fetchRegions: function() {
-            return fetch(`${config.apiBaseUrl}${config.regionsEndpoint}?inline=true`)
+            return fetch(`${config.apiBaseUrl}${config.regionsEndpoint}?inline=true&source=apiDocs`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
