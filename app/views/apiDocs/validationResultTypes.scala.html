@@ -23,6 +23,20 @@
         </p>
     </div>
 
+    <div class="api-section" id="visual-example-section">
+        <h2 class="api-heading" id="visual-example">Validation Result Types API Preview <a href="#visual-example" class="permalink">#</a></h2>
+        <p>Below is a live preview of the validation result types and their counts for Project Sidewalk:</p>
+
+        <div id="validation-result-types-preview">Loading validation result types...</div>
+
+        <script src="@routes.Assets.versioned("javascripts/api-docs/validation-result-types-preview.js")"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                ValidationResultTypesPreview.setup({ maxWidth: 1000 }).init();
+            });
+        </script>
+    </div>
+
     <div class="api-section" id="endpoint-section">
         <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
         <p>Retrieve a list of all validation result types with their counts.</p>

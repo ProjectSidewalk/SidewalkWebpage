@@ -25,6 +25,20 @@
         </p>
     </div>
 
+    <div class="api-section" id="visual-example-section">
+        <h2 class="api-heading" id="visual-example">Aggregate Stats API Preview <a href="#visual-example" class="permalink">#</a></h2>
+        <p>Below is a live preview of the project-wide totals across all Project Sidewalk deployments:</p>
+
+        <div id="aggregate-stats-preview">Loading aggregate statistics...</div>
+
+        <script src="@routes.Assets.versioned("javascripts/api-docs/aggregate-stats-preview.js")"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                AggregateStatsPreview.setup({ maxWidth: 1000 }).init();
+            });
+        </script>
+    </div>
+
     <div class="api-section" id="endpoint-section">
         <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
         <p>Retrieve aggregate statistics across all deployments.</p>
