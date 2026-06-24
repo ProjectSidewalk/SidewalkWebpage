@@ -15,9 +15,11 @@ import play.api.mvc.Result
 import java.io.{BufferedInputStream, File}
 import java.nio.file.{Files, Path}
 import java.time.OffsetDateTime
+import java.time.format.DateTimeParseException
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.math._
+import scala.util.control.NonFatal
 
 /**
  * Base controller for API endpoints with common utility methods.
@@ -71,26 +73,42 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
           None
         }
       } catch {
-        case _: Exception => None
+        case _: NumberFormatException => None
       }
     }
   }
 
   /**
-   * Parses a date-time string into an `OffsetDateTime` object.
+   * Parses an optional ISO 8601 date-time string, distinguishing an absent value from a malformed one.
    *
-   * @param dateTime The date-time string to parse.
-   * @return An `Option` containing the parsed `OffsetDateTime`, or `None` if parsing fails or None was provided.
+   * Unlike a plain `Option` parse, a malformed value is reported as an error rather than silently dropped, so the
+   * caller can return a 400 instead of quietly ignoring the filter.
+   *
+   * @param dateTime The optional date-time string to parse.
+   * @param paramName The query-parameter name, used in the error message when parsing fails.
+   * @return `Right(None)` if absent, `Right(Some(parsed))` if valid, or `Left(ApiError)` if malformed.
    */
-  protected def parseDateTimeString(dateTime: Option[String]): Option[OffsetDateTime] = {
-    dateTime.flatMap { s =>
+  protected def parseDateTimeParam(
+      dateTime: Option[String],
+      paramName: String
+  ): Either[ApiError, Option[OffsetDateTime]] = dateTime match {
+    case None => Right(None)
+    case Some(s) =>
       try {
-        Some(OffsetDateTime.parse(s))
+        Right(Some(OffsetDateTime.parse(s)))
       } catch {
-        case _: Exception => None
+        case _: DateTimeParseException =>
+          Left(
+            ApiError.invalidParameter(
+              s"Invalid value for $paramName parameter. Expected an ISO 8601 date-time, e.g. 2021-03-01T00:00:00Z.",
+              paramName
+            )
+          )
       }
-    }
   }
+
+  /** Builds a 400 Bad Request response from an `ApiError`. */
+  protected def badRequest(error: ApiError): Result = BadRequest(Json.toJson(error))
 
   /**
    * Outputs a CSV stream from the provided database data stream.
@@ -127,15 +145,26 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
    */
   protected def zipAndStreamCsvFiles(files: Seq[(Path, String)], baseFileName: String): Future[Result] = {
     val zipPath = new File(s"$baseFileName.zip").toPath
-    val zipOut  = new ZipOutputStream(Files.newOutputStream(zipPath))
 
-    files.foreach { case (filePath, entryName) =>
-      zipOut.putNextEntry(new ZipEntry(entryName))
-      Files.copy(filePath, zipOut)
-      zipOut.closeEntry()
-      Files.deleteIfExists(filePath)
+    // Build the zip, always closing the output stream and cleaning up partial output if anything fails.
+    try {
+      val zipOut = new ZipOutputStream(Files.newOutputStream(zipPath))
+      try {
+        files.foreach { case (filePath, entryName) =>
+          zipOut.putNextEntry(new ZipEntry(entryName))
+          Files.copy(filePath, zipOut)
+          zipOut.closeEntry()
+          Files.deleteIfExists(filePath)
+        }
+      } finally {
+        zipOut.close()
+      }
+    } catch {
+      case NonFatal(e) =>
+        Files.deleteIfExists(zipPath)
+        files.foreach { case (filePath, _) => Files.deleteIfExists(filePath) }
+        throw e
     }
-    zipOut.close()
 
     val zipSource = StreamConverters
       .fromInputStream(() => new BufferedInputStream(Files.newInputStream(zipPath)))

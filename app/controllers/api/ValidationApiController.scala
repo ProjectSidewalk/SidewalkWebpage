@@ -61,8 +61,8 @@ class ValidationApiController @Inject() (
   ) = silhouette.UserAwareAction.async { implicit request =>
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
     try {
-      // Parse timestamp if provided.
-      val parsedTimestamp: Option[OffsetDateTime] = parseDateTimeString(validationTimestamp)
+      // Parse and validate the timestamp (malformed values are reported rather than silently dropped).
+      val parsedTimestamp = parseDateTimeParam(validationTimestamp, "validationTimestamp")
 
       // Parse the validation result string into the enum (None if absent or invalid; invalid is rejected below).
       val parsedValidationResult: Option[ValidationOption.Value] = validationResult.flatMap(ValidationOption.fromString)
@@ -70,57 +70,51 @@ class ValidationApiController @Inject() (
       // Create filters object.
       val filters = ValidationFiltersForApi(
         labelId = labelId, userId = userId, validationResult = parsedValidationResult, labelTypeId = labelTypeId,
-        validationTimestamp = parsedTimestamp, changedTags = changedTags, changedSeverityLevels = changedSeverityLevels
+        validationTimestamp = parsedTimestamp.toOption.flatten, changedTags = changedTags,
+        changedSeverityLevels = changedSeverityLevels
       )
 
-      // Handle error cases for invalid parameters.
-      if (validationResult.isDefined && parsedValidationResult.isEmpty) {
-        Future.successful(
-          BadRequest(
-            Json.toJson(
-              ApiError.invalidParameter(
-                "Invalid validationResult value. Must be Agree, Disagree, or Unsure.",
-                "validationResult"
-              )
-            )
-          )
-        )
-      } else if (filetype.contains("shapefile")) {
-        // Return error for shapefile requests since validations don't have coordinates.
-        Future.successful(
-          BadRequest(
-            Json.toJson(
-              ApiError.invalidParameter(
-                "Shapefile format is not supported for validation data. Validations do not contain geographic coordinates. Use 'json' or 'csv' format instead.",
-                "filetype"
-              )
-            )
-          )
-        )
-      } else {
-        try {
-          // Get the data stream.
-          val dbDataStream: Source[ValidationDataForApi, _] = apiService.getValidations(filters, DEFAULT_BATCH_SIZE)
-          val baseFileName: String                          = s"validations_${OffsetDateTime.now()}"
+      // Collect the first invalid-parameter error, if any.
+      val firstError: Option[ApiError] = Seq(
+        parsedTimestamp.left.toOption,
+        if (validationResult.isDefined && parsedValidationResult.isEmpty)
+          Some(ApiError.invalidParameter(
+            "Invalid validationResult value. Must be Agree, Disagree, or Unsure.", "validationResult"))
+        else None,
+        // Shapefiles are unsupported because validations have no geographic coordinates.
+        if (filetype.contains("shapefile"))
+          Some(ApiError.invalidParameter(
+            "Shapefile format is not supported for validation data. Validations do not contain geographic " +
+              "coordinates. Use 'json' or 'csv' format instead.", "filetype"))
+        else None
+      ).flatten.headOption
 
-          // Output data in the appropriate file format.
-          filetype match {
-            case Some("csv") =>
-              outputCSV(dbDataStream, ValidationDataForApi.csvHeader, inline, baseFileName + ".csv")
-            case _ => // Default to JSON
-              outputJSON(dbDataStream, inline, baseFileName + ".json")
-          }
-        } catch {
-          case e: Exception =>
-            logger.error(s"Error processing request: ${e.getMessage}", e)
-            Future.successful(
-              InternalServerError(
-                Json.toJson(
-                  ApiError.internalServerError(s"Error processing request: ${e.getMessage}")
+      firstError match {
+        case Some(error) => Future.successful(badRequest(error))
+        case None =>
+          try {
+            // Get the data stream.
+            val dbDataStream: Source[ValidationDataForApi, _] = apiService.getValidations(filters, DEFAULT_BATCH_SIZE)
+            val baseFileName: String                          = s"validations_${OffsetDateTime.now()}"
+
+            // Output data in the appropriate file format.
+            filetype match {
+              case Some("csv") =>
+                outputCSV(dbDataStream, ValidationDataForApi.csvHeader, inline, baseFileName + ".csv")
+              case _ => // Default to JSON
+                outputJSON(dbDataStream, inline, baseFileName + ".json")
+            }
+          } catch {
+            case e: Exception =>
+              logger.error(s"Error processing request: ${e.getMessage}", e)
+              Future.successful(
+                InternalServerError(
+                  Json.toJson(
+                    ApiError.internalServerError(s"Error processing request: ${e.getMessage}")
+                  )
                 )
               )
-            )
-        }
+          }
       }
     } catch {
       case e: Exception =>
