@@ -248,6 +248,8 @@
     <button class="btn btn-default" onclick="clearPlayCache()">Clear Cache</button>
     <span id="clearPlayCacheSuccess" style="margin-left: 12px; color: green;"></span>
 
+    @common.labelPopup(admin = true)
+    <link href='@assets.path("stylesheets/labelDetail.css")' rel="stylesheet"/>
     <script src='@assets.path("javascripts/lib/pannellum-2.5.7.js")'></script>
     <link rel="stylesheet" href='@assets.path("stylesheets/pannellum-2.5.7.css")'/>
     <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>

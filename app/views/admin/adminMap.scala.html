@@ -14,6 +14,8 @@
 
     <div id="admin-labelmap-choropleth" style="height: 600px; width: 100%; border-radius: 6px; overflow: hidden;"></div>
 
+    @common.labelPopup(admin = true)
+    <link href='@assets.path("stylesheets/labelDetail.css")' rel="stylesheet"/>
     <script src='@assets.path("javascripts/lib/pannellum-2.5.7.js")'></script>
     <link rel="stylesheet" href='@assets.path("stylesheets/pannellum-2.5.7.css")'/>
     <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
