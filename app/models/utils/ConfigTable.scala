@@ -121,6 +121,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       SELECT km_audited.km_audited AS km_explored,
             km_audited_no_overlap.km_audited_no_overlap AS km_explored_no_overlap,
             label_counts.label_count AS total_labels,
+            tutorial_label_counts.tutorial_label_count AS tutorial_labels,
             total_val_count.validation_count AS total_validations
       FROM (
           SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited
@@ -148,23 +149,33 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
               AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
       ) AS label_counts, (
+          -- Practice/tutorial labels, reported separately from total_labels so the per-type breakdown reconciles with
+          -- the total (#3981). Counted by the label.tutorial flag from non-excluded users.
+          SELECT COUNT(*) AS tutorial_label_count
+          FROM "#$schema".label
+          INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
+          WHERE NOT user_stat.excluded
+              AND deleted = FALSE
+              AND tutorial = TRUE
+      ) AS tutorial_label_counts, (
           SELECT COUNT(*) AS validation_count
           FROM "#$schema".label_validation
           INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
           WHERE NOT user_stat.excluded
       ) AS total_val_count;
     """
-      .as[(Double, Double, Int, Int)]
+      .as[(Double, Double, Int, Int, Int)]
       .head
-      .map { case (kmExplored, kmExploredNoOverlap, totalLabels, totalValidations) =>
+      .map { case (kmExplored, kmExploredNoOverlap, totalLabels, tutorialLabels, totalValidations) =>
 
         // Now get the label type statistics for this schema.
         getLabelTypeStatsBySchema(schema).map { labelTypeStats =>
           AggregateStats(
             kmExplored = kmExplored, kmExploredNoOverlap = kmExploredNoOverlap, totalLabels = totalLabels,
-            totalValidations = totalValidations, numCities = 0, // Individual cities don't have deployment counts
-            numCountries = 0,                                   // These are calculated at the service level
-            numLanguages = 0,                                   // when aggregating across all cities
+            tutorialLabels = tutorialLabels, totalValidations = totalValidations,
+            numCities = 0,    // Individual cities don't have deployment counts
+            numCountries = 0, // These are calculated at the service level
+            numLanguages = 0, // when aggregating across all cities
             byLabelType = labelTypeStats
           )
         }
@@ -193,13 +204,20 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         AND l.deleted = FALSE
         AND l.tutorial = FALSE
         AND l.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
-      LEFT JOIN
-        "#$schema".audit_task at ON l.audit_task_id = at.audit_task_id
-        AND at.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
-      LEFT JOIN
-        "#$schema".user_stat us ON l.user_id = us.user_id AND NOT us.excluded
-      WHERE
-        us.user_id IS NOT NULL OR l.label_id IS NULL
+        -- All label-qualification predicates live in this LEFT JOIN's ON clause (not a WHERE, and not separate joins
+        -- with conditions in their own ON) so that (a) label types with zero qualifying labels still appear with a
+        -- count of 0, and (b) the qualifying set is IDENTICAL to total_labels in getCityAggregateDataBySchema. Using
+        -- EXISTS keeps it a single label row per label (no fan-out) and, unlike a LEFT JOIN ... ON condition, actually
+        -- EXCLUDES labels whose audit_task sits on the tutorial street — the source of the #3981 count mismatch.
+        AND EXISTS (
+          SELECT 1 FROM "#$schema".user_stat us
+          WHERE us.user_id = l.user_id AND NOT us.excluded
+        )
+        AND EXISTS (
+          SELECT 1 FROM "#$schema".audit_task at
+          WHERE at.audit_task_id = l.audit_task_id
+            AND at.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
+        )
       GROUP BY
         lt.label_type_id, lt.label_type
       ORDER BY
