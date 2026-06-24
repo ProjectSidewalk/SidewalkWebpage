@@ -139,4 +139,24 @@ class ApiDocsController @Inject() (
       Ok(views.html.apiDocs.validations(commonData, request.identity))
     }
   }
+
+  /**
+   * Displays API documentation for the validation result types.
+   */
+  def validationResultTypes = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_ValidationResultTypes")
+      Ok(views.html.apiDocs.validationResultTypes(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Displays API documentation for the aggregate stats.
+   */
+  def aggregateStats = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_AggregateStats")
+      Ok(views.html.apiDocs.aggregateStats(commonData, request.identity))
+    }
+  }
 }

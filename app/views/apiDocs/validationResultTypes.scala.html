@@ -1,0 +1,141 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@content = {
+    <script>
+        // Set data attributes for API information, used by api-docs.js (e.g. the download buttons).
+        document.documentElement.setAttribute('data-api-base-url', '/v3/api');
+        document.documentElement.setAttribute('data-api-endpoint', 'validationResultTypes');
+    </script>
+
+    <div class="api-section" id="validation-result-types-intro-section">
+        <h1 class="api-heading" id="validation-result-types-api">Validation Result Types API <a href="#validation-result-types-api" class="permalink">#</a></h1>
+        <p>
+            The Validation Result Types API lists the possible outcomes of a label validation, along with how many
+            validations of each type exist. When a user validates a label, they indicate whether they
+            <strong>Agree</strong>, <strong>Disagree</strong>, or are <strong>Unsure</strong> that the label is correct.
+        </p>
+        <p>
+            Use these IDs with the <code>validationResult</code> filter on the
+            <a href="@routes.ApiDocsController.validations">Validations API</a>.
+        </p>
+    </div>
+
+    <div class="api-section" id="endpoint-section">
+        <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
+        <p>Retrieve a list of all validation result types with their counts.</p>
+        <p><code>GET /v3/api/validationResultTypes</code></p>
+        <div class="api-subsection" id="endpoint-example-section">
+            <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+            <p><code><a target="_blank" href="/v3/api/validationResultTypes">/v3/api/validationResultTypes</a></code> Get all validation result types in JSON</p>
+        </div>
+    </div>
+
+    <div class="api-section" id="responses-section">
+        <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
+
+        <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
+        <p>
+            On success, the API returns an HTTP <code>200 OK</code> status code and a JSON object containing an array of
+            validation result types.
+        </p>
+
+        <pre><code class="language-json">{
+    "status": "OK",
+    "validation_result_types": [
+        {
+            "id": 1,
+            "name": "Agree",
+            "count": 152340,
+            "count_human": 138210,
+            "count_ai": 14130
+        },
+        {
+            "id": 2,
+            "name": "Disagree",
+            "count": 38112,
+            "count_human": 34890,
+            "count_ai": 3222
+        },
+        {
+            "id": 3,
+            "name": "Unsure",
+            "count": 9045,
+            "count_human": 8530,
+            "count_ai": 515
+        }
+    ]
+}</code></pre>
+
+        <h4 class="api-heading" id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>
+        <div class="api-table-wrapper">
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>status</code></td>
+                        <td><code>string</code></td>
+                        <td>Always "OK" for successful responses.</td>
+                    </tr>
+                    <tr>
+                        <td><code>validation_result_types</code></td>
+                        <td><code>array</code></td>
+                        <td>Array of validation result type objects.</td>
+                    </tr>
+                    <tr>
+                        <td><code>validation_result_types[].id</code></td>
+                        <td><code>integer</code></td>
+                        <td>The result ID: 1 (Agree), 2 (Disagree), or 3 (Unsure). Use this with the <code>validationResult</code> filter on the Validations API.</td>
+                    </tr>
+                    <tr>
+                        <td><code>validation_result_types[].name</code></td>
+                        <td><code>string</code></td>
+                        <td>Human-readable name of the result: "Agree", "Disagree", or "Unsure".</td>
+                    </tr>
+                    <tr>
+                        <td><code>validation_result_types[].count</code></td>
+                        <td><code>integer</code></td>
+                        <td>Total number of validations with this result (human and AI combined).</td>
+                    </tr>
+                    <tr>
+                        <td><code>validation_result_types[].count_human</code></td>
+                        <td><code>integer</code></td>
+                        <td>Number of validations with this result contributed by human validators.</td>
+                    </tr>
+                    <tr>
+                        <td><code>validation_result_types[].count_ai</code></td>
+                        <td><code>integer</code></td>
+                        <td>Number of validations with this result contributed by Project Sidewalk AI.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
+        <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
+        <ul>
+            <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
+        </ul>
+
+        <h4 id="error-body">Error Response Body <a href="#error-body" class="permalink">#</a></h4>
+        <p>Error responses include a JSON body with the following structure:</p>
+        <pre><code class="language-json">{
+    "status": 500, // HTTP Status Code
+    "code": "INTERNAL_SERVER_ERROR", // Machine-readable error code
+    "message": "Error retrieving validation result types: Database connection error" // Human-readable description
+}</code></pre>
+    </div>
+}
+
+@common.main(commonData, "API Docs") {
+    @common.navbar(commonData, Some(user))
+    @apiDocs.layout("validation-result-types")(content)
+}
