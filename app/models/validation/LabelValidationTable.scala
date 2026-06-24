@@ -412,7 +412,8 @@ class LabelValidationTable @Inject() (
    * mirrors the convention in getOverallStatsForApi: when filterLowQuality is false, only
    * administratively excluded users are removed; when true, only high_quality users are included.
    *
-   * validation_result integers: 1 = agree, 2 = disagree, 3 = unsure (see validation_options table).
+   * validation_result is compared via ::text cast to support both integer and validation_option enum
+   * schemas across different city deployments ('Agree', 'Disagree', 'Unsure').
    *
    * @param startDate        Inclusive lower bound on end_timestamp (Pacific date); no bound if None.
    * @param endDate          Inclusive upper bound on end_timestamp; no bound if None.
@@ -442,15 +443,18 @@ class LabelValidationTable @Inject() (
     sql"""
       SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
              label_type.label_type,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result = 1 THEN 1 END)
-               AS human_agree,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result = 2 THEN 1 END)
-               AS human_disagree,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result = 3 THEN 1 END)
-               AS human_unsure,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result = 1 THEN 1 END) AS ai_agree,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result = 2 THEN 1 END) AS ai_disagree,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result = 3 THEN 1 END) AS ai_unsure
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
+                        THEN 1 END) AS human_agree,
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
+                        THEN 1 END) AS human_disagree,
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Unsure'
+                        THEN 1 END) AS human_unsure,
+             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Agree'
+                        THEN 1 END) AS ai_agree,
+             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Disagree'
+                        THEN 1 END) AS ai_disagree,
+             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Unsure'
+                        THEN 1 END) AS ai_unsure
       FROM label_validation
       INNER JOIN label      ON label_validation.label_id    = label.label_id
       INNER JOIN label_type ON label.label_type_id          = label_type.label_type_id

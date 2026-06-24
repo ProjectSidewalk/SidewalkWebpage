@@ -326,15 +326,18 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     sql"""
       SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
              label_type.label_type,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result = 1 THEN 1 END)
-               AS human_agree,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result = 2 THEN 1 END)
-               AS human_disagree,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result = 3 THEN 1 END)
-               AS human_unsure,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result = 1 THEN 1 END) AS ai_agree,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result = 2 THEN 1 END) AS ai_disagree,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result = 3 THEN 1 END) AS ai_unsure
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
+                        THEN 1 END) AS human_agree,
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
+                        THEN 1 END) AS human_disagree,
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Unsure'
+                        THEN 1 END) AS human_unsure,
+             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Agree'
+                        THEN 1 END) AS ai_agree,
+             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Disagree'
+                        THEN 1 END) AS ai_disagree,
+             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Unsure'
+                        THEN 1 END) AS ai_unsure
       FROM "#$schema".label_validation
       INNER JOIN "#$schema".label      ON label_validation.label_id    = label.label_id
       INNER JOIN "#$schema".label_type ON label.label_type_id          = label_type.label_type_id
