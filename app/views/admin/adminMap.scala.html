@@ -33,8 +33,8 @@
 
     <script>
         window.appManager.ready(async function () {
-            const viewerType = '@commonData.imagerySource.toString' === 'gsv'
-                ? GSVPanoViewer : MapillaryPanoViewer;
+            const imagerySrc = "@commonData.imagerySource.toString";
+            const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
             const accessToken = '@commonData.imageryAccessToken';
             await initMap('@commonData.mapboxApiKey', viewerType, accessToken, "@user.username");
         });
