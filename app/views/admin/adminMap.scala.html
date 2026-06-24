@@ -10,9 +10,10 @@
     <h2 id="map-heading">Sidewalk Map</h2>
     <p class="text-muted">Street coverage and label overlay. Use the sidebar to filter by quality.</p>
 
-    @common.mapSidebar(tags = tags)
-
-    <div id="admin-labelmap-choropleth" style="height: 600px; width: 100%; border-radius: 6px; overflow: hidden;"></div>
+    <div id="admin-labelmap-choropleth-holder" class="choropleth-holder" style="height: 600px;">
+        <div id="admin-labelmap-choropleth" class="choropleth"></div>
+        @common.mapSidebar(tags = tags)
+    </div>
 
     @common.labelPopup(admin = true)
     <link href='@assets.path("stylesheets/labelDetail.css")' rel="stylesheet"/>

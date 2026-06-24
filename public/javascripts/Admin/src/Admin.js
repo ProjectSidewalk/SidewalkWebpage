@@ -777,6 +777,16 @@ function _initAdminToc() {
 // ============================================================
 
 /**
+ * Hides the loading spinner, reveals the admin layout, and initializes the right-hand TOC sidebar.
+ * Call this from every per-page init function once the page is ready to display.
+ */
+function _showLayout() {
+    $('#page-loading').hide();
+    $('#admin-layout').css('visibility', 'visible');
+    _initAdminToc();
+}
+
+/**
  * Initializes the Overview admin page: creates LabelPopup and AdminCommentPopup, kicks off all data
  * loading in parallel, wires up comment/label popup click handlers, and reveals #admin-layout when done.
  *
@@ -797,7 +807,7 @@ async function initOverview(mapboxApiKey, viewerType, viewerAccessToken, current
         loadValidationCountData(),
         loadComments()
     ]).then(() => {
-        $('#admin-layout').css('visibility', 'visible');
+        _showLayout();
     }).catch(error => {
         console.error("Error loading Overview data:", error);
     });
@@ -857,7 +867,7 @@ async function initMap(mapboxApiKey, viewerType, viewerAccessToken, currentUsern
         const map = m[0];
         const mapData = m[4];
         new MapSidebarFilter(map, mapData, { highQualityFilter: true });
-        $('#admin-layout').css('visibility', 'visible');
+        _showLayout();
     });
 }
 
@@ -1215,6 +1225,7 @@ function initAnalytics(mapboxApiKey) {
                 },
                 hist
             ],
+            "resolve": { "legend": { "color": "independent" } },
             "config": { "axis": { "titleFontSize": 16 } }
         };
         vegaEmbed("#audit-count-chart", chart, opt);
@@ -1258,6 +1269,7 @@ function initAnalytics(mapboxApiKey) {
                 },
                 hist
             ],
+            "resolve": { "legend": { "color": "independent" } },
             "config": { "axis": { "titleFontSize": 16 } }
         };
         vegaEmbed("#label-count-chart", chart, opt);
@@ -1301,6 +1313,7 @@ function initAnalytics(mapboxApiKey) {
                 },
                 hist
             ],
+            "resolve": { "legend": { "color": "independent" } },
             "config": { "axis": { "titleFontSize": 16 } }
         };
         vegaEmbed("#validation-count-chart", chart, opt);
@@ -1338,7 +1351,7 @@ function initAnalytics(mapboxApiKey) {
                 { xAxisTitle: "# Missions per Turker User", xDomain: [0, turkerStats.max], width: 187, binStep: 15, legendOffset: -80 });
             const anHisto = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median,
                 { xAxisTitle: "# Missions per Anon User", xDomain: [0, anonStats.max], width: 187, binStep: 1, legendOffset: -80 });
-            const combined = { "hconcat": [aHisto, rHisto, tHisto, anHisto].filter(c => c.data.values.length > 0) };
+            const combined = { "hconcat": [aHisto, rHisto, tHisto, anHisto].filter(c => c.data.values.length > 0), "resolve": { "legend": { "color": "independent" } } };
             if (combined.hconcat.length > 0) vegaEmbed("#mission-count-chart", combined, opt);
         };
 
@@ -1384,7 +1397,7 @@ function initAnalytics(mapboxApiKey) {
                 { xAxisTitle: "# Labels per Turker User", xDomain: [0, turkerStats.max], width: 187, binStep: 500, legendOffset: -80 });
             const anHisto = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median,
                 { xAxisTitle: "# Labels per Anon User", xDomain: [0, anonStats.max], width: 187, legendOffset: -80, binStep: 2 });
-            const combined = { "hconcat": [aHisto, rHisto, tHisto, anHisto].filter(c => c.data.values.length > 0) };
+            const combined = { "hconcat": [aHisto, rHisto, tHisto, anHisto].filter(c => c.data.values.length > 0), "resolve": { "legend": { "color": "independent" } } };
             if (combined.hconcat.length > 0) vegaEmbed("#label-count-hist", combined, opt);
         };
 
@@ -1430,7 +1443,7 @@ function initAnalytics(mapboxApiKey) {
                 { xAxisTitle: "# Labels Validated per Turker User", xDomain: [0, turkerStats.max], width: 187, binStep: 50, legendOffset: -80 });
             const anHisto = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median,
                 { xAxisTitle: "# Labels Validated per Anon User", xDomain: [0, anonStats.max], width: 187, legendOffset: -80, binStep: 2 });
-            const combined = { "hconcat": [aHisto, rHisto, tHisto, anHisto].filter(c => c.data.values.length > 0) };
+            const combined = { "hconcat": [aHisto, rHisto, tHisto, anHisto].filter(c => c.data.values.length > 0), "resolve": { "legend": { "color": "independent" } } };
             if (combined.hconcat.length > 0) vegaEmbed("#validation-count-hist", combined, opt);
         };
 
@@ -1471,8 +1484,7 @@ function initAnalytics(mapboxApiKey) {
     // Fill the val-by-type table in the Analytics tab.
     loadValidationCountData();
 
-    $('#admin-layout').css('visibility', 'visible');
-    _initAdminToc();
+    _showLayout();
 }
 
 /**
@@ -1492,7 +1504,7 @@ async function initLabels(viewerType, viewerAccessToken, currentUsername) {
     });
 
     loadLabels().then(() => {
-        $('#admin-layout').css('visibility', 'visible');
+        _showLayout();
     }).catch(error => {
         console.error("Error loading labels:", error);
     });
@@ -1504,7 +1516,7 @@ async function initLabels(viewerType, viewerAccessToken, currentUsername) {
  */
 function initUsers() {
     loadUserStats().then(() => {
-        $('#admin-layout').css('visibility', 'visible');
+        _showLayout();
     }).catch(error => {
         console.error("Error loading user stats:", error);
     });
@@ -1521,7 +1533,7 @@ function initUsers() {
 async function initLabelSearch(viewerType, viewerAccessToken, currentUsername) {
     const labelPopup = await LabelPopup(true, viewerType, viewerAccessToken, currentUsername);
     AdminLabelSearch(true, labelPopup, 'AdminLabelSearchTab');
-    $('#admin-layout').css('visibility', 'visible');
+    _showLayout();
 }
 
 /**
@@ -1530,7 +1542,7 @@ async function initLabelSearch(viewerType, viewerAccessToken, currentUsername) {
  */
 function initTeams() {
     loadTeams().then(() => {
-        $('#admin-layout').css('visibility', 'visible');
+        _showLayout();
     }).catch(error => {
         console.error("Error loading teams:", error);
     });
@@ -1542,7 +1554,7 @@ function initTeams() {
  */
 function initApiAnalytics() {
     const analytics = new AdminApiAnalytics();
-    $('#admin-layout').css('visibility', 'visible');
+    _showLayout();
     analytics.load().catch(error => {
         console.error("Error loading API analytics:", error);
     });
