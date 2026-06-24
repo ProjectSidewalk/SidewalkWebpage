@@ -255,24 +255,25 @@ class StatsApiController @Inject() (
    * @return CSV formatted string
    */
   private def generateAggregateStatsCsv(stats: AggregateStats): String = {
-    val header     = "Metric,Value\n"
+    // Keys are snake_case per the v3 API convention (#3871); toSnakeKey normalizes the labels.
+    val header     = "metric,value\n"
     val basicStats = Seq(
-      s"KM Explored,${stats.kmExplored}",
-      s"KM Explored No Overlap,${stats.kmExploredNoOverlap}",
-      s"Total Labels,${stats.totalLabels}",
-      s"Total Validations,${stats.totalValidations}",
-      s"Number of Cities,${stats.numCities}",
-      s"Number of Countries,${stats.numCountries}",
-      s"Number of Languages,${stats.numLanguages}"
+      s"${toSnakeKey("KM Explored")},${stats.kmExplored}",
+      s"${toSnakeKey("KM Explored No Overlap")},${stats.kmExploredNoOverlap}",
+      s"${toSnakeKey("Total Labels")},${stats.totalLabels}",
+      s"${toSnakeKey("Total Validations")},${stats.totalValidations}",
+      s"${toSnakeKey("Number of Cities")},${stats.numCities}",
+      s"${toSnakeKey("Number of Countries")},${stats.numCountries}",
+      s"${toSnakeKey("Number of Languages")},${stats.numLanguages}"
     )
 
     // Add label-specific statistics.
     val labelTypeStats = stats.byLabelType.flatMap { case (labelType, labelStats) =>
       Seq(
-        s"$labelType Labels,${labelStats.labels}",
-        s"$labelType Labels Validated,${labelStats.labelsValidated}",
-        s"$labelType Labels Validated Agree,${labelStats.labelsValidatedAgree}",
-        s"$labelType Labels Validated Disagree,${labelStats.labelsValidatedDisagree}"
+        s"${toSnakeKey(s"$labelType Labels")},${labelStats.labels}",
+        s"${toSnakeKey(s"$labelType Labels Validated")},${labelStats.labelsValidated}",
+        s"${toSnakeKey(s"$labelType Labels Validated Agree")},${labelStats.labelsValidatedAgree}",
+        s"${toSnakeKey(s"$labelType Labels Validated Disagree")},${labelStats.labelsValidatedDisagree}"
       )
     }
 
