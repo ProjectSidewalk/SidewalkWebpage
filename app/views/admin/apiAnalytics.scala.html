@@ -1,0 +1,50 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@admin.adminLayout(commonData, title, user, "api-analytics") {
+
+    <h2 id="api-analytics-heading">API Analytics</h2>
+    <p class="text-muted">Usage statistics for the v3 public API, derived from the <code>webpage_activity</code> log.</p>
+
+    <div class="api-analytics-controls" style="margin-bottom: 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+        <label style="margin: 0; display: flex; align-items: center; gap: 6px; font-weight: normal;"
+               title="Live-preview widgets on /api-docs tag their calls with ?source=apiDocs. Exclude to see real external consumer traffic only.">
+            <input type="checkbox" id="api-analytics-exclude-docs" checked>
+            Exclude API Docs traffic (<code>source=apiDocs</code>)
+        </label>
+        <label style="margin: 0; display: flex; align-items: center; gap: 6px; font-weight: normal;">
+            Time range:
+            <select id="api-analytics-days" class="form-control" style="width: auto; display: inline-block;">
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="0">All time</option>
+            </select>
+        </label>
+    </div>
+
+    <div id="api-analytics-content">
+        <div id="api-analytics-summary"></div>
+        <div id="api-analytics-endpoint-table" style="margin-top: 24px;"></div>
+        <div id="api-analytics-daily-chart" style="margin-top: 24px;"></div>
+        <div id="api-analytics-format-table" style="margin-top: 24px;"></div>
+    </div>
+
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
+    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/vega@@5/build/vega.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@@5/build/vega-lite.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@@6/build/vega-embed.min.js"></script>
+
+    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
+
+    <script>
+        window.appManager.ready(async function () {
+            await initApiAnalytics();
+        });
+    </script>
+}

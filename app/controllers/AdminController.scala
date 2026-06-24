@@ -64,6 +64,92 @@ class AdminController @Inject() (
   }
 
   /**
+   * Overview page: activity summary, coverage stats, and recent comments.
+   */
+  def overview = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Overview")
+      Ok(views.html.admin.overview(commonData, "Sidewalk - Admin", request.identity))
+    }
+  }
+
+  /**
+   * Map page: choropleth of audited streets and label overlay.
+   */
+  def adminMap = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      tags       <- labelService.getTagsForCurrentCity
+    } yield {
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Map")
+      Ok(views.html.admin.adminMap(commonData, "Sidewalk - Admin Map", request.identity, tags))
+    }
+  }
+
+  /**
+   * Analytics page: neighborhood completion choropleth and Vega-Lite charts.
+   */
+  def adminAnalytics = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Analytics")
+      Ok(views.html.admin.analytics(commonData, "Sidewalk - Admin Analytics", request.identity))
+    }
+  }
+
+  /**
+   * Labels page: recent labels DataTable with pano popup.
+   */
+  def adminLabels = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      tags       <- labelService.getTagsForCurrentCity
+    } yield {
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Labels")
+      Ok(views.html.admin.labels(commonData, "Sidewalk - Admin Labels", request.identity, tags))
+    }
+  }
+
+  /**
+   * Users page: all-users DataTable with role and team management.
+   */
+  def adminUsers = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Users")
+      Ok(views.html.admin.users(commonData, "Sidewalk - Admin Users", request.identity))
+    }
+  }
+
+  /**
+   * Label search page: search labels by ID and view in pano popup.
+   */
+  def adminLabelSearch = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_LabelSearch")
+      Ok(views.html.admin.labelSearch(commonData, "Sidewalk - Admin Label Search", request.identity))
+    }
+  }
+
+  /**
+   * Teams page: teams DataTable with status and visibility management.
+   */
+  def adminTeams = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Teams")
+      Ok(views.html.admin.teams(commonData, "Sidewalk - Admin Teams", request.identity))
+    }
+  }
+
+  /**
+   * API Analytics page: v3 public API usage from the webpage_activity log.
+   */
+  def adminApiAnalytics = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_ApiAnalytics")
+      Ok(views.html.admin.apiAnalytics(commonData, "Sidewalk - Admin API Analytics", request.identity))
+    }
+  }
+
+  /**
    * Loads the admin version of the user dashboard page.
    */
   def userProfile(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>

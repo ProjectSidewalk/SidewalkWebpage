@@ -1,0 +1,41 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@admin.adminLayout(commonData, title, user, "label-search") {
+
+    <h2 id="label-search-heading">Label Search</h2>
+    <p>Enter a label ID to view it in the panorama viewer.</p>
+    <div id="label-search-container">
+        <div class="form-inline" style="margin-bottom: 16px;">
+            <div class="input-group">
+                <input type="number" id="label-id-input" class="form-control" placeholder="Label ID" min="1"
+                       style="width: 180px;">
+                <span class="input-group-btn">
+                    <button id="label-id-submit" class="btn btn-default">View Label</button>
+                </span>
+            </div>
+        </div>
+        <div id="label-search-result"></div>
+    </div>
+
+    <script src='@assets.path("javascripts/lib/pannellum.js")'></script>
+    <script src='@assets.path("javascripts/pano-viewer/build/PanoViewer.js")'></script>
+    <script src='@assets.path("javascripts/lib/panzoom.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
+    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+
+    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
+
+    <script>
+        window.appManager.ready(async function () {
+            const viewerType = '@commonData.imagerySource.toString' === 'gsv'
+                ? GSVPanoViewer : MapillaryPanoViewer;
+            const accessToken = '@commonData.imageryAccessToken';
+            await initLabelSearch(viewerType, accessToken, "@user.username");
+        });
+    </script>
+}

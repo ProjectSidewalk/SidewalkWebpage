@@ -1,0 +1,132 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@admin.adminLayout(commonData, title, user, "analytics") {
+
+    <section id="analytics-coverage">
+        <h2 id="section-coverage">City Coverage</h2>
+        <div id="admin-landing-choropleth" style="height: 360px; width: 100%; border-radius: 6px; overflow: hidden; margin-bottom: 16px;"></div>
+
+        <h3 id="section-neighborhood">Neighborhood Completion</h3>
+        <p>Std dev across neighborhoods: <strong id="neighborhood-std"></strong></p>
+        <p>
+            <button id="neighborhood-completion-sort-button" class="btn btn-default btn-sm">Sort by Completion</button>
+            <button id="neighborhood-alphabetical-sort-button" class="btn btn-default btn-sm">Sort Alphabetically</button>
+        </p>
+        <div id="neighborhood-completion-rate"></div>
+        <div id="neighborhood-completed-distance"></div>
+
+        <h3 id="section-progress">Coverage Over Time</h3>
+        <div id="completion-progress-chart"></div>
+    </section>
+
+    <section id="analytics-activity">
+        <h2 id="section-activity">Daily Activity</h2>
+        <p class="text-muted">Each pair shows the time-series chart alongside a histogram of the daily distribution. Std dev reflects day-to-day variability.</p>
+
+        <h3 id="section-audits">Street Audits</h3>
+        <p>Std dev: <strong id="audit-std"></strong></p>
+        <div id="audit-count-chart"></div>
+
+        <h3 id="section-labels">Labels Placed</h3>
+        <p>Std dev: <strong id="label-std"></strong></p>
+        <div id="label-count-chart"></div>
+
+        <h3 id="section-validations-daily">Validations Performed</h3>
+        <p>Std dev: <strong id="validation-std"></strong></p>
+        <div id="validation-count-chart"></div>
+    </section>
+
+    <section id="analytics-engagement">
+        <h2 id="section-engagement">User Engagement</h2>
+
+        <h3 id="section-severity">Severity Distributions</h3>
+        <div id="severity-histograms"></div>
+        <div id="severity-histograms2"></div>
+
+        <h3 id="section-tags">Tag Usage</h3>
+        <div id="tag-usage-histograms"></div>
+        <div id="tag-usage-histograms2"></div>
+
+        <h3 id="section-missions">Missions per User</h3>
+        <p>Std dev (all): <strong id="missions-std"></strong> &nbsp;|&nbsp; Std dev (registered): <strong id="reg-missions-std"></strong> &nbsp;|&nbsp; Std dev (turker): <strong id="turker-missions-std"></strong> &nbsp;|&nbsp; Std dev (anon): <strong id="anon-missions-std"></strong></p>
+        <label><input type="checkbox" id="mission-count-include-researchers-checkbox"> Include researchers</label>
+        <div id="mission-count-chart"></div>
+
+        <h3 id="section-labels-per-user">Labels per User</h3>
+        <p>Std dev (all): <strong id="all-labels-std"></strong> &nbsp;|&nbsp; Std dev (registered): <strong id="reg-labels-std"></strong> &nbsp;|&nbsp; Std dev (turker): <strong id="turker-labels-std"></strong> &nbsp;|&nbsp; Std dev (anon): <strong id="anon-labels-std"></strong></p>
+        <label><input type="checkbox" id="label-count-include-researchers-checkbox"> Include researchers</label>
+        <div id="label-count-hist"></div>
+
+        <h3 id="section-logins">Login Frequency</h3>
+        <p>Std dev: <strong id="login-count-std"></strong></p>
+        <label><input type="checkbox" id="login-count-include-researchers-checkbox"> Include researchers</label>
+        <div id="login-count-chart"></div>
+
+        <h3 id="section-accuracy">User Accuracy</h3>
+        <p>Agreement rate on own labels validated by others (users with ≥ 50 validations). Std dev: <strong id="validation-agreed-std"></strong></p>
+        <div id="validation-agreed"></div>
+
+        <h3 id="section-validations-per-user">Validations per User</h3>
+        <p>Std dev (all): <strong id="all-validation-std"></strong> &nbsp;|&nbsp; Std dev (registered): <strong id="reg-validation-std"></strong> &nbsp;|&nbsp; Std dev (turker): <strong id="turker-validation-std"></strong> &nbsp;|&nbsp; Std dev (anon): <strong id="anon-validation-std"></strong></p>
+        <label><input type="checkbox" id="validation-count-include-researchers-checkbox"> Include researchers</label>
+        <div id="validation-count-hist"></div>
+    </section>
+
+    <section id="analytics-valtable">
+        <h2 id="section-val-table">Validations by Label Type</h2>
+        <p class="text-muted">All-time counts and agreement rates, split by validator type (Human / AI / Both).</p>
+        <div class="table-responsive">
+        <table class="table table-striped table-condensed" style="font-size: 0.8rem;">
+            <thead>
+                <tr>
+                    <th rowspan="2">Label Type</th>
+                    <th colspan="4">Human</th>
+                    <th colspan="4">AI</th>
+                    <th colspan="4">Both</th>
+                </tr>
+                <tr>
+                    <th>Total</th><th>Agree %</th><th>Disagree %</th><th>Unsure %</th>
+                    <th>Total</th><th>Agree %</th><th>Disagree %</th><th>Unsure %</th>
+                    <th>Total</th><th>Agree %</th><th>Disagree %</th><th>Unsure %</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for(labelType <- Seq("All", "CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "NoSidewalk", "Crosswalk", "Signal", "Other", "Occlusion")) {
+                <tr>
+                    <td>@labelType</td>
+                    @for(validator <- Seq("Human", "AI", "Both")) {
+                        <td id="val-count-@{labelType}-All-@{validator}">—</td>
+                        <td id="val-count-@{labelType}-Agree-@{validator}">—</td>
+                        <td id="val-count-@{labelType}-Disagree-@{validator}">—</td>
+                        <td id="val-count-@{labelType}-Unsure-@{validator}">—</td>
+                    }
+                </tr>
+                }
+            </tbody>
+        </table>
+        </div>
+    </section>
+
+    <script src='@assets.path("javascripts/lib/mapbox-gl.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-language.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
+    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+    <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/vega@@5/build/vega.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@@5/build/vega-lite.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@@6/build/vega-embed.min.js"></script>
+
+    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
+
+    <script>
+        window.appManager.ready(async function () {
+            await initAnalytics('@commonData.mapboxApiKey');
+        });
+    </script>
+}

@@ -1,0 +1,69 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@admin.adminLayout(commonData, title, user, "users") {
+
+    <h2 id="users-table-heading">Users</h2>
+    <div class="admin-col-toggle">
+        <button class="btn btn-default btn-xs" id="toggle-detail-cols">Show accuracy columns</button>
+        <button class="btn btn-default btn-xs" id="toggle-time-cols">Show sign-up / sign-in dates</button>
+    </div>
+    <div id="user-table-container">
+        <table id="user-table" class="table table-striped table-condensed" style="font-size: 0.8rem;">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th class="col-user-id" style="display:none;">User ID</th>
+                    <th class="col-email" style="display:none;">Email</th>
+                    <th>Role</th>
+                    <th>Team</th>
+                    <th>High Quality</th>
+                    <th>Labels</th>
+                    <th>Own Validated</th>
+                    <th class="col-detail" style="display:none;">Own Agreed %</th>
+                    <th>Others Validated</th>
+                    <th class="col-detail" style="display:none;">Others Agreed %</th>
+                    <th class="col-time" style="display:none;">Sign Up</th>
+                    <th class="col-time" style="display:none;">Last Sign In</th>
+                    <th>Sign-in Count</th>
+                </tr>
+            </thead>
+            <tbody id="user-body"></tbody>
+        </table>
+    </div>
+
+    <script src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/dataTables.bootstrap.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/timestampLocalization.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
+    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+
+    <link href='@assets.path("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
+
+    <script>
+        const userTable = $('#user-table').DataTable({ "order": [[6, "desc"]], "autoWidth": false });
+
+        document.getElementById('toggle-detail-cols').addEventListener('click', function() {
+            const hidden = document.querySelector('#user-table .col-detail').style.display === 'none';
+            document.querySelectorAll('#user-table .col-detail').forEach(el => el.style.display = hidden ? '' : 'none');
+            userTable.columns('.col-detail').visible(hidden);
+            this.textContent = hidden ? 'Hide accuracy columns' : 'Show accuracy columns';
+        });
+
+        document.getElementById('toggle-time-cols').addEventListener('click', function() {
+            const hidden = document.querySelector('#user-table .col-time').style.display === 'none';
+            document.querySelectorAll('#user-table .col-time').forEach(el => el.style.display = hidden ? '' : 'none');
+            userTable.columns('.col-time').visible(hidden);
+            this.textContent = hidden ? 'Hide date columns' : 'Show sign-up / sign-in dates';
+        });
+
+        window.appManager.ready(async function () {
+            await initUsers();
+        });
+    </script>
+}

@@ -1,0 +1,40 @@
+@import models.label.Tag
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, tags: Seq[Tag]
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@admin.adminLayout(commonData, title, user, "map") {
+
+    <h2 id="map-heading">Sidewalk Map</h2>
+    <p class="text-muted">Street coverage and label overlay. Use the sidebar to filter by quality.</p>
+
+    @common.mapSidebar(tags = tags)
+
+    <div id="admin-labelmap-choropleth" style="height: 600px; width: 100%; border-radius: 6px; overflow: hidden;"></div>
+
+    <script src='@assets.path("javascripts/lib/pannellum.js")'></script>
+    <script src='@assets.path("javascripts/pano-viewer/build/PanoViewer.js")'></script>
+    <script src='@assets.path("javascripts/lib/turf.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-language.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
+    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+    <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+
+    <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/mapSidebar.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/tag-pills.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
+
+    <script>
+        window.appManager.ready(async function () {
+            const viewerType = '@commonData.imagerySource.toString' === 'gsv'
+                ? GSVPanoViewer : MapillaryPanoViewer;
+            const accessToken = '@commonData.imageryAccessToken';
+            await initMap('@commonData.mapboxApiKey', viewerType, accessToken, "@user.username");
+        });
+    </script>
+}

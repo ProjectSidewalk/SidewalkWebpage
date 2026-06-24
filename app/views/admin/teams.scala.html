@@ -1,0 +1,39 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@admin.adminLayout(commonData, title, user, "teams") {
+
+    <h2 id="teams-table-heading">Teams</h2>
+    <div class="table-responsive">
+    <table id="teams-table" class="table table-striped">
+        <thead>
+            <tr>
+                <th>@Messages("dashboard.team.name")</th>
+                <th>Description</th>
+                <th class="col-md-1">Status</th>
+                <th class="col-md-1">Visibility</th>
+            </tr>
+        </thead>
+        <tbody id="teams-body"></tbody>
+    </table>
+    </div>
+
+    <script src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/dataTables.bootstrap.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
+    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+
+    <link href='@assets.path("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
+
+    <script>
+        const teamsTable = $('#teams-table').DataTable({ "order": [[0, "asc"]] });
+        window.appManager.ready(async function () {
+            await initTeams();
+        });
+    </script>
+}

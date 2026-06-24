@@ -1,0 +1,276 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@admin.adminLayout(commonData, title, user, "overview") {
+
+    <h2 id="overview-highlights">Highlights</h2>
+    <div class="admin-stat-cards">
+        <div class="admin-stat-card">
+            <div class="admin-stat-value" id="label-count-All-all_time">—</div>
+            <div class="admin-stat-label">Total Labels</div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-value" id="user-count-combined-all-all_time-no_task_constraint-any_quality">—</div>
+            <div class="admin-stat-label">Total Users</div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-value" id="val-count-All-all_time">—</div>
+            <div class="admin-stat-label">Total Validations</div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-value" id="explored-street-count-all-time">—</div>
+            <div class="admin-stat-label">Streets Explored</div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-value" id="label-count-All-today">—</div>
+            <div class="admin-stat-label">Labels Today</div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-value" id="user-count-combined-all-today-no_task_constraint-any_quality">—</div>
+            <div class="admin-stat-label">Users Today</div>
+        </div>
+    </div>
+    <p class="text-muted" style="font-size: 0.8rem; margin-top: -12px; margin-bottom: 24px;">
+        Today and Past Week are based on Pacific time.
+        <sup>*</sup> Users in parentheses completed at least one audit task or validated at least one label.
+    </p>
+
+    <h2 id="overview-activities">Activities</h2>
+    <div class="table-responsive">
+    <table class="table table-striped table-condensed" style="font-size: 0.875rem;">
+        <thead>
+            <tr>
+                <th></th>
+                <th>Overall</th>
+                <th>Today</th>
+                <th>Past Week</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th>Total Users <sup>*</sup></th>
+                <td>
+                    <span id="user-count-combined-all-all_time-no_task_constraint-any_quality2">—</span>
+                    (<span id="user-count-combined-all-all_time-task_completed-any_quality">—</span>)
+                </td>
+                <td>
+                    <span id="user-count-combined-all-today-no_task_constraint-any_quality2">—</span>
+                    (<span id="user-count-combined-all-today-task_completed-any_quality">—</span>)
+                </td>
+                <td>
+                    <span id="user-count-combined-all-week-no_task_constraint-any_quality">—</span>
+                    (<span id="user-count-combined-all-week-task_completed-any_quality">—</span>)
+                </td>
+            </tr>
+            <tr>
+                <th>Explore Users <sup>*</sup></th>
+                <td>
+                    <span id="user-count-explore-all-all_time-no_task_constraint-any_quality">—</span>
+                    (<span id="user-count-explore-all-all_time-task_completed-any_quality">—</span>)
+                </td>
+                <td>
+                    <span id="user-count-explore-all-today-no_task_constraint-any_quality">—</span>
+                    (<span id="user-count-explore-all-today-task_completed-any_quality">—</span>)
+                </td>
+                <td>
+                    <span id="user-count-explore-all-week-no_task_constraint-any_quality">—</span>
+                    (<span id="user-count-explore-all-week-task_completed-any_quality">—</span>)
+                </td>
+            </tr>
+            <tr style="font-size: 90%;">
+                <td style="padding-left: 24px;">Registered</td>
+                <td><span id="user-count-explore-registered-all_time-no_task_constraint-any_quality">—</span> (<span id="user-count-explore-registered-all_time-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-explore-registered-today-no_task_constraint-any_quality">—</span> (<span id="user-count-explore-registered-today-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-explore-registered-week-no_task_constraint-any_quality">—</span> (<span id="user-count-explore-registered-week-task_completed-any_quality">—</span>)</td>
+            </tr>
+            <tr style="font-size: 90%;">
+                <td style="padding-left: 24px;">Anonymous</td>
+                <td><span id="user-count-explore-anonymous-all_time-no_task_constraint-any_quality">—</span> (<span id="user-count-explore-anonymous-all_time-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-explore-anonymous-today-no_task_constraint-any_quality">—</span> (<span id="user-count-explore-anonymous-today-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-explore-anonymous-week-no_task_constraint-any_quality">—</span> (<span id="user-count-explore-anonymous-week-task_completed-any_quality">—</span>)</td>
+            </tr>
+            <tr style="font-size: 90%;">
+                <td style="padding-left: 24px;">Turkers</td>
+                <td><span id="user-count-explore-turker-all_time-no_task_constraint-any_quality">—</span> (<span id="user-count-explore-turker-all_time-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-explore-turker-today-no_task_constraint-any_quality">—</span> (<span id="user-count-explore-turker-today-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-explore-turker-week-no_task_constraint-any_quality">—</span> (<span id="user-count-explore-turker-week-task_completed-any_quality">—</span>)</td>
+            </tr>
+            <tr style="font-size: 90%;">
+                <td style="padding-left: 24px;">Researchers</td>
+                <td><span id="user-count-explore-researcher-all_time-no_task_constraint-any_quality">—</span> (<span id="user-count-explore-researcher-all_time-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-explore-researcher-today-no_task_constraint-any_quality">—</span> (<span id="user-count-explore-researcher-today-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-explore-researcher-week-no_task_constraint-any_quality">—</span> (<span id="user-count-explore-researcher-week-task_completed-any_quality">—</span>)</td>
+            </tr>
+            <tr>
+                <th>Validate Users <sup>*</sup></th>
+                <td>
+                    <span id="user-count-validate-all-all_time-no_task_constraint-any_quality">—</span>
+                    (<span id="user-count-validate-all-all_time-task_completed-any_quality">—</span>)
+                </td>
+                <td>
+                    <span id="user-count-validate-all-today-no_task_constraint-any_quality">—</span>
+                    (<span id="user-count-validate-all-today-task_completed-any_quality">—</span>)
+                </td>
+                <td>
+                    <span id="user-count-validate-all-week-no_task_constraint-any_quality">—</span>
+                    (<span id="user-count-validate-all-week-task_completed-any_quality">—</span>)
+                </td>
+            </tr>
+            <tr style="font-size: 90%;">
+                <td style="padding-left: 24px;">Registered</td>
+                <td><span id="user-count-validate-registered-all_time-no_task_constraint-any_quality">—</span> (<span id="user-count-validate-registered-all_time-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-validate-registered-today-no_task_constraint-any_quality">—</span> (<span id="user-count-validate-registered-today-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-validate-registered-week-no_task_constraint-any_quality">—</span> (<span id="user-count-validate-registered-week-task_completed-any_quality">—</span>)</td>
+            </tr>
+            <tr style="font-size: 90%;">
+                <td style="padding-left: 24px;">Anonymous</td>
+                <td><span id="user-count-validate-anonymous-all_time-no_task_constraint-any_quality">—</span> (<span id="user-count-validate-anonymous-all_time-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-validate-anonymous-today-no_task_constraint-any_quality">—</span> (<span id="user-count-validate-anonymous-today-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-validate-anonymous-week-no_task_constraint-any_quality">—</span> (<span id="user-count-validate-anonymous-week-task_completed-any_quality">—</span>)</td>
+            </tr>
+            <tr style="font-size: 90%;">
+                <td style="padding-left: 24px;">Turkers</td>
+                <td><span id="user-count-validate-turker-all_time-no_task_constraint-any_quality">—</span> (<span id="user-count-validate-turker-all_time-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-validate-turker-today-no_task_constraint-any_quality">—</span> (<span id="user-count-validate-turker-today-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-validate-turker-week-no_task_constraint-any_quality">—</span> (<span id="user-count-validate-turker-week-task_completed-any_quality">—</span>)</td>
+            </tr>
+            <tr style="font-size: 90%;">
+                <td style="padding-left: 24px;">Researchers</td>
+                <td><span id="user-count-validate-researcher-all_time-no_task_constraint-any_quality">—</span> (<span id="user-count-validate-researcher-all_time-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-validate-researcher-today-no_task_constraint-any_quality">—</span> (<span id="user-count-validate-researcher-today-task_completed-any_quality">—</span>)</td>
+                <td><span id="user-count-validate-researcher-week-no_task_constraint-any_quality">—</span> (<span id="user-count-validate-researcher-week-task_completed-any_quality">—</span>)</td>
+            </tr>
+            <tr>
+                <th>Total Labels</th>
+                <td id="label-count-All-all_time2">—</td>
+                <td id="label-count-All-today2">—</td>
+                <td id="label-count-All-week">—</td>
+            </tr>
+            <tr style="font-size: 90%;"><td style="padding-left: 24px;">@Messages("curb.ramp")</td><td id="label-count-CurbRamp-all_time">—</td><td id="label-count-CurbRamp-today">—</td><td id="label-count-CurbRamp-week">—</td></tr>
+            <tr style="font-size: 90%;"><td style="padding-left: 24px;">@Messages("missing.ramp")</td><td id="label-count-NoCurbRamp-all_time">—</td><td id="label-count-NoCurbRamp-today">—</td><td id="label-count-NoCurbRamp-week">—</td></tr>
+            <tr style="font-size: 90%;"><td style="padding-left: 24px;">@Messages("obstacle")</td><td id="label-count-Obstacle-all_time">—</td><td id="label-count-Obstacle-today">—</td><td id="label-count-Obstacle-week">—</td></tr>
+            <tr style="font-size: 90%;"><td style="padding-left: 24px;">@Messages("surface.problem")</td><td id="label-count-SurfaceProblem-all_time">—</td><td id="label-count-SurfaceProblem-today">—</td><td id="label-count-SurfaceProblem-week">—</td></tr>
+            <tr style="font-size: 90%;"><td style="padding-left: 24px;">@Messages("no.sidewalk")</td><td id="label-count-NoSidewalk-all_time">—</td><td id="label-count-NoSidewalk-today">—</td><td id="label-count-NoSidewalk-week">—</td></tr>
+            <tr style="font-size: 90%;"><td style="padding-left: 24px;">@Messages("crosswalk")</td><td id="label-count-Crosswalk-all_time">—</td><td id="label-count-Crosswalk-today">—</td><td id="label-count-Crosswalk-week">—</td></tr>
+            <tr style="font-size: 90%;"><td style="padding-left: 24px;">@Messages("signal")</td><td id="label-count-Signal-all_time">—</td><td id="label-count-Signal-today">—</td><td id="label-count-Signal-week">—</td></tr>
+            <tr style="font-size: 90%;"><td style="padding-left: 24px;">@Messages("other")</td><td id="label-count-Other-all_time">—</td><td id="label-count-Other-today">—</td><td id="label-count-Other-week">—</td></tr>
+            <tr style="font-size: 90%;"><td style="padding-left: 24px;">@Messages("occlusion")</td><td id="label-count-Occlusion-all_time">—</td><td id="label-count-Occlusion-today">—</td><td id="label-count-Occlusion-week">—</td></tr>
+            <tr>
+                <th>Streets Explored</th>
+                <td id="explored-street-count-all-time2">—</td>
+                <td id="explored-street-count-today">—</td>
+                <td id="explored-street-count-week">—</td>
+            </tr>
+            <tr>
+                <th>Distance Explored</th>
+                <td id="audited-distance-all-time">—</td>
+                <td id="audited-distance-today">—</td>
+                <td id="audited-distance-week">—</td>
+            </tr>
+            <tr>
+                <th>Total Validations <sup>**</sup></th>
+                <td id="val-count-All-all_time2">—</td>
+                <td id="val-count-All-today">—</td>
+                <td id="val-count-All-week">—</td>
+            </tr>
+            <tr style="font-size: 90%;"><td style="padding-left: 24px;">Agree</td><td id="val-count-Agree-all_time">—</td><td id="val-count-Agree-today">—</td><td id="val-count-Agree-week">—</td></tr>
+            <tr style="font-size: 90%;"><td style="padding-left: 24px;">Disagree</td><td id="val-count-Disagree-all_time">—</td><td id="val-count-Disagree-today">—</td><td id="val-count-Disagree-week">—</td></tr>
+            <tr style="font-size: 90%;"><td style="padding-left: 24px;">@Messages("unsure.caps")</td><td id="val-count-Unsure-all_time">—</td><td id="val-count-Unsure-today">—</td><td id="val-count-Unsure-week">—</td></tr>
+            <tr>
+                <th>Total Auditing Time</th>
+                <td id="time-explore_total-all_time">—</td>
+                <td id="time-explore_total-today">—</td>
+                <td id="time-explore_total-week">—</td>
+            </tr>
+            <tr>
+                <th>Total Validating Time</th>
+                <td id="time-validate_total-all_time">—</td>
+                <td id="time-validate_total-today">—</td>
+                <td id="time-validate_total-week">—</td>
+            </tr>
+            <tr>
+                <th>Avg Audit Time / 100m</th>
+                <td id="time-explore_per_100m-all_time">—</td>
+                <td id="time-explore_per_100m-today">—</td>
+                <td id="time-explore_per_100m-week">—</td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
+    <p style="font-size: 0.8rem; color: #666; margin-top: -8px;">
+        <sup>**</sup>Includes AI validations. For human vs. AI breakdown, see the
+        <a href="@routes.AdminController.adminAnalytics">Analytics page</a>.
+    </p>
+
+    <h2 id="overview-coverage">Coverage</h2>
+    <div class="table-responsive">
+    <table class="table table-striped table-condensed w-auto" style="font-size: 0.875rem;">
+        <thead>
+            <tr><th></th><th>All Users</th><th>High Quality</th><th>Total</th></tr>
+        </thead>
+        <tbody>
+            <tr><th>Audited Streets</th><td id="street-count-audited-all">—</td><td id="street-count-audited-high-quality">—</td><td id="street-count-total">—</td></tr>
+            <tr style="font-size:90%;"><td style="padding-left:24px;">Registered</td><td id="street-count-audited-registered-all">—</td><td id="street-count-audited-registered-high-quality">—</td><td></td></tr>
+            <tr style="font-size:90%;"><td style="padding-left:24px;">Anonymous</td><td id="street-count-audited-anonymous-all">—</td><td id="street-count-audited-anonymous-high-quality">—</td><td></td></tr>
+            <tr style="font-size:90%;"><td style="padding-left:24px;">Turker</td><td id="street-count-audited-turker-all">—</td><td id="street-count-audited-turker-high-quality">—</td><td></td></tr>
+            <tr style="font-size:90%;"><td style="padding-left:24px;">Researcher</td><td id="street-count-audited-researcher-all">—</td><td id="street-count-audited-researcher-high-quality">—</td><td></td></tr>
+            <tr><th>Audited Distance</th><td id="street-distance-audited-all">—</td><td id="street-distance-audited-high-quality">—</td><td id="street-distance-total">—</td></tr>
+            <tr style="font-size:90%;"><td style="padding-left:24px;">Registered</td><td id="street-distance-registered-all">—</td><td id="street-distance-registered-high-quality">—</td><td></td></tr>
+            <tr style="font-size:90%;"><td style="padding-left:24px;">Anonymous</td><td id="street-distance-anonymous-all">—</td><td id="street-distance-anonymous-high-quality">—</td><td></td></tr>
+            <tr style="font-size:90%;"><td style="padding-left:24px;">Turker</td><td id="street-distance-turker-all">—</td><td id="street-distance-turker-high-quality">—</td><td></td></tr>
+            <tr style="font-size:90%;"><td style="padding-left:24px;">Researcher</td><td id="street-distance-researcher-all">—</td><td id="street-distance-researcher-high-quality">—</td><td></td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h2 id="overview-comments">Recent Comments</h2>
+    <div class="table-responsive">
+        <table id="comments-table" class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Time</th>
+                    <th>Pano ID</th>
+                    <th>Type</th>
+                    <th>Comment</th>
+                    <th>Label ID</th>
+                </tr>
+            </thead>
+            <tbody id="comments-body"></tbody>
+        </table>
+    </div>
+
+    <h2 id="overview-cache">Server Cache</h2>
+    <p>Clear the Play Framework in-memory cache (forces re-computation of cached API responses).</p>
+    <button class="btn btn-default" onclick="clearPlayCache()">Clear Cache</button>
+    <span id="clearPlayCacheSuccess" style="margin-left: 12px; color: green;"></span>
+
+    <script src='@assets.path("javascripts/lib/pannellum.js")'></script>
+    <script src='@assets.path("javascripts/pano-viewer/build/PanoViewer.js")'></script>
+    <script src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/dataTables.bootstrap.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/timestampLocalization.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
+    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+
+    <link href='@assets.path("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
+
+    <script>
+        const commentsTable = $('#comments-table').DataTable({
+            "order": [[1, "desc"]],
+            "columnDefs": [{ "width": "200px", "targets": 4 }],
+            "autoWidth": false
+        });
+        window.appManager.ready(async function () {
+            const viewerType = '@commonData.imagerySource.toString' === 'gsv'
+                ? GSVPanoViewer : MapillaryPanoViewer;
+            const accessToken = '@commonData.imageryAccessToken';
+            await initOverview(viewerType, accessToken, "@user.username");
+        });
+    </script>
+}

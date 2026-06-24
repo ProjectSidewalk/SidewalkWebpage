@@ -1,0 +1,57 @@
+@import models.label.Tag
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, tags: Seq[Tag]
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@admin.adminLayout(commonData, title, user, "labels") {
+
+    <h2 id="labels-table-heading">Recent Labels</h2>
+    <div class="table-responsive">
+    <table id="label-table" class="table table-striped table-condensed" style="font-size: 0.85rem;">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Time</th>
+                <th>Label Type</th>
+                <th>Severity</th>
+                <th>Tags</th>
+                <th>Description</th>
+                <th>Agree</th>
+                <th>Disagree</th>
+                <th>Unsure</th>
+                <th>View</th>
+            </tr>
+        </thead>
+        <tbody id="label-body"></tbody>
+    </table>
+    </div>
+
+    <script src='@assets.path("javascripts/lib/pannellum.js")'></script>
+    <script src='@assets.path("javascripts/pano-viewer/build/PanoViewer.js")'></script>
+    <script src='@assets.path("javascripts/lib/panzoom.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/dataTables.bootstrap.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/timestampLocalization.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
+    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+
+    <link href='@assets.path("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
+
+    <script>
+        const labelTable = $('#label-table').DataTable({
+            "order": [[1, "desc"]],
+            "columnDefs": [{ "width": "200px", "targets": 5 }],
+            "autoWidth": false
+        });
+        window.appManager.ready(async function () {
+            const viewerType = '@commonData.imagerySource.toString' === 'gsv'
+                ? GSVPanoViewer : MapillaryPanoViewer;
+            const accessToken = '@commonData.imageryAccessToken';
+            await initLabels(viewerType, accessToken, "@user.username");
+        });
+    </script>
+}

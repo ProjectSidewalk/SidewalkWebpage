@@ -1,0 +1,71 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, activeSection: String)(content: Html
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap")) {
+    @common.navbar(commonData, Some(user))
+    <div id="page-loading">
+        <div id="loading-animation">
+            <p class="loading-text">@Messages("loading")</p>
+            <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'/>
+        </div>
+    </div>
+    <div id="admin-layout" style="visibility: hidden;">
+        <nav id="admin-sidebar" aria-label="Admin sections">
+            <div class="admin-sidebar-header">
+                <span class="admin-sidebar-title">Sidewalk Admin</span>
+            </div>
+            <ul role="list">
+                <li>
+                    <a href="@routes.AdminController.overview"
+                       class="admin-nav-link @if(activeSection == "overview"){active}"
+                       @if(activeSection == "overview"){aria-current="page"}>Overview</a>
+                </li>
+                <li>
+                    <a href="@routes.AdminController.adminMap"
+                       class="admin-nav-link @if(activeSection == "map"){active}"
+                       @if(activeSection == "map"){aria-current="page"}>Map</a>
+                </li>
+                <li>
+                    <a href="@routes.AdminController.adminAnalytics"
+                       class="admin-nav-link @if(activeSection == "analytics"){active}"
+                       @if(activeSection == "analytics"){aria-current="page"}>Analytics</a>
+                </li>
+                <li>
+                    <a href="@routes.AdminController.adminLabels"
+                       class="admin-nav-link @if(activeSection == "labels"){active}"
+                       @if(activeSection == "labels"){aria-current="page"}>Labels</a>
+                </li>
+                <li>
+                    <a href="@routes.AdminController.adminUsers"
+                       class="admin-nav-link @if(activeSection == "users"){active}"
+                       @if(activeSection == "users"){aria-current="page"}>Users</a>
+                </li>
+                <li>
+                    <a href="@routes.AdminController.adminLabelSearch"
+                       class="admin-nav-link @if(activeSection == "label-search"){active}"
+                       @if(activeSection == "label-search"){aria-current="page"}>Label Search</a>
+                </li>
+                <li>
+                    <a href="@routes.AdminController.adminTeams"
+                       class="admin-nav-link @if(activeSection == "teams"){active}"
+                       @if(activeSection == "teams"){aria-current="page"}>Teams</a>
+                </li>
+                <li>
+                    <a href="@routes.AdminController.adminApiAnalytics"
+                       class="admin-nav-link @if(activeSection == "api-analytics"){active}"
+                       @if(activeSection == "api-analytics"){aria-current="page"}>API Analytics</a>
+                </li>
+            </ul>
+        </nav>
+        <main id="admin-content" tabindex="-1">
+            @content
+        </main>
+        <aside id="admin-toc" aria-label="On this page" hidden>
+            <p class="admin-toc-label">On this page</p>
+            <ul id="admin-toc-list" role="list"></ul>
+        </aside>
+    </div>
+}

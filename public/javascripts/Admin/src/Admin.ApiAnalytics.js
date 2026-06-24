@@ -161,8 +161,7 @@ class AdminApiAnalytics {
 
         el.innerHTML = '<h3>Daily Call Volume</h3><div id="api-analytics-vega-chart"></div>';
 
-        // The admin page loads vega-embed 3.0.0-beta.17, which does not return a Promise from embed().
-        // Use the same pattern as the rest of Admin.js: pass mode as an option, no $schema field.
+        // vegaEmbed v6 (Vega-Lite v5) — no "mode" option needed; vl spec is auto-detected.
         const spec = {
             "width": 700,
             "height": 200,
@@ -183,8 +182,8 @@ class AdminApiAnalytics {
         };
 
         if (typeof vega !== 'undefined') {
-            const opt = { "mode": "vega-lite", "actions": false };
-            vega.embed('#api-analytics-vega-chart', spec, opt);
+            const opt = { "actions": false };
+            vegaEmbed('#api-analytics-vega-chart', spec, opt);
         }
     }
 
