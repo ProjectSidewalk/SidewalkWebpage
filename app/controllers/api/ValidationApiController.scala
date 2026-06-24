@@ -2,6 +2,7 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import models.api.{ApiError, ValidationDataForApi, ValidationFiltersForApi}
+import models.validation.ValidationOption
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.i18n.Lang.logger
 import play.api.libs.json.Json
@@ -39,7 +40,7 @@ class ValidationApiController @Inject() (
    *
    * @param labelId Optional label ID to filter by specific label
    * @param userId Optional user ID to filter by specific validator
-   * @param validationResult Optional validation result (1=Agree, 2=Disagree, 3=Unsure)
+   * @param validationResult Optional validation result (Agree, Disagree, or Unsure)
    * @param labelTypeId Optional label type ID to filter by type of validated label
    * @param validationTimestamp Optional ISO 8601 timestamp to filter validations after this time
    * @param changedTags Optional boolean to filter validations where tags were changed (true) or not changed (false)
@@ -50,7 +51,7 @@ class ValidationApiController @Inject() (
   def getValidations(
       labelId: Option[Int],
       userId: Option[String],
-      validationResult: Option[Int],
+      validationResult: Option[String],
       labelTypeId: Option[Int],
       validationTimestamp: Option[String],
       changedTags: Option[Boolean],
@@ -63,19 +64,22 @@ class ValidationApiController @Inject() (
       // Parse timestamp if provided.
       val parsedTimestamp: Option[OffsetDateTime] = parseDateTimeString(validationTimestamp)
 
+      // Parse the validation result string into the enum (None if absent or invalid; invalid is rejected below).
+      val parsedValidationResult: Option[ValidationOption.Value] = validationResult.flatMap(ValidationOption.fromString)
+
       // Create filters object.
       val filters = ValidationFiltersForApi(
-        labelId = labelId, userId = userId, validationResult = validationResult, labelTypeId = labelTypeId,
+        labelId = labelId, userId = userId, validationResult = parsedValidationResult, labelTypeId = labelTypeId,
         validationTimestamp = parsedTimestamp, changedTags = changedTags, changedSeverityLevels = changedSeverityLevels
       )
 
       // Handle error cases for invalid parameters.
-      if (validationResult.isDefined && !Seq(1, 2, 3).contains(validationResult.get)) {
+      if (validationResult.isDefined && parsedValidationResult.isEmpty) {
         Future.successful(
           BadRequest(
             Json.toJson(
               ApiError.invalidParameter(
-                "Invalid validationResult value. Must be 1 (Agree), 2 (Disagree), or 3 (Unsure).",
+                "Invalid validationResult value. Must be Agree, Disagree, or Unsure.",
                 "validationResult"
               )
             )
@@ -135,7 +139,6 @@ class ValidationApiController @Inject() (
    * Returns information about validation result types (Agree, Disagree, Unsure).
    *
    * This endpoint provides details about each validation result type including:
-   * - ID (1, 2, 3)
    * - Name (Agree, Disagree, Unsure)
    * - Count (number of validations of this type)
    *

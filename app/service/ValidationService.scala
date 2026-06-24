@@ -59,13 +59,14 @@ class ValidationServiceImpl @Inject() (
   /**
    * Updates the validation counts and correctness columns in the label table given a new incoming validation.
    * @param labelId label_id of the label with a new validation
-   * @param newResult the new validation: 1 meaning agree, 2 meaning disagree, and 3 meaning unsure
+   * @param newResult the new validation if there is one (Agree, Disagree, or Unsure)
    * @param oldResult the old validation if the user had validated this label in the past
    */
-  def updateValidationCounts(labelId: Int, newResult: Option[Int], oldResult: Option[Int]): DBIO[Int] = {
-    require(newResult.isEmpty || Seq(1, 2, 3).contains(newResult.get), "New validation results can only be 1, 2, or 3.")
-    require(oldResult.isEmpty || Seq(1, 2, 3).contains(oldResult.get), "Old validation results can only be 1, 2, or 3.")
-
+  def updateValidationCounts(
+      labelId: Int,
+      newResult: Option[ValidationOption.Value],
+      oldResult: Option[ValidationOption.Value]
+  ): DBIO[Int] = {
     labelTable
       .find(labelId)
       .flatMap {
@@ -75,18 +76,18 @@ class ValidationServiceImpl @Inject() (
 
           // Add 1 to the correct count for the new validation. In case of delete, no match is found.
           val countsWithNewVal: (Int, Int, Int) = newResult match {
-            case Some(1) => (oldCounts._1 + 1, oldCounts._2, oldCounts._3)
-            case Some(2) => (oldCounts._1, oldCounts._2 + 1, oldCounts._3)
-            case Some(3) => (oldCounts._1, oldCounts._2, oldCounts._3 + 1)
-            case _       => oldCounts
+            case Some(ValidationOption.Agree)    => (oldCounts._1 + 1, oldCounts._2, oldCounts._3)
+            case Some(ValidationOption.Disagree) => (oldCounts._1, oldCounts._2 + 1, oldCounts._3)
+            case Some(ValidationOption.Unsure)   => (oldCounts._1, oldCounts._2, oldCounts._3 + 1)
+            case _                               => oldCounts
           }
 
           // If there was a previous validation from this user, subtract 1 for that old validation. O/w use previous result.
           val countsWithoutOldVal: (Int, Int, Int) = oldResult match {
-            case Some(1) => (countsWithNewVal._1 - 1, countsWithNewVal._2, countsWithNewVal._3)
-            case Some(2) => (countsWithNewVal._1, countsWithNewVal._2 - 1, countsWithNewVal._3)
-            case Some(3) => (countsWithNewVal._1, countsWithNewVal._2, countsWithNewVal._3 - 1)
-            case _       => countsWithNewVal
+            case Some(ValidationOption.Agree)    => (countsWithNewVal._1 - 1, countsWithNewVal._2, countsWithNewVal._3)
+            case Some(ValidationOption.Disagree) => (countsWithNewVal._1, countsWithNewVal._2 - 1, countsWithNewVal._3)
+            case Some(ValidationOption.Unsure)   => (countsWithNewVal._1, countsWithNewVal._2, countsWithNewVal._3 - 1)
+            case _                               => countsWithNewVal
           }
 
           // Determine whether the label is correct. Agree > disagree = correct; disagree > agree = incorrect; o/w null.
@@ -121,7 +122,8 @@ class ValidationServiceImpl @Inject() (
         case Some(oldVal) =>
           for {
             historyEntryDeleted <- {
-              if (oldVal.validationResult == 1) removeLabelHistoryForValidation(oldVal.labelValidationId)
+              if (oldVal.validationResult == ValidationOption.Agree)
+                removeLabelHistoryForValidation(oldVal.labelValidationId)
               else DBIO.successful(false)
             }
             excludedUser <- userStatTable.isExcludedUser(userId)
@@ -291,7 +293,7 @@ class ValidationServiceImpl @Inject() (
           newValId: Int <- insert(validation)
           // Update the severity and tags in the label table if something changed (only applies if they marked Agree).
           _ <- {
-            if (validation.validationResult == 1) {
+            if (validation.validationResult == ValidationOption.Agree) {
               updateAndSaveLabelHistory(validation.labelId, validation.newSeverity, validation.newTags,
                 validation.userId, validation.source, newValId)
             } else DBIO.successful(0)

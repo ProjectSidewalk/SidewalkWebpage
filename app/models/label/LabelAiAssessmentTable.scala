@@ -4,6 +4,7 @@ import com.google.inject.ImplementedBy
 import models.label.AiImageSource.AiImageSource
 import models.utils.MyPostgresProfile.api._
 import models.utils.{AiTagConfidence, MyPostgresProfile}
+import models.validation.ValidationOption
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -20,7 +21,7 @@ object AiImageSource extends Enumeration {
 case class LabelAiAssessment(
     labelAiAssessmentId: Int,
     labelId: Int,
-    validationResult: Int,
+    validationResult: ValidationOption.Value,
     validationAccuracy: Double,
     validationConfidence: Double,
     tags: Option[List[String]],
@@ -39,7 +40,7 @@ case class LabelAiAssessment(
 class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, "label_ai_assessment") {
   def labelAiAssessmentId: Rep[Int]                     = column[Int]("label_ai_assessment_id", O.PrimaryKey, O.AutoInc)
   def labelId: Rep[Int]                                 = column[Int]("label_id")
-  def validationResult: Rep[Int]                        = column[Int]("validation_result")
+  def validationResult: Rep[ValidationOption.Value]     = column[ValidationOption.Value]("validation_result")
   def validationAccuracy: Rep[Double]                   = column[Double]("validation_accuracy")
   def validationConfidence: Rep[Double]                 = column[Double]("validation_confidence")
   def tags: Rep[Option[List[String]]]                   = column[Option[List[String]]]("tags")

@@ -113,19 +113,19 @@ function Mission(params) {
     /**
      * Updates the validation result for this mission by incrementing agree, disagree and unsure
      * counts collected in this mission. (Only persists for current session)
-     * @param result Validation result - Can either be 1, 2, or 3 for agree, disagree, or unsure.
+     * @param result Validation result - Can either be 'Agree', 'Disagree', or 'Unsure'.
      * @param removeValidation (bool)  - Whether user clicked "undo", meaning we would decrement the count.
      */
     function updateValidationResult(result, removeValidation) {
         const change = removeValidation ? -1 : 1;
         switch (result) {
-            case 1:
+            case 'Agree':
                 setProperty("agreeCount", getProperty("agreeCount") + change);
                 break;
-            case 2:
+            case 'Disagree':
                 setProperty("disagreeCount", getProperty("disagreeCount") + change);
                 break;
-            case 3:
+            case 'Unsure':
                 setProperty("unsureCount", getProperty("unsureCount") + change);
                 break;
         }

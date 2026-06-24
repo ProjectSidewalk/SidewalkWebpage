@@ -2,7 +2,6 @@ package formats.json
 
 import models.label._
 import models.pano.{PanoData, PanoViewerMetadata}
-import models.validation.LabelValidationTable
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -82,8 +81,8 @@ object LabelFormats {
       "label_type"                         -> m.labelType,
       "severity"                           -> m.severity,
       "description"                        -> m.description,
-      "user_validation"                    -> m.userValidation,
-      "ai_validation"                      -> m.aiValidation,
+      "user_validation"                    -> m.userValidation.map(_.toString),
+      "ai_validation"                      -> m.aiValidation.map(_.toString),
       "validations"                        -> m.validations,
       "tags"                               -> m.tags,
       "low_quality_incomplete_stale_flags" -> m.lowQualityIncompleteStaleFlags,
@@ -101,32 +100,32 @@ object LabelFormats {
       adminData: Option[AdminValidationData] = None
   ): JsObject = {
     Json.obj(
-      "label_id"           -> labelMetadata.labelId,
-      "label_type"         -> labelMetadata.labelType.name,
-      "pano_id"            -> labelMetadata.panoId,
-      "image_capture_date" -> labelMetadata.imageCaptureDate,
-      "label_timestamp"    -> labelMetadata.timestamp,
-      "lat"                -> labelMetadata.location.lat,
-      "lng"                -> labelMetadata.location.lng,
-      "camera_lat"         -> labelMetadata.cameraLocation.map(_.lat),
-      "camera_lng"         -> labelMetadata.cameraLocation.map(_.lng),
-      "heading"            -> labelMetadata.pov.heading,
-      "pitch"              -> labelMetadata.pov.pitch,
-      "zoom"               -> labelMetadata.pov.zoom,
-      "canvas_x"           -> labelMetadata.canvasXY.x,
-      "canvas_y"           -> labelMetadata.canvasXY.y,
-      "severity"           -> labelMetadata.severity,
-      "description"        -> labelMetadata.description,
-      "street_edge_id"     -> labelMetadata.streetEdgeId,
-      "region_id"          -> labelMetadata.regionId,
-      "correct"            -> labelMetadata.validationInfo.correct,
-      "agree_count"        -> labelMetadata.validationInfo.agreeCount,
-      "disagree_count"     -> labelMetadata.validationInfo.disagreeCount,
-      "unsure_count"       -> labelMetadata.validationInfo.unsureCount,
-      "user_validation" -> labelMetadata.validationInfo.userValidation.map(LabelValidationTable.validationOptions.get),
-      "ai_validation"   -> labelMetadata.validationInfo.aiValidation.map(LabelValidationTable.validationOptions.get),
-      "tags"            -> labelMetadata.tags,
-      "ai_tags"         -> labelMetadata.aiTags,
+      "label_id"            -> labelMetadata.labelId,
+      "label_type"          -> labelMetadata.labelType.name,
+      "pano_id"             -> labelMetadata.panoId,
+      "image_capture_date"  -> labelMetadata.imageCaptureDate,
+      "label_timestamp"     -> labelMetadata.timestamp,
+      "lat"                 -> labelMetadata.location.lat,
+      "lng"                 -> labelMetadata.location.lng,
+      "camera_lat"          -> labelMetadata.cameraLocation.map(_.lat),
+      "camera_lng"          -> labelMetadata.cameraLocation.map(_.lng),
+      "heading"             -> labelMetadata.pov.heading,
+      "pitch"               -> labelMetadata.pov.pitch,
+      "zoom"                -> labelMetadata.pov.zoom,
+      "canvas_x"            -> labelMetadata.canvasXY.x,
+      "canvas_y"            -> labelMetadata.canvasXY.y,
+      "severity"            -> labelMetadata.severity,
+      "description"         -> labelMetadata.description,
+      "street_edge_id"      -> labelMetadata.streetEdgeId,
+      "region_id"           -> labelMetadata.regionId,
+      "correct"             -> labelMetadata.validationInfo.correct,
+      "agree_count"         -> labelMetadata.validationInfo.agreeCount,
+      "disagree_count"      -> labelMetadata.validationInfo.disagreeCount,
+      "unsure_count"        -> labelMetadata.validationInfo.unsureCount,
+      "user_validation"     -> labelMetadata.validationInfo.userValidation.map(_.toString),
+      "ai_validation"       -> labelMetadata.validationInfo.aiValidation.map(_.toString),
+      "tags"                -> labelMetadata.tags,
+      "ai_tags"             -> labelMetadata.aiTags,
       "ai_tags_not_present" -> labelMetadata.aiTagsNotPresent,
       "ai_generated"        -> labelMetadata.aiGenerated,
       "expired"             -> labelMetadata.expired,
@@ -140,7 +139,7 @@ object LabelFormats {
           "previous_validations" -> ad.previousValidations.map(prevVal =>
             Json.obj(
               "username"   -> prevVal._1,
-              "validation" -> LabelValidationTable.validationOptions.get(prevVal._2)
+              "validation" -> prevVal._2.toString
             )
           )
         )
@@ -168,8 +167,8 @@ object LabelFormats {
       "label_type"         -> labelMetadata.labelType.name,
       "severity"           -> labelMetadata.severity,
       "description"        -> labelMetadata.description,
-      "user_validation"    -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
-      "ai_validation"      -> labelMetadata.aiValidation.map(LabelValidationTable.validationOptions.get),
+      "user_validation"    -> labelMetadata.userValidation.map(_.toString),
+      "ai_validation"      -> labelMetadata.aiValidation.map(_.toString),
       "num_agree"          -> labelMetadata.validations("agree"),
       "num_disagree"       -> labelMetadata.validations("disagree"),
       "num_unsure"         -> labelMetadata.validations("unsure"),
@@ -201,7 +200,7 @@ object LabelFormats {
         "previous_validations" -> adminData.previousValidations.map(prevVal =>
           Json.obj(
             "username"   -> prevVal._1,
-            "validation" -> LabelValidationTable.validationOptions.get(prevVal._2)
+            "validation" -> prevVal._2.toString
           )
         )
       )
