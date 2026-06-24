@@ -459,7 +459,7 @@ h6:hover .permalink {
     border-left: 4px solid var(--color-border-medium);
     border-radius: var(--border-radius);
     padding: var(--space-md) var(--space-lg);
-    font-size: var(--font-size-sm);
+    font-size: var(--base-font-size);
     line-height: 1.6;
     color: var(--color-text-primary);
     margin-bottom: var(--space-sm); /* Add space between citation and button */
@@ -477,7 +477,7 @@ h6:hover .permalink {
     border: 1px solid var(--color-border-light);
     border-radius: var(--border-radius);
     cursor: pointer;
-    font-size: var(--font-size-sm);
+    font-size: var(--base-font-size);
     transition: all var(--transition-fast);
     color: var(--color-text-secondary);
 }
