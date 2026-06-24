@@ -31,6 +31,26 @@
         </p>
     </div>
 
+    <div class="api-section" id="aggregate-stats-by-day-preview-section">
+        <h2 class="api-heading" id="visual-example">
+            Aggregate Stats by Day API Preview <a href="#visual-example" class="permalink">#</a>
+        </h2>
+        <p>Live preview of the last 90 days of label and validation activity summed across all Project Sidewalk deployments:</p>
+
+        <div id="aggregate-stats-by-day-preview">Loading…</div>
+
+        <script src='@assets.path("javascripts/lib/chart-4.5.1.min.js")'></script>
+        <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/stats-by-day.css")">
+        <script src="@routes.Assets.versioned("javascripts/api-docs/aggregate-stats-by-day-preview.js")"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                AggregateStatsByDayPreview.setup({
+                    apiBaseUrl: document.documentElement.getAttribute('data-api-base-url') || '/v3/api'
+                }).init();
+            });
+        </script>
+    </div>
+
     <div class="api-section" id="endpoint-section">
         <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
         <p>Returns daily label and validation counts summed across all Project Sidewalk deployments.</p>
