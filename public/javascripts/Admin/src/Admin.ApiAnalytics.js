@@ -161,11 +161,12 @@ class AdminApiAnalytics {
 
         el.innerHTML = '<h3>Daily Call Volume</h3><div id="api-analytics-vega-chart"></div>';
 
+        // The admin page loads vega-embed 3.0.0-beta.17, which does not return a Promise from embed().
+        // Use the same pattern as the rest of Admin.js: pass mode as an option, no $schema field.
         const spec = {
-            "$schema": "https://vega.github.io/schema/vega-lite/v2.json",
             "width": 700,
             "height": 200,
-            "data": { "values": this.#data.daily_counts },
+            "data": { "values": this.#data.daily_counts, "format": { "type": "json" } },
             "mark": { "type": "line", "point": true },
             "encoding": {
                 "x": {
@@ -177,20 +178,13 @@ class AdminApiAnalytics {
                     "field": "count",
                     "type": "quantitative",
                     "axis": { "title": "API Calls" }
-                },
-                "tooltip": [
-                    { "field": "date", "type": "temporal", "title": "Date" },
-                    { "field": "count", "type": "quantitative", "title": "Calls" }
-                ]
+                }
             }
         };
 
-        // vega is loaded from CDN in the admin page view.
         if (typeof vega !== 'undefined') {
-            const opt = { "actions": false, "renderer": "svg" };
-            vega.embed('#api-analytics-vega-chart', spec, opt).catch(err => {
-                console.error('Vega chart error:', err);
-            });
+            const opt = { "mode": "vega-lite", "actions": false };
+            vega.embed('#api-analytics-vega-chart', spec, opt);
         }
     }
 
