@@ -4,7 +4,6 @@ import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import formats.json.ApiFormats._
 import models.api.{ApiError, RegionDataForApi, RegionFiltersForApi}
-import models.utils.LatLngBBox
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
@@ -14,6 +13,20 @@ import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
+/**
+ * Controller for the Regions API endpoints.
+ *
+ * Provides access to neighborhood/region data for Project Sidewalk deployments, including
+ * label counts, audit coverage, and geographic boundaries. Supports GeoJSON, CSV, shapefile,
+ * and GeoPackage output formats.
+ *
+ * @param cc              Custom controller components for dependency injection.
+ * @param silhouette      Silhouette authentication environment.
+ * @param apiService      Service for API-related data access.
+ * @param configService   Service for retrieving city configuration parameters.
+ * @param shapefileCreator Helper for creating shapefile exports.
+ * @param ec              Execution context for async operations.
+ */
 @Singleton
 class RegionApiController @Inject() (
     cc: CustomControllerComponents,
@@ -42,66 +55,28 @@ class RegionApiController @Inject() (
       filetype: Option[String],
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
-    // Parse the bbox parameter.
-    val parsedBbox: Option[LatLngBBox] = parseBBoxString(bbox)
+    val parsedBbox = parseBBoxString(bbox)
 
-    // Handle input parameter error cases.
-    if (bbox.isDefined && parsedBbox.isEmpty) {
-      Future.successful(
-        BadRequest(
-          Json.toJson(
-            ApiError.invalidParameter(
-              "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.",
-              "bbox"
-            )
-          )
-        )
-      )
-    } else if (regionId.isDefined && regionId.get <= 0) {
-      Future.successful(
-        BadRequest(
-          Json.toJson(
-            ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId")
-          )
-        )
-      )
-    } else {
-      configService.getCityMapParams.flatMap { cityMapParams =>
-        // If bbox isn't provided, use city defaults.
-        val apiBox: LatLngBBox = parsedBbox.getOrElse(
-          LatLngBBox(
-            minLng = Math.min(cityMapParams.lng1, cityMapParams.lng2),
-            minLat = Math.min(cityMapParams.lat1, cityMapParams.lat2),
-            maxLng = Math.max(cityMapParams.lng1, cityMapParams.lng2),
-            maxLat = Math.max(cityMapParams.lat1, cityMapParams.lat2)
-          )
-        )
+    // Collect the first invalid-parameter error, if any.
+    val firstError: Option[ApiError] = Seq(
+      validateBBoxParam(bbox, parsedBbox),
+      validateRegionId(regionId)
+    ).flatten.headOption
 
-        // Apply filter precedence logic. If bbox is defined, it takes precedence over region filters.
-        val finalBbox: Option[LatLngBBox] = if (bbox.isDefined && parsedBbox.isDefined) {
-          parsedBbox
-        } else if (regionId.isDefined || regionName.isDefined) {
-          None // If region filters are used, bbox should be None.
-        } else {
-          Some(apiBox) // Default city bbox.
-        }
+    firstError match {
+      case Some(error) => Future.successful(badRequest(error))
+      case None =>
+        configService.getCityMapParams.flatMap { cityMapParams =>
+        val (finalBbox, finalRegionId, finalRegionName) = resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
 
-        // If bbox is defined, ignore region filters; regionId takes precedence over regionName.
-        val finalRegionId = if (bbox.isDefined && parsedBbox.isDefined) None else regionId
-        val finalRegionName =
-          if (bbox.isDefined && parsedBbox.isDefined || regionId.isDefined) None else regionName
-
-        // Create filters object.
         val filters = RegionFiltersForApi(
           bbox = finalBbox, regionId = finalRegionId, regionName = finalRegionName, minLabelCount = minLabelCount
         )
 
-        // Get the data stream.
         val dbDataStream: Source[RegionDataForApi, _] = apiService.getRegions(filters, DEFAULT_BATCH_SIZE)
         val baseFileName: String                      = s"regions_${OffsetDateTime.now()}"
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
-        // Output data in the appropriate file format.
         filetype match {
           case Some("csv") =>
             outputCSV(dbDataStream, RegionDataForApi.csvHeader, inline, baseFileName + ".csv")
@@ -127,7 +102,7 @@ class RegionApiController @Inject() (
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
         Ok(Json.toJson(region))
       case None =>
-        NotFound(Json.obj("status" -> "NOT_FOUND", "message" -> "No region found with labels"))
+        NotFound(Json.toJson(ApiError.notFound("No region found with labels")))
     }
   }
 }
