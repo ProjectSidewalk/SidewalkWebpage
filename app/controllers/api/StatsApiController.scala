@@ -3,6 +3,7 @@ package controllers.api
 import controllers.base.CustomControllerComponents
 import controllers.helper.ControllerUtils.labelTypeOrdering
 import formats.json.ApiFormats._
+import models.api.ApiError
 import models.label.ProjectSidewalkStats
 import models.user.UserStatApi
 import play.api.Logger
@@ -198,15 +199,7 @@ class StatsApiController @Inject() (
       }
       .recover { case e: Exception =>
         logger.error(s"Failed to retrieve aggregate statistics: ${e.getMessage}", e)
-
-        // Return error response to client.
-        InternalServerError(
-          Json.obj(
-            "status"  -> 500,
-            "code"    -> "INTERNAL_SERVER_ERROR",
-            "message" -> s"Failed to retrieve aggregate statistics: ${e.getMessage}"
-          )
-        )
+        InternalServerError(Json.toJson(ApiError.internalServerError(s"Failed to retrieve aggregate statistics: ${e.getMessage}")))
       }
   }
 

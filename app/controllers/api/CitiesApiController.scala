@@ -1,6 +1,7 @@
 package controllers.api
 
 import controllers.base.CustomControllerComponents
+import models.api.ApiError
 import play.api.Logger
 import play.api.libs.json.{JsNumber, JsObject, JsString, Json}
 import play.silhouette.api.Silhouette
@@ -77,33 +78,22 @@ class CitiesApiController @Inject() (
         // Return response in the requested format.
         filetype match {
           case "csv" =>
+            // Use .as() rather than withHeaders("Content-Type" -> ...) — Play's Ok(String) defaults
+            // to text/plain and withHeaders would add a duplicate header rather than replacing it.
             Ok(generateCsv(cityDetails))
-              .withHeaders(
-                "Content-Type"        -> "text/csv",
-                "Content-Disposition" -> "attachment; filename=cities.csv"
-              )
+              .as("text/csv")
+              .withHeaders("Content-Disposition" -> "attachment; filename=cities.csv")
           case "geojson" =>
             Ok(generateGeoJson(cityDetails))
-              .withHeaders(
-                "Content-Type"        -> "application/geo+json",
-                "Content-Disposition" -> "inline; filename=cities.geojson"
-              )
-          case _ => // Default to JSON
+              .as("application/geo+json")
+              .withHeaders("Content-Disposition" -> "inline; filename=cities.geojson")
+          case _ => // Default to JSON.
             Ok(Json.obj("status" -> "OK", "cities" -> cityDetails))
         }
       }
       .recover { case e: Exception =>
-        // Log the error for diagnostic purposes
         logger.error(s"Failed to retrieve city information: ${e.getMessage}", e)
-
-        // Return error response to client
-        InternalServerError(
-          Json.obj(
-            "status"  -> 500,
-            "code"    -> "INTERNAL_SERVER_ERROR",
-            "message" -> s"Failed to retrieve city information: ${e.getMessage}"
-          )
-        )
+        InternalServerError(Json.toJson(ApiError.internalServerError(s"Failed to retrieve city information: ${e.getMessage}")))
       }
   }
 
