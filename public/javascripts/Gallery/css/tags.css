@@ -11,7 +11,7 @@
 }
 
 .not-added {
-    background-color: white;
+    background-color: var(--color-neutral-white);
     font-size: .6vw;
     margin: 1px;
 }

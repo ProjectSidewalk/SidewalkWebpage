@@ -19,8 +19,6 @@ medium = Medium
 high = Hoch
 rating = Bewertung
 not.applicable.abbr = k.A.
-feedback = Rück&shy;meldung
-feedback.tooltip = Teilen Sie uns Ihre Gedanken mit
 validations = Validierungen
 labels = Beschriftungen
 labels.caps = Beschriftungen
@@ -53,8 +51,6 @@ dont.show.again = Nicht erneut anzeigen.
 
 press.key = Drücken Sie die Taste "{0}"
 press.keys = Drücken Sie die Tasten "{0}"
-feedback.title = Weitere Ideen? War etwas verwirrend? Haben Sie einen Fehler gefunden?<br>Schicken Sie uns eine Rückmeldung!
-feedback.submitted = Rückmeldung gesendet
 
 city.state = {0}, {1}
 
@@ -105,8 +101,6 @@ landing.how.you.help.content = Erkunden Sie virtuell die Straßen der Stadt in {
 landing.how.you.help.explore = ERKUNDEN
 landing.how.you.help.find = PROBLEME FINDEN
 landing.how.you.help.assess = SCHWEREGRAD BEWERTEN
-landing.video.title = Was ist Project Sidewalk?
-landing.video.watch = Jetzt anschauen
 landing.choropleth.title = Quartier wählen
 landing.choropleth.content = Wählen Sie unten ein Viertel zum Erkunden aus oder klicken Sie auf die Schaltfläche <a href="/explore">''Erkunden''</a> und Ihnen wird automatisch ein Viertel zugewiesen!
 landing.choropleth.legend = Prozent des Quartiers abgeschlossen
@@ -144,23 +138,11 @@ landing.collaborators.logo.city.of.amsterdam.alt = Logo der Stadt Amsterdam
 landing.collaborators.logo.amsterdam.intelligence.alt = Amsterdam Intelligence Logo
 landing.collaborators.logo.public.nudge.alt = Public Nudge Logo
 landing.clouds.alt = Weiße Wolken bedecken teilweise das Bild oben, mit Statistiken über den Wolken.
-Landing.skyline1.png.alt = Eine Illustration einer Kreuzung mit Menschen, die über die Straße fahren.
-Landing.skyline2.png.alt = Eine Illustration einer Kreuzung mit Menschen, die über die Straße fahren. Im Hintergrund ist eine Flagge in den Farben der mexikanischen Flagge zu sehen.
-landing.skyline-seattle.png.alt = Eine Illustration, die die Skyline von Seattle, Washington, zeigt.
 landing.mobile.start.validating = Validierung starten in {0}
 landing.mobile.how.you.help.content = Helfen Sie mit, die Zugänglichkeitsdaten für {0} zu verbessern, indem Sie von anderen Benutzern platzierte Markierungen validieren—direkt von Ihrem Telefon aus!
-landing.mobile.step1 = ANSEHEN
-landing.mobile.step2 = BEWERTEN
-landing.mobile.step3 = ENTSCHEIDEN
-landing.mobile.step1.desc = Schauen Sie sich ein von einem anderen Benutzer platziertes Etikett an
-landing.mobile.step2.desc = Untersuchen Sie die Straßenszene
-landing.mobile.step3.desc = Stimmen Sie zu, widersprechen Sie oder markieren Sie als unsicher
-landing.mobile.val.yes.desc = Markierung sieht korrekt aus
 landing.mobile.impact.step1 = Ein Freiwilliger entdeckt ein Zugänglichkeitsproblem und setzt eine Markierung
 landing.mobile.impact.step2 = Sie sehen sich denselben Ort an und beurteilen, ob die Markierung korrekt ist
 landing.mobile.impact.step3 = Bestätigte Markierungen werden zu zuverlässigen Daten für Städte, Forscher und Navigations-Apps
-landing.mobile.val.unsure.desc = Nicht sicher
-landing.mobile.val.no.desc = Markierung scheint falsch
 landing.mobile.stats.content = Freiwillige wie Sie haben diese Markierungen gesetzt und dabei Gehwegdaten für Stadtplaner, Forscher und Menschen mit Behinderungen gesammelt.
 landing.mobile.laptop.heading = Möchten Sie noch mehr tun?
 landing.mobile.laptop.content = Nehmen Sie Markierungsmissionen an Ihrem Laptop an und kartieren Sie die Gehwege in {0} selbst.
@@ -193,8 +175,6 @@ audit.tutorial.examples.surface.problem = Trottoirs mit <span style="color:orang
 audit.tutorial.end.1 = Gut! Sie haben nun gelernt, die Benutzeroberfläche zu bedienen! Beginnen Sie nun mit dem <span class="bold">Beschriften Sie die folgenden Zugänglichkeitsattribute in Street-View-Bildern.</span>, die das Fortbewegen von Rollstuhlfahrenden in der Stadt erheblich beeinflussen:
 audit.tutorial.end.2 = Herzlichen Dank, dass Sie dabei helfen, <span class="bold">die Welt für alle zugänglicher machen!</span>
 audit.tutorial.examples = Beispiele von Zugänglichkeitsmerkmalen: Trottoirabsenkungen, fehlende Trottoirabsenkungen, Hindernisse im Weg und Oberflächenprobleme.
-
-audit.ribbon.find.and.label = Finden und beschriften Sie die folgenden
 audit.ribbon.curb.ramp.labels = BESCHR. TROTTOIRABSENKUNGEN
 audit.ribbon.sidewalk.labels = BESCHR. GEHWEG
 audit.ribbon.other.labels = BESCHR. ANDERE ZUGÄNGLICHKEITSMERKMALE
@@ -209,26 +189,11 @@ audit.ribbon.signal = Fussgänger:innensignal (<u>P</u>)
 audit.ribbon.other = Andere
 audit.ribbon.occlusion = Trottoir nicht sichtbar (<u>B</u>)
 
-audit.left.ui.zoom.in = (<u>Z</u>) Hinein&shy;zoomen
-audit.left.ui.zoom.out = Hinaus&shy;zoomen
-audit.left.ui.sound = Ton
-audit.left.ui.stuck = Verlaufen
-audit.left.ui.stuck.tooltip = Wir werden versuchen, Sie zurück zu Ihrer Mission zu bringen
-
 audit.right.ui.overall.stats = Gesamtübersicht
-audit.right.ui.current.neighborhood = Aktuelles Quartier
-audit.right.ui.distance = Kilometer
-
 audit.center.ui.tags.header = Tags hinzufügen
 audit.center.ui.tags.info = Fügen Sie Ihren Etiketten Tags hinzu, um die Daten mit nützlichen Informationen anzureichern. Bewegen Sie den Mauszeiger über die Tags, um Beispiele anzuzeigen.
 audit.center.ui.description.header = Beschreiben (optional)
 audit.center.ui.description.placeholder = Beschreibung
-
-audit.mission.complete.labels.title = Missionsbeschriftungen
-audit.mission.complete.progress.mission.you = Sie haben diese Mission erfüllt
-audit.mission.complete.progress.neighborhood.others = Andere haben dieses Quartier erkundet
-audit.mission.complete.legend.this.mission = Diese Mission
-audit.mission.complete.legend.previous.missions = Vorherige Missionen
 
 audit.survey.title = Bitte nehmen Sie an dieser einmaligen Umfrage zum Project Sidewalk teil.
 audit.survey.enjoyment.question = Wie finden Sie die Anwendung von Project Sidewalk?
@@ -278,7 +243,6 @@ authenticate.signin.with.credentials = Melden Sie sich mit Ihren Anmeldedaten an
 
 user.exists = E-Mail-Adresse wird bereits verwendet
 authenticate.error.username.exists = Benutzername wird bereits verwendet
-authenticate.error.username.invalid = Benutzernamen dürfen nicht ", '', <, >, & enthalten
 authenticate.error.password.mismatch = Passwörter stimmen nicht überein
 authenticate.error.invalid.credentials = Ungültige Anmeldedaten
 
@@ -303,9 +267,6 @@ dashboard.current.team.greeting = Team: {0}
 dashboard.leave.team = Team verlassen: {0}
 dashboard.create.team = Bilden Sie ein Team
 dashboard.join.team = Treten Sie einem Team bei!
-dashboard.total.distance.explored = Gesamte erkundete Distanz
-dashboard.number.completed.missions = Anzahl beendeter Missionen
-dashboard.number.of.labels = Anzahl Beschriftungen
 dashboard.missions = Missionen
 dashboard.your.missions = Ihre Missionen
 dashboard.distance = Distanz
@@ -324,7 +285,6 @@ dashboard.label.badge = {0} Beschriftungsabzeichen
 dashboard.validation.badge = {0} Validierungsabzeichen
 dashboard.mistakes.header = Ihre jüngsten Beschriftungsfehler
 dashboard.mistakes.tooltip = Diese Fehler werden von anderen Nutzenden auf der Validierungsseite bestimmt. Bei der Validierung passieren manchmal Fehler und bei den Bewertungen gibt es oft feine Unterschiede.
-dashboard.mistakes.tooltip.alt = Fragezeichensymbol für hilfreichen Tooltip.
 dashboard.team.title = Erstellen Sie ein neues team
 dashboard.team.name = Teamname
 dashboard.team.description = Teambeschreibung (optional)
@@ -349,7 +309,6 @@ leaderboard.header.labels = Beschriftungen
 leaderboard.header.missions = Missionen
 leaderboard.header.distance = Distanz
 leaderboard.tooltip.accuracy = Die Genauigkeit wird nur angezeigt, wenn mindestens 10 Ihrer Beschriftungen validiert wurden.
-leaderboard.tooltip.weekly.reset = Die Statistik wird jeden Sonntag Morgen um 0:00 Uhr PT zurückgesetzt.
 leaderboard.encouragement = Wollen Sie es unter die Top 10 schaffen? <a id="encouragement-link" href="/explore"><u>Erkundung starten!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Registrieren</u></a> Sie sich, um Ihren Fortschritt zu verfolgen!
 leaderboard.encouragement.no.team = Möchten Sie Ihre Genauigkeit verbessern? Lesen Sie unseren <a id="encouragement-link" href="{0}" target="_blank"><u>Etikettierungsleitfaden</u></a> und sehen Sie sich Ihre letzten falschen Etiketten auf <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>Ihrem Dashboard</u></a> an

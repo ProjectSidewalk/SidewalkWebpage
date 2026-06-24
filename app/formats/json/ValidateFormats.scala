@@ -8,6 +8,7 @@ import models.label.LabelTypeEnum
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.CommonUtils.ViewerType.ViewerType
 import models.utils.CommonUtils.{UiSource, ViewerType}
+import models.validation.ValidationOption
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{JsError, JsPath, JsSuccess, Reads}
 
@@ -44,7 +45,7 @@ object ValidateFormats {
   case class LabelValidationSubmission(
       labelId: Int,
       missionId: Int,
-      validationResult: Int,
+      validationResult: ValidationOption.Value,
       oldSeverity: Option[Int],
       newSeverity: Option[Int],
       oldTags: List[String],
@@ -87,7 +88,7 @@ object ValidateFormats {
   case class LabelMapValidationSubmission(
       labelId: Int,
       labelType: LabelTypeEnum.Base,
-      validationResult: Int,
+      validationResult: ValidationOption.Value,
       oldSeverity: Option[Int],
       newSeverity: Option[Int],
       oldTags: List[String],
@@ -127,6 +128,19 @@ object ValidateFormats {
     }
   }
 
+  implicit val validationOptionReads: Reads[ValidationOption.Value] = Reads { json =>
+    json.validate[String].flatMap { validationResult =>
+      ValidationOption.fromString(validationResult) match {
+        case Some(result) => JsSuccess(result)
+        case None         =>
+          JsError(
+            s"Invalid validation_result: $validationResult. Valid values are: " +
+              s"${ValidationOption.values.mkString(", ")}."
+          )
+      }
+    }
+  }
+
   implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
     (JsPath \ "mission_id").readNullable[Int] and
       (JsPath \ "browser").readNullable[String] and
@@ -158,7 +172,7 @@ object ValidateFormats {
   implicit val labelValidationSubmissionReads: Reads[LabelValidationSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "mission_id").read[Int] and
-      (JsPath \ "validation_result").read[Int] and
+      (JsPath \ "validation_result").read[ValidationOption.Value] and
       (JsPath \ "old_severity").readNullable[Int] and
       (JsPath \ "new_severity").readNullable[Int] and
       (JsPath \ "old_tags").read[List[String]] and
@@ -211,7 +225,7 @@ object ValidateFormats {
   implicit val labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[LabelTypeEnum.Base] and
-      (JsPath \ "validation_result").read[Int] and
+      (JsPath \ "validation_result").read[ValidationOption.Value] and
       (JsPath \ "old_severity").readNullable[Int] and
       (JsPath \ "new_severity").readNullable[Int] and
       (JsPath \ "old_tags").read[List[String]] and

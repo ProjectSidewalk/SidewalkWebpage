@@ -1,7 +1,7 @@
 /* CSS for homepage */
 
 .header-text {
-    color: #fff;
+    color: var(--color-neutral-white);
     font-family: raleway;
     font-size: 15px;
     line-height: 2.8em;
@@ -22,7 +22,7 @@
 }
 
 .header-link:link {
-    color: #fff;
+    color: var(--color-neutral-white);
     text-decoration: underline;
     font-family: raleway;
     font-size: 15px;
@@ -34,7 +34,7 @@
 }
 
 .header-link:visited {
-    color: #fff;
+    color: var(--color-neutral-white);
 }
 
 .header-link:hover {
@@ -152,7 +152,7 @@ video#bgvid {
     background-size: cover;
     left: 0px;
     backface-visibility: hidden;
-    background: url("../assets/psmockup.jpg") no-repeat scroll 0 0 #000;
+    background: url("../assets/psmockup.jpg") no-repeat scroll 0 0 var(--color-neutral-black);
     background-size: cover;
     bottom: 0;
     top: var(--navbar-height);
@@ -188,7 +188,7 @@ video#bgvid {
     font-variant: normal;
     font-weight: bold;
     line-height: 1em;
-    color: #fff;
+    color: var(--color-neutral-white);
 }
 
 .instructional-video-container {
@@ -245,7 +245,7 @@ video#bgvid {
 }
 
 .ps-skyline-overlay > .row {
-    background-color: white;
+    background-color: var(--color-neutral-white);
     opacity: 90%;
     padding: 5px;
     border-radius: 15px;
@@ -413,7 +413,7 @@ p#conditional-text {
     right: -40px;
     width: 200px;
     background-color: #ff7300;
-    color: #fff;
+    color: var(--color-neutral-white);
     text-align: center;
     line-height: 35px;
     letter-spacing: 1px;
@@ -427,7 +427,7 @@ p#conditional-text {
 
 .ps-news-ribbon:hover, .ps-news-ribbon:focus {
     background-color: #ff3300;
-    color: #fff;
+    color: var(--color-neutral-white);
     text-decoration: none;
 }
 

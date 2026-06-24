@@ -25,8 +25,20 @@
     "surface-problems": "Oppervlakte problemen",
     "sign-up": "Een account maken",
     "close": "Sluiten",
+    "badges": {
+        "congratulations": "Gefeliciteerd!",
+        "you-earned": "Je hebt de “{{badge}}”-badge verdiend!",
+        "my-dashboard": "Mijn dashboard",
+        "labeler-name": "Labelaar",
+        "explorer-name": "Ontdekker",
+        "adventurer-name": "Avonturier",
+        "validator-name": "Validator"
+    },
     "sign-in": "Log in",
     "complete": "voltooid",
+    "zoom-in": "Inzoomen",
+    "zoom-out": "Uitzoomen",
+    "more-options": "Meer opties",
     "map": {
         "distance-left": "Nog maar {{n}} kilometer te gaan!",
         "distance-left-one-unit": "Nog maar 1 kilometer te gaan!",

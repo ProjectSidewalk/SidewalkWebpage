@@ -3,11 +3,10 @@
  * Todo. Split the RibbonMenu UI component and the label type switching logic
  * Todo. Consider moving this under menu instead of ribbon.
  * @param tracker
- * @param uiRibbonMenu
  * @returns {{className: string}}
  * @constructor
  */
-function RibbonMenu(tracker, uiRibbonMenu) {
+function RibbonMenu(tracker) {
     var self = {className: 'RibbonMenu'},
         properties = {
             buttonDefaultBorderColor: "transparent",
@@ -35,7 +34,36 @@ function RibbonMenu(tracker, uiRibbonMenu) {
         },
         blinkInterval;
 
+    const uiRibbonMenu = {
+        holder: $("#ribbon-menu-holder"),
+        panoFrame: $("#pano-border-frame"),
+        buttons: $('.label-type-button-holder'),
+        subcategoryHolder: $("#ribbon-menu-other-subcategory-holder"),
+        subcategories: $(".ribbon-menu-other-subcategory")
+    };
+
+    /**
+     * Adds the tooltip attributes (showing each label type's keyboard shortcut) to the menu buttons.
+     *
+     * The global Bootstrap tooltip initializer in Main reads these attributes when it runs, and it only picks up
+     * elements that already have them — so this must run during construction, before that init call.
+     */
+    function _initTooltipAttributes() {
+        const setKeyTooltip = (el, placement) => {
+            const val = el.getAttribute('val');
+            if (val !== 'Walk' && val !== 'Other') {
+                el.setAttribute('data-toggle', 'tooltip');
+                el.setAttribute('data-placement', placement);
+                el.setAttribute('title', i18next.t('top-ui.press-key', { key: util.misc.getLabelDescriptions(val)['keyChar'] }));
+            }
+        };
+        document.querySelectorAll('.label-type-button-holder').forEach(el => setKeyTooltip(el, 'top'));
+        document.querySelectorAll('.ribbon-menu-other-subcategory').forEach(el => setKeyTooltip(el, 'left'));
+    }
+
     function _init() {
+        _initTooltipAttributes();
+
         // Initialize the jQuery DOM elements.
         if (uiRibbonMenu) {
             setLabelTypeButtonBorderColors(status.mode);
@@ -105,27 +133,9 @@ function RibbonMenu(tracker, uiRibbonMenu) {
             if (uiRibbonMenu) {
                 setLabelTypeButtonBorderColors(mode);
 
-                const connectorWidth = parseInt(uiRibbonMenu.connector.css('border-left-width'));
-                const panoBorderWidth = parseInt(uiRibbonMenu.streetViewHolder.css('border-left-width'));
-                const selectedType = mode === 'Occlusion' ? 'Other' : mode;
-                let currLabelType;
-                $.each(uiRibbonMenu.buttons, function (i, v) {
-                    currLabelType = $(v).attr('val');
-                    if (currLabelType === selectedType) {
-                        const buttonLeft = $(this).position().left;
-                        const buttonWidth = $(this).width();
-                        const connectorLeft = buttonLeft + buttonWidth / 2 - panoBorderWidth - connectorWidth / 2;
-                        uiRibbonMenu.connector.css("left", connectorLeft);
-                    }
-                });
-
-                const labelColors = util.misc.getLabelColors();
-                const borderColor = labelColors[mode].fillStyle;
-                uiRibbonMenu.connector.css("border-left-color", borderColor);
-                uiRibbonMenu.streetViewHolder.css({
-                    "border-color": borderColor,
-                    "background-color": borderColor
-                });
+                // Recolor the panorama frame to match the selected label type (black while in Walk mode).
+                const borderColor = util.misc.getLabelColors()[mode].fillStyle;
+                uiRibbonMenu.panoFrame.css('border-color', borderColor);
             }
         }
     }

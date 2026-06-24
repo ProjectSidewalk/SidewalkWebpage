@@ -9,10 +9,14 @@ module.exports = function(grunt) {
                 src: [
                     'public/javascripts/SVLabel/src/*.js',
                     'public/javascripts/SVLabel/src/*/*.js',
+                    'public/javascripts/common/ProgressBar.js',
                     'public/javascripts/common/PanoMarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/SpeedLimit.js',
-                    'public/javascripts/common/MissionStartTutorial.js'
+                    'public/javascripts/common/MissionStartTutorial.js',
+                    // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
+                    'public/javascripts/common/Toast.js',
+                    'public/javascripts/common/BadgeAchievements.js'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.js'
             },
@@ -26,6 +30,9 @@ module.exports = function(grunt) {
                     'public/javascripts/common/label-detail/LabelPopup.js',
                     'public/javascripts/SVValidate/src/util/*.js',
                     'public/javascripts/common/PanoMarker.js',
+                    // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
+                    'public/javascripts/common/Toast.js',
+                    'public/javascripts/common/BadgeAchievements.js',
                     'public/javascripts/Progress/src/*.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                 ],
@@ -34,6 +41,9 @@ module.exports = function(grunt) {
             dist_admin: {
                 src: [
                     'public/javascripts/common/AiLabelIndicator.js',
+                    // Toast must be concatenated before BadgeAchievements, which LabelDetail uses for validation badges.
+                    'public/javascripts/common/Toast.js',
+                    'public/javascripts/common/BadgeAchievements.js',
                     'public/javascripts/Admin/src/*.js',
                     // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
                     'public/javascripts/common/label-detail/PopupPanoManager.js',
@@ -65,16 +75,23 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/src/user/*.js',
                     'public/javascripts/SVValidate/src/util/*.js',
                     'public/javascripts/SVValidate/src/zoom/*.js',
+                    'public/javascripts/common/ProgressBar.js',
                     'public/javascripts/common/PanoMarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/SpeedLimit.js',
-                    'public/javascripts/common/MissionStartTutorial.js'
+                    'public/javascripts/common/MissionStartTutorial.js',
+                    // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
+                    'public/javascripts/common/Toast.js',
+                    'public/javascripts/common/BadgeAchievements.js'
                 ],
                 dest: 'public/javascripts/SVValidate/build/SVValidate.js'
             },
             dist_gallery: {
                 src: [
                     'public/javascripts/common/AiLabelIndicator.js',
+                    // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
+                    'public/javascripts/common/Toast.js',
+                    'public/javascripts/common/BadgeAchievements.js',
                     // PopupPanoManager and LabelDetail must be concatenated before ExpandedView.
                     'public/javascripts/common/label-detail/PopupPanoManager.js',
                     'public/javascripts/common/label-detail/LabelDetail.js',

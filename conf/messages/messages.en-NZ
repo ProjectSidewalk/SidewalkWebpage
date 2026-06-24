@@ -28,8 +28,4 @@ audit.ribbon.missing.ramp = <u>M</u>issing Drop Kerb
 audit.ribbon.no.sidewalk = <u>N</u>o Footpath
 audit.ribbon.crosswalk = Marked Pedestrian Crossing (<u>W</u>)
 audit.ribbon.occlusion = Can''t See the Footpath (<u>B</u>)
-audit.right.ui.current.neighborhood = Current Neighbourhood
-audit.right.ui.distance = kilometres
-audit.mission.complete.progress.neighborhood.others = Others explored in this neighbourhood
-
 reset.pw.email.hello = Kia ora {0},

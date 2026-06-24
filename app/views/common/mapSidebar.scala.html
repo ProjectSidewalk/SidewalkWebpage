@@ -15,17 +15,18 @@
             @if(tagsByLabelType.getOrElse(labelType, Seq.empty).nonEmpty) {
                 <button class="map-sidebar__tag-toggle" aria-expanded="false"
                         aria-label="Show tags" data-i18n-aria-label="labelmap:show-tags">
-                    <img src='@assets.path("images/icons/chevron-right.svg")' alt=""
-                         data-down-src='@assets.path("images/icons/chevron-right.svg")'
-                         data-up-src='@assets.path("images/icons/chevron-down.svg")'>
+                    <img src='@assets.path("images/icons/chevron-right-feather.svg")' alt=""
+                         data-down-src='@assets.path("images/icons/chevron-right-feather.svg")'
+                         data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
                 </button>
             }
         </div>
         @if(tagsByLabelType.getOrElse(labelType, Seq.empty).nonEmpty) {
             <div class="map-sidebar__tag-pills" hidden>
                 @for(tag <- tagsByLabelType(labelType)) {
-                    <button class="tag-pill tag-pill--interactive" data-tag="@tag.tag" data-label-type="@labelType"
-                            data-i18n="common:tag.@{tag.tag.replace(":", "-")}">@tag.tag</button>
+                    <button class="tag-pill tag-pill--interactive" data-tag="@tag.tag" data-label-type="@labelType">
+                        <span class="tag-pill__label" data-i18n="common:tag.@{tag.tag.replace(":", "-")}">@tag.tag</span>
+                    </button>
                 }
             </div>
         }
@@ -36,7 +37,7 @@
     data-i18n-aria-label="labelmap:legend" style="visibility: hidden;">
     <button id="map-sidebar-close" class="map-sidebar__close" aria-label="Close"
             data-i18n-aria-label="common:close">
-        <img src="@assets.path("images/icons/chevrons-left.svg")" alt="">
+        <img src="@assets.path("images/icons/chevrons-left-feather.svg")" alt="">
     </button>
 
     @* ---- Severity section ---- *@
@@ -185,5 +186,5 @@
 @* Floating button to reopen the sidebar when it's closed *@
 <button id="map-sidebar-open" class="map-sidebar-open-btn" aria-label="Legend"
         data-i18n-aria-label="labelmap:legend">
-    <img src="@assets.path("images/icons/chevrons-right.svg")" alt="">
+    <img src="@assets.path("images/icons/chevrons-right-feather.svg")" alt="">
 </button>

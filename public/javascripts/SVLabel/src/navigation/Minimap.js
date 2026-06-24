@@ -3,6 +3,14 @@
  */
 class Minimap {
 
+    // Zoom bounds for the minimap. ObservedArea's REFERENCE_ZOOM must match DEFAULT.
+    /** @type {number} */
+    static #MIN_ZOOM = 16;
+    /** @type {number} */
+    static #MAX_ZOOM = 20;
+    /** @type {number} */
+    static #DEFAULT_ZOOM = 18;
+
     /** @type {google.maps.Map} */
     #map;
 
@@ -26,16 +34,27 @@ class Minimap {
             clickableIcons: false,
             disableDefaultUi: true,
             fullscreenControl: false,
+            // Panning is disabled (the map must stay centered on the user's pano so the FOV cone lines up); zooming is
+            // instead driven manually by #setupZoomControls so the center is preserved.
             gestureHandling: 'none',
             keyboardShortcuts: false,
             // Map style is changed via cloud-based maps styling in the Google Cloud Console.
             mapId: '9c9a85114c815aa4d4dbd5d3',
             mapTypeControl: false,
             mapTypeId: MapTypeId.ROADMAP, // HYBRID is another option
+            maxZoom: Minimap.#MAX_ZOOM,
+            minZoom: Minimap.#MIN_ZOOM,
             renderingType: RenderingType.RASTER,
-            zoom: 18
+            zoom: Minimap.#DEFAULT_ZOOM
         };
         this.#map = new Map(document.getElementById('minimap'), mapOptions);
+
+        this.#setupZoomControls();
+
+        // Redraw the observed-area overlay whenever the map settles (e.g. after a zoom) so the fog/FOV stay aligned.
+        google.maps.event.addListener(this.#map, 'idle', () => {
+            if (svl.observedArea) svl.observedArea.update();
+        });
 
         // Return a promise that resolves once the map is idle (and therefore fully initialized).
         return new Promise((resolve) => {
@@ -44,6 +63,38 @@ class Minimap {
                 resolve(this.#map);
             });
         });
+    }
+
+    /**
+     * Wires up the minimap's zoom interactions: scroll-wheel zooming over the map and the on-map +/- buttons. Each step
+     * recenters on the current pano so the map never drifts off-center, keeping the FOV cone aligned.
+     */
+    #setupZoomControls() {
+        const holder = document.getElementById('minimap-holder');
+        if (holder) {
+            // Scroll wheel: one notch per zoom level. preventDefault stops the wheel from scrolling the sidebar/page.
+            holder.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                this.#changeZoom(e.deltaY < 0 ? 1 : -1);
+            }, { passive: false });
+        }
+
+        const zoomInButton = document.getElementById('minimap-zoom-in');
+        const zoomOutButton = document.getElementById('minimap-zoom-out');
+        if (zoomInButton) zoomInButton.addEventListener('click', () => this.#changeZoom(1));
+        if (zoomOutButton) zoomOutButton.addEventListener('click', () => this.#changeZoom(-1));
+    }
+
+    /**
+     * Changes the minimap zoom by the given (signed) number of levels, clamped to the configured min/max.
+     * @param {number} delta - Number of zoom levels to add (positive zooms in, negative zooms out).
+     */
+    #changeZoom(delta) {
+        if (svl.ui.minimap.holder.hasClass('minimap-tutorial')) return;
+        const newZoom = Math.min(Minimap.#MAX_ZOOM, Math.max(Minimap.#MIN_ZOOM, this.#map.getZoom() + delta));
+        if (newZoom !== this.#map.getZoom()) {
+            this.#map.setZoom(newZoom);
+        }
     }
 
     /**

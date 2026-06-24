@@ -52,12 +52,6 @@ function Main (param) {
         svv.ui.validationMenu.aiSuggestionSection = $('#sidewalk-ai-suggestions-block');
         svv.ui.validationMenu.aiSuggestedTagTemplate = $('.sidewalk-ai-suggested-tag.template');
 
-        svv.ui.modal = {};
-        svv.ui.modal.background = $('#modal-comment-background');
-
-        svv.ui.skipValidation = {};
-        svv.ui.skipValidation.skipButton = $('#left-column-skip-button');
-
         svv.ui.undoValidation = {};
         svv.ui.undoValidation.undoButton = $('#validate-undo-button');
 
@@ -88,10 +82,6 @@ function Main (param) {
         svv.ui.modalMissionComplete.yourOverallTotalCount = $('#modal-mission-complete-your-overall-total-count');
 
         svv.ui.status = {};
-        svv.ui.status.labelCount = $('#status-neighborhood-label-count');
-
-        svv.ui.status.progressFiller = $('#mission-progress-bar-complete');
-        svv.ui.status.progressText = $('#mission-progress-bar-text');
         svv.ui.status.upperMenuTitle = $('#mission-title');
         svv.ui.status.zoomInButton = $('#zoom-in-button');
         svv.ui.status.zoomOutButton = $('#zoom-out-button');
@@ -111,8 +101,12 @@ function Main (param) {
     }
 
     async function _init() {
-        svv.canvasWidth = () => isMobile() ? window.innerWidth : 720;
-        svv.canvasHeight = () => isMobile() ? window.innerHeight : 440;
+        // On desktop the pano's display size is scaled to fit the viewport, so measure it live; label projection
+        // math and the canvas_width/height submitted with each validation always reflect the on-screen size.
+        svv.canvasWidth = () => isMobile()
+            ? window.innerWidth : Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().width);
+        svv.canvasHeight = () => isMobile()
+            ? window.innerHeight : Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().height);
         svv.labelRadius = isMobile() ? 25 : 10;
 
         const labelType = svv.labelTypes[param.mission.label_type_id];
@@ -125,6 +119,8 @@ function Main (param) {
 
         svv.statusField = new StatusField(param.completedValidations);
         svv.tracker = new Tracker();
+
+        BadgeAchievements.seedCounts();
         svv.labelDescriptionBox = new LabelDescriptionBox();
 
         svv.panoStore = new PanoStore();
@@ -146,6 +142,21 @@ function Main (param) {
         // Now that mission start tutorial has loaded, can unhide the UI under it and remove the loading icon.
         $('#page-loading').css({ 'visibility': 'hidden' });
         $('.tool-ui').css({ 'visibility': 'visible' });
+
+        // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale). Mobile
+        // instead fills the screen via PanoManager's own sizing.
+        if (!isMobile()) {
+            const applyValidateScale = () => {
+                const scale = util.applyToolScale(
+                    ['--pano-base-width', '--menu-base-gap', '--menu-base-width'],
+                    ['--header-base-height', '--pano-base-height']
+                );
+                svv.panoManager.setMarkerScale(scale);
+                svv.panoViewer.resize();
+            };
+            applyValidateScale();
+            window.addEventListener('resize', applyValidateScale);
+        }
 
         svv.labelVisibilityControl = new LabelVisibilityControl();
 
@@ -172,7 +183,6 @@ function Main (param) {
 
 
         svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user);
-        svv.skipValidation = new SkipValidation(svv.ui.skipValidation);
         svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 
@@ -208,13 +218,6 @@ function Main (param) {
                 html: true,
                 container: 'body'
             });
-        }
-
-        // Use CSS zoom to scale the UI for users with high resolution screens.
-        // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
-        if (!isMobile() && util.isSafari()) {
-            svv.cssZoom = util.scaleUI();
-            window.addEventListener('resize', (e) => { svv.cssZoom = util.scaleUI(); });
         }
     }
 

@@ -9,6 +9,7 @@ import models.api.ApiModelUtils.escapeCsvField
 import models.computation.StreamingApiType
 import models.label.LocationXY
 import models.utils.CommonUtils.UiSource.UiSource
+import models.validation.ValidationOption
 import play.api.libs.json.{JsObject, Json, JsonConfiguration, JsonNaming, OFormat}
 
 import java.time.OffsetDateTime
@@ -18,7 +19,7 @@ import java.time.OffsetDateTime
  *
  * @param labelId Optional label ID to filter validations by the validated label
  * @param userId Optional user ID to filter validations by the user who performed the validation
- * @param validationResult Optional validation result to filter by (1 = Agree, 2 = Disagree, 3 = Unsure)
+ * @param validationResult Optional validation result to filter by (Agree, Disagree, or Unsure)
  * @param labelTypeId Optional label type ID to filter by the type of the validated label
  * @param validationTimestamp Optional timestamp to filter validations by when they occurred (using startTimestamp)
  * @param changedTags Optional boolean to filter validations where tags were changed (oldTags != newTags)
@@ -28,7 +29,7 @@ import java.time.OffsetDateTime
 case class ValidationFiltersForApi(
     labelId: Option[Int] = None,
     userId: Option[String] = None,
-    validationResult: Option[Int] = None,
+    validationResult: Option[ValidationOption.Value] = None,
     labelTypeId: Option[Int] = None,
     validationTimestamp: Option[OffsetDateTime] = None,
     changedTags: Option[Boolean] = None,
@@ -44,8 +45,7 @@ case class ValidationFiltersForApi(
  * @param labelId ID of the validated label
  * @param labelTypeId Type ID of the validated label
  * @param labelType String representation of the label type
- * @param validationResult Numeric result of validation (1 = Agree, 2 = Disagree, 3 = Unsure)
- * @param validationResultString String representation of the validation result
+ * @param validationResult Result of the validation (Agree, Disagree, or Unsure)
  * @param oldSeverity Previous severity assigned to the label
  * @param newSeverity New severity assigned during validation
  * @param oldTags Previous tags assigned to the label
@@ -68,8 +68,7 @@ case class ValidationDataForApi(
     labelId: Int,
     labelTypeId: Int,
     labelType: String,
-    validationResult: Int,
-    validationResultString: String,
+    validationResult: ValidationOption.Value,
     oldSeverity: Option[Int],
     newSeverity: Option[Int],
     oldTags: List[String],
@@ -96,29 +95,28 @@ case class ValidationDataForApi(
    */
   override def toJson: JsObject = {
     Json.obj(
-      "label_validation_id"      -> labelValidationId,
-      "label_id"                 -> labelId,
-      "label_type_id"            -> labelTypeId,
-      "label_type"               -> labelType,
-      "validation_result"        -> validationResult,
-      "validation_result_string" -> validationResultString,
-      "old_severity"             -> oldSeverity,
-      "new_severity"             -> newSeverity,
-      "old_tags"                 -> oldTags,
-      "new_tags"                 -> newTags,
-      "user_id"                  -> userId,
-      "validator_type"           -> validatorType,
-      "mission_id"               -> missionId,
-      "canvas_x"                 -> canvasXY.map(_.x),
-      "canvas_y"                 -> canvasXY.map(_.y),
-      "heading"                  -> heading,
-      "pitch"                    -> pitch,
-      "zoom"                     -> zoom,
-      "canvas_height"            -> canvasHeight,
-      "canvas_width"             -> canvasWidth,
-      "start_timestamp"          -> startTimestamp.toString,
-      "end_timestamp"            -> endTimestamp.toString,
-      "source"                   -> source
+      "label_validation_id" -> labelValidationId,
+      "label_id"            -> labelId,
+      "label_type_id"       -> labelTypeId,
+      "label_type"          -> labelType,
+      "validation_result"   -> validationResult,
+      "old_severity"        -> oldSeverity,
+      "new_severity"        -> newSeverity,
+      "old_tags"            -> oldTags,
+      "new_tags"            -> newTags,
+      "user_id"             -> userId,
+      "validator_type"      -> validatorType,
+      "mission_id"          -> missionId,
+      "canvas_x"            -> canvasXY.map(_.x),
+      "canvas_y"            -> canvasXY.map(_.y),
+      "heading"             -> heading,
+      "pitch"               -> pitch,
+      "zoom"                -> zoom,
+      "canvas_height"       -> canvasHeight,
+      "canvas_width"        -> canvasWidth,
+      "start_timestamp"     -> startTimestamp.toString,
+      "end_timestamp"       -> endTimestamp.toString,
+      "source"              -> source
     )
   }
 
@@ -137,7 +135,6 @@ case class ValidationDataForApi(
       labelTypeId.toString,
       escapeCsvField(labelType),
       validationResult.toString,
-      escapeCsvField(validationResultString),
       oldSeverity.map(_.toString).getOrElse(""),
       newSeverity.map(_.toString).getOrElse(""),
       escapeCsvField(oldTags.mkString("[", ",", "]")),
@@ -170,21 +167,19 @@ object ValidationDataForApi {
    * This should be included as the first line when generating CSV output.
    */
   val csvHeader: String = "label_validation_id,label_id,label_type_id,label_type,validation_result," +
-    "validation_result_string,old_severity,new_severity,old_tags,new_tags,user_id,validator_type,mission_id,canvas_x," +
-    "canvas_y,heading,pitch,zoom,canvas_height,canvas_width,start_timestamp,end_timestamp,source\n"
+    "old_severity,new_severity,old_tags,new_tags,user_id,validator_type,mission_id,canvas_x,canvas_y," +
+    "heading,pitch,zoom,canvas_height,canvas_width,start_timestamp,end_timestamp,source\n"
 }
 
 /**
  * Represents a validation result type for API responses.
  *
- * @param id The numeric identifier for the validation result (1-3)
  * @param name The string representation of the result ("Agree", "Disagree", "Unsure")
  * @param count Number of validations with this result in the database
  * @param countHuman Number of validations with this result performed by human users
  * @param countAi Number of validations with this result performed by AI
  */
 case class ValidationResultTypeForApi(
-    id: Int,
     name: String,
     count: Int,
     countHuman: Int,

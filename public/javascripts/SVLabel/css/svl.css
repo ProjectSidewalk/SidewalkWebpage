@@ -2,105 +2,78 @@ text {
     visibility: hidden;
 }
 
-.highlight {
-    color: orange;
-    font-weight: bold;
-}
-
 .highlight-100 {
-    background: rgba(255, 255, 0, 1) !important;
+    background: var(--color-warning-100) !important;
 }
 
 .highlight-50 {
-    background: rgba(255, 255, 0, 0.5) !important;
-}
-
-.white-background-75 {
-    background: rgba(255, 255, 255, 0.75);
-}
-
-.width-50 {
-    width: 50%;
-}
-.width-50-percent {
-    width: 50%;
-}
-
-.width-75 {
-    width: 75%;
-}
-
-.button {
-    border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
-    color: rgba(96,96,96,1);
-    cursor: pointer;
-    font-size: 14px;
-    margin-top: 3px;
-    padding-bottom: 2px;
-    padding-left: 5px;
-    padding-right: 5px;
-    padding-top: 2px;
-    width: 200px;
-
-    border-radius: 3px 3px 0 0;
-}
-
-/* Pseudo-classes
-* http://www.w3schools.com/css/css_pseudo_classes.asp */
-.button:hover {
-    color: #222;
-}
-
-b { font-weight: bold; }
-.bold { font-weight: bold; }
-.normal { font-weight: normal; }
-.underline { text-decoration: underline; }
-
-.inline {
-    float: left;
-}
-
-.InlineBlock {
-    display: inline-block;
-}
-
-.clearBoth {
-    clear: both;
+    background: rgb(from var(--color-warning-100) r g b / 50%) !important;
 }
 
 input[type="radio"] {
-    height: 15px;
-    width: 15px;
-}
-
-.underline {
-    text-decoration: underline;
+    height: calc(11px * var(--ui-scale, 1));
+    width: calc(11px * var(--ui-scale, 1));
 }
 
 .tool-ui {
-    width: 1170px; /* Used to override bootstrap .container media queries. We want to keep a consistent width. */
+    /* === Explore layout dimensions ===
+     * The pano & label canvas keep a fixed 720x480 *logical* coordinate frame (see util.EXPLORE_CANVAS_WIDTH/HEIGHT) so
+     * pano_x/pano_y, canvas_x/canvas_y, & crop placement are unaffected by display size. These variables control only
+     * the on-screen *display* size of the pano, which scales proportionally. Keep --pano-width : --pano-height at the
+     * same 3:2 ratio as the logical frame so the canvas/crop coordinates continue to map correctly.
+     *
+     * --ui-scale is a single uniform scale factor for the whole tool, like browser zoom. JS sets it from the available
+     * viewport size (see util.applyToolScale); every dimension below is expressed as base-size * var(--ui-scale) so
+     * the pano, ribbon, sidebar, and text all grow and shrink together in proportion. This keeps the layout looking
+     * identical at every size (only zoomed). */
+    --ui-scale: 1; /* The single scale knob. Overridden inline by util.applyToolScale() on load and resize. */
+
+    /* Base sizes at --ui-scale = 1. util.applyToolScale() reads these to compute the tool's reference footprint,
+     * so they must stay plain px values (no var()/calc()). */
+    --pano-base-width: 720px;  /* Pano display size at --ui-scale = 1 (matches the logical frame, 3:2). */
+    --pano-base-height: 480px;
+    --sidebar-base-width: 250px; /* Right-hand status/minimap column. */
+    --sidebar-base-gap: 10px;    /* Horizontal gap between the pano and the sidebar. */
+    --ribbon-base-top: 4px;      /* Offset of the ribbon menu from the top of the app holder. */
+    --ribbon-base-height: 110px; /* Height of the ribbon menu sitting above the pano. */
+
+    --pano-width: calc(var(--pano-base-width) * var(--ui-scale));
+    --pano-height: calc(var(--pano-base-height) * var(--ui-scale));
+    --sidebar-width: calc(var(--sidebar-base-width) * var(--ui-scale));
+    --sidebar-gap: calc(var(--sidebar-base-gap) * var(--ui-scale));
+    --ribbon-top: calc(var(--ribbon-base-top) * var(--ui-scale));
+    --ribbon-height: calc(var(--ribbon-base-height) * var(--ui-scale));
+
+    /* Derived positions — these keep the rest of the layout in sync with the pano size automatically. */
+    --street-view-top: calc(var(--ribbon-top) + var(--ribbon-height)); /* Top of the pano area. */
+    --sidebar-left: calc(var(--pano-width) + var(--sidebar-gap));       /* Left edge of the sidebar column. */
+    --app-width: calc(var(--pano-width) + var(--sidebar-gap) + var(--sidebar-width));
+
+    /* Base text size for the whole tool. */
+    font: var(--text-body-regular);
+
+    width: var(--app-width); /* Overrides bootstrap .container media queries to keep a consistent width. */
+    padding: 0; /* Drop bootstrap .container's 15px side padding so the app-width holder inside stays centered. */
 }
 
 #svl-application-holder {
-    background: rgba(255,255,255,1);
+    background: var(--color-neutral-white);
     margin: 0 auto;
     position: relative;
-    height: 625px;
-    width: 960px;
+    height: calc(var(--street-view-top) + var(--pano-height));
+    width: var(--app-width);
 }
 
 #interaction-area-holder {
-    border: 3px solid transparent;
     position: absolute;
-    left: 0;
-    top: 110px;
-    height: 480px;
-    width: 720px;
+    top: var(--street-view-top);
+    height: var(--pano-height);
+    width: var(--pano-width);
 }
 
 
 #page-overlay-holder {
-    background: rgba(255,255,255,0.5);
+    background: var(--color-neutral-white);
     left: 0;
     height: 100%;
     position: absolute;
@@ -108,12 +81,6 @@ input[type="radio"] {
     width: 100%;
     visibility: hidden;
 }
-#ajax-loader-image {
-    left: 45%;
-    position: relative;
-    top: 90%;
-}
-
 /* http://stackoverflow.com/questions/8942805/chrome-bug-cursor-changes-on-mouse-down-move */
 #view-control-layer {
     -webkit-user-select: none;
@@ -129,61 +96,120 @@ input[type="radio"] {
 #svl-panorama-date-holder {
     display: flex;
     justify-content: flex-start;
-    height: 29px;
+    height: calc(28px * var(--ui-scale));
     position: absolute;
-    bottom: 0px;
-    left: 69px;
+    bottom: calc(var(--bottom-left-links-clearance, 0px) * var(--ui-scale));
+    left: calc(71px * var(--ui-scale));
     z-index: 1;
-    font-family: sans-serif;
-    font-size: 15px;
-    text-shadow: 1px 1px 1px black;
-    color: white;
+    font: var(--text-small-medium);
+    text-shadow: calc(1px * var(--ui-scale)) calc(1px * var(--ui-scale)) calc(1px * var(--ui-scale)) var(--color-neutral-black);
+    color: var(--color-neutral-white);
+}
+
+/* Modify Google's terms / report an issue buttons' color to match our own buttons. */
+#view-control-layer .gm-style-cc div { background-color: var(--color-asphalt-400); }
+#view-control-layer .gm-style-cc div div { background-color: var(--color-asphalt-400) !important; }
+
+/* Scale Google's terms / report-a-problem links (bottom-left; moved here from the pano) with the UI. They're Google's
+   own elements with no scale hooks, so we scale them visually, anchored to the bottom-left corner they sit in. The
+   other bottom-left overlays (date/info button, speed-limit sign, imagery-source logo) are lifted above these via
+   --bottom-left-links-clearance, which PanoManager sets to the links' height for whichever imagery source provides
+   a bottom-left links/attribution bar (GSV's terms/report-a-problem links, Mapillary's attribution links). */
+#view-control-layer div:has(> .gmnoprint) {
+    bottom: calc(3px * var(--ui-scale)) !important;
+    left: calc(1px * var(--ui-scale)) !important;
+    right: auto !important;
+    transform: scale(var(--ui-scale));
+    transform-origin: bottom left;
+}
+
+/* Scale Google's own Street View logo with the UI, anchored to its corner. */
+#pano div:has(> a[aria-label*="Google"]) {
+    left: calc(2px * var(--ui-scale)) !important;
+    bottom: calc((2px + var(--bottom-left-links-clearance, 0px)) * var(--ui-scale)) !important;
+    transform: scale(var(--ui-scale));
+    transform-origin: bottom left;
+}
+
+/* Move Mapillary's attribution links to the bottom-left of the pano, scaling them with the UI. */
+#view-control-layer .mapillary-attribution-container {
+    bottom: calc(3px * var(--ui-scale)) !important;
+    left: calc(1px * var(--ui-scale)) !important;
+    right: auto !important;
+    transform: scale(var(--ui-scale));
+    transform-origin: bottom left;
 }
 
 #svl-panorama-date {
-    padding: 5px;
+    padding: calc(3px * var(--ui-scale));
 }
 
-/* Survey */
+/* Scale Bootstrap tooltips (severity descriptions, button hints, etc.) with the UI. They render on <body>, so they
+   read --ui-scale from :root. Font/padding are scaled rather than transformed so Bootstrap's positioning still works. */
+.tooltip-inner {
+    font: var(--text-caption-regular);
+    padding: calc(3px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
+    max-width: calc(200px * var(--ui-scale, 1));
+}
+
+/* Survey. Lives outside .tool-ui, so it reads --ui-scale from :root (set by util.applyToolScale). */
 #survey-form {
-    padding-right:20px;
+    padding-right: calc(20px * var(--ui-scale, 1));
 }
 #survey-modal-container ol> li {
-    font-weight: bold;
-    font-size: 16px;
+    font: var(--text-small-bold);
     content: counter(item);
 }
 #survey-modal-container ol> li h4 {
-    font-size: 16px;
-    font-weight: bold;
+    font: var(--text-small-bold);
 }
 .survey-question {
-    margin-bottom: 10px;
+    margin-bottom: calc(10px * var(--ui-scale, 1));
 }
 .survey-textarea {
     width: 100%;
-    height: 64px;
-    font-weight: normal;
-    font-size: 14px;
+    height: calc(64px * var(--ui-scale, 1));
+    font: var(--text-caption-regular);
 }
 .survey-option-holder {
     list-style:none;
     width:100%;
     margin:0;
-    padding:0 0 10px;
+    padding:0 0 calc(10px * var(--ui-scale, 1));
     display:block;
 }
 .survey-option {
     display:inline-block;
-    width:19%;
+    width: 19%;
     text-align:center;
     vertical-align:top;
-    font-weight:normal;
-    font-size: 14px;
+    font: var(--text-caption-regular);
 }
 .survey-option label {
     width:100%;
-    font-weight:normal;
+    font: var(--text-caption-regular);
+}
+
+/* Scale the survey modal's Bootstrap chrome (dialog width, header, title, close button, submit button) with the UI. */
+#survey-modal-container .modal-dialog {
+    width: calc(600px * var(--ui-scale, 1));
+    margin: calc(30px * var(--ui-scale, 1)) auto;
+}
+#survey-modal .modal-header {
+    padding: calc(15px * var(--ui-scale, 1));
+}
+#survey-modal .modal-title {
+    font: var(--text-subtitle-medium);
+}
+#survey-modal .modal-header .close {
+    font: var(--text-title-bold);
+}
+#survey-modal .modal-body {
+    padding: calc(15px * var(--ui-scale, 1));
+}
+#survey-modal .btn {
+    font: var(--text-small-regular);
+    padding: calc(5px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
 }
 
 /**
@@ -195,7 +221,7 @@ input[type="radio"] {
 .audit-selectable { }
 
 #pano-info-button {
-    margin-left: 4px;
-    margin-top: 7px;
-    height: 16px;
+    margin-left: calc(4px * var(--ui-scale));
+    margin-top: calc(4.5px * var(--ui-scale));
+    height: calc(16px * var(--ui-scale));
 }

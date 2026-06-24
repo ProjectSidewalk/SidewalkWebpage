@@ -74,23 +74,33 @@
         }
     },
     "mission-complete": {
-        "distance-type-display-string": "公里",
         "title-generic": "任務完成了！",
         "title-neighborhood-complete": "好極了！您完成了{{neighborhoodName}}社區！",
         "title-route-complete": "太棒了！您完成了您的路線！",
-        "map-legend-label-other-users": "其他標記者的任務",
-        "progress-neighborhood-title": "鄰里進度",
-        "progress-route-title": "路線進度",
-        "progress-neighborhood-you": "您於此鄰里的探索",
-        "progress-route-you": "在您的路線中探索",
-        "progress-neighborhood-remaining": "留在此鄰里",
-        "progress-route-remaining": "留在你的路線上",
-        "button-start-validating": "開始檢核",
-        "button-keep-exploring": "繼續探索",
-        "button-continue": "繼續"
+        "subtitle": "探索 {{neighborhoodName}} 的 {{distance}}",
+        "badge-alt": "您的任務徽章",
+        "legend-title": "任務進度",
+        "legend-this-mission": "本次任務",
+        "legend-previous-missions": "先前任務",
+        "legend-community": "社群進度",
+        "stat-distance-all": "已探索 {{distance}}",
+        "stat-distance-you": "您探索了 {{distance}}",
+        "stat-labels-all": "已建立 {{count}} 個標記",
+        "stat-labels-you": "您新增了 {{count}} 個標記",
+        "button-next-mission": "下一個探索任務",
+        "button-try-validation": "嘗試檢核"
     },
     "top-ui": {
         "press-key": "點選「{{key}}」選項"
+    },
+    "controls": {
+        "stuck": "卡住",
+        "stuck-tooltip": "我們會盡力讓您回到您的使命",
+        "sound": "音效",
+        "feedback": "回饋",
+        "feedback-tooltip": "和我們分享一下你的想法",
+        "feedback-submitted": "已送出回饋",
+        "feedback-title": "有任何想法或問題嗎？或是找到程式錯誤?<br>歡迎給我們任何回饋喔！"
     },
     "right-ui": {
         "accuracy-tooltip": "精準度是依照其他用戶的檢核。若您的精準度很低，請查看近期檢核出的錯誤於 <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">您的用戶儀表板</a> 以協助您增加精準度！",
@@ -98,12 +108,20 @@
         "current-mission": {
             "header": "目前的任務",
             "header-route": "$t(right-ui.current-mission.header): 路線{{route_number}}",
-            "message-first-mission": "探索__PLACEHOLDER__並找到所有人行道可及性選項",
-            "message": "探索__PLACEHOLDER__ "
+            "message": "探索{{neighborhoodName}}的__PLACEHOLDER__"
         },
         "minimap": {
             "follow-red-line": "請沿著紅線繼續任務",
             "explore-current-location": "旋轉 360 度以確保沒有遺漏任何內容。"
+        },
+        "badges": {
+            "title": "徽章",
+            "see-all": "查看所有徽章"
+        },
+        "neighborhood-progress": {
+            "title": "鄰里進度",
+            "you-tooltip": "您的貢獻",
+            "community-tooltip": "社群的貢獻"
         }
     },
     "center-ui": {

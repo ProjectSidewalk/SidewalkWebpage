@@ -63,6 +63,7 @@ Two standalone scripts (run via the Python deps in `requirements.txt`, installed
 
 ## Development Guidelines
 - Main development branch is **develop**; **master** is the release branch. PRs target `develop`.
+- If there is an associated Github issue, beging the branch name with the issue number (e.g. `1234-fix-label-popup`).
 - When changing JS behavior, edit `src/` and let `grunt watch` rebuild; if a new `src/` file isn't picked up, check that its path matches a glob in `Gruntfile.js`.
 - When updating code in JavaScript, migrate that code to ECMA6 (`let`/`const` instead of `var`, etc.).
 - When refactoring a JS constructor function (the `function Foo(...) { const self = this; ... return self; }` pattern), convert it to an ES6 `class`. Use `#` private fields/methods. Use arrow functions in event listeners to keep `this` bound correctly.
@@ -70,12 +71,12 @@ Two standalone scripts (run via the Python deps in `requirements.txt`, installed
 - Replace uses of Bootstrap with native JS alternatives as you come across them
 - When writing SQL, avoid table aliases
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
-- When adding or refactoring text, use the fonts defined in main.css :root.
+- When adding or refactoring code, use the fonts, colors, button styling, etc. defined in main.css :root. These are pulled from our "Design System Tokens" Figma, and we are pushing to use these going forward.
 - Max line length of 120 characters, with long line exceptions where appropriate. For multi-line comments, TARGET line length is 120 characters
 - Functions should have comments, even if they are private. Incredibly trivial functions are okay to leave without a comment.
     - They should include @param lines as well (including their type in JS), and those should almost always be restricted to a single line
     - Function comments should start with a one-line summary. If more detail is necessary, then longer details can be added with an empty comment line between one-line summary and the further details. But those details can also just be added throughout the function's code instead, where appropriate.
-- When writing comments, DO NOT waste time describing how something has changed from how it used to work.
+- When writing comments, DO NOT waste time describing how something has changed from how it used to work. Just because something was edited doesn't mean that a comment even needs to be added.
 
 ## Linting Rules (will be enforced by `make lint` some day, but not being run now)
 - ESLint: ES6+, `const`/`let` only (no `var`), arrow functions, template literals, semicolons required, 120-char line limit

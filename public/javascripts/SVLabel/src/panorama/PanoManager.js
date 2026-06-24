@@ -5,7 +5,8 @@ class PanoManager {
     constructor() {
         this.panoCanvas = document.getElementById('pano');
         this.status = {
-            bottomLinksClickable: false,
+            panoLinksClickable: false,
+            minimapLinksClickable: false,
             disablePanning: false,
             lockDisablePanning: false,
             lockShowingNavArrows: false
@@ -17,6 +18,8 @@ class PanoManager {
             maxHeading: undefined
         }
         this.linksListener = null;
+        this.linksClearanceObserver = null;
+        this.mapillaryAttributionObserver = null;
     }
 
     /**
@@ -93,9 +96,11 @@ class PanoManager {
         const panoViewerLogo = createPanoViewerLogo(this.panoCanvas.parentElement, panoViewerType);
         panoViewerLogo.showPrimaryLogo();
 
-        // TODO we probably need to do this for any viewer type...
         if (panoViewerType === GsvViewer) {
-            this.linksListener = svl.panoViewer.gsvPano.addListener('links_changed', this.#makeLinksClickable);
+            this.#makeGsvAttributionClickable();
+            this.linksListener = svl.panoViewer.gsvPano.addListener('links_changed', this.#makeGsvAttributionClickable);
+        } else if (panoViewerType === MapillaryViewer) {
+            this.#makeMapillaryAttributionClickable();
         }
 
         this.resetNavArrows();
@@ -166,28 +171,107 @@ class PanoManager {
     }
 
     /**
-     * Moves the buttons on the bottom-right of the GSV image to the top layer so they are clickable.
+     * Moves the GSV and minimap bottom links to the top layer so they are clickable.
+     *
+     * Google injects the .gm-style-cc links asynchronously after each map/pano renders, so the pano's and minimap's
+     * links can become available at different times. The two are handled independently (and guarded separately) so
+     * the pano links get processed on the first call even if the minimap hasn't rendered its links yet.
      * @private
      */
-    #makeLinksClickable = () => {
-        // Bring the links on the bottom of GSV and the mini map to the top layer so they are clickable.
-        let bottomLinks = $('.gm-style-cc');
-        if (!this.status.bottomLinksClickable && bottomLinks.length > 7) {
-            this.status.bottomLinksClickable = true;
-            bottomLinks[0].remove(); // Remove GSV keyboard shortcuts link.
-            bottomLinks[4].remove(); // Remove mini map keyboard shortcuts link.
-            bottomLinks[5].remove(); // Remove mini map copyright text (duplicate of GSV).
-            bottomLinks[7].remove(); // Remove mini map terms of use link (duplicate of GSV).
-            svl.ui.streetview.viewControlLayer.append($(bottomLinks[1]).parent().parent());
-            svl.ui.minimap.overlay.append($(bottomLinks[8]).parent().parent());
-        }
+    #makeGsvAttributionClickable = () => {
+        this.#makePanoLinksClickable();
+        this.#makeMinimapLinksClickable();
 
         if (util.getBrowser() === 'mozilla') {
             // A bug in Firefox? The canvas in the div element with the largest z-index.
             svl.ui.streetview.viewControlLayer.append(svl.ui.streetview.canvas);
         }
 
-        google.maps.event.removeListener(this.linksListener);
+        // Stop listening for link changes once both the pano and minimap links have been handled.
+        if (this.status.panoLinksClickable && this.status.minimapLinksClickable) {
+            google.maps.event.removeListener(this.linksListener);
+        }
+    }
+
+    /**
+     * Moves the GSV pano's bottom links to the top layer so they are clickable.
+     * @private
+     */
+    #makePanoLinksClickable = () => {
+        let panoLinks = $('.gm-style-cc', this.panoCanvas);
+        if (!this.status.panoLinksClickable && panoLinks.length > 3) {
+            this.status.panoLinksClickable = true;
+
+            // Remove the first child of each GSV link because it looks better.
+            panoLinks.each((i, el) => el.firstElementChild && el.firstElementChild.remove());
+
+            panoLinks[0].remove(); // Remove GSV keyboard shortcuts link.
+            const gsvLinksBar = $(panoLinks[1]).parent().parent()[0];
+            svl.ui.streetview.viewControlLayer.append(gsvLinksBar);
+            this.#liftBottomLeftAboveLinks(gsvLinksBar);
+        }
+    }
+
+    /**
+     * Moves Mapillary's attribution links (image credit/date/report links) to the top layer so they're clickable.
+     *
+     * Mapillary renders these inside the pano canvas itself, where the click-handling view-control-layer covers
+     * them. We move the container up into that layer instead, the same trick used for the GSV links. Mapillary may
+     * re-render its own container back into the pano (e.g. after an image change), so we keep watching for that.
+     * @private
+     */
+    #makeMapillaryAttributionClickable = () => {
+        const tryMove = () => {
+            const attributionContainer = this.panoCanvas.querySelector('.mapillary-attribution-container');
+            if (attributionContainer) {
+                svl.ui.streetview.viewControlLayer.append(attributionContainer);
+                this.#liftBottomLeftAboveLinks(attributionContainer);
+            }
+        };
+        tryMove(); // Handle the case where Mapillary already rendered the container before we started observing.
+
+        if (this.mapillaryAttributionObserver) this.mapillaryAttributionObserver.disconnect();
+        this.mapillaryAttributionObserver = new MutationObserver(tryMove);
+        this.mapillaryAttributionObserver.observe(this.panoCanvas, { childList: true, subtree: true });
+    }
+
+    /**
+     * Lifts the bottom-left pano overlays (the pano date, info button, speed-limit, and logo) attribution links.
+     *
+     * Publishes the links bar's height as the --bottom-left-links-clearance CSS variable, which those overlays add
+     * to their bottom offset. Default position is kept for viewers without a bottom-left links bar.
+     * @param {HTMLElement} linksBar The links container now anchored at the bottom-left of the pano.
+     * @private
+     */
+    #liftBottomLeftAboveLinks = (linksBar) => {
+        const root = document.querySelector('.tool-ui');
+        if (!root || !linksBar) return;
+
+        const publishClearance = () => {
+            // offsetHeight is the layout (pre-transform) height; the overlays multiply it by --ui-scale themselves.
+            const height = linksBar.offsetHeight;
+            if (height > 0) root.style.setProperty('--bottom-left-links-clearance', `${height}px`);
+        };
+        publishClearance();
+
+        if (this.linksClearanceObserver) this.linksClearanceObserver.disconnect();
+        this.linksClearanceObserver = new ResizeObserver(publishClearance);
+        this.linksClearanceObserver.observe(linksBar);
+    }
+
+    /**
+     * Moves the minimap's links to the top layer so they are clickable, removing the ones that duplicate the GSV links.
+     * @private
+     */
+    #makeMinimapLinksClickable = () => {
+        let minimapLinks = $('.gm-style-cc', '#minimap');
+        if (!this.status.minimapLinksClickable && minimapLinks.length > 4) {
+            this.status.minimapLinksClickable = true;
+            minimapLinks[0].remove(); // Remove mini map keyboard shortcuts link.
+            minimapLinks[1].remove(); // Remove mini map copyright text (duplicate of GSV).
+            minimapLinks[3].remove(); // Remove mini map terms of use link (duplicate of GSV).
+            svl.ui.minimap.overlay.append($(minimapLinks[4]).parent().parent());
+        }
     }
 
     hideNavArrows() {

@@ -88,6 +88,9 @@ function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
                 labelsValidated: mission.getProperty('labelsValidated')
             }
         );
+
+        // Celebrate a newly unlocked mission badge if this completion crossed a threshold.
+        BadgeAchievements.recordMissionComplete(document.getElementById('modal-mission-complete-foreground'));
     }
 
     /**

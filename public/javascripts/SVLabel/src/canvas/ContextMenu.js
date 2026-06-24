@@ -23,9 +23,7 @@ function ContextMenu (uiContextMenu) {
     var $tagHolder = uiContextMenu.tagHolder;
     var $tags = uiContextMenu.tags;
 
-    var windowWidth = $menuWindow.width();
-    var LABEL_TO_MENU_GAP = 8; // Amount of space between the label and context menu.
-    var PAGE_BOTTOM_SPACE = 29; // Additional space avail below pano where we can still show the context menu.
+    const LABEL_TO_MENU_GAP = 8; // Amount of space between the label and context menu.
 
     document.addEventListener('mousedown', _handleMouseDown);
     $menuWindow.on('mousedown', _handleMenuWindowMouseDown);
@@ -186,24 +184,24 @@ function ContextMenu (uiContextMenu) {
      * Records tag ID when clicked and updates tag color.
      */
     function _handleTagClick(e) {
-        var labelTags = status.targetLabel.getProperty('tagIds');
+        let labelTags = status.targetLabel.getProperty('tagIds');
 
         // Use position of cursor to determine whether the click came from the mouse or from a keyboard shortcut.
-        var wasClickedByMouse = e.hasOwnProperty("originalEvent") &&
+        const wasClickedByMouse = e.hasOwnProperty("originalEvent") &&
             e.originalEvent.clientX !== 0
             && e.originalEvent.clientY !== 0;
 
         $("body").unbind('click').on('click', 'button', function(e) {
             if (e.target.name === 'tag') {
                 // Get the tag_id from the clicked tag's class name (e.g., "tag-id-9").
-                var currTagId = parseInt($(e.target).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
-                var tag = self.labelTags.filter(tag => tag.tag_id === currTagId)[0];
+                const currTagId = parseInt($(e.target).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
+                const tag = self.labelTags.filter(tag => tag.tag_id === currTagId)[0];
 
                 // Adds or removes tag from the label's current list of tags.
                 if (!labelTags.includes(tag.tag_id)) {
                     // If the tag is mutually exclusive with another tag, automatically remove the other tag.
                     if (tag.mutually_exclusive_with) {
-                        var mutuallyExclusiveTag = self.labelTags.filter(t => t.tag === tag.mutually_exclusive_with)[0];
+                        const mutuallyExclusiveTag = self.labelTags.filter(t => t.tag === tag.mutually_exclusive_with)[0];
                         if (mutuallyExclusiveTag) {
                             labelTags = _autoRemoveAlternateTagAndUpdateUI(mutuallyExclusiveTag.tag_id, labelTags);
                         }
@@ -217,15 +215,14 @@ function ContextMenu (uiContextMenu) {
                         svl.tracker.push('KeyboardShortcut_TagAdded', { tagId: tag.tag_id, tagName: tag.tag });
                     }
                 } else {
-                    var index = labelTags.indexOf(tag.tag_id);
-                    labelTags.splice(index, 1);
+                    labelTags.splice(labelTags.indexOf(tag.tag_id), 1);
                     if (wasClickedByMouse) {
                         svl.tracker.push('ContextMenu_TagRemoved', { tagId: tag.tag_id, tagName: tag.tag });
                     } else {
                         svl.tracker.push('KeyboardShortcut_TagRemoved', { tagId: tag.tag_id, tagName: tag.tag });
                     }
                 }
-                _toggleTagColor(labelTags, tag.tag_id, e.target);
+                e.target.classList.toggle('tag-pill--active')
                 status.targetLabel.setProperty('tagIds', labelTags);
                 e.target.blur();
                 $tagHolder.trigger('tagIds-updated'); // For events that depend on up-to-date tagIds.
@@ -242,7 +239,7 @@ function ContextMenu (uiContextMenu) {
         $tags.each((index, tag) => {
             var classWithTagId = tag.className.split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0];
             if (classWithTagId !== undefined && parseInt(classWithTagId.match(/\d+/)[0], 10) === tagId) {
-                $(`.${classWithTagId}`).removeClass('selected');
+                $(`.${classWithTagId}`).removeClass('tag-pill--active');
             }
         });
 
@@ -344,17 +341,17 @@ function ContextMenu (uiContextMenu) {
      * @param label     Current label being modified.
      */
     function _setTagColor(label) {
-        var labelTags = label.getProperty('tagIds');
+        const labelTags = label.getProperty('tagIds');
         $("body").find("button[name=tag]").each(function(t) {
-            var buttonText = $(this).text();
+            const buttonText = $(this).text();
             if (buttonText) {
-                var tagId = parseInt($(this).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
+                const tagId = parseInt($(this).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
 
-                // Sets color to match OK button green when selected
+                // Sets color based on whether the tag is now selected.
                 if (labelTags.includes(tagId)) {
-                    $(this).addClass('selected');
+                    $(this).addClass('tag-pill--active');
                 } else {
-                    $(this).removeClass('selected');
+                    $(this).removeClass('tag-pill--active');
                 }
             }
         });
@@ -365,34 +362,36 @@ function ContextMenu (uiContextMenu) {
      * @param label Current label being modified.
      */
     function _setTags(label) {
-        var maxTags = 17;
+        const maxTags = 17;
         if (label) {
-            var labelTags = self.labelTags;
+            const labelTags = self.labelTags;
             if (labelTags) {
-                var count = 0;
+                let count = 0;
 
                 // Go through each label tag, modify each button to display tag.
                 labelTags.forEach(function(tag) {
                     if (tag.label_type === label.getProperty('labelType')) {
-                        var buttonIndex = count; // Save index in a separate var b/c tooltips are added asynchronously.
+                        const buttonIdx = count; // Save index in a separate var b/c tooltips are added asynchronously.
 
                         // Remove all leftover tags from last labeling.
                         // Warning to future devs: will remove any other classes you add to the tags.
-                        $tagHolder.find("button[id=" + buttonIndex + "]").attr('class', 'context-menu-tag');
+                        $tagHolder.find("button[id=" + buttonIdx + "]")
+                            .attr('class', 'context-menu-tag tag-pill tag-pill--interactive');
 
                         // Add tag id as a class so that finding the element is easier later.
-                        $tagHolder.find("button[id=" + buttonIndex + "]").addClass("tag-id-" + tag.tag_id);
+                        $tagHolder.find("button[id=" + buttonIdx + "]").addClass("tag-id-" + tag.tag_id);
 
                         // Set tag texts to new underlined version as defined in the util label description map.
-                        var tagText = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['text'];
-                        $tagHolder.find("button[id=" + buttonIndex + "]").html(tagText);
+                        const tagText = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['text'];
+                        $tagHolder.find("button[id=" + buttonIdx + "]")
+                            .html(`<span class="tag-pill__label">${tagText}</span>`);
 
-                        $tagHolder.find("button[id=" + buttonIndex + "]").css({
+                        $tagHolder.find("button[id=" + buttonIdx + "]").css({
                             visibility: 'inherit', position: 'inherit'
                         });
 
                         // Remove old tooltip for that button.
-                        $tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy");
+                        $tagHolder.find("button[id=" + buttonIdx + "]").tooltip("destroy");
 
                         // Add tooltip with tag example if we have an example image to show.
                         // If there's a server-specific image, try that first. Get default image as a backup.
@@ -417,8 +416,8 @@ function ContextMenu (uiContextMenu) {
                         exampleImage.then(img => {
                             // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
                             const underlineClassOffset = 15;
-                            var keyChar;
-                            var tooltipHeader;
+                            let keyChar;
+                            let tooltipHeader;
                             // If first letter is used for shortcut, the string will start with "<tag-underline".
                             if (tagText[0] === '<') {
                                 keyChar = tagText[underlineClassOffset];
@@ -430,12 +429,12 @@ function ContextMenu (uiContextMenu) {
                                 keyChar = tagText[underlineIndex + underlineClassOffset];
                                 tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
                             }
-                            var tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keyChar});
-                            var tooltipImage = `<img src="${img}" height="125"/>`
+                            const tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keyChar});
+                            const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${img}"/>`
 
-                            // Create the tooltip.
-                            $tagHolder.find("button[id=" + buttonIndex + "]").tooltip(({
-                                placement: 'top',
+                            // Create the tooltip. 'auto top' flips it below the tag if it would clip the viewport top.
+                            $tagHolder.find("button[id=" + buttonIdx + "]").tooltip(({
+                                placement: 'auto top',
                                 html: true,
                                 delay: { 'show': 300, 'hide': 10 },
                                 height: '130',
@@ -451,7 +450,7 @@ function ContextMenu (uiContextMenu) {
                 });
 
                 // If number of tags is less than the max number of tags, hide button.
-                var i = count;
+                let i = count;
                 for (i; i < maxTags; i++) {
                     $("body").find("button[id=" + i + "]").css({
                         visibility: 'hidden',
@@ -476,9 +475,11 @@ function ContextMenu (uiContextMenu) {
             util.getImage(`/assets/images/examples/severity/${labelType}_Severity${sev}.png`).then(img => {
                 const tooltipHeader = i18next.t(`common:${tooltipKey}-${sev}`);
                 const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-                $(`#severity-${sev}`).tooltip({
-                    placement: 'top', html: true, delay: { 'show': 300, 'hide': 10 },
-                    title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`,
+                // 'auto top' flips the tooltip below the button if it would clip the viewport top.
+                $(`.severity-button[data-severity="${sev}"]`).tooltip({
+                    placement: 'auto top', html: true, delay: { 'show': 300, 'hide': 10 },
+                    // Image size (and aspect ratio) is set in CSS so it scales with the UI; see svl-context-menu.css.
+                    title: `${tooltipHeader}<br/><img class="context-menu-tooltip__img--severity" src="${img}"/><br/>${tooltipFooter}`,
                     container: 'body',
                     // Add template so we can attach a custom CSS class.
                     template: '<div class="tooltip context-menu-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
@@ -492,8 +493,8 @@ function ContextMenu (uiContextMenu) {
      * @private
      */
     function _removePrevSeverityTooltips() {
-        for (let severity = 0; severity < 4; severity++) {
-            $(`#severity-${severity}`).tooltip('destroy');
+        for (let severity = 1; severity < 4; severity++) {
+            $(`.severity-button[data-severity="${severity}"]`).tooltip('destroy');
         }
     }
 
@@ -506,8 +507,8 @@ function ContextMenu (uiContextMenu) {
         $severityRadios.prop('checked', false);
         $descriptionTextBox.val(null);
 
-        var labelType = targetLabel.getLabelType();
-        var labelCoord = targetLabel.getCanvasXY();
+        const labelType = targetLabel.getLabelType();
+        const labelCoord = targetLabel.getCanvasXY();
 
         if (labelType !== 'Occlusion') {
             setStatus('targetLabel', targetLabel);
@@ -521,20 +522,29 @@ function ContextMenu (uiContextMenu) {
             } else {
                 $severityMenu.addClass('hidden');
             }
-            var menuHeight = $menuWindow.outerHeight();
+            // labelCoord is in the logical 720x480 frame; the menu is a DOM element sized in on-screen pixels.
+            // Do the placement math in the logical frame (so the constants below stay valid), converting the
+            // menu's measured height into that frame, then scale the final position to pixels when positioning.
+            const scale = util.exploreDisplayScale();
+            const menuHeight = $menuWindow.outerHeight() / scale;
 
             // Determine coordinates for context menu to display below the label.
-            var topCoordinate = labelCoord.y + svl.LABEL_ICON_RADIUS + LABEL_TO_MENU_GAP;
+            let topCoordinate = labelCoord.y + svl.LABEL_ICON_RADIUS + LABEL_TO_MENU_GAP;
 
-            // If there isn't enough room to show the context menu below the label, determine coords to display above.
+            // The menu may hang below the pano edge, but not past the bottom of the viewport, where it would be cut
+            // off. Measure the space from the pano's top down to the viewport bottom, in the logical frame.
+            const panoTop = document.getElementById('street-view-holder').getBoundingClientRect().top;
+            const spaceBelow = (window.innerHeight - panoTop) / scale;
+
+            // If there isn't enough room to show the context menu below the label, show it above the label instead.
             // labelCoord.y is top-left of label but is center of rendered label, so we must add the icon radius.
-            if (topCoordinate + menuHeight - PAGE_BOTTOM_SPACE > util.EXPLORE_CANVAS_HEIGHT) {
+            if (topCoordinate + menuHeight > spaceBelow) {
                 topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - menuHeight - LABEL_TO_MENU_GAP;
             }
 
             // Set the menu value if label has it's value set.
-            var severity = targetLabel.getProperty('severity');
-            var description = targetLabel.getProperty('description');
+            const severity = targetLabel.getProperty('severity');
+            const description = targetLabel.getProperty('description');
             if (severity) {
                 $severityRadios.each(function(i, v) {
                     if (severity === i + 1) { $(this).prop("checked", true); }
@@ -549,10 +559,12 @@ function ContextMenu (uiContextMenu) {
                 else _showTaggingDisabled();
             }
 
+            // Read the width fresh (it scales with --ui-scale) so the menu stays centered under the label at any UI scale.
+            const windowWidth = $menuWindow.outerWidth();
             $menuWindow.css({
                 visibility: 'visible',
-                left: labelCoord.x - windowWidth / 2,
-                top: topCoordinate
+                left: labelCoord.x * scale - windowWidth / 2,
+                top: topCoordinate * scale
             });
 
             setStatus('visibility', 'visible');
@@ -560,7 +572,7 @@ function ContextMenu (uiContextMenu) {
             if (description) {
                 $descriptionTextBox.val(description);
             }
-            var labelProps = status.targetLabel.getProperties();
+            const labelProps = status.targetLabel.getProperties();
 
             // Don't push event on Occlusion labels; they don't open ContextMenus.
             svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProps.auditTaskId}, {'temporaryLabelId': labelProps.temporaryLabelId});
@@ -575,20 +587,6 @@ function ContextMenu (uiContextMenu) {
             $descriptionHeaderNumber.text('3.');
         } else {
             $descriptionHeaderNumber.text('2.');
-        }
-    }
-
-    /**
-     * Toggles the color of the tag when selected/deselected.
-     * @param labelTags     List of tags that the current label has.
-     * @param id
-     * @param target        Tag button that is being modified.
-     */
-    function _toggleTagColor(labelTags, id, target) {
-        if (labelTags.includes(id)) {
-            target.classList.add('selected');
-        } else {
-            target.classList.remove('selected');
         }
     }
 

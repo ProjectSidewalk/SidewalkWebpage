@@ -19,8 +19,6 @@ medium = Medium
 high = High
 rating = Rating
 not.applicable.abbr = N/A
-feedback = Feedback
-feedback.tooltip = Share your thoughts with us
 validations = Validations
 labels = labels
 labels.caps = Labels
@@ -53,8 +51,6 @@ dont.show.again = Don''t show again
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
-feedback.title = Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!
-feedback.submitted = Feedback Submitted
 
 city.state = {0}, {1}
 
@@ -107,8 +103,6 @@ landing.how.you.help.content = Virtually explore city streets in {0} to find and
 landing.how.you.help.explore = EXPLORE
 landing.how.you.help.find = FIND PROBLEMS
 landing.how.you.help.assess = ASSESS SEVERITY
-landing.video.title = What is Project Sidewalk?
-landing.video.watch = Watch Now
 landing.choropleth.title = Pick a Neighborhood
 landing.choropleth.content = Choose a neighborhood to explore below or click on the <a href="/explore">''Explore''</a> button and you''ll be assigned a neighborhood automatically!
 landing.choropleth.legend = Percent of Neighborhood Complete
@@ -146,23 +140,11 @@ landing.collaborators.logo.city.of.amsterdam.alt = City of Amsterdam Logo
 landing.collaborators.logo.amsterdam.intelligence.alt = Amsterdam Intelligence Logo
 landing.collaborators.logo.public.nudge.alt = Public Nudge Logo
 landing.clouds.alt = White clouds partially covering the image above, with statistics shown on top of the clouds.
-landing.skyline1.png.alt = An illustration of an intersection with people traveling across the street.
-landing.skyline2.png.alt = An illustration of an intersection with people traveling across the street. A flag showing the colors of the flag of Mexico is in the background.
-landing.skyline-seattle.png.alt = An illustration showing the skyline of Seattle, Washington.
 landing.mobile.start.validating = Start Validating in {0}
 landing.mobile.how.you.help.content = Help improve accessibility data for {0} by validating labels placed by other users—right from your phone!
-landing.mobile.step1 = VIEW
-landing.mobile.step2 = ASSESS
-landing.mobile.step3 = DECIDE
-landing.mobile.step1.desc = Look at a label placed by another user
-landing.mobile.step2.desc = Examine the surrounding street scene
-landing.mobile.step3.desc = Agree, disagree, or mark as unsure
-landing.mobile.val.yes.desc = Label looks correct
 landing.mobile.impact.step1 = A volunteer spots an accessibility issue and places a label
 landing.mobile.impact.step2 = You view the same spot and weigh in on whether they got it right
 landing.mobile.impact.step3 = Confirmed labels become reliable data for cities, researchers, and navigation apps
-landing.mobile.val.unsure.desc = Not sure
-landing.mobile.val.no.desc = Label seems wrong
 landing.mobile.stats.content = Volunteers like you have placed these labels, collecting sidewalk data for city planners, researchers, and people with disabilities.
 landing.mobile.laptop.heading = Want to do even more?
 landing.mobile.laptop.content = Take on labeling missions on your laptop to help map {0}''s sidewalks yourself.
@@ -196,7 +178,6 @@ audit.tutorial.end.1 = Great! You’ve learned how to use the interface! Now, go
 audit.tutorial.end.2 = Again, thank you for <span class="bold">making the world more accessible for everyone!</span>
 audit.tutorial.examples = Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.
 
-audit.ribbon.find.and.label = Find and label the following
 audit.ribbon.curb.ramp.labels = CURB RAMP LABELS
 audit.ribbon.sidewalk.labels = SIDEWALK LABELS
 audit.ribbon.other.labels = OTHER ACCESSIBILITY LABELS
@@ -211,26 +192,12 @@ audit.ribbon.signal = <u>P</u>edestrian Signal
 audit.ribbon.other = Other
 audit.ribbon.occlusion = Can''t See the Sidewalk (<u>B</u>)
 
-audit.left.ui.zoom.in = <u>Z</u>oom In
-audit.left.ui.zoom.out = Zoom Out
-audit.left.ui.sound = Sound
-audit.left.ui.stuck = Stuck
-audit.left.ui.stuck.tooltip = We''ll try to move you back to your mission
-
 audit.right.ui.overall.stats = Overall Stats
-audit.right.ui.current.neighborhood = Current Neighborhood
-audit.right.ui.distance = kilometers
 
 audit.center.ui.tags.header = Add tags
 audit.center.ui.tags.info = Please add tags to your labels, which enriches the data with useful information. Mouseover the tags for examples.
 audit.center.ui.description.header = Describe (optional)
 audit.center.ui.description.placeholder = Description
-
-audit.mission.complete.labels.title = Mission Labels
-audit.mission.complete.progress.mission.you = You explored in this mission
-audit.mission.complete.progress.neighborhood.others = Others explored in this neighborhood
-audit.mission.complete.legend.this.mission = This Mission
-audit.mission.complete.legend.previous.missions = Previous Missions
 
 audit.survey.title = Please take this one-time survey about Project Sidewalk
 audit.survey.enjoyment.question = How much have you been enjoying using Project Sidewalk?
@@ -280,7 +247,6 @@ authenticate.signin.with.credentials = Sign in with your credentials
 
 user.exists = Email already exists
 authenticate.error.username.exists = Username already exists
-authenticate.error.username.invalid = Usernames cannot contain ", '', <, >, &
 authenticate.error.password.mismatch = Passwords do not match
 authenticate.error.invalid.credentials = Invalid credentials!
 
@@ -305,9 +271,6 @@ dashboard.current.team.greeting = Team: {0}
 dashboard.leave.team = Leave team: {0}
 dashboard.create.team = Create a team
 dashboard.join.team = Join a team!
-dashboard.total.distance.explored = Total Distance Explored
-dashboard.number.completed.missions = Number of Completed Missions
-dashboard.number.of.labels = Number of Labels
 dashboard.missions = Missions
 dashboard.your.missions = Your missions
 dashboard.distance = Distance
@@ -326,7 +289,6 @@ dashboard.label.badge = {0} label badge
 dashboard.validation.badge = {0} validation badge
 dashboard.mistakes.header = Your recent labeling mistakes
 dashboard.mistakes.tooltip = These are mistakes as determined by other users from the Validate page. Sometimes mistakes happen while validating, and there is often nuance in these evaluations.
-dashboard.mistakes.tooltip.alt = Question mark icon for helpful tooltip.
 dashboard.team.title = Create a new team
 dashboard.team.name = Team name
 dashboard.team.description = Team description (optional)
@@ -351,7 +313,6 @@ leaderboard.header.labels = Labels
 leaderboard.header.missions = Missions
 leaderboard.header.distance = Distance
 leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your labels have been validated
-leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
 leaderboard.encouragement = Want to make it into the Top 10? <a id="encouragement-link" href="/explore"><u>Start exploring!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Sign up</u></a> to track your progress!
 leaderboard.encouragement.no.team = Want to improve your accuracy? Read our <a id="encouragement-link" href="{0}" target="_blank"><u>labeling guide</u></a> and view your recent incorrect labels on <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>your dashboard</u></a>

@@ -1,0 +1,201 @@
+/* Right sidebar: a vertical flex column holding the current mission, global stats, badge progress, and the neighborhood
+   minimap. Sits to the right of the pano and spans the app's full height; the minimap section grows to fill whatever
+   vertical space the other sections leave. All sizes scale with --ui-scale like the rest of the tool. */
+#explore-sidebar {
+    --exp-sidebar-section-gap: calc(18px * var(--ui-scale));
+    --exp-sidebar-link: var(--color-link-200);
+
+    position: absolute;
+    left: var(--sidebar-left);
+    top: calc(4px * var(--ui-scale));
+    width: var(--sidebar-width);
+    height: calc(var(--street-view-top) + var(--pano-height) - (4px * var(--ui-scale)));
+    display: flex;
+    flex-direction: column;
+    gap: var(--exp-sidebar-section-gap);
+    padding-top: calc(4px * var(--ui-scale)); /* Just so that it looks better next to the ribbon headers. */
+    color: var(--color-neutral-black);
+    overflow: hidden;
+}
+
+.explore-sidebar__section {
+    display: flex;
+    flex-direction: column;
+}
+
+.explore-sidebar__heading {
+    font: var(--text-body-medium);
+    color: var(--color-neutral-black);
+    margin: 0 0 calc(4px * var(--ui-scale)) 0;
+}
+
+.explore-sidebar__subheading {
+    font: var(--text-caption-regular);
+    margin: 0;
+}
+
+/* Holds the mission and neighborhood progress groups, spaced from each other and from the minimap below. */
+.explore-sidebar__progress-groups {
+    display: flex;
+    flex-direction: column;
+    gap: calc(4px * var(--ui-scale));
+    margin-bottom: calc(var(--exp-sidebar-section-gap) / 2);
+}
+
+.explore-sidebar__progress-group {
+    display: flex;
+    flex-direction: column;
+}
+
+/* The badge progress bars are slightly slimmer than the mission/neighborhood bars, with a smaller text. */
+.explore-sidebar__badge-progress {
+    --ps-progress-bar-height: calc(10px * var(--ui-scale));
+}
+.explore-sidebar__badge-progress .ps-progress-bar__label {
+    font: var(--text-tiny-semibold);
+}
+
+/* Overall stats: three equal columns, each an icon over a value over a label. */
+.explore-sidebar__stats-row {
+    display: flex;
+    justify-content: space-between;
+    gap: calc(8px * var(--ui-scale));
+}
+
+.explore-sidebar__stat {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: calc(6px * var(--ui-scale));
+}
+
+.explore-sidebar__stat-icon {
+    height: calc(26px * var(--ui-scale));
+    width: auto;
+    object-fit: contain;
+}
+
+.explore-sidebar__stat-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.explore-sidebar__stat-value {
+    font: var(--text-small-bold);
+}
+
+.explore-sidebar__stat-label {
+    font: var(--text-caption-regular);
+    line-height: 100%;
+}
+
+/* Badges */
+.explore-sidebar__badge-list {
+    display: flex;
+    flex-direction: column;
+    gap: calc(10px * var(--ui-scale));
+    padding-left: calc(5px * var(--ui-scale));
+}
+
+.explore-sidebar__badge {
+    display: flex;
+    align-items: center;
+    gap: calc(12px * var(--ui-scale));
+}
+
+.explore-sidebar__badge-icon {
+    position: relative;
+    flex: 0 0 auto;
+    width: calc(36px * var(--ui-scale));
+    height: calc(36px * var(--ui-scale));
+    cursor: zoom-in;
+}
+
+.explore-sidebar__badge-icon img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* The faded base reads as "not yet filled"; a full-color copy is clipped to reveal from the bottom up by --badge-fill
+   (0–1), giving a second visualization of progress toward the next badge. */
+.explore-sidebar__badge-icon-base {
+    filter: grayscale(1);
+    opacity: 0.3;
+}
+
+.explore-sidebar__badge-icon-fill {
+    clip-path: inset(calc((1 - var(--badge-fill, 0)) * 100%) 0 0 0);
+    transition: clip-path 0.3s ease;
+}
+
+/* Enlarged badge shown on hover so the small icon's detail is legible. */
+.explore-sidebar__badge-preview {
+    position: fixed;
+    width: calc(100px * var(--ui-scale));
+    height: calc(100px * var(--ui-scale));
+    object-fit: contain;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.85);
+    transform-origin: center bottom;
+    transition: opacity 0.12s ease, transform 0.12s ease;
+    z-index: calc(var(--navbar-z-index) - 1);
+}
+
+.explore-sidebar__badge-preview--visible {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+}
+
+.explore-sidebar__badge-info {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.explore-sidebar__badge-name {
+    font: var(--text-caption-semibold);
+}
+
+.explore-sidebar__see-all {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(2px * var(--ui-scale));
+    width: fit-content;
+    margin-top: calc(6px * var(--ui-scale));
+    font: var(--text-caption-semibold);
+    color: var(--exp-sidebar-link);
+    text-decoration: none;
+}
+
+.explore-sidebar__see-all:hover {
+    color: var(--exp-sidebar-link);
+    text-decoration: underline;
+}
+
+.explore-sidebar__see-all-chevron {
+    flex: 0 0 auto;
+    width: calc(12px * var(--ui-scale));
+    height: calc(12px * var(--ui-scale));
+}
+
+/* Current mission section (mission progress, neighborhood progress, and minimap): grows to fill the remaining
+   sidebar height so the minimap takes whatever vertical space the other sections leave. */
+.explore-sidebar__section--map {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* Chandigarh-only AI mission guidance message. */
+#mission-guidance-status {
+    font: var(--text-caption-regular);
+}

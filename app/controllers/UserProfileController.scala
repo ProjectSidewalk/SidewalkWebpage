@@ -216,17 +216,23 @@ class UserProfileController @Inject() (
         else auditedDistance * METERS_TO_MILES
       })
     val labelCount: Future[Int]          = userService.countLabelsFromUser(userId)
+    val missionCount: Future[Int]        = userService.countCompletedMissions(userId)
+    val validationCount: Future[Int]     = userService.countValidations(userId)
     val accuracy: Future[Option[Double]] = userService.getUserAccuracy(userId)
 
     // Run in parallel and return the results as a JSON object.
     for {
       auditedDistance <- auditedDistance
       labelCount      <- labelCount
+      missionCount    <- missionCount
+      validationCount <- validationCount
       accuracy        <- accuracy
     } yield Ok(
       Json.obj(
         "distance_audited" -> auditedDistance,
         "label_count"      -> labelCount,
+        "mission_count"    -> missionCount,
+        "validation_count" -> validationCount,
         "accuracy"         -> accuracy
       )
     )
