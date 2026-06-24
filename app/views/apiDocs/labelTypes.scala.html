@@ -90,28 +90,28 @@
 
         <pre><code class="language-json">{
     "status": "OK",
-    "labelTypes": [
+    "label_types": [
         {
             "id": 1,
             "name": "CurbRamp",
             "description": "@Messages("curb.ramp.description")",
-            "iconUrl": "/assets/images/icons/label_type_icons/CurbRamp.png",
-            "smallIconUrl": "/assets/images/icons/label_type_icons/CurbRamp_small.png",
-            "tinyIconUrl": "/assets/images/icons/label_type_icons/CurbRamp_tiny.png",
+            "icon_url": "/assets/images/icons/label_type_icons/CurbRamp.png",
+            "small_icon_url": "/assets/images/icons/label_type_icons/CurbRamp_small.png",
+            "tiny_icon_url": "/assets/images/icons/label_type_icons/CurbRamp_tiny.png",
             "color": "#90C31F",
-            "isPrimary": true,
-            "isPrimaryValidate": true
+            "is_primary": true,
+            "is_primary_validate": true
         },
         {
             "id": 2,
             "name": "NoCurbRamp",
             "description": "@Messages("missing.ramp.description")",
-            "iconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp.png",
-            "smallIconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp_small.png",
-            "tinyIconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp_tiny.png",
+            "icon_url": "/assets/images/icons/label_type_icons/NoCurbRamp.png",
+            "small_icon_url": "/assets/images/icons/label_type_icons/NoCurbRamp_small.png",
+            "tiny_icon_url": "/assets/images/icons/label_type_icons/NoCurbRamp_tiny.png",
             "color": "#E679B6",
-            "isPrimary": true,
-            "isPrimaryValidate": true
+            "is_primary": true,
+            "is_primary_validate": true
         },
         // ... more label types
     ]
@@ -134,52 +134,52 @@
                         <td>Always "OK" for successful responses.</td>
                     </tr>
                     <tr>
-                        <td><code>labelTypes</code></td>
+                        <td><code>label_types</code></td>
                         <td><code>array</code></td>
                         <td>Array of label type objects.</td>
                     </tr>
                     <tr>
-                        <td><code>labelTypes[].id</code></td>
+                        <td><code>label_types[].id</code></td>
                         <td><code>integer</code></td>
                         <td>Unique identifier for the label type.</td>
                     </tr>
                     <tr>
-                        <td><code>labelTypes[].name</code></td>
+                        <td><code>label_types[].name</code></td>
                         <td><code>string</code></td>
                         <td>Name of the label type (e.g., "CurbRamp", "Obstacle").</td>
                     </tr>
                     <tr>
-                        <td><code>labelTypes[].description</code></td>
+                        <td><code>label_types[].description</code></td>
                         <td><code>string</code></td>
                         <td>Human-readable description of the label type.</td>
                     </tr>
                     <tr>
-                        <td><code>labelTypes[].iconUrl</code></td>
+                        <td><code>label_types[].icon_url</code></td>
                         <td><code>string</code></td>
                         <td>Path to the standard icon image for this label type.</td>
                     </tr>
                     <tr>
-                        <td><code>labelTypes[].smallIconUrl</code></td>
+                        <td><code>label_types[].small_icon_url</code></td>
                         <td><code>string</code></td>
                         <td>Path to the small icon image for this label type.</td>
                     </tr>
                     <tr>
-                        <td><code>labelTypes[].tinyIconUrl</code></td>
+                        <td><code>label_types[].tiny_icon_url</code></td>
                         <td><code>string</code></td>
                         <td>Path to the minimap/tiny icon image for this label type.</td>
                     </tr>
                     <tr>
-                        <td><code>labelTypes[].color</code></td>
+                        <td><code>label_types[].color</code></td>
                         <td><code>string</code></td>
                         <td>Hex color code (e.g., "#90C31F") associated with this label type.</td>
                     </tr>
                     <tr>
-                        <td><code>labelTypes[].isPrimary</code></td>
+                        <td><code>label_types[].is_primary</code></td>
                         <td><code>boolean</code></td>
                         <td>Whether this is a primary label type in the Project Sidewalk system.</td>
                     </tr>
                     <tr>
-                        <td><code>labelTypes[].isPrimaryValidate</code></td>
+                        <td><code>label_types[].is_primary_validate</code></td>
                         <td><code>boolean</code></td>
                         <td>Whether this label type is included in primary validation tasks.</td>
                     </tr>

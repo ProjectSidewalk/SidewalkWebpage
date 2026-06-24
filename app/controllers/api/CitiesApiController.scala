@@ -120,12 +120,12 @@ class CitiesApiController @Inject() (
   private def buildCityObject(cityInfo: service.CityInfo, mapParamsOpt: Option[models.utils.MapParams]): JsObject = {
     // Build base city information object
     val baseInfo = Json.obj(
-      "cityId"            -> cityInfo.cityId,
-      "countryId"         -> cityInfo.countryId,
-      "cityNameShort"     -> cityInfo.cityNameShort,
-      "cityNameFormatted" -> cityInfo.cityNameFormatted,
-      "url"               -> cityInfo.URL,
-      "visibility"        -> cityInfo.visibility
+      "city_id"             -> cityInfo.cityId,
+      "country_id"          -> cityInfo.countryId,
+      "city_name_short"     -> cityInfo.cityNameShort,
+      "city_name_formatted" -> cityInfo.cityNameFormatted,
+      "url"                 -> cityInfo.URL,
+      "visibility"          -> cityInfo.visibility
     )
 
     // Add map coordinates only if available.
@@ -139,9 +139,9 @@ class CitiesApiController @Inject() (
 
         // Combine base info with geographic information.
         baseInfo ++ Json.obj(
-          "centerLat" -> mapParams.centerLat,
-          "centerLng" -> mapParams.centerLng,
-          "zoom"      -> mapParams.zoom,
+          "center_lat" -> mapParams.centerLat,
+          "center_lng" -> mapParams.centerLng,
+          "zoom"       -> mapParams.zoom,
           "bounds"    -> Json.obj(
             "north" -> north,
             "south" -> south,
@@ -171,8 +171,8 @@ class CitiesApiController @Inject() (
   private def generateCsv(cityDetails: Seq[JsObject]): String = {
     // Define CSV headers based on all possible fields.
     val headers = Seq(
-      "cityId", "countryId", "cityNameShort", "cityNameFormatted", "url", "visibility", "centerLat", "centerLng",
-      "zoom", "bounds.north", "bounds.south", "bounds.east", "bounds.west"
+      "city_id", "country_id", "city_name_short", "city_name_formatted", "url", "visibility", "center_lat",
+      "center_lng", "zoom", "bounds.north", "bounds.south", "bounds.east", "bounds.west"
     )
 
     // Generate CSV rows for each city.
@@ -241,8 +241,8 @@ class CitiesApiController @Inject() (
     // Filter cities that have geographic coordinates.
     val features = cityDetails.flatMap { cityObject =>
       // Extract center coordinates.
-      val centerLat = (cityObject \ "centerLat").asOpt[Double]
-      val centerLng = (cityObject \ "centerLng").asOpt[Double]
+      val centerLat = (cityObject \ "center_lat").asOpt[Double]
+      val centerLng = (cityObject \ "center_lng").asOpt[Double]
 
       // Only include cities with coordinates.
       (centerLat, centerLng) match {

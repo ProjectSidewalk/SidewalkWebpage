@@ -125,8 +125,8 @@
                 })
                 .then(data => {
                     // Process the label types data to populate the colors and mapping.
-                    if (data && data.labelTypes && Array.isArray(data.labelTypes)) {
-                        data.labelTypes.forEach(labelType => {
+                    if (data && data.label_types && Array.isArray(data.label_types)) {
+                        data.label_types.forEach(labelType => {
                             // Update the colors map.
                             labelTypeColors[labelType.name] = labelType.color;
 
@@ -134,7 +134,7 @@
                             labelTypeMapping[labelType.name] = labelType.description;
 
                             // Store icon URLs.
-                            labelTypeIcons[labelType.name] = labelType.smallIconUrl;
+                            labelTypeIcons[labelType.name] = labelType.small_icon_url;
                         });
                     }
 
@@ -421,16 +421,16 @@
             container.appendChild(canvas);
 
             // Get label types with validation data.
-            const labelTypes = Object.keys(data.validations)
+            const labelTypes = Object.keys(data.validations.combined)
                 .filter(key => key !== 'total_validations' && key !== 'Overall' &&
-                    data.validations[key].accuracy !== undefined &&
-                    data.validations[key].validated > 0);
+                    data.validations.combined[key].accuracy !== undefined &&
+                    data.validations.combined[key].validated > 0);
 
             // Sort label types by accuracy (descending).
-            labelTypes.sort((a, b) => data.validations[b].accuracy - data.validations[a].accuracy);
+            labelTypes.sort((a, b) => data.validations.combined[b].accuracy - data.validations.combined[a].accuracy);
 
             // Prepare data for chart.
-            const accuracies = labelTypes.map(type => data.validations[type].accuracy * 100); // Convert to percentage
+            const accuracies = labelTypes.map(type => data.validations.combined[type].accuracy * 100); // Convert to percentage
             const colors = labelTypes.map(type => labelTypeColors[type] || '#999');
 
             // Create chart instance.
@@ -458,10 +458,10 @@
                                 },
                                 label: function(context) {
                                     const type = labelTypes[context.dataIndex];
-                                    const accuracy = (data.validations[type].accuracy * 100).toFixed(1);
-                                    const validated = data.validations[type].validated;
-                                    const agreed = data.validations[type].agreed;
-                                    const disagreed = data.validations[type].disagreed;
+                                    const accuracy = (data.validations.combined[type].accuracy * 100).toFixed(1);
+                                    const validated = data.validations.combined[type].validated;
+                                    const agreed = data.validations.combined[type].agreed;
+                                    const disagreed = data.validations.combined[type].disagreed;
                                     return [
                                         `Accuracy: ${accuracy}%`,
                                         `Validations: ${validated.toLocaleString()}`,
@@ -532,8 +532,8 @@
             // Add stat items.
             this.addStatItem(grid, 'Launch Date', this.formatDate(data.launch_date));
             this.addStatItem(grid, 'Total Labels', data.labels.label_count.toLocaleString());
-            this.addStatItem(grid, 'Total Validations', data.validations.total_validations.toLocaleString());
-            this.addStatItem(grid, 'Overall Accuracy', `${(data.validations.Overall.accuracy * 100).toFixed(1)}%`);
+            this.addStatItem(grid, 'Total Validations', data.validations.combined.total_validations.toLocaleString());
+            this.addStatItem(grid, 'Overall Accuracy', `${(data.validations.combined.Overall.accuracy * 100).toFixed(1)}%`);
             this.addStatItem(grid, 'Distance Explored', `${data.km_explored.toFixed(2)} km`);
             this.addStatItem(grid, 'Distance Explored (No Overlap)', `${data.km_explored_no_overlap.toFixed(2)} km`);
             this.addStatItem(grid, 'Total Users', data.user_counts.all_users.toLocaleString());

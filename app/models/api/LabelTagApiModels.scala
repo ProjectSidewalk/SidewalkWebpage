@@ -3,7 +3,7 @@
  */
 package models.api
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, OFormat}
 
 /**
  * Represents complete information about a label tag for API responses.
@@ -25,5 +25,7 @@ case class LabelTagForApi(
  * Companion object for LabelTagDetails containing JSON formatter
  */
 object LabelTagForApi {
-  implicit val format: OFormat[LabelTagForApi] = Json.format[LabelTagForApi]
+  // snake_case JSON output per the v3 API convention (#3871).
+  private implicit val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  implicit val format: OFormat[LabelTagForApi]   = Json.format[LabelTagForApi]
 }

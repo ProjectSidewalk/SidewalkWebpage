@@ -1,0 +1,165 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@content = {
+    <script>
+        // Set data attributes for API information, used by api-docs.js (e.g. the download buttons).
+        document.documentElement.setAttribute('data-api-base-url', '/v3/api');
+        document.documentElement.setAttribute('data-api-endpoint', 'aggregateStats');
+    </script>
+
+    <div class="api-section" id="aggregate-stats-intro-section">
+        <h1 class="api-heading" id="aggregate-stats-api">Aggregate Stats API <a href="#aggregate-stats-api" class="permalink">#</a></h1>
+        <p>
+            The Aggregate Stats API provides summary statistics <strong>combined across every Project Sidewalk
+            deployment</strong>: total distance explored, labels, validations, and deployment counts (cities, countries,
+            languages), plus a per-label-type breakdown. This is the project-wide rollup that powers the headline numbers
+            on this documentation site.
+        </p>
+        <p>
+            For per-deployment statistics for a single city, see the
+            <a href="@routes.ApiDocsController.overallStats">Overall Stats API</a>; for the list of deployments, see the
+            <a href="@routes.ApiDocsController.cities">Cities API</a>.
+        </p>
+    </div>
+
+    <div class="api-section" id="visual-example-section">
+        <h2 class="api-heading" id="visual-example">Aggregate Stats API Preview <a href="#visual-example" class="permalink">#</a></h2>
+        <p>Below is a live preview of the project-wide totals across all Project Sidewalk deployments:</p>
+
+        <div id="aggregate-stats-preview">Loading aggregate statistics...</div>
+
+        <script src="@routes.Assets.versioned("javascripts/api-docs/aggregate-stats-preview.js")"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                AggregateStatsPreview.setup({ maxWidth: 1000 }).init();
+            });
+        </script>
+    </div>
+
+    <div class="api-section" id="endpoint-section">
+        <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
+        <p>Retrieve aggregate statistics across all deployments.</p>
+        <p><code>GET /v3/api/aggregateStats</code></p>
+        <div class="api-subsection" id="endpoint-example-section">
+            <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+            <p><code><a target="_blank" href="/v3/api/aggregateStats">/v3/api/aggregateStats</a></code> Get aggregate stats in JSON (default)</p>
+            <p><code><a href="/v3/api/aggregateStats?filetype=csv">/v3/api/aggregateStats?filetype=csv</a></code> Get aggregate stats in CSV</p>
+        </div>
+    </div>
+
+    <div class="api-section" id="query-parameters-section">
+        <h2 class="api-heading" id="query-parameters">Query Parameters <a href="#query-parameters" class="permalink">#</a></h2>
+        <div class="api-table-wrapper">
+            <table class="api-table">
+                <thead>
+                    <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>filetype</code></td>
+                        <td><code>string</code></td>
+                        <td>Output format: <code>json</code> (default) or <code>csv</code>.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="api-section" id="quick-download-section">
+        <h2 class="api-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
+        <p>Download aggregate statistics directly in your preferred format:</p>
+
+        <div class="download-buttons">
+            <button class="download-btn" data-format="json">
+                <span class="format-icon">📄</span> JSON
+                <span class="format-hint">Standard format</span>
+            </button>
+            <button class="download-btn" data-format="csv">
+                <span class="format-icon">📊</span> CSV
+                <span class="format-hint">For spreadsheets</span>
+            </button>
+        </div>
+
+        <div id="download-status" class="status-container status-loading" style="display: none;">
+            <div class="loading-spinner"></div>
+            <div class="status-message">Preparing your download...</div>
+            <div class="status-progress">This should only take a few seconds.</div>
+        </div>
+    </div>
+
+    <div class="api-section" id="responses-section">
+        <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
+
+        <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
+        <p>
+            On success, the API returns an HTTP <code>200 OK</code> status code. In JSON (default) the body is an object
+            of aggregate totals; in CSV the body is a two-column <code>metric,value</code> table.
+        </p>
+
+        <pre><code class="language-json">{
+    "status": "OK",
+    "km_explored": 12345.6,
+    "km_explored_no_overlap": 11890.2,
+    "total_labels": 4567890,
+    "total_validations": 2345678,
+    "num_cities": 18,
+    "num_countries": 5,
+    "num_languages": 7,
+    "by_label_type": {
+        "CurbRamp": {
+            "labels": 1200000,
+            "labels_validated": 800000,
+            "labels_validated_agree": 720000,
+            "labels_validated_disagree": 80000
+        }
+        // ... more label types
+    }
+}</code></pre>
+
+        <h4 class="api-heading" id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>
+        <div class="api-table-wrapper">
+            <table class="api-table">
+                <thead>
+                    <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>status</code></td><td><code>string</code></td><td>Always "OK" for successful responses.</td></tr>
+                    <tr><td><code>km_explored</code></td><td><code>number</code></td><td>Total kilometers of streets explored across all deployments.</td></tr>
+                    <tr><td><code>km_explored_no_overlap</code></td><td><code>number</code></td><td>Total kilometers explored, excluding overlapping coverage.</td></tr>
+                    <tr><td><code>total_labels</code></td><td><code>integer</code></td><td>Total number of labels across all deployments.</td></tr>
+                    <tr><td><code>total_validations</code></td><td><code>integer</code></td><td>Total number of validations across all deployments.</td></tr>
+                    <tr><td><code>num_cities</code></td><td><code>integer</code></td><td>Number of deployment cities.</td></tr>
+                    <tr><td><code>num_countries</code></td><td><code>integer</code></td><td>Number of countries with a deployment.</td></tr>
+                    <tr><td><code>num_languages</code></td><td><code>integer</code></td><td>Number of natively translated languages.</td></tr>
+                    <tr><td><code>by_label_type</code></td><td><code>object</code></td><td>Per-label-type breakdown, keyed by label type name (e.g. "CurbRamp").</td></tr>
+                    <tr><td><code>by_label_type.&lt;type&gt;.labels</code></td><td><code>integer</code></td><td>Number of labels of this type.</td></tr>
+                    <tr><td><code>by_label_type.&lt;type&gt;.labels_validated</code></td><td><code>integer</code></td><td>Number of labels of this type that have at least one validation.</td></tr>
+                    <tr><td><code>by_label_type.&lt;type&gt;.labels_validated_agree</code></td><td><code>integer</code></td><td>Number validated as correct (agreed).</td></tr>
+                    <tr><td><code>by_label_type.&lt;type&gt;.labels_validated_disagree</code></td><td><code>integer</code></td><td>Number validated as incorrect (disagreed).</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
+        <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
+        <ul>
+            <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
+        </ul>
+
+        <h4 id="error-body">Error Response Body <a href="#error-body" class="permalink">#</a></h4>
+        <p>Error responses include a JSON body with the following structure:</p>
+        <pre><code class="language-json">{
+    "status": 500, // HTTP Status Code
+    "code": "INTERNAL_SERVER_ERROR", // Machine-readable error code
+    "message": "Failed to retrieve aggregate statistics: Database connection error" // Human-readable description
+}</code></pre>
+    </div>
+}
+
+@common.main(commonData, "API Docs") {
+    @common.navbar(commonData, Some(user))
+    @apiDocs.layout("aggregate-stats")(content)
+}

@@ -22,8 +22,11 @@
             urban walkability, rollability, and safety, while empowering innovative urban analytics and
             personalized mapping solutions.
         </p>
+        @* Populated client-side by aggregate-stats.js with live deployment stats; this is the no-JS fallback. *@
         <p id="project-sidewalk-aggregate-stats">
-            TODO
+            Working with local community groups and governmental partners, we have deployed Project Sidewalk in
+            cities across several countries and many natively translated languages, including Spanish, German, and
+            Chinese. Together, our users have assessed thousands of kilometers of city streets.
         </p>
         <p>
             Ready to build the future of urban accessibility? All Project Sidewalk <strong>data is open and public</strong>, accessible in popular formats like CSV, GeoJSON, or shape files
@@ -43,6 +46,22 @@
             describing the API endpoints, we first explain the core data type in Project Sidewalk:
             <strong>labels</strong>.
         </p>
+
+        <h2 class="api-heading" id="conventions">Conventions<a href="#conventions" class="permalink">#</a></h2>
+        <p>
+            <strong>Preview.</strong> The <code>/v3</code> API is currently in <strong>preview</strong>. We may make
+            breaking changes (including field renames) in place as we refine it, so depend on a specific response shape
+            with care.
+        </p>
+        <ul class="api-list">
+            <li><strong>Query parameters</strong> use <code>camelCase</code> (for example <code>minSeverity</code>,
+                <code>regionId</code>, <code>validationStatus</code>).</li>
+            <li><strong>Output field names</strong> use <code>snake_case</code> consistently across every format &mdash;
+                JSON, GeoJSON <code>properties</code>, CSV headers, and shapefile/GeoPackage fields (for example
+                <code>label_id</code>, <code>region_name</code>, <code>city_id</code>).</li>
+            <li><strong>Output format</strong> is selected with the <code>filetype</code> query parameter (for example
+                <code>?filetype=csv</code>); the HTTP <code>Accept</code> header is not used.</li>
+        </ul>
 
         <h2 class="api-heading" id="labels">Labels<a href="#labels" class="permalink">#</a></h2>
         <div class="video-container">

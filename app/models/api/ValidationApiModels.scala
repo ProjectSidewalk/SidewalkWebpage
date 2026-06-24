@@ -10,7 +10,7 @@ import models.computation.StreamingApiType
 import models.label.LocationXY
 import models.utils.CommonUtils.UiSource.UiSource
 import models.validation.ValidationOption
-import play.api.libs.json.{JsObject, Json, OFormat}
+import play.api.libs.json.{JsObject, Json, JsonConfiguration, JsonNaming, OFormat}
 
 import java.time.OffsetDateTime
 
@@ -190,5 +190,7 @@ case class ValidationResultTypeForApi(
  * Companion object for ValidationResultTypeForApi containing JSON formatter
  */
 object ValidationResultTypeForApi {
+  // snake_case JSON output per the v3 API convention (#3871).
+  private implicit val config: JsonConfiguration              = JsonConfiguration(JsonNaming.SnakeCase)
   implicit val format: OFormat[ValidationResultTypeForApi] = Json.format[ValidationResultTypeForApi]
 }

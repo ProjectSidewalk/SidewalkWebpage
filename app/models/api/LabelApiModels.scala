@@ -9,7 +9,7 @@ package models.api
 import models.api.ApiModelUtils.{createGeoJsonPointGeometry, escapeCsvField}
 import models.computation.StreamingApiType
 import models.utils.LatLngBBox
-import play.api.libs.json.{JsObject, Json, OFormat, Writes}
+import play.api.libs.json.{JsObject, Json, JsonConfiguration, JsonNaming, OFormat, Writes}
 
 import java.time.OffsetDateTime
 
@@ -57,7 +57,10 @@ case class LabelValidationSummaryForApi(
  * Companion object for LabelValidationSummaryForApi containing JSON formatters.
  */
 object LabelValidationSummaryForApi {
-  implicit val validationDataFormat: OFormat[LabelValidationSummaryForApi] = Json.format[LabelValidationSummaryForApi]
+  // snake_case JSON output per the v3 API convention (#3871).
+  private implicit val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  implicit val validationDataFormat: OFormat[LabelValidationSummaryForApi] =
+    Json.format[LabelValidationSummaryForApi]
 }
 
 /**

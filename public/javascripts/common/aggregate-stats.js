@@ -19,14 +19,14 @@ const CONFIG = {
  * Aggregated statistics data structure from the API.
  * @typedef {object} AggregatedStats
  * @property {string} status - API response status
- * @property {number} kmExplored - Total kilometers of streets assessed
- * @property {number} kmExploredNoOverlap - Total kilometers without overlap
- * @property {number} totalLabels - Total number of labels contributed
- * @property {number} totalValidations - Total number of validations
- * @property {number} numCities - Total number of deployed cities
- * @property {number} numCountries - Total number of countries
- * @property {number} numLanguages - Total number of supported languages
- * @property {object} byLabelType - Label statistics by type
+ * @property {number} km_explored - Total kilometers of streets assessed
+ * @property {number} km_explored_no_overlap - Total kilometers without overlap
+ * @property {number} total_labels - Total number of labels contributed
+ * @property {number} total_validations - Total number of validations
+ * @property {number} num_cities - Total number of deployed cities
+ * @property {number} num_countries - Total number of countries
+ * @property {number} num_languages - Total number of supported languages
+ * @property {object} by_label_type - Label statistics by type
  */
 
 /**
@@ -82,7 +82,7 @@ async function fetchWithRetry(url, timeout = CONFIG.REQUEST_TIMEOUT, retries = C
  *
  * @example
  * const stats = await fetchAggregateStats();
- * console.log(`Total cities: ${stats.numCities}`);
+ * console.log(`Total cities: ${stats.num_cities}`);
  */
 async function fetchAggregateStats() {
     try {
@@ -93,7 +93,7 @@ async function fetchAggregateStats() {
         }
 
         // Validate that we have the expected fields
-        const requiredFields = ['kmExplored', 'totalLabels', 'totalValidations', 'numCities', 'numCountries', 'numLanguages'];
+        const requiredFields = ['km_explored', 'total_labels', 'total_validations', 'num_cities', 'num_countries', 'num_languages'];
         const missingFields = requiredFields.filter(field => typeof response[field] !== 'number');
 
         if (missingFields.length > 0) {
@@ -152,12 +152,12 @@ function updateStatsDisplay(stats) {
     if (mainTargetParagraph) {
         mainTargetParagraph.innerHTML = `
             Join our movement that spans the globe. Working with local community groups and governmental partners,
-            we have deployed Project Sidewalk in <strong>${stats.numCities} cities</strong> across
-            <strong>${stats.numCountries} countries</strong> and <strong>${stats.numLanguages} natively translated
+            we have deployed Project Sidewalk in <strong>${stats.num_cities} cities</strong> across
+            <strong>${stats.num_countries} countries</strong> and <strong>${stats.num_languages} natively translated
             languages</strong>, including Spanish, German, and Chinese. Together, our users have assessed
-            over <strong>${formatDistance(stats.kmExplored)}</strong> of city streets,
-            contributing <strong>${formatNumber(stats.totalLabels)} labels</strong> and
-            <strong>${formatNumber(stats.totalValidations)} validations</strong>. This is more than just data;
+            over <strong>${formatDistance(stats.km_explored)}</strong> of city streets,
+            contributing <strong>${formatNumber(stats.total_labels)} labels</strong> and
+            <strong>${formatNumber(stats.total_validations)} validations</strong>. This is more than just data;
             it's the foundation for more inclusive and accessible cities.
         `;
     }
@@ -166,8 +166,8 @@ function updateStatsDisplay(stats) {
     const citiesTargetParagraph = document.getElementById('cities-deployment-stats');
     if (citiesTargetParagraph) {
         citiesTargetParagraph.innerHTML = `
-            Project Sidewalk is deployed in <strong>${stats.numCities} cities</strong> across
-            <strong>${stats.numCountries} countries</strong>. The Cities API lists all Project Sidewalk deployment
+            Project Sidewalk is deployed in <strong>${stats.num_cities} cities</strong> across
+            <strong>${stats.num_countries} countries</strong>. The Cities API lists all Project Sidewalk deployment
             sites, including the city's name, ID, and URL as well as geographic information such as the city center
             point <code>lat, lng</code> and bounding box.
         `;

@@ -105,20 +105,20 @@
 
         <pre><code class="language-json">{
     "status": "OK",
-    "labelTags": [
+    "label_tags": [
         {
             "id": 1,
-            "labelType": "CurbRamp",
+            "label_type": "CurbRamp",
             "tag": "narrow",
             "description": "@Messages("tag.description.1")",
-            "mutuallyExclusiveWith": []
+            "mutually_exclusive_with": []
         },
         {
             "id": 3,
-            "labelType": "CurbRamp",
+            "label_type": "CurbRamp",
             "tag": "missing tactile warning",
             "description": "@Messages("tag.description.3")",
-            "mutuallyExclusiveWith": [
+            "mutually_exclusive_with": [
                 "tactile warning"
             ]
         },
@@ -143,32 +143,32 @@
                         <td>Always "OK" for successful responses.</td>
                     </tr>
                     <tr>
-                        <td><code>labelTags</code></td>
+                        <td><code>label_tags</code></td>
                         <td><code>array</code></td>
                         <td>Array of label tag objects.</td>
                     </tr>
                     <tr>
-                        <td><code>labelTags[].id</code></td>
+                        <td><code>label_tags[].id</code></td>
                         <td><code>integer</code></td>
                         <td>Unique identifier for the tag.</td>
                     </tr>
                     <tr>
-                        <td><code>labelTags[].labelType</code></td>
+                        <td><code>label_tags[].label_type</code></td>
                         <td><code>string</code></td>
                         <td>The label type this tag applies to (e.g., "CurbRamp", "Obstacle").</td>
                     </tr>
                     <tr>
-                        <td><code>labelTags[].tag</code></td>
+                        <td><code>label_tags[].tag</code></td>
                         <td><code>string</code></td>
                         <td>Name of the tag (e.g., "narrow", "missing tactile warning").</td>
                     </tr>
                     <tr>
-                        <td><code>labelTags[].description</code></td>
+                        <td><code>label_tags[].description</code></td>
                         <td><code>string</code></td>
                         <td>Human-readable description of the tag.</td>
                     </tr>
                     <tr>
-                        <td><code>labelTags[].mutuallyExclusiveWith</code></td>
+                        <td><code>label_tags[].mutually_exclusive_with</code></td>
                         <td><code>array[string]</code></td>
                         <td>Array of tag names that cannot be applied simultaneously with this tag.</td>
                     </tr>
