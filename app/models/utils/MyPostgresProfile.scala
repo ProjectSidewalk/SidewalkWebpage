@@ -6,6 +6,7 @@ import com.github.tminglei.slickpg.geom.PgPostGISExtensions
 import models.label.AiImageSource
 import models.pano.PanoSource
 import models.utils.CommonUtils.{UiSource, ViewerType}
+import models.validation.ValidationOption
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
 import org.n52.jackson.datatype.jts.JtsModule
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
@@ -118,6 +119,15 @@ trait MyPostgresProfile
     // Mapper for viewer_type enum type.
     implicit val viewerTypeMapper: BaseColumnType[ViewerType.Value] =
       createEnumJdbcType[ViewerType.Value]("viewer_type", _.toString, ViewerType.withName, quoteName = false)
+
+    // Mapper for validation_option enum type.
+    implicit val validationOptionMapper: BaseColumnType[ValidationOption.Value] =
+      createEnumJdbcType[ValidationOption.Value](
+        "validation_option",
+        _.toString,
+        ValidationOption.withName,
+        quoteName = false
+      )
   }
 }
 

@@ -860,11 +860,11 @@ class UserStatTable @Inject() (
       LEFT JOIN (
           SELECT label_validation.user_id,
                  COUNT(*) AS validations_given,
-                 COUNT(CASE WHEN (validation_result = 1 AND correct = FALSE)
-                                 OR (validation_result = 2 AND correct = TRUE) THEN 1 END) AS dissenting_validations_given,
-                 COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS agree_validations_given,
-                 COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS disagree_validations_given,
-                 COUNT(CASE WHEN validation_result = 3 THEN 1 END) AS unsure_validations_given
+                 COUNT(CASE WHEN (validation_result = 'Agree' AND correct = FALSE)
+                                 OR (validation_result = 'Disagree' AND correct = TRUE) THEN 1 END) AS dissenting_validations_given,
+                 COUNT(CASE WHEN validation_result = 'Agree' THEN 1 END) AS agree_validations_given,
+                 COUNT(CASE WHEN validation_result = 'Disagree' THEN 1 END) AS disagree_validations_given,
+                 COUNT(CASE WHEN validation_result = 'Unsure' THEN 1 END) AS unsure_validations_given
           FROM label_validation
           INNER JOIN label ON label_validation.label_id = label.label_id
           GROUP BY label_validation.user_id

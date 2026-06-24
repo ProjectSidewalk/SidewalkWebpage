@@ -14,22 +14,22 @@ function MobileValidationMenu(menuUI) {
             const action = e.isTrigger ? 'ValidationKeyboardShortcut_Agree' : 'ValidationButtonClick_Agree';
             svv.tracker.push(action);
             _setYesView();
-            svv.labelContainer.getCurrentLabel().setProperty('validationResult', 1);
+            svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Agree');
 
             // Not adding comments on mobile when voting yes, just submit the validation.
-            _validateLabel(svv.validationOptions[svv.labelContainer.getCurrentLabel().getProperty('validationResult')], e.isTrigger);
+            _validateLabel(svv.labelContainer.getCurrentLabel().getProperty('validationResult'), e.isTrigger);
         });
         menuUI.noButton.click(function(e) {
             const action = e.isTrigger ? 'ValidationKeyboardShortcut_Disagree' : 'ValidationButtonClick_Disagree';
             svv.tracker.push(action);
             _setNoView();
-            svv.labelContainer.getCurrentLabel().setProperty('validationResult', 2);
+            svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Disagree');
         });
         menuUI.unsureButton.click(function(e) {
             const action = e.isTrigger ? 'ValidationKeyboardShortcut_Unsure' : 'ValidationButtonClick_Unsure';
             svv.tracker.push(action);
             _setUnsureView();
-            svv.labelContainer.getCurrentLabel().setProperty('validationResult', 3);
+            svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Unsure');
         });
 
         // Add onclick for disagree and unsure reason buttons.
@@ -175,9 +175,9 @@ function MobileValidationMenu(menuUI) {
                 menuUI.unsureReasonOptions.find(`#${unsureOption}`).addClass('chosen');
             }
 
-            if (prevValResult === 1)      _setYesView();
-            else if (prevValResult === 2) _setNoView();
-            else if (prevValResult === 3) _setUnsureView();
+            if (prevValResult === 'Agree')         _setYesView();
+            else if (prevValResult === 'Disagree') _setNoView();
+            else if (prevValResult === 'Unsure')   _setUnsureView();
         }
     }
 

@@ -4,7 +4,7 @@ import models.audit.{AuditedStreetWithTimestamp, ContributionTimeStat, GenericCo
 import models.label.LabelCount
 import models.user.UserCount
 import models.utils.MyPostgresProfile.api._
-import models.validation.ValidationCount
+import models.validation.{ValidationCount, ValidationOption}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import service.TimeInterval.TimeInterval
@@ -80,7 +80,8 @@ object AdminFormats {
     (__ \ "count").write[Int] and
       (__ \ "time_interval").write[TimeInterval] and
       (__ \ "label_type").write[String] and
-      (__ \ "result").write[String] and
+      // None represents the "All" results subtotal.
+      (__ \ "result").write[String].contramap[Option[ValidationOption.Value]](_.map(_.toString).getOrElse("All")) and
       (__ \ "validator").write[String]
   )(unlift(ValidationCount.unapply))
 

@@ -263,28 +263,11 @@ function Label(params) {
             svv.tracker.push('ValidationTextField_DataEntered', { validation: validationResult, text: comment });
         }
 
-        switch (validationResult) {
-            // Agree option selected.
-            case 'Agree':
-                setProperty('validationResult', 1);
-                svv.missionContainer.getCurrentMission().updateValidationResult(1, false);
-                svv.labelContainer.pushToLabelsToSubmit(getAuditProperty('labelId'), getProperties(), prepareCommentData());
-                svv.missionContainer.updateAMission();
-                break;
-            // Disagree option selected.
-            case 'Disagree':
-                setProperty('validationResult', 2);
-                svv.missionContainer.getCurrentMission().updateValidationResult(2, false);
-                svv.labelContainer.pushToLabelsToSubmit(getAuditProperty('labelId'), getProperties(), prepareCommentData());
-                svv.missionContainer.updateAMission();
-                break;
-            // Unsure option selected.
-            case 'Unsure':
-                setProperty('validationResult', 3);
-                svv.missionContainer.getCurrentMission().updateValidationResult(3, false);
-                svv.labelContainer.pushToLabelsToSubmit(getAuditProperty('labelId'), getProperties(), prepareCommentData());
-                svv.missionContainer.updateAMission();
-                break;
+        if (['Agree', 'Disagree', 'Unsure'].includes(validationResult)) {
+            setProperty('validationResult', validationResult);
+            svv.missionContainer.getCurrentMission().updateValidationResult(validationResult, false);
+            svv.labelContainer.pushToLabelsToSubmit(getAuditProperty('labelId'), getProperties(), prepareCommentData());
+            svv.missionContainer.updateAMission();
         }
 
         // If there are more labels left to validate, add a new label to the panorama. Otherwise, we will load a new
