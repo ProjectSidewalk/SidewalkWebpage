@@ -130,8 +130,8 @@
                 })
                 .then(data => {
                     // Process the label types data to populate the colors and mapping.
-                    if (data && data.labelTypes && Array.isArray(data.labelTypes)) {
-                        data.labelTypes.forEach(labelType => {
+                    if (data && data.label_types && Array.isArray(data.label_types)) {
+                        data.label_types.forEach(labelType => {
                             const snakeCaseKey = labelTypeAPIMapping[labelType.name] || labelType.name.toLowerCase();
 
                             // Update the colors map.

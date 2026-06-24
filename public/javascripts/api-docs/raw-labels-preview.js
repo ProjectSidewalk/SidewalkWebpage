@@ -60,7 +60,7 @@
             return this.fetchLabelTypes()
                 .then(data => {
                     // Store label type info for later use.
-                    labelTypeInfo = data.labelTypes.reduce((acc, type) => {
+                    labelTypeInfo = data.label_types.reduce((acc, type) => {
                         acc[type.name] = {
                             color: type.color,
                             description: type.description

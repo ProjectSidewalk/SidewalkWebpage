@@ -99,7 +99,7 @@
          */
         groupTagsByLabelType: function(labelTags) {
             return labelTags.reduce((groups, tag) => {
-                const labelType = tag.labelType;
+                const labelType = tag.label_type;
                 if (!groups[labelType]) {
                     groups[labelType] = [];
                 }
@@ -125,7 +125,7 @@
          */
         renderLabelTags: function(data, container) {
             // Group tags by label type.
-            const groupedTags = this.groupTagsByLabelType(data.labelTags);
+            const groupedTags = this.groupTagsByLabelType(data.label_tags);
 
             // Clear container.
             container.innerHTML = '';
@@ -211,8 +211,8 @@
                     const exclusionsCell = document.createElement('td');
                     exclusionsCell.className = 'tag-exclusions';
 
-                    if (tag.mutuallyExclusiveWith && tag.mutuallyExclusiveWith.length > 0) {
-                        tag.mutuallyExclusiveWith.forEach(exclusiveTag => {
+                    if (tag.mutually_exclusive_with && tag.mutually_exclusive_with.length > 0) {
+                        tag.mutually_exclusive_with.forEach(exclusiveTag => {
                             const span = document.createElement('span');
                             span.textContent = exclusiveTag;
                             exclusionsCell.appendChild(span);
@@ -238,7 +238,7 @@
          */
         renderLabelTagsSummary: function(data, container) {
             // Group tags by label type.
-            const groupedTags = this.groupTagsByLabelType(data.labelTags);
+            const groupedTags = this.groupTagsByLabelType(data.label_tags);
 
             // Clear container.
             container.innerHTML = '';

@@ -3,7 +3,7 @@
  */
 package models.api
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, OFormat}
 
 /**
  * Represents complete information about a label type for API responses.
@@ -34,5 +34,7 @@ case class LabelTypeForApi(
  * Companion object for LabelTypeDetails containing JSON formatter.
  */
 object LabelTypeForApi {
-  implicit val format: OFormat[LabelTypeForApi] = Json.format[LabelTypeForApi]
+  // snake_case JSON output per the v3 API convention (#3871).
+  private implicit val config: JsonConfiguration  = JsonConfiguration(JsonNaming.SnakeCase)
+  implicit val format: OFormat[LabelTypeForApi]   = Json.format[LabelTypeForApi]
 }

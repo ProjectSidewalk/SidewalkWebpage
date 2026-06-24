@@ -153,7 +153,7 @@ class StreetsApiController @Inject() (
       .getStreetTypes(request.lang)
       .map { types =>
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
-        Ok(Json.obj("status" -> "OK", "streetTypes" -> types))
+        Ok(Json.obj("status" -> "OK", "street_types" -> types))
       }
       .recover { case e: Exception =>
         InternalServerError(

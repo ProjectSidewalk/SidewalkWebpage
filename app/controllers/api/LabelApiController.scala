@@ -77,7 +77,7 @@ class LabelApiController @Inject() (
   def getLabelTypes = silhouette.UserAwareAction.async { request =>
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
     val labelTypeDetailsList: Seq[LabelTypeForApi] = apiService.getLabelTypes(request.lang).toList.sortBy(_.id)
-    Future.successful(Ok(Json.obj("status" -> "OK", "labelTypes" -> labelTypeDetailsList)))
+    Future.successful(Ok(Json.obj("status" -> "OK", "label_types" -> labelTypeDetailsList)))
   }
 
   /**
@@ -107,7 +107,7 @@ class LabelApiController @Inject() (
           )
         }
 
-        Ok(Json.obj("status" -> "OK", "labelTags" -> formattedTags))
+        Ok(Json.obj("status" -> "OK", "label_tags" -> formattedTags))
       }
       .recover { case e: Exception =>
         InternalServerError(
