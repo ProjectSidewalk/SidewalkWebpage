@@ -4,6 +4,7 @@ import com.google.inject.ImplementedBy
 import models.user.{RoleTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import slick.jdbc.GetResult
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -15,6 +16,11 @@ case class WebpageActivity(
     description: String,
     timestamp: OffsetDateTime
 )
+
+/** Analytics data types for the v3 API usage dashboard. */
+case class ApiEndpointCount(endpoint: String, count: Long)
+case class ApiDailyCount(date: String, count: Long)
+case class ApiFormatCount(endpoint: String, format: String, count: Long)
 
 class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "webpage_activity") {
   def webpageActivityId: Rep[Int]    = column[Int]("webpage_activity_id", O.PrimaryKey, O.AutoInc)
@@ -91,5 +97,101 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    */
   def findUserActivity(activity: String, userId: String): DBIO[Seq[WebpageActivity]] = {
     activities.filter(a => a.userId === userId && a.activity === activity).result
+  }
+
+  /**
+   * Returns per-endpoint call counts for v3 API requests.
+   *
+   * The `activity` column stores Play's `request.toString`, which is "METHOD /path?query", so filtering on
+   * `'GET /v3/api/%'` catches all v3 API GETs. The endpoint is extracted by stripping the HTTP method and
+   * any query string using `SPLIT_PART`.
+   *
+   * @param excludeApiDocs If true, excludes requests with `source=apiDocs` in the query string.
+   * @param days           Number of past days to include (0 = no date filter / all time).
+   * @return DBIO with a sequence of (endpoint, count) tuples, ordered by count descending.
+   */
+  def getApiEndpointCounts(excludeApiDocs: Boolean, days: Int): DBIO[Seq[ApiEndpointCount]] = {
+    implicit val gr: GetResult[ApiEndpointCount] = GetResult(r => ApiEndpointCount(r.nextString(), r.nextLong()))
+    val dateFilter    = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
+    val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%source=apiDocs%'" else ""
+    sql"""
+      SELECT SPLIT_PART(SPLIT_PART(activity, ' ', 2), '?', 1) AS endpoint, COUNT(*) AS call_count
+      FROM webpage_activity
+      WHERE activity LIKE 'GET /v3/api/%'
+        #$dateFilter
+        #$apiDocsFilter
+      GROUP BY endpoint
+      ORDER BY call_count DESC
+    """.as[ApiEndpointCount]
+  }
+
+  /**
+   * Returns daily call counts for v3 API requests, ordered by date ascending.
+   *
+   * @param excludeApiDocs If true, excludes requests with `source=apiDocs` in the query string.
+   * @param days           Number of past days to include (0 = all time).
+   * @return DBIO with a sequence of (date string, count) tuples.
+   */
+  def getApiDailyCounts(excludeApiDocs: Boolean, days: Int): DBIO[Seq[ApiDailyCount]] = {
+    implicit val gr: GetResult[ApiDailyCount] = GetResult(r => ApiDailyCount(r.nextString(), r.nextLong()))
+    val dateFilter    = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
+    val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%source=apiDocs%'" else ""
+    sql"""
+      SELECT DATE(timestamp)::text AS date, COUNT(*) AS call_count
+      FROM webpage_activity
+      WHERE activity LIKE 'GET /v3/api/%'
+        #$dateFilter
+        #$apiDocsFilter
+      GROUP BY date
+      ORDER BY date ASC
+    """.as[ApiDailyCount]
+  }
+
+  /**
+   * Returns the count of distinct IP addresses that have made v3 API requests.
+   *
+   * @param excludeApiDocs If true, excludes requests with `source=apiDocs` in the query string.
+   * @param days           Number of past days to include (0 = all time).
+   * @return DBIO with the unique IP count.
+   */
+  def getApiUniqueIpCount(excludeApiDocs: Boolean, days: Int): DBIO[Long] = {
+    val dateFilter    = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
+    val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%source=apiDocs%'" else ""
+    sql"""
+      SELECT COUNT(DISTINCT ip_address)
+      FROM webpage_activity
+      WHERE activity LIKE 'GET /v3/api/%'
+        #$dateFilter
+        #$apiDocsFilter
+    """.as[Long].head
+  }
+
+  /**
+   * Returns per-endpoint, per-format call counts for v3 API requests.
+   *
+   * The `filetype` query parameter is extracted from the activity string; requests without a `filetype`
+   * param are counted under `"json"` (the default output format for all v3 endpoints).
+   *
+   * @param excludeApiDocs If true, excludes requests with `source=apiDocs` in the query string.
+   * @param days           Number of past days to include (0 = all time).
+   * @return DBIO with a sequence of (endpoint, format, count) tuples.
+   */
+  def getApiFormatCounts(excludeApiDocs: Boolean, days: Int): DBIO[Seq[ApiFormatCount]] = {
+    implicit val gr: GetResult[ApiFormatCount] =
+      GetResult(r => ApiFormatCount(r.nextString(), r.nextString(), r.nextLong()))
+    val dateFilter    = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
+    val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%source=apiDocs%'" else ""
+    sql"""
+      SELECT
+        SPLIT_PART(SPLIT_PART(activity, ' ', 2), '?', 1) AS endpoint,
+        COALESCE((REGEXP_MATCH(activity, '[?&]filetype=([^&\s]+)'))[1], 'json') AS format,
+        COUNT(*) AS call_count
+      FROM webpage_activity
+      WHERE activity LIKE 'GET /v3/api/%'
+        #$dateFilter
+        #$apiDocsFilter
+      GROUP BY endpoint, format
+      ORDER BY endpoint, call_count DESC
+    """.as[ApiFormatCount]
   }
 }

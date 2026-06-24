@@ -673,6 +673,33 @@ class AdminController @Inject() (
   /**
    * Returns information about the thread pools used by the application. Useful for debugging & monitoring thread usage.
    */
+  /**
+   * Returns v3 API usage analytics aggregated from the webpage_activity log.
+   *
+   * Requires admin authentication. Accepts two optional query params:
+   *  - `excludeApiDocs` (Boolean, default true): exclude requests that carry `source=apiDocs` so that
+   *    automated previews in the API docs page are not counted as real consumer traffic.
+   *  - `days` (Int, default 30): number of calendar days of history to include; 0 = all time.
+   *
+   * @param excludeApiDocs Whether to exclude requests from the API docs preview widgets.
+   * @param days           Number of past days of history; 0 means all time.
+   * @return JSON object with endpoint_counts, daily_counts, unique_ips, format_counts, and total_calls.
+   */
+  def getApiAnalytics(excludeApiDocs: Boolean, days: Int) = cc.securityService.SecuredAction(WithAdmin()) {
+    implicit request =>
+      logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+      adminService.getApiAnalytics(excludeApiDocs, days).map { case (endpointCounts, dailyCounts, uniqueIps, formatCounts) =>
+        val totalCalls = endpointCounts.map(_.count).sum
+        Ok(Json.obj(
+          "endpoint_counts" -> endpointCounts.map(c => Json.obj("endpoint" -> c.endpoint, "count" -> c.count)),
+          "daily_counts"    -> dailyCounts.map(c => Json.obj("date" -> c.date, "count" -> c.count)),
+          "unique_ips"      -> uniqueIps,
+          "format_counts"   -> formatCounts.map(c => Json.obj("endpoint" -> c.endpoint, "format" -> c.format, "count" -> c.count)),
+          "total_calls"     -> totalCalls
+        ))
+      }
+  }
+
   def getThreadPoolStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     val dispatcherNames = List("database-operations", "cpu-intensive", "pekko.actor.default-dispatcher")

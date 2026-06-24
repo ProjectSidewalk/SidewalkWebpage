@@ -9,7 +9,7 @@ import models.region.Region
 import models.street.StreetEdgeTable
 import models.user._
 import models.utils.CommonUtils.METERS_TO_MILES
-import models.utils.{MyPostgresProfile, WebpageActivityTable}
+import models.utils.{ApiDailyCount, ApiEndpointCount, ApiFormatCount, MyPostgresProfile, WebpageActivityTable}
 import models.validation.{LabelValidationTable, ValidationCount, ValidationTaskCommentTable}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval.TimeInterval
@@ -65,6 +65,7 @@ trait AdminService {
   def getUserStatsForAdminPage: Future[Seq[UserStatsForAdminPage]]
   def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Double)]]
   def updateUserStatTable(cutoffTime: OffsetDateTime): Future[Int]
+  def getApiAnalytics(excludeApiDocs: Boolean, days: Int): Future[(Seq[ApiEndpointCount], Seq[ApiDailyCount], Long, Seq[ApiFormatCount])]
 }
 
 @Singleton
@@ -427,5 +428,24 @@ class AdminServiceImpl @Inject() (
         rowsUpdated <- userStatTable.updateHighQuality(cutoffTime)
       } yield rowsUpdated
     )
+  }
+
+  /**
+   * Returns aggregated usage analytics for the v3 public API from the webpage_activity log.
+   *
+   * @param excludeApiDocs If true, filters out requests that include `source=apiDocs` in the query string.
+   * @param days           Number of past days to include; 0 means all time.
+   * @return A tuple of (endpoint counts, daily counts, unique IP count, format counts).
+   */
+  def getApiAnalytics(
+      excludeApiDocs: Boolean,
+      days: Int
+  ): Future[(Seq[ApiEndpointCount], Seq[ApiDailyCount], Long, Seq[ApiFormatCount])] = {
+    db.run(for {
+      endpointCounts <- webpageActivityTable.getApiEndpointCounts(excludeApiDocs, days)
+      dailyCounts    <- webpageActivityTable.getApiDailyCounts(excludeApiDocs, days)
+      uniqueIps      <- webpageActivityTable.getApiUniqueIpCount(excludeApiDocs, days)
+      formatCounts   <- webpageActivityTable.getApiFormatCounts(excludeApiDocs, days)
+    } yield (endpointCounts, dailyCounts, uniqueIps, formatCounts))
   }
 }

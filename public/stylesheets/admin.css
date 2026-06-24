@@ -118,3 +118,51 @@
 #user-quality-button {
     margin-top: unset; /* Remove default styling from main.css since this isn't in a table. */
 }
+
+/* ── API Analytics tab ── */
+
+.api-analytics-summary-cards {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.api-analytics-card {
+    border: 1px solid var(--color-neutral-300, #ddd);
+    border-radius: 6px;
+    padding: 16px 24px;
+    min-width: 160px;
+    text-align: center;
+    background: var(--color-neutral-white, #fff);
+}
+
+.api-analytics-card-value {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--color-brand-primary, #006cb4);
+}
+
+.api-analytics-card-label {
+    font-size: 0.85rem;
+    color: var(--color-neutral-600, #666);
+    margin-top: 4px;
+}
+
+.api-analytics-table {
+    max-width: 900px;
+}
+
+.api-analytics-bar-outer {
+    background: var(--color-neutral-200, #eee);
+    border-radius: 3px;
+    height: 10px;
+    min-width: 120px;
+}
+
+.api-analytics-bar-inner {
+    background: var(--color-brand-primary, #006cb4);
+    border-radius: 3px;
+    height: 10px;
+    min-width: 2px;
+}
