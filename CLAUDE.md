@@ -61,6 +61,32 @@ Two standalone scripts (run via the Python deps in `requirements.txt`, installed
 - `label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterController.scala` / `app/models/cluster/`).
 - `check_streets_for_imagery.py` — checks streets for available street-view imagery (related: `make hide-streets-without-imagery`).
 
+## Label Type Colors and Icons
+
+Every label type has a **canonical color** and a set of **icon images**. Always use these — never invent substitute colors.
+
+| Label Type     | Color     |
+|----------------|-----------|
+| CurbRamp       | `#90C31F` |
+| NoCurbRamp     | `#E679B6` |
+| Obstacle       | `#78B0EA` |
+| SurfaceProblem | `#F68D3E` |
+| NoSidewalk     | `#BE87D8` |
+| Crosswalk      | `#FABF1C` |
+| Signal         | `#63C0AB` |
+| Other          | `#B3B3B3` |
+| Occlusion      | `#B3B3B3` |
+| Problem        | `#B3B3B3` |
+
+**Icons** live in `public/images/icons/label_type_icons/` in three sizes: `{LabelType}.png` (large),
+`{LabelType}_small.png`, and `{LabelType}_tiny.png`. The canonical source of truth for both colors and icon URLs
+is the `/v3/api/labelTypes` endpoint.
+
+**In JavaScript:** call `util.misc.getLabelColors(labelType)` — defined in
+`public/javascripts/common/UtilitiesSidewalk.js` and loaded on every page that includes
+`app/views/apiDocs/layout.scala.html` or the main app bundles. Do **not** hardcode the hex values in
+feature code; use `getLabelColors()` so colors stay in sync automatically.
+
 ## Development Guidelines
 - Main development branch is **develop**; **master** is the release branch. PRs target `develop`.
 - If there is an associated Github issue, beging the branch name with the issue number (e.g. `1234-fix-label-popup`).

@@ -10,10 +10,11 @@ import models.utils.CommonUtils.ViewerType.ViewerType
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import slick.jdbc.GetResult
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
@@ -401,5 +402,68 @@ class LabelValidationTable @Inject() (
             )
           }
       }
+  }
+
+  /**
+   * Returns daily validation counts split by human vs AI validator and validation result, per label type.
+   *
+   * Validations are bucketed by label_validation.end_timestamp cast to a US/Pacific calendar date —
+   * i.e. the day the validation was performed, not the day the label was placed. The quality filter
+   * mirrors the convention in getOverallStatsForApi: when filterLowQuality is false, only
+   * administratively excluded users are removed; when true, only high_quality users are included.
+   *
+   * validation_result is compared via ::text cast to support both integer and validation_option enum
+   * schemas across different city deployments ('Agree', 'Disagree', 'Unsure').
+   *
+   * @param startDate        Inclusive lower bound on end_timestamp (Pacific date); no bound if None.
+   * @param endDate          Inclusive upper bound on end_timestamp; no bound if None.
+   * @param filterLowQuality If true, restrict to user_stat.high_quality users; otherwise exclude
+   *                         only user_stat.excluded users.
+   * @return                 Sequence of (date, labelType, humanAgree, humanDisagree, humanUnsure,
+   *                         aiAgree, aiDisagree, aiUnsure), sorted by date then label type.
+   */
+  def getDailyValidationStats(
+      startDate: Option[LocalDate],
+      endDate: Option[LocalDate],
+      filterLowQuality: Boolean
+  ): DBIO[Seq[(LocalDate, String, Int, Int, Int, Int, Int, Int)]] = {
+    val userFilter = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
+    val whereClauses = scala.collection.mutable.ListBuffer(
+      "label.deleted = FALSE",
+      userFilter
+    )
+    startDate.foreach(d => whereClauses += s"label_validation.end_timestamp >= '$d'::date")
+    endDate.foreach(d => whereClauses += s"label_validation.end_timestamp < ('$d'::date + INTERVAL '1 day')")
+    val where = whereClauses.mkString(" AND ")
+
+    implicit val getResult: GetResult[(LocalDate, String, Int, Int, Int, Int, Int, Int)] =
+      GetResult(r => (LocalDate.parse(r.nextString()), r.nextString(),
+        r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()))
+
+    sql"""
+      SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
+             label_type.label_type,
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
+                        THEN 1 END) AS human_agree,
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
+                        THEN 1 END) AS human_disagree,
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Unsure'
+                        THEN 1 END) AS human_unsure,
+             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Agree'
+                        THEN 1 END) AS ai_agree,
+             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Disagree'
+                        THEN 1 END) AS ai_disagree,
+             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Unsure'
+                        THEN 1 END) AS ai_unsure
+      FROM label_validation
+      INNER JOIN label      ON label_validation.label_id    = label.label_id
+      INNER JOIN label_type ON label.label_type_id          = label_type.label_type_id
+      INNER JOIN user_stat  ON label_validation.user_id     = user_stat.user_id
+      LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
+      LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
+      WHERE #$where
+      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, label_type.label_type
+      ORDER BY date ASC, label_type.label_type
+    """.as[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
   }
 }
