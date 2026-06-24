@@ -2,7 +2,7 @@
  * Project Sidewalk Overall Stats by Day Preview Generator.
  *
  * Renders a live time-series visualization for the Overall Stats by Day API endpoint, showing
- * daily label and validation activity for the current city over the last 90 days.
+ * daily label and validation activity for the current city (most recent 90 days with data).
  *
  * @requires DOM element with id 'overall-stats-by-day-preview'
  * @requires Chart.js library (chart-4.5.1.min.js)
@@ -26,17 +26,6 @@
         containerId: 'overall-stats-by-day-preview',
         cityName: 'this city'
     };
-
-    /**
-     * Returns a date string YYYY-MM-DD for `daysAgo` days before today.
-     * @param {number} daysAgo
-     * @returns {string}
-     */
-    function dateString(daysAgo) {
-        const d = new Date();
-        d.setDate(d.getDate() - daysAgo);
-        return d.toISOString().slice(0, 10);
-    }
 
     /** @param {string} msg */
     function showError(container, msg) {
@@ -70,6 +59,18 @@
             (byDay.get(d) || new Map()).forEach(row => { total += (row[field] || 0); });
             return total;
         });
+    }
+
+    /**
+     * Keeps only rows from the most recent `maxDays` unique dates in the data.
+     * @param {Array<object>} data
+     * @param {number} maxDays
+     * @returns {Array<object>}
+     */
+    function trimToRecentDays(data, maxDays) {
+        const dates = Array.from(new Set(data.map(r => r.date))).sort();
+        const cutoff = dates.length > maxDays ? dates[dates.length - maxDays] : dates[0];
+        return data.filter(r => r.date >= cutoff);
     }
 
     /**
@@ -111,7 +112,7 @@
         // ── Chart 1: Human labels per day ───────────────────────────────────────
         container.appendChild(makeChart(
             'Human Labels per Day',
-            `Daily new labels placed by human contributors in ${config.cityName} (last 90 days)`,
+            `Daily new labels placed by human contributors in ${config.cityName}`,
             chartContainer => {
                 const canvas = document.createElement('canvas');
                 chartContainer.appendChild(canvas);
@@ -137,7 +138,7 @@
         // ── Chart 2: Validations per day (agree / disagree / unsure) ───────────
         container.appendChild(makeChart(
             'Validations per Day',
-            `Daily validation activity breakdown in ${config.cityName} (last 90 days)`,
+            `Daily validation activity breakdown in ${config.cityName}`,
             chartContainer => {
                 const canvas = document.createElement('canvas');
                 chartContainer.appendChild(canvas);
@@ -266,8 +267,7 @@
 
             container.innerHTML = '<p style="text-align:center;color:#888;padding:40px 0">Loading…</p>';
 
-            const startDate = dateString(90);
-            const url = `${config.apiBaseUrl}/overallStatsByDay?startDate=${startDate}&source=apiDocs`;
+            const url = `${config.apiBaseUrl}/overallStatsByDay?source=apiDocs`;
 
             return fetch(url)
                 .then(r => {
@@ -276,7 +276,8 @@
                 })
                 .then(json => {
                     container.innerHTML = '';
-                    render(container, json.data || []);
+                    // Trim to the most recent 90 days that have data for readability.
+                    render(container, trimToRecentDays(json.data || [], 90));
                 })
                 .catch(err => {
                     showError(container, `Failed to load preview: ${err.message}`);
