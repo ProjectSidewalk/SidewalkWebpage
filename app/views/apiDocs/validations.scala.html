@@ -61,6 +61,7 @@
             <p><code><a href="/v3/api/validations?filetype=csv">/v3/api/validations?filetype=csv</a></code> Get all validations in CSV format</p>
             <p><code><a href="/v3/api/validations?validationResult=Agree">/v3/api/validations?validationResult=Agree</a></code> Get only "Agree" validations</p>
             <p><code><a href="/v3/api/validations?labelTypeId=2&changedTags=true">/v3/api/validations?labelTypeId=2&changedTags=true</a></code> Get validations for label type 2 where tags were changed</p>
+            <p><code><a href="/v3/api/validations?source=ExpertValidate">/v3/api/validations?source=ExpertValidate</a></code> Get only validations made through the Expert Validate interface</p>
         </div>
     </div>
 
@@ -128,6 +129,11 @@
                         <td><code>changedSeverityLevels</code></td>
                         <td><code>boolean</code></td>
                         <td>Filter validations where severity levels were changed (<code>true</code>) or not changed (<code>false</code>).</td>
+                    </tr>
+                    <tr>
+                        <td><code>source</code></td>
+                        <td><code>string</code></td>
+                        <td>Filter by the interface in which the validation occurred (matches the <code>source</code> field in the response): <code>Validate</code>, <code>ValidateMobile</code>, <code>ExpertValidate</code>, <code>LabelMap</code>, <code>GalleryImage</code>, <code>GalleryExpandedImage</code>, <code>GalleryThumbs</code>, <code>GalleryExpandedThumbs</code>, <code>SidewalkAI</code>, <code>AdminUserDashboard</code>, <code>AdminLabelSearchTab</code>, <code>ExternalTagValidationASSETS2024</code>.</td>
                     </tr>
                     <tr>
                         <td><code>filetype</code></td>
