@@ -134,13 +134,19 @@ class AdminController @Inject() (
               "coordinates" -> Json.arr(label.lng, label.lat)
             ),
             "properties" -> Json.obj(
-              "audit_task_id"     -> label.auditTaskId,
-              "label_id"          -> label.labelId,
-              "label_type"        -> label.labelType,
-              "severity"          -> label.severity,
-              "correct"           -> label.correct,
-              "high_quality_user" -> label.highQualityUser,
-              "ai_generated"      -> label.aiGenerated
+              "audit_task_id"        -> label.auditTaskId,
+              "label_id"             -> label.labelId,
+              "label_type"           -> label.labelType,
+              "severity"             -> label.severity,
+              "correct"              -> label.correct,
+              "has_validations"      -> label.hasValidations,
+              "has_admin_validation" -> label.hasAdminValidation,
+              "ai_validation"        -> label.aiValidation.map(_.toString),
+              "expired"              -> label.expired,
+              "has_backup"           -> label.hasBackup,
+              "high_quality_user"    -> label.highQualityUser,
+              "ai_generated"         -> label.aiGenerated,
+              "tags"                 -> label.tags
             )
           )
         }.seq
@@ -688,15 +694,19 @@ class AdminController @Inject() (
   def getApiAnalytics(excludeApiDocs: Boolean, days: Int) = cc.securityService.SecuredAction(WithAdmin()) {
     implicit request =>
       logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-      adminService.getApiAnalytics(excludeApiDocs, days).map { case (endpointCounts, dailyCounts, uniqueIps, formatCounts) =>
-        val totalCalls = endpointCounts.map(_.count).sum
-        Ok(Json.obj(
-          "endpoint_counts" -> endpointCounts.map(c => Json.obj("endpoint" -> c.endpoint, "count" -> c.count)),
-          "daily_counts"    -> dailyCounts.map(c => Json.obj("date" -> c.date, "count" -> c.count)),
-          "unique_ips"      -> uniqueIps,
-          "format_counts"   -> formatCounts.map(c => Json.obj("endpoint" -> c.endpoint, "format" -> c.format, "count" -> c.count)),
-          "total_calls"     -> totalCalls
-        ))
+      adminService.getApiAnalytics(excludeApiDocs, days).map {
+        case (endpointCounts, dailyCounts, uniqueIps, formatCounts) =>
+          val totalCalls = endpointCounts.map(_.count).sum
+          Ok(
+            Json.obj(
+              "endpoint_counts" -> endpointCounts.map(c => Json.obj("endpoint" -> c.endpoint, "count" -> c.count)),
+              "daily_counts"    -> dailyCounts.map(c => Json.obj("date" -> c.date, "count" -> c.count)),
+              "unique_ips"      -> uniqueIps,
+              "format_counts"   -> formatCounts
+                .map(c => Json.obj("endpoint" -> c.endpoint, "format" -> c.format, "count" -> c.count)),
+              "total_calls" -> totalCalls
+            )
+          )
       }
   }
 

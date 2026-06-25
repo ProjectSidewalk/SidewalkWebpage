@@ -28,7 +28,7 @@ async function Admin($, mapboxApiKey, viewerType, viewerAccessToken, currentUser
         neighborhoodsURL: '/neighborhoods',
         completionRatesURL: '/adminapi/neighborhoodCompletionRate',
         streetsURL: '/contribution/streets/all?filterLowQuality=true',
-        labelsURL: '/labels/all',
+        labelsURL: '/adminapi/labels/all',
         neighborhoodFillMode: 'singleColor',
         neighborhoodFillColor: '#808080',
         neighborhoodFillOpacity: 0.1,

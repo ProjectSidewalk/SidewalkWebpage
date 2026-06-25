@@ -27,6 +27,7 @@ class MapSidebarFilter {
         this.#initSeverityToggles();
         this.#initLabelTypeCheckboxes();
         this.#initValidationCheckboxes();
+        this.#initAdminValidationCheckbox();
         this.#initStreetCheckboxes();
         this.#initDeselectAllButtons();
         this.#initTagToggles();
@@ -82,6 +83,18 @@ class MapSidebarFilter {
                 filterLabelLayers(cb, this.#map, this.#mapData, this.#highQualityFilter);
                 this.#updateDeselectAllButton('label-validations');
             });
+        });
+    }
+
+    /**
+     * Binds the admin-only "not validated by an admin" checkbox. No-op on /labelMap, where the checkbox isn't rendered.
+     */
+    #initAdminValidationCheckbox() {
+        const cb = this.#sidebar.querySelector('#not-admin-validated');
+        if (!cb) return;
+        cb.addEventListener('click', () => {
+            this.#mapData.notAdminValidated = cb.checked;
+            filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
         });
     }
 
