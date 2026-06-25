@@ -4,10 +4,8 @@ import controllers.base._
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.auth.{DefaultEnv, WithSignedIn}
-import models.user.{SidewalkUserWithRole, UserUtm, UserUtmTable}
-import models.utils.MyPostgresProfile
+import models.user.{SidewalkUserWithRole, UserUtm}
 import play.api.Configuration
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, Messages}
 import play.api.mvc._
 import play.silhouette.api.Silhouette
@@ -21,18 +19,15 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class ApplicationController @Inject() (
     cc: CustomControllerComponents,
-    protected val dbConfigProvider: DatabaseConfigProvider,
     val silhouette: Silhouette[DefaultEnv],
     val config: Configuration,
     configService: ConfigService,
     userService: UserService,
     streetService: StreetService,
     labelService: LabelService,
-    validationService: ValidationService,
-    userUtmTable: UserUtmTable
+    validationService: ValidationService
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
-    extends CustomBaseController(cc)
-    with HasDatabaseConfigProvider[MyPostgresProfile] {
+    extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
 
   def index = cc.securityService.SecuredAction { implicit request =>
@@ -59,16 +54,17 @@ class ApplicationController @Inject() (
         if (qString.nonEmpty) {
           // Log the query string parameters if they exist, but do a redirect to hide them.
           cc.loggingService.insert(user.userId, ipAddress, request.uri, timestamp)
-          // Save UTM parameters if present.
-          if (ControllerUtils.hasUtmParamsFlat(qString)) {
-            userUtmTable.insert(
-              UserUtm(
-                0, user.userId, qString.get("utm_source"), qString.get("utm_medium"), qString.get("utm_campaign"),
-                qString.get("utm_content"), qString.get("utm_term"), configService.getCityId, timestamp
+          // Save UTM parameters if present, awaiting the write so failures surface to the error handler (#4229).
+          val utmSaved: Future[_] =
+            if (ControllerUtils.hasUtmParamsFlat(qString)) {
+              userService.insertUserUtm(
+                UserUtm(
+                  0, user.userId, qString.get("utm_source"), qString.get("utm_medium"), qString.get("utm_campaign"),
+                  qString.get("utm_content"), qString.get("utm_term"), configService.getCityId, timestamp
+                )
               )
-            )
-          }
-          Future.successful(Redirect("/"))
+            } else Future.successful(())
+          utmSaved.map(_ => Redirect("/"))
         } else if (isMobile) {
           Future.successful(Redirect("/mobileLanding"))
         } else {
