@@ -242,12 +242,7 @@
             <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., malformed bounding box, non-positive or unknown region id).</li>
             <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
         </ul>
-        <pre><code class="language-json">{
-    "status": 400,
-    "code": "INVALID_PARAMETER",
-    "message": "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.",
-    "parameter": "bbox"
-}</code></pre>
+        @apiDocs.errorResponseBody()
     </div>
 
     <div class="api-section" id="best-practices-section">

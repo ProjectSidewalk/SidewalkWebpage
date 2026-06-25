@@ -60,10 +60,17 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       body must not include "labelCount"
     }
 
-    "return 400 INVALID_PARAMETER for a malformed bbox" in {
+    "return 400 INVALID_PARAMETER for a malformed bbox, as an RFC 7807 problem+json body" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/streets?bbox=not-a-bbox")).get
       status(resp) mustBe BAD_REQUEST
-      (contentAsJson(resp) \ "parameter").as[String] mustBe "bbox"
+      contentType(resp) mustBe Some("application/problem+json") // RFC 7807 media type (#3931).
+      val json = contentAsJson(resp)
+      (json \ "type").as[String] mustBe "about:blank"
+      (json \ "title").as[String] mustBe "Invalid Parameter"
+      (json \ "status").as[Int] mustBe 400
+      (json \ "code").as[String] mustBe "INVALID_PARAMETER"
+      (json \ "detail").asOpt[String] mustBe defined
+      (json \ "parameter").as[String] mustBe "bbox"
     }
 
     "return 400 INVALID_PARAMETER for a non-positive regionId" in {

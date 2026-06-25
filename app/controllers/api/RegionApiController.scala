@@ -102,7 +102,7 @@ class RegionApiController @Inject() (
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
         Ok(Json.toJson(region))
       case None =>
-        NotFound(Json.toJson(ApiError.notFound("No region found with labels")))
+        ApiError.toResult(ApiError.notFound("No region found with labels"))
     }
   }
 }

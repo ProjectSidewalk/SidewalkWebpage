@@ -9,7 +9,6 @@ import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
 import play.api.Logger
 import play.api.http.ContentTypes
-import play.api.libs.json.Json
 import play.api.mvc.Result
 
 import java.io.{BufferedInputStream, File}
@@ -136,8 +135,8 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       }
   }
 
-  /** Builds a 400 Bad Request response from an `ApiError`. */
-  protected def badRequest(error: ApiError): Result = BadRequest(Json.toJson(error))
+  /** Renders an `ApiError` as an RFC 7807 `application/problem+json` response with the error's HTTP status. */
+  protected def badRequest(error: ApiError): Result = ApiError.toResult(error)
 
   // Instance method wrappers — delegate to the companion object so the pure logic is unit-testable without DI.
   protected def validateBBoxParam(bbox: Option[String], parsed: Option[LatLngBBox]): Option[ApiError] =
@@ -294,7 +293,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
             .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
 
         case None =>
-          InternalServerError("Failed to create shapefile")
+          ApiError.toResult(ApiError.internalServerError("Failed to create shapefile"))
       }
   }
 
@@ -336,21 +335,13 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
 
         case None =>
           logger.error("Failed to create GeoPackage file")
-          InternalServerError(
-            Json.toJson(
-              ApiError.internalServerError("Failed to create GeoPackage file")
-            )
-          )
+          ApiError.toResult(ApiError.internalServerError("Failed to create GeoPackage file"))
       }
     } catch {
       case e: Exception =>
         logger.error(s"Error creating GeoPackage output: ${e.getMessage}", e)
         Future.successful(
-          InternalServerError(
-            Json.toJson(
-              ApiError.internalServerError(s"Error creating GeoPackage: ${e.getMessage}")
-            )
-          )
+          ApiError.toResult(ApiError.internalServerError(s"Error creating GeoPackage: ${e.getMessage}"))
         )
     }
   }

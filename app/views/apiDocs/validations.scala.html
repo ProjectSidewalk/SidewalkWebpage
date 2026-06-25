@@ -255,14 +255,7 @@
             <li><strong><code>503 Service Unavailable</code>:</strong> The server is temporarily unable to handle the request.</li>
         </ul>
 
-        <h4 id="error-body">Error Response Body <a href="#error-body" class="permalink">#</a></h4>
-        <p>Error responses include a JSON body with the following structure:</p>
-        <pre><code class="language-json">{
-    "status": 400,
-    "code": "INVALID_PARAMETER",
-    "message": "Invalid validationResult value. Must be Agree, Disagree, or Unsure.",
-    "parameter": "validationResult"
-}</code></pre>
+        @apiDocs.errorResponseBody()
     </div>
 
     <div class="api-section" id="validation-result-types-section">

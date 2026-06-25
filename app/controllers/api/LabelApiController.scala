@@ -109,11 +109,7 @@ class LabelApiController @Inject() (
         Ok(Json.obj("status" -> "OK", "label_tags" -> formattedTags))
       }
       .recover { case e: Exception =>
-        InternalServerError(
-          Json.toJson(
-            ApiError.internalServerError(s"Failed to retrieve label tags: ${e.getMessage}")
-          )
-        )
+        ApiError.toResult(ApiError.internalServerError(s"Failed to retrieve label tags: ${e.getMessage}"))
       }
   }
 
@@ -173,41 +169,35 @@ class LabelApiController @Inject() (
 
     firstError match {
       case Some(error) => Future.successful(badRequest(error))
-      case None =>
+      case None        =>
         configService.getCityMapParams.flatMap { cityMapParams =>
-        val (finalBbox, finalRegionId, finalRegionName) = resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
+          val (finalBbox, finalRegionId, finalRegionName) =
+            resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
 
-        // Create filters object.
-        val filters = RawLabelFiltersForApi(
-          bbox = finalBbox,
-          labelTypes = parsedLabelTypes,
-          tags = parsedTags,
-          minSeverity = minSeverity,
-          maxSeverity = maxSeverity,
-          validationStatus = parsedValidationStatus.toOption.flatten,
-          highQualityUserOnly = highQualityUserOnly.getOrElse(false),
-          startDate = parsedStartDate.toOption.flatten,
-          endDate = parsedEndDate.toOption.flatten,
-          regionId = finalRegionId,
-          regionName = finalRegionName
-        )
+          // Create filters object.
+          val filters = RawLabelFiltersForApi(
+            bbox = finalBbox, labelTypes = parsedLabelTypes, tags = parsedTags, minSeverity = minSeverity,
+            maxSeverity = maxSeverity, validationStatus = parsedValidationStatus.toOption.flatten,
+            highQualityUserOnly = highQualityUserOnly.getOrElse(false), startDate = parsedStartDate.toOption.flatten,
+            endDate = parsedEndDate.toOption.flatten, regionId = finalRegionId, regionName = finalRegionName
+          )
 
-        // Get the data stream.
-        val dbDataStream: Source[LabelDataForApi, _] = apiService.getRawLabels(filters, DEFAULT_BATCH_SIZE)
-        val baseFileName: String                     = s"labels_${OffsetDateTime.now()}"
+          // Get the data stream.
+          val dbDataStream: Source[LabelDataForApi, _] = apiService.getRawLabels(filters, DEFAULT_BATCH_SIZE)
+          val baseFileName: String                     = s"labels_${OffsetDateTime.now()}"
 
-        // Output data in the appropriate file format.
-        filetype match {
-          case Some("csv") =>
-            outputCSV(dbDataStream, LabelDataForApi.csvHeader, inline, baseFileName + ".csv")
-          case Some("shapefile") =>
-            outputShapefile(dbDataStream, baseFileName, shapefileCreator.createRawLabelShapefile, shapefileCreator)
-          case Some("geopackage") =>
-            outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createRawLabelDataGeopackage, inline)
-          case _ => // Default to GeoJSON.
-            outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
+          // Output data in the appropriate file format.
+          filetype match {
+            case Some("csv") =>
+              outputCSV(dbDataStream, LabelDataForApi.csvHeader, inline, baseFileName + ".csv")
+            case Some("shapefile") =>
+              outputShapefile(dbDataStream, baseFileName, shapefileCreator.createRawLabelShapefile, shapefileCreator)
+            case Some("geopackage") =>
+              outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createRawLabelDataGeopackage, inline)
+            case _ => // Default to GeoJSON.
+              outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
+          }
         }
-      }
     }
   }
 
@@ -222,10 +212,13 @@ class LabelApiController @Inject() (
     case Some("validated_correct")   => Right(Some("Agreed"))
     case Some("validated_incorrect") => Right(Some("Disagreed"))
     case Some("unvalidated")         => Right(Some("Unvalidated"))
-    case Some(_) =>
-      Left(ApiError.invalidParameter(
-        "Invalid validationStatus value. Must be one of: validated_correct, validated_incorrect, unvalidated",
-        "validationStatus"))
+    case Some(_)                     =>
+      Left(
+        ApiError.invalidParameter(
+          "Invalid validationStatus value. Must be one of: validated_correct, validated_incorrect, unvalidated",
+          "validationStatus"
+        )
+      )
   }
 
   /**

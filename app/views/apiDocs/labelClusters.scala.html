@@ -459,14 +459,7 @@
             <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
         </ul>
 
-        <h4 id="error-body">Error Response Body <a href="#error-body" class="permalink">#</a></h4>
-        <p>Error responses include a JSON body with the following structure:</p>
-        <pre><code class="language-json">{
-    "status": 400, // HTTP Status Code repeated
-    "code": "INVALID_PARAMETER", // Machine-readable error code
-    "message": "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", // Human-readable description
-    "parameter": "bbox" // Optional: The specific parameter causing the error
-}</code></pre>
+        @apiDocs.errorResponseBody()
     </div>
 
     <div class="api-section" id="data-cleaning-section">
