@@ -1,9 +1,9 @@
 <img src="https://github.com/ProjectSidewalk/SidewalkWebpage/assets/1621749/0e838038-14fe-48cf-a849-1025e688ae68" width="200">
 
 <p align="center">
-  <video src="https://github.com/ProjectSidewalk/SidewalkWebpage/raw/develop/public/videos/ProjectSidewalk_LabelingFromSeattle_KerryPark4_optimized1.5x.mp4" width="760" autoplay loop muted playsinline controls></video>
+  <video src="https://github.com/user-attachments/assets/a0181dac-4cce-4674-85b1-403f4e24c3f8" width="760" controls muted loop playsinline></video>
 </p>
-<p align="center"><em>▶ <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/raw/develop/public/videos/ProjectSidewalk_LabelingFromSeattle_KerryPark4_optimized1.5x.mp4">Watch a short demo — labeling sidewalk accessibility from Kerry Park, Seattle</a></em></p>
+<p align="center"><em>▶ <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/raw/develop/public/videos/ProjectSidewalk_LabelingFromSeattle_KerryPark4_optimized1.5x.mp4">Labeling sidewalk accessibility from Kerry Park, Seattle</a></em></p>
 
 # Project Sidewalk
 
