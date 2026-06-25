@@ -230,14 +230,31 @@ class PanoDataServiceImpl @Inject() (
   }
 
   /**
-   * Checks if the panorama associated with a label exists by pinging Google Maps.
+   * Checks whether the imagery for a label's panorama is still available, dispatching per imagery source.
    *
-   * @param panoId  Panorama ID
-   * @return        True if the panorama exists, false otherwise
+   * GSV and Mapillary are verified against their respective provider APIs. Infra3d (and any other source) is assumed
+   * to always be available. A miss is only ever reported when the provider explicitly says the image is gone — network
+   * errors, timeouts, auth failures, and other inconclusive responses return `None`.
+   *
+   * @param panoId     Panorama ID.
+   * @param panoSource Imagery source the label was placed on.
+   * @return           `Some(true)` if the imagery exists, `Some(false)` if not, `None` if inconclusive.
    */
   def panoExists(panoId: String, panoSource: PanoSource): Future[Option[Boolean]] = {
-    if (panoSource != PanoSource.Gsv) return Future.successful(Some(false))
+    panoSource match {
+      case PanoSource.Gsv       => gsvPanoExists(panoId)
+      case PanoSource.Mapillary => mapillaryPanoExists(panoId)
+      case _                    => Future.successful(Some(true))
+    }
+  }
 
+  /**
+   * Checks whether a GSV panorama still exists via the Street View metadata API.
+   *
+   * @param panoId Panorama ID.
+   * @return       `Some(true)` if the imagery exists, `Some(false)` if not, `None` if inconclusive.
+   */
+  private def gsvPanoExists(panoId: String): Future[Option[Boolean]] = {
     val url = signUrl(s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$panoId&key=$googleApiKey")
     ws.url(url)
       .withRequestTimeout(5.seconds)
@@ -257,13 +274,53 @@ class PanoDataServiceImpl @Inject() (
           logger.info(s"$imageStatus - $panoId")
           Future.successful(None)
         }
-
       }
       .recover { // If there was an exception, don't assume it means a lack of imagery.
         case _: SocketTimeoutException => None
         case _: IOException            => None
         case _: Exception              => None
       }
+  }
+
+  /**
+   * Checks whether a Mapillary image still exists via the Graph API (`GET /:imageId`).
+   *
+   * @param panoId Mapillary image ID.
+   * @return       `Some(true)` if the imagery exists, `Some(false)` if not, `None` if inconclusive.
+   */
+  private def mapillaryPanoExists(panoId: String): Future[Option[Boolean]] = {
+    config.getOptional[String]("mapillary-access-token") match {
+      case None =>
+        logger.warn(s"No mapillary-access-token configured; cannot verify Mapillary imagery for $panoId.")
+        Future.successful(None)
+      case Some(accessToken) =>
+        ws.url(s"https://graph.mapillary.com/$panoId?fields=id")
+          .addHttpHeaders("Authorization" -> s"OAuth $accessToken")
+          .withRequestTimeout(5.seconds)
+          .get()
+          .flatMap { response =>
+            val timestamp = OffsetDateTime.now
+            response.status match {
+              case 200 if (Json.parse(response.body) \ "id").toOption.isDefined =>
+                db.run(
+                  panoDataTable.updateExpiredStatus(panoId, expired = false, Some(backupExists(panoId)), timestamp)
+                ).map(_ => Some(true))
+              case 404 =>
+                db.run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(backupExists(panoId)), timestamp))
+                  .map(_ => Some(false))
+              case other =>
+                // Inconclusive (auth, rate limit, 5xx, unexpected body). Don't assume the image is gone; log so we can
+                // confirm how Mapillary actually signals a missing image and tighten this if needed.
+                logger.info(s"Mapillary existence check inconclusive ($other) for $panoId: ${response.body}")
+                Future.successful(None)
+            }
+          }
+          .recover { // A network error doesn't mean the image is gone.
+            case _: SocketTimeoutException => None
+            case _: IOException            => None
+            case _: Exception              => None
+          }
+    }
   }
 
   /**
