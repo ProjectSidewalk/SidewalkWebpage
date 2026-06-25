@@ -35,6 +35,14 @@
             colored from red (low accessibility) to green (high); use the <em>Color by</em> dropdown to switch between
             the AccessScore and audit coverage. Hover or click a region to see its score and coverage.
         </p>
+        <p class="download-note">
+            <strong>One method, not the method.</strong> There is no single correct way to measure street- and
+            neighborhood-level accessibility—researchers and practitioners use many different approaches. AccessScore
+            implements just one such algorithm, and it is experimental: the weighting is deliberately simple and subject
+            to change. Treat these scores as one lens rather than a definitive measure, and compute your own index from
+            the <a href="@routes.ApiDocsController.labelClusters">Label Clusters API</a> if a different method suits your
+            needs better.
+        </p>
         <div id="access-score-regions-preview"><!-- Replaced by JavaScript with the rendered map. --></div>
 
         <link rel="stylesheet" href="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
