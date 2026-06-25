@@ -75,8 +75,11 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
 
 - **Query/REST parameters are camelCase** (`minSeverity`, `regionId`, `validationStatus`).
 - **All output field names are snake_case** — JSON bodies, GeoJSON `properties`, CSV headers, and
-  shapefile/geopackage fields (`label_id`, `region_name`, `city_id`) — one canonical field name across every export
-  format.
+  GeoPackage fields (`label_id`, `region_name`, `city_id`) — one canonical field name across those formats.
+- **Shapefile is the exception:** its fields stay **camelCase and abbreviated** (`labelId`, `regionName`,
+  `neighborhd`, `cameraHdng`). The DBF format hard-truncates field names to 10 chars, so shapefiles can't carry the
+  canonical snake_case names regardless of casing; camelCase reclaims the byte the underscore would waste. Shapefile
+  is a legacy export being phased out — GeoPackage is the modern GIS export that carries the canonical snake_case names.
 - v3 is a **preview** surface: breaking changes are made in place rather than minting a new version.
 
 The response/filter data structures (DTOs) live in **`app/models/api/`** (`package models.api`), in per-domain
