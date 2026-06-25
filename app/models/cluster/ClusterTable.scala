@@ -2,8 +2,7 @@ package models.cluster
 
 import com.google.inject.ImplementedBy
 import formats.json.ApiFormats
-import models.api.{LabelClusterFiltersForApi, LabelClusterForApi, RawLabelInClusterDataForApi}
-import models.computation.StreamingApiType
+import models.api.{LabelClusterFiltersForApi, LabelClusterForApi, RawLabelInClusterDataForApi, StreamingApiType}
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType}

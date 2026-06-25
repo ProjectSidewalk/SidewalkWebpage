@@ -6,7 +6,6 @@
 package models.api
 
 import models.api.ApiModelUtils.escapeCsvField
-import models.computation.StreamingApiType
 import models.utils.LatLngBBox
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.LineString

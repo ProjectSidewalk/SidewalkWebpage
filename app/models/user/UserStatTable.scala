@@ -1,6 +1,7 @@
 package models.user
 
 import com.google.inject.ImplementedBy
+import models.api.UserStatForApi
 import models.audit.AuditTaskTableDef
 import models.label.{LabelTable, LabelTypeEnum}
 import models.mission.{MissionTableDef, MissionTypeTable}
@@ -10,6 +11,8 @@ import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.functional.syntax._
+import play.api.libs.json.{Writes, __}
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
@@ -31,6 +34,16 @@ case class UserStat(
 )
 
 case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int)
+object LabelTypeStat {
+  // snake_case JSON output per the v3 API convention (#3871). Lives in the companion so it is in implicit
+  // scope wherever a LabelTypeStat is serialized (e.g. UserStatForApi).
+  implicit val writes: Writes[LabelTypeStat] = (
+    (__ \ "labels").write[Int] and
+      (__ \ "validated_correct").write[Int] and
+      (__ \ "validated_incorrect").write[Int] and
+      (__ \ "not_validated").write[Int]
+  )(unlift(LabelTypeStat.unapply))
+}
 case class UserStatsForAdminPage(
     userId: String,
     username: String,
@@ -47,42 +60,6 @@ case class UserStatsForAdminPage(
     othersValidatedAgreedPct: Double,
     highQuality: Boolean
 )
-case class UserStatApi(
-    userId: String,
-    labels: Int,
-    metersExplored: Double,
-    labelsPerMeter: Option[Double],
-    highQuality: Boolean,
-    highQualityManual: Option[Boolean],
-    labelAccuracy: Option[Double],
-    validatedLabels: Int,
-    validationsReceived: Int,
-    labelsValidatedCorrect: Int,
-    labelsValidatedIncorrect: Int,
-    labelsNotValidated: Int,
-    validationsGiven: Int,
-    dissentingValidationsGiven: Int,
-    agreeValidationsGiven: Int,
-    disagreeValidationsGiven: Int,
-    unsureValidationsGiven: Int,
-    statsByLabelType: Map[String, LabelTypeStat]
-)
-object UserStatApi {
-  val csvHeader: String = "User ID,Labels,Meters Explored,Labels per Meter,High Quality,High Quality Manual," +
-    "Label Accuracy,Validated Labels,Validations Received,Labels Validated Correct,Labels Validated Incorrect," +
-    "Labels Not Validated,Validations Given,Dissenting Validations Given,Agree Validations Given," +
-    "Disagree Validations Given,Unsure Validations Given,Curb Ramp Labels,Curb Ramps Validated Correct," +
-    "Curb Ramps Validated Incorrect,Curb Ramps Not Validated,No Curb Ramp Labels,No Curb Ramps Validated Correct," +
-    "No Curb Ramps Validated Incorrect,No Curb Ramps Not Validated,Obstacle Labels,Obstacles Validated Correct," +
-    "Obstacles Validated Incorrect,Obstacles Not Validated,Surface Problem Labels,Surface Problems Validated Correct," +
-    "Surface Problems Validated Incorrect,Surface Problems Not Validated,No Sidewalk Labels," +
-    "No Sidewalks Validated Correct,No Sidewalks Validated Incorrect,No Sidewalks Not Validated," +
-    "Marked Crosswalk Labels,Marked Crosswalks Validated Correct,Marked Crosswalks Validated Incorrect," +
-    "Marked Crosswalks Not Validated,Pedestrian Signal Labels,Pedestrian Signals Validated Correct," +
-    "Pedestrian Signals Validated Incorrect,Pedestrian Signals Not Validated,Cant See Sidewalk Labels," +
-    "Cant See Sidewalks Validated Correct,Cant See Sidewalks Validated Incorrect,Cant See Sidewalks Not Validated," +
-    "Other Labels,Others Validated Correct,Others Validated Incorrect,Others Not Validated\n"
-}
 case class UserCount(
     count: Int,
     toolUsed: String,
@@ -142,8 +119,8 @@ class UserStatTable @Inject() (
 
   private val LABEL_PER_METER_THRESHOLD: Double = 0.0375
 
-  implicit val userStatApiConverter: GetResult[UserStatApi] = GetResult[UserStatApi](r =>
-    UserStatApi(
+  implicit val userStatApiConverter: GetResult[UserStatForApi] = GetResult[UserStatForApi](r =>
+    UserStatForApi(
       r.nextString(),
       r.nextInt(),
       r.nextDouble(),
@@ -791,7 +768,7 @@ class UserStatTable @Inject() (
       minMetersExplored: Option[Double] = None,
       highQualityOnly: Boolean = false,
       minAccuracy: Option[Double] = None
-  ): DBIO[Seq[UserStatApi]] = {
+  ): DBIO[Seq[UserStatForApi]] = {
     // Construct the SQL query with dynamic WHERE clauses based on filter parameters.
     val minLabelsClause   = minLabels.map(min => s"AND COALESCE(label_counts.labels, 0) >= $min").getOrElse("")
     val minMetersClause   = minMetersExplored.map(min => s"AND user_stat.meters_audited >= $min").getOrElse("")
@@ -928,7 +905,7 @@ class UserStatTable @Inject() (
           #$minLabelsClause
           #$minMetersClause
           #$highQualityClause
-          #$minAccuracyClause;""".as[UserStatApi]
+          #$minAccuracyClause;""".as[UserStatForApi]
   }
 
   /**
