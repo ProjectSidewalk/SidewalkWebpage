@@ -127,9 +127,11 @@ Supported languages: **en, es, de, nl, zh-TW, pt-BR**, plus the regional English
 
 ## Testing your changes
 
-There is no automated backend test suite yet (see [`docs/testing-and-ci.md`](docs/testing-and-ci.md)) — validate
-backend changes by compiling (`sbt --client compile`; see [`docs/dev-environment.md`](docs/dev-environment.md)), and
-exercise behavior in the running app.
+There's a backend test suite (ScalaTest) under `test/` — mainly public-API functional specs. Run it with
+`sbt --client test` (the DB-backed API specs boot the app against Postgres+PostGIS, so the `db` container must be
+up); the overall strategy and phased rollout are in [`docs/testing-and-ci.md`](docs/testing-and-ci.md). The suite is
+still growing and CI runs it as advisory for now, so also compile (`sbt --client compile`) and exercise behavior in
+the running app. See [`docs/dev-environment.md`](docs/dev-environment.md) for the exact commands.
 
 **Update logging.** User interactions (clicks, key presses, etc.) should be logged. If you add or change
 interactions, update the logging accordingly.
