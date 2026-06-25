@@ -10,9 +10,9 @@ import models.utils.CommonUtils.ViewerType.ViewerType
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import slick.jdbc.GetResult
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
+import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime}
 import javax.inject.{Inject, Singleton}
@@ -427,7 +427,7 @@ class LabelValidationTable @Inject() (
       endDate: Option[LocalDate],
       filterLowQuality: Boolean
   ): DBIO[Seq[(LocalDate, String, Int, Int, Int, Int, Int, Int)]] = {
-    val userFilter = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
+    val userFilter   = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
     val whereClauses = scala.collection.mutable.ListBuffer(
       "label.deleted = FALSE",
       userFilter
@@ -437,8 +437,10 @@ class LabelValidationTable @Inject() (
     val where = whereClauses.mkString(" AND ")
 
     implicit val getResult: GetResult[(LocalDate, String, Int, Int, Int, Int, Int, Int)] =
-      GetResult(r => (LocalDate.parse(r.nextString()), r.nextString(),
-        r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()))
+      GetResult(r =>
+        (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
+          r.nextInt(), r.nextInt())
+      )
 
     sql"""
       SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
