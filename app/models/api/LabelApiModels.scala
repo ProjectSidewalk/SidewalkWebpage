@@ -77,7 +77,8 @@ object LabelValidationSummaryForApi {
  * @param timeCreated Timestamp when the label was created
  * @param streetEdgeId Project Sidewalk's street segment identifier
  * @param osmWayId OpenStreetMap way identifier
- * @param neighborhood Name of the neighborhood where the label is located
+ * @param regionId Identifier of the region (neighborhood) the label falls within
+ * @param regionName Name of the region (neighborhood) where the label is located
  * @param latitude Geographic latitude coordinate
  * @param longitude Geographic longitude coordinate
  * @param correct Option indicating consensus validation status
@@ -114,7 +115,8 @@ case class LabelDataForApi(
     timeCreated: OffsetDateTime,
     streetEdgeId: Int,
     osmWayId: Long,
-    neighborhood: String,
+    regionId: Int,
+    regionName: String,
     latitude: Double,
     longitude: Double,
     correct: Option[Boolean],
@@ -201,7 +203,8 @@ case class LabelDataForApi(
         "time_created"   -> timeCreated,
         "street_edge_id" -> streetEdgeId,
         "osm_way_id"     -> osmWayId,
-        "neighborhood"   -> neighborhood,
+        "region_id"      -> regionId,
+        "region_name"    -> regionName,
         "correct"        -> correct,
         "agree_count"    -> agreeCount,
         "disagree_count" -> disagreeCount,
@@ -253,7 +256,8 @@ case class LabelDataForApi(
       timeCreated.toInstant.toEpochMilli.toString,
       streetEdgeId.toString,
       osmWayId.toString,
-      escapeCsvField(neighborhood),
+      regionId.toString,
+      escapeCsvField(regionName),
       correct.map(_.toString).getOrElse(""),
       agreeCount.toString,
       disagreeCount.toString,
@@ -298,7 +302,7 @@ object LabelDataForApi {
    * This should be included as the first line when generating CSV output.
    */
   val csvHeader: String = "label_id,user_id,pano_id,label_type,severity,tags,description,time_created,street_edge_id," +
-    "osm_way_id,neighborhood,correct,agree_count,disagree_count,unsure_count,validations,audit_task_id,mission_id," +
+    "osm_way_id,region_id,region_name,correct,agree_count,disagree_count,unsure_count,validations,audit_task_id,mission_id," +
     "image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height,pano_x,pano_y,pano_width," +
     "pano_height,camera_heading,camera_pitch,camera_roll,image_url,latitude,longitude\n"
 

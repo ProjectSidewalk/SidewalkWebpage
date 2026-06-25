@@ -260,7 +260,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "labelTime:String,"       // Creation timestamp
       + "streetId:Integer,"       // Street edge ID
       + "osmWayId:String,"        // OSM street ID
-      + "neighborhd:String,"      // Neighborhood name
+      + "regionId:Integer,"       // Region (neighborhood) ID
+      + "regionName:String,"      // Region (neighborhood) name
       + "correct:String,"         // Validation correctness
       + "nAgree:Integer,"         // Agree validations count
       + "nDisagree:Integer,"      // Disagree validations count
@@ -301,7 +302,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.timeCreated)
       featureBuilder.add(label.streetEdgeId)
       featureBuilder.add(label.osmWayId.toString)
-      featureBuilder.add(label.neighborhood)
+      featureBuilder.add(label.regionId)
+      featureBuilder.add(label.regionName)
       featureBuilder.add(label.correct.map(_.toString).orNull)
       featureBuilder.add(label.agreeCount)
       featureBuilder.add(label.disagreeCount)
@@ -708,7 +710,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "time_created:String,"    // Creation timestamp
       + "street_edge_id:Integer," // Street edge ID
       + "osm_way_id:String,"      // OSM street ID
-      + "neighborhood:String,"    // Neighborhood name
+      + "region_id:Integer,"      // Region (neighborhood) ID
+      + "region_name:String,"     // Region (neighborhood) name
       + "correct:String,"         // Validation correctness
       + "agree_count:Integer,"    // Agree validations
       + "disagree_count:Integer," // Disagree validations
@@ -752,7 +755,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.timeCreated)
       featureBuilder.add(label.streetEdgeId)
       featureBuilder.add(String.valueOf(label.osmWayId))
-      featureBuilder.add(label.neighborhood)
+      featureBuilder.add(label.regionId)
+      featureBuilder.add(label.regionName)
       featureBuilder.add(label.correct.map(_.toString).orNull)
       featureBuilder.add(label.agreeCount)
       featureBuilder.add(label.disagreeCount)
