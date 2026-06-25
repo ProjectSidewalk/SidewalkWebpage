@@ -238,7 +238,25 @@ Good targets for inline comments:
 ### What not to comment
 
 - Do not restate what the code obviously does.
-- Do not describe what the code *used to* do — use git history for that.
+- Do not describe what the code *used to* do, or narrate a change — that is changelog, and git
+  history already records it. This is the single most common offender: a diff renames or replaces
+  something, and a comment gets added to explain the *before*. The reader only needs the current
+  contract; if a comment is only meaningful read against the diff, delete it. Applies everywhere,
+  but especially in tests and `models/` DAO/DTO files. Concretely (from a real rename PR):
+
+  ```scala
+  // BAD — narrates the rename; only makes sense next to the diff:
+  // region_id + region_name replace the old neighborhood field (#3980).
+  body must not include "neighborhood" // now region_name (#3980)
+
+  // GOOD — the assertions already state the current contract; no comment needed:
+  body must include("region_id,region_name")
+  body must not include "neighborhood"
+  ```
+
+  Tells that you are writing one of these and should stop: *used to*, *previously*, *formerly*,
+  *replaces the old*, *renamed to/from*, *no longer*. A `PostToolUse` hook in `.claude/settings.json`
+  flags these on save — if it fires, rewrite to state only the current behavior.
 - Do not leave `TODO`/`FIXME` in committed code without a linked tracking issue.
 - Do not add a header just because a function was touched; only add one if it is missing
   and the function is non-trivial.
