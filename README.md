@@ -60,6 +60,7 @@ guide: **[`docs/dev-environment.md`](docs/dev-environment.md)**.
 | [`docs/architecture.md`](docs/architecture.md) | How the backend, frontend, and data fit together. |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Branch/PR workflow, coding standards, i18n. |
 | [`docs/style-guide.md`](docs/style-guide.md) | Detailed code-style conventions (JS, Scala, HTML/CSS). |
+| [`docs/internationalization.md`](docs/internationalization.md) | How translations work + adding a new language. |
 | [`CLAUDE.md`](CLAUDE.md) | Conventions + operational notes, used as AI-assistant context. |
 | [`docs/testing-and-ci.md`](docs/testing-and-ci.md) | Testing strategy and CI rollout plan. |
 | [`docs/upgrading-libraries.md`](docs/upgrading-libraries.md) | Dependency-version inventory and how to update each. |
@@ -68,8 +69,17 @@ guide: **[`docs/dev-environment.md`](docs/dev-environment.md)**.
 | [`SECURITY.md`](SECURITY.md) | How to report a vulnerability. |
 | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Community standards. |
 
-Operational runbooks, city-deployment guidance, and visual/GIS tutorials live in the
-[**wiki**](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki).
+### Where documentation lives
+
+**Developer documentation lives in this repository** — versioned with the code, reviewed in pull requests, and
+searchable by tooling (and AI assistants). The
+[**wiki**](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki) holds **operational runbooks** (e.g. deploying to
+a live server), **city-deployment and GIS data preparation**, and **visual tutorials** — content that changes
+independently of the code or is maintained by non-developers.
+
+Rule of thumb: *if it describes the code or how to contribute, it's in the repo; if it's a runbook for operating a
+server or onboarding a new city's data, it's in the wiki.* We keep one source of truth per topic and cross-link rather
+than duplicate.
 
 ## Contributing
 
