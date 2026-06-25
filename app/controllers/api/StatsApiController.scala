@@ -3,9 +3,8 @@ package controllers.api
 import controllers.base.CustomControllerComponents
 import controllers.helper.ControllerUtils.labelTypeOrdering
 import formats.json.ApiFormats._
-import models.api.{ApiError, DailyStatRecord}
+import models.api.{ApiError, DailyStatRecord, UserStatForApi}
 import models.label.ProjectSidewalkStats
-import models.user.UserStatApi
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Result
@@ -64,7 +63,7 @@ class StatsApiController @Inject() (
         highQualityOnly = highQualityOnly.getOrElse(false),
         minAccuracy = minAccuracy
       )
-      .map { filteredStats: Seq[UserStatApi] =>
+      .map { filteredStats: Seq[UserStatForApi] =>
         val baseFileName: String = s"userStats_${OffsetDateTime.now()}"
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
@@ -73,12 +72,12 @@ class StatsApiController @Inject() (
           case Some("csv") =>
             val userStatsFile = new java.io.File(s"$baseFileName.csv")
             val writer        = new java.io.PrintStream(userStatsFile)
-            writer.println(UserStatApi.csvHeader)
-            filteredStats.foreach(userStat => writer.println(userStatToCSVRow(userStat)))
+            writer.println(UserStatForApi.csvHeader)
+            filteredStats.foreach(userStat => writer.println(userStat.toCsvRow))
             writer.close()
             Ok.sendFile(content = userStatsFile, onClose = () => { userStatsFile.delete(); () })
           case _ =>
-            Ok(Json.toJson(filteredStats.map(userStatToJson)))
+            Ok(Json.toJson(filteredStats.map(_.toJson)))
         }
       }
   }

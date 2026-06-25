@@ -2,8 +2,7 @@ package controllers.api
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ShapefilesCreatorHelper
-import models.api.ApiError
-import models.computation.StreamingApiType
+import models.api.{ApiError, StreamingApiType}
 import models.utils.{LatLngBBox, MapParams}
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString

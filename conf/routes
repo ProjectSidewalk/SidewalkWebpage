@@ -50,14 +50,6 @@ GET     /cityMapParams                                  controllers.ConfigContro
 
 # Admin
 GET     /admin                                          controllers.AdminController.index
-GET     /admin/overview                                 controllers.AdminController.overview
-GET     /admin/map                                      controllers.AdminController.adminMap
-GET     /admin/analytics                                controllers.AdminController.adminAnalytics
-GET     /admin/labels                                   controllers.AdminController.adminLabels
-GET     /admin/users                                    controllers.AdminController.adminUsers
-GET     /admin/label-search                             controllers.AdminController.adminLabelSearch
-GET     /admin/teams                                    controllers.AdminController.adminTeams
-GET     /admin/api-analytics                            controllers.AdminController.adminApiAnalytics
 GET     /admin/user/:username                           controllers.AdminController.userProfile(username: String)
 GET     /admin/task/:taskId                             controllers.AdminController.task(taskId: Int)
 GET     /admin/label/:labelId                           controllers.AdminController.label(labelId: Int)
