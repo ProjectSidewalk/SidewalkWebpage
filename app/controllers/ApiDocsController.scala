@@ -91,6 +91,26 @@ class ApiDocsController @Inject() (
   }
 
   /**
+   * Displays API documentation for the street-level AccessScore.
+   */
+  def accessScoreStreets = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_AccessScoreStreets")
+      Ok(views.html.apiDocs.accessScoreStreets(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Displays API documentation for the region-level AccessScore.
+   */
+  def accessScoreRegions = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_AccessScoreRegions")
+      Ok(views.html.apiDocs.accessScoreRegions(commonData, request.identity))
+    }
+  }
+
+  /**
    * Displays API documentation for the street types.
    */
   def streetTypes = cc.securityService.SecuredAction { implicit request =>

@@ -158,8 +158,8 @@
             experimental and the weights are subject to change; you can also compute your own indices via the Labels API.
         </p>
         <ul class="api-list">
-            <li><b><code>GET /v3/api/accessScoreStreets</code>:</b> AccessScore for individual streets.</li>
-            <li><b><code>GET /v3/api/accessScoreRegions</code>:</b> AccessScore for regions (neighborhoods), length-weighted across their streets.</li>
+            <li><b><a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets</a>:</b> AccessScore for individual streets (<code>GET /v3/api/accessScoreStreets</code>).</li>
+            <li><b><a href="@routes.ApiDocsController.accessScoreRegions">AccessScore: Regions</a>:</b> AccessScore for regions (neighborhoods), length-weighted across their streets (<code>GET /v3/api/accessScoreRegions</code>).</li>
         </ul>
         <p>
             Both endpoints accept the standard geo-filters (<code>bbox</code>, <code>regionId</code>,
