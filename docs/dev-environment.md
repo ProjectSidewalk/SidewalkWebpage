@@ -215,14 +215,12 @@ truth**; the snapshot below is a convenience copy (it may lag as new cities are 
 sweet spots:
 
 - **[IntelliJ IDEA](https://www.jetbrains.com/idea/)** (free [student license](https://www.jetbrains.com/student/)
-  for Ultimate) has the most turnkey **Scala/Play** support. The
-  [Developing with IntelliJ IDEA](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Developing-with-IntelliJ-IDEA)
-  wiki page has full setup (marking source/excluded folders, plugins).
+  for Ultimate) has the most turnkey **Scala/Play** support.
 - **[VS Code](https://code.visualstudio.com/)** is excellent for the **vanilla-JS frontend**; add the
   [Metals](https://scalameta.org/metals/docs/editors/vscode/) extension for Scala.
 
-A combined `docs/editor-setup.md` covering both is planned. Whichever you use, configure it to run **scalafmt** on
-Scala files (see [`CONTRIBUTING.md`](../CONTRIBUTING.md)).
+See [`docs/editor-setup.md`](editor-setup.md) for full setup of either (JDK, plugins/extensions, format-on-save).
+Whichever you use, configure it to run **scalafmt** on Scala files (see [`CONTRIBUTING.md`](../CONTRIBUTING.md)).
 
 **Database client:** [Valentina Studio](https://www.valentina-db.com/en/valentina-studio-overview) (cross-platform),
 [Postico](https://eggerapps.at/postico/) (Mac), or [pgAdmin](https://www.pgadmin.org/download/) (Windows/Mac).

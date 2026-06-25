@@ -70,35 +70,21 @@ git pull origin develop
 
 ## Coding standards
 
-The full conventions live in [`CLAUDE.md`](CLAUDE.md) (architecture + ScalaDoc/JSDoc comment standards); a dedicated
-`docs/style-guide.md` is planned. The essentials:
+Code-style conventions for JavaScript, Scala, and HTML/CSS live in **[`docs/style-guide.md`](docs/style-guide.md)** —
+that's the single source of truth, and most rules are enforced for you by the linters
+([`.eslintrc.json`](.eslintrc.json), [`.scalafmt.conf`](.scalafmt.conf), [`.stylelintrc.json`](.stylelintrc.json)).
+[`CLAUDE.md`](CLAUDE.md) holds the architecture and the ScalaDoc/JSDoc comment standards. A few things worth knowing
+before your first PR:
 
-**General**
-- Max line length **120 characters** (with sensible exceptions for readability).
-- Indent with **spaces**, not tabs; end every file with a newline.
-- Comments start with a capital letter and end with a period, and explain **why**, not what.
-- Meet **WCAG 2.1/2.2 Level AA** for any UI work, and use the design-system tokens in `main.css` `:root` for fonts,
-  colors, and buttons.
+- **New JavaScript is ES6+** (`const`/`let`, arrow functions, native `fetch`). We're actively migrating *off*
+  ES5/jQuery/Bootstrap — don't add to them.
+- **Format Scala with scalafmt** before pushing; CI checks it.
+- **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens.
+- **Public API (`/v3`):** response fields are `snake_case`, query params are `camelCase`, and new DTOs go in
+  `app/models/api/`.
 
-**JavaScript** (vanilla JS, concatenated by Grunt — no module system)
-- Write **ES6+** for new and modernized code: `const`/`let` (never `var`), arrow functions, template literals,
-  semicolons. When editing an old all-ES5 file, you may match its style, but prefer modernizing.
-- Use single quotes for strings (backticks for interpolation/multiline).
-- Prefer native **`fetch`** + Promises over jQuery, and native JS/CSS over Bootstrap, as you touch that code.
-- When refactoring an old constructor-function module, convert it to an ES6 `class` with `#private` fields.
-
-**Scala** (Play 3.0, Scala 2.13)
-- Follow the request flow **routes → Controller → Service → Table (DAO)**; keep controllers thin.
-- Declare value types where it aids clarity (e.g. `val x: Int = 5`), using discretion for long/obvious library
-  types.
-- Use **Slick** for queries rather than raw SQL; when you do write SQL, avoid table aliases. Format with
-  **scalafmt** (`.scalafmt.conf`).
-- Two performance gotchas: count rows with `.size.result` (a `COUNT(*)`), **not** `.length.result` (loads all rows
-  into memory); for CPU-heavy work, use the `cpu-intensive` `ExecutionContext` (see existing examples) rather than
-  the default.
-
-**Public API (`/v3`)** — output field names are **snake_case**; query/REST parameters are **camelCase**. New API
-DTOs go in `app/models/api/`. See the API sections of [`CLAUDE.md`](CLAUDE.md).
+See [`docs/style-guide.md`](docs/style-guide.md) for the full rules, including the request-flow and Slick/SQL
+conventions.
 
 ## Internationalization
 
@@ -159,8 +145,8 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
 ## Submitting a pull request
 
 1. Merge the latest `develop` (`git pull origin develop`) and test one more time.
-2. **Run scalafmt** on any Scala files you changed (IntelliJ: `Ctrl`+`Alt`+`L`; VS Code via the Metals/Scalafmt
-   formatter — both can format-on-save). CI also checks formatting.
+2. **Run scalafmt** on any Scala files you changed (CI also checks formatting). Set up format-on-save once via
+   [`docs/editor-setup.md`](docs/editor-setup.md) so this is automatic.
 3. Push your branch and [open a PR](https://github.com/ProjectSidewalk/SidewalkWebpage/compare) with **base
    `develop`** ← your branch. Fill out the [PR template](.github/PULL_REQUEST_TEMPLATE.md): clear title, description,
    before/after screenshots for UI, testing instructions, translations, and logging updates. Link the issue

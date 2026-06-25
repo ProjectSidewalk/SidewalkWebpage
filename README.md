@@ -54,10 +54,13 @@ guide: **[`docs/dev-environment.md`](docs/dev-environment.md)**.
 | Doc | What's in it |
 |-----|--------------|
 | [`docs/dev-environment.md`](docs/dev-environment.md) | Set up and run the app locally. |
+| [`docs/editor-setup.md`](docs/editor-setup.md) | Configure IntelliJ IDEA or VS Code for the project. |
 | [`docs/architecture.md`](docs/architecture.md) | How the backend, frontend, and data fit together. |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Branch/PR workflow, coding standards, i18n. |
+| [`docs/style-guide.md`](docs/style-guide.md) | Detailed code-style conventions (JS, Scala, HTML/CSS). |
 | [`CLAUDE.md`](CLAUDE.md) | Conventions + operational notes, used as AI-assistant context. |
 | [`docs/testing-and-ci.md`](docs/testing-and-ci.md) | Testing strategy and CI rollout plan. |
+| [`docs/upgrading-libraries.md`](docs/upgrading-libraries.md) | Dependency-version inventory and how to update each. |
 | [`SECURITY.md`](SECURITY.md) | How to report a vulnerability. |
 | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Community standards. |
 
