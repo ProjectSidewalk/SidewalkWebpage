@@ -1,7 +1,6 @@
 package controllers.helper
 
 import models.api.{AccessScoreApiModels, LabelClusterForApi, LabelDataForApi, RawLabelInClusterDataForApi, RegionAccessScoreForApi, RegionDataForApi, StreetAccessScoreForApi, StreetDataForApi}
-import models.computation.{RegionScore, StreetScore}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
@@ -781,102 +780,6 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     }
 
     createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
-  }
-
-  def createStreetShapefile(
-      source: Source[StreetScore, _],
-      outputFile: String,
-      batchSize: Int
-  ): Future[Option[Path]] = {
-    // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
-    val featureType: SimpleFeatureType = DataUtilities.createType(
-      "Location",
-      "the_geom:LineString:srid=4326," // the geometry attribute: Line type
-      + "streetId:Integer,"            // StreetId
-      + "osmWayId:String,"             // osmWayId
-      + "nghborhdId:String,"           // Region ID
-      + "score:Double,"                // street score
-      + "auditCount:Integer,"          // boolean representing whether the street is audited
-      + "sigRamp:Double,"              // curb ramp significance weight
-      + "sigNoRamp:Double,"            // no Curb ramp significance weight
-      + "sigObs:Double,"               // obstacle significance weight
-      + "sigSurfce:Double,"            // Surface problem significance weight
-      + "nRamp:Integer,"               // curb ramp count, averaged across streets
-      + "nNoRamp:Integer,"             // no Curb ramp count, averaged across streets
-      + "nObs:Integer,"                // obstacle count, averaged across streets
-      + "nSurfce:Integer,"             // Surface problem count, averaged across streets
-      + "avgImgDate:String,"           // average image age in milliseconds
-      + "avgLblDate:String"            // average label age in milliseconds
-    )
-
-    def buildFeature(s: StreetScore, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
-      featureBuilder.add(s.streetEdge.geom)
-      featureBuilder.add(s.streetEdge.streetEdgeId)
-      featureBuilder.add(String.valueOf(s.osmId))
-      featureBuilder.add(s.regionId)
-      featureBuilder.add(s.score)
-      featureBuilder.add(s.auditCount)
-      featureBuilder.add(s.significance(0))
-      featureBuilder.add(s.significance(1))
-      featureBuilder.add(s.significance(2))
-      featureBuilder.add(s.significance(3))
-      featureBuilder.add(s.clusters(0))
-      featureBuilder.add(s.clusters(1))
-      featureBuilder.add(s.clusters(2))
-      featureBuilder.add(s.clusters(3))
-      featureBuilder.add(s.avgImageCaptureDate.map(String.valueOf).orNull)
-      featureBuilder.add(s.avgLabelDate.map(String.valueOf).orNull)
-      featureBuilder.buildFeature(null)
-    }
-
-    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
-  }
-
-  def createRegionShapefile(
-      source: Source[RegionScore, _],
-      outputFile: String,
-      batchSize: Int
-  ): Future[Option[Path]] = {
-    // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
-    val featureType: SimpleFeatureType = DataUtilities.createType(
-      "Location",
-      "the_geom:Polygon:srid=4326," // line geometry
-      + "neighborhd:String,"        // Neighborhood Name
-      + "nghborhdId:Integer,"       // Neighborhood Id
-      + "coverage:Double,"          // coverage score
-      + "score:Double,"             // obstacle score
-      + "sigRamp:Double,"           // curb ramp significance weight
-      + "sigNoRamp:Double,"         // no Curb ramp significance weight
-      + "sigObs:Double,"            // obstacle significance weight
-      + "sigSurfce:Double,"         // Surface problem significance weight
-      + "nRamp:Double,"             // curb ramp count
-      + "nNoRamp:Double,"           // no Curb ramp count
-      + "nObs:Double,"              // obstacle count
-      + "nSurfce:Double,"           // Surface problem count
-      + "avgImgDate:String,"        // average image age in milliseconds
-      + "avgLblDate:String"         // average label age in milliseconds
-    )
-
-    def buildFeature(n: RegionScore, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
-      featureBuilder.add(n.geom)
-      featureBuilder.add(n.name)
-      featureBuilder.add(n.regionId)
-      featureBuilder.add(n.coverage)
-      featureBuilder.add(n.score)
-      featureBuilder.add(n.significanceScores(0))
-      featureBuilder.add(n.significanceScores(1))
-      featureBuilder.add(n.significanceScores(2))
-      featureBuilder.add(n.significanceScores(3))
-      featureBuilder.add(n.clusterScores(0))
-      featureBuilder.add(n.clusterScores(1))
-      featureBuilder.add(n.clusterScores(2))
-      featureBuilder.add(n.clusterScores(3))
-      featureBuilder.add(n.avgImageCaptureDate.map(String.valueOf).orNull)
-      featureBuilder.add(n.avgLabelDate.map(String.valueOf).orNull)
-      featureBuilder.buildFeature(null)
-    }
-
-    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
   }
 
   /**

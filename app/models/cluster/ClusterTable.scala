@@ -1,8 +1,7 @@
 package models.cluster
 
 import com.google.inject.ImplementedBy
-import formats.json.ApiFormats
-import models.api.{LabelClusterFiltersForApi, LabelClusterForApi, RawLabelInClusterDataForApi, StreamingApiType}
+import models.api.{LabelClusterFiltersForApi, LabelClusterForApi, RawLabelInClusterDataForApi}
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType}
@@ -24,33 +23,6 @@ case class Cluster(
     geom: Point,
     severity: Option[Int]
 )
-
-case class ClusterForApi(
-    clusterId: Int,
-    labelType: String,
-    geom: Point,
-    severity: Option[Int],
-    agreeCount: Int,
-    disagreeCount: Int,
-    unsureCount: Int,
-    streetEdgeId: Int,
-    osmStreetId: Long,
-    neighborhoodName: String,
-    avgImageCaptureDate: OffsetDateTime,
-    avgLabelDate: OffsetDateTime,
-    imageCount: Int,
-    labelCount: Int,
-    usersList: Seq[String]
-) extends StreamingApiType {
-  def toJson: JsObject = ApiFormats.clusterToJson(this)
-  def toCsvRow: String = ApiFormats.clusterToCsvRow(this)
-}
-
-object ClusterForApi {
-  val csvHeader: String = "Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Cluster Latitude," +
-    "Cluster Longitude,Avg Image Capture Date,Avg Label Date,Severity,Agree Count,Disagree Count,Unsure Count," +
-    "Cluster Size,User IDs\n"
-}
 
 /**
  * Lean per-cluster inputs for the v3 AccessScore computation (#3855).
@@ -105,15 +77,6 @@ class ClusterTableDef(tag: slick.lifted.Tag) extends Table[Cluster](tag, "cluste
   ): SqlStreamingAction[Vector[LabelClusterForApi], LabelClusterForApi, Effect]
 
   /**
-   * Gets clusters within a bounding box for the public API.
-   */
-  def getClustersInBoundingBox(
-      spatialQueryType: SpatialQueryType,
-      bbox: LatLngBBox,
-      severity: Option[String]
-  ): SqlStreamingAction[Vector[ClusterForApi], ClusterForApi, Effect]
-
-  /**
    * Streams lean per-cluster scoring inputs for the v3 AccessScore endpoints.
    *
    * @param spatialQueryType Whether the bbox filters on region geometry or street geometry.
@@ -137,26 +100,6 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     extends ClusterTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val clusters: TableQuery[ClusterTableDef] = TableQuery[ClusterTableDef]
-
-  implicit val ClusterForApiConverter: GetResult[ClusterForApi] = GetResult[ClusterForApi](r =>
-    ClusterForApi(
-      r.nextInt(),
-      r.nextString(),
-      r.nextGeometry[Point](),
-      r.nextIntOption(),
-      r.nextInt(),
-      r.nextInt(),
-      r.nextInt(),
-      r.nextInt(),
-      r.nextLong(),
-      r.nextString(),
-      OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC),
-      OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC),
-      r.nextInt(),
-      r.nextInt(),
-      r.nextString().split(",").toSeq.distinct
-    )
-  )
 
   // Create an implicit converter for LabelClusterForApi
   implicit val labelClusterForApiConverter: GetResult[LabelClusterForApi] = GetResult[LabelClusterForApi] { r =>
@@ -215,92 +158,6 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       labelCount = r.nextInt(),
       tagCounts = r.nextStringOption().map(json => Json.parse(json).as[Map[String, Int]]).getOrElse(Map.empty)
     )
-  }
-
-  private def toInt(s: Option[String]): Option[Int] = {
-    try { Some(s.getOrElse("-1").toInt) }
-    catch { case e: Exception => None }
-  }
-
-  def getClustersInBoundingBox(
-      spatialQueryType: SpatialQueryType,
-      bbox: LatLngBBox,
-      severity: Option[String]
-  ): SqlStreamingAction[Vector[ClusterForApi], ClusterForApi, Effect] = {
-    val locationFilter: String = if (spatialQueryType == SpatialQueryType.Region) {
-      s"ST_Within(region.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-    } else if (spatialQueryType == SpatialQueryType.Street) {
-      s"ST_Intersects(street_edge.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-    } else {
-      s"cluster.geom && ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)"
-    }
-
-    // Sum the validations counts, average date, and the number of the labels that make up each cluster.
-    val validationCounts =
-      """SELECT cluster.cluster_id AS cluster_id,
-        |       SUM(label.agree_count) AS agree_count,
-        |       SUM(label.disagree_count) AS disagree_count,
-        |       SUM(label.unsure_count) AS unsure_count,
-        |       TO_TIMESTAMP(AVG(extract(epoch from label.time_created))) AS avg_label_date,
-        |       COUNT(label.label_id) AS label_count
-        |FROM cluster
-        |INNER JOIN cluster_label ON cluster.cluster_id = cluster_label.cluster_id
-        |INNER JOIN label ON cluster_label.label_id = label.label_id
-        |GROUP BY cluster.cluster_id""".stripMargin
-
-    // Select the average image date and number of images for each cluster. Subquery selects the dates of all images of
-    // interest and a list of user_ids associated with the cluster, once per cluster. The users_list might have
-    // duplicate id's, but we fix this in the `ClusterForApiConverter`.
-    val imageCaptureDatesAndUserIds =
-      """SELECT capture_dates.cluster_id AS cluster_id,
-        |       TO_TIMESTAMP(AVG(EXTRACT(epoch from capture_dates.capture_date))) AS avg_capture_date,
-        |       COUNT(capture_dates.capture_date) AS image_count,
-        |       string_agg(capture_dates.users_list, ',') AS users_list
-        |FROM (
-        |    SELECT cluster.cluster_id,
-        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from TO_DATE(pano_data.capture_date, 'YYYY-MM')))) AS capture_date,
-        |           array_to_string(array_agg(DISTINCT label.user_id), ',') AS users_list
-        |    FROM cluster
-        |    INNER JOIN cluster_label ON cluster.cluster_id = cluster_label.cluster_id
-        |    INNER JOIN label ON cluster_label.label_id = label.label_id
-        |    INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
-        |    GROUP BY cluster.cluster_id, pano_data.pano_id
-        |) capture_dates
-        |GROUP BY capture_dates.cluster_id""".stripMargin
-
-    sql"""
-      SELECT cluster.cluster_id,
-             label_type.label_type,
-             cluster.geom,
-             cluster.severity,
-             validation_counts.agree_count,
-             validation_counts.disagree_count,
-             validation_counts.unsure_count,
-             cluster.street_edge_id,
-             osm_way_street_edge.osm_way_id,
-             region.name,
-             image_capture_dates.avg_capture_date,
-             validation_counts.avg_label_date,
-             validation_counts.label_count,
-             image_capture_dates.image_count,
-             image_capture_dates.users_list
-      FROM cluster
-      INNER JOIN label_type ON cluster.label_type_id = label_type.label_type_id
-      INNER JOIN street_edge ON cluster.street_edge_id = street_edge.street_edge_id
-      INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
-      INNER JOIN region ON street_edge_region.region_id = region.region_id
-      INNER JOIN osm_way_street_edge ON cluster.street_edge_id = osm_way_street_edge.street_edge_id
-      INNER JOIN (#$validationCounts) validation_counts ON cluster.cluster_id = validation_counts.cluster_id
-      INNER JOIN (#$imageCaptureDatesAndUserIds) image_capture_dates ON cluster.cluster_id = image_capture_dates.cluster_id
-      WHERE label_type.label_type <> 'Problem'
-          AND #$locationFilter
-          AND (
-              cluster.severity IS NULL
-                  AND #${severity.getOrElse("") == "none"}
-                  OR #${severity.isEmpty}
-                  OR cluster.severity = #${toInt(severity).getOrElse(-1)}
-              );
-    """.as[ClusterForApi]
   }
 
   def getClusterScoreRows(

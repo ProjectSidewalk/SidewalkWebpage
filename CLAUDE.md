@@ -41,10 +41,9 @@ file produces its DTOs but the DTO *definitions* belong in `models.api`. The con
 - **Shared helpers**: reuse `ApiModelUtils` (`escapeCsvField`, `createGeoJsonPointGeometry`, ...) rather than re-rolling
   CSV/GeoJSON logic.
 
-**Known exception**: the older `/v2` access-score DTOs (`StreetScore`, `RegionScore` in `models/computation/`,
-`ClusterForApi` in `models/cluster/`) intentionally remain in place pending the v3 access-score rewrite (#3855) and v2
-removal (#3864). `app/formats/json/ApiFormats.scala` holds their serializers plus other non-DTO writes; new API DTOs
-should not add to it.
+`app/formats/json/ApiFormats.scala` still holds assorted older non-DTO writes (the v2 access-score serializers and the
+`ClusterForApi` stack were removed in #3864); new API DTOs should not add to it — define them in `models.api` per the
+convention above.
 
 ### Database & evolutions
 

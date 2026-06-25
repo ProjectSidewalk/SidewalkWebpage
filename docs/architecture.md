@@ -82,8 +82,7 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
 The response/filter data structures (DTOs) live in **`app/models/api/`** (`package models.api`), in per-domain
 `*ApiModels.scala` files (issue #3885). Response types are named `*ForApi`; parsed query filters are
 `*FiltersForApi`. Response DTOs extend `StreamingApiType` and implement `toJson`/`toCsvRow` inline so the
-`BaseApiController` helpers can serialize a stream of them uniformly. (The older `/v2` access-score DTOs remain in
-`models/computation/` and `models/cluster/` pending the v3 access-score rewrite.)
+`BaseApiController` helpers can serialize a stream of them uniformly.
 
 ## Frontend
 

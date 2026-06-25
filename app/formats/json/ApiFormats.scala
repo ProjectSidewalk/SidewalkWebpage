@@ -1,8 +1,6 @@
 package formats.json
 
 import controllers.helper.ControllerUtils.labelTypeOrdering
-import models.cluster.ClusterForApi
-import models.computation.{RegionScore, StreetScore}
 import models.label._
 import models.pano.{PanoDataSlim, PanoSource}
 import models.region.Region
@@ -11,8 +9,6 @@ import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-
-import java.time.OffsetDateTime
 
 object ApiFormats {
 
@@ -58,123 +54,6 @@ object ApiFormats {
       (__ \ "lat2").write[Double] and
       (__ \ "lng2").write[Double]
   )(unlift(MapParams.unapply))
-
-  def regionScoreToJson(n: RegionScore): JsObject = {
-    if (n.coverage > 0.0d) {
-      val properties: JsObject = Json.obj(
-        "coverage"     -> n.coverage,
-        "region_id"    -> n.regionId,
-        "region_name"  -> n.name,
-        "score"        -> n.score,
-        "significance" -> Json.obj(
-          LabelTypeEnum.CurbRamp.name       -> n.significanceScores(0),
-          LabelTypeEnum.NoCurbRamp.name     -> n.significanceScores(1),
-          LabelTypeEnum.Obstacle.name       -> n.significanceScores(2),
-          LabelTypeEnum.SurfaceProblem.name -> n.significanceScores(3)
-        ),
-        "avg_attribute_count" -> Json.obj(
-          LabelTypeEnum.CurbRamp.name       -> n.clusterScores(0),
-          LabelTypeEnum.NoCurbRamp.name     -> n.clusterScores(1),
-          LabelTypeEnum.Obstacle.name       -> n.clusterScores(2),
-          LabelTypeEnum.SurfaceProblem.name -> n.clusterScores(3)
-        ),
-        "avg_image_capture_date" -> n.avgImageCaptureDate.map(_.toString),
-        "avg_label_date"         -> n.avgLabelDate.map(_.toString)
-      )
-      Json.obj("type" -> "Feature", "geometry" -> n.geom, "properties" -> properties)
-    } else {
-      val properties: JsObject = Json.obj(
-        "coverage"     -> 0.0,
-        "region_id"    -> n.regionId,
-        "region_name"  -> n.name,
-        "score"        -> None.asInstanceOf[Option[Double]],
-        "significance" -> Json.obj(
-          LabelTypeEnum.CurbRamp.name       -> 0.75,
-          LabelTypeEnum.NoCurbRamp.name     -> -1.0,
-          LabelTypeEnum.Obstacle.name       -> -1.0,
-          LabelTypeEnum.SurfaceProblem.name -> -1.0
-        ),
-        "avg_attribute_count"    -> None.asInstanceOf[Option[Array[Double]]],
-        "avg_image_capture_date" -> None.asInstanceOf[Option[OffsetDateTime]],
-        "avg_label_date"         -> None.asInstanceOf[Option[OffsetDateTime]]
-      )
-      Json.obj("type" -> "Feature", "geometry" -> n.geom, "properties" -> properties)
-    }
-  }
-
-  def regionScoreToCSVRow(n: RegionScore): String = {
-    val coordStr: String = s""""[${n.geom.getCoordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
-    if (n.coverage > 0.0d) {
-      s""""${n.name}",${n.regionId},${n.score},$coordStr,${n.coverage},${n.clusterScores(0)},""" +
-        s"${n.clusterScores(1)},${n.clusterScores(2)},${n.clusterScores(3)},${n.significanceScores(0)}," +
-        s"${n.significanceScores(1)},${n.significanceScores(2)},${n.significanceScores(3)}," +
-        s"${n.avgImageCaptureDate.map(_.toString).getOrElse("NA")},${n.avgLabelDate.map(_.toString).getOrElse("NA")}"
-    } else {
-      s""""${n.name}",${n.regionId},NA,$coordStr,0.0,NA,NA,NA,NA,${n.significanceScores(0)},""" +
-        s"${n.significanceScores(1)},${n.significanceScores(2)},${n.significanceScores(3)},NA,NA"
-    }
-  }
-
-  def streetScoreToJSON(s: StreetScore): JsObject = {
-    val properties = Json.obj(
-      "street_edge_id"         -> s.streetEdge.streetEdgeId,
-      "osm_id"                 -> s.osmId,
-      "region_id"              -> s.regionId,
-      "score"                  -> s.score,
-      "audit_count"            -> s.auditCount,
-      "avg_image_capture_date" -> s.avgImageCaptureDate.map(_.toString),
-      "avg_label_date"         -> s.avgLabelDate.map(_.toString),
-      "significance"           -> Json.obj(
-        LabelTypeEnum.CurbRamp.name       -> s.significance(0),
-        LabelTypeEnum.NoCurbRamp.name     -> s.significance(1),
-        LabelTypeEnum.Obstacle.name       -> s.significance(2),
-        LabelTypeEnum.SurfaceProblem.name -> s.significance(3)
-      ),
-      "attribute_count" -> Json.obj(
-        LabelTypeEnum.CurbRamp.name       -> s.clusters(0),
-        LabelTypeEnum.NoCurbRamp.name     -> s.clusters(1),
-        LabelTypeEnum.Obstacle.name       -> s.clusters(2),
-        LabelTypeEnum.SurfaceProblem.name -> s.clusters(3)
-      )
-    )
-    Json.obj("type" -> "Feature", "geometry" -> s.streetEdge.geom, "properties" -> properties)
-  }
-
-  def streetScoreToCSVRow(s: StreetScore): String = {
-    val coordStr: String = s""""[${s.streetEdge.geom.getCoordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
-    s"${s.streetEdge.streetEdgeId},${s.osmId},${s.regionId},${s.score},$coordStr,${s.auditCount},${s.clusters(0)}," +
-      s"${s.clusters(1)},${s.clusters(2)},${s.clusters(3)},${s.significance(0)},${s.significance(1)}," +
-      s"${s.significance(2)},${s.significance(3)},${s.avgImageCaptureDate.map(_.toString).getOrElse("NA")}," +
-      s"${s.avgLabelDate.map(_.toString).getOrElse("NA")}"
-  }
-
-  def clusterToJson(a: ClusterForApi): JsObject = {
-    Json.obj(
-      "type"       -> "Feature",
-      "geometry"   -> a.geom,
-      "properties" -> Json.obj(
-        "cluster_id"             -> a.clusterId,
-        "label_type"             -> a.labelType,
-        "street_edge_id"         -> a.streetEdgeId,
-        "osm_street_id"          -> a.osmStreetId,
-        "neighborhood"           -> a.neighborhoodName,
-        "avg_image_capture_date" -> a.avgImageCaptureDate.toString,
-        "avg_label_date"         -> a.avgLabelDate.toString,
-        "severity"               -> a.severity,
-        "agree_count"            -> a.agreeCount,
-        "disagree_count"         -> a.disagreeCount,
-        "unsure_count"           -> a.unsureCount,
-        "cluster_size"           -> a.labelCount,
-        "users"                  -> a.usersList
-      )
-    )
-  }
-
-  def clusterToCsvRow(a: ClusterForApi): String = {
-    s"""${a.clusterId},${a.labelType},${a.streetEdgeId},${a.osmStreetId},"${a.neighborhoodName}",""" +
-      s"${a.geom.getY},${a.geom.getX},${a.avgImageCaptureDate},${a.avgLabelDate},${a.severity.getOrElse("NA")}," +
-      s"""${a.agreeCount},${a.disagreeCount},${a.unsureCount},${a.labelCount},"[${a.usersList.mkString(",")}]""""
-  }
 
   /** Serializes one validation-vote source (combined/human/ai): a total count plus a per-label-type accuracy block. */
   private def validationSourceToJson(src: ValidationSourceStats): JsObject = JsObject(

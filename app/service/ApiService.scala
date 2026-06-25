@@ -27,14 +27,6 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[ApiServiceImpl])
 trait ApiService {
 
-  // Sets up streaming query to get clusters in a bounding box.
-  def getClustersInBoundingBox(
-      spatialQueryType: SpatialQueryType,
-      bbox: LatLngBBox,
-      severity: Option[String],
-      batchSize: Int
-  ): Source[ClusterForApi, _]
-
   def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]]
 
   def getNeighborhoodsWithin(bbox: LatLngBBox): Future[Seq[Region]]
@@ -259,15 +251,6 @@ class ApiServiceImpl @Inject() (
         isPrimaryValidate = LabelTypeEnum.primaryValidateLabelTypes.contains(labelType)
       )
     }
-  }
-
-  def getClustersInBoundingBox(
-      spatialQueryType: SpatialQueryType,
-      bbox: LatLngBBox,
-      severity: Option[String],
-      batchSize: Int
-  ): Source[ClusterForApi, _] = {
-    setUpStreamFromDb(clusterTable.getClustersInBoundingBox(spatialQueryType, bbox, severity), batchSize)
   }
 
   def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]] =
