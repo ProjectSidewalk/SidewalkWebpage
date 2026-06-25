@@ -5,7 +5,7 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.JsObject
+import play.api.libs.json.{JsObject, JsValue}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 
@@ -33,6 +33,7 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       (json \ "status").as[String] mustBe "OK"
       (json \ "km_explored").asOpt[Double] mustBe defined
       (json \ "total_labels").asOpt[Long] mustBe defined
+      (json \ "tutorial_labels").asOpt[Long] mustBe defined
       (json \ "num_cities").asOpt[Int] mustBe defined
       (json \ "by_label_type").asOpt[JsObject] mustBe defined
 
@@ -40,6 +41,18 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       (json \ "kmExplored").toOption mustBe None
       (json \ "totalLabels").toOption mustBe None
       (json \ "byLabelType").toOption mustBe None
+    }
+
+    // Regression guard for #3981: the per-label-type breakdown must reconcile with the headline total. This held only
+    // for overallStats before; aggregateStats derived the two from differently-filtered queries (and a legacy DC
+    // constant whose total didn't match its own breakdown), so they drifted. Data-independent: holds for any test DB.
+    "report total_labels equal to the sum of by_label_type label counts" in {
+      val json          = contentAsJson(route(app, FakeRequest(GET, "/v3/api/aggregateStats")).get)
+      val totalLabels   = (json \ "total_labels").as[Long]
+      val byLabelType   = (json \ "by_label_type").as[JsObject]
+      val perTypeLabels = byLabelType.values.map { (lt: JsValue) => (lt \ "labels").as[Long] }.sum
+
+      perTypeLabels mustBe totalLabels
     }
   }
 }

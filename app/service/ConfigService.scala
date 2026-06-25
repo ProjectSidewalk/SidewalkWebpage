@@ -64,7 +64,10 @@ case class LabelTypeStats(
  *
  * @param kmExplored Total kilometers explored across all cities
  * @param kmExploredNoOverlap Total kilometers explored without overlap across all cities
- * @param totalLabels Total number of labels across all cities
+ * @param totalLabels Total number of (non-tutorial) labels across all cities. Equals the sum of `byLabelType` label
+ *                    counts by construction (#3981), so the per-type breakdown always reconciles with this total.
+ * @param tutorialLabels Total number of practice/tutorial labels across all cities. Tracked separately because tutorial
+ *                       labels are excluded from `totalLabels` and `byLabelType` (they would skew the per-type ratios).
  * @param totalValidations Total number of validations across all cities
  * @param numCities Number of cities where Project Sidewalk is deployed
  * @param numCountries Number of countries where Project Sidewalk is deployed
@@ -75,6 +78,7 @@ case class AggregateStats(
     kmExplored: Double,
     kmExploredNoOverlap: Double,
     totalLabels: Int,
+    tutorialLabels: Int,
     totalValidations: Int,
     numCities: Int,
     numCountries: Int,
@@ -168,25 +172,20 @@ class ConfigServiceImpl @Inject() (
   private val logger = Logger(this.getClass)
 
   /**
-   * Legacy data from the original DC deployment (2015-2017).
-   *
-   * This data is preserved from the original PS deployment in Washington, DC. The deployment ran from 2015-2017 but
-   * uses an outdated database schema that would be too costly to migrate to our current system. The data is represented
-   * in the AggregateStats object below. This data is included in aggregate statistics to maintain historical
-   * completeness and accurately represent the full scope of Project Sidewalk's impact.
-   *
-   * Data taken from:
+   * Per-label-type counts for the original DC deployment (2015–2017), preserved from the historical spreadsheet:
    * https://docs.google.com/spreadsheets/d/1eTwVuEIz2lV-LD-Vz_5knNoyGgzmH5kERsQ0y_jGHDE/
+   *
+   * That deployment used an outdated schema too costly to migrate, so these hard-coded counts are folded into the
+   * aggregate stats to represent Project Sidewalk's full historical scope. DC only ever had these seven label types
+   * (Crosswalk and Pedestrian Signal did not exist yet).
+   *
+   * These per-type rows sum to 249,905. The spreadsheet also lists 263,403, which is the UNFILTERED count: the
+   * ~13,498 difference is DC's tutorial labels plus "junk"-user labels (low-quality users Mikey identified by manual
+   * assessment) — exactly the labels our stats exclude elsewhere via `tutorial = FALSE` and `NOT user_stat.excluded`.
+   * So 249,905 is the correct filtered `total_labels` (consistent with how live cities are counted), and 263,403 must
+   * NOT be used as the total. `legacyDCData.totalLabels` is therefore derived from this breakdown (#3981).
    */
-  private val legacyDCData = AggregateStats(
-    kmExplored = 5482.0,
-    kmExploredNoOverlap = 1747, // Mikey calculated this for us on July 18, 2025
-    totalLabels = 263403,
-    totalValidations = 0, // Validations were not implemented during DC deployment
-    numCities = 0,
-    numCountries = 0,
-    numLanguages = 0,
-    byLabelType = Map(
+  private val legacyDCByLabelType: Map[String, LabelTypeStats] = Map(
       LabelTypeEnum.CurbRamp.name -> LabelTypeStats(
         labels = 150680,
         labelsValidated = 0,
@@ -231,6 +230,39 @@ class ConfigServiceImpl @Inject() (
       )
       // Note: Crosswalk and Signal data not available (NA) for DC legacy deployment.
     )
+
+  /**
+   * DC's UNFILTERED historical label count from the source spreadsheet (gid=963888605 tab):
+   * https://docs.google.com/spreadsheets/d/1eTwVuEIz2lV-LD-Vz_5knNoyGgzmH5kERsQ0y_jGHDE/edit?gid=963888605#gid=963888605
+   *
+   * This counts everything, including tutorial and low-quality "junk"-user labels. It is NOT the reportable total — see
+   * `legacyDCData` for how the filtered total and `tutorialLabels` are derived from it.
+   */
+  private val legacyDCUnfilteredLabelCount = 263403
+
+  /**
+   * Legacy DC deployment rolled into an AggregateStats so getAggregateStats can sum it alongside live cities.
+   *
+   * `totalLabels` is derived from `legacyDCByLabelType` (249,905, the filtered count), NOT the unfiltered 263,403
+   * headline, so the per-type breakdown always reconciles with the total (see `legacyDCByLabelType` above).
+   *
+   * `tutorialLabels` is the gap between the unfiltered count and the filtered total (263,403 − 249,905 = 13,498) so
+   * DC's numbers close cleanly back to the historical headline. CAVEAT: for live cities `tutorialLabels` is strictly
+   * `tutorial = TRUE` labels, but DC's export can't separate tutorial from junk-user labels, so this single legacy
+   * value bundles both and is really an UPPER BOUND on DC's tutorial labels. Documented as such in the API docs.
+   *
+   * Validations were never implemented during the DC deployment, so `totalValidations` is 0.
+   */
+  private val legacyDCData = AggregateStats(
+    kmExplored = 5482.0,
+    kmExploredNoOverlap = 1747, // Mikey calculated this for us on July 18, 2025
+    totalLabels = legacyDCByLabelType.values.map(_.labels).sum,
+    tutorialLabels = legacyDCUnfilteredLabelCount - legacyDCByLabelType.values.map(_.labels).sum,
+    totalValidations = 0,
+    numCities = 0,
+    numCountries = 0,
+    numLanguages = 0,
+    byLabelType = legacyDCByLabelType
   )
 
   /**
@@ -329,8 +361,8 @@ class ConfigServiceImpl @Inject() (
           logger.warn("No cities with valid schemas found")
           Future.successful(
             AggregateStats(
-              kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, totalValidations = 0, numCities = 0,
-              numCountries = 0, numLanguages = 0, byLabelType = Map.empty
+              kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
+              numCities = 0, numCountries = 0, numLanguages = 0, byLabelType = Map.empty
             )
           )
         } else {
@@ -353,7 +385,7 @@ class ConfigServiceImpl @Inject() (
               logger.warn("No valid city statistics found for aggregate calculation")
               // Return empty aggregate stats if no cities provided data.
               AggregateStats(
-                kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, totalValidations = 0,
+                kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
                 numCities = numCities, numCountries = numCountries, numLanguages = numLanguages, byLabelType = Map.empty
               )
             } else {
@@ -538,6 +570,7 @@ class ConfigServiceImpl @Inject() (
     val totalKmExplored          = cityData.map(_.kmExplored).sum
     val totalKmExploredNoOverlap = cityData.map(_.kmExploredNoOverlap).sum
     val totalLabelsCount         = cityData.map(_.totalLabels).sum
+    val tutorialLabelsCount      = cityData.map(_.tutorialLabels).sum
     val totalValidationsCount    = cityData.map(_.totalValidations).sum
 
     // Aggregate label type statistics.
@@ -559,8 +592,8 @@ class ConfigServiceImpl @Inject() (
 
     AggregateStats(
       kmExplored = totalKmExplored, kmExploredNoOverlap = totalKmExploredNoOverlap, totalLabels = totalLabelsCount,
-      totalValidations = totalValidationsCount, numCities = numCities, numCountries = numCountries,
-      numLanguages = numLanguages, byLabelType = labelTypeStatsMap.toMap
+      tutorialLabels = tutorialLabelsCount, totalValidations = totalValidationsCount, numCities = numCities,
+      numCountries = numCountries, numLanguages = numLanguages, byLabelType = labelTypeStatsMap.toMap
     )
   }
 
