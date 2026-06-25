@@ -6,7 +6,6 @@
 package models.api
 
 import models.api.ApiModelUtils.escapeCsvField
-import models.computation.StreamingApiType
 import models.label.LocationXY
 import models.utils.CommonUtils.UiSource.UiSource
 import models.validation.ValidationOption

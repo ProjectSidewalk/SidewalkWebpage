@@ -6,7 +6,6 @@ import models.computation.{RegionScore, StreetScore}
 import models.label._
 import models.pano.{PanoDataSlim, PanoSource}
 import models.region.Region
-import models.user.{LabelTypeStat, UserStatApi}
 import models.utils.MapParams
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.MultiPolygon
@@ -16,7 +15,6 @@ import play.api.libs.json._
 import java.time.OffsetDateTime
 
 object ApiFormats {
-  private def formatOptionForCSV(x: Option[Any]): String = { x.map(_.toString).getOrElse("NA").replace("\"", "\"\"") }
 
   /**
    * Converts a Region object to JSON format
@@ -60,13 +58,6 @@ object ApiFormats {
       (__ \ "lat2").write[Double] and
       (__ \ "lng2").write[Double]
   )(unlift(MapParams.unapply))
-
-  implicit val labelTypeStatWrites: Writes[LabelTypeStat] = (
-    (__ \ "labels").write[Int] and
-      (__ \ "validated_correct").write[Int] and
-      (__ \ "validated_incorrect").write[Int] and
-      (__ \ "not_validated").write[Int]
-  )(unlift(LabelTypeStat.unapply))
 
   def regionScoreToJson(n: RegionScore): JsObject = {
     if (n.coverage > 0.0d) {
@@ -234,93 +225,6 @@ object ApiFormats {
         }
       )
     )
-  }
-
-  def userStatToJson(u: UserStatApi): JsObject = {
-    Json.obj(
-      "user_id"                      -> u.userId,
-      "labels"                       -> u.labels,
-      "meters_explored"              -> u.metersExplored,
-      "labels_per_meter"             -> u.labelsPerMeter,
-      "high_quality"                 -> u.highQuality,
-      "high_quality_manual"          -> u.highQualityManual,
-      "label_accuracy"               -> u.labelAccuracy,
-      "validated_labels"             -> u.validatedLabels,
-      "validations_received"         -> u.validationsReceived,
-      "labels_validated_correct"     -> u.labelsValidatedCorrect,
-      "labels_validated_incorrect"   -> u.labelsValidatedIncorrect,
-      "labels_not_validated"         -> u.labelsNotValidated,
-      "validations_given"            -> u.validationsGiven,
-      "dissenting_validations_given" -> u.dissentingValidationsGiven,
-      "agree_validations_given"      -> u.agreeValidationsGiven,
-      "disagree_validations_given"   -> u.disagreeValidationsGiven,
-      "unsure_validations_given"     -> u.unsureValidationsGiven,
-      "stats_by_label_type"          -> Json.obj(
-        "curb_ramp"         -> Json.toJson(u.statsByLabelType(LabelTypeEnum.CurbRamp.name)),
-        "no_curb_ramp"      -> Json.toJson(u.statsByLabelType(LabelTypeEnum.NoCurbRamp.name)),
-        "obstacle"          -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Obstacle.name)),
-        "surface_problem"   -> Json.toJson(u.statsByLabelType(LabelTypeEnum.SurfaceProblem.name)),
-        "no_sidewalk"       -> Json.toJson(u.statsByLabelType(LabelTypeEnum.NoSidewalk.name)),
-        "marked_crosswalk"  -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Crosswalk.name)),
-        "pedestrian_signal" -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Signal.name)),
-        "cant_see_sidewalk" -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Occlusion.name)),
-        "other"             -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Other.name))
-      )
-    )
-  }
-
-  def userStatToCSVRow(s: UserStatApi): String = {
-    s"${s.userId},${s.labels},${s.metersExplored},${formatOptionForCSV(s.labelsPerMeter)},${s.highQuality}," +
-      s"${formatOptionForCSV(s.highQualityManual)},${formatOptionForCSV(s.labelAccuracy)},${s.validatedLabels}," +
-      s"${s.validationsReceived},${s.labelsValidatedCorrect},${s.labelsValidatedIncorrect},${s.labelsNotValidated}," +
-      s"${s.validationsGiven},${s.dissentingValidationsGiven},${s.agreeValidationsGiven}," +
-      s"${s.disagreeValidationsGiven},${s.unsureValidationsGiven}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.CurbRamp.name))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.NoCurbRamp.name))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.Obstacle.name))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.SurfaceProblem.name))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.NoSidewalk.name))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.Crosswalk.name))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.Signal.name))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.Occlusion.name))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.Other.name))}"
-  }
-
-  def labelCVMetadataToCSVRow(l: LabelCVMetadata): String = {
-    s"${l.labelId},${l.panoId},${l.labelTypeId},${l.agreeCount},${l.disagreeCount},${l.unsureCount}," +
-      s"${formatOptionForCSV(l.panoWidth)},${formatOptionForCSV(l.panoHeight)},${l.panoX},${l.panoY}," +
-      s"${l.canvasWidth},${l.canvasHeight},${l.canvasX},${l.canvasY},${l.zoom},${l.heading},${l.pitch}," +
-      s"${l.cameraHeading},${l.cameraPitch},${l.cameraRoll.map(_.toString).getOrElse("NA")}"
-  }
-
-  // Just uses implicit convert defined below.
-  def labelCVMetadataToJSON(l: LabelCVMetadata): JsValue = { Json.toJson(l) }
-
-  implicit val labelCVMetadataWrites: Writes[LabelCVMetadata] = (
-    (__ \ "label_id").write[Int] and
-      (__ \ "pano_id").write[String] and
-      (__ \ "label_type_id").write[Int] and
-      (__ \ "agree_count").write[Int] and
-      (__ \ "disagree_count").write[Int] and
-      (__ \ "unsure_count").write[Int] and
-      (__ \ "pano_width").writeNullable[Int] and
-      (__ \ "pano_height").writeNullable[Int] and
-      (__ \ "pano_x").write[Int] and
-      (__ \ "pano_y").write[Int] and
-      (__ \ "canvas_width").write[Int] and
-      (__ \ "canvas_height").write[Int] and
-      (__ \ "canvas_x").write[Int] and
-      (__ \ "canvas_y").write[Int] and
-      (__ \ "zoom").write[Double] and
-      (__ \ "heading").write[Double] and
-      (__ \ "pitch").write[Double] and
-      (__ \ "camera_heading").write[Double] and
-      (__ \ "camera_pitch").write[Double] and
-      (__ \ "camera_roll").writeNullable[Double]
-  )(unlift(LabelCVMetadata.unapply))
-
-  private def labelTypeStatToCSVRow(l: LabelTypeStat): String = {
-    s"${l.labels},${l.validatedCorrect},${l.validatedIncorrect},${l.notValidated}"
   }
 
   implicit val panoDataSlimWrites: Writes[PanoDataSlim] = (

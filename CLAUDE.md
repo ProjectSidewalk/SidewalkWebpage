@@ -19,6 +19,29 @@ Request flow: **routes → Controller → Service → Table (DAO)**.
 - **DI**: Guice. App bootstraps via `app/CustomApplicationLoader.scala`; modules registered in `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`, `SilhouetteModule`). Custom execution contexts are in `app/executors/`; background actors in `app/actor/`.
 - **Views**: Twirl templates (`app/views/*.scala.html`). The sbt build silences warnings in `views/` and the routes file specifically.
 
+### API data structures (`app/models/api/`)
+
+The data structures (DTOs) returned by the public `/v3` API live in **`app/models/api/`** (`package models.api`), in
+per-domain files named `*ApiModels.scala` (`LabelApiModels.scala`, `StreetsApiModels.scala`, `UserStatsApiModels.scala`,
+...). This is the canonical home — do **not** define new API DTOs inside `*Table.scala` DAO files (issue #3885). Each DAO
+file produces its DTOs but the DTO *definitions* belong in `models.api`. The convention:
+
+- **Naming**: response types are `*ForApi` (e.g. `LabelDataForApi`, `UserStatForApi`); parsed query filters are
+  `*FiltersForApi` (e.g. `RawLabelFiltersForApi`).
+- **Streaming**: response DTOs extend **`StreamingApiType`** (`app/models/api/StreamingApiType.scala`) and implement
+  `toJson` / `toCsvRow` **inline** on the case class, so `BaseApiController`'s `outputJSON`/`outputCSV`/`outputGeoJSON`
+  helpers can serialize a stream of them uniformly. Serialization lives *on the DTO*, not as free functions elsewhere.
+- **Companion object** holds the `csvHeader` string (keep it next to `toCsvRow` so columns can't drift) and JSON writers.
+- **snake_case JSON** per #3871: derive writers with a scoped `JsonConfiguration(JsonNaming.SnakeCase)` +
+  `Json.format`/`Json.writes`, or hand-build the `JsObject` with snake_case keys for nested/custom shapes.
+- **Shared helpers**: reuse `ApiModelUtils` (`escapeCsvField`, `createGeoJsonPointGeometry`, ...) rather than re-rolling
+  CSV/GeoJSON logic.
+
+**Known exception**: the older `/v2` access-score DTOs (`StreetScore`, `RegionScore` in `models/computation/`,
+`ClusterForApi` in `models/cluster/`) intentionally remain in place pending the v3 access-score rewrite (#3855) and v2
+removal (#3864). `app/formats/json/ApiFormats.scala` holds their serializers plus other non-DTO writes; new API DTOs
+should not add to it.
+
 ### Database & evolutions
 
 Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/default/`. Add the next-numbered file for schema changes; each has `# --- !Ups` and `# --- !Downs` sections. The dev DB is seeded from a dump — see the wiki and `db/scripts/` (`import-dump`, `create-new-schema`, etc., exposed as `make` targets). Connection config is env-driven (`DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`) in `conf/application.conf`.

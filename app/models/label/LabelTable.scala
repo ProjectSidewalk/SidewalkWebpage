@@ -1,10 +1,8 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import formats.json.ApiFormats
 import models.api.{LabelDataForApi, LabelValidationSummaryForApi, RawLabelFiltersForApi}
 import models.audit.AuditTaskTableDef
-import models.computation.StreamingApiType
 import models.label.LabelTable._
 import models.label.LabelTypeEnum._
 import models.mission.MissionTableDef
@@ -20,7 +18,6 @@ import models.validation.{LabelValidationTableDef, ValidationOption, ValidationT
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.GeometryFactory
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.JsValue
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
@@ -191,37 +188,6 @@ case class ResumeLabelMetadata(
     panoWidth: Option[Int],
     panoHeight: Option[Int]
 )
-
-case class LabelCVMetadata(
-    labelId: Int,
-    panoId: String,
-    labelTypeId: Int,
-    agreeCount: Int,
-    disagreeCount: Int,
-    unsureCount: Int,
-    panoWidth: Option[Int],
-    panoHeight: Option[Int],
-    panoX: Int,
-    panoY: Int,
-    canvasWidth: Int,
-    canvasHeight: Int,
-    canvasX: Int,
-    canvasY: Int,
-    zoom: Double,
-    heading: Double,
-    pitch: Double,
-    cameraHeading: Double,
-    cameraPitch: Double,
-    cameraRoll: Option[Double]
-) extends StreamingApiType {
-  def toJson: JsValue  = ApiFormats.labelCVMetadataToJSON(this)
-  def toCsvRow: String = ApiFormats.labelCVMetadataToCSVRow(this)
-}
-object LabelCVMetadata {
-  val csvHeader: String = "Label ID,Panorama ID,Label Type ID,Agree Count,Disagree Count,Unsure Count,Panorama Width," +
-    "Panorama Height,Panorama X,Panorama Y,Canvas Width,Canvas Height,Canvas X,Canvas Y,Zoom,Heading,Pitch," +
-    "Camera Heading,Camera Pitch,Camera Roll\n"
-}
 
 case class LabelDataForAi(labelId: Int, labelTypeId: Int, labelPoint: LabelPoint, panoData: PanoData)
 
