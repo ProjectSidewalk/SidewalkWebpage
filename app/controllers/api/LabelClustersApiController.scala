@@ -7,7 +7,6 @@ import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 import play.api.i18n.Lang.logger
-import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
 import play.silhouette.api.Silhouette
 import service.{ApiService, ConfigService}
@@ -161,9 +160,7 @@ class LabelClustersApiController @Inject() (
                 Files.deleteIfExists(labelCsvPath)
                 logger.error(s"Error generating label clusters CSV: ${e.getMessage}", e)
                 Future.successful(
-                  InternalServerError(
-                    Json.toJson(ApiError.internalServerError(s"Error processing request: ${e.getMessage}"))
-                  )
+                  ApiError.toResult(ApiError.internalServerError(s"Error processing request: ${e.getMessage}"))
                 )
               }
           case Some("csv") =>
@@ -179,7 +176,7 @@ class LabelClustersApiController @Inject() (
                     .as("application/zip")
                     .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
                 case None =>
-                  InternalServerError("Failed to create shapefile")
+                  ApiError.toResult(ApiError.internalServerError("Failed to create shapefile"))
               }
           case Some("shapefile") =>
             outputShapefile(

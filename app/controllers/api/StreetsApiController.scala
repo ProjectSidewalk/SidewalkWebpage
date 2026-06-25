@@ -107,11 +107,7 @@ class StreetsApiController @Inject() (
         Ok(Json.obj("status" -> "OK", "street_types" -> types))
       }
       .recover { case e: Exception =>
-        InternalServerError(
-          Json.toJson(
-            ApiError.internalServerError(s"Failed to retrieve street types: ${e.getMessage}")
-          )
-        )
+        ApiError.toResult(ApiError.internalServerError(s"Failed to retrieve street types: ${e.getMessage}"))
       }
   }
 }

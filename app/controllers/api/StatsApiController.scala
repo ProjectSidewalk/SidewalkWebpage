@@ -199,7 +199,7 @@ class StatsApiController @Inject() (
       }
       .recover { case e: Exception =>
         logger.error(s"Failed to retrieve aggregate statistics: ${e.getMessage}", e)
-        InternalServerError(Json.toJson(ApiError.internalServerError(s"Failed to retrieve aggregate statistics: ${e.getMessage}")))
+        ApiError.toResult(ApiError.internalServerError(s"Failed to retrieve aggregate statistics: ${e.getMessage}"))
       }
   }
 
@@ -353,7 +353,7 @@ class StatsApiController @Inject() (
       filetype: Option[String]
   ) = silhouette.UserAwareAction.async { implicit request =>
     parseDateParams(startDate, endDate) match {
-      case Left(err) => Future.successful(BadRequest(Json.toJson(err)))
+      case Left(err) => Future.successful(ApiError.toResult(err))
       case Right((start, end)) =>
         apiService.getOverallStatsByDay(start, end, filterLowQuality).map { stats =>
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
@@ -379,7 +379,7 @@ class StatsApiController @Inject() (
       filetype: Option[String]
   ) = silhouette.UserAwareAction.async { implicit request =>
     parseDateParams(startDate, endDate) match {
-      case Left(err) => Future.successful(BadRequest(Json.toJson(err)))
+      case Left(err) => Future.successful(ApiError.toResult(err))
       case Right((start, end)) =>
         configService.getAggregateStatsByDay(start, end, filterLowQuality).map { stats =>
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)

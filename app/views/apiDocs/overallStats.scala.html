@@ -362,14 +362,7 @@ CurbRamp AI No and Admin Majority Vote Concurs,48
             <li><strong><code>503 Service Unavailable</code>:</strong> The server is temporarily unable to handle the request.</li>
         </ul>
 
-        <h4 id="error-body">Error Response Body <a href="#error-body" class="permalink">#</a></h4>
-        <p>Error responses include a JSON body with the following structure:</p>
-        <pre><code class="language-json">{
-    "status": 400, // HTTP Status Code
-    "code": "INVALID_PARAMETER", // Machine-readable error code
-    "message": "Invalid value for filetype parameter. Expected 'csv' or 'json'.", // Human-readable description
-    "parameter": "filetype" // Optional: The specific parameter causing the error
-}</code></pre>
+        @apiDocs.errorResponseBody()
     </div>
 
     <div class="api-section" id="best-practices-section">

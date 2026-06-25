@@ -151,13 +151,7 @@
             <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
         </ul>
 
-        <h4 id="error-body">Error Response Body <a href="#error-body" class="permalink">#</a></h4>
-        <p>Error responses include a JSON body with the following structure:</p>
-        <pre><code class="language-json">{
-    "status": 500, // HTTP Status Code
-    "code": "INTERNAL_SERVER_ERROR", // Machine-readable error code
-    "message": "Failed to retrieve aggregate statistics: Database connection error" // Human-readable description
-}</code></pre>
+        @apiDocs.errorResponseBody()
     </div>
 }
 

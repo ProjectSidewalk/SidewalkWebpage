@@ -93,7 +93,7 @@ class CitiesApiController @Inject() (
       }
       .recover { case e: Exception =>
         logger.error(s"Failed to retrieve city information: ${e.getMessage}", e)
-        InternalServerError(Json.toJson(ApiError.internalServerError(s"Failed to retrieve city information: ${e.getMessage}")))
+        ApiError.toResult(ApiError.internalServerError(s"Failed to retrieve city information: ${e.getMessage}"))
       }
   }
 

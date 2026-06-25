@@ -61,12 +61,14 @@ class RegionApiSpec extends PlaySpec with GuiceOneAppPerSuite {
           (contentAsJson(resp) \ "region_id").asOpt[Int] mustBe defined
 
         case 404 =>
-          // Must use the standard ApiError envelope, NOT an ad-hoc Json.obj.
-          contentType(resp) mustBe Some("application/json")
+          // Must use the standard RFC 7807 problem+json envelope, NOT an ad-hoc Json.obj (#3931).
+          contentType(resp) mustBe Some("application/problem+json")
           val json = contentAsJson(resp)
           (json \ "status").as[Int] mustBe 404
           (json \ "code").as[String] mustBe "NOT_FOUND"
-          (json \ "message").asOpt[String] mustBe defined
+          (json \ "title").as[String] mustBe "Not Found"
+          (json \ "type").as[String] mustBe "about:blank"
+          (json \ "detail").asOpt[String] mustBe defined // RFC 7807 renamed `message` -> `detail`.
 
         case other =>
           fail(s"Expected 200 or 404 but got $other")
