@@ -7,7 +7,7 @@ world, using remote crowdsourcing, machine learning, and online satellite & stre
 virtually through cities and label accessibility features and problems — curb ramps, obstacles, surface problems,
 missing sidewalks, and more.
 
-Project Sidewalk has run in **45+ cities across 10 countries** (the US, Canada, Chile, India, Mexico, Ecuador, the
+Project Sidewalk has run in **50+ cities across 10 countries** (the US, Canada, Chile, India, Mexico, Ecuador, the
 Netherlands, Switzerland, and New Zealand), is natively translated into **six languages** (English, Spanish, German,
 Mandarin, Portuguese, and Dutch), and has collected **3.4M+ contributor-labeled data points**. See the
 [live data dashboard](https://jonfroehlich.github.io/ps-label-vis/ps-dashboard.html).
@@ -27,7 +27,7 @@ If you use or reference Project Sidewalk in your research, please cite:
   Bootstrap).
 - **Dev environment:** Docker.
 
-For a full architecture overview, see [`CLAUDE.md`](CLAUDE.md).
+For a full architecture overview, see [`docs/architecture.md`](docs/architecture.md).
 
 ## Quickstart for developers
 
@@ -48,8 +48,9 @@ guide: **[`docs/dev-environment.md`](docs/dev-environment.md)**.
 | Doc | What's in it |
 |-----|--------------|
 | [`docs/dev-environment.md`](docs/dev-environment.md) | Set up and run the app locally. |
+| [`docs/architecture.md`](docs/architecture.md) | How the backend, frontend, and data fit together. |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Branch/PR workflow, coding standards, i18n. |
-| [`CLAUDE.md`](CLAUDE.md) | Full architecture, conventions, and build/test commands. |
+| [`CLAUDE.md`](CLAUDE.md) | Conventions + operational notes, used as AI-assistant context. |
 | [`docs/testing-and-ci.md`](docs/testing-and-ci.md) | Testing strategy and CI rollout plan. |
 | [`SECURITY.md`](SECURITY.md) | How to report a vulnerability. |
 | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Community standards. |

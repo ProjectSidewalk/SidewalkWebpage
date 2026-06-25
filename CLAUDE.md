@@ -8,6 +8,10 @@ Project Sidewalk is a web-based crowdsourcing tool for mapping and assessing sid
 
 ## Backend architecture
 
+> Human-facing companion: [`docs/architecture.md`](docs/architecture.md) covers this same architecture as narrative
+> contributor docs (and is what the README links to). Keep the two in sync when architecture changes; this file
+> stays the AI-facing reference and adds the operational/tooling notes below.
+
 Request flow: **routes → Controller → Service → Table (DAO)**.
 
 - **`conf/routes`** — single routes file mapping URLs to controller methods. The public data API lives under `/v3/api/...` (handlers in `app/controllers/api/`).
