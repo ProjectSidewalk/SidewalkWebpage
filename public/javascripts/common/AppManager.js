@@ -110,11 +110,28 @@ class AppManager {
             }
         });
 
-        // Set up CSRF token for fetch requests by overwriting the fetch function.
+        // Set up CSRF token for fetch requests by overwriting the fetch function. The token is only attached to
+        // same-origin requests: Play's CSRF filter only checks requests to our own server, and a token signed by this
+        // server is meaningless to anyone else. Attaching it to cross-origin requests (Mapbox, Mapillary, Infra3d,
+        // Overpass, sibling city servers, ...) does nothing useful and forces an unnecessary CORS preflight that some
+        // hosts reject, so we skip them rather than maintaining an allowlist of hosts to exclude (#4232).
         const originalFetch = window.fetch;
         window.fetch = function(url, options = {}) {
-            // console.log(url);
-            // Create new options object with default headers.
+            const requestUrl = (typeof url === 'string') ? url : url.url;
+
+            // Resolve against the page origin so relative URLs (our routes) are correctly treated as same-origin.
+            let isSameOrigin;
+            try {
+                isSameOrigin = new URL(requestUrl, window.location.origin).origin === window.location.origin;
+            } catch (e) {
+                // If the URL can't be parsed, leave the request untouched rather than guessing.
+                isSameOrigin = false;
+            }
+
+            if (!isSameOrigin) {
+                return originalFetch(url, options);
+            }
+
             const newOptions = {
                 ...options,
                 headers: {
@@ -122,20 +139,7 @@ class AppManager {
                     'Csrf-Token': csrfToken
                 }
             };
-
-            const requestUrl = (typeof url === 'string') ? url : url.url;
-
-            // Bypass adding CSRF token for requests to certain external APIs that don't accept the Csrf-Token header.
-            const pathsToBypass = ['mapbox.com', 'api.infra3d.com', 'wmts.geo.admin.ch'];
-            if (pathsToBypass.some(path => requestUrl.includes(path))) {
-                return originalFetch(url, options);
-            } else {
-                return originalFetch(url, newOptions).catch((e) => {
-                    // Note that some URLs might fail because of ad blockers, especially if they include words like
-                    // event, track, or collect.
-                    console.error(`This URL may not accept Csrf-Token header, try adding to the exception list: `, url);
-                });
-            }
+            return originalFetch(url, newOptions);
         };
     }
 
