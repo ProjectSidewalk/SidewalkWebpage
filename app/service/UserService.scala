@@ -68,6 +68,7 @@ trait UserService {
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]]
   def updateTaskFlag(auditTaskId: Int, flag: String, state: Boolean): Future[Int]
   def updateTaskFlagsBeforeDate(userId: String, date: OffsetDateTime, flag: String, state: Boolean): Future[Int]
+  def insertUserUtm(utm: UserUtm): Future[Int]
 }
 
 @Singleton
@@ -82,6 +83,7 @@ class UserServiceImpl @Inject() (
     streetService: StreetService,
     userTeamTable: UserTeamTable,
     teamTable: TeamTable,
+    userUtmTable: UserUtmTable,
     implicit val ec: ExecutionContext
 ) extends UserService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -206,4 +208,6 @@ class UserServiceImpl @Inject() (
     require(flag == "low_quality" || flag == "incomplete" || flag == "stale")
     db.run(auditTaskTable.updateTaskFlagsBeforeDate(userId, date, flag, state))
   }
+
+  def insertUserUtm(utm: UserUtm): Future[Int] = db.run(userUtmTable.insert(utm))
 }

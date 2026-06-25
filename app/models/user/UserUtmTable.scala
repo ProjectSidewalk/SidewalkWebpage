@@ -7,7 +7,6 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
 import javax.inject._
-import scala.concurrent.Future
 
 case class UserUtm(
     userUtmId: Int,
@@ -54,7 +53,7 @@ class UserUtmTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
 
   val userUtms = TableQuery[UserUtmTableDef]
 
-  def insert(utm: UserUtm): Future[Int] = {
-    db.run((userUtms returning userUtms.map(_.userUtmId)) += utm)
+  def insert(utm: UserUtm): DBIO[Int] = {
+    (userUtms returning userUtms.map(_.userUtmId)) += utm
   }
 }

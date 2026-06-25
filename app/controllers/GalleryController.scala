@@ -5,7 +5,6 @@ import controllers.helper.ControllerUtils.parseIntegerSeq
 import formats.json.GalleryFormats._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
-import models.gallery.{GalleryTaskEnvironment, GalleryTaskEnvironmentTable, GalleryTaskInteraction, GalleryTaskInteractionTable}
 import models.label.LabelTypeEnum
 import models.utils.MyPostgresProfile
 import play.api.Configuration
@@ -14,7 +13,7 @@ import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, Result}
 import play.silhouette.api.Silhouette
-import service.{ConfigService, LabelService, PanoDataService, RegionService}
+import service._
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -29,8 +28,7 @@ class GalleryController @Inject() (
     configService: ConfigService,
     labelService: LabelService,
     panoDataService: PanoDataService,
-    galleryTaskInteractionTable: GalleryTaskInteractionTable,
-    galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable,
+    galleryService: GalleryService,
     regionService: RegionService
 )(implicit assets: AssetsFinder)
     extends CustomBaseController(cc)
@@ -134,28 +132,14 @@ class GalleryController @Inject() (
   }
 
   /**
-   * Take parsed JSON data and insert it into database.
+   * Take parsed JSON data and insert it into the database, only responding once the writes have committed.
    */
   def processGalleryTaskSubmissions(
       submission: Seq[GalleryTaskSubmission],
       ipAddress: String,
       userId: String
   ): Future[Result] = {
-    for (data <- submission) yield {
-      // Insert into interactions and environment tables.
-      val env: GalleryEnvironmentSubmission = data.environment
-      db.run(for {
-        nInteractionSubmitted <- galleryTaskInteractionTable.insertMultiple(data.interactions.map { action =>
-          GalleryTaskInteraction(0, action.action, action.panoId, action.note, action.timestamp, Some(userId))
-        })
-        _ <- galleryTaskEnvironmentTable.insert(
-          GalleryTaskEnvironment(0, env.browser, env.browserVersion, env.browserWidth, env.browserHeight,
-            env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, Some(ipAddress),
-            env.language, Some(userId))
-        )
-      } yield nInteractionSubmitted)
-    }
-    Future.successful(Ok("Got request"))
+    galleryService.submitGalleryTasks(submission, ipAddress, userId).map(_ => Ok("Got request"))
   }
 
   /**
