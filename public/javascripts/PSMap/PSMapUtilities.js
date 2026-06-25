@@ -61,6 +61,10 @@ function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
     if (highQualityFilter) {
         baseFilter.push(['any', mapData.lowQualityUsers, ['==', ['get', 'high_quality_user'], true]]);
     }
+    // Admin-only: restrict to labels with no Administrator/Owner validation when the toggle is on (#4243).
+    if (mapData.notAdminValidated) {
+        baseFilter.push(['==', ['get', 'has_admin_validation'], false]);
+    }
 
     // Apply per-layer, appending a tag sub-filter when that label type has active tags.
     for (const [labelType, layerName] of Object.entries(mapData.layerNames)) {
@@ -110,6 +114,9 @@ function CreateMapLayerTracker() {
     mapData.unsure = true;
     mapData.unvalidated = true;
     mapData.lowQualityUsers = false;
+    // Admin-only filter (#4243): when true, restrict to labels not yet validated by an Administrator/Owner. Defaults
+    // to off so the shared filter logic is a no-op on the public LabelMap, where the control isn't rendered.
+    mapData.notAdminValidated = false;
 
     // Severity filter state (all enabled by default).
     mapData.severities = { 0: true, 1: true, 2: true, 3: true };

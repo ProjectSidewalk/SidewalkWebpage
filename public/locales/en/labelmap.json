@@ -18,5 +18,7 @@
     "comment": "Comment",
     "comments": "Comments",
     "comment-submitted": "Comment Submitted",
-    "own-label-disabled": "You cannot validate or comment on your own label"
+    "own-label-disabled": "You cannot validate or comment on your own label",
+    "admin-only": "Admin only",
+    "not-admin-validated": "Not validated by an admin"
 }

@@ -81,6 +81,7 @@ case class LabelForLabelMap(
     lng: Double,
     correct: Option[Boolean],
     hasValidations: Boolean,
+    hasAdminValidation: Boolean,
     aiValidation: Option[ValidationOption.Value],
     expired: Boolean,
     hasBackup: Boolean,
@@ -1326,6 +1327,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       routeIds: Seq[Int],
       aiValOptions: Seq[String]
   ): DBIO[Seq[LabelForLabelMap]] = {
+    // Label IDs with at least one validation from an Administrator or Owner.
+    val _adminValidatedLabelIds = for {
+      _lv <- labelValidations
+      _ur <- userRoles if _lv.userId === _ur.userId
+      _r  <- roleTable if _ur.roleId === _r.roleId && (_r.role === "Administrator" || _r.role === "Owner")
+    } yield _lv.labelId
+
     val _labels = for {
       (_l, _at, _us) <- labelsWithAuditTasksAndUserStats
       _lt            <- labelTypes if _l.labelTypeId === _lt.labelTypeId
@@ -1369,9 +1377,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
       // Grab the columns that we need for the LabelForLabelMap case class.
       query.map { case (l, lp, highQuality, labelType, expired, hasBackup, isAiUser, aiv) =>
-        val hasValidations = l.agreeCount > 0 || l.disagreeCount > 0 || l.unsureCount > 0
+        val hasValidations     = l.agreeCount > 0 || l.disagreeCount > 0 || l.unsureCount > 0
+        val hasAdminValidation = l.labelId.in(_adminValidatedLabelIds)
         (l.labelId, l.streetEdgeId, l.auditTaskId, labelType, lp.lat, lp.lng, l.correct, hasValidations,
-          aiv.map(_.validationResult), expired, hasBackup.getOrElse(false), highQuality, l.severity, l.tags, isAiUser)
+          hasAdminValidation, aiv.map(_.validationResult), expired, hasBackup.getOrElse(false), highQuality, l.severity,
+          l.tags, isAiUser)
       }
     }
 
@@ -1391,10 +1401,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
     _labelsNearRoute.result.map(_.map {
-      case (id, streetId, taskId, lType, lat, lng, correct, hasVals, aiVal, expired, hasBackup, highQual, sev, tags,
-            ai) =>
-        LabelForLabelMap(id, taskId, lType, lat.get, lng.get, correct, hasVals, aiVal, expired, hasBackup, highQual,
-          sev, tags, ai)
+      case (id, streetId, taskId, lType, lat, lng, correct, hasVals, hasAdminVals, aiVal, expired, hasBackup, highQual,
+            sev, tags, ai) =>
+        LabelForLabelMap(id, taskId, lType, lat.get, lng.get, correct, hasVals, hasAdminVals, aiVal, expired, hasBackup,
+          highQual, sev, tags, ai)
     })
   }
 

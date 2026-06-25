@@ -1,5 +1,5 @@
 @import models.label.{LabelTypeEnum, Tag}
-@(tags: Seq[Tag] = Seq.empty, streetsShownByDefault: Boolean = false)(implicit messages: Messages, assets: AssetsFinder)
+@(tags: Seq[Tag] = Seq.empty, streetsShownByDefault: Boolean = false, adminVersion: Boolean = false)(implicit messages: Messages, assets: AssetsFinder)
 
 @tagsByLabelType = @{tags.groupBy(t => LabelTypeEnum.labelTypeIdToLabelType.getOrElse(t.labelTypeId, ""))}
 
@@ -142,6 +142,21 @@
             </li>
         </ul>
     </section>
+
+    @* ---- Admin-only filters section (#4243). Only rendered inside the admin dashboard's Map tab. ---- *@
+    @if(adminVersion) {
+        <section class="map-sidebar__section">
+            <div class="map-sidebar__heading-row">
+                <h3 class="map-sidebar__heading" data-i18n="labelmap:admin-only">Admin only</h3>
+            </div>
+            <ul class="map-sidebar__list">
+                <li class="map-sidebar__item">
+                    <input type="checkbox" id="not-admin-validated" data-filter-type="admin-validation" disabled>
+                    <label for="not-admin-validated" data-i18n="labelmap:not-admin-validated">Not validated by an admin</label>
+                </li>
+            </ul>
+        </section>
+    }
 
     @* ---- Streets section ---- *@
     <section class="map-sidebar__section">
