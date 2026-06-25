@@ -422,17 +422,17 @@
                     <tr>
                         <td><code>properties.agree_count</code></td>
                         <td><code>integer</code></td>
-                        <td>Number of users who agreed with (confirmed) this label during validation tasks.</td>
+                        <td>Number of users and/or AI who agreed with (confirmed) this label during validation tasks. To separate human vs. AI validations, use the <a href="@routes.ApiDocsController.validations">validations endpoint</a> (its <code>validator_type</code> field).</td>
                     </tr>
                     <tr>
                         <td><code>properties.disagree_count</code></td>
                         <td><code>integer</code></td>
-                        <td>Number of users who disagreed with (disputed) this label during validation tasks.</td>
+                        <td>Number of users and/or AI who disagreed with (disputed) this label during validation tasks. To separate human vs. AI validations, use the <a href="@routes.ApiDocsController.validations">validations endpoint</a> (its <code>validator_type</code> field).</td>
                     </tr>
                     <tr>
                         <td><code>properties.unsure_count</code></td>
                         <td><code>integer</code></td>
-                        <td>Number of users who marked "unsure" for this label during validation tasks.</td>
+                        <td>Number of users and/or AI who marked "unsure" for this label during validation tasks. To separate human vs. AI validations, use the <a href="@routes.ApiDocsController.validations">validations endpoint</a> (its <code>validator_type</code> field).</td>
                     </tr>
                     <tr>
                         <td><code>properties.validations</code></td>

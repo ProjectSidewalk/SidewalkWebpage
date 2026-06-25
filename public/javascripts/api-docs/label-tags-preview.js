@@ -141,14 +141,24 @@
                 const section = document.createElement('div');
                 section.className = 'label-tags-section';
 
-                // Add heading for the label type.
+                // Add heading for the label type. Use the same `api-heading` + child `.permalink` markup as the
+                // static headings so these JS-rendered sub-headers get TOC entries and the hover/copy "#" anchor that
+                // the rest of the API docs link to (e.g. the index page's summary table links here via
+                // #label-type-<type>).
                 const heading = document.createElement('h3');
-                heading.className = 'section-subheading';
-                heading.textContent = labelType;
+                heading.className = 'api-heading section-subheading';
                 const headingId = 'label-type-' + labelType.toLowerCase()
                     .replace(/\s+/g, '-')     // Replace spaces with hyphens
                     .replace(/[^a-z0-9-]/g, ''); // Remove non-alphanumeric characters except hyphens
                 heading.id = headingId;
+                heading.appendChild(document.createTextNode(labelType + ' '));
+
+                const permalink = document.createElement('a');
+                permalink.href = '#' + headingId;
+                permalink.className = 'permalink';
+                permalink.textContent = '#';
+                heading.appendChild(permalink);
+
                 section.appendChild(heading);
 
                 // Create table for tags.
