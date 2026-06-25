@@ -88,28 +88,13 @@ conventions.
 
 ## Internationalization
 
-User-facing text must be translatable. There are two systems:
+**All user-facing text must be translatable** — never hardcode display strings. Project Sidewalk has two i18n systems
+(backend Play messages in `conf/messages/`, and frontend i18next JSON in `public/locales/`), supports several
+languages, and has specific rules for temporary translations and the `en-US`/`en-NZ` regional variants.
 
-- **Backend (server-rendered):** Play message files `conf/messages.<lang>` (`messages.en`, `messages.es`, …).
-  Add a key to each language file and reference it in `.scala.html` with `@Messages("your.key")`.
-- **Frontend (client-side):** JSON under `public/locales/<lang>/` (e.g. `common.json`). Reference it with
-  `i18next.t('your-key')`, or prefer `data-i18n="ns:key"` directly in HTML to avoid duplicate strings.
-
-Supported languages: **en, es, de, nl, zh-TW, pt-BR**, plus the regional English variants **en-US** and **en-NZ**.
-
-**When you add or change user-facing text:**
-
-1. Add **temporary translations** for Spanish, Dutch, German, and Mandarin (`zh-TW`, traditional). Google Translate
-   is fine for these — a maintainer periodically sends the accumulated machine translations to our partners for
-   official ones.
-2. Add to the generic **`en`** files by default. Also add **regional overrides** only where the wording differs:
-   - **en-US** — distances use feet/miles (`ft`/`mi`) where generic `en` uses meters/kilometers (`m`/`km`); your
-     code should respect the unit system too (see existing examples).
-   - **en-NZ** — e.g. curb ramp → *drop kerb*, sidewalk → *footpath*, crosswalk → *pedestrian crossing*,
-     neighborhood → *neighbourhood*, organization → *organisation*, meter/kilometer → *metre/kilometre*,
-     trash/recycling can → *trash/recycling bin*.
-
-**When you remove translated text,** check it isn't used elsewhere; if not, remove the key from every language file.
+The full details — both systems, adding/changing/removing text, and adding a whole new language — are in
+**[`docs/internationalization.md`](docs/internationalization.md)**. The one thing to remember: when you add or change
+user-facing text, add at least temporary (machine) translations for the other languages in the same PR.
 
 ## Testing your changes
 
