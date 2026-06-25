@@ -39,6 +39,23 @@ trait ApiService {
 
   def getNeighborhoodsWithin(bbox: LatLngBBox): Future[Seq[Region]]
 
+  /** Streams lean per-cluster scoring inputs for the v3 AccessScore endpoints (#3855). */
+  def getClusterScoreRows(
+      spatialQueryType: SpatialQueryType,
+      bbox: LatLngBBox,
+      labelTypes: Set[String],
+      batchSize: Int
+  ): Source[ClusterScoreRow, _]
+
+  /** Returns the length in meters of each given street edge, used to length-weight region AccessScores (#3855). */
+  def getStreetLengths(streetEdgeIds: Seq[Int]): Future[Map[Int, Double]]
+
+  /** Resolves a region id to its bounding box, or None if no such (non-deleted) region exists. */
+  def getRegionBBox(regionId: Int): Future[Option[LatLngBBox]]
+
+  /** Resolves a region name to its (region id, bounding box), or None if no such (non-deleted) region exists. */
+  def resolveRegionByName(regionName: String): Future[Option[(Int, LatLngBBox)]]
+
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _]
 
   def getLabelsToClusterInRegion(regionId: Int): Future[Seq[LabelToCluster]]
@@ -258,6 +275,30 @@ class ApiServiceImpl @Inject() (
 
   def getNeighborhoodsWithin(bbox: LatLngBBox): Future[Seq[Region]] =
     db.run(regionTable.getNeighborhoodsWithin(bbox))
+
+  def getClusterScoreRows(
+      spatialQueryType: SpatialQueryType,
+      bbox: LatLngBBox,
+      labelTypes: Set[String],
+      batchSize: Int
+  ): Source[ClusterScoreRow, _] = {
+    setUpStreamFromDb(clusterTable.getClusterScoreRows(spatialQueryType, bbox, labelTypes), batchSize)
+  }
+
+  def getStreetLengths(streetEdgeIds: Seq[Int]): Future[Map[Int, Double]] =
+    db.run(streetEdgeTable.getStreetLengths(streetEdgeIds))
+
+  /** Derives a lat/lng bounding box from a region's MultiPolygon envelope (geometry is stored in EPSG:4326). */
+  private def regionToBBox(region: Region): LatLngBBox = {
+    val env = region.geom.getEnvelopeInternal
+    LatLngBBox(minLat = env.getMinY, minLng = env.getMinX, maxLat = env.getMaxY, maxLng = env.getMaxX)
+  }
+
+  def getRegionBBox(regionId: Int): Future[Option[LatLngBBox]] =
+    db.run(regionTable.getRegion(regionId)).map(_.map(regionToBBox))
+
+  def resolveRegionByName(regionName: String): Future[Option[(Int, LatLngBBox)]] =
+    db.run(regionTable.getRegionByName(regionName)).map(_.map(r => (r.regionId, regionToBBox(r))))
 
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _] = {
     // NOTE can't use `setUpStreamFromDb` here bc we need to call `mapResult` to convert tuples to `LabelCVMetadata`.

@@ -190,6 +190,8 @@ GET     /v3/api/streetTypes                             controllers.api.StreetsA
 GET     /v3/api/regions                                 controllers.api.RegionApiController.getRegions(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/validations                             controllers.api.ValidationApiController.getValidations(labelId: Option[Int], userId: Option[String], validationResult: Option[String], labelTypeId: Option[Int], validationTimestamp: Option[String], changedTags: Option[Boolean], changedSeverityLevels: Option[Boolean], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/validationResultTypes                   controllers.api.ValidationApiController.getValidationResultTypes
+GET     /v3/api/accessScoreStreets                      controllers.api.AccessScoreApiController.getAccessScoreStreets(bbox: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/accessScoreRegions                      controllers.api.AccessScoreApiController.getAccessScoreRegions(bbox: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
 
 # API Documentation (v3) Routes.
 GET     /v3/api-docs                                    controllers.ApiDocsController.index
@@ -201,6 +203,8 @@ GET     /v3/api-docs/labelClusters                      controllers.ApiDocsContr
 GET     /v3/api-docs/streets                            controllers.ApiDocsController.streets
 GET     /v3/api-docs/streetTypes                        controllers.ApiDocsController.streetTypes
 GET     /v3/api-docs/regions                            controllers.ApiDocsController.regions
+GET     /v3/api-docs/accessScoreStreets                 controllers.ApiDocsController.accessScoreStreets
+GET     /v3/api-docs/accessScoreRegions                 controllers.ApiDocsController.accessScoreRegions
 GET     /v3/api-docs/validations                        controllers.ApiDocsController.validations
 GET     /v3/api-docs/validation-result-types            controllers.ApiDocsController.validationResultTypes
 GET     /v3/api-docs/user-stats                         controllers.ApiDocsController.userStats
