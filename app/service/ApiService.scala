@@ -7,7 +7,7 @@ import models.cluster._
 import models.label._
 import models.region.{Region, RegionTable}
 import models.street.{StreetEdgeInfo, StreetEdgeTable}
-import models.user.{UserStatApi, UserStatTable}
+import models.user.UserStatTable
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{ClusteringThreshold, LatLngBBox, MyPostgresProfile}
@@ -133,14 +133,14 @@ trait ApiService {
    * @param minMetersExplored Optional minimum meters explored a user must have.
    * @param highQualityOnly Optional filter to include only high quality users if true.
    * @param minAccuracy Optional minimum label accuracy a user must have.
-   * @return A Future containing a sequence of UserStatApi objects that match the filters.
+   * @return A Future containing a sequence of UserStatForApi objects that match the filters.
    */
   def getUserStats(
       minLabels: Option[Int] = None,
       minMetersExplored: Option[Double] = None,
       highQualityOnly: Boolean = false,
       minAccuracy: Option[Double] = None
-  ): Future[Seq[UserStatApi]]
+  ): Future[Seq[UserStatForApi]]
 
   def getOverallStats(filterLowQuality: Boolean): Future[ProjectSidewalkStats]
 
@@ -274,7 +274,7 @@ class ApiServiceImpl @Inject() (
       minMetersExplored: Option[Double] = None,
       highQualityOnly: Boolean = false,
       minAccuracy: Option[Double] = None
-  ): Future[Seq[UserStatApi]] = {
+  ): Future[Seq[UserStatForApi]] = {
     // Uses the database-level filtering method for improved performance.
     db.run(userStatTable.getStatsForApiWithFilters(minLabels, minMetersExplored, highQualityOnly, minAccuracy))
   }

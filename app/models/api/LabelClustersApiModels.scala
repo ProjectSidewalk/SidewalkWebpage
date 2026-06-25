@@ -7,7 +7,6 @@
 package models.api
 
 import models.api.ApiModelUtils.{createGeoJsonPoint, escapeCsvField}
-import models.computation.StreamingApiType
 import models.utils.LatLngBBox
 import play.api.libs.json.{JsObject, Json, JsonConfiguration, JsonNaming, Writes}
 

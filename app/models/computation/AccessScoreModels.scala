@@ -1,9 +1,10 @@
 package models.computation
 
 import formats.json.ApiFormats._
+import models.api.StreamingApiType
 import models.street.StreetEdge
 import org.locationtech.jts.geom.MultiPolygon
-import play.api.libs.json.{JsObject, JsValue}
+import play.api.libs.json.JsObject
 
 import java.time.OffsetDateTime
 import scala.collection.mutable
@@ -19,14 +20,6 @@ case class StreetLabelCounter(
     var imageAgeSum: Long,
     labelCounter: mutable.Map[String, Int]
 )
-
-/**
- * Trait for streaming API types that can be converted to JSON and CSV
- */
-trait StreamingApiType {
-  def toJson: JsValue
-  def toCsvRow: String
-}
 
 /**
  * Access score information for a street

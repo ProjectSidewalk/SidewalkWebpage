@@ -8,6 +8,10 @@ Project Sidewalk is a web-based crowdsourcing tool for mapping and assessing sid
 
 ## Backend architecture
 
+> Human-facing companion: [`docs/architecture.md`](docs/architecture.md) covers this same architecture as narrative
+> contributor docs (and is what the README links to). Keep the two in sync when architecture changes; this file
+> stays the AI-facing reference and adds the operational/tooling notes below.
+
 Request flow: **routes → Controller → Service → Table (DAO)**.
 
 - **`conf/routes`** — single routes file mapping URLs to controller methods. The public data API lives under `/v3/api/...` (handlers in `app/controllers/api/`).
@@ -18,6 +22,29 @@ Request flow: **routes → Controller → Service → Table (DAO)**.
 - **`app/models/utils/MyPostgresProfile.scala`** — custom Slick Postgres profile wiring in PostGIS geometry, JSON, and other slick-pg extensions. Spatial query helpers are in `SpatialQueryDefs.scala`.
 - **DI**: Guice. App bootstraps via `app/CustomApplicationLoader.scala`; modules registered in `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`, `SilhouetteModule`). Custom execution contexts are in `app/executors/`; background actors in `app/actor/`.
 - **Views**: Twirl templates (`app/views/*.scala.html`). The sbt build silences warnings in `views/` and the routes file specifically.
+
+### API data structures (`app/models/api/`)
+
+The data structures (DTOs) returned by the public `/v3` API live in **`app/models/api/`** (`package models.api`), in
+per-domain files named `*ApiModels.scala` (`LabelApiModels.scala`, `StreetsApiModels.scala`, `UserStatsApiModels.scala`,
+...). This is the canonical home — do **not** define new API DTOs inside `*Table.scala` DAO files (issue #3885). Each DAO
+file produces its DTOs but the DTO *definitions* belong in `models.api`. The convention:
+
+- **Naming**: response types are `*ForApi` (e.g. `LabelDataForApi`, `UserStatForApi`); parsed query filters are
+  `*FiltersForApi` (e.g. `RawLabelFiltersForApi`).
+- **Streaming**: response DTOs extend **`StreamingApiType`** (`app/models/api/StreamingApiType.scala`) and implement
+  `toJson` / `toCsvRow` **inline** on the case class, so `BaseApiController`'s `outputJSON`/`outputCSV`/`outputGeoJSON`
+  helpers can serialize a stream of them uniformly. Serialization lives *on the DTO*, not as free functions elsewhere.
+- **Companion object** holds the `csvHeader` string (keep it next to `toCsvRow` so columns can't drift) and JSON writers.
+- **snake_case JSON** per #3871: derive writers with a scoped `JsonConfiguration(JsonNaming.SnakeCase)` +
+  `Json.format`/`Json.writes`, or hand-build the `JsObject` with snake_case keys for nested/custom shapes.
+- **Shared helpers**: reuse `ApiModelUtils` (`escapeCsvField`, `createGeoJsonPointGeometry`, ...) rather than re-rolling
+  CSV/GeoJSON logic.
+
+**Known exception**: the older `/v2` access-score DTOs (`StreetScore`, `RegionScore` in `models/computation/`,
+`ClusterForApi` in `models/cluster/`) intentionally remain in place pending the v3 access-score rewrite (#3855) and v2
+removal (#3864). `app/formats/json/ApiFormats.scala` holds their serializers plus other non-DTO writes; new API DTOs
+should not add to it.
 
 ### Database & evolutions
 
@@ -96,9 +123,11 @@ feature code; use `getLabelColors()` so colors stay in sync automatically.
 - Update said code to use the native `fetch` API rather than jQuery, and to make use of Promises. But if said refactor would impact many other functions that use it, then wait for a dedicated refactor.
 - Replace uses of Bootstrap with native JS alternatives as you come across them
 - When writing SQL, avoid table aliases
+- User interactions are logged (clicks, key presses, mode switches, pano changes, mission/task events, etc.) to the activity/interaction tables. When you **add or change an interaction**, add or adjust the corresponding logging so analytics stay complete; keep event names consistent with the existing ones.
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
 - When adding or refactoring code, use the fonts, colors, button styling, etc. defined in main.css :root. These are pulled from our "Design System Tokens" Figma, and we are pushing to use these going forward.
 - Max line length of 120 characters, with long line exceptions where appropriate. For multi-line comments, TARGET line length is 120 characters
+- **Keep docs in sync.** When you change architecture, framework versions, supported languages, label types, or other conventions, update the affected docs in the *same* change: [`docs/architecture.md`](docs/architecture.md) mirrors this file's architecture (and the README's tech-stack summary), and [`CONTRIBUTING.md`](CONTRIBUTING.md) holds the workflow/standards. To avoid drift, keep exact dependency/patch versions in **one** place — the dependency-version inventory ([`docs/upgrading-libraries.md`](docs/upgrading-libraries.md)) — rather than copying them across docs. README/architecture mention only stable major versions (e.g. Scala 2.13, Play 3.0, Java 17).
 
 ## Code Commenting Standards
 
@@ -213,7 +242,7 @@ Good targets for inline comments:
 - Do not add a header just because a function was touched; only add one if it is missing
   and the function is non-trivial.
 
-## Linting Rules (will be enforced by `make lint` some day, but not being run now)
+## Linting Rules (frontend lint deferred to #2487; Scala `scalafmt` is checked in CI — see Continuous integration)
 - ESLint: ES6+, `const`/`let` only (no `var`), arrow functions, template literals, semicolons required, 120-char line limit
 - Stylelint: 4-space indentation, stylelint-config-standard
 - HTMLHint: lowercase tags/attrs, double quotes, no inline scripts/styles, alt text required
@@ -230,11 +259,15 @@ make docker-stop    # stop and remove containers
 make ssh target=db  # exec into a running container (projectsidewalk-db / -web)
 ```
 
+> Human-facing companions to this section: [`docs/dev-environment.md`](docs/dev-environment.md) (full setup —
+> prerequisites, WSL2, city switching, troubleshooting) and [`CONTRIBUTING.md`](CONTRIBUTING.md) (workflow + coding
+> standards). This file stays the AI-facing reference; those are written for contributors.
+
 Inside the web container shell, the developer starts the app with `npm start` (runs Grunt concat + watch in the background, then `sbt run` — i.e. `sbt ~ run`, continuous recompile; `npm run debug` adds a JVM debug port). It serves on **http://localhost:9000** using `conf/application.local.conf`. First compile is slow (sbt resolves dependencies); sbt keeps its caches inside the project dir (`.coursier`, `.sbt`).
 
 ### Verifying backend (Scala) changes compile
 
-There is **no Scala/backend test suite** — validate backend changes by compiling. The clean way is the **sbt thin client**, which runs against its own dedicated server and so does *not* fight the developer's running `sbt ~ run` (a plain second `sbt compile` collides with it over build/target locks and hangs):
+For a quick pass/fail without running tests, validate backend changes by compiling. The clean way is the **sbt thin client**, which runs against its own dedicated server and so does *not* fight the developer's running `sbt ~ run` (a plain second `sbt compile` collides with it over build/target locks and hangs):
 
 ```bash
 docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"
@@ -245,6 +278,23 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"
 - It only needs the web container up — the app itself (`npm start`) does not have to be running.
 
 Alternatively, since the developer's `sbt ~ run` recompiles on save, hitting any route over HTTP (see below) also forces a compile; errors surface as a 500 page rather than clean output, so prefer the thin client when you just want a pass/fail.
+
+### Running tests
+
+There **is** a backend test suite (ScalaTest via `scalatestplus-play`), under `test/` — mostly public-API functional specs in `test/controllers/api/`, plus `test/models/api/` and `test/formats/json/`. Run it with the thin client:
+
+```bash
+docker exec projectsidewalk-web bash -lc "cd /home && sbt --client test"                                # whole suite
+docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly controllers.api.PublicApiSpec\""
+```
+
+The API specs **boot the real app against Postgres+PostGIS**, so the `db` container must be up; they assert response contract/shape, not data values. There is no `make` target — invoke sbt directly. The phased testing strategy and rationale live in [`docs/testing-and-ci.md`](docs/testing-and-ci.md).
+
+A prototype **JS** test layer (jsdom) lives under `test/js/` — run `npm run test:js`. It is opt-in and not wired into CI yet (sequenced with the ES5→ES6 migration, #2487); see `test/js/README.md`.
+
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (advisory — format Scala you touch with scalafmt, `.scalafmt.conf`), the **frontend grunt build**, and the **DB-backed API tests** (advisory while the suite stabilizes). "Advisory" steps report findings but don't block merges yet.
 
 ### Building frontend assets
 

@@ -7,9 +7,8 @@
 package models.api
 
 import models.api.ApiModelUtils.{createGeoJsonPointGeometry, escapeCsvField}
-import models.computation.StreamingApiType
 import models.utils.LatLngBBox
-import play.api.libs.json.{JsObject, Json, JsonConfiguration, JsonNaming, OFormat, Writes}
+import play.api.libs.json.{JsObject, JsValue, Json, JsonConfiguration, JsonNaming, OFormat, Writes}
 
 import java.time.OffsetDateTime
 
@@ -307,4 +306,86 @@ object LabelDataForApi {
    * Implicit JSON writer for LabelData that uses the toJson method.
    */
   implicit val labelDataWrites: Writes[LabelDataForApi] = (label: LabelDataForApi) => label.toJson
+}
+
+/**
+ * Computer-vision metadata for a single label, used by the CV/ML export (`/adminapi/labels/cvMetadata`).
+ *
+ * Implements StreamingApiType to support streaming output formats like JSON and CSV. Holds the panorama
+ * and canvas geometry needed to locate the label within its Street View image.
+ *
+ * @param labelId Unique identifier for the label
+ * @param panoId Identifier of the panorama the label was placed on
+ * @param labelTypeId Numeric label type identifier
+ * @param agreeCount Number of "agree" validations the label received
+ * @param disagreeCount Number of "disagree" validations the label received
+ * @param unsureCount Number of "unsure" validations the label received
+ * @param panoWidth Panorama width in pixels, if known
+ * @param panoHeight Panorama height in pixels, if known
+ * @param panoX X coordinate of the label within the panorama
+ * @param panoY Y coordinate of the label within the panorama
+ * @param canvasWidth Width of the canvas the label was placed on
+ * @param canvasHeight Height of the canvas the label was placed on
+ * @param canvasX X coordinate of the label on the canvas
+ * @param canvasY Y coordinate of the label on the canvas
+ * @param zoom Zoom level when the label was placed
+ * @param heading Viewport heading when the label was placed
+ * @param pitch Viewport pitch when the label was placed
+ * @param cameraHeading Camera heading of the panorama
+ * @param cameraPitch Camera pitch of the panorama
+ * @param cameraRoll Camera roll of the panorama, if known
+ */
+case class LabelCVMetadata(
+    labelId: Int,
+    panoId: String,
+    labelTypeId: Int,
+    agreeCount: Int,
+    disagreeCount: Int,
+    unsureCount: Int,
+    panoWidth: Option[Int],
+    panoHeight: Option[Int],
+    panoX: Int,
+    panoY: Int,
+    canvasWidth: Int,
+    canvasHeight: Int,
+    canvasX: Int,
+    canvasY: Int,
+    zoom: Double,
+    heading: Double,
+    pitch: Double,
+    cameraHeading: Double,
+    cameraPitch: Double,
+    cameraRoll: Option[Double]
+) extends StreamingApiType {
+
+  /** Serializes to a JSON object with snake_case keys (#3871), via the companion's implicit Writes. */
+  override def toJson: JsValue = Json.toJson(this)
+
+  /**
+   * Serializes to a CSV row matching the companion object's `csvHeader`.
+   *
+   * @return A comma-separated row; `None` options render as "NA".
+   */
+  override def toCsvRow: String = {
+    s"${labelId},${panoId},${labelTypeId},${agreeCount},${disagreeCount},${unsureCount}," +
+      s"${formatOptionForCsv(panoWidth)},${formatOptionForCsv(panoHeight)},${panoX},${panoY}," +
+      s"${canvasWidth},${canvasHeight},${canvasX},${canvasY},${zoom},${heading},${pitch}," +
+      s"${cameraHeading},${cameraPitch},${cameraRoll.map(_.toString).getOrElse("NA")}"
+  }
+
+  /** Renders an option for CSV, using "NA" for `None` (matches the historical CV-metadata CSV format). */
+  private def formatOptionForCsv(x: Option[Any]): String = x.map(_.toString).getOrElse("NA").replace("\"", "\"\"")
+}
+
+/**
+ * Companion object for LabelCVMetadata containing the CSV header and JSON writer.
+ */
+object LabelCVMetadata {
+  val csvHeader: String = "Label ID,Panorama ID,Label Type ID,Agree Count,Disagree Count,Unsure Count,Panorama Width," +
+    "Panorama Height,Panorama X,Panorama Y,Canvas Width,Canvas Height,Canvas X,Canvas Y,Zoom,Heading,Pitch," +
+    "Camera Heading,Camera Pitch,Camera Roll\n"
+
+  // snake_case JSON output per the v3 API convention (#3871).
+  private implicit val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  implicit val writes: Writes[LabelCVMetadata]   = Json.writes[LabelCVMetadata]
 }
