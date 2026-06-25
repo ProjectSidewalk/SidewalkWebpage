@@ -393,7 +393,12 @@ class StreetEdgeTable @Inject() (
       label_stats AS (
         SELECT s.street_edge_id,
                COUNT(l.label_id) as label_count,
-               array_agg(DISTINCT l.user_id) as user_ids,
+               -- The FILTER is essential: the LEFT JOIN to `label` yields a NULL user_id for streets that have been
+               -- audited but carry no labels, and `array_agg(DISTINCT l.user_id)` over that produces `{NULL}` (a
+               -- one-element array containing null) rather than an empty array. Without the FILTER, such streets report
+               -- `user_ids: [null]` and `user_count: 1`, and the `minUserCount` filter (which counts array_length)
+               -- treats them as having one user. See #3887.
+               array_agg(DISTINCT l.user_id) FILTER (WHERE l.user_id IS NOT NULL) as user_ids,
                MIN(l.time_created) as first_label_date,
                MAX(l.time_created) as last_label_date
         FROM filtered_streets s
