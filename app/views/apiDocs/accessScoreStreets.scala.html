@@ -2,6 +2,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
 
 @content = {
     <script>
@@ -23,6 +24,26 @@
             It is <strong>experimental</strong>: the weights are deliberately simple and subject to change. For full
             control you can compute your own index from the <a href="@routes.ApiDocsController.labelClusters">Label Clusters API</a>.
         </p>
+    </div>
+
+    <div class="api-section" id="access-score-streets-preview-section">
+        <h2 class="api-heading" id="visual-example">AccessScore: Streets Preview <a href="#visual-example" class="permalink">#</a></h2>
+        <p>
+            Below is a live preview of street AccessScores from a sample region in @cityName, retrieved directly from the
+            API. Streets are colored from red (low accessibility) to green (high); gray streets have not yet been
+            audited. Hover or click a street to see its score and the accessibility features that produced it.
+        </p>
+        <div id="access-score-streets-preview"><!-- Replaced by JavaScript with the rendered map. --></div>
+
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+        <script src="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+        <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/access-score.css")">
+        <script src="@routes.Assets.versioned("javascripts/api-docs/access-score-streets-preview.js")"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                AccessScoreStreetsPreview.setup({ mapHeight: 500 }).init();
+            });
+        </script>
     </div>
 
     <div class="api-section" id="endpoint-section">
