@@ -321,7 +321,8 @@ class LabelValidationTable @Inject() (
         filters.userId.map(user.userId === _).getOrElse(true: Rep[Boolean]) &&
         filters.validationResult.map(validation.validationResult === _).getOrElse(true: Rep[Boolean]) &&
         filters.labelTypeId.map(label.labelTypeId === _).getOrElse(true: Rep[Boolean]) &&
-        filters.validationTimestamp.map(validation.startTimestamp >= _).getOrElse(true: Rep[Boolean])
+        filters.validationTimestamp.map(validation.startTimestamp >= _).getOrElse(true: Rep[Boolean]) &&
+        filters.source.map(validation.source === _).getOrElse(true: Rep[Boolean])
 
       // Apply changed tags filter (oldTags != newTags or oldTags == newTags).
       // Filter on whether tags were changed during the validations (oldTags != newTags).

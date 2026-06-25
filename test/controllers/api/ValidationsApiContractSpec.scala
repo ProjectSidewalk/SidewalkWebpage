@@ -77,5 +77,18 @@ class ValidationsApiContractSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(resp) mustBe BAD_REQUEST
       (contentAsJson(resp) \ "parameter").as[String] mustBe "filetype"
     }
+
+    "filter by a valid source (validation interface) and return only that source (#3928)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/validations?source=Validate")).get
+      status(resp) mustBe OK
+      val arr = contentAsJson(resp).as[Seq[JsObject]]
+      arr.foreach { v => (v \ "source").as[String] mustBe "Validate" }
+    }
+
+    "return 400 INVALID_PARAMETER (parameter=source) for an unknown source (#3928)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/validations?source=NotARealInterface")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "source"
+    }
   }
 }
