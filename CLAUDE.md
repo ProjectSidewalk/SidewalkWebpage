@@ -236,7 +236,7 @@ Good targets for inline comments:
 - Do not add a header just because a function was touched; only add one if it is missing
   and the function is non-trivial.
 
-## Linting Rules (will be enforced by `make lint` some day, but not being run now)
+## Linting Rules (frontend lint deferred to #2487; Scala `scalafmt` is checked in CI — see Continuous integration)
 - ESLint: ES6+, `const`/`let` only (no `var`), arrow functions, template literals, semicolons required, 120-char line limit
 - Stylelint: 4-space indentation, stylelint-config-standard
 - HTMLHint: lowercase tags/attrs, double quotes, no inline scripts/styles, alt text required
@@ -253,11 +253,15 @@ make docker-stop    # stop and remove containers
 make ssh target=db  # exec into a running container (projectsidewalk-db / -web)
 ```
 
+> Human-facing companions to this section: [`docs/dev-environment.md`](docs/dev-environment.md) (full setup —
+> prerequisites, WSL2, city switching, troubleshooting) and [`CONTRIBUTING.md`](CONTRIBUTING.md) (workflow + coding
+> standards). This file stays the AI-facing reference; those are written for contributors.
+
 Inside the web container shell, the developer starts the app with `npm start` (runs Grunt concat + watch in the background, then `sbt run` — i.e. `sbt ~ run`, continuous recompile; `npm run debug` adds a JVM debug port). It serves on **http://localhost:9000** using `conf/application.local.conf`. First compile is slow (sbt resolves dependencies); sbt keeps its caches inside the project dir (`.coursier`, `.sbt`).
 
 ### Verifying backend (Scala) changes compile
 
-There is **no Scala/backend test suite** — validate backend changes by compiling. The clean way is the **sbt thin client**, which runs against its own dedicated server and so does *not* fight the developer's running `sbt ~ run` (a plain second `sbt compile` collides with it over build/target locks and hangs):
+For a quick pass/fail without running tests, validate backend changes by compiling. The clean way is the **sbt thin client**, which runs against its own dedicated server and so does *not* fight the developer's running `sbt ~ run` (a plain second `sbt compile` collides with it over build/target locks and hangs):
 
 ```bash
 docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"
@@ -268,6 +272,23 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"
 - It only needs the web container up — the app itself (`npm start`) does not have to be running.
 
 Alternatively, since the developer's `sbt ~ run` recompiles on save, hitting any route over HTTP (see below) also forces a compile; errors surface as a 500 page rather than clean output, so prefer the thin client when you just want a pass/fail.
+
+### Running tests
+
+There **is** a backend test suite (ScalaTest via `scalatestplus-play`), under `test/` — mostly public-API functional specs in `test/controllers/api/`, plus `test/models/api/` and `test/formats/json/`. Run it with the thin client:
+
+```bash
+docker exec projectsidewalk-web bash -lc "cd /home && sbt --client test"                                # whole suite
+docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly controllers.api.PublicApiSpec\""
+```
+
+The API specs **boot the real app against Postgres+PostGIS**, so the `db` container must be up; they assert response contract/shape, not data values. There is no `make` target — invoke sbt directly. The phased testing strategy and rationale live in [`docs/testing-and-ci.md`](docs/testing-and-ci.md).
+
+A prototype **JS** test layer (jsdom) lives under `test/js/` — run `npm run test:js`. It is opt-in and not wired into CI yet (sequenced with the ES5→ES6 migration, #2487); see `test/js/README.md`.
+
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (advisory — format Scala you touch with scalafmt, `.scalafmt.conf`), the **frontend grunt build**, and the **DB-backed API tests** (advisory while the suite stabilizes). "Advisory" steps report findings but don't block merges yet.
 
 ### Building frontend assets
 
