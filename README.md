@@ -1,11 +1,9 @@
-<img src="https://github.com/ProjectSidewalk/SidewalkWebpage/assets/1621749/0e838038-14fe-48cf-a849-1025e688ae68" width="200">
-
-# Project Sidewalk
-
 <p align="center">
   <video src="https://github.com/user-attachments/assets/a0181dac-4cce-4674-85b1-403f4e24c3f8" width="760" controls muted loop playsinline></video>
 </p>
 <p align="center"><em>▶ <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/raw/develop/public/videos/ProjectSidewalk_LabelingFromSeattle_KerryPark4_optimized1.5x.mp4">Labeling sidewalk accessibility from Kerry Park, Seattle</a></em></p>
+
+# Project Sidewalk
 
 Project Sidewalk is an open-source web tool for mapping and assessing the accessibility of every sidewalk in the
 world, using remote crowdsourcing, machine learning, and online satellite & streetscape imagery. Contributors walk
@@ -25,6 +23,10 @@ If you use or reference Project Sidewalk in your research, please cite:
 > Collecting Sidewalk Accessibility Data At Scale. In Proceedings of the 2019 CHI Conference on Human Factors in
 > Computing Systems (CHI '19). Association for Computing Machinery, New York, NY, USA, Paper 62, 1–14.
 > https://doi.org/10.1145/3290605.3300292
+
+<a href="https://projectsidewalk.org">
+  <img src="https://github.com/ProjectSidewalk/SidewalkWebpage/assets/1621749/0e838038-14fe-48cf-a849-1025e688ae68" width="100" alt="Project Sidewalk">
+</a>
 
 ## Tech stack
 
