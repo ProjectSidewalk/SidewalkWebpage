@@ -151,16 +151,27 @@
 
         <h2 class="api-heading" id="accessibility-score-apis">Accessibility Score APIs<a href="#accessibility-score-apis" class="permalink">#</a></h2>
         <p>
-            Inspired by <a href="https://www.walkscore.com/">WalkScore</a>, we also compute an aggregate "accessibility"
-            index based on Project Sidewalk data. These scoring algorithms are experimental. You can compute your own
-            scoring indices by using our Labels API.
+            Inspired by <a href="https://www.walkscore.com/">WalkScore</a>, we also compute an aggregate
+            <b>AccessScore</b> based on Project Sidewalk data. AccessScore extends the method from
+            <a href="https://makeabilitylab.cs.washington.edu/media/publications/Li_APilotStudyOfSidewalkEquityInSeattleUsingCrowdsourcedSidewalkAssessmentData_UrbanAccess2022.pdf">Li et&nbsp;al. (Urban Access 2022)</a>
+            by weighting each feature by its severity/quality rating and its tags. These scoring algorithms are
+            experimental and the weights are subject to change; you can also compute your own indices via the Labels API.
         </p>
-        <p>We provide two different scoring approaches.</p>
-
-        <p><i>Note: The accessibility score version 3 APIs are not yet available.</i></p>
         <ul class="api-list">
-            <li><b>StreetScore:</b> A score that represents the accessibility of individual streets based on the presence of barriers and features.</li>
-            <li><b>NeighborhoodScore:</b> An aggregated score that represents the overall accessibility of neighborhoods.</li>
+            <li><b><code>GET /v3/api/accessScoreStreets</code>:</b> AccessScore for individual streets.</li>
+            <li><b><code>GET /v3/api/accessScoreRegions</code>:</b> AccessScore for regions (neighborhoods), length-weighted across their streets.</li>
+        </ul>
+        <p>
+            Both endpoints accept the standard geo-filters (<code>bbox</code>, <code>regionId</code>,
+            <code>regionName</code>) and output formats (<code>filetype=</code> geojson [default], <code>csv</code>,
+            <code>shapefile</code>, <code>geopackage</code>).
+        </p>
+        <p>How the score is computed:</p>
+        <ul class="api-list">
+            <li>Each clustered label contributes a weight: positive features (curb ramps, crosswalks) are rated on a Good/Okay/Bad quality scale (a <i>Bad</i> one counts <i>against</i> the score); negative features (missing curb ramps, obstacles, surface problems) are rated Low/Medium/High severity; pedestrian signals and missing sidewalks have no rating and contribute a fixed amount for their presence.</li>
+            <li>Certain tags adjust the weight further (e.g. a signal tagged <i>hard to reach buttons</i> counts negatively).</li>
+            <li>A <b>street's</b> score is the logistic (sigmoid) of the summed weights, mapped to (0,&nbsp;1) — higher is more accessible.</li>
+            <li>A <b>region's</b> score is the street-length-weighted mean of its audited streets' scores; <code>coverage</code> reports the fraction of the region's streets that have been audited.</li>
         </ul>
 
         <h2 class="api-heading" id="stats-apis">Stats API<a href="#stats-apis" class="permalink">#</a></h2>

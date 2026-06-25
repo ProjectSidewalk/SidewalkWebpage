@@ -314,6 +314,26 @@ class StreetEdgeTable @Inject() (
   }
 
   /**
+   * Gets the length in meters of each of the given street edges.
+   *
+   * Lengths are computed by projecting the geometry to UTM zone 18N (EPSG:26918) so the result is in meters rather than
+   * degrees — the same projection used by the distance methods above. Used to length-weight region AccessScores (#3855).
+   * `inSet` inlines the ids (rather than binding them) to avoid the bound-parameter limit on whole-city id lists.
+   *
+   * @param streetEdgeIds The street edge ids to measure.
+   * @return A map from street edge id to its length in meters (empty for an empty input).
+   */
+  def getStreetLengths(streetEdgeIds: Seq[Int]): DBIO[Map[Int, Double]] = {
+    if (streetEdgeIds.isEmpty) DBIO.successful(Map.empty[Int, Double])
+    else
+      streetsUnfiltered
+        .filter(_.streetEdgeId inSet streetEdgeIds)
+        .map(s => (s.streetEdgeId, s.geom.transform(26918).lengthD))
+        .result
+        .map(_.toMap)
+  }
+
+  /**
    * Gets all street data for the API with filters applied, designed for streaming.
    *
    * @param filters   The filters to apply when retrieving streets.

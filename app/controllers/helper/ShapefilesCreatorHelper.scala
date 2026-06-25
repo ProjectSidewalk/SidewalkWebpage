@@ -1,6 +1,6 @@
 package controllers.helper
 
-import models.api.{LabelClusterForApi, LabelDataForApi, RawLabelInClusterDataForApi, RegionDataForApi, StreetDataForApi}
+import models.api.{AccessScoreApiModels, LabelClusterForApi, LabelDataForApi, RawLabelInClusterDataForApi, RegionAccessScoreForApi, RegionDataForApi, StreetAccessScoreForApi, StreetDataForApi}
 import models.computation.{RegionScore, StreetScore}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
@@ -1074,6 +1074,152 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(region.firstLabelDate.map(_.toString).orNull)
       featureBuilder.add(region.lastLabelDate.map(_.toString).orNull)
       featureBuilder.buildFeature(null)
+    }
+
+    createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
+   * Creates a shapefile from StreetAccessScoreForApi objects (v3, #3855).
+   *
+   * The per-label-type count/sub-score columns use short codes (e.g. nCRamp, sCRamp) because the DBF format truncates
+   * column names at 10 characters; GeoJSON/CSV/GeoPackage keep the full snake_case names.
+   */
+  def createStreetAccessScoreShapefile(
+      source: Source[StreetAccessScoreForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val perTypeSpec: String = AccessScoreApiModels.orderedTypes
+      .map { t => val c = AccessScoreApiModels.shapefileTypeCode(t); s"n$c:Integer,s$c:Double" }
+      .mkString(",")
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "AccessScoreStreet",
+      "the_geom:LineString:srid=4326," // LineString geometry
+      + "streetId:Integer,"            // Street edge ID
+      + "osmWayId:String,"             // OSM way ID as String (shapefiles don't handle Long well)
+      + "regionId:Integer,"            // Region ID
+      + "score:Double,"                // Access score (null if unaudited)
+      + "auditCount:Integer,"          // Number of completed audits
+      + "lengthM:Double,"              // Street length in meters
+      + "labelCount:Integer,"          // Number of labels contributing to the score
+      + perTypeSpec                    // Per-type cluster count (n<code>) and sub-score (s<code>)
+    )
+
+    def buildFeature(s: StreetAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
+      fb.add(s.geometry)
+      fb.add(s.streetEdgeId)
+      fb.add(s.osmWayId.toString)
+      fb.add(s.regionId)
+      fb.add(s.score.map(Double.box).orNull)
+      fb.add(s.auditCount)
+      fb.add(s.lengthMeters)
+      fb.add(s.labelCount)
+      AccessScoreApiModels.orderedTypes.foreach { t =>
+        fb.add(s.clusterCounts.getOrElse(t, 0))
+        fb.add(s.subScores.getOrElse(t, 0.0))
+      }
+      fb.buildFeature(null)
+    }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /** Creates a GeoPackage from StreetAccessScoreForApi objects (v3, #3855). Full snake_case column names (no 10-char limit). */
+  def createStreetAccessScoreGeopackage(
+      source: Source[StreetAccessScoreForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val perTypeSpec: String = AccessScoreApiModels.orderedTypes
+      .flatMap { t => val n = AccessScoreApiModels.snakeType(t); Seq(s"n_$n:Integer", s"score_$n:Double") }
+      .mkString(",")
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "access_score_streets",
+      "the_geom:LineString:srid=4326,street_id:Integer,osm_way_id:String,region_id:Integer,score:Double," +
+        "audit_count:Integer,length_meters:Double,label_count:Integer," + perTypeSpec
+    )
+
+    def buildFeature(s: StreetAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
+      fb.add(s.geometry)
+      fb.add(s.streetEdgeId)
+      fb.add(s.osmWayId.toString)
+      fb.add(s.regionId)
+      fb.add(s.score.map(Double.box).orNull)
+      fb.add(s.auditCount)
+      fb.add(s.lengthMeters)
+      fb.add(s.labelCount)
+      AccessScoreApiModels.orderedTypes.foreach { t =>
+        fb.add(s.clusterCounts.getOrElse(t, 0))
+        fb.add(s.subScores.getOrElse(t, 0.0))
+      }
+      fb.buildFeature(null)
+    }
+
+    createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /** Creates a shapefile from RegionAccessScoreForApi objects (v3, #3855). Per-type avg-count columns use short codes. */
+  def createRegionAccessScoreShapefile(
+      source: Source[RegionAccessScoreForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val perTypeSpec: String = AccessScoreApiModels.orderedTypes
+      .map { t => s"a${AccessScoreApiModels.shapefileTypeCode(t)}:Double" }
+      .mkString(",")
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "AccessScoreRegion",
+      "the_geom:MultiPolygon:srid=4326," // MultiPolygon geometry
+      + "regionId:Integer,"              // Region ID
+      + "name:String,"                   // Region name
+      + "score:Double,"                  // Length-weighted region score (null if no audited streets)
+      + "coverage:Double,"               // Fraction of streets audited
+      + "audited:Integer,"               // Audited street count
+      + "total:Integer,"                 // Total street count
+      + perTypeSpec                      // Per-type mean cluster count (a<code>)
+    )
+
+    def buildFeature(r: RegionAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
+      fb.add(r.geometry)
+      fb.add(r.regionId)
+      fb.add(r.name)
+      fb.add(r.score.map(Double.box).orNull)
+      fb.add(r.coverage)
+      fb.add(r.auditedStreetCount)
+      fb.add(r.totalStreetCount)
+      AccessScoreApiModels.orderedTypes.foreach { t => fb.add(r.avgClusterCounts.getOrElse(t, 0.0)) }
+      fb.buildFeature(null)
+    }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /** Creates a GeoPackage from RegionAccessScoreForApi objects (v3, #3855). Full snake_case column names. */
+  def createRegionAccessScoreGeopackage(
+      source: Source[RegionAccessScoreForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val perTypeSpec: String = AccessScoreApiModels.orderedTypes
+      .map { t => s"avg_n_${AccessScoreApiModels.snakeType(t)}:Double" }
+      .mkString(",")
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "access_score_regions",
+      "the_geom:MultiPolygon:srid=4326,region_id:Integer,name:String,score:Double,coverage:Double," +
+        "audited_street_count:Integer,total_street_count:Integer," + perTypeSpec
+    )
+
+    def buildFeature(r: RegionAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
+      fb.add(r.geometry)
+      fb.add(r.regionId)
+      fb.add(r.name)
+      fb.add(r.score.map(Double.box).orNull)
+      fb.add(r.coverage)
+      fb.add(r.auditedStreetCount)
+      fb.add(r.totalStreetCount)
+      AccessScoreApiModels.orderedTypes.foreach { t => fb.add(r.avgClusterCounts.getOrElse(t, 0.0)) }
+      fb.buildFeature(null)
     }
 
     createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
