@@ -166,8 +166,12 @@ class ValidationServiceImpl @Inject() (
             if (fullHistory.indexWhere(_.labelHistoryId == historyEntry.labelHistoryId) == fullHistory.length - 1) {
               val correctData: LabelHistory = fullHistory(fullHistory.length - 2)
               val labelToUpdateQuery        = labelsUnfiltered.filter(_.labelId === historyEntry.labelId)
-              labelToUpdateQuery.map(l => (l.severity, l.tags)).update((correctData.severity, correctData.tags.toList))
-              labelHistories.filter(_.labelValidationId === labelValidationId).delete.map(_ > 0)
+              for {
+                _ <- labelToUpdateQuery
+                  .map(l => (l.severity, l.tags))
+                  .update((correctData.severity, correctData.tags.toList))
+                deleted <- labelHistories.filter(_.labelValidationId === labelValidationId).delete
+              } yield deleted > 0
             } else {
               // If the next history entry reverses this one, we can update the label table and delete both entries.
               val thisEntryIdx: Int = fullHistory.indexWhere(_.labelValidationId == Some(labelValidationId))
