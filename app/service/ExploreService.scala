@@ -15,8 +15,7 @@ import models.user.SidewalkUserTable.aiUserId
 import models.user._
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
-import org.geotools.geometry.jts.JTSFactoryFinder
-import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point, PrecisionModel}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.{Configuration, Logger}
 
@@ -145,8 +144,9 @@ class ExploreServiceImpl @Inject() (
 ) extends ExploreService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  private val logger      = Logger(this.getClass)
-  val gf: GeometryFactory = JTSFactoryFinder.getGeometryFactory
+  private val logger = Logger(this.getClass)
+  // SRID 4326 is baked into the factory so points it creates match label_point.geom's lat/lng coordinate system.
+  val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
   def getDataForExplorePage(
       userId: String,
@@ -415,7 +415,6 @@ class ExploreServiceImpl @Inject() (
         OffsetDateTime.now
     }
 
-    // Create the Point geometry from the provided lat/lng.
     val point: LabelPointSubmission = label.point
     val pointGeom: Option[Point]    = for {
       _lat <- point.lat

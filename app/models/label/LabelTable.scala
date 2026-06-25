@@ -23,7 +23,7 @@ import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
 import slick.sql.SqlStreamingAction
 
-import java.time.{Duration, Instant, LocalDate, OffsetDateTime, ZoneOffset}
+import java.time._
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
@@ -1569,10 +1569,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     if (filters.bbox.isDefined) {
       // BBox filter takes precedence over region filters.
       val bbox = filters.bbox.get
-      whereConditions :+= s"label_point.lat > ${bbox.minLat}"
-      whereConditions :+= s"label_point.lat < ${bbox.maxLat}"
-      whereConditions :+= s"label_point.lng > ${bbox.minLng}"
-      whereConditions :+= s"label_point.lng < ${bbox.maxLng}"
+      whereConditions :+=
+        s"label_point.geom && ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)"
     } else if (filters.regionId.isDefined) {
       // Region ID filter takes precedence over region name.
       whereConditions :+= s"street_edge_region.region_id = ${filters.regionId.get}"
@@ -2195,7 +2193,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       filterLowQuality: Boolean
   ): DBIO[Seq[(LocalDate, String, Int, Int)]] = {
     // Mirrors the userFilter convention in getOverallStatsForApi.
-    val userFilter = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
+    val userFilter   = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
     val whereClauses = scala.collection.mutable.ListBuffer(
       "label.deleted = FALSE",
       "label.tutorial = FALSE",
