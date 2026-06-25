@@ -63,6 +63,8 @@ guide: **[`docs/dev-environment.md`](docs/dev-environment.md)**.
 | [`CLAUDE.md`](CLAUDE.md) | Conventions + operational notes, used as AI-assistant context. |
 | [`docs/testing-and-ci.md`](docs/testing-and-ci.md) | Testing strategy and CI rollout plan. |
 | [`docs/upgrading-libraries.md`](docs/upgrading-libraries.md) | Dependency-version inventory and how to update each. |
+| [`docs/logged-events.md`](docs/logged-events.md) | How user-interaction logging works + the event reference. |
+| [`docs/data-notes.md`](docs/data-notes.md) | Release-specific caveats for analyzing Project Sidewalk data. |
 | [`SECURITY.md`](SECURITY.md) | How to report a vulnerability. |
 | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Community standards. |
 
