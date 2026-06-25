@@ -10,7 +10,8 @@
 Project Sidewalk is an open-source web tool for mapping and assessing the accessibility of every sidewalk in the
 world, using remote crowdsourcing, machine learning, and online satellite & streetscape imagery. Contributors walk
 virtually through cities and label accessibility features and problems — curb ramps, obstacles, surface problems,
-missing sidewalks, and more.
+missing sidewalks, and more. And all collected data is fully open and downloadable in standard formats like GeoJSON and CSV, 
+so it's easy to integrate into your own systems and research! See [https://projectsidewalk.org/api](https://projectsidewalk.org/api).
 
 Project Sidewalk is deployed in **50+ cities across 10 countries** (the US, Canada, Chile, India, Mexico, Ecuador, the
 Netherlands, Switzerland, and New Zealand), is natively translated into **six languages** (English, Spanish, German,
