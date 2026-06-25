@@ -234,7 +234,8 @@
                 "high_quality_user": true,
                 "street_edge_id": 951,
                 "osm_way_id": 11584845,
-                "neighborhood": "Teaneck Community Charter School",
+                "region_id": 1,
+                "region_name": "Teaneck Community Charter School",
                 "correct": true,
                 "agree_count": 2,
                 "disagree_count": 0,
@@ -286,7 +287,8 @@
                 "time_created": 1692227248747,
                 "street_edge_id": 95,
                 "osm_way_id": 11566031,
-                "neighborhood": "Teaneck Community Charter School",
+                "region_id": 1,
+                "region_name": "Teaneck Community Charter School",
                 "correct": true,
                 "agree_count": 2,
                 "disagree_count": 1,
@@ -401,9 +403,14 @@
                         <td><a href="https://wiki.openstreetmap.org/wiki/Way">OpenStreetMap Way ID</a> for the street segment, if available.</td>
                     </tr>
                     <tr>
-                        <td><code>properties.neighborhood</code></td>
+                        <td><code>properties.region_id</code></td>
+                        <td><code>integer</code></td>
+                        <td>Project Sidewalk identifier for the region (neighborhood) the label falls within. Matches <code>region_id</code> in the Streets, Regions, and LabelClusters APIs.</td>
+                    </tr>
+                    <tr>
+                        <td><code>properties.region_name</code></td>
                         <td><code>string</code></td>
-                        <td>Name of the neighborhood or area the label falls within, as defined in Project Sidewalk's regions.</td>
+                        <td>Name of the region (neighborhood) the label falls within, as defined in Project Sidewalk's regions.</td>
                     </tr>
 
                         <!-- Validation Information -->
