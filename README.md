@@ -1,18 +1,18 @@
 <img src="https://github.com/ProjectSidewalk/SidewalkWebpage/assets/1621749/0e838038-14fe-48cf-a849-1025e688ae68" width="200">
 
+# Project Sidewalk
+
 <p align="center">
   <video src="https://github.com/user-attachments/assets/a0181dac-4cce-4674-85b1-403f4e24c3f8" width="760" controls muted loop playsinline></video>
 </p>
 <p align="center"><em>▶ <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/raw/develop/public/videos/ProjectSidewalk_LabelingFromSeattle_KerryPark4_optimized1.5x.mp4">Labeling sidewalk accessibility from Kerry Park, Seattle</a></em></p>
-
-# Project Sidewalk
 
 Project Sidewalk is an open-source web tool for mapping and assessing the accessibility of every sidewalk in the
 world, using remote crowdsourcing, machine learning, and online satellite & streetscape imagery. Contributors walk
 virtually through cities and label accessibility features and problems — curb ramps, obstacles, surface problems,
 missing sidewalks, and more.
 
-Project Sidewalk has run in **50+ cities across 10 countries** (the US, Canada, Chile, India, Mexico, Ecuador, the
+Project Sidewalk is deployed in **50+ cities across 10 countries** (the US, Canada, Chile, India, Mexico, Ecuador, the
 Netherlands, Switzerland, and New Zealand), is natively translated into **six languages** (English, Spanish, German,
 Mandarin, Portuguese, and Dutch), and has collected **3.4M+ contributor-labeled data points**. See the
 [live data dashboard](https://jonfroehlich.github.io/ps-label-vis/ps-dashboard.html).
