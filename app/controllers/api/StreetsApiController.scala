@@ -3,7 +3,6 @@ package controllers.api
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import models.api.{ApiError, StreetDataForApi, StreetFiltersForApi}
-import models.utils.LatLngBBox
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
@@ -50,69 +49,21 @@ class StreetsApiController @Inject() (
       filetype: Option[String],
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
-    // Parse the bbox parameter.
-    val parsedBbox: Option[LatLngBBox] = parseBBoxString(bbox)
+    // Parse bbox and way types.
+    val parsedBbox     = parseBBoxString(bbox)
+    val parsedWayTypes = parseCommaSeparated(wayType)
 
-    // Parse way types (comma-separated).
-    val parsedWayTypes: Option[Seq[String]] = wayType.map(_.split(",").map(_.trim).toSeq)
+    // Collect the first invalid-parameter error, if any.
+    val firstError: Option[ApiError] = Seq(
+      validateBBoxParam(bbox, parsedBbox),
+      validateRegionId(regionId)
+    ).flatten.headOption
 
-    // Handle input parameter error cases.
-    if (bbox.isDefined && parsedBbox.isEmpty) {
-      Future.successful(
-        BadRequest(
-          Json.toJson(
-            ApiError.invalidParameter(
-              "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.",
-              "bbox"
-            )
-          )
-        )
-      )
-    } else if (regionId.isDefined && regionId.get <= 0) {
-      Future.successful(
-        BadRequest(
-          Json.toJson(
-            ApiError.invalidParameter(
-              "Invalid regionId value. Must be a positive integer.",
-              "regionId"
-            )
-          )
-        )
-      )
-    } else {
-
-      configService.getCityMapParams.flatMap { cityMapParams =>
-        // If bbox isn't provided, use city defaults.
-        val apiBox: LatLngBBox = parsedBbox.getOrElse(
-          LatLngBBox(
-            minLng = Math.min(cityMapParams.lng1, cityMapParams.lng2),
-            minLat = Math.min(cityMapParams.lat1, cityMapParams.lat2),
-            maxLng = Math.max(cityMapParams.lng1, cityMapParams.lng2),
-            maxLat = Math.max(cityMapParams.lat1, cityMapParams.lat2)
-          )
-        )
-
-        // Apply filter precedence logic. If bbox is defined, it takes precedence over region filters.
-        val finalBbox: Option[LatLngBBox] = if (bbox.isDefined && parsedBbox.isDefined) {
-          parsedBbox
-        } else if (regionId.isDefined || regionName.isDefined) {
-          None // If region filters are used, bbox should be None.
-        } else {
-          Some(apiBox) // Default city bbox.
-        }
-
-        // Apply region filter precedence logic. If bbox is defined, ignore region filters.
-        val finalRegionId = if (bbox.isDefined && parsedBbox.isDefined) {
-          None // If regionId is defined, it takes precedence over regionName.
-        } else {
-          regionId
-        }
-
-        val finalRegionName = if (bbox.isDefined && parsedBbox.isDefined || regionId.isDefined) {
-          None
-        } else {
-          regionName
-        }
+    firstError match {
+      case Some(error) => Future.successful(badRequest(error))
+      case None =>
+        configService.getCityMapParams.flatMap { cityMapParams =>
+        val (finalBbox, finalRegionId, finalRegionName) = resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
 
         // Create filters object.
         val filters = StreetFiltersForApi(
@@ -153,7 +104,7 @@ class StreetsApiController @Inject() (
       .getStreetTypes(request.lang)
       .map { types =>
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
-        Ok(Json.obj("status" -> "OK", "streetTypes" -> types))
+        Ok(Json.obj("status" -> "OK", "street_types" -> types))
       }
       .recover { case e: Exception =>
         InternalServerError(

@@ -2,9 +2,9 @@ package controllers.api
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ShapefilesCreatorHelper
-import models.api.ApiError
-import models.computation.StreamingApiType
+import models.api.{ApiError, StreamingApiType}
 import models.utils.{LatLngBBox, MapParams}
+import org.apache.pekko.Done
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
 import play.api.Logger
@@ -15,9 +15,12 @@ import play.api.mvc.Result
 import java.io.{BufferedInputStream, File}
 import java.nio.file.{Files, Path}
 import java.time.OffsetDateTime
+import java.time.format.DateTimeParseException
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.math._
+import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
 /**
  * Base controller for API endpoints with common utility methods.
@@ -27,6 +30,34 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
 
   private val logger                    = Logger(this.getClass)
   protected val DEFAULT_BATCH_SIZE: Int = 50000
+
+  /**
+   * Attaches failure logging to a streaming response body.
+   *
+   * Chunked API responses (`Ok.chunked`) commit a 200 status and headers *before* the underlying database stream
+   * runs. So if the stream fails mid-flight — e.g. a query timeout or dropped connection while serializing a very
+   * large city's labels — the body simply ends, and Play cannot retract the status it already sent. Without this hook
+   * such failures are completely silent: exactly the #4161 symptom, where large-city `/v3/api/rawLabels` returns a
+   * 200 with an empty/truncated body and no server-side trace. This logs the failure so it is at least diagnosable;
+   * it does not (and cannot) change the status already sent to the client.
+   *
+   * @param source The streaming body to monitor.
+   * @param label  A short identifier (e.g. the download filename) included in the log line to locate the failure.
+   * @return       The same source, with termination-failure logging attached (success behavior is unchanged).
+   */
+  private def logStreamFailures(source: Source[String, _], label: String): Source[String, _] =
+    source.watchTermination() { (mat, done) =>
+      done.onComplete {
+        case Failure(e) =>
+          logger.error(
+            s"API streaming response failed mid-flight for '$label'; the client received a truncated/empty body " +
+              s"after a 200 status was already sent (see #4161).",
+            e
+          )
+        case Success(_: Done) => // Stream completed normally; nothing to log.
+      }
+      mat
+    }
 
   /**
    * Creates a bounding box (BBox) using the provided latitude and longitude values.
@@ -71,26 +102,55 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
           None
         }
       } catch {
-        case _: Exception => None
+        case _: NumberFormatException => None
       }
     }
   }
 
   /**
-   * Parses a date-time string into an `OffsetDateTime` object.
+   * Parses an optional ISO 8601 date-time string, distinguishing an absent value from a malformed one.
    *
-   * @param dateTime The date-time string to parse.
-   * @return An `Option` containing the parsed `OffsetDateTime`, or `None` if parsing fails or None was provided.
+   * Unlike a plain `Option` parse, a malformed value is reported as an error rather than silently dropped, so the
+   * caller can return a 400 instead of quietly ignoring the filter.
+   *
+   * @param dateTime The optional date-time string to parse.
+   * @param paramName The query-parameter name, used in the error message when parsing fails.
+   * @return `Right(None)` if absent, `Right(Some(parsed))` if valid, or `Left(ApiError)` if malformed.
    */
-  protected def parseDateTimeString(dateTime: Option[String]): Option[OffsetDateTime] = {
-    dateTime.flatMap { s =>
+  protected def parseDateTimeParam(
+      dateTime: Option[String],
+      paramName: String
+  ): Either[ApiError, Option[OffsetDateTime]] = dateTime match {
+    case None => Right(None)
+    case Some(s) =>
       try {
-        Some(OffsetDateTime.parse(s))
+        Right(Some(OffsetDateTime.parse(s)))
       } catch {
-        case _: Exception => None
+        case _: DateTimeParseException =>
+          Left(
+            ApiError.invalidParameter(
+              s"Invalid value for $paramName parameter. Expected an ISO 8601 date-time, e.g. 2021-03-01T00:00:00Z.",
+              paramName
+            )
+          )
       }
-    }
   }
+
+  /** Builds a 400 Bad Request response from an `ApiError`. */
+  protected def badRequest(error: ApiError): Result = BadRequest(Json.toJson(error))
+
+  // Instance method wrappers — delegate to the companion object so the pure logic is unit-testable without DI.
+  protected def validateBBoxParam(bbox: Option[String], parsed: Option[LatLngBBox]): Option[ApiError] =
+    BaseApiController.validateBBoxParam(bbox, parsed)
+  protected def validateRegionId(regionId: Option[Int]): Option[ApiError] =
+    BaseApiController.validateRegionId(regionId)
+  protected def resolveGeoFilters(
+      bbox: Option[String], parsedBbox: Option[LatLngBBox], regionId: Option[Int],
+      regionName: Option[String], cityMapParams: MapParams
+  ): (Option[LatLngBBox], Option[Int], Option[String]) =
+    BaseApiController.resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
+  protected def parseCommaSeparated(raw: Option[String]): Option[Seq[String]] =
+    BaseApiController.parseCommaSeparated(raw)
 
   /**
    * Outputs a CSV stream from the provided database data stream.
@@ -112,7 +172,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       .intersperse(csvHeader, "\n", "\n")
 
     Future.successful(
-      Ok.chunked(csvSource, inline.getOrElse(false), Some(filename))
+      Ok.chunked(logStreamFailures(csvSource, filename), inline.getOrElse(false), Some(filename))
         .as("text/csv")
         .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$filename")
     )
@@ -127,15 +187,26 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
    */
   protected def zipAndStreamCsvFiles(files: Seq[(Path, String)], baseFileName: String): Future[Result] = {
     val zipPath = new File(s"$baseFileName.zip").toPath
-    val zipOut  = new ZipOutputStream(Files.newOutputStream(zipPath))
 
-    files.foreach { case (filePath, entryName) =>
-      zipOut.putNextEntry(new ZipEntry(entryName))
-      Files.copy(filePath, zipOut)
-      zipOut.closeEntry()
-      Files.deleteIfExists(filePath)
+    // Build the zip, always closing the output stream and cleaning up partial output if anything fails.
+    try {
+      val zipOut = new ZipOutputStream(Files.newOutputStream(zipPath))
+      try {
+        files.foreach { case (filePath, entryName) =>
+          zipOut.putNextEntry(new ZipEntry(entryName))
+          Files.copy(filePath, zipOut)
+          zipOut.closeEntry()
+          Files.deleteIfExists(filePath)
+        }
+      } finally {
+        zipOut.close()
+      }
+    } catch {
+      case NonFatal(e) =>
+        Files.deleteIfExists(zipPath)
+        files.foreach { case (filePath, _) => Files.deleteIfExists(filePath) }
+        throw e
     }
-    zipOut.close()
 
     val zipSource = StreamConverters
       .fromInputStream(() => new BufferedInputStream(Files.newInputStream(zipPath)))
@@ -166,7 +237,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
 
     Future.successful(
-      Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename))
+      Ok.chunked(logStreamFailures(jsonSource, filename), inline.getOrElse(false), Some(filename))
         .as(ContentTypes.JSON)
     )
   }
@@ -189,7 +260,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       .intersperse("[", ",", "]")
 
     Future.successful(
-      Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename))
+      Ok.chunked(logStreamFailures(jsonSource, filename), inline.getOrElse(false), Some(filename))
         .as(ContentTypes.JSON)
     )
   }
@@ -283,4 +354,77 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
         )
     }
   }
+}
+
+/**
+ * Pure geo-filter helpers shared across v3 API controllers.
+ *
+ * Extracted to a companion object so they can be unit-tested directly without any DI wiring.
+ * The controller instance methods in [[BaseApiController]] delegate here.
+ */
+object BaseApiController {
+
+  /**
+   * Returns an ApiError if `bbox` was supplied but could not be parsed.
+   *
+   * @param bbox   The raw bbox query parameter value.
+   * @param parsed The result of running `parseBBoxString(bbox)`.
+   */
+  def validateBBoxParam(bbox: Option[String], parsed: Option[LatLngBBox]): Option[ApiError] =
+    if (bbox.isDefined && parsed.isEmpty)
+      Some(ApiError.invalidParameter(
+        "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox"))
+    else None
+
+  /**
+   * Returns an ApiError if `regionId` is defined but not a positive integer.
+   *
+   * @param regionId The optional regionId query parameter.
+   */
+  def validateRegionId(regionId: Option[Int]): Option[ApiError] =
+    if (regionId.exists(_ <= 0))
+      Some(ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId"))
+    else None
+
+  /**
+   * Resolves the effective bbox/regionId/regionName filters, applying the standard v3 precedence rules:
+   * - An explicit valid bbox takes precedence over region filters.
+   * - regionId takes precedence over regionName.
+   * - If neither a bbox nor a region filter is provided, the city default bbox is used.
+   *
+   * @param bbox          The raw bbox query parameter (pre-parse string, used only to detect "was it supplied").
+   * @param parsedBbox    The result of running `parseBBoxString(bbox)`.
+   * @param regionId      The optional regionId query parameter.
+   * @param regionName    The optional regionName query parameter.
+   * @param cityMapParams Default map parameters for the current city.
+   * @return A triple of (finalBbox, finalRegionId, finalRegionName) after applying precedence.
+   */
+  def resolveGeoFilters(
+      bbox: Option[String],
+      parsedBbox: Option[LatLngBBox],
+      regionId: Option[Int],
+      regionName: Option[String],
+      cityMapParams: MapParams
+  ): (Option[LatLngBBox], Option[Int], Option[String]) = {
+    val defaultBox = LatLngBBox(
+      minLng = Math.min(cityMapParams.lng1, cityMapParams.lng2),
+      minLat = Math.min(cityMapParams.lat1, cityMapParams.lat2),
+      maxLng = Math.max(cityMapParams.lng1, cityMapParams.lng2),
+      maxLat = Math.max(cityMapParams.lat1, cityMapParams.lat2)
+    )
+    val bboxActive   = bbox.isDefined && parsedBbox.isDefined
+    val finalBbox    = if (bboxActive) parsedBbox else if (regionId.isDefined || regionName.isDefined) None else Some(defaultBox)
+    val finalRegId   = if (bboxActive) None else regionId
+    val finalRegName = if (bboxActive || regionId.isDefined) None else regionName
+    (finalBbox, finalRegId, finalRegName)
+  }
+
+  /**
+   * Parses a comma-separated query parameter into a sequence of trimmed strings.
+   *
+   * @param raw The optional raw query parameter string.
+   * @return `None` if the parameter was absent; a `Some(Seq(...))` of trimmed tokens otherwise.
+   */
+  def parseCommaSeparated(raw: Option[String]): Option[Seq[String]] =
+    raw.map(_.split(",").map(_.trim).toSeq)
 }

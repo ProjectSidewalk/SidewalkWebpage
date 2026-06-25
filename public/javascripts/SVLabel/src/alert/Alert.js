@@ -26,15 +26,15 @@ function Alert() {
 
     /**
      *
-     * @param msg: the message in the alert
-     * @param type: is a string, used to identifying message types
-     * @param dontShow: boolean, whether the don't show link is enabled or not
+     * @param {string} msg the message in the alert
+     * @param {string} type is a string, used to identifying message types
+     * @param {boolean} dontShow boolean, whether the don't show link is enabled or not
      * @param callback callback to run after showing alert
      */
     function showAlert(msg, type, dontShow, callback) {
         if (!dontShow) dontShow = false;
 
-        if(type == null || !(self.dontShowList.indexOf(type) >= 0)) {
+        if (type == null || !(self.dontShowList.indexOf(type) >= 0)) {
             if(dontShow)
                 self.ui.dontShow.show();
             else

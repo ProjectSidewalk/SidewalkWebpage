@@ -60,7 +60,7 @@
             return this.fetchLabelTypes()
                 .then(data => {
                     // Store label type info for later use.
-                    labelTypeInfo = data.labelTypes.reduce((acc, type) => {
+                    labelTypeInfo = data.label_types.reduce((acc, type) => {
                         acc[type.name] = {
                             color: type.color,
                             description: type.description
@@ -91,7 +91,7 @@
          * @returns {Promise} A promise that resolves with the label types data
          */
         fetchLabelTypes: function() {
-            return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}`)
+            return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}?source=apiDocs`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -105,7 +105,7 @@
          * @returns {Promise} A promise that resolves with the region data
          */
         fetchRegionWithMostLabels: function() {
-            return fetch(`${config.apiBaseUrl}${config.regionWithMostLabelsEndpoint}`)
+            return fetch(`${config.apiBaseUrl}${config.regionWithMostLabelsEndpoint}?source=apiDocs`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -176,7 +176,7 @@
          * @returns {Promise} A promise that resolves with the clusters data
          */
         fetchClustersByRegionId: function(regionId) {
-            const url = `${config.apiBaseUrl}${config.labelClustersEndpoint}?regionId=${regionId}`;
+            const url = `${config.apiBaseUrl}${config.labelClustersEndpoint}?regionId=${regionId}&source=apiDocs`;
             return fetch(url)
                 .then(response => {
                     if (!response.ok) {

@@ -68,7 +68,7 @@
          * @returns {Promise} A promise that resolves with the label types data
          */
         fetchLabelTypes: function() {
-            return fetch(`${config.apiBaseUrl}${config.endpoint}`)
+            return fetch(`${config.apiBaseUrl}${config.endpoint}?source=apiDocs`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -85,9 +85,9 @@
          */
         renderLabelTypes: function(data, container) {
             // Filter label types if showPrimaryOnly is true.
-            let labelTypes = data.labelTypes;
+            let labelTypes = data.label_types;
             if (config.showPrimaryOnly) {
-                labelTypes = labelTypes.filter(type => type.isPrimary);
+                labelTypes = labelTypes.filter(type => type.is_primary);
             }
 
             // Create table structure.
@@ -129,7 +129,7 @@
                 // Standard icon cell.
                 const iconCell = document.createElement('td');
                 const icon = document.createElement('img');
-                icon.src = type.iconUrl;
+                icon.src = type.icon_url;
                 icon.alt = `${type.name} icon`;
                 icon.height = 32;
                 iconCell.appendChild(icon);
@@ -138,7 +138,7 @@
                 // Small icon cell.
                 const smallIconCell = document.createElement('td');
                 const smallIcon = document.createElement('img');
-                smallIcon.src = type.smallIconUrl;
+                smallIcon.src = type.small_icon_url;
                 smallIcon.alt = `${type.name} small icon`;
                 smallIcon.height = 24;
                 smallIconCell.appendChild(smallIcon);
@@ -147,7 +147,7 @@
                 // Tiny icon cell.
                 const tinyIconCell = document.createElement('td');
                 const tinyIcon = document.createElement('img');
-                tinyIcon.src = type.tinyIconUrl;
+                tinyIcon.src = type.tiny_icon_url;
                 tinyIcon.alt = `${type.name} tiny icon`;
                 tinyIcon.height = 16;
                 tinyIconCell.appendChild(tinyIcon);

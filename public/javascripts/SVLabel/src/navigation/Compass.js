@@ -3,13 +3,17 @@
  * @param svl SVL name space. Need this for rootDirectory.
  * @param navigationService NavigationService module
  * @param taskContainer TaskContainer module
- * @param uiCompass ui elements. // Todo. Future work. Just pass the top level ui element.
  * @constructor
  */
-function Compass (svl, navigationService, taskContainer, uiCompass) {
+function Compass (svl, navigationService, taskContainer) {
     let self = {className: 'Compass'};
     let blinkInterval;
     let blinkTimer;
+
+    const uiCompass = {
+        messageHolder: $("#compass-message-holder"),
+        message: $("#compass-message")
+    };
 
     const imageDirectories = {
         leftTurn: svl.rootDirectory + 'img/icons/ArrowLeftTurn.png',
@@ -30,8 +34,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     function blink() {
         self.stopBlinking();
         blinkInterval = window.setInterval(function() {
-            uiCompass.messageHolder.toggleClass('white-background-75');
-            uiCompass.messageHolder.toggleClass('highlight-50');
+            uiCompass.messageHolder.toggleClass('highlight-100');
         }, 500);
     }
 
@@ -40,7 +43,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     }
 
     /**
-     * Get the angle necessary to move further down the street (using 10 meters further along street as target point).
+     * Get the angle necessary to move further down the street (using 15 meters further along street as target point).
      * @returns {number}
      */
     function getTargetAngle() {
@@ -51,8 +54,8 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
         const streetEnd = turf.point([task.getEndCoordinate().lng, task.getEndCoordinate().lat]);
         const remainder = turf.cleanCoords(turf.lineSlice(startLatLng, streetEnd, geometry));
 
-        // Get the point representing 10 meters further along the street (or the endpoint if there's fewer than 10m).
-        const distIncrement = Math.min(0.01, turf.length(remainder));
+        // Get the point representing 15 meters further along the street (or the endpoint if there's fewer than 15m).
+        const distIncrement = Math.min(0.015, turf.length(remainder));
         const goalLoc = turf.along(remainder, distIncrement).geometry.coordinates;
 
         // Compute the angle from the current location to the goal location, with respect to true north.
@@ -118,7 +121,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     function _makeTheLabelBeforeJumpMessageBoxClickable() {
         let jumpMessageOnclick;
         if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
-            jumpMessageOnclick = function() { svl.neighborhoodModel.trigger('Neighborhood:wrapUpRouteOrNeighborhood'); }
+            jumpMessageOnclick = function() { svl.missionController.wrapUpRouteOrNeighborhood(); }
         } else {
             jumpMessageOnclick = _jumpToTheNewTask
         }
@@ -199,8 +202,8 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
 
         const image = `<img src="${directionToImagePath(direction)}" class="compass-turn-images" alt="Turn icon"/>`;
         const message =
-            `<span class="compass-message-small">${i18next.t('center-ui.compass.unlabeled-problems')}</span>` +
-            `<br/>${image}<span class="bold">${_directionToDirectionMessage(direction)}</span>`;
+            `<div class="compass-message-small">${i18next.t('center-ui.compass.unlabeled-problems')}</div>` +
+            `${image}<span class="compass-message-large">${_directionToDirectionMessage(direction)}</span>`;
         uiCompass.message.html(message);
     }
 
@@ -232,8 +235,7 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
     function stopBlinking() {
         window.clearInterval(blinkInterval);
         blinkInterval = null;
-        uiCompass.messageHolder.addClass('white-background-75');
-        uiCompass.messageHolder.removeClass('highlight-50');
+        uiCompass.messageHolder.removeClass('highlight-100');
     }
 
     /**
@@ -321,8 +323,24 @@ function Compass (svl, navigationService, taskContainer, uiCompass) {
             svl.panoManager.setPovToRouteDirection();
         }
     }
+
+    // Attaches an external click handler to the compass message and shows the pointer cursor. Used by onboarding to
+    // override the default compass behavior so that a click advances to the next pano.
+    function attachMessageClickHandler(handler) {
+        uiCompass.messageHolder.off('click', handler).on('click', handler);
+        uiCompass.messageHolder.css('cursor', 'pointer');
+    }
+
+    // Detaches a previously attached external click handler from the compass message and restores the default cursor.
+    function detachMessageClickHandler(handler) {
+        uiCompass.messageHolder.off('click', handler);
+        uiCompass.messageHolder.css('cursor', 'default');
+    }
+
     enableCompassClick();
 
+    self.attachMessageClickHandler = attachMessageClickHandler;
+    self.detachMessageClickHandler = detachMessageClickHandler;
     self.blink = blink;
     self.directionToImagePath = directionToImagePath;
     self.resetBeforeJump = resetBeforeJump;

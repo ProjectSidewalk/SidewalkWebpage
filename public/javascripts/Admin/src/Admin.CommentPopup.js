@@ -76,14 +76,22 @@ async function AdminCommentPopup(admin, viewerType, viewerAccessToken) {
             return;
         }
 
-        await self.panoManager.setPano(panoId, pov);
-
+        // Fetch the label's metadata first (when there is one) so its crop/backup-image fallbacks are available to
+        // setPano() from the start, instead of arriving only after the popup has already given up on live imagery.
+        let labelMetadata = null;
         if (labelId) {
             const adminLabelUrl = admin ? '/adminapi/label/id/' + labelId : '/label/id/' + labelId;
-            $.getJSON(adminLabelUrl, function (data) {
-                setLabel(data);
-            });
-         }
+            const response = await fetch(adminLabelUrl);
+            if (response.ok) labelMetadata = await response.json();
+        }
+
+        if (labelMetadata) {
+            const backupImage = buildBackupImageData(labelMetadata);
+            await self.panoManager.setPano(panoId, pov, labelMetadata.crop_url, labelMetadata.expired, backupImage);
+            setLabel(labelMetadata);
+        } else {
+            await self.panoManager.setPano(panoId, pov);
+        }
     }
 
     function setLabel(labelMetadata) {

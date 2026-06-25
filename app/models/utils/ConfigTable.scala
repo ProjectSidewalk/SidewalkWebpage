@@ -4,7 +4,9 @@ import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.{AggregateStats, LabelTypeStats}
+import slick.jdbc.GetResult
 
+import java.time.LocalDate
 import javax.inject._
 import scala.concurrent.ExecutionContext
 
@@ -119,6 +121,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       SELECT km_audited.km_audited AS km_explored,
             km_audited_no_overlap.km_audited_no_overlap AS km_explored_no_overlap,
             label_counts.label_count AS total_labels,
+            tutorial_label_counts.tutorial_label_count AS tutorial_labels,
             total_val_count.validation_count AS total_validations
       FROM (
           SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited
@@ -146,23 +149,33 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
               AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
       ) AS label_counts, (
+          -- Practice/tutorial labels, reported separately from total_labels so the per-type breakdown reconciles with
+          -- the total (#3981). Counted by the label.tutorial flag from non-excluded users.
+          SELECT COUNT(*) AS tutorial_label_count
+          FROM "#$schema".label
+          INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
+          WHERE NOT user_stat.excluded
+              AND deleted = FALSE
+              AND tutorial = TRUE
+      ) AS tutorial_label_counts, (
           SELECT COUNT(*) AS validation_count
           FROM "#$schema".label_validation
           INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
           WHERE NOT user_stat.excluded
       ) AS total_val_count;
     """
-      .as[(Double, Double, Int, Int)]
+      .as[(Double, Double, Int, Int, Int)]
       .head
-      .map { case (kmExplored, kmExploredNoOverlap, totalLabels, totalValidations) =>
+      .map { case (kmExplored, kmExploredNoOverlap, totalLabels, tutorialLabels, totalValidations) =>
 
         // Now get the label type statistics for this schema.
         getLabelTypeStatsBySchema(schema).map { labelTypeStats =>
           AggregateStats(
             kmExplored = kmExplored, kmExploredNoOverlap = kmExploredNoOverlap, totalLabels = totalLabels,
-            totalValidations = totalValidations, numCities = 0, // Individual cities don't have deployment counts
-            numCountries = 0,                                   // These are calculated at the service level
-            numLanguages = 0,                                   // when aggregating across all cities
+            tutorialLabels = tutorialLabels, totalValidations = totalValidations,
+            numCities = 0,    // Individual cities don't have deployment counts
+            numCountries = 0, // These are calculated at the service level
+            numLanguages = 0, // when aggregating across all cities
             byLabelType = labelTypeStats
           )
         }
@@ -191,13 +204,20 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         AND l.deleted = FALSE
         AND l.tutorial = FALSE
         AND l.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
-      LEFT JOIN
-        "#$schema".audit_task at ON l.audit_task_id = at.audit_task_id
-        AND at.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
-      LEFT JOIN
-        "#$schema".user_stat us ON l.user_id = us.user_id AND NOT us.excluded
-      WHERE
-        us.user_id IS NOT NULL OR l.label_id IS NULL
+        -- All label-qualification predicates live in this LEFT JOIN's ON clause (not a WHERE, and not separate joins
+        -- with conditions in their own ON) so that (a) label types with zero qualifying labels still appear with a
+        -- count of 0, and (b) the qualifying set is IDENTICAL to total_labels in getCityAggregateDataBySchema. Using
+        -- EXISTS keeps it a single label row per label (no fan-out) and, unlike a LEFT JOIN ... ON condition, actually
+        -- EXCLUDES labels whose audit_task sits on the tutorial street — the source of the #3981 count mismatch.
+        AND EXISTS (
+          SELECT 1 FROM "#$schema".user_stat us
+          WHERE us.user_id = l.user_id AND NOT us.excluded
+        )
+        AND EXISTS (
+          SELECT 1 FROM "#$schema".audit_task at
+          WHERE at.audit_task_id = l.audit_task_id
+            AND at.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
+        )
       GROUP BY
         lt.label_type_id, lt.label_type
       ORDER BY
@@ -238,5 +258,113 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
 
   def getExcludedTagsString: DBIO[Seq[ExcludedTag]] = {
     config.map(_.excludedTags).result.head
+  }
+
+  /**
+   * Returns daily label counts split by human vs AI creator and label type for a specific city schema.
+   *
+   * This is the cross-schema variant of LabelTable.getDailyLabelStats, used by the aggregate
+   * endpoint to query each city schema in turn.
+   *
+   * @param schema           Database schema to query (e.g. "sidewalk_seattle").
+   * @param startDate        Inclusive lower bound on label.time_created; no bound if None.
+   * @param endDate          Inclusive upper bound; no bound if None.
+   * @param filterLowQuality If true, restrict to user_stat.high_quality; otherwise exclude excluded users.
+   * @return                 Sequence of (date, labelType, humanLabels, aiLabels).
+   */
+  def getCityDailyLabelStatsBySchema(
+      schema: String,
+      startDate: Option[LocalDate],
+      endDate: Option[LocalDate],
+      filterLowQuality: Boolean
+  ): DBIO[Seq[(LocalDate, String, Int, Int)]] = {
+    val userFilter = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
+    val whereClauses = scala.collection.mutable.ListBuffer(
+      "label.deleted = FALSE",
+      "label.tutorial = FALSE",
+      userFilter
+    )
+    startDate.foreach(d => whereClauses += s"label.time_created >= '$d'::date")
+    endDate.foreach(d => whereClauses += s"label.time_created < ('$d'::date + INTERVAL '1 day')")
+    val where = whereClauses.mkString(" AND ")
+
+    implicit val getResult: GetResult[(LocalDate, String, Int, Int)] =
+      GetResult(r => (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt()))
+
+    sql"""
+      SELECT CAST((label.time_created AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
+             label_type.label_type,
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' THEN label.label_id END) AS human_labels,
+             COUNT(CASE WHEN role.role = 'AI'               THEN label.label_id END) AS ai_labels
+      FROM "#$schema".label
+      INNER JOIN "#$schema".label_type ON label.label_type_id = label_type.label_type_id
+      INNER JOIN "#$schema".user_stat  ON label.user_id       = user_stat.user_id
+      LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
+      LEFT  JOIN sidewalk_login.role      ON user_role.role_id = role.role_id
+      WHERE #$where
+      GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, label_type.label_type
+      ORDER BY date ASC, label_type.label_type
+    """.as[(LocalDate, String, Int, Int)]
+  }
+
+  /**
+   * Returns daily validation counts split by human vs AI validator, result, and label type for a
+   * specific city schema.
+   *
+   * This is the cross-schema variant of LabelValidationTable.getDailyValidationStats.
+   *
+   * validation_result integers: 1 = agree, 2 = disagree, 3 = unsure.
+   *
+   * @param schema           Database schema to query.
+   * @param startDate        Inclusive lower bound on end_timestamp (Pacific date); no bound if None.
+   * @param endDate          Inclusive upper bound; no bound if None.
+   * @param filterLowQuality If true, restrict to user_stat.high_quality; otherwise exclude excluded users.
+   * @return                 Sequence of (date, labelType, humanAgree, humanDisagree, humanUnsure,
+   *                         aiAgree, aiDisagree, aiUnsure).
+   */
+  def getCityDailyValidationStatsBySchema(
+      schema: String,
+      startDate: Option[LocalDate],
+      endDate: Option[LocalDate],
+      filterLowQuality: Boolean
+  ): DBIO[Seq[(LocalDate, String, Int, Int, Int, Int, Int, Int)]] = {
+    val userFilter = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
+    val whereClauses = scala.collection.mutable.ListBuffer(
+      "label.deleted = FALSE",
+      userFilter
+    )
+    startDate.foreach(d => whereClauses += s"label_validation.end_timestamp >= '$d'::date")
+    endDate.foreach(d => whereClauses += s"label_validation.end_timestamp < ('$d'::date + INTERVAL '1 day')")
+    val where = whereClauses.mkString(" AND ")
+
+    implicit val getResult: GetResult[(LocalDate, String, Int, Int, Int, Int, Int, Int)] =
+      GetResult(r => (LocalDate.parse(r.nextString()), r.nextString(),
+        r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()))
+
+    sql"""
+      SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
+             label_type.label_type,
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
+                        THEN 1 END) AS human_agree,
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
+                        THEN 1 END) AS human_disagree,
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Unsure'
+                        THEN 1 END) AS human_unsure,
+             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Agree'
+                        THEN 1 END) AS ai_agree,
+             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Disagree'
+                        THEN 1 END) AS ai_disagree,
+             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Unsure'
+                        THEN 1 END) AS ai_unsure
+      FROM "#$schema".label_validation
+      INNER JOIN "#$schema".label      ON label_validation.label_id    = label.label_id
+      INNER JOIN "#$schema".label_type ON label.label_type_id          = label_type.label_type_id
+      INNER JOIN "#$schema".user_stat  ON label_validation.user_id     = user_stat.user_id
+      LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
+      LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
+      WHERE #$where
+      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, label_type.label_type
+      ORDER BY date ASC, label_type.label_type
+    """.as[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
   }
 }

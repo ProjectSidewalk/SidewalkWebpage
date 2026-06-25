@@ -80,7 +80,7 @@
          * @returns {Promise} A promise that resolves with the cities data
          */
         fetchCities: function() {
-            return fetch(`${config.apiBaseUrl}${config.citiesEndpoint}`)
+            return fetch(`${config.apiBaseUrl}${config.citiesEndpoint}?source=apiDocs`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -138,7 +138,7 @@
 
             // Filter cities with geographic information.
             const citiesWithGeo = citiesData.cities.filter(city =>
-                city.centerLat !== undefined && city.centerLng !== undefined
+                city.center_lat !== undefined && city.center_lng !== undefined
             );
 
             // Add a counter of displayed cities.
@@ -161,7 +161,7 @@
 
             citiesWithGeo.forEach(city => {
                 // Create a marker with the custom icon.
-                const marker = L.marker([city.centerLat, city.centerLng], {
+                const marker = L.marker([city.center_lat, city.center_lng], {
                     icon: cityIcon,
                     opacity: city.visibility === "public" ? 1.0 : 0.6 // More transparent for private cities.
                 });
@@ -169,13 +169,13 @@
                 // Add popup with city information.
                 marker.bindPopup(`
           <div class="city-popup">
-            <h3>${city.cityNameFormatted}</h3>
-            <p><a href="${city.url}" target="_blank" class="city-link">Open Project Sidewalk in ${city.cityNameFormatted}</a></p>
+            <h3>${city.city_name_formatted}</h3>
+            <p><a href="${city.url}" target="_blank" class="city-link">Open Project Sidewalk in ${city.city_name_formatted}</a></p>
           </div>
         `);
 
                 // Add tooltip with city name for hover effect.
-                marker.bindTooltip(city.cityNameFormatted, {
+                marker.bindTooltip(city.city_name_formatted, {
                     permanent: false,
                     direction: 'top',
                     offset: [0, -15]

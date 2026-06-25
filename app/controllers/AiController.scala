@@ -29,7 +29,7 @@ class AiController @Inject() (
   // Retrieve API key from configuration.
   private val geminiApiKey: Option[String] = config.getOptional[String]("gemini-api-key")
   private val geminiApiUrl: Option[String] = geminiApiKey.map { key =>
-    s"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=$key"
+    s"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=$key"
   }
 
   /**

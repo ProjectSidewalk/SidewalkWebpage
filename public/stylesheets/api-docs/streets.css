@@ -48,7 +48,7 @@
     height: 400px; /* Default height, can be overridden by JavaScript */
     border: 1px solid var(--color-border-light, #e0e0e0);
     border-radius: var(--border-radius, 4px);
-    background-color: white;
+    background-color: var(--color-neutral-white);
     overflow: hidden;
     position: relative;
 }
@@ -89,7 +89,7 @@
 /* ---- Map Controls and Overlays ---- */
 
 .region-title {
-    background-color: white;
+    background-color: var(--color-neutral-white);
     padding: 5px 10px;
     border-radius: 4px;
     box-shadow: 0 1px 5px rgba(0,0,0,0.4);
@@ -101,7 +101,7 @@
     position: absolute;
     bottom: 10px;
     right: 10px;
-    background-color: white;
+    background-color: var(--color-neutral-white);
     padding: 5px 10px;
     border-radius: 4px;
     box-shadow: 0 1px 5px rgba(0,0,0,0.4);
@@ -114,7 +114,7 @@
 /* ---- Legend Styles ---- */
 
 .legend {
-    background-color: white;
+    background-color: var(--color-neutral-white);
     padding: 6px 8px;
     border-radius: 4px;
     box-shadow: 0 1px 5px rgba(0,0,0,0.4);
@@ -149,7 +149,7 @@
 /* ---- Statistics Summary ---- */
 
 .stats-summary {
-    background-color: white;
+    background-color: var(--color-neutral-white);
     padding: 6px 8px;
     border-radius: 4px;
     box-shadow: 0 1px 5px rgba(0,0,0,0.4);
@@ -205,7 +205,7 @@
     top: 10px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: white;
+    background-color: var(--color-neutral-white);
     padding: 8px 12px;
     border-radius: 4px;
     box-shadow: 0 1px 5px rgba(0,0,0,0.4);
@@ -371,7 +371,7 @@
     margin-top: 8px;
     padding: 6px 12px;
     background-color: var(--color-accent-link, #007bff);
-    color: white !important;
+    color: var(--color-neutral-white) !important;
     text-decoration: none;
     border-radius: 4px;
     font-size: 12px;
@@ -404,7 +404,7 @@
 /* ---- Continuous Legend Styles ---- */
 
 .continuous-legend {
-    background-color: white;
+    background-color: var(--color-neutral-white);
     padding: 8px 10px;
     border-radius: 4px;
     box-shadow: 0 1px 5px rgba(0,0,0,0.4);

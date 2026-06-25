@@ -127,9 +127,13 @@ class PanoMarker {
         this.marker_ = marker;
         this.markerContainer_.appendChild(marker);
 
-        // Attach to some global events.
-        window.addEventListener('resize', this.draw.bind(this));
-        this.panoViewer_.addListener('pov_changed', this.draw.bind(this));
+        // Attach to some global events. Keep a single bound reference (and the viewer it was registered on) so
+        // removeMarker can detach both listeners — otherwise each recreated marker leaks a window + pov_changed
+        // handler that keeps re-running draw() on a dead marker. See issue #4231.
+        this.boundDraw_ = this.draw.bind(this);
+        this.listenerViewer_ = this.panoViewer_;
+        window.addEventListener('resize', this.boundDraw_);
+        this.listenerViewer_.addListener('pov_changed', this.boundDraw_);
 
         // If this is a validation label, we want to add mouse-hovering event for popped up hide/show label.
         if (this.id_ === "validate-pano-marker") {
@@ -149,7 +153,9 @@ class PanoMarker {
                     }
                 }.bind(this), false);
             } else {
-                marker.addEventListener("mouseover", function () {
+                marker.addEventListener("mouseover", function (e) {
+                    // Don't re-show the hover info if the cursor passes over the marker mid-pan (a mouse button is held).
+                    if (e.buttons) return;
                     svv.labelVisibilityControl.showTagsAndDeleteButton();
                 });
 
@@ -166,6 +172,9 @@ class PanoMarker {
      * Removes the marker.
      */
     removeMarker = function() {
+        // Detach the listeners registered in createMarker, by reference, so they don't accumulate (#4231).
+        window.removeEventListener('resize', this.boundDraw_);
+        this.listenerViewer_.removeListener('pov_changed', this.boundDraw_);
         this.marker_.parentNode.removeChild(this.marker_);
         this.marker_ = null;
     };

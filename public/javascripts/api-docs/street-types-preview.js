@@ -66,7 +66,7 @@
          * @returns {Promise} A promise that resolves with the street types data
          */
         fetchStreetTypes: function() {
-            return fetch(`${config.apiBaseUrl}${config.endpoint}`)
+            return fetch(`${config.apiBaseUrl}${config.endpoint}?source=apiDocs`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -83,7 +83,7 @@
          */
         renderStreetTypes: function(data, container) {
             // Sort street types by count in descending order.
-            let streetTypes = data.streetTypes.slice().sort((a, b) => b.count - a.count);
+            let streetTypes = data.street_types.slice().sort((a, b) => b.count - a.count);
 
             // Find the maximum count for the progress bars.
             const maxCount = streetTypes.length > 0 ? streetTypes[0].count : 0;

@@ -39,13 +39,13 @@
     /* ---- Colors ---- */
     --color-text-primary: #222222;
     --color-text-secondary: #5a7785;
-    --color-text-tertiary: #666666;
+    --color-text-tertiary: var(--color-neutral-700);
     --color-text-light: #999999;
     --color-text-heading: #263238;
-    --color-text-on-accent: #ffffff;
+    --color-text-on-accent: var(--color-neutral-white);
     --color-text-code: #c7254e;
 
-    --color-bg-body: #ffffff;
+    --color-bg-body: var(--color-neutral-white);
     --color-bg-sidebar: #f8f9fa;
     --color-bg-table-header: #f5f5f5;
     --color-bg-table-row-odd: #fdfdfd;
@@ -459,7 +459,7 @@ h6:hover .permalink {
     border-left: 4px solid var(--color-border-medium);
     border-radius: var(--border-radius);
     padding: var(--space-md) var(--space-lg);
-    font-size: var(--font-size-sm);
+    font-size: var(--base-font-size);
     line-height: 1.6;
     color: var(--color-text-primary);
     margin-bottom: var(--space-sm); /* Add space between citation and button */
@@ -477,7 +477,7 @@ h6:hover .permalink {
     border: 1px solid var(--color-border-light);
     border-radius: var(--border-radius);
     cursor: pointer;
-    font-size: var(--font-size-sm);
+    font-size: var(--base-font-size);
     transition: all var(--transition-fast);
     color: var(--color-text-secondary);
 }
@@ -627,7 +627,7 @@ h6:hover .permalink {
 /* Counter badge - Used for displaying counts */
 .counter-badge {
     font-size: var(--font-size-xs);
-    background-color: white;
+    background-color: var(--color-neutral-white);
     padding: var(--space-xs) var(--space-sm);
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);

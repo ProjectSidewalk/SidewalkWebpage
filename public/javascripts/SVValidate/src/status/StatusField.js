@@ -9,6 +9,7 @@ function StatusField(completedValidationsParam) {
     const self = this;
     let completedValidations = completedValidationsParam;
     const statusUI = svv.ui.status;
+    const progressBar = new ProgressBar('mission-progress-bar-complete', 'mission-progress-bar-text');
 
     /**
      * Resets the status field whenever a new mission is introduced.
@@ -26,7 +27,20 @@ function StatusField(completedValidationsParam) {
      * Increments the number of labels the user has validated.
      */
     function incrementLabelCounts(){
+        let prevCount = completedValidations;
         completedValidations++;
+        checkBadgeUnlock(prevCount, completedValidations);
+    }
+
+    /**
+     * Shows a badge-unlock toast over the panorama if this validation crossed into a new validation-badge level.
+     *
+     * @param {number} oldCount The user's all-time validation count before this validation.
+     * @param {number} newCount The user's all-time validation count after this validation.
+     */
+    function checkBadgeUnlock(oldCount, newCount) {
+        let badge = BadgeAchievements.detectUnlock('validations', oldCount, newCount);
+        if (badge) BadgeAchievements.showUnlockToast(badge, document.getElementById('svv-panorama-holder'));
     }
 
     /**
@@ -55,15 +69,14 @@ function StatusField(completedValidationsParam) {
      * Updates the mission progress completion bar by setting the width of the green portion.
      */
     function setProgressBar(progress, total) {
-        const completionRate = Math.min(100 * progress / total, 100);
-        statusUI.progressFiller.css({ width: `${completionRate.toFixed(0)}%` });
+        progressBar.setFraction(progress / total);
     }
 
     /**
      * Updates the percentage on the progress bar to show how much of the validation mission the user has completed.
      */
     function setProgressText(progress, total) {
-        if (!isMobile()) statusUI.progressText.text(`${progress}/${total}`);
+        progressBar.setLabel(`${progress}/${total}`); // No-op on mobile.
     }
 
     /**

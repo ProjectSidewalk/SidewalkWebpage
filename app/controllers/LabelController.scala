@@ -37,6 +37,15 @@ class LabelController @Inject() (
   }
 
   /**
+   * Gets the total label count in a region across all users.
+   * @param regionId Region id
+   */
+  def getRegionLabelCount(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
+    logger.debug(request.toString) // The request is unused, but SecuredAction needs it and the compiler wants it read.
+    labelService.countLabelsInRegion(regionId).map { labelCount => Ok(Json.obj("label_count" -> labelCount)) }
+  }
+
+  /**
    * Gets all tags in the database in JSON.
    */
   def getLabelTags = silhouette.UserAwareAction.async { implicit request =>

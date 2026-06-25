@@ -8,7 +8,7 @@
 function Label(params) {
     var self = { className: 'Label' };
 
-    var googleMarker;
+    let googleMarker;
 
     // Parameters determined from a series of linear regressions. Here links to the analysis and relevant GitHub issues:
     // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
@@ -37,7 +37,6 @@ function Label(params) {
             distanceCanvasYSlope: 0.0011071
         }
     };
-    const HOVER_INFO_HEIGHT = 20;
 
     const properties = {
         labelId: 'DefaultValue',
@@ -99,7 +98,7 @@ function Label(params) {
         // Create the marker on the minimap.
         const latlng = toLatLng();
         googleMarker = Label.createMinimapMarker(properties.labelType, latlng);
-        googleMarker.setMap(svl.minimap.getMap());
+        googleMarker.map = svl.minimap.getMap();
     }
 
     // Some functions for easy access to commonly accessed properties.
@@ -199,8 +198,8 @@ function Label(params) {
     function render(ctx, pov) {
         if (!status.deleted && status.visibility === 'visible') {
             if (status.hoverInfoVisibility === 'visible') {
-                // Render hover info and delete button.
-                renderHoverInfo(ctx);
+                // Show the hover info tooltip and delete button.
+                updateHoverInfo();
                 showDeleteButton();
             }
 
@@ -223,105 +222,101 @@ function Label(params) {
         // Show the label on the Google Maps pane.
         if (!isDeleted()) {
             if (googleMarker && !googleMarker.map) {
-                googleMarker.setMap(svl.minimap.getMap());
+                googleMarker.map = svl.minimap.getMap();
             }
         } else {
             if (googleMarker && googleMarker.map) {
-                googleMarker.setMap(null);
+                googleMarker.map = null;
             }
         }
         return this;
     }
 
     /**
-     * Renders hover info on a canvas to show an overview of the label info.
-     * @param ctx
-     * @returns {boolean}
+     * Shows the hover info tooltip next to this label, displaying its type and severity.
+     *
+     * The tooltip is a single shared DOM element positioned in on-screen pixels, so the label's logical canvas
+     * coordinate is scaled to the displayed pano size (see util.exploreDisplayScale).
      */
-    function renderHoverInfo(ctx) {
-        if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
-            return false;
+    function updateHoverInfo() {
+        // Don't show the hover tooltip while the context menu is open or before the label has a canvas position.
+        if (('contextMenu' in svl && svl.contextMenu.isOpen()) || !properties.currCanvasXY) {
+            hideHoverInfo();
+            return;
         }
 
-        // labelCoordinate represents the upper left corner of the hover info.
-        var labelCoordinate = getCanvasXY(),
-            cornerRadius = 3,
-            hasSeverity = util.misc.labelTypeHasSeverity(properties.labelType),
-            width = 0,
-            labelRows = 1,
-            severityImage = new Image(),
-            severityImageLoaded = false,
-            severityMessage = i18next.t('center-ui.context-menu.severity'),
-            labelTypeText = i18next.t('common:' + util.camelToKebab(properties.labelType)).replace('&shy;', ''),
-            padding = { left: 12, right: 5, bottom: 0, top: 18 };
+        const labelType = properties.labelType;
+        const hasSeverity = util.misc.labelTypeHasSeverity(labelType);
 
+        svl.ui.canvas.hoverInfoType.text(
+            i18next.t('common:' + util.camelToKebab(labelType)).replace('&shy;', '')
+        );
+        svl.ui.canvas.hoverInfoHolder.css('background-color', util.misc.getLabelColors(labelType));
+
+        // Severity row: hidden for label types without severity; otherwise show the rating (or a prompt to rate).
         if (hasSeverity) {
-            labelRows = 2;
             if (properties.severity !== null) {
-                severityImage.src = util.misc.getSmileyIconPath(properties.severity, properties.labelType, true);
-                severityImageLoaded = true;
-                severityMessage = hoverInfoProperties[properties.severity].message;
+                svl.ui.canvas.hoverInfoSeverityText.text(hoverInfoProperties[properties.severity].message);
+                svl.ui.canvas.hoverInfoSeverityIcon
+                    .attr('src', util.misc.getSmileyIconPath(properties.severity, labelType, true))
+                    .css('display', '');
+            } else {
+                svl.ui.canvas.hoverInfoSeverityText.text(i18next.t('center-ui.context-menu.severity'));
+                svl.ui.canvas.hoverInfoSeverityIcon.css('display', 'none');
             }
+            svl.ui.canvas.hoverInfoSeverity.css('display', 'flex');
+        } else {
+            svl.ui.canvas.hoverInfoSeverity.css('display', 'none');
         }
 
-        // Set rendering properties and draw the hover info.
-        ctx.font = '13px Open Sans';
-        var height = HOVER_INFO_HEIGHT * labelRows;
+        // Position the tooltip to the right of the label icon, or to the left if there isn't room on the right.
+        const coord = getCanvasXY();
+        const scale = util.exploreDisplayScale();
+        const holder = svl.ui.canvas.hoverInfoHolder;
+        const centerX = coord.x * scale;
+        const centerY = coord.y * scale;
+        const radius = svl.LABEL_ICON_RADIUS * scale;
+        const gap = 14; // On-screen pixels between the icon and the tooltip.
 
-        // Width of the hover info is determined by the width of the longest row.
-        var firstRow = ctx.measureText(labelTypeText).width;
-        var secondRow = -1;
-
-        // Do additional adjustments on the width to make room for smiley icon.
-        if (hasSeverity) {
-            secondRow = ctx.measureText(severityMessage).width;
-            if (severityImageLoaded) {
-                if (firstRow - secondRow > 0 && firstRow - secondRow < 15) {
-                    width += 15 - firstRow + secondRow;
-                } else if (firstRow - secondRow < 0) {
-                    width += 20;
-                }
-            }
+        let left = centerX + radius + gap;
+        if (left + holder.outerWidth() > util.EXPLORE_CANVAS_WIDTH * scale) {
+            left = centerX - radius - gap - holder.outerWidth();
         }
+        holder.css({
+            visibility: 'visible',
+            left: left,
+            top: centerY - holder.outerHeight() / 2
+        });
+    }
 
-        width += Math.max(firstRow, secondRow) + 5;
-
-        ctx.lineCap = 'square';
-        ctx.lineWidth = 2;
-        ctx.fillStyle = util.misc.getLabelColors(getProperty('labelType'));
-        ctx.strokeStyle = 'rgba(255,255,255,1)';
-
-
-        // Hover info background.
-        ctx.beginPath();
-        ctx.moveTo(labelCoordinate.x + cornerRadius, labelCoordinate.y);
-        ctx.lineTo(labelCoordinate.x + width + padding.left + padding.right - cornerRadius, labelCoordinate.y);
-        ctx.arc(labelCoordinate.x + width + padding.left + padding.right, labelCoordinate.y + cornerRadius, cornerRadius, 3 * Math.PI / 2, 0, false); // Corner
-        ctx.lineTo(labelCoordinate.x + width + padding.left + padding.right + cornerRadius, labelCoordinate.y + height + padding.bottom);
-        ctx.arc(labelCoordinate.x + width + padding.left + padding.right, labelCoordinate.y + height + cornerRadius, cornerRadius, 0, Math.PI / 2, false); // Corner
-        ctx.lineTo(labelCoordinate.x + cornerRadius, labelCoordinate.y + height + 2 * cornerRadius);
-        ctx.arc(labelCoordinate.x + cornerRadius, labelCoordinate.y + height + cornerRadius, cornerRadius, Math.PI / 2, Math.PI, false);
-        ctx.lineTo(labelCoordinate.x, labelCoordinate.y + cornerRadius);
-        ctx.fill();
-        ctx.stroke();
-        ctx.closePath();
-
-        // Hover info text and image.
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(labelTypeText, labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
-        if (hasSeverity) {
-            ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + HOVER_INFO_HEIGHT + padding.top);
-            if (properties.severity !== null) {
-                ctx.drawImage(severityImage, labelCoordinate.x + padding.left +
-                    ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
-            }
-        }
+    /**
+     * Hides the shared hover info tooltip.
+     */
+    function hideHoverInfo() {
+        svl.ui.canvas.hoverInfoHolder.css('visibility', 'hidden');
     }
 
     function showDeleteButton() {
         if (status.hoverInfoVisibility !== 'hidden') {
-            var coord = getCanvasXY();
-            svl.ui.canvas.deleteIconHolder.css({ visibility: 'visible', left : coord.x + 5, top : coord.y - 20 });
+            const holder = svl.ui.canvas.deleteIconHolder;
+
+            // Hide if the label is not on the canvas.
+            const coord = getCanvasXY();
+            if (!coord) {
+                holder.css('visibility', 'hidden');
+                return;
+            }
+
+            // Place the button at the upper-right of the label. Hide if it doesn't fit.
+            const scale = util.exploreDisplayScale();
+            const gap = 5 * scale;
+            const left = coord.x * scale + gap;
+            const top = coord.y * scale - 25 * scale;
+            if (left + holder.outerWidth() > util.EXPLORE_CANVAS_WIDTH * scale || top < 0) {
+                holder.css('visibility', 'hidden');
+                return;
+            }
+            holder.css({ visibility: 'visible', left: left, top: top });
         }
     }
 
@@ -342,7 +337,10 @@ function Label(params) {
 
         // Draws text.
         ctx.beginPath();
-        ctx.font = "12px Open Sans";
+
+        // Canvas fonts can't resolve CSS variables, so the design system's --font-primary stack is read from :root.
+        // No --ui-scale here: this canvas keeps its fixed logical size and is scaled up by the browser.
+        ctx.font = `400 12px ${getComputedStyle(document.documentElement).getPropertyValue('--font-primary')}`;
         ctx.fillStyle = 'rgb(255, 255, 255)';
         ctx.fillText('?', x - 17.5, y - 6);
         ctx.closePath();
@@ -432,7 +430,7 @@ function Label(params) {
         // Upload the crop to the server with filename crop_<labelId>.png.
         setProperty('labelId', labelId);
         let cropData = {
-            name: `crop_${labelId}`,
+            label_id: labelId,
             label_type: getProperty('labelType'),
             b64: getProperty('crop')
         }
@@ -477,30 +475,34 @@ if (!window.labelIconCache) {
     window.labelIconCache = {};
 }
 
-// There is a static rendering method for a label, allowing us to draw labels in the tutorial with no interactions.
+/**
+ * Preloads and caches every label-type icon. renderLabelIcon draws only from this cache, so warming it up front lets
+ * the icon, its outline, and any overlay drawn after it (e.g. the severity "?" alert) paint together in the right
+ * order — a lazily-loaded icon would instead paint asynchronously, on top of those overlays.
+ * @returns {Promise} Resolves once all icons have loaded (or failed) so callers can render with the cache warm.
+ */
+Label.preloadIcons = function() {
+    const iconPaths = util.misc.getIconImagePaths();
+    const loads = Object.keys(iconPaths).map(function(labelType) {
+        const iconPath = iconPaths[labelType].iconImagePath;
+        if (!iconPath || window.labelIconCache[iconPath]) return Promise.resolve();
+        return new Promise(function(resolve) {
+            const imageObj = new Image();
+            imageObj.onload = function() { window.labelIconCache[iconPath] = imageObj; resolve(); };
+            imageObj.onerror = function() { resolve(); }; // Don't let one missing icon block the rest.
+            imageObj.src = iconPath;
+        });
+    });
+    return Promise.all(loads);
+};
+
+// Draws a label icon and its circular outline. The icon comes from the cache warmed by Label.preloadIcons; the outline
+// is drawn after it so the ring sits on top of the icon's edge. Static (also used to draw tutorial example labels).
 Label.renderLabelIcon = function(ctx, labelType, x, y) {
-    var imageHeight, imageWidth;
-    imageHeight = imageWidth = 2 * svl.LABEL_ICON_RADIUS - 3;
-    var imageX = x - svl.LABEL_ICON_RADIUS + 2;
-    var imageY = y - svl.LABEL_ICON_RADIUS + 2;
-    var iconPath = util.misc.getIconImagePaths(labelType).iconImagePath;
+    const size = 2 * svl.LABEL_ICON_RADIUS - 3;
+    const icon = window.labelIconCache[util.misc.getIconImagePaths(labelType).iconImagePath];
+    if (icon) ctx.drawImage(icon, x - svl.LABEL_ICON_RADIUS + 2, y - svl.LABEL_ICON_RADIUS + 2, size, size);
 
-    // Check if we already have this image in cache, then draw the label icon.
-    if (window.labelIconCache[iconPath]) {
-        ctx.drawImage(window.labelIconCache[iconPath], imageX, imageY, imageHeight, imageWidth);
-    } else {
-        // Load, cache, and draw the image.
-        var imageObj = new Image();
-        imageObj.src = iconPath;
-        imageObj.onload = function() {
-            window.labelIconCache[iconPath] = imageObj;
-            ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-        };
-    }
-
-    // Draws label outline.
-    ctx.beginPath();
-    ctx.fillStyle = util.misc.getLabelColors()[labelType].fillStyle;
     ctx.lineWidth = 0.7;
     ctx.beginPath();
     ctx.arc(x, y, 15.3, 0, 2 * Math.PI);
@@ -513,17 +515,19 @@ Label.renderLabelIcon = function(ctx, labelType, x, y) {
 }
 
 /**
- * This method creates a Google Maps marker.
- * https://developers.google.com/maps/documentation/javascript/markers
- * https://developers.google.com/maps/documentation/javascript/examples/marker-remove
+ * Creates the marker shown for this label on the minimap using Google Maps AdvancedMarkerElement.
  * @param {string} labelType
  * @param {{lat: number, lng: number}} latLng
- * @returns {google.maps.Marker}
+ * @returns {google.maps.marker.AdvancedMarkerElement}
  */
 Label.createMinimapMarker = function(labelType, latLng) {
-    return new google.maps.Marker({
+    const content = document.createElement('img');
+    content.src = util.misc.getIconImagePaths()[labelType].minimapIconImagePath;
+    // AdvancedMarkerElement anchors content by its bottom-center; shift it down half its height to center it.
+    content.style.transform = 'translateY(50%)';
+    return new google.maps.marker.AdvancedMarkerElement({
         position: new google.maps.LatLng(latLng.lat, latLng.lng),
         map: svl.minimap.getMap(),
-        icon: util.misc.getIconImagePaths()[labelType].minimapIconImagePath
+        content: content
     });
 }

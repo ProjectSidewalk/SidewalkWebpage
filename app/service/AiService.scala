@@ -6,7 +6,7 @@ import models.user.SidewalkUserTable
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.utils.MyPostgresProfile.api._
 import models.utils._
-import models.validation.LabelValidation
+import models.validation.{LabelValidation, ValidationOption}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, JsValue}
 import play.api.libs.ws.WSClient
@@ -119,8 +119,9 @@ class AiServiceImpl @Inject() (
             val labelPoint = labelData.labelPoint
 
             // If confidence is below the threshold, submit an Unsure validation instead.
-            val aiValResult: Int =
-              if (aiResults.validationAccuracy >= AI_VALIDATION_MIN_ACCURACY) aiResults.validationResult else 3
+            val aiValResult: ValidationOption.Value =
+              if (aiResults.validationAccuracy >= AI_VALIDATION_MIN_ACCURACY) aiResults.validationResult
+              else ValidationOption.Unsure
 
             // Get the AI's mission_id and the label's current info, then create and submit the validation.
             for {
@@ -187,9 +188,11 @@ class AiServiceImpl @Inject() (
             logger.debug(json.toString)
 
             // Parse the output. Filter out "NULL" values from the tags list.
-            val valResult     = if ((json \ "validation_result").as[String] == "correct") 1 else 2
-            val valAccuracy   = (json \ "validation_estimated_accuracy").as[Double]
-            val valConfidence = (json \ "validation_score").as[Double]
+            val valResult =
+              if ((json \ "validation_result").as[String] == "correct") ValidationOption.Agree
+              else ValidationOption.Disagree
+            val valAccuracy                                  = (json \ "validation_estimated_accuracy").as[Double]
+            val valConfidence                                = (json \ "validation_score").as[Double]
             val tagsConfidence: Option[Seq[AiTagConfidence]] = (json \ "tag_scores")
               .asOpt[JsObject]
               .map(_.fields.map { case (tag, jsValue) => AiTagConfidence(tag, jsValue.as[Double]) }.toSeq)

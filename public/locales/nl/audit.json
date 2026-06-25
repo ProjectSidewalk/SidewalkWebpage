@@ -74,23 +74,33 @@
         }
     },
     "mission-complete": {
-        "distance-type-display-string": "kilometers",
         "title-generic": "Missie geslaagd!",
         "title-neighborhood-complete": "Bravo! Je hebt de {{neighborhoodName}} -buurt voltooid!",
         "title-route-complete": "Bravo! Je hebt je route voltooid!",
-        "map-legend-label-other-users": "Missies Van Anderen",
-        "progress-neighborhood-title": "Wijk voortgang",
-        "progress-route-title": "Routevoortgang",
-        "progress-neighborhood-you": "Je ontdekte in deze wijk",
-        "progress-route-you": "Verkend in je route",
-        "progress-neighborhood-remaining": "Overblijvenden in deze wijk",
-        "progress-route-remaining": "Op uw route blijven",
-        "button-start-validating": "Start met valideren",
-        "button-keep-exploring": "Blijf verkennen",
-        "button-continue": "Ga verder"
+        "subtitle": "Verken {{distance}} van {{neighborhoodName}}",
+        "badge-alt": "Je missiebadge",
+        "legend-title": "Missievoortgang",
+        "legend-this-mission": "Deze missie",
+        "legend-previous-missions": "Vorige missies",
+        "legend-community": "Voortgang van de gemeenschap",
+        "stat-distance-all": "{{distance}} verkend",
+        "stat-distance-you": "Jij verkende {{distance}}",
+        "stat-labels-all": "{{count}} labels gemaakt",
+        "stat-labels-you": "Jij voegde {{count}} labels toe",
+        "button-next-mission": "Volgende verkenningsmissie",
+        "button-try-validation": "Validatie proberen"
     },
     "top-ui": {
         "press-key": "Druk op de \"{{key}}\" knop"
+    },
+    "controls": {
+        "stuck": "Vastgelopen",
+        "stuck-tooltip": "We zullen proberen u terug te brengen naar uw missie",
+        "sound": "Geluid",
+        "feedback": "Feedback",
+        "feedback-tooltip": "Deel uw mening met ons",
+        "feedback-submitted": "Feedback Ingediend",
+        "feedback-title": "Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!"
     },
     "right-ui": {
         "accuracy-tooltip": "Nauwkeurigheid is gebaseerd op validaties van andere gebruikers. Als uw nauwkeurigheid laag is, bekijk dan enkele recente fouten op <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">uw gebruikersdashboard</a> om u te helpen verbeteren!",
@@ -98,12 +108,20 @@
         "current-mission": {
             "header": "Huidige Missie",
             "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
-            "message-first-mission": "Zoek voor __PLACEHOLDER__ en vind alle trottoir toegankelijkheidskenmerken",
-            "message": "Zoek __PLACEHOLDER__ voor deze wijk"
+            "message": "Zoek __PLACEHOLDER__ voor {{neighborhoodName}}"
         },
         "minimap": {
             "follow-red-line": "Volg de rode lijn om de missie voort te zetten",
             "explore-current-location": "Draai 360 graden om er zeker van te zijn dat u niets mist."
+        },
+        "badges": {
+            "title": "Badges",
+            "see-all": "Alle badges bekijken"
+        },
+        "neighborhood-progress": {
+            "title": "Wijk voortgang",
+            "you-tooltip": "Jouw bijdragen",
+            "community-tooltip": "Bijdragen van de gemeenschap"
         }
     },
     "center-ui": {

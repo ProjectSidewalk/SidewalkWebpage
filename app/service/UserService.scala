@@ -41,6 +41,8 @@ trait UserService {
   def getUserProfileData(userId: String, metricSystem: Boolean): Future[UserProfileData]
   def getDistanceAudited(userId: String): Future[Double]
   def countLabelsFromUser(userId: String): Future[Int]
+  def countCompletedMissions(userId: String): Future[Int]
+  def countValidations(userId: String): Future[Int]
   def getUserAccuracy(userId: String): Future[Option[Double]]
 
   /**
@@ -66,6 +68,7 @@ trait UserService {
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]]
   def updateTaskFlag(auditTaskId: Int, flag: String, state: Boolean): Future[Int]
   def updateTaskFlagsBeforeDate(userId: String, date: OffsetDateTime, flag: String, state: Boolean): Future[Int]
+  def insertUserUtm(utm: UserUtm): Future[Int]
 }
 
 @Singleton
@@ -80,6 +83,7 @@ class UserServiceImpl @Inject() (
     streetService: StreetService,
     userTeamTable: UserTeamTable,
     teamTable: TeamTable,
+    userUtmTable: UserUtmTable,
     implicit val ec: ExecutionContext
 ) extends UserService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -143,6 +147,11 @@ class UserServiceImpl @Inject() (
 
   def countLabelsFromUser(userId: String): Future[Int] = db.run(labelTable.countLabelsFromUser(userId))
 
+  def countCompletedMissions(userId: String): Future[Int] =
+    db.run(missionTable.countCompletedMissions(userId, includeOnboarding = true, includeSkipped = false))
+
+  def countValidations(userId: String): Future[Int] = db.run(labelValidationTable.countValidations(userId))
+
   def getUserAccuracy(userId: String): Future[Option[Double]] = db.run(labelValidationTable.getUserAccuracy(userId))
 
   def getUserTeam(userId: String): Future[Option[Team]] = db.run(userTeamTable.getTeam(userId))
@@ -199,4 +208,6 @@ class UserServiceImpl @Inject() (
     require(flag == "low_quality" || flag == "incomplete" || flag == "stale")
     db.run(auditTaskTable.updateTaskFlagsBeforeDate(userId, date, flag, state))
   }
+
+  def insertUserUtm(utm: UserUtm): Future[Int] = db.run(userUtmTable.insert(utm))
 }

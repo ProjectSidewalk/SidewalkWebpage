@@ -35,6 +35,9 @@
     <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
     <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/progress-bar.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/pano-overlay-buttons.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/tag-pills.css")'/>
 
     @common.missionStartTutorial()
     @common.panoInfoPopover()
@@ -51,8 +54,8 @@
 
         @* These are templates and are not visible on the screen directly. *@
         @* JS clones them, adjusts the attributes and then appends to DOM. *@
-        <div class="current-tag template">
-            <div class="tag-name"></div>
+        <div class="current-tag tag-pill tag-pill--interactive tag-pill--active template">
+            <div class="tag-name tag-pill__label"></div>
             <div class="remove-tag-x">
                 <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>
             </div>
@@ -82,41 +85,37 @@
 
         <div id="svv-application-holder">
             <div id="mission-title"></div>
-            <div id="mission-progress-bar-section">
-                <div id="mission-progress-bar">
-                    <div id="mission-progress-bar-complete"></div>
-                    <div id="mission-progress-bar-incomplete"></div>
-                </div>
-                <div id="mission-progress-bar-text">1/10</div>
-            </div>
+            @components.progressBar(
+                rootId = "mission-progress-bar-section",
+                fillId = "mission-progress-bar-complete",
+                labelId = "mission-progress-bar-text"
+            )
             <div id="admin-info-section">
-                <button id="admin-info-button" class="validate-page-button">Admin info</button>
+                <button id="admin-info-button" class="button-ps button--secondary button--small">Admin info</button>
             </div>
             <div id="svv-panorama-holder">
-                <div id="svv-panorama-outline">
-                    <div id="svv-panorama"></div>
-                    <div id="view-control-layer">
-                        <button id="label-visibility-button-on-label" class="button label-visibility-button-on-label" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
-                        <div id="label-description-box"></div>
+                <div id="svv-panorama"></div>
+                <div id="view-control-layer">
+                    <button id="label-visibility-button-on-label" class="label-visibility-button-on-label" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
+                    <div id="label-description-box"></div>
+                </div>
+                <div id="pano-border-frame"></div>
+                <div id="speed-limit-sign" class="speed-limit-sign speed-limit-sign-left" data-design-style="us-canada">
+                    <div class="speed-limit-holder">
+                        <span class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></span>
                     </div>
-                    <div id="speed-limit-sign" class="speed-limit-sign speed-limit-sign-left" data-design-style="us-canada">
-                        <div class="speed-limit-holder">
-                            <p class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></p>
-                        </div>
-                    </div>
-                    <button id="label-visibility-control-button" class="button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"></button>
-                    <div id="svv-panorama-date-holder">
-                        <span id="svv-panorama-date"></span>
-                    </div>
-                    <div id="zoom-buttons-holder">
-                        <button id="zoom-in-button" class="zoom-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top" aria-label="zoom in">
-                            <svg viewBox="0 0 20 20" aria-hidden="true"><use xlink:href="#plus"></use></svg>
-                        </button>
-                        <div id="zoom-button-divider"></div>
-                        <button id="zoom-out-button" class="zoom-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top" aria-label="zoom out">
-                            <svg viewBox="0 0 20 20" aria-hidden="true"><use xlink:href="#minus"></use></svg>
-                        </button>
-                    </div>
+                </div>
+                <button id="label-visibility-control-button" class="button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"></button>
+                <div id="svv-panorama-date-holder">
+                    <span id="svv-panorama-date"></span>
+                </div>
+                <div id="zoom-buttons-holder" class="zoom-buttons-holder">
+                    <button id="zoom-in-button" class="zoom-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
+                        <img class="zoom-button-icon" src='@assets.path("images/icons/plus-white-material.svg")' alt="">
+                    </button>
+                    <button id="zoom-out-button" class="zoom-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
+                        <img class="zoom-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
+                    </button>
                 </div>
             </div>
             <div id="modal-mission-holder" style="display: none;">
@@ -124,13 +123,13 @@
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center"></h1>
                     <div id="modal-mission-instruction"></div>
-                    <button class="button" id="modal-mission-close-button">OK</button>
+                    <button class="button-ps button--primary button--large" id="modal-mission-close-button">OK</button>
                 </div>
             </div>
             <div id="modal-mission-complete-holder">
                 <div id="modal-mission-complete-background" class="modal-background"></div>
                 <div id="modal-mission-complete-foreground" class="modal-foreground">
-                    <h1 class="normal" id="modal-mission-complete-title"></h1>
+                    <h1 id="modal-mission-complete-title"></h1>
                     <p><div id="modal-mission-complete-message"></div></p>
                     <div id="modal-mission-complete-table">
                         <div class="col-sm-10">
@@ -163,13 +162,13 @@
                 <div id="main-validate-section" class="validation-menu-section button-section">
                     <div id="main-validate-header" class="validation-menu-section-header">Is this a curb ramp?</div>
                     <div id="validation-button-holder">
-                        <button id="validate-yes-button" class="validate-page-button">
+                        <button id="validate-yes-button" class="validate-page-button validate-button button-ps button--small">
                         @Html(Messages("yes.caps.shortcut"))
                         </button>
-                        <button id="validate-no-button" class="validate-page-button">
+                        <button id="validate-no-button" class="validate-page-button validate-button button-ps button--small">
                         @Html(Messages("no.caps.shortcut"))
                         </button>
-                        <button id="validate-unsure-button" class="validate-page-button">
+                        <button id="validate-unsure-button" class="validate-page-button validate-button button-ps button--small">
                         @Html(Messages("unsure.caps.shortcut"))
                         </button>
                     </div>
@@ -188,7 +187,7 @@
                             @Messages("validate.suggestions")
                         </div>
                         <div class="sidewalk-ai-suggestions-list-holder">
-                            <div class="sidewalk-ai-suggested-tag template"></div>
+                            <div class="sidewalk-ai-suggested-tag tag-pill template"></div>
                         </div>
                     </div>
                     <select id="select-tag" multiple></select>
@@ -222,9 +221,9 @@
                 <div id="validate-why-no-section" class="validation-menu-section">
                     <div id="validate-why-not-header" class="validation-menu-section-header">@Messages("validate.why.not")</div>
                     <div id="no-reason-options">
-                        <button id="no-button-1" class="validation-reason-button"></button>
-                        <button id="no-button-2" class="validation-reason-button"></button>
-                        <button id="no-button-3" class="validation-reason-button"></button>
+                        <button id="no-button-1" class="validation-reason-button ps-button button--small"></button>
+                        <button id="no-button-2" class="validation-reason-button ps-button button--small"></button>
+                        <button id="no-button-3" class="validation-reason-button ps-button button--small"></button>
                         <div class="input-group input-group-sm validate-text-input">
                             <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
                         </div>
@@ -233,17 +232,17 @@
                 <div id="validate-why-unsure-section" class="validation-menu-section">
                     <div id="validate-why-unsure-header" class="validation-menu-section-header">@Messages("validate.why.unsure")</div>
                     <div id="unsure-reason-options">
-                        <button id="unsure-button-1" class="validation-reason-button"></button>
-                        <button id="unsure-button-2" class="validation-reason-button"></button>
-                        <button id="unsure-button-3" class="validation-reason-button"></button>
+                        <button id="unsure-button-1" class="validation-reason-button ps-button button--small"></button>
+                        <button id="unsure-button-2" class="validation-reason-button ps-button button--small"></button>
+                        <button id="unsure-button-3" class="validation-reason-button ps-button button--small"></button>
                         <div class="input-group input-group-sm validate-text-input">
                             <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
                         </div>
                     </div>
                 </div>
                 <div id="validate-submit-section" class="validation-menu-section button-section">
-                    <button id="validate-undo-button" class="validate-page-button">@Html(Messages("back.shortcut"))</button>
-                    <button id="validate-submit-button" class="validate-page-button">@Html(Messages("submit.shortcut"))</button>
+                    <button id="validate-undo-button" class="button-ps button--secondary button--small">@Html(Messages("back.shortcut"))</button>
+                    <button id="validate-submit-button" class="button-ps button--primary button--small">@Html(Messages("submit.shortcut"))</button>
                 </div>
             </div>
         </div>

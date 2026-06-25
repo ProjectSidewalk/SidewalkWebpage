@@ -60,7 +60,7 @@ function Form(url, beaconUrl) {
             avail_height: screen.availHeight,            // total height - interface };
             operating_system: util.getOperatingSystem(),
             language: i18next.language,
-            css_zoom: svv.cssZoom ? svv.cssZoom : 100
+            css_zoom: 100 // The UI no longer uses CSS zoom; scaling is done via real layout sizes (--ui-scale).
         };
 
         data.validate_params = {

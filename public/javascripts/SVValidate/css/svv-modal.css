@@ -8,69 +8,55 @@
     visibility: hidden;
 }
 
-#modal-mission-background {
-    position: absolute;
-    left: 0px;
-    top: 0;
-    background: rgba(255, 255, 255, 0.5);
-    visibility: hidden;
-    height: 100%;
-    width: 110%;
-}
-
 #modal-mission-foreground {
-    padding: 100px 20px 10px 20px;
+    padding: calc(100px * var(--ui-scale)) calc(20px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(20px * var(--ui-scale));
     visibility: hidden;
 }
 
 .modal-foreground {
-    top: 25px;
+    top: var(--header-height);
     left: 0;
     right: 0;
-    padding: 10px;
-    height: 560px;
-    background: rgba(255, 255, 255, 1);
-    color: rgba(80, 80, 80, 1);
-    font-size: 14pt;
+    padding: calc(10px * var(--ui-scale));
+    height: var(--pano-height);
+    background: var(--color-neutral-white);
+    color: var(--color-neutral-800);
+    font: var(--text-subtitle-regular);
     position: absolute;
-    min-height: 480px;
-    border: 5px solid black;
-
-    border-radius: 3px 3px 3px 3px;
+    overflow: hidden;
+    border: calc(4px * var(--ui-scale)) solid var(--color-neutral-black);
+    border-radius: calc(5px * var(--ui-scale));
     z-index: 10;
 }
 
-.modal-foreground .button {
-    width: 100%;
+.modal-foreground h1 {
+    font: var(--text-h3-medium);
 }
 
 .modal-background {
     position: absolute;
-    left: -60px;
+    left: calc(-60px * var(--ui-scale));
     top: 0;
-    background: rgba(255, 255, 255, 0.5);
+    background: rgb(from var(--color-neutral-white) r g b / 50%);
     height: 100%;
     width: 110%;
 }
 
 #modal-mission-close-button {
-    font-size: 24px;
+    display: block;
     width: 40%;
-    margin-right: 30%;
-    margin-left: 30%;
-    margin-top: 30px;
-    float: right;
+    margin: calc(30px * var(--ui-scale)) auto 0;
 }
 
 #modal-mission-instruction {
     text-align: center;
 }
 
-#modal-comment-background, #modal-mission-background {
+#modal-mission-background {
     position: absolute;
-    left: 0px;
+    left: 0;
     top: 0;
-    background: rgba(255, 255, 255, 0.5);
+    background: rgb(from var(--color-neutral-white) r g b / 50%);
     visibility: hidden;
     height: 100%;
     width: 110%;
@@ -82,11 +68,11 @@
 
 #modal-mission-complete-foreground {
     visibility: hidden;
-    top: 30px;
+    top: var(--header-height);
 }
 
 #modal-mission-complete-title {
-    margin-top: 70px;
+    margin-top: calc(70px * var(--ui-scale));
     text-align: center;
 }
 
@@ -95,37 +81,33 @@
 }
 
 #modal-mission-complete-table {
-    height: 190px;
-    padding-left: 175px;
+    height: calc(190px * var(--ui-scale));
+    padding-left: calc(175px * var(--ui-scale));
 }
 
 .modal-foreground .btn-primary {
-    color: white;
-    background: #3182bd;
+    color: var(--color-neutral-white);
+    background: var(--color-link-100);
     cursor: pointer;
     border: 1px solid transparent;
-    font-size: 14pt;
+    font: var(--text-subtitle-regular);
     opacity: 1.0;
 }
 
 .modal-foreground .btn-secondary {
-    color: black;
-    background: white;
+    color: var(--color-neutral-black);
+    background: var(--color-neutral-white);
     cursor: pointer;
-    border: 1px solid black;
-    font-size: 14pt;
+    border: 1px solid var(--color-neutral-black);
+    font: var(--text-subtitle-regular);
     opacity: 1.0;
 }
 
 .modal-foreground .btn-loading {
-    color: white;
-    background: #7f7f7f;
+    color: var(--color-neutral-white);
+    background: var(--color-neutral-600);
     cursor: wait;
     border: 1px solid transparent;
-    font-size: 14pt;
+    font: var(--text-subtitle-regular);
     opacity: 0.35;
-}
-
-.modal-foreground .blue-btn:focus {
-    outline: none;
 }

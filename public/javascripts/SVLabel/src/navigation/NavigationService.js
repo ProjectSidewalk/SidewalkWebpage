@@ -48,7 +48,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     function resetWalking() {
         svl.panoManager.resetNavArrows();
         svl.panoManager.showNavArrows();
-        svl.leftMenu.enableStuckButton();
+        svl.panoOverlayControls.enableStuckButton();
         enableWalking();
     }
 
@@ -135,7 +135,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
             } else {
                 // Complete current neighborhood if no new task is available.
                 svl.neighborhoodModel.setComplete();
-                svl.neighborhoodModel.trigger("Neighborhood:wrapUpRouteOrNeighborhood");
+                svl.missionController.wrapUpRouteOrNeighborhood();
                 return Promise.resolve(null);
             }
         }
@@ -171,7 +171,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
 
         await moveForward();
         svl.panoManager.setPovToRouteDirection();
-        svl.jumpModel.triggerUserClickJumpMessage();
+        svl.jumpAlert.onClickJumpMessage();
     }
 
     /**
@@ -246,12 +246,12 @@ function NavigationService (neighborhoodModel, uiStreetview) {
      * @private
      */
     function _updateUiBeforeMove() {
-        svl.modalComment.hide();
+        svl.feedbackModal.hide();
         if (svl.contextMenu.isOpen()) {
             svl.contextMenu.hide();
         }
         svl.ui.canvas.deleteIconHolder.css("visibility", "hidden");
-        svl.leftMenu.disableStuckButton();
+        svl.panoOverlayControls.disableStuckButton();
         svl.compass.disableCompassClick();
         svl.panoManager.disablePanning();
         svl.canvas.disableLabeling();
@@ -265,7 +265,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     function _updateUiAfterMove() {
         const isOnboarding = svl.isOnboarding()
         const newLatLng = svl.panoViewer.getPosition();
-        const neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+        const neighborhood = svl.neighborhoodModel.currentNeighborhood();
         const currentMission = svl.missionContainer.getCurrentMission();
 
         // Set delay until user can move again, to prevent spam running through a mission without labeling.

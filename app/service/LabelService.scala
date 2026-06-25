@@ -33,6 +33,7 @@ case class ValidationTaskPostReturnValue(
 @ImplementedBy(classOf[LabelServiceImpl])
 trait LabelService {
   def countLabels: Future[Int]
+  def countLabelsInRegion(regionId: Int): Future[Int]
   def selectAllTags: DBIO[Seq[models.label.Tag]]
   def selectAllTagsFuture: Future[Seq[models.label.Tag]]
   def selectTagsByLabelType(labelType: String): DBIO[Seq[models.label.Tag]]
@@ -110,6 +111,12 @@ class LabelServiceImpl @Inject() (
   private val logger = Logger(this.getClass)
 
   def countLabels: Future[Int] = db.run(labelTable.countLabels)
+
+  /**
+   * Gets the total label count in a region across all users.
+   * @param regionId ID of the region to count labels in
+   */
+  def countLabelsInRegion(regionId: Int): Future[Int] = db.run(labelTable.countLabelsInRegion(regionId))
 
   def selectAllTags: DBIO[Seq[models.label.Tag]] =
     configService.cachedDBIO[Seq[models.label.Tag]]("selectAllTags()")(tagTable.selectAllTags)

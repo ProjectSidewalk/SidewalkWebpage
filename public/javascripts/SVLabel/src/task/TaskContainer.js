@@ -265,7 +265,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
             // Indicates neighborhood is complete.
             if (self.getIncompleteTasksAcrossAllUsersUsingPriority().length === 0) {
                 neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
-                svl.ui.areaComplete.overlay.show();
+                $("#area-completion-overlay-wrapper").show();
                 const currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
                 const currentNeighborhoodId = currentNeighborhood.getRegionId();
                 tracker.push("NeighborhoodComplete_AcrossAllUsers", { 'RegionId': currentNeighborhoodId });
@@ -421,13 +421,12 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
      */
     function updateAuditedDistance() {
         let distance = 0;
-        const neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+        const neighborhood = svl.neighborhoodModel.currentNeighborhood();
 
         if (neighborhood) {
             distance = getCompletedTaskDistance({ units: i18next.t('common:unit-distance') });
         }
-        svl.statusFieldNeighborhood.setAuditedDistance(distance);
-        svl.statusFieldOverall.setNeighborhoodAuditedDistance(distance);
+        svl.overallStats.setNeighborhoodAuditedDistance(distance);
         return this;
     }
 

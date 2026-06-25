@@ -37,9 +37,12 @@ function PanoOverlay () {
         mouseStatus.isLeftDown = true;
         viewControlLayer.css("cursor", "url(/assets/images/icons/closedhand.cur) 4 4, move");
 
+        // Hide the label's hover info as soon as panning starts so it doesn't linger over the moving pano.
+        if (svv.labelVisibilityControl) svv.labelVisibilityControl.hideTagsAndDeleteButton();
+
         // This is necessary for supporting touch devices, because there is no mouse hover.
-        mouseStatus.prevX = mouseposition(e, this).x;
-        mouseStatus.prevY = mouseposition(e, this).y;
+        mouseStatus.prevX = mousePosition(e, this).x;
+        mouseStatus.prevY = mousePosition(e, this).y;
     }
 
     /**
@@ -64,8 +67,8 @@ function PanoOverlay () {
      * Callback function that is fired when a user moves a mouse on the view control layer where you change the pov.
      */
     function handlerViewControlLayerMouseMove(e) {
-        mouseStatus.currX = mouseposition(e, this).x;
-        mouseStatus.currY = mouseposition(e, this).y;
+        mouseStatus.currX = mousePosition(e, this).x;
+        mouseStatus.currY = mousePosition(e, this).y;
 
         if ((svv.panoManager.getProperty('panoLoaded')) && mouseStatus.isLeftDown && panningDisabled === false) {
             // If a mouse is being dragged on the control layer, move the pano.
@@ -79,8 +82,8 @@ function PanoOverlay () {
             dy *= 0.375;
             updatePov(dx, dy);
         }
-        mouseStatus.prevX = mouseposition(e, this).x;
-        mouseStatus.prevY = mouseposition(e, this).y;
+        mouseStatus.prevX = mousePosition(e, this).x;
+        mouseStatus.prevY = mousePosition(e, this).y;
     }
 
     /**

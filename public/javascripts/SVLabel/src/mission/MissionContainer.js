@@ -1,12 +1,12 @@
 /**
  * MissionContainer module
- * @param statusFieldMission.  TODO The module should communicate with the statusFieldMission via StatusModel.
+ * @param missionPanel. Renders the current mission's header and description in the sidebar.
  * @param missionModel. Mission model object.
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function MissionContainer (statusFieldMission, missionModel) {
+function MissionContainer (missionPanel, missionModel) {
     var self = this;
     this._completedMissions = [];
     this._currentMission = null;
@@ -85,7 +85,7 @@ function MissionContainer (statusFieldMission, missionModel) {
      */
     this.setCurrentMission = function (mission) {
         self._currentMission = mission;
-        statusFieldMission.setMessage(mission);
+        missionPanel.setMessage(mission);
         var currTask = svl.taskContainer.getCurrentTask();
         var missionId = mission.getProperty('missionId');
         currTask.setProperty('currentMissionId', missionId);

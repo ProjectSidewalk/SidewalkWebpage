@@ -2,12 +2,16 @@
  * Todo. Separate the UI component and the logic component
  * @param canvas
  * @param tracker
- * @param uiZoomControl
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function ZoomControl (canvas, tracker, uiZoomControl) {
+function ZoomControl (canvas, tracker) {
+    const uiZoomControl = {
+        zoomIn: $("#zoom-in-button"),
+        zoomOut: $("#zoom-out-button")
+    };
+
     var self = { 'className' : 'ZoomControl' },
         properties = {
             maxZoomLevel: 3,
@@ -24,7 +28,11 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
         zoomBlink = {
           isBlinking: false
         },
-        blinkInterval;
+        blinkInterval,
+        wheelTrackTimeout;
+
+    // Scroll wheel / trackpad zoom tuning.
+    const ZOOM_WHEEL_SENSITIVITY = 0.0015;
 
 
     /**
@@ -42,24 +50,13 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
     }
 
     /**
-     * Blink the zoom in and zoom-out buttons
-     */
-    function blink () {
-        stopBlinking();
-        blinkInterval = window.setInterval(function () {
-            uiZoomControl.zoomIn.toggleClass("highlight-50");
-            uiZoomControl.zoomOut.toggleClass("highlight-50");
-        }, 500);
-    }
-
-    /**
      * Blink the zoom in button
      */
     function blinkZoomIn () {
         stopBlinking();
         zoomBlink.isBlinking = true;
         blinkInterval = window.setInterval(function () {
-            uiZoomControl.zoomIn.toggleClass("highlight-100");
+            uiZoomControl.zoomIn.toggleClass("highlight-50");
         }, 500);
     }
 
@@ -70,7 +67,7 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
         stopBlinking();
         zoomBlink.isBlinking = true;
         blinkInterval = window.setInterval(function () {
-            uiZoomControl.zoomOut.toggleClass("highlight-100");
+            uiZoomControl.zoomOut.toggleClass("highlight-50");
         }, 500);
     }
 
@@ -200,6 +197,32 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
     }
 
     /**
+     * Callback for the scroll wheel / trackpad over the pano.
+     * @param e jQuery wheel event
+     */
+    function _handleZoomWheel(e) {
+        // Prevent the page from scrolling while zooming the pano.
+        e.preventDefault();
+
+        // Scrolling up (negative deltaY) zooms in; scrolling down zooms out.
+        const zoomDelta = -e.originalEvent.deltaY * ZOOM_WHEEL_SENSITIVITY;
+
+        // Honor the disable locks (e.g. onboarding) and skip no-op zooms at the min/max.
+        if (zoomDelta > 0 && status.disableZoomIn) return;
+        if (zoomDelta < 0 && status.disableZoomOut) return;
+
+        setZoom(svl.panoViewer.getPov().zoom + zoomDelta);
+
+        // Log scroll zooming, but debounce so a single gesture doesn't flood the tracker.
+        if (tracker) {
+            window.clearTimeout(wheelTrackTimeout);
+            wheelTrackTimeout = window.setTimeout(() => {
+                tracker.push(zoomDelta > 0 ? 'Scroll_ZoomIn' : 'Scroll_ZoomOut');
+            }, 250);
+        }
+    }
+
+    /**
      * These functions are called when the keyboard shortcut for zoomIn/Out is used.
      */
 
@@ -270,9 +293,6 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
         if (uiZoomControl) {
             uiZoomControl.zoomIn.removeClass("highlight-50");
             uiZoomControl.zoomOut.removeClass("highlight-50");
-
-            uiZoomControl.zoomIn.removeClass("highlight-100");
-            uiZoomControl.zoomOut.removeClass("highlight-100");
         }
     }
 
@@ -309,30 +329,17 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
      * @returns {updateOpacity}
      */
     function updateOpacity () {
-        var pov = svl.panoViewer.getPov();
+        const pov = svl.panoViewer.getPov();
 
         if (pov && uiZoomControl) {
-            var zoom = pov.zoom;
-            // Change opacity
-            if (zoom >= properties.maxZoomLevel) {
-                uiZoomControl.zoomIn.css('opacity', 0.5);
-                uiZoomControl.zoomOut.css('opacity', 1);
-            } else if (zoom <= properties.minZoomLevel) {
-                uiZoomControl.zoomIn.css('opacity', 1);
-                uiZoomControl.zoomOut.css('opacity', 0.5);
-            } else {
-                uiZoomControl.zoomIn.css('opacity', 1);
-                uiZoomControl.zoomOut.css('opacity', 1);
-            }
+            const zoom = pov.zoom;
+            // Disable the zoom-in button at max zoom and the zoom-out button at min zoom.
+            uiZoomControl.zoomIn.toggleClass('disabled', zoom >= properties.maxZoomLevel || status.disableZoomIn);
+            uiZoomControl.zoomOut.toggleClass('disabled', zoom <= properties.minZoomLevel || status.disableZoomOut);
         }
-
-        // If zoom in and out are disabled, fade them out anyway.
-        if (status.disableZoomIn) { uiZoomControl.zoomIn.css('opacity', 0.5); }
-        if (status.disableZoomOut) { uiZoomControl.zoomOut.css('opacity', 0.5); }
         return this;
     }
 
-    self.blink = blink;
     self.blinkZoomIn = blinkZoomIn;
     self.blinkZoomOut = blinkZoomOut;
     self.disableZoomIn = disableZoomIn;
@@ -356,5 +363,6 @@ function ZoomControl (canvas, tracker, uiZoomControl) {
 
     uiZoomControl.zoomIn.bind('click', _handleZoomInButtonClick);
     uiZoomControl.zoomOut.bind('click', _handleZoomOutButtonClick);
+    svl.ui.streetview.viewControlLayer.bind('wheel', _handleZoomWheel);
     return self;
 }

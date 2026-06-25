@@ -101,7 +101,7 @@ class PanoInfoPopover {
 
         // Hide the view-in-pano link for viewers that have no external URL.
         if (this.#panoViewer.getViewerType() === 'infra3d') {
-            this.#popoverEl.querySelector('.pano-info-popover__view-link').hidden = true;
+            this.#popoverEl.querySelector('.pano-info-popover__view-link').style.display = 'none';
         }
 
         // Toggle the popover on info button click.
@@ -144,14 +144,11 @@ class PanoInfoPopover {
      * Positions the popover above the info button, centered horizontally, clamped to the viewport.
      */
     #positionPopover() {
-        // Apply zoom first so getBoundingClientRect() reflects the zoomed dimensions.
-        if (typeof svl !== 'undefined' && svl.cssZoom) this.#popoverEl.style.zoom = `${svl.cssZoom}%`;
-        else if (typeof svv !== 'undefined' && svv.cssZoom) this.#popoverEl.style.zoom = `${svv.cssZoom}%`;
-
         const btnRect = this.#infoButton.getBoundingClientRect();
         const popRect = this.#popoverEl.getBoundingClientRect();
-        const arrowHeight = 9; // matches .pano-info-popover::before border-width
-        const gap = 4;
+        const uiScale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
+        const arrowHeight = 9 * uiScale; // matches .pano-info-popover::before border-width
+        const gap = 4 * uiScale;
 
         let left = btnRect.left + btnRect.width / 2 - popRect.width / 2;
         const top = btnRect.top - popRect.height - arrowHeight - gap;

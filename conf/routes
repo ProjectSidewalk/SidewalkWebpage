@@ -43,7 +43,7 @@ PUT     /updateVolunteerStatus                          controllers.UserControll
 
 # Security policy endpoints.
 + nocsrf
-POST    /cspReport                                     controllers.SecurityPolicyController.cspReport
+POST    /cspReport                                      controllers.SecurityPolicyController.cspReport
 
 # City config params.
 GET     /cityMapParams                                  controllers.ConfigController.getCityMapParams()
@@ -77,6 +77,7 @@ GET     /adminapi/getValidationCountStats               controllers.AdminControl
 GET     /adminapi/getRecentComments                     controllers.AdminController.getRecentComments
 GET     /adminapi/getRecentLabelMetadata                controllers.AdminController.getRecentLabelMetadata
 GET     /adminapi/getUserStats                          controllers.AdminController.getUserStats
+GET     /adminapi/apiAnalytics                          controllers.AdminController.getApiAnalytics(excludeApiDocs: Boolean ?= true, days: Int ?= 30)
 
 PUT     /adminapi/setRole                               controllers.AdminController.setUserRole
 PUT     /adminapi/setUserQualityManual                  controllers.AdminController.setUserQualityManual
@@ -123,6 +124,7 @@ POST    /labelmap/comment                               controllers.ValidateCont
 # Labels
 GET     /label/tags                                     controllers.LabelController.getLabelTags
 GET     /label/resumeMission                            controllers.LabelController.getLabelsToResumeMission(regionId: Int)
+GET     /label/countInRegion                            controllers.LabelController.getRegionLabelCount(regionId: Int)
 POST    /label/labels                                   controllers.GalleryController.getLabels
 POST    /label/geo/random/:labelType/:labelId           controllers.ValidateController.getRandomLabelData(labelType: Int, labelId: Int)
 
@@ -149,7 +151,7 @@ POST    /userapi/createTeam                             controllers.UserProfileC
 GET     /userapi/getTeams                               controllers.UserProfileController.getTeams
 
 # Map resources from the /public folder to the /assets URL path. Prefix must match `play.assets.urlPrefix`
-GET     /assets/*file                                    controllers.Assets.versioned(file)
+GET     /assets/*file                                   controllers.Assets.versioned(file)
 
 # Clustering
 GET     /clustering                                     controllers.ClusterController.index
@@ -162,6 +164,7 @@ POST    /saveRoute                                      controllers.RouteBuilder
 
 # Images
 POST    /saveImage                                      controllers.ImageController.saveImage
+GET     /cropImage/:labelType/:labelId/metadata         controllers.ImageController.getCropImageMetadata(labelType: String, labelId: Int)
 GET     /cropImage/:labelType/:labelId                  controllers.ImageController.serveCropImage(labelType: String, labelId: Int)
 GET     /backupImage/:panoId/metadata                   controllers.ImageController.getBackupImageMetadata(panoId: String)
 GET     /backupImage/:panoId                            controllers.ImageController.serveBackupImage(panoId: String)
@@ -178,12 +181,17 @@ GET     /v3/api/regionWithMostLabels                    controllers.api.RegionAp
 GET     /v3/api/cities                                  controllers.api.CitiesApiController.getCities(filetype: String ?= "json")
 GET     /v3/api/userStats                               controllers.api.StatsApiController.getUserApiStats(minLabels: Option[Int], minMetersExplored: Option[Double], highQualityOnly: Option[Boolean], minAccuracy: Option[Double], filetype: Option[String])
 GET     /v3/api/overallStats                            controllers.api.StatsApiController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
+GET     /v3/api/overallStatsByDay                       controllers.api.StatsApiController.getOverallStatsByDay(startDate: Option[String] ?= None, endDate: Option[String] ?= None, filterLowQuality: Boolean ?= false, filetype: Option[String] ?= None)
 GET     /v3/api/aggregateStats                          controllers.api.StatsApiController.getAggregateStats(filetype: Option[String])
+GET     /v3/api/aggregateStatsByDay                     controllers.api.StatsApiController.getAggregateStatsByDay(startDate: Option[String] ?= None, endDate: Option[String] ?= None, filterLowQuality: Boolean ?= false, filetype: Option[String] ?= None)
 GET     /v3/api/labelClusters                           controllers.api.LabelClustersApiController.getLabelClustersV3(bbox: Option[String], labelType: Option[String], regionId: Option[Int], regionName: Option[String], includeRawLabels: Option[Boolean], clusterSize: Option[Int], avgImageCaptureDate: Option[String], avgLabelDate: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streets                                 controllers.api.StreetsApiController.getStreets(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], minAuditCount: Option[Int], minUserCount: Option[Int], wayType: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streetTypes                             controllers.api.StreetsApiController.getStreetTypes
-GET     /v3/api/validations                             controllers.api.ValidationApiController.getValidations(labelId: Option[Int], userId: Option[String], validationResult: Option[Int], labelTypeId: Option[Int], validationTimestamp: Option[String], changedTags: Option[Boolean], changedSeverityLevels: Option[Boolean], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/regions                                 controllers.api.RegionApiController.getRegions(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/validations                             controllers.api.ValidationApiController.getValidations(labelId: Option[Int], userId: Option[String], validationResult: Option[String], labelTypeId: Option[Int], validationTimestamp: Option[String], changedTags: Option[Boolean], changedSeverityLevels: Option[Boolean], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/validationResultTypes                   controllers.api.ValidationApiController.getValidationResultTypes
+GET     /v3/api/accessScoreStreets                      controllers.api.AccessScoreApiController.getAccessScoreStreets(bbox: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/accessScoreRegions                      controllers.api.AccessScoreApiController.getAccessScoreRegions(bbox: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
 
 # API Documentation (v3) Routes.
 GET     /v3/api-docs                                    controllers.ApiDocsController.index
@@ -194,10 +202,13 @@ GET     /v3/api-docs/rawLabels                          controllers.ApiDocsContr
 GET     /v3/api-docs/labelClusters                      controllers.ApiDocsController.labelClusters
 GET     /v3/api-docs/streets                            controllers.ApiDocsController.streets
 GET     /v3/api-docs/streetTypes                        controllers.ApiDocsController.streetTypes
+GET     /v3/api-docs/regions                            controllers.ApiDocsController.regions
+GET     /v3/api-docs/accessScoreStreets                 controllers.ApiDocsController.accessScoreStreets
+GET     /v3/api-docs/accessScoreRegions                 controllers.ApiDocsController.accessScoreRegions
 GET     /v3/api-docs/validations                        controllers.ApiDocsController.validations
+GET     /v3/api-docs/validation-result-types            controllers.ApiDocsController.validationResultTypes
 GET     /v3/api-docs/user-stats                         controllers.ApiDocsController.userStats
 GET     /v3/api-docs/overall-stats                      controllers.ApiDocsController.overallStats
-
-# Old Public API (v2).
-GET     /v2/access/score/streets                        controllers.api.AccessScoreApiController.getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
-GET     /v2/access/score/neighborhoods                  controllers.api.AccessScoreApiController.getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
+GET     /v3/api-docs/overall-stats-by-day               controllers.ApiDocsController.overallStatsByDay
+GET     /v3/api-docs/aggregate-stats                    controllers.ApiDocsController.aggregateStats
+GET     /v3/api-docs/aggregate-stats-by-day             controllers.ApiDocsController.aggregateStatsByDay

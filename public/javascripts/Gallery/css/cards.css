@@ -160,7 +160,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 .label-tags-content {
     text-overflow: ellipsis;
     width:fit-content;
-    color: black;
+    color: var(--color-neutral-black);
 }
 
 .gallery-marker-wrapper {
@@ -238,7 +238,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     opacity: 0;
     font: var(--text-body-bold);
     font-size: 0.75vw;
-    background-color: white;
+    background-color: var(--color-neutral-white);
     border-style: none;
     color: #2d2a3f;
     transition: opacity 120ms ease;
@@ -284,7 +284,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .severity-circle {
-    color: white;
+    color: var(--color-neutral-white);
     border: 1px solid #2d2a3f;
     width: 0.7vw;
     height: 0.7vw;

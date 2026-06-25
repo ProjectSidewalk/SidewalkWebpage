@@ -25,7 +25,7 @@
 .paging {
     display: inline-block;
     font-size: 30px;
-    background-color: white;
+    background-color: var(--color-neutral-white);
     border-radius: 5px;
     border-width: 1px;
     margin: 0 2px;

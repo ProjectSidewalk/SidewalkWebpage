@@ -88,21 +88,14 @@ function MissionContainer () {
      * Updates the status of the current mission.
      */
     function updateAMission() {
-        currentMission.updateMissionProgress(false, false);
-    }
-
-    /**
-     * Updates the status of the current mission if client clicked the skip button.
-     */
-    function updateAMissionSkip() {
-        currentMission.updateMissionProgress(true, false);
+        currentMission.updateMissionProgress(false);
     }
 
     /**
      * Updates the status of the current mission if client clicked the undo button.
      */
     function updateAMissionUndoValidation() {
-        currentMission.updateMissionProgress(false, true);
+        currentMission.updateMissionProgress(true);
     }
 
     self.addAMission = addAMission;
@@ -110,7 +103,6 @@ function MissionContainer () {
     self.createAMission = createAMission;
     self.getCurrentMission = getCurrentMission;
     self.updateAMission = updateAMission;
-    self.updateAMissionSkip = updateAMissionSkip;
     self.updateAMissionUndoValidation = updateAMissionUndoValidation;
 
     return this;

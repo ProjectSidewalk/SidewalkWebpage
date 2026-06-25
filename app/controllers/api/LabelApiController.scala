@@ -4,8 +4,7 @@ import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import formats.json.ApiFormats._
 import models.api._
-import models.label.{LabelCVMetadata, LabelTypeEnum}
-import models.utils.LatLngBBox
+import models.label.LabelTypeEnum
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
@@ -77,7 +76,7 @@ class LabelApiController @Inject() (
   def getLabelTypes = silhouette.UserAwareAction.async { request =>
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
     val labelTypeDetailsList: Seq[LabelTypeForApi] = apiService.getLabelTypes(request.lang).toList.sortBy(_.id)
-    Future.successful(Ok(Json.obj("status" -> "OK", "labelTypes" -> labelTypeDetailsList)))
+    Future.successful(Ok(Json.obj("status" -> "OK", "label_types" -> labelTypeDetailsList)))
   }
 
   /**
@@ -107,7 +106,7 @@ class LabelApiController @Inject() (
           )
         }
 
-        Ok(Json.obj("status" -> "OK", "labelTags" -> formattedTags))
+        Ok(Json.obj("status" -> "OK", "label_tags" -> formattedTags))
       }
       .recover { case e: Exception =>
         InternalServerError(
@@ -155,88 +154,28 @@ class LabelApiController @Inject() (
   ) = silhouette.UserAwareAction.async { implicit request =>
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
-    // Parse bbox parameter.
-    val parsedBbox: Option[LatLngBBox] = parseBBoxString(bbox)
+    // Parse bbox and date/validation params.
+    val parsedBbox             = parseBBoxString(bbox)
+    val parsedStartDate        = parseDateTimeParam(startDate, "startDate")
+    val parsedEndDate          = parseDateTimeParam(endDate, "endDate")
+    val parsedValidationStatus = parseValidationStatus(validationStatus)
+    val parsedLabelTypes       = parseCommaSeparated(labelType)
+    val parsedTags             = parseCommaSeparated(tags)
 
-    // Parse date strings to OffsetDateTime if provided.
-    val parsedStartDate: Option[OffsetDateTime] = parseDateTimeString(startDate)
-    val parsedEndDate: Option[OffsetDateTime]   = parseDateTimeString(endDate)
+    // Collect the first invalid-parameter error, if any.
+    val firstError: Option[ApiError] = Seq(
+      validateBBoxParam(bbox, parsedBbox),
+      parsedValidationStatus.left.toOption,
+      parsedStartDate.left.toOption,
+      parsedEndDate.left.toOption,
+      validateRegionId(regionId)
+    ).flatten.headOption
 
-    // Parse comma-separated lists into sequences.
-    val parsedLabelTypes = labelType.map(_.split(",").map(_.trim).toSeq)
-    val parsedTags       = tags.map(_.split(",").map(_.trim).toSeq)
-
-    // Map validation status to internal representation.
-    val validationStatusMapped = validationStatus.map {
-      case "validated_correct"   => "Agreed"
-      case "validated_incorrect" => "Disagreed"
-      case "unvalidated"         => "Unvalidated"
-      case _                     => null
-    }
-
-    // Handle invalid parameter error cases.
-    if (bbox.isDefined && parsedBbox.isEmpty) {
-      Future.successful(
-        BadRequest(
-          Json.toJson(
-            ApiError.invalidParameter(
-              "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.",
-              "bbox"
-            )
-          )
-        )
-      )
-    } else if (validationStatus.isDefined && validationStatusMapped.isEmpty) {
-      Future.successful(
-        BadRequest(
-          Json.toJson(
-            ApiError.invalidParameter(
-              "Invalid validationStatus value. Must be one of: validated_correct, validated_incorrect, unvalidated",
-              "validationStatus"
-            )
-          )
-        )
-      )
-    } else if (regionId.isDefined && regionId.get <= 0) {
-      Future.successful(
-        BadRequest(
-          Json.toJson(
-            ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId")
-          )
-        )
-      )
-
-    } else {
-      configService.getCityMapParams.flatMap { cityMapParams =>
-        // If bbox isn't provided, use city defaults.
-        val apiBox = parsedBbox.getOrElse(
-          LatLngBBox(
-            minLng = Math.min(cityMapParams.lng1, cityMapParams.lng2),
-            minLat = Math.min(cityMapParams.lat1, cityMapParams.lat2),
-            maxLng = Math.max(cityMapParams.lng1, cityMapParams.lng2),
-            maxLat = Math.max(cityMapParams.lat1, cityMapParams.lat2)
-          )
-        )
-
-        // Apply filter precedence logic.
-        // If bbox is defined, it takes precedence over region filters.
-        val finalBbox = if (bbox.isDefined && parsedBbox.isDefined) {
-          parsedBbox
-        } else if (regionId.isDefined || regionName.isDefined) {
-          None // If region filters are used, bbox should be None.
-        } else {
-          Some(apiBox) // Default city bbox.
-        }
-
-        // Apply region filter precedence logic.
-        // If bbox is defined, ignore region filters. If regionId is defined, it takes precedence over regionName.
-        val finalRegionId =
-          if (bbox.isDefined && parsedBbox.isDefined) None
-          else regionId
-
-        val finalRegionName =
-          if (bbox.isDefined && parsedBbox.isDefined || regionId.isDefined) None
-          else regionName
+    firstError match {
+      case Some(error) => Future.successful(badRequest(error))
+      case None =>
+        configService.getCityMapParams.flatMap { cityMapParams =>
+        val (finalBbox, finalRegionId, finalRegionName) = resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
 
         // Create filters object.
         val filters = RawLabelFiltersForApi(
@@ -245,10 +184,10 @@ class LabelApiController @Inject() (
           tags = parsedTags,
           minSeverity = minSeverity,
           maxSeverity = maxSeverity,
-          validationStatus = validationStatusMapped.filter(_ != null),
+          validationStatus = parsedValidationStatus.toOption.flatten,
           highQualityUserOnly = highQualityUserOnly.getOrElse(false),
-          startDate = parsedStartDate,
-          endDate = parsedEndDate,
+          startDate = parsedStartDate.toOption.flatten,
+          endDate = parsedEndDate.toOption.flatten,
           regionId = finalRegionId,
           regionName = finalRegionName
         )
@@ -270,6 +209,23 @@ class LabelApiController @Inject() (
         }
       }
     }
+  }
+
+  /**
+   * Validates the public validationStatus parameter and maps it to its internal representation.
+   *
+   * @param raw The optional validationStatus query parameter.
+   * @return `Right(None)` if absent, `Right(Some(internal))` if valid, or `Left(ApiError)` if the value is invalid.
+   */
+  private def parseValidationStatus(raw: Option[String]): Either[ApiError, Option[String]] = raw match {
+    case None                        => Right(None)
+    case Some("validated_correct")   => Right(Some("Agreed"))
+    case Some("validated_incorrect") => Right(Some("Disagreed"))
+    case Some("unvalidated")         => Right(Some("Unvalidated"))
+    case Some(_) =>
+      Left(ApiError.invalidParameter(
+        "Invalid validationStatus value. Must be one of: validated_correct, validated_incorrect, unvalidated",
+        "validationStatus"))
   }
 
   /**

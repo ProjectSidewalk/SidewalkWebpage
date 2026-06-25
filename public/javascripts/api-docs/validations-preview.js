@@ -116,7 +116,7 @@
          * @returns {Promise} A promise that resolves with the label types data
          */
         fetchLabelTypes: function() {
-            return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}`)
+            return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}?source=apiDocs`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`Failed to fetch label types: HTTP ${response.status}`);
@@ -124,8 +124,8 @@
                     return response.json();
                 })
                 .then(data => {
-                    if (data && data.labelTypes && Array.isArray(data.labelTypes)) {
-                        data.labelTypes.forEach(labelType => {
+                    if (data && data.label_types && Array.isArray(data.label_types)) {
+                        data.label_types.forEach(labelType => {
                             labelTypeColors[labelType.id] = labelType.color;
                             labelTypeMapping[labelType.id] = labelType.description;
                         });
@@ -139,7 +139,7 @@
          * @returns {Promise} A promise that resolves with the validations data
          */
         fetchValidations: function() {
-            return fetch(`${config.apiBaseUrl}${config.validationsEndpoint}`)
+            return fetch(`${config.apiBaseUrl}${config.validationsEndpoint}?source=apiDocs`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`Failed to fetch validations: HTTP ${response.status}`);
@@ -205,13 +205,13 @@
 
                 // Count validation results.
                 switch (validation.validation_result) {
-                    case 1:
+                    case 'Agree':
                         validationsByType[typeId].agree++;
                         break;
-                    case 2:
+                    case 'Disagree':
                         validationsByType[typeId].disagree++;
                         break;
-                    case 3:
+                    case 'Unsure':
                         validationsByType[typeId].unsure++;
                         break;
                 }
@@ -263,9 +263,9 @@
 
             // Calculate overall statistics.
             const totalValidations = validationsData.length;
-            const totalAgree = validationsData.filter(v => v.validation_result === 1).length;
-            const totalDisagree = validationsData.filter(v => v.validation_result === 2).length;
-            const totalUnsure = validationsData.filter(v => v.validation_result === 3).length;
+            const totalAgree = validationsData.filter(v => v.validation_result === 'Agree').length;
+            const totalDisagree = validationsData.filter(v => v.validation_result === 'Disagree').length;
+            const totalUnsure = validationsData.filter(v => v.validation_result === 'Unsure').length;
 
             const statsGrid = document.createElement('div');
             statsGrid.className = 'summary-stats-grid';

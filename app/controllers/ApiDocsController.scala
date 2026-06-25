@@ -81,6 +81,36 @@ class ApiDocsController @Inject() (
   }
 
   /**
+   * Displays API documentation for the regions.
+   */
+  def regions = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_Regions")
+      Ok(views.html.apiDocs.regions(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Displays API documentation for the street-level AccessScore.
+   */
+  def accessScoreStreets = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_AccessScoreStreets")
+      Ok(views.html.apiDocs.accessScoreStreets(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Displays API documentation for the region-level AccessScore.
+   */
+  def accessScoreRegions = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_AccessScoreRegions")
+      Ok(views.html.apiDocs.accessScoreRegions(commonData, request.identity))
+    }
+  }
+
+  /**
    * Displays API documentation for the street types.
    */
   def streetTypes = cc.securityService.SecuredAction { implicit request =>
@@ -127,6 +157,46 @@ class ApiDocsController @Inject() (
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_Validations")
       Ok(views.html.apiDocs.validations(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Displays API documentation for the validation result types.
+   */
+  def validationResultTypes = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_ValidationResultTypes")
+      Ok(views.html.apiDocs.validationResultTypes(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Displays API documentation for the aggregate stats.
+   */
+  def aggregateStats = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_AggregateStats")
+      Ok(views.html.apiDocs.aggregateStats(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Displays API documentation for the overall stats by day (time series).
+   */
+  def overallStatsByDay = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_OverallStatsByDay")
+      Ok(views.html.apiDocs.overallStatsByDay(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Displays API documentation for the aggregate stats by day (time series).
+   */
+  def aggregateStatsByDay = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_APIDocs_AggregateStatsByDay")
+      Ok(views.html.apiDocs.aggregateStatsByDay(commonData, request.identity))
     }
   }
 }

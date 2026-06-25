@@ -2,12 +2,12 @@ package service
 
 import com.google.inject.ImplementedBy
 import formats.json.ClusterFormats.{ClusterSubmission, ClusteredLabelSubmission}
-import models.api._
+import models.api.{DailyStatRecord, _}
 import models.cluster._
 import models.label._
 import models.region.{Region, RegionTable}
 import models.street.{StreetEdgeInfo, StreetEdgeTable}
-import models.user.{UserStatApi, UserStatTable}
+import models.user.UserStatTable
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{ClusteringThreshold, LatLngBBox, MyPostgresProfile}
@@ -20,24 +20,33 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
 import slick.sql.SqlStreamingAction
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[ApiServiceImpl])
 trait ApiService {
 
-  // Sets up streaming query to get clusters in a bounding box.
-  def getClustersInBoundingBox(
-      spatialQueryType: SpatialQueryType,
-      bbox: LatLngBBox,
-      severity: Option[String],
-      batchSize: Int
-  ): Source[ClusterForApi, _]
-
   def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]]
 
   def getNeighborhoodsWithin(bbox: LatLngBBox): Future[Seq[Region]]
+
+  /** Streams lean per-cluster scoring inputs for the v3 AccessScore endpoints (#3855). */
+  def getClusterScoreRows(
+      spatialQueryType: SpatialQueryType,
+      bbox: LatLngBBox,
+      labelTypes: Set[String],
+      batchSize: Int
+  ): Source[ClusterScoreRow, _]
+
+  /** Returns the length in meters of each given street edge, used to length-weight region AccessScores (#3855). */
+  def getStreetLengths(streetEdgeIds: Seq[Int]): Future[Map[Int, Double]]
+
+  /** Resolves a region id to its bounding box, or None if no such (non-deleted) region exists. */
+  def getRegionBBox(regionId: Int): Future[Option[LatLngBBox]]
+
+  /** Resolves a region name to its (region id, bounding box), or None if no such (non-deleted) region exists. */
+  def resolveRegionByName(regionName: String): Future[Option[(Int, LatLngBBox)]]
 
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _]
 
@@ -83,6 +92,15 @@ trait ApiService {
   def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, _]
 
   /**
+   * Retrieves regions (neighborhoods) based on the provided filters and returns them as a reactive stream source.
+   *
+   * @param filters   The filters to apply when retrieving regions.
+   * @param batchSize The number of records to fetch in each batch from the database.
+   * @return          A reactive stream source that emits RegionDataForApi objects.
+   */
+  def getRegions(filters: RegionFiltersForApi, batchSize: Int): Source[RegionDataForApi, _]
+
+  /**
    * Retrieves the region with the most labels from the database.
    *
    * @return A `Future` containing an `Option` of `Region`. The `Option` will be:
@@ -124,16 +142,33 @@ trait ApiService {
    * @param minMetersExplored Optional minimum meters explored a user must have.
    * @param highQualityOnly Optional filter to include only high quality users if true.
    * @param minAccuracy Optional minimum label accuracy a user must have.
-   * @return A Future containing a sequence of UserStatApi objects that match the filters.
+   * @return A Future containing a sequence of UserStatForApi objects that match the filters.
    */
   def getUserStats(
       minLabels: Option[Int] = None,
       minMetersExplored: Option[Double] = None,
       highQualityOnly: Boolean = false,
       minAccuracy: Option[Double] = None
-  ): Future[Seq[UserStatApi]]
+  ): Future[Seq[UserStatForApi]]
 
   def getOverallStats(filterLowQuality: Boolean): Future[ProjectSidewalkStats]
+
+  /**
+   * Returns daily label and validation counts for the current city, split by human vs AI and label type.
+   *
+   * Runs two DB queries concurrently (labels by time_created, validations by end_timestamp) then merges
+   * them into one sequence keyed by (date, labelType).
+   *
+   * @param startDate        Inclusive start date (Pacific time); no lower bound if None.
+   * @param endDate          Inclusive end date; no upper bound if None.
+   * @param filterLowQuality If true, restrict to high-quality users (mirrors overallStats).
+   * @return                 Merged sequence of DailyStatRecord, sorted by date then label type.
+   */
+  def getOverallStatsByDay(
+      startDate: Option[LocalDate],
+      endDate: Option[LocalDate],
+      filterLowQuality: Boolean
+  ): Future[Seq[DailyStatRecord]]
 
   /**
    * Retrieves validation data based on the provided filters and returns them as a reactive stream source.
@@ -188,6 +223,10 @@ class ApiServiceImpl @Inject() (
     setUpStreamFromDb(streetEdgeTable.getStreetsForApi(filters), batchSize)
   }
 
+  def getRegions(filters: RegionFiltersForApi, batchSize: Int): Source[RegionDataForApi, _] = {
+    setUpStreamFromDb(regionTable.getRegionsForApi(filters), batchSize)
+  }
+
   def getLabelClusters(filters: LabelClusterFiltersForApi, batchSize: Int): Source[LabelClusterForApi, _] = {
     setUpStreamFromDb(clusterTable.getLabelClustersV3(filters), batchSize)
   }
@@ -214,20 +253,35 @@ class ApiServiceImpl @Inject() (
     }
   }
 
-  def getClustersInBoundingBox(
-      spatialQueryType: SpatialQueryType,
-      bbox: LatLngBBox,
-      severity: Option[String],
-      batchSize: Int
-  ): Source[ClusterForApi, _] = {
-    setUpStreamFromDb(clusterTable.getClustersInBoundingBox(spatialQueryType, bbox, severity), batchSize)
-  }
-
   def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]] =
     db.run(streetEdgeTable.selectStreetsIntersecting(spatialQueryType, bbox))
 
   def getNeighborhoodsWithin(bbox: LatLngBBox): Future[Seq[Region]] =
     db.run(regionTable.getNeighborhoodsWithin(bbox))
+
+  def getClusterScoreRows(
+      spatialQueryType: SpatialQueryType,
+      bbox: LatLngBBox,
+      labelTypes: Set[String],
+      batchSize: Int
+  ): Source[ClusterScoreRow, _] = {
+    setUpStreamFromDb(clusterTable.getClusterScoreRows(spatialQueryType, bbox, labelTypes), batchSize)
+  }
+
+  def getStreetLengths(streetEdgeIds: Seq[Int]): Future[Map[Int, Double]] =
+    db.run(streetEdgeTable.getStreetLengths(streetEdgeIds))
+
+  /** Derives a lat/lng bounding box from a region's MultiPolygon envelope (geometry is stored in EPSG:4326). */
+  private def regionToBBox(region: Region): LatLngBBox = {
+    val env = region.geom.getEnvelopeInternal
+    LatLngBBox(minLat = env.getMinY, minLng = env.getMinX, maxLat = env.getMaxY, maxLng = env.getMaxX)
+  }
+
+  def getRegionBBox(regionId: Int): Future[Option[LatLngBBox]] =
+    db.run(regionTable.getRegion(regionId)).map(_.map(regionToBBox))
+
+  def resolveRegionByName(regionName: String): Future[Option[(Int, LatLngBBox)]] =
+    db.run(regionTable.getRegionByName(regionName)).map(_.map(r => (r.regionId, regionToBBox(r))))
 
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _] = {
     // NOTE can't use `setUpStreamFromDb` here bc we need to call `mapResult` to convert tuples to `LabelCVMetadata`.
@@ -244,7 +298,7 @@ class ApiServiceImpl @Inject() (
       minMetersExplored: Option[Double] = None,
       highQualityOnly: Boolean = false,
       minAccuracy: Option[Double] = None
-  ): Future[Seq[UserStatApi]] = {
+  ): Future[Seq[UserStatForApi]] = {
     // Uses the database-level filtering method for improved performance.
     db.run(userStatTable.getStatsForApiWithFilters(minLabels, minMetersExplored, highQualityOnly, minAccuracy))
   }
@@ -325,6 +379,19 @@ class ApiServiceImpl @Inject() (
           StreetTypeForApi(wayType, description, count)
         }
     }
+  }
+
+  def getOverallStatsByDay(
+      startDate: Option[LocalDate],
+      endDate: Option[LocalDate],
+      filterLowQuality: Boolean
+  ): Future[Seq[DailyStatRecord]] = {
+    val labelsFuture      = db.run(labelTable.getDailyLabelStats(startDate, endDate, filterLowQuality))
+    val validationsFuture = db.run(labelValidationTable.getDailyValidationStats(startDate, endDate, filterLowQuality))
+    for {
+      labels      <- labelsFuture
+      validations <- validationsFuture
+    } yield DailyStatRecord.merge(labels, validations)
   }
 
   def getValidations(filters: ValidationFiltersForApi, batchSize: Int): Source[ValidationDataForApi, _] = {

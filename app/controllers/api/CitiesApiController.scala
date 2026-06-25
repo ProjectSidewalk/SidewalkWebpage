@@ -1,6 +1,7 @@
 package controllers.api
 
 import controllers.base.CustomControllerComponents
+import models.api.ApiError
 import play.api.Logger
 import play.api.libs.json.{JsNumber, JsObject, JsString, Json}
 import play.silhouette.api.Silhouette
@@ -77,33 +78,22 @@ class CitiesApiController @Inject() (
         // Return response in the requested format.
         filetype match {
           case "csv" =>
+            // Use .as() rather than withHeaders("Content-Type" -> ...) — Play's Ok(String) defaults
+            // to text/plain and withHeaders would add a duplicate header rather than replacing it.
             Ok(generateCsv(cityDetails))
-              .withHeaders(
-                "Content-Type"        -> "text/csv",
-                "Content-Disposition" -> "attachment; filename=cities.csv"
-              )
+              .as("text/csv")
+              .withHeaders("Content-Disposition" -> "attachment; filename=cities.csv")
           case "geojson" =>
             Ok(generateGeoJson(cityDetails))
-              .withHeaders(
-                "Content-Type"        -> "application/geo+json",
-                "Content-Disposition" -> "inline; filename=cities.geojson"
-              )
-          case _ => // Default to JSON
+              .as("application/geo+json")
+              .withHeaders("Content-Disposition" -> "inline; filename=cities.geojson")
+          case _ => // Default to JSON.
             Ok(Json.obj("status" -> "OK", "cities" -> cityDetails))
         }
       }
       .recover { case e: Exception =>
-        // Log the error for diagnostic purposes
         logger.error(s"Failed to retrieve city information: ${e.getMessage}", e)
-
-        // Return error response to client
-        InternalServerError(
-          Json.obj(
-            "status"  -> 500,
-            "code"    -> "INTERNAL_SERVER_ERROR",
-            "message" -> s"Failed to retrieve city information: ${e.getMessage}"
-          )
-        )
+        InternalServerError(Json.toJson(ApiError.internalServerError(s"Failed to retrieve city information: ${e.getMessage}")))
       }
   }
 
@@ -120,12 +110,12 @@ class CitiesApiController @Inject() (
   private def buildCityObject(cityInfo: service.CityInfo, mapParamsOpt: Option[models.utils.MapParams]): JsObject = {
     // Build base city information object
     val baseInfo = Json.obj(
-      "cityId"            -> cityInfo.cityId,
-      "countryId"         -> cityInfo.countryId,
-      "cityNameShort"     -> cityInfo.cityNameShort,
-      "cityNameFormatted" -> cityInfo.cityNameFormatted,
-      "url"               -> cityInfo.URL,
-      "visibility"        -> cityInfo.visibility
+      "city_id"             -> cityInfo.cityId,
+      "country_id"          -> cityInfo.countryId,
+      "city_name_short"     -> cityInfo.cityNameShort,
+      "city_name_formatted" -> cityInfo.cityNameFormatted,
+      "url"                 -> cityInfo.URL,
+      "visibility"          -> cityInfo.visibility
     )
 
     // Add map coordinates only if available.
@@ -139,9 +129,9 @@ class CitiesApiController @Inject() (
 
         // Combine base info with geographic information.
         baseInfo ++ Json.obj(
-          "centerLat" -> mapParams.centerLat,
-          "centerLng" -> mapParams.centerLng,
-          "zoom"      -> mapParams.zoom,
+          "center_lat" -> mapParams.centerLat,
+          "center_lng" -> mapParams.centerLng,
+          "zoom"       -> mapParams.zoom,
           "bounds"    -> Json.obj(
             "north" -> north,
             "south" -> south,
@@ -171,8 +161,8 @@ class CitiesApiController @Inject() (
   private def generateCsv(cityDetails: Seq[JsObject]): String = {
     // Define CSV headers based on all possible fields.
     val headers = Seq(
-      "cityId", "countryId", "cityNameShort", "cityNameFormatted", "url", "visibility", "centerLat", "centerLng",
-      "zoom", "bounds.north", "bounds.south", "bounds.east", "bounds.west"
+      "city_id", "country_id", "city_name_short", "city_name_formatted", "url", "visibility", "center_lat",
+      "center_lng", "zoom", "bounds.north", "bounds.south", "bounds.east", "bounds.west"
     )
 
     // Generate CSV rows for each city.
@@ -241,8 +231,8 @@ class CitiesApiController @Inject() (
     // Filter cities that have geographic coordinates.
     val features = cityDetails.flatMap { cityObject =>
       // Extract center coordinates.
-      val centerLat = (cityObject \ "centerLat").asOpt[Double]
-      val centerLng = (cityObject \ "centerLng").asOpt[Double]
+      val centerLat = (cityObject \ "center_lat").asOpt[Double]
+      val centerLng = (cityObject \ "center_lng").asOpt[Double]
 
       // Only include cities with coordinates.
       (centerLat, centerLng) match {

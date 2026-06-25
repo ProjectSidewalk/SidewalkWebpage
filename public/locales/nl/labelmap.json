@@ -18,5 +18,7 @@
     "comment": "Opmerking",
     "comments": "Opmerkingen",
     "comment-submitted": "Commentaar ingediend",
-    "own-label-disabled": "Je kunt je eigen etiket niet valideren of becommentariëren"
+    "own-label-disabled": "Je kunt je eigen etiket niet valideren of becommentariëren",
+    "admin-only": "Alleen beheerders",
+    "not-admin-validated": "Niet gevalideerd door een beheerder"
 }

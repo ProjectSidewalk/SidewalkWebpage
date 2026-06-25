@@ -1,7 +1,6 @@
 package controllers.helper
 
-import models.api.{LabelClusterForApi, LabelDataForApi, RawLabelInClusterDataForApi, StreetDataForApi}
-import models.computation.{RegionScore, StreetScore}
+import models.api.{AccessScoreApiModels, LabelClusterForApi, LabelDataForApi, RawLabelInClusterDataForApi, RegionAccessScoreForApi, RegionDataForApi, StreetAccessScoreForApi, StreetDataForApi}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
@@ -261,7 +260,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "labelTime:String,"       // Creation timestamp
       + "streetId:Integer,"       // Street edge ID
       + "osmWayId:String,"        // OSM street ID
-      + "neighborhd:String,"      // Neighborhood name
+      + "regionId:Integer,"       // Region (neighborhood) ID
+      + "regionName:String,"      // Region (neighborhood) name
       + "correct:String,"         // Validation correctness
       + "nAgree:Integer,"         // Agree validations count
       + "nDisagree:Integer,"      // Disagree validations count
@@ -302,7 +302,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.timeCreated)
       featureBuilder.add(label.streetEdgeId)
       featureBuilder.add(label.osmWayId.toString)
-      featureBuilder.add(label.neighborhood)
+      featureBuilder.add(label.regionId)
+      featureBuilder.add(label.regionName)
       featureBuilder.add(label.correct.map(_.toString).orNull)
       featureBuilder.add(label.agreeCount)
       featureBuilder.add(label.disagreeCount)
@@ -709,7 +710,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "time_created:String,"    // Creation timestamp
       + "street_edge_id:Integer," // Street edge ID
       + "osm_way_id:String,"      // OSM street ID
-      + "neighborhood:String,"    // Neighborhood name
+      + "region_id:Integer,"      // Region (neighborhood) ID
+      + "region_name:String,"     // Region (neighborhood) name
       + "correct:String,"         // Validation correctness
       + "agree_count:Integer,"    // Agree validations
       + "disagree_count:Integer," // Disagree validations
@@ -753,7 +755,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.timeCreated)
       featureBuilder.add(label.streetEdgeId)
       featureBuilder.add(String.valueOf(label.osmWayId))
-      featureBuilder.add(label.neighborhood)
+      featureBuilder.add(label.regionId)
+      featureBuilder.add(label.regionName)
       featureBuilder.add(label.correct.map(_.toString).orNull)
       featureBuilder.add(label.agreeCount)
       featureBuilder.add(label.disagreeCount)
@@ -781,102 +784,6 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     }
 
     createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
-  }
-
-  def createStreetShapefile(
-      source: Source[StreetScore, _],
-      outputFile: String,
-      batchSize: Int
-  ): Future[Option[Path]] = {
-    // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
-    val featureType: SimpleFeatureType = DataUtilities.createType(
-      "Location",
-      "the_geom:LineString:srid=4326," // the geometry attribute: Line type
-      + "streetId:Integer,"            // StreetId
-      + "osmWayId:String,"             // osmWayId
-      + "nghborhdId:String,"           // Region ID
-      + "score:Double,"                // street score
-      + "auditCount:Integer,"          // boolean representing whether the street is audited
-      + "sigRamp:Double,"              // curb ramp significance weight
-      + "sigNoRamp:Double,"            // no Curb ramp significance weight
-      + "sigObs:Double,"               // obstacle significance weight
-      + "sigSurfce:Double,"            // Surface problem significance weight
-      + "nRamp:Integer,"               // curb ramp count, averaged across streets
-      + "nNoRamp:Integer,"             // no Curb ramp count, averaged across streets
-      + "nObs:Integer,"                // obstacle count, averaged across streets
-      + "nSurfce:Integer,"             // Surface problem count, averaged across streets
-      + "avgImgDate:String,"           // average image age in milliseconds
-      + "avgLblDate:String"            // average label age in milliseconds
-    )
-
-    def buildFeature(s: StreetScore, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
-      featureBuilder.add(s.streetEdge.geom)
-      featureBuilder.add(s.streetEdge.streetEdgeId)
-      featureBuilder.add(String.valueOf(s.osmId))
-      featureBuilder.add(s.regionId)
-      featureBuilder.add(s.score)
-      featureBuilder.add(s.auditCount)
-      featureBuilder.add(s.significance(0))
-      featureBuilder.add(s.significance(1))
-      featureBuilder.add(s.significance(2))
-      featureBuilder.add(s.significance(3))
-      featureBuilder.add(s.clusters(0))
-      featureBuilder.add(s.clusters(1))
-      featureBuilder.add(s.clusters(2))
-      featureBuilder.add(s.clusters(3))
-      featureBuilder.add(s.avgImageCaptureDate.map(String.valueOf).orNull)
-      featureBuilder.add(s.avgLabelDate.map(String.valueOf).orNull)
-      featureBuilder.buildFeature(null)
-    }
-
-    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
-  }
-
-  def createRegionShapefile(
-      source: Source[RegionScore, _],
-      outputFile: String,
-      batchSize: Int
-  ): Future[Option[Path]] = {
-    // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
-    val featureType: SimpleFeatureType = DataUtilities.createType(
-      "Location",
-      "the_geom:Polygon:srid=4326," // line geometry
-      + "neighborhd:String,"        // Neighborhood Name
-      + "nghborhdId:Integer,"       // Neighborhood Id
-      + "coverage:Double,"          // coverage score
-      + "score:Double,"             // obstacle score
-      + "sigRamp:Double,"           // curb ramp significance weight
-      + "sigNoRamp:Double,"         // no Curb ramp significance weight
-      + "sigObs:Double,"            // obstacle significance weight
-      + "sigSurfce:Double,"         // Surface problem significance weight
-      + "nRamp:Double,"             // curb ramp count
-      + "nNoRamp:Double,"           // no Curb ramp count
-      + "nObs:Double,"              // obstacle count
-      + "nSurfce:Double,"           // Surface problem count
-      + "avgImgDate:String,"        // average image age in milliseconds
-      + "avgLblDate:String"         // average label age in milliseconds
-    )
-
-    def buildFeature(n: RegionScore, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
-      featureBuilder.add(n.geom)
-      featureBuilder.add(n.name)
-      featureBuilder.add(n.regionId)
-      featureBuilder.add(n.coverage)
-      featureBuilder.add(n.score)
-      featureBuilder.add(n.significanceScores(0))
-      featureBuilder.add(n.significanceScores(1))
-      featureBuilder.add(n.significanceScores(2))
-      featureBuilder.add(n.significanceScores(3))
-      featureBuilder.add(n.clusterScores(0))
-      featureBuilder.add(n.clusterScores(1))
-      featureBuilder.add(n.clusterScores(2))
-      featureBuilder.add(n.clusterScores(3))
-      featureBuilder.add(n.avgImageCaptureDate.map(String.valueOf).orNull)
-      featureBuilder.add(n.avgLabelDate.map(String.valueOf).orNull)
-      featureBuilder.buildFeature(null)
-    }
-
-    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
   }
 
   /**
@@ -988,6 +895,238 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(street.lastLabelDate.map(_.toString).orNull)
 
       featureBuilder.buildFeature(null)
+    }
+
+    createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
+   * Creates a shapefile from RegionDataForApi objects.
+   *
+   * @param source Stream of RegionDataForApi objects
+   * @param outputFile Base filename for the output file (without extension)
+   * @param batchSize Number of features to process in each batch
+   * @return Path to the created shapefile, or None if creation failed
+   */
+  def createRegionDataShapefile(
+      source: Source[RegionDataForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    // Define the feature type schema for RegionDataForApi.
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "Region",
+      "the_geom:MultiPolygon:srid=4326," // the geometry attribute: MultiPolygon type
+      + "regionId:Integer,"              // Region ID
+      + "name:String,"                   // Region name
+      + "labelCount:Integer,"            // Number of labels in this region
+      + "streetCount:Integer,"           // Number of streets in this region
+      + "userCount:Integer,"             // Number of unique users who labeled in this region
+      + "auditCount:Integer,"            // Number of completed audits in this region
+      + "firstLabel:String,"             // First label date
+      + "lastLabel:String"               // Last label date
+    )
+
+    def buildFeature(region: RegionDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      featureBuilder.add(region.geometry)
+      featureBuilder.add(region.regionId)
+      featureBuilder.add(region.name)
+      featureBuilder.add(region.labelCount)
+      featureBuilder.add(region.streetCount)
+      featureBuilder.add(region.userCount)
+      featureBuilder.add(region.auditCount)
+      featureBuilder.add(region.firstLabelDate.map(_.toString).orNull)
+      featureBuilder.add(region.lastLabelDate.map(_.toString).orNull)
+      featureBuilder.buildFeature(null)
+    }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
+   * Creates a GeoPackage file from RegionDataForApi objects.
+   *
+   * @param source Stream of RegionDataForApi objects
+   * @param outputFile Base filename for the output file (without extension)
+   * @param batchSize Number of features to process in each batch
+   * @return Path to the created GeoPackage file, or None if creation failed
+   */
+  def createRegionDataGeopackage(
+      source: Source[RegionDataForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    // Define the feature type schema.
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "regions",
+      "the_geom:MultiPolygon:srid=4326," // MultiPolygon geometry
+      + "region_id:Integer,"             // Region ID
+      + "name:String,"                   // Region name
+      + "label_count:Integer,"           // Number of labels in this region
+      + "street_count:Integer,"          // Number of streets in this region
+      + "user_count:Integer,"            // Number of unique users who labeled in this region
+      + "audit_count:Integer,"           // Number of completed audits in this region
+      + "first_label_time:String,"       // First label date
+      + "last_label_time:String"         // Last label date
+    )
+
+    def buildFeature(region: RegionDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      featureBuilder.add(region.geometry)
+      featureBuilder.add(region.regionId)
+      featureBuilder.add(region.name)
+      featureBuilder.add(region.labelCount)
+      featureBuilder.add(region.streetCount)
+      featureBuilder.add(region.userCount)
+      featureBuilder.add(region.auditCount)
+      featureBuilder.add(region.firstLabelDate.map(_.toString).orNull)
+      featureBuilder.add(region.lastLabelDate.map(_.toString).orNull)
+      featureBuilder.buildFeature(null)
+    }
+
+    createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
+   * Creates a shapefile from StreetAccessScoreForApi objects (v3, #3855).
+   *
+   * The per-label-type count/sub-score columns use short codes (e.g. nCRamp, sCRamp) because the DBF format truncates
+   * column names at 10 characters; GeoJSON/CSV/GeoPackage keep the full snake_case names.
+   */
+  def createStreetAccessScoreShapefile(
+      source: Source[StreetAccessScoreForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val perTypeSpec: String = AccessScoreApiModels.orderedTypes
+      .map { t => val c = AccessScoreApiModels.shapefileTypeCode(t); s"n$c:Integer,s$c:Double" }
+      .mkString(",")
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "AccessScoreStreet",
+      "the_geom:LineString:srid=4326," // LineString geometry
+      + "streetId:Integer,"            // Street edge ID
+      + "osmWayId:String,"             // OSM way ID as String (shapefiles don't handle Long well)
+      + "regionId:Integer,"            // Region ID
+      + "score:Double,"                // Access score (null if unaudited)
+      + "auditCount:Integer,"          // Number of completed audits
+      + "lengthM:Double,"              // Street length in meters
+      + "labelCount:Integer,"          // Number of labels contributing to the score
+      + perTypeSpec                    // Per-type cluster count (n<code>) and sub-score (s<code>)
+    )
+
+    def buildFeature(s: StreetAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
+      fb.add(s.geometry)
+      fb.add(s.streetEdgeId)
+      fb.add(s.osmWayId.toString)
+      fb.add(s.regionId)
+      fb.add(s.score.map(Double.box).orNull)
+      fb.add(s.auditCount)
+      fb.add(s.lengthMeters)
+      fb.add(s.labelCount)
+      AccessScoreApiModels.orderedTypes.foreach { t =>
+        fb.add(s.clusterCounts.getOrElse(t, 0))
+        fb.add(s.subScores.getOrElse(t, 0.0))
+      }
+      fb.buildFeature(null)
+    }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /** Creates a GeoPackage from StreetAccessScoreForApi objects (v3, #3855). Full snake_case column names (no 10-char limit). */
+  def createStreetAccessScoreGeopackage(
+      source: Source[StreetAccessScoreForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val perTypeSpec: String = AccessScoreApiModels.orderedTypes
+      .flatMap { t => val n = AccessScoreApiModels.snakeType(t); Seq(s"n_$n:Integer", s"score_$n:Double") }
+      .mkString(",")
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "access_score_streets",
+      "the_geom:LineString:srid=4326,street_id:Integer,osm_way_id:String,region_id:Integer,score:Double," +
+        "audit_count:Integer,length_meters:Double,label_count:Integer," + perTypeSpec
+    )
+
+    def buildFeature(s: StreetAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
+      fb.add(s.geometry)
+      fb.add(s.streetEdgeId)
+      fb.add(s.osmWayId.toString)
+      fb.add(s.regionId)
+      fb.add(s.score.map(Double.box).orNull)
+      fb.add(s.auditCount)
+      fb.add(s.lengthMeters)
+      fb.add(s.labelCount)
+      AccessScoreApiModels.orderedTypes.foreach { t =>
+        fb.add(s.clusterCounts.getOrElse(t, 0))
+        fb.add(s.subScores.getOrElse(t, 0.0))
+      }
+      fb.buildFeature(null)
+    }
+
+    createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /** Creates a shapefile from RegionAccessScoreForApi objects (v3, #3855). Per-type avg-count columns use short codes. */
+  def createRegionAccessScoreShapefile(
+      source: Source[RegionAccessScoreForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val perTypeSpec: String = AccessScoreApiModels.orderedTypes
+      .map { t => s"a${AccessScoreApiModels.shapefileTypeCode(t)}:Double" }
+      .mkString(",")
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "AccessScoreRegion",
+      "the_geom:MultiPolygon:srid=4326," // MultiPolygon geometry
+      + "regionId:Integer,"              // Region ID
+      + "name:String,"                   // Region name
+      + "score:Double,"                  // Length-weighted region score (null if no audited streets)
+      + "coverage:Double,"               // Fraction of streets audited
+      + "audited:Integer,"               // Audited street count
+      + "total:Integer,"                 // Total street count
+      + perTypeSpec                      // Per-type mean cluster count (a<code>)
+    )
+
+    def buildFeature(r: RegionAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
+      fb.add(r.geometry)
+      fb.add(r.regionId)
+      fb.add(r.name)
+      fb.add(r.score.map(Double.box).orNull)
+      fb.add(r.coverage)
+      fb.add(r.auditedStreetCount)
+      fb.add(r.totalStreetCount)
+      AccessScoreApiModels.orderedTypes.foreach { t => fb.add(r.avgClusterCounts.getOrElse(t, 0.0)) }
+      fb.buildFeature(null)
+    }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /** Creates a GeoPackage from RegionAccessScoreForApi objects (v3, #3855). Full snake_case column names. */
+  def createRegionAccessScoreGeopackage(
+      source: Source[RegionAccessScoreForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val perTypeSpec: String = AccessScoreApiModels.orderedTypes
+      .map { t => s"avg_n_${AccessScoreApiModels.snakeType(t)}:Double" }
+      .mkString(",")
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "access_score_regions",
+      "the_geom:MultiPolygon:srid=4326,region_id:Integer,name:String,score:Double,coverage:Double," +
+        "audited_street_count:Integer,total_street_count:Integer," + perTypeSpec
+    )
+
+    def buildFeature(r: RegionAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
+      fb.add(r.geometry)
+      fb.add(r.regionId)
+      fb.add(r.name)
+      fb.add(r.score.map(Double.box).orNull)
+      fb.add(r.coverage)
+      fb.add(r.auditedStreetCount)
+      fb.add(r.totalStreetCount)
+      AccessScoreApiModels.orderedTypes.foreach { t => fb.add(r.avgClusterCounts.getOrElse(t, 0.0)) }
+      fb.buildFeature(null)
     }
 
     createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)

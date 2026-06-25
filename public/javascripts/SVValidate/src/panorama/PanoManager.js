@@ -25,6 +25,9 @@ class PanoManager {
     #bottomLinksClickable = false;
     #linksListener = null;
 
+    /** @type {MutationObserver|null} Watches for Mapillary's attribution container appearing inside the pano canvas. */
+    #mapillaryAttributionObserver = null;
+
     /** @type {{showPrimaryLogo: Function, showSourceLogo: Function}} */
     #logo;
 
@@ -81,9 +84,11 @@ class PanoManager {
             svv.panoViewer.resize(); // Necessary for PannellumViewer for correct vertical position of the label.
         }
 
-        // TODO we probably need to do this for any viewer type...
         if (panoViewerType === GsvViewer && !isMobile()) {
-            this.#linksListener = this.#primaryViewer.gsvPano.addListener('links_changed', this.#makeLinksClickable.bind(this));
+            this.#makeGsvAttributionClickable();
+            this.#linksListener = this.#primaryViewer.gsvPano.addListener('links_changed', this.#makeGsvAttributionClickable.bind(this));
+        } else if (panoViewerType === MapillaryViewer && !isMobile()) {
+            this.#makeMapillaryAttributionClickable();
         }
     }
 
@@ -142,15 +147,39 @@ class PanoManager {
      * Moves the buttons on the bottom-right of the GSV image to the top layer so they are clickable.
      * @private
      */
-    #makeLinksClickable() {
+    #makeGsvAttributionClickable() {
         let bottomLinks = $('.gm-style-cc');
         if (!this.#bottomLinksClickable && bottomLinks.length > 3) {
             this.#bottomLinksClickable = true;
+
+            // Remove the first child of each remaining .gm-style-cc element because it looks better.
+            bottomLinks.each((i, el) => el.firstElementChild && el.firstElementChild.remove());
+
             bottomLinks[0].remove(); // Remove GSV keyboard shortcuts link.
             svv.ui.viewer.controlLayer.append($(bottomLinks[1]).parent().parent()); // Makes remaining links clickable.
         }
 
         google.maps.event.removeListener(this.#linksListener);
+    }
+
+    /**
+     * Moves Mapillary's attribution links (image credit/date/report links) to the top layer so they're clickable.
+     *
+     * Mapillary renders these inside the pano canvas itself, where the click-handling view-control-layer covers
+     * them. We move the container up into that layer instead, the same trick used for the GSV links. Mapillary may
+     * re-render its own container back into the pano (e.g. after an image change), so we keep watching for that.
+     * @private
+     */
+    #makeMapillaryAttributionClickable() {
+        const tryMove = () => {
+            const attributionContainer = this.#panoCanvas.querySelector('.mapillary-attribution-container');
+            if (attributionContainer) svv.ui.viewer.controlLayer.append(attributionContainer);
+        };
+        tryMove(); // Handle the case where Mapillary already rendered the container before we started observing.
+
+        if (this.#mapillaryAttributionObserver) this.#mapillaryAttributionObserver.disconnect();
+        this.#mapillaryAttributionObserver = new MutationObserver(tryMove);
+        this.#mapillaryAttributionObserver.observe(this.#panoCanvas, { childList: true, subtree: true });
     }
 
     /**
@@ -181,13 +210,14 @@ class PanoManager {
 
         if (!this.labelMarker) {
             const markerLayer = document.getElementById('view-control-layer');
+            const markerDiameter = Math.round((svv.labelRadius * 2 + 2) * util.uiScale());
             this.labelMarker = new PanoMarker({
                 id: 'validate-pano-marker',
                 markerContainer: markerLayer,
                 panoViewer: svv.panoViewer,
                 position: { heading: labelPov.heading, pitch: labelPov.pitch },
                 icon: url,
-                size: { width: svv.labelRadius * 2 + 2, height: svv.labelRadius * 2 + 2 },
+                size: { width: markerDiameter, height: markerDiameter },
                 zIndex: 2
             });
             this.#markerViewer = svv.panoViewer;
@@ -303,6 +333,16 @@ class PanoManager {
     }
 
     /**
+     * Resizes the label marker to match the given UI scale factor.
+     * @param {number} scale The current UI scale factor (see util.applyToolScale).
+     */
+    setMarkerScale(scale) {
+        if (!this.labelMarker) return;
+        const markerDiameter = Math.round((svv.labelRadius * 2 + 2) * scale);
+        this.labelMarker.setSize({ width: markerDiameter, height: markerDiameter });
+    }
+
+    /**
      * Sets the zoom level for this panorama.
      * @param zoom  Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
      * @returns {void}
@@ -320,27 +360,21 @@ class PanoManager {
     #sizePano() {
         let panoHolderElem = document.getElementById('svv-panorama-holder');
         let controlLayerElem = document.getElementById('view-control-layer');
-        let panoOutlineElem = document.getElementById('svv-panorama-outline');
         let heightOffset = panoHolderElem.getBoundingClientRect().top;
-        const h = window.innerHeight - heightOffset - 10;
-        const w = window.innerWidth - 10;
-        const outlineH = h + 10;
-        const outlineW = w + 10;
+        const h = window.innerHeight - heightOffset;
+        const w = window.innerWidth;
         const left = 0;
         this.#panoCanvas.style.height = h + 'px';
         this.#pannellumCanvas.style.height = h + 'px';
         panoHolderElem.style.height = h + 'px';
         controlLayerElem.style.height = h + 'px';
-        panoOutlineElem.style.height = outlineH + 'px';
         this.#panoCanvas.style.width = w + 'px';
         this.#pannellumCanvas.style.width = w + 'px';
         panoHolderElem.style.width = w + 'px';
         controlLayerElem.style.width = w + 'px';
-        panoOutlineElem.style.width = outlineW + 'px';
         this.#panoCanvas.style.left = left + 'px';
         panoHolderElem.style.left = left + 'px';
         controlLayerElem.style.left = left + 'px';
-        panoOutlineElem.style.left = left + 'px';
     }
 
     /**

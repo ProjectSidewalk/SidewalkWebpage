@@ -19,12 +19,6 @@ function defineValidateConstants() {
         10: i18next.t('common:signal')
     };
 
-    svv.validationOptions = {
-        1: 'Agree',
-        2: 'Disagree',
-        3: 'Unsure'
-    };
-
     svv.reasonButtonInfo = {
         'curb-ramp': {
             'no-button-1': {

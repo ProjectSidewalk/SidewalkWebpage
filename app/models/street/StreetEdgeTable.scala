@@ -314,6 +314,26 @@ class StreetEdgeTable @Inject() (
   }
 
   /**
+   * Gets the length in meters of each of the given street edges.
+   *
+   * Lengths are computed by projecting the geometry to UTM zone 18N (EPSG:26918) so the result is in meters rather than
+   * degrees — the same projection used by the distance methods above. Used to length-weight region AccessScores (#3855).
+   * `inSet` inlines the ids (rather than binding them) to avoid the bound-parameter limit on whole-city id lists.
+   *
+   * @param streetEdgeIds The street edge ids to measure.
+   * @return A map from street edge id to its length in meters (empty for an empty input).
+   */
+  def getStreetLengths(streetEdgeIds: Seq[Int]): DBIO[Map[Int, Double]] = {
+    if (streetEdgeIds.isEmpty) DBIO.successful(Map.empty[Int, Double])
+    else
+      streetsUnfiltered
+        .filter(_.streetEdgeId inSet streetEdgeIds)
+        .map(s => (s.streetEdgeId, s.geom.transform(26918).lengthD))
+        .result
+        .map(_.toMap)
+  }
+
+  /**
    * Gets all street data for the API with filters applied, designed for streaming.
    *
    * @param filters   The filters to apply when retrieving streets.
@@ -330,13 +350,14 @@ class StreetEdgeTable @Inject() (
       .getOrElse("")
 
     val wayTypeFilter = filters.wayTypes
-      .map { wayTypes => s"AND s.way_type IN (${wayTypes.map(wt => s"'$wt'").mkString(",")})" }
+      .map { wayTypes => s"AND s.way_type IN (${wayTypes.map(wt => s"'${wt.replace("'", "''")}'").mkString(",")})" }
       .getOrElse("")
 
     val regionIdFilter = filters.regionId.map { regionId => s"AND r.region_id = $regionId" }.getOrElse("")
 
     val regionNameFilter =
-      filters.regionName.map { regionName => s"AND LOWER(reg.name) = LOWER('$regionName')" }.getOrElse("")
+      filters.regionName.map { regionName => s"AND LOWER(reg.name) = LOWER('${regionName.replace("'", "''")}')" }
+        .getOrElse("")
 
     val minLabelCountFilter = filters.minLabelCount.map { count => s"AND label_count >= $count" }.getOrElse("")
 
@@ -345,7 +366,8 @@ class StreetEdgeTable @Inject() (
     val minUserCountFilter =
       filters.minUserCount.map { count => s"AND array_length(user_ids, 1) >= $count" }.getOrElse("")
 
-    // Build the query as a string - safer than string interpolation for SQL.
+    // Build the query string. User-supplied string values (wayType, regionName) are single-quote-escaped above and
+    // numeric filters are safe; see #2756 for migrating these raw builders to bound parameters.
     val queryStr = s"""
       WITH filtered_streets AS (
         SELECT s.street_edge_id, s.geom, s.way_type, o.osm_way_id, r.region_id, reg.name as region_name
@@ -371,7 +393,12 @@ class StreetEdgeTable @Inject() (
       label_stats AS (
         SELECT s.street_edge_id,
                COUNT(l.label_id) as label_count,
-               array_agg(DISTINCT l.user_id) as user_ids,
+               -- The FILTER is essential: the LEFT JOIN to `label` yields a NULL user_id for streets that have been
+               -- audited but carry no labels, and `array_agg(DISTINCT l.user_id)` over that produces `{NULL}` (a
+               -- one-element array containing null) rather than an empty array. Without the FILTER, such streets report
+               -- `user_ids: [null]` and `user_count: 1`, and the `minUserCount` filter (which counts array_length)
+               -- treats them as having one user. See #3887.
+               array_agg(DISTINCT l.user_id) FILTER (WHERE l.user_id IS NOT NULL) as user_ids,
                MIN(l.time_created) as first_label_date,
                MAX(l.time_created) as last_label_date
         FROM filtered_streets s

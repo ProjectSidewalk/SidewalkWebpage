@@ -74,23 +74,33 @@
         }
     },
     "mission-complete": {
-        "distance-type-display-string": "kilometers",
         "title-generic": "Mission Complete!",
         "title-neighborhood-complete": "Bravo! You completed the {{neighborhoodName}} neighborhood!",
         "title-route-complete": "Bravo! You completed your route!",
-        "map-legend-label-other-users": "Other Users' Missions",
-        "progress-neighborhood-title": "Neighborhood Progress",
-        "progress-route-title": "Route Progress",
-        "progress-neighborhood-you": "You explored in this neighborhood",
-        "progress-route-you": "Explored in your route",
-        "progress-neighborhood-remaining": "Remaining in this neighborhood",
-        "progress-route-remaining": "Remaining in your route",
-        "button-start-validating": "Start validating",
-        "button-keep-exploring": "Keep exploring",
-        "button-continue": "Continue"
+        "subtitle": "Explore {{distance}} of {{neighborhoodName}}",
+        "badge-alt": "Your missions badge",
+        "legend-title": "Mission Progress",
+        "legend-this-mission": "This mission",
+        "legend-previous-missions": "Previous missions",
+        "legend-community": "Community progress",
+        "stat-distance-all": "{{distance}} explored",
+        "stat-distance-you": "You've explored {{distance}}",
+        "stat-labels-all": "{{count}} labels created",
+        "stat-labels-you": "You've added {{count}} labels",
+        "button-next-mission": "Next Explore Mission",
+        "button-try-validation": "Try Validation"
     },
     "top-ui": {
         "press-key": "Press the \"{{key}}\" key"
+    },
+    "controls": {
+        "stuck": "Stuck",
+        "stuck-tooltip": "We'll try to move you back to your mission",
+        "sound": "Sound",
+        "feedback": "Feedback",
+        "feedback-tooltip": "Share your thoughts with us",
+        "feedback-submitted": "Feedback Submitted",
+        "feedback-title": "Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!"
     },
     "right-ui": {
         "accuracy-tooltip": "Accuracy is based on validations from other users. If your accuracy is low, check out some recent mistakes on <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">your User Dashboard</a> to help you improve!",
@@ -98,12 +108,20 @@
         "current-mission": {
             "header": "Current Mission",
             "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
-            "message-first-mission": "Explore for __PLACEHOLDER__ and find all the sidewalk accessibility attributes",
-            "message": "Explore __PLACEHOLDER__ of this neighborhood"
+            "message": "Explore __PLACEHOLDER__ of {{neighborhoodName}}"
         },
         "minimap": {
             "follow-red-line": "Follow the red line to continue the mission",
             "explore-current-location": "Turn 360 degrees to make sure nothing is missed."
+        },
+        "badges": {
+            "title": "Badges",
+            "see-all": "See all badges"
+        },
+        "neighborhood-progress": {
+            "title": "Neighborhood progress",
+            "you-tooltip": "Your contributions",
+            "community-tooltip": "Community contributions"
         }
     },
     "center-ui": {

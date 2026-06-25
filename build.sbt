@@ -1,6 +1,6 @@
 name := """sidewalk-webpage"""
 
-version := "11.4.3"
+version := "11.5.0"
 
 scalaVersion := "2.13.18"
 
@@ -60,6 +60,9 @@ libraryDependencies ++= Seq(
   "org.geotools" % "gt-shapefile" % "29.6" exclude("javax.media", "jai_core"),
   "org.geotools" % "gt-epsg-hsql" % "29.6" exclude("javax.media", "jai_core"),
   "org.geotools" % "gt-geopkg" % "29.6" exclude("javax.media", "jai_core"),
+
+  // Testing. scalatestplus-play pulls in ScalaTest + Play's test helpers (FakeRequest, route, etc.).
+  "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.1" % Test,
 )
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)

@@ -11,11 +11,6 @@ function ValidationMenu(referenceCard, gsvImage) {
     const refCard = referenceCard;
     let currSelected = null;
 
-    const resultOptions = {
-        'Agree': 1,
-        'Disagree': 2,
-        'Unsure': 3
-    };
     const classToValidationOption = {
         'validate-agree': 'Agree',
         'validate-disagree': 'Disagree',
@@ -182,7 +177,7 @@ function ValidationMenu(referenceCard, gsvImage) {
         const data = {
             label_id: refCard.getProperty('label_id'),
             label_type: refCard.getProperty('label_type'),
-            validation_result: resultOptions[action],
+            validation_result: action,
             old_severity: refCard.getProperty('severity'),
             new_severity: refCard.getProperty('severity'),
             old_tags: refCard.getProperty('tags'),
@@ -202,10 +197,14 @@ function ValidationMenu(referenceCard, gsvImage) {
             viewer_type: refCard.getImageSource() === 'crop' ? 'StaticCrop' : 'StaticApi'
         };
 
+        const isNewValidation = refCard.getProperty('user_validation') === null;
         return fetch('/labelmap/validate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
+        }).then((res) => {
+            if (res.ok && isNewValidation) BadgeAchievements.recordValidation();
+            return res;
         });
     }
 

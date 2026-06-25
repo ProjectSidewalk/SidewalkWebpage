@@ -7,9 +7,8 @@
 package models.api
 
 import models.api.ApiModelUtils.{createGeoJsonPoint, escapeCsvField}
-import models.computation.StreamingApiType
 import models.utils.LatLngBBox
-import play.api.libs.json.{JsObject, Json, Writes}
+import play.api.libs.json.{JsObject, Json, JsonConfiguration, JsonNaming, Writes}
 
 import java.time.OffsetDateTime
 
@@ -69,6 +68,8 @@ case class RawLabelInClusterDataForApi(
  * Companion object for RawLabelInClusterDataForApi containing JSON formatter and CSV utilities.
  */
 object RawLabelInClusterDataForApi {
+  // snake_case JSON output per the v3 API convention (#3871).
+  private implicit val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
   implicit val clusterLabelDataWrites: Writes[RawLabelInClusterDataForApi] = Json.writes[RawLabelInClusterDataForApi]
 
   /**
@@ -161,8 +162,8 @@ case class LabelClusterForApi(
       "label_type"             -> labelType,
       "street_edge_id"         -> streetEdgeId,
       "osm_way_id"             -> osmWayId,
-      "regionId"               -> regionId,
-      "regionName"             -> regionName,
+      "region_id"              -> regionId,
+      "region_name"            -> regionName,
       "avg_image_capture_date" -> avgImageCaptureDate.map(_.toString),
       "avg_label_date"         -> avgLabelDate.map(_.toString),
       "median_severity"        -> medianSeverity,

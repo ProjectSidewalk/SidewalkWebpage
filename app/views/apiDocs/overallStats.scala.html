@@ -161,30 +161,49 @@
         },
         ... // Remaining label types
     },
+    // Validation stats are split into three parallel blocks: "combined" (all votes), "human" (non-AI votes only),
+    // and "ai" (AI votes only). Each block has the same structure. AI votes are included in "combined".
     "validations": {
-        "total_validations": 125834,
-        "Overall": {
-            "validated": 151196,
-            "agreed": 127564,
-            "disagreed": 23632,
-            "accuracy": 0.84,
-            "has_a_validation": 162974
+        "combined": {
+            "total_validations": 125834,
+            "Overall": {
+                "validated": 151196,
+                "agreed": 127564,
+                "disagreed": 23632,
+                "accuracy": 0.84,
+                "has_a_validation": 162974
+            },
+            "CurbRamp": {
+                "validated": 54321,
+                "agreed": 48923,
+                "disagreed": 5398,
+                "accuracy": 0.90,
+                "has_a_validation": 59422
+            },
+            ... // Remaining label types
         },
-        "CurbRamp": {
-            "validated": 54321,
-            "agreed": 48923,
-            "disagreed": 5398,
-            "accuracy": 0.90,
-            "has_a_validation": 59422
+        "human": {
+            "total_validations": 119032,
+            "Overall": {
+                "validated": 142880,
+                "agreed": 120115,
+                "disagreed": 22765,
+                "accuracy": 0.84,
+                "has_a_validation": 154219
+            },
+            ... // Same label-type structure as "combined"
         },
-        "NoCurbRamp": {
-            "validated": 21456,
-            "agreed": 18237,
-            "disagreed": 3219,
-            "accuracy": 0.85,
-            "has_a_validation": 26100
-        },
-        ... // Remaining label types
+        "ai": {
+            "total_validations": 6802,
+            "Overall": {
+                "validated": 8316,
+                "agreed": 7449,
+                "disagreed": 867,
+                "accuracy": 0.90,
+                "has_a_validation": 8755
+            },
+            ... // Same label-type structure as "combined"
+        }
     },
     "ai_stats": {
         "Overall": {
@@ -252,13 +271,14 @@
                     <tr><td><code>labels.[type].count_with_severity</code></td><td><code>integer | null</code></td><td>Number of labels of this type that have severity ratings, or null if no severity ratings exist.</td></tr>
                     <tr><td><code>labels.[type].severity_mean</code></td><td><code>number | null</code></td><td>Mean severity rating for this label type, or null if no severity ratings exist.</td></tr>
                     <tr><td><code>labels.[type].severity_sd</code></td><td><code>number | null</code></td><td>Standard deviation of severity ratings for this label type, or null if insufficient data.</td></tr>
-                    <tr><td><code>validations</code></td><td><code>object</code></td><td>Statistics about validation accuracy by label type.</td></tr>
-                    <tr><td><code>validations.total_validations</code></td><td><code>integer</code></td><td>Total number of validation judgments made across all labels.</td></tr>
-                    <tr><td><code>validations.[type].validated</code></td><td><code>integer</code></td><td>Number of labels of this type that have been validated as either "correct" or "incorrect" through majority vote; a label is not included if the number of agree and disagree votes are equal.</td></tr>
-                    <tr><td><code>validations.[type].agreed</code></td><td><code>integer</code></td><td>Number of labels of this type that have been validated as "correct" through majority vote.</td></tr>
-                    <tr><td><code>validations.[type].disagreed</code></td><td><code>integer</code></td><td>Number of labels of this type that have been validated as "incorrect" through majority vote</td></tr>
-                    <tr><td><code>validations.[type].accuracy</code></td><td><code>number | null</code></td><td>Calculated accuracy rate (agreed / validated) for this label type, or null if no validations.</td></tr>
-                    <tr><td><code>validations.[type].validated</code></td><td><code>integer</code></td><td>Number of labels of this type that have received any validation votes.</td></tr>
+                    <tr><td><code>validations</code></td><td><code>object</code></td><td>Validation statistics split into three parallel blocks by vote source: <code>combined</code> (all votes), <code>human</code> (votes cast by people), and <code>ai</code> (votes cast by Project Sidewalk's AI). Each block has the identical structure described below. Note that <code>combined</code> includes AI votes, so it is not the same as <code>human</code>.</td></tr>
+                    <tr><td><code>validations.[source]</code></td><td><code>object</code></td><td>One of <code>combined</code>, <code>human</code>, or <code>ai</code>. Holds the validation breakdown computed using only that source's votes.</td></tr>
+                    <tr><td><code>validations.[source].total_validations</code></td><td><code>integer</code></td><td>Total number of individual validation judgments made by this source across all labels.</td></tr>
+                    <tr><td><code>validations.[source].[type].validated</code></td><td><code>integer</code></td><td>Number of labels of this type that this source has validated as either "correct" or "incorrect" through majority vote; a label is not included if the number of agree and disagree votes are equal.</td></tr>
+                    <tr><td><code>validations.[source].[type].agreed</code></td><td><code>integer</code></td><td>Number of labels of this type that this source has validated as "correct" through majority vote.</td></tr>
+                    <tr><td><code>validations.[source].[type].disagreed</code></td><td><code>integer</code></td><td>Number of labels of this type that this source has validated as "incorrect" through majority vote.</td></tr>
+                    <tr><td><code>validations.[source].[type].accuracy</code></td><td><code>number | null</code></td><td>Calculated accuracy rate (agreed / validated) for this label type and source, or null if no validations. Note that for the <code>ai</code> source this measures how often AI's own majority verdict was "agree", which is distinct from <code>ai_stats</code> (AI vs. human agreement).</td></tr>
+                    <tr><td><code>validations.[source].[type].has_a_validation</code></td><td><code>integer</code></td><td>Number of labels of this type that have received at least one validation vote from this source.</td></tr>
                     <tr><td><code>ai_stats</code></td><td><code>object</code></td><td>Statistics human agreement with AI validations.</td></tr>
                     <tr><td><code>ai_stats.[type].[vote]</code></td><td><code>object</code></td><td>Vote can be either "human" for majority vote across all users, or "admin" for majority vote across admin users.</td></tr>
                     <tr><td><code>ai_stats.[type].[vote].ai_yes_human_concurs</code></td><td><code>object</code></td><td>Number of labels where AI voted yes and human users voted yes more often than no.</td></tr>
@@ -291,17 +311,19 @@ CurbRamp Count With Severity,61837
 CurbRamp Severity Mean,1.2
 CurbRamp Severity SD,0.5
 ...
-Total Validations,125834
-Overall Labels Validated,151196
-Overall Agreed Count,127564
-Overall Disagreed Count,23632
-Overall Accuracy,0.84
-Overall Labels With a Validation,162974
-CurbRamp Labels Validated,54321
-CurbRamp Agreed Count,48923
-CurbRamp Disagreed Count,5398
-CurbRamp Accuracy,0.90
-CurbRamp Labels With a Validation,59422
+Combined Total Validations,125834
+Combined Overall Labels Validated,151196
+Combined Overall Agreed Count,127564
+Combined Overall Disagreed Count,23632
+Combined Overall Accuracy,0.84
+Combined Overall Labels With a Validation,162974
+Combined CurbRamp Labels Validated,54321
+...
+Human Total Validations,119032
+Human Overall Labels Validated,142880
+...
+AI Total Validations,6802
+AI Overall Labels Validated,8316
 ...
 Overall AI Yes and Human Majority Vote Concurs,37
 Overall AI Yes but Human Majority Vote Differs,3

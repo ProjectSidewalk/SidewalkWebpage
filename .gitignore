@@ -129,3 +129,7 @@ project/metals.sbt
 # Windows Zone Identifier files
 **/*Zone.Identifier
 
+# Claude
+.claude/settings.local.json
+CLAUDE.local.md
+

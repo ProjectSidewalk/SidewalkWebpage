@@ -1,34 +1,43 @@
-/* Container that holds the panorama. */
+/* Container for the panorama and its overlay controls (zoom, date, speed limit, etc.). */
 #svv-panorama-holder {
     position: absolute;
-    top: 95px;
-    width: 730px;
-    height: 450px;
+    top: var(--header-height);
+    width: var(--pano-width);
+    height: var(--pano-height);
 }
 
+/* The panorama viewport. It fills the full pano area (no border) so the marker layer, which is the same size,
+   overlays the imagery exactly. The colored frame is drawn on top by #pano-border-frame instead. */
 #svv-panorama {
-    left: 0px;
-    top: 0px;
-    height: 440px;
-    width: 720px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: var(--pano-height);
+    width: var(--pano-width);
+    border-radius: calc(4px * var(--ui-scale));
+    background-color: var(--color-asphalt-400);
+    overflow: hidden;
 }
 
-/* Black outline around panorama. */
-#svv-panorama-outline {
-    border: 5px solid black;
-    border-radius: 5px;
+/* Colored frame on top of the pano and marker layers. Drawing it above the marker (rather than as the pano's own
+   border underneath) means a label at the very edge is clipped by the frame instead of rendering on top of it. */
+#pano-border-frame {
     position: absolute;
-    left: 0px;
-    top: 0px;
-    /* Making the width/height of the outline slightly smaller bc there are gaps for some reason. */
-    height: 449px;
-    width: 729px;
+    left: 0;
+    top: 0;
+    height: var(--pano-height);
+    width: var(--pano-width);
+    z-index: 3;
+    pointer-events: none;
+    box-sizing: border-box;
+    border: calc(3px * var(--ui-scale)) solid var(--color-asphalt-400);
+    border-radius: calc(4px * var(--ui-scale));
 }
 
 #view-control-layer {
     position: absolute;
-    width: 720px;
-    height: 440px;
+    width: var(--pano-width);
+    height: var(--pano-height);
     left: 0;
     top: 0;
     overflow: hidden;
@@ -40,22 +49,27 @@
     user-select: none;
 }
 
+/* The label marker (created by PanoMarker with a base px size that is multiplied by the UI scale in JS). */
+#validate-pano-marker {
+    background-size: 100% 100%;
+}
+
 .speed-limit-sign {
     display: none;
-    width: 60px;
-    height: 70px;
-    padding: 3px;
-    margin-top: -5px;
-    margin-left: -4px;
-    margin-right: -4px;
+    width: calc(60px * var(--ui-scale));
+    height: calc(70px * var(--ui-scale));
+    padding: calc(3px * var(--ui-scale));
+    margin-top: calc(-5px * var(--ui-scale));
+    margin-left: calc(-4px * var(--ui-scale));
+    margin-right: calc(-4px * var(--ui-scale));
     top: 0;
     right: 0;
-    border-radius: 5px;
+    border-radius: calc(5px * var(--ui-scale));
     position: absolute;
     z-index: 3;
     pointer-events: none;
     transform: scale(0.75);
-    background: rgba(255, 255, 255, 0.75);
+    background: rgb(from var(--color-neutral-white) r g b / 75%);
 }
 
 .speed-limit-sign-left {
@@ -63,12 +77,11 @@
 }
 
 .speed-limit-sign[data-design-style="non-us-canada"] {
-    width: 75px;
-    height: 75px;
+    width: calc(75px * var(--ui-scale));
+    height: calc(75px * var(--ui-scale));
     padding: 0px;
-    margin-top: -10px;
-    margin-left: 10px;
-    margin-right: -10px;
+    margin-top: calc(-10px * var(--ui-scale));
+    margin-left: calc(-10px * var(--ui-scale));
     border-radius: 100%;
     transform: scale(0.6);
 }
@@ -78,107 +91,87 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 5px;
-    border: 3px solid black;
+    border-radius: calc(5px * var(--ui-scale));
+    border: calc(3px * var(--ui-scale)) solid var(--color-neutral-black);
 }
 
 .speed-limit-sign[data-design-style="non-us-canada"] .speed-limit-holder {
     border-radius: 100%;
-    border: 7px solid #f7000096;
+    border: calc(7px * var(--ui-scale)) solid var(--color-error-200);
 }
 
 .speed-limit-text {
-    font-size: 12px;
-    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+    font: var(--text-small-bold);
     text-align: center;
 }
 
 #speed-limit {
-    font-size: 30px;
-    display: block;
-    margin-bottom: -7px;
+    font: var(--text-h3-bold);
+    font-size: calc(30px * var(--ui-scale));
 }
 
+/* Shared button look in pano-overlay-buttons.css; this rule only positions the holder in the bottom-right of pano. */
 #zoom-buttons-holder {
     position: absolute;
     z-index: 3;
-    height: 40px;
-    width: 20px;
-    right: 5px;
-    bottom: 19px;
-    border-radius: 8px;
-    background-color: #000;
-}
-
-#zoom-buttons-holder .tooltip {
-    width: 70px;
-    font-size: 10px;
-}
-
-.zoom-button {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
-    border-radius: 8px;
-    background-color: #000;
-    border-style: none;
-    padding: 1px 5px;
-    outline: none;
-}
-
-.zoom-button svg {
-    stroke: #fff;
-    stroke-width: 2px;
-    width: 10px;
-    height: 10px;
-}
-
-.zoom-button svg:hover {
-    stroke-width: 3px;
-}
-
-#zoom-in-button {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-}
-
-#zoom-button-divider {
-    position: absolute;
-    left: 5px;
-    width: 10px;
-    height: 1px;
-    background-color: #fff;
-    opacity: 0.5;
-}
-
-#zoom-out-button {
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
+    right: calc(7px * var(--ui-scale));
+    bottom: calc(19px * var(--ui-scale));
 }
 
 #svv-panorama-date-holder {
     display: flex;
     justify-content: flex-start;
-    height: 29px;
+    height: calc(28px * var(--ui-scale));
     position: absolute;
-    bottom: 0px;
-    left: 69px;
+    bottom: 0;
+    left: calc(71px * var(--ui-scale));
     z-index: 2;
-    font-family: sans-serif;
-    font-size: 15px;
-    text-shadow: 1px 1px 1px black;
-    color: white;
+    font: var(--text-small-medium);
+    text-shadow: calc(1px * var(--ui-scale)) calc(1px * var(--ui-scale)) calc(1px * var(--ui-scale)) var(--color-neutral-black);
+    color: var(--color-neutral-white);
 }
 
 #svv-panorama-date {
-    padding: 5px;
+    padding: calc(3px * var(--ui-scale));
 }
 
 #pano-info-button {
-    margin-left: 4px;
-    margin-top: 7px;
-    height: 16px;
+    margin-left: calc(4px * var(--ui-scale));
+    margin-top: calc(4.5px * var(--ui-scale));
+    height: calc(16px * var(--ui-scale));
+}
+
+/* Modify Google's terms / report an issue buttons' color to match our own buttons. */
+.gm-style-cc div { background-color: var(--color-asphalt-400); }
+.gm-style-cc div div { background-color: var(--color-asphalt-400) !important; }
+
+/* Scale Google's terms / report-a-problem links (bottom-right) with the UI. They're Google's own elements with no
+   scale hooks, so we scale them visually, anchored to the bottom-right corner they sit in. Must stay scoped to
+   #view-control-layer (where PanoManager relocates them): unscoped, it also matches a wrapper inside GSV's own DOM
+   and transform-scales the entire street view scene. */
+#view-control-layer div:has(> .gmnoprint) {
+    bottom: calc(3px * var(--ui-scale)) !important;
+    right: calc(2px * var(--ui-scale)) !important;
+    transform: scale(var(--ui-scale));
+    transform-origin: bottom right;
+}
+
+/* Scale Google's own Street View logo with the UI, anchored to its corner. */
+#svv-panorama div:has(> a[aria-label*="Google"]) {
+    left: calc(2px * var(--ui-scale)) !important;
+    bottom: calc(2px * var(--ui-scale)) !important;
+    transform: scale(var(--ui-scale));
+    transform-origin: bottom left;
+}
+
+/* Scale Mapillary's attribution links with the UI. */
+#view-control-layer .mapillary-attribution-container {
+    bottom: calc(3px * var(--ui-scale)) !important;
+    right: calc(2px * var(--ui-scale)) !important;
+    transform: scale(var(--ui-scale));
+    transform-origin: bottom right;
 }
 
 .button-on-pano {
@@ -187,51 +180,48 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: 30px;
-    padding: 8px 12px;
-    gap: 8px;
-    background: #fff;
-    border-radius: 6px;
-    border: 1.5px solid #525252;
-    color: #2D2A3F;
-    font-family: Raleway;
-    font-size: 10px;
-    font-weight: 600;
+    height: calc(30px * var(--ui-scale));
+    padding: calc(8px * var(--ui-scale)) calc(12px * var(--ui-scale)) calc(8px * var(--ui-scale)) calc(10px * var(--ui-scale));
+    gap: calc(8px * var(--ui-scale));
+    background: var(--color-neutral-white);
+    border-radius: calc(6px * var(--ui-scale));
+    border: calc(1.5px * var(--ui-scale)) solid var(--color-neutral-800);
+    color: var(--color-asphalt-500);
+    font: var(--text-tiny-semibold);
     outline: none;
 }
 
 #label-visibility-control-button {
-    top: 5px;
-    right: 5px;
+    top: calc(7px * var(--ui-scale));
+    right: calc(7px * var(--ui-scale));
 }
 
 .hide-label-button-icon {
-    width: 14px;
-    height: 14px;
+    width: calc(14px * var(--ui-scale));
+    height: calc(14px * var(--ui-scale));
 }
 
-.button.label-visibility-button-on-label {
+.label-visibility-button-on-label {
     position: absolute;
     visibility: hidden;
-    color: rgba(0,0,0,1);
+    padding: calc(2px * var(--ui-scale)) calc(5px * var(--ui-scale));
+    border: calc(1px * var(--ui-scale)) solid var(--color-neutral-black);
+    border-radius: calc(3px * var(--ui-scale));
+    font: var(--text-tiny-regular);
+    cursor: pointer;
     z-index: 2;
-    font-size: 9px;
-    height: 22px;
-    width: auto;
 }
 
 #label-description-box {
     display: block;
     visibility: hidden;
-    min-width: 165px;
-    max-width: 260px;
+    max-width: calc(260px * var(--ui-scale));
     position: absolute;
-    color: white;
-    font-family: "Open sans";
-    padding: 3px 10px;
-    border-radius: 5px;
-    border: white solid 2px;
-    font-size: 12px;
+    color: var(--color-neutral-white);
+    font: var(--text-caption-regular);
+    padding: calc(3px * var(--ui-scale)) calc(15px * var(--ui-scale)) calc(3px * var(--ui-scale)) calc(10px * var(--ui-scale));
+    border-radius: calc(5px * var(--ui-scale));
+    border: var(--color-neutral-white) solid calc(1px * var(--ui-scale));
     z-index: 1;
 }
 
@@ -242,8 +232,8 @@
 }
 
 .severity-image {
-    height: 12px;
-    width: 12px;
+    height: calc(13px * var(--ui-scale));
+    width: calc(13px * var(--ui-scale));
     display: block;
-    margin-left: 5px;
+    margin-left: calc(5px * var(--ui-scale));
 }

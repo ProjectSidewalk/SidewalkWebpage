@@ -9,19 +9,19 @@ import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.CommonUtils.ViewerType.ViewerType
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
-import models.validation.LabelValidationTable.validationOptions
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
+import slick.jdbc.GetResult
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 case class LabelValidation(
     labelValidationId: Int,
     labelId: Int,
-    validationResult: Int,
+    validationResult: ValidationOption.Value,
     oldSeverity: Option[Int],
     newSeverity: Option[Int],
     oldTags: List[String],
@@ -46,11 +46,10 @@ case class ValidationCount(
     count: Int,
     timeInterval: TimeInterval,
     labelType: String,
-    validationResult: String,
+    validationResult: Option[ValidationOption.Value], // None represents the "All" results subtotal.
     validatorType: String
 ) {
   require((validLabelTypes ++ Seq("All")).contains(labelType))
-  require((validationOptions.values.toSeq ++ Seq("All")).contains(validationResult))
   require(Seq("AI", "Human", "Both").contains(validatorType))
 }
 
@@ -60,26 +59,26 @@ case class ValidationCount(
  * @param tag
  */
 class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidation](tag, "label_validation") {
-  def labelValidationId: Rep[Int]         = column[Int]("label_validation_id", O.AutoInc)
-  def labelId: Rep[Int]                   = column[Int]("label_id")
-  def validationResult: Rep[Int]          = column[Int]("validation_result") // 1 = Agree, 2 = Disagree, 3 = Unsure
-  def oldSeverity: Rep[Option[Int]]       = column[Option[Int]]("old_severity")
-  def newSeverity: Rep[Option[Int]]       = column[Option[Int]]("new_severity")
-  def oldTags: Rep[List[String]]          = column[List[String]]("old_tags")
-  def newTags: Rep[List[String]]          = column[List[String]]("new_tags")
-  def userId: Rep[String]                 = column[String]("user_id")
-  def missionId: Rep[Int]                 = column[Int]("mission_id")
-  def canvasX: Rep[Option[Int]]           = column[Option[Int]]("canvas_x")
-  def canvasY: Rep[Option[Int]]           = column[Option[Int]]("canvas_y")
-  def heading: Rep[Double]                = column[Double]("heading")
-  def pitch: Rep[Double]                  = column[Double]("pitch")
-  def zoom: Rep[Double]                   = column[Double]("zoom")
-  def canvasHeight: Rep[Int]              = column[Int]("canvas_height")
-  def canvasWidth: Rep[Int]               = column[Int]("canvas_width")
-  def startTimestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("start_timestamp")
-  def endTimestamp: Rep[OffsetDateTime]   = column[OffsetDateTime]("end_timestamp")
-  def source: Rep[UiSource]               = column[UiSource]("source")
-  def viewerType: Rep[ViewerType]         = column[ViewerType]("viewer_type")
+  def labelValidationId: Rep[Int]                   = column[Int]("label_validation_id", O.AutoInc)
+  def labelId: Rep[Int]                             = column[Int]("label_id")
+  def validationResult: Rep[ValidationOption.Value] = column[ValidationOption.Value]("validation_result")
+  def oldSeverity: Rep[Option[Int]]                 = column[Option[Int]]("old_severity")
+  def newSeverity: Rep[Option[Int]]                 = column[Option[Int]]("new_severity")
+  def oldTags: Rep[List[String]]                    = column[List[String]]("old_tags")
+  def newTags: Rep[List[String]]                    = column[List[String]]("new_tags")
+  def userId: Rep[String]                           = column[String]("user_id")
+  def missionId: Rep[Int]                           = column[Int]("mission_id")
+  def canvasX: Rep[Option[Int]]                     = column[Option[Int]]("canvas_x")
+  def canvasY: Rep[Option[Int]]                     = column[Option[Int]]("canvas_y")
+  def heading: Rep[Double]                          = column[Double]("heading")
+  def pitch: Rep[Double]                            = column[Double]("pitch")
+  def zoom: Rep[Double]                             = column[Double]("zoom")
+  def canvasHeight: Rep[Int]                        = column[Int]("canvas_height")
+  def canvasWidth: Rep[Int]                         = column[Int]("canvas_width")
+  def startTimestamp: Rep[OffsetDateTime]           = column[OffsetDateTime]("start_timestamp")
+  def endTimestamp: Rep[OffsetDateTime]             = column[OffsetDateTime]("end_timestamp")
+  def source: Rep[UiSource]                         = column[UiSource]("source")
+  def viewerType: Rep[ViewerType]                   = column[ViewerType]("viewer_type")
 
   def * = (labelValidationId, labelId, validationResult, oldSeverity, newSeverity, oldTags, newTags, userId, missionId,
     canvasX, canvasY, heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, source,
@@ -95,13 +94,6 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
 //    foreignKey("label_validation_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
 
 //  def userLabelUnique: Index = index("label_validation_user_id_label_id_unique", (userId, labelId), unique = true)
-}
-
-/**
- * Companion object with constants that are shared throughout codebase.
- */
-object LabelValidationTable {
-  val validationOptions: Map[Int, String] = Map(1 -> "Agree", 2 -> "Disagree", 3 -> "Unsure")
 }
 
 @ImplementedBy(classOf[LabelValidationTable])
@@ -148,9 +140,9 @@ class LabelValidationTable @Inject() (
       .map { case (result, group) => (result, group.length) }
       .result
       .map { results =>
-        val agreeCount    = results.find(_._1 == 1).map(_._2).getOrElse(0)
-        val disagreeCount = results.find(_._1 == 2).map(_._2).getOrElse(0)
-        val unsureCount   = results.find(_._1 == 3).map(_._2).getOrElse(0)
+        val agreeCount    = results.find(_._1 == ValidationOption.Agree).map(_._2).getOrElse(0)
+        val disagreeCount = results.find(_._1 == ValidationOption.Disagree).map(_._2).getOrElse(0)
+        val unsureCount   = results.find(_._1 == ValidationOption.Unsure).map(_._2).getOrElse(0)
         (agreeCount, disagreeCount, unsureCount)
       }
   }
@@ -221,11 +213,12 @@ class LabelValidationTable @Inject() (
    */
   def getValidatedCountsPerUser: DBIO[Seq[(String, (Int, Int))]] = {
     humanValidations
-      .filter(_.labelValidationId =!= 3) // Exclude "unsure" validations.
+      .filter(_.validationResult =!= ValidationOption.Unsure) // Exclude "unsure" validations.
       .groupBy(_.userId)
       .map { case (userId, group) =>
         // Sum up the agreed validations and total validations (just agreed + disagreed).
-        val agreed = group.map { r => Case.If(r.validationResult === 1).Then(1).Else(0) }.sum.getOrElse(0)
+        val agreed =
+          group.map { r => Case.If(r.validationResult === ValidationOption.Agree).Then(1).Else(0) }.sum.getOrElse(0)
         (userId, (group.length, agreed))
       }
       .result
@@ -273,9 +266,9 @@ class LabelValidationTable @Inject() (
         // We want to also calculate a sum for every possible subgroup b/w label_type, validation_result and validator.
         // Let's start by enumerating every subgroup combination. We include None for each of the three fields to
         // allow for "All" entries.
-        val subgroupCombinations: Set[(Option[Int], Option[Int], Option[Boolean])] = for {
+        val subgroupCombinations: Set[(Option[Int], Option[ValidationOption.Value], Option[Boolean])] = for {
           labelType <- validLabelTypeIds.map(Some(_)) ++ Seq(None)
-          valResult <- validationOptions.keys.map(Some(_)) ++ Seq(None)
+          valResult <- ValidationOption.values.toSeq.map(Some(_)) ++ Seq(None)
           validator <- Seq(Some(true), Some(false), None)
         } yield (labelType, valResult, validator)
 
@@ -291,9 +284,8 @@ class LabelValidationTable @Inject() (
 
           // Create the ValidationCount object for this subgroup.
           val labelType = labTypeFilter.map(labelTypeIdToLabelType).getOrElse("All")
-          val valOption = valResultFilter.map(validationOptions).getOrElse("All")
           val validator = validatorFilter.map(isAi => if (isAi) "AI" else "Human").getOrElse("Both")
-          ValidationCount(subgroupCount, timeInterval, labelType, valOption, validator)
+          ValidationCount(subgroupCount, timeInterval, labelType, valResultFilter, validator)
         }.toSeq
       }
   }
@@ -364,8 +356,6 @@ class LabelValidationTable @Inject() (
       labelTypeId = label.labelTypeId,
       labelType = labelType.labelType,
       validationResult = validation.validationResult,
-      // Convert validation result to string using the companion object mapping.
-      validationResultString = LabelValidationTable.validationOptions.getOrElse(validation.validationResult, "Unknown"),
       oldSeverity = validation.oldSeverity,
       newSeverity = validation.newSeverity,
       oldTags = validation.oldTags,
@@ -397,23 +387,85 @@ class LabelValidationTable @Inject() (
       .groupBy { case (v, (u, ur, r)) => (v.validationResult, r.role === "AI") }
       .map { case ((valResult, isAi), group) => (valResult, isAi, group.length) }
       .result
-      .map { results: Seq[(Int, Boolean, Int)] =>
+      .map { results: Seq[(ValidationOption.Value, Boolean, Int)] =>
         // Create a ValidationResultTypeForApi object for each validation result type.
-        validationOptions.keys
+        ValidationOption.values.toSeq
           .map { valResult =>
             val currValCounts   = results.filter(_._1 == valResult)
             val humanCount: Int = currValCounts.find(_._2 == false).map(_._3).getOrElse(0)
             val aiCount: Int    = currValCounts.find(_._2 == true).map(_._3).getOrElse(0)
             ValidationResultTypeForApi(
-              id = valResult,
-              name = validationOptions.getOrElse(valResult, "Unknown"),
+              name = valResult.toString,
               count = humanCount + aiCount,
               countHuman = humanCount,
               countAi = aiCount
             )
           }
-          .toSeq
-          .sortBy(_.id)
       }
+  }
+
+  /**
+   * Returns daily validation counts split by human vs AI validator and validation result, per label type.
+   *
+   * Validations are bucketed by label_validation.end_timestamp cast to a US/Pacific calendar date —
+   * i.e. the day the validation was performed, not the day the label was placed. The quality filter
+   * mirrors the convention in getOverallStatsForApi: when filterLowQuality is false, only
+   * administratively excluded users are removed; when true, only high_quality users are included.
+   *
+   * validation_result is compared via ::text cast to support both integer and validation_option enum
+   * schemas across different city deployments ('Agree', 'Disagree', 'Unsure').
+   *
+   * @param startDate        Inclusive lower bound on end_timestamp (Pacific date); no bound if None.
+   * @param endDate          Inclusive upper bound on end_timestamp; no bound if None.
+   * @param filterLowQuality If true, restrict to user_stat.high_quality users; otherwise exclude
+   *                         only user_stat.excluded users.
+   * @return                 Sequence of (date, labelType, humanAgree, humanDisagree, humanUnsure,
+   *                         aiAgree, aiDisagree, aiUnsure), sorted by date then label type.
+   */
+  def getDailyValidationStats(
+      startDate: Option[LocalDate],
+      endDate: Option[LocalDate],
+      filterLowQuality: Boolean
+  ): DBIO[Seq[(LocalDate, String, Int, Int, Int, Int, Int, Int)]] = {
+    val userFilter   = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
+    val whereClauses = scala.collection.mutable.ListBuffer(
+      "label.deleted = FALSE",
+      userFilter
+    )
+    startDate.foreach(d => whereClauses += s"label_validation.end_timestamp >= '$d'::date")
+    endDate.foreach(d => whereClauses += s"label_validation.end_timestamp < ('$d'::date + INTERVAL '1 day')")
+    val where = whereClauses.mkString(" AND ")
+
+    implicit val getResult: GetResult[(LocalDate, String, Int, Int, Int, Int, Int, Int)] =
+      GetResult(r =>
+        (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
+          r.nextInt(), r.nextInt())
+      )
+
+    sql"""
+      SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
+             label_type.label_type,
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
+                        THEN 1 END) AS human_agree,
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
+                        THEN 1 END) AS human_disagree,
+             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Unsure'
+                        THEN 1 END) AS human_unsure,
+             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Agree'
+                        THEN 1 END) AS ai_agree,
+             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Disagree'
+                        THEN 1 END) AS ai_disagree,
+             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Unsure'
+                        THEN 1 END) AS ai_unsure
+      FROM label_validation
+      INNER JOIN label      ON label_validation.label_id    = label.label_id
+      INNER JOIN label_type ON label.label_type_id          = label_type.label_type_id
+      INNER JOIN user_stat  ON label_validation.user_id     = user_stat.user_id
+      LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
+      LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
+      WHERE #$where
+      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, label_type.label_type
+      ORDER BY date ASC, label_type.label_type
+    """.as[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
   }
 }

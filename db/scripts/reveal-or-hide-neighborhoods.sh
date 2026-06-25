@@ -170,6 +170,15 @@ EOSQL
 EOSQL
 fi
 
+# Refresh planner statistics on the modified tables. Bulk-flipping the deleted column stays under autoanalyze's
+# ~10% threshold, leaving the planner with stale row estimates that cause catastrophically slow query plans.
+psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT <<EOSQL
+    VACUUM ANALYZE street_edge;
+    VACUUM ANALYZE street_edge_region;
+    VACUUM ANALYZE street_edge_priority;
+    VACUUM ANALYZE region;
+EOSQL
+
 echo "Done! Please clear the Play cache for $SCHEMA_NAME to reset remaining distance on landing page"
 
 if [ "$REVEAL_OR_HIDE" = "reveal" ]; then

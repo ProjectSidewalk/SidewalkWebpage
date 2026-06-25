@@ -26,7 +26,7 @@
 /* Chart Tooltip */
 .chart-tooltip {
     background-color: rgba(0, 0, 0, 0.8);
-    color: white;
+    color: var(--color-neutral-white);
     padding: var(--space-sm);
     border-radius: var(--border-radius);
     font-size: var(--font-size-xs);

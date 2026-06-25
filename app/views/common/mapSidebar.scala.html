@@ -1,5 +1,5 @@
 @import models.label.{LabelTypeEnum, Tag}
-@(tags: Seq[Tag] = Seq.empty, streetsShownByDefault: Boolean = false)(implicit messages: Messages, assets: AssetsFinder)
+@(tags: Seq[Tag] = Seq.empty, streetsShownByDefault: Boolean = false, adminVersion: Boolean = false)(implicit messages: Messages, assets: AssetsFinder)
 
 @tagsByLabelType = @{tags.groupBy(t => LabelTypeEnum.labelTypeIdToLabelType.getOrElse(t.labelTypeId, ""))}
 
@@ -15,17 +15,18 @@
             @if(tagsByLabelType.getOrElse(labelType, Seq.empty).nonEmpty) {
                 <button class="map-sidebar__tag-toggle" aria-expanded="false"
                         aria-label="Show tags" data-i18n-aria-label="labelmap:show-tags">
-                    <img src='@assets.path("images/icons/chevron-right.svg")' alt=""
-                         data-down-src='@assets.path("images/icons/chevron-right.svg")'
-                         data-up-src='@assets.path("images/icons/chevron-down.svg")'>
+                    <img src='@assets.path("images/icons/chevron-right-feather.svg")' alt=""
+                         data-down-src='@assets.path("images/icons/chevron-right-feather.svg")'
+                         data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
                 </button>
             }
         </div>
         @if(tagsByLabelType.getOrElse(labelType, Seq.empty).nonEmpty) {
             <div class="map-sidebar__tag-pills" hidden>
                 @for(tag <- tagsByLabelType(labelType)) {
-                    <button class="tag-pill tag-pill--interactive" data-tag="@tag.tag" data-label-type="@labelType"
-                            data-i18n="common:tag.@{tag.tag.replace(":", "-")}">@tag.tag</button>
+                    <button class="tag-pill tag-pill--interactive" data-tag="@tag.tag" data-label-type="@labelType">
+                        <span class="tag-pill__label" data-i18n="common:tag.@{tag.tag.replace(":", "-")}">@tag.tag</span>
+                    </button>
                 }
             </div>
         }
@@ -36,7 +37,7 @@
     data-i18n-aria-label="labelmap:legend" style="visibility: hidden;">
     <button id="map-sidebar-close" class="map-sidebar__close" aria-label="Close"
             data-i18n-aria-label="common:close">
-        <img src="@assets.path("images/icons/chevrons-left.svg")" alt="">
+        <img src="@assets.path("images/icons/chevrons-left-feather.svg")" alt="">
     </button>
 
     @* ---- Severity section ---- *@
@@ -142,6 +143,21 @@
         </ul>
     </section>
 
+    @* ---- Admin-only filters section (#4243). Only rendered inside the admin dashboard's Map tab. ---- *@
+    @if(adminVersion) {
+        <section class="map-sidebar__section">
+            <div class="map-sidebar__heading-row">
+                <h3 class="map-sidebar__heading" data-i18n="labelmap:admin-only">Admin only</h3>
+            </div>
+            <ul class="map-sidebar__list">
+                <li class="map-sidebar__item">
+                    <input type="checkbox" id="not-admin-validated" data-filter-type="admin-validation" disabled>
+                    <label for="not-admin-validated" data-i18n="labelmap:not-admin-validated">Not validated by an admin</label>
+                </li>
+            </ul>
+        </section>
+    }
+
     @* ---- Streets section ---- *@
     <section class="map-sidebar__section">
         <div class="map-sidebar__heading-row">
@@ -185,5 +201,5 @@
 @* Floating button to reopen the sidebar when it's closed *@
 <button id="map-sidebar-open" class="map-sidebar-open-btn" aria-label="Legend"
         data-i18n-aria-label="labelmap:legend">
-    <img src="@assets.path("images/icons/chevrons-right.svg")" alt="">
+    <img src="@assets.path("images/icons/chevrons-right-feather.svg")" alt="">
 </button>

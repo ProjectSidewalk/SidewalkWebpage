@@ -27,6 +27,7 @@
                     <li><a href="#tabs-5" data-toggle="pill" id="users">Users</a></li>
                     <li><a href="#tabs-6" data-toggle="pill" id="label-search">Label Search</a></li>
                     <li><a href="#tabs-7" data-toggle="pill" id="teams">Teams</a></li>
+                    <li><a href="#tabs-8" data-toggle="pill" id="api-analytics">API Analytics</a></li>
                 </ul>
             </div>
             <div class="col-lg-10">
@@ -457,7 +458,7 @@
                         <div class="col-lg-12">
                             <div id="admin-labelmap-choropleth-holder" class="choropleth-holder">
                                 <div id="admin-labelmap-choropleth" class="choropleth"></div>
-                                @common.mapSidebar(tags = tags)
+                                @common.mapSidebar(tags = tags, adminVersion = true)
                             </div>
                         </div>
                     </div>
@@ -862,6 +863,34 @@
                         <tbody id="teams-body">
                         </tbody>
                     </table>
+                </div>
+                <div id="tabs-8" class="tab-pane">
+                    <h1>API Analytics</h1>
+                    <p class="text-muted">
+                        Usage statistics for the v3 public API, derived from the <code>webpage_activity</code> log.
+                        Internal use only.
+                    </p>
+                    <div class="api-analytics-controls" style="margin-bottom: 16px; display: flex; align-items: center; gap: 16px;">
+                        <label style="margin: 0; display: flex; align-items: center; gap: 6px; font-weight: normal;"
+                               title="The live-preview widgets on the /api-docs page tag their calls with ?source=apiDocs. Check this box to exclude those automated calls so you see only real external consumer traffic.">
+                            <input type="checkbox" id="api-analytics-exclude-docs" checked>
+                            Exclude API Docs traffic (<code>source=apiDocs</code>)
+                        </label>
+                        <label style="margin: 0; display: flex; align-items: center; gap: 6px; font-weight: normal;">
+                            Time range:
+                            <select id="api-analytics-days" class="form-control" style="width: auto; display: inline-block;">
+                                <option value="30" selected>Last 30 days</option>
+                                <option value="90">Last 90 days</option>
+                                <option value="0">All time</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div id="api-analytics-content">
+                        <div id="api-analytics-summary"></div>
+                        <div id="api-analytics-endpoint-table" style="margin-top: 24px;"></div>
+                        <div id="api-analytics-daily-chart" style="margin-top: 24px;"></div>
+                        <div id="api-analytics-format-table" style="margin-top: 24px;"></div>
+                    </div>
                 </div>
             </div>
         </div>

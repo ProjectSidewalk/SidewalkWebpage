@@ -131,14 +131,14 @@
     "status": "OK",
     "cities": [
         {
-            "cityId": "teaneck-nj",
-            "countryId": "usa",
-            "cityNameShort": "Teaneck",
-            "cityNameFormatted": "Teaneck, NJ",
+            "city_id": "teaneck-nj",
+            "country_id": "usa",
+            "city_name_short": "Teaneck",
+            "city_name_formatted": "Teaneck, NJ",
             "url": "https://sidewalk-teaneck.cs.washington.edu",
             "visibility": "public",
-            "centerLat": 40.888,
-            "centerLng": -74.015,
+            "center_lat": 40.888,
+            "center_lng": -74.015,
             "zoom": 12.75,
             "bounds": {
                 "north": 41.4,
@@ -148,14 +148,14 @@
             }
         },
         {
-            "cityId": "pittsburgh-pa",
-            "countryId": "usa",
-            "cityNameShort": "Pittsburgh",
-            "cityNameFormatted": "Pittsburgh, PA",
+            "city_id": "pittsburgh-pa",
+            "country_id": "usa",
+            "city_name_short": "Pittsburgh",
+            "city_name_formatted": "Pittsburgh, PA",
             "url": "https://sidewalk-pittsburgh-test.cs.washington.edu",
             "visibility": "public",
-            "centerLat": 40.435,
-            "centerLng": -79.96,
+            "center_lat": 40.435,
+            "center_lng": -79.96,
             "zoom": 11.75,
             "bounds": {
                 "north": 41,
@@ -181,14 +181,14 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td><code>cityId</code></td><td><code>string</code></td><td>Unique identifier for the city.</td></tr>
-                    <tr><td><code>countryId</code></td><td><code>string</code></td><td>Identifier for the country where the city is located.</td></tr>
-                    <tr><td><code>cityNameShort</code></td><td><code>string</code></td><td>Short name of the city.</td></tr>
-                    <tr><td><code>cityNameFormatted</code></td><td><code>string</code></td><td>Full formatted name of the city, including state/province or country information.</td></tr>
+                    <tr><td><code>city_id</code></td><td><code>string</code></td><td>Unique identifier for the city.</td></tr>
+                    <tr><td><code>country_id</code></td><td><code>string</code></td><td>Identifier for the country where the city is located.</td></tr>
+                    <tr><td><code>city_name_short</code></td><td><code>string</code></td><td>Short name of the city.</td></tr>
+                    <tr><td><code>city_name_formatted</code></td><td><code>string</code></td><td>Full formatted name of the city, including state/province or country information.</td></tr>
                     <tr><td><code>url</code></td><td><code>string</code></td><td>URL for the city's Project Sidewalk instance.</td></tr>
                     <tr><td><code>visibility</code></td><td><code>string</code></td><td>Visibility status of the city: <code>public</code> or <code>private</code>.</td></tr>
-                    <tr><td><code>centerLat</code></td><td><code>number | null</code></td><td>Latitude of the city's center point. Present only if geographic information is available.</td></tr>
-                    <tr><td><code>centerLng</code></td><td><code>number | null</code></td><td>Longitude of the city's center point. Present only if geographic information is available.</td></tr>
+                    <tr><td><code>center_lat</code></td><td><code>number | null</code></td><td>Latitude of the city's center point. Present only if geographic information is available.</td></tr>
+                    <tr><td><code>center_lng</code></td><td><code>number | null</code></td><td>Longitude of the city's center point. Present only if geographic information is available.</td></tr>
                     <tr><td><code>zoom</code></td><td><code>number | null</code></td><td>Recommended zoom level for map display. Present only if geographic information is available.</td></tr>
                     <tr><td><code>bounds</code></td><td><code>object | null</code></td><td>Geographic boundaries of the city. Present only if geographic information is available.</td></tr>
                     <tr><td><code>bounds.north</code></td><td><code>number</code></td><td>Northern boundary (maximum latitude).</td></tr>
@@ -201,7 +201,7 @@
 
         <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
         <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the JSON response.</p>
-        <pre tabindex="0"><code class="language-csv">cityId,countryId,cityNameShort,cityNameFormatted,url,visibility,centerLat,centerLng,zoom,bounds.north,bounds.south,bounds.east,bounds.west
+        <pre tabindex="0"><code class="language-csv">city_id,country_id,city_name_short,city_name_formatted,url,visibility,center_lat,center_lng,zoom,bounds.north,bounds.south,bounds.east,bounds.west
 teaneck-nj,usa,Teaneck,"Teaneck, NJ",https://sidewalk-teaneck.cs.washington.edu,public,40.888,-74.015,12.75,41.4,40.4,-73.5,-74.5
 pittsburgh-pa,usa,Pittsburgh,"Pittsburgh, PA",https://sidewalk-pittsburgh-test.cs.washington.edu,public,40.435,-79.96,11.75,41,40,-79,-81
 ...</code></pre>
@@ -222,10 +222,10 @@ pittsburgh-pa,usa,Pittsburgh,"Pittsburgh, PA",https://sidewalk-pittsburgh-test.c
                 "coordinates": [-74.015, 40.888] // [longitude, latitude]
             },
             "properties": {
-                "cityId": "teaneck-nj",
-                "countryId": "usa",
-                "cityNameShort": "Teaneck",
-                "cityNameFormatted": "Teaneck, NJ",
+                "city_id": "teaneck-nj",
+                "country_id": "usa",
+                "city_name_short": "Teaneck",
+                "city_name_formatted": "Teaneck, NJ",
                 "url": "https://sidewalk-teaneck.cs.washington.edu",
                 "visibility": "public",
                 "zoom": 12.75,

@@ -36,8 +36,6 @@ async function LabelDetail(root, opts) {
     // Updated in each showLabel() call so PanoInfoPopover's accessor closures see the current label.
     let currentLabelMeta = null;
 
-    // Result codes accepted by /labelmap/validate.
-    const RESULT_OPTIONS = { Agree: 1, Disagree: 2, Unsure: 3 };
     const FLAG_NAMES = ['low_quality', 'incomplete', 'stale'];
 
     // Field references — populated in _init().
@@ -72,6 +70,9 @@ async function LabelDetail(root, opts) {
         );
 
         _initInfoPopover();
+
+        // Seed the all-time counts so a validation here can celebrate a newly unlocked validation badge.
+        BadgeAchievements.seedCounts();
     }
 
     /**
@@ -331,7 +332,10 @@ async function LabelDetail(root, opts) {
             for (const tag of meta.tags) {
                 const pill = document.createElement('span');
                 pill.className = 'tag-pill';
-                pill.textContent = i18next.t(`common:tag.${tag.replace(/:/g, '-')}`);
+                const pillLabel = document.createElement('span');
+                pillLabel.className = 'tag-pill__label';
+                pillLabel.textContent = i18next.t(`common:tag.${tag.replace(/:/g, '-')}`);
+                pill.appendChild(pillLabel);
                 els.tags.appendChild(pill);
             }
         } else {
@@ -412,6 +416,7 @@ async function LabelDetail(root, opts) {
      * @private
      */
     function _validateLabel(action, source) {
+        const isNewValidation = !self.prevAction;
         const validationTimestamp = new Date();
         const canvasWidth  = self.panoManager.svHolder.width();
         const canvasHeight = self.panoManager.svHolder.height();
@@ -425,7 +430,7 @@ async function LabelDetail(root, opts) {
         const data = {
             label_id: self.panoManager.label.labelId,
             label_type: self.panoManager.label.label_type,
-            validation_result: RESULT_OPTIONS[action],
+            validation_result: action,
             old_severity: self.panoManager.label.oldSeverity,
             new_severity: self.panoManager.label.newSeverity,
             old_tags: self.panoManager.label.oldTags,
@@ -454,6 +459,7 @@ async function LabelDetail(root, opts) {
             _updateVoteCount(action);
             _highlightVote(action);
             _setVoteButtonsDisabled(false);
+            if (isNewValidation) BadgeAchievements.recordValidation(self.panoManager.svHolder[0]);
             if (typeof onVote === 'function') onVote(action, currentLabelMeta);
         }).catch((err) => {
             console.error(err);

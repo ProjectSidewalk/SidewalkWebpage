@@ -31,13 +31,13 @@ function AddCitiesToMap(map, citiesData, params) {
 
     // Hide a few deployments for now that are covering up legitimate deployments.
     citiesData.features = citiesData.features
-        .filter(city => !['crowdstudy', 'validation-study', 'la-piedad-old'].includes(city.properties.cityId));
+        .filter(city => !['crowdstudy', 'validation-study', 'la-piedad-old'].includes(city.properties.city_id));
 
     // Render cities as circles.
     map.addSource(CITIES_LAYER_NAME, {
         type: 'geojson',
         data: citiesData,
-        promoteId: 'cityId'  // Use cityId as the feature identifier for state management
+        promoteId: 'city_id'  // Use cityId as the feature identifier for state management
     });
     map.addLayer({
         id: CITIES_LAYER_NAME,
@@ -158,7 +158,7 @@ function AddCitiesToMap(map, citiesData, params) {
             const popupContent = template.content.cloneNode(true);
 
             // Populate the parts of the template that do not depend on the stats API.
-            popupContent.querySelector('.popup-title').textContent = properties.cityNameFormatted;
+            popupContent.querySelector('.popup-title').textContent = properties.city_name_formatted;
             const exploreLink = popupContent.querySelector('.popup-link');
             if (properties.visibility === 'private') {
                 const privateMessage = document.createElement('div');
@@ -167,8 +167,8 @@ function AddCitiesToMap(map, citiesData, params) {
                 exploreLink.replaceWith(privateMessage);
             } else {
                 exploreLink.href = `${properties.url}/explore`;
-                exploreLink.setAttribute('cityId', properties.cityId);
-                exploreLink.textContent = i18next.t('common:cities-map.explore', { cityName: properties.cityNameShort });
+                exploreLink.setAttribute('cityId', properties.city_id);
+                exploreLink.textContent = i18next.t('common:cities-map.explore', { cityName: properties.city_name_short });
             }
 
             try {

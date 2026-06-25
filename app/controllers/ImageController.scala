@@ -3,9 +3,9 @@ package controllers
 import controllers.base._
 import formats.json.LabelFormats
 import models.label.LabelTypeEnum
-import play.api.{Configuration, Logger}
 import play.api.libs.json._
 import play.api.mvc.{AnyContent, Request, RequestHeader}
+import play.api.{Configuration, Logger}
 import service.ImageSigningService
 
 import java.awt.Image
@@ -169,6 +169,26 @@ class ImageController @Inject() (
   }
 
   /**
+   * Returns the crop image metadata (a signed serving URL) for a label as JSON, used to lazily fetch a  /cropImage URL.
+   */
+  def getCropImageMetadata(labelType: String, labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+    if (!refererAllowed(request)) {
+      Future.successful(Forbidden("Request origin not allowed."))
+    } else if (!LabelTypeEnum.validLabelTypes.contains(labelType)) {
+      Future.successful(
+        BadRequest(
+          s"Invalid label type provided: $labelType. Valid label types are: ${LabelTypeEnum.validLabelTypes.mkString(", ")}."
+        )
+      )
+    } else {
+      panoDataService.cropUrl(labelId, LabelTypeEnum.byName(labelType)) match {
+        case Some(url) => Future.successful(Ok(LabelFormats.cropImagePayload(labelId, labelType, url)))
+        case None      => Future.successful(NotFound(s"No crop image found for label: $labelId"))
+      }
+    }
+  }
+
+  /**
    * Serves a previously-saved crop image for a label.
    *
    * Requires a valid HMAC signature (?exp=...&sig=...) and an allowed Referer/Origin.
@@ -187,7 +207,7 @@ class ImageController @Inject() (
     earlyReject match {
       case Some(result) => Future.successful(result)
       case None         =>
-        val file = new File(CROPS_DIR_NAME + File.separator + labelType + File.separator + "crop_" + labelId + ".png")
+        val file = panoDataService.cropFile(labelId, labelType)
         if (file.exists()) {
           Future.successful(Ok.sendFile(file, inline = true).as("image/png"))
         } else {
@@ -204,17 +224,22 @@ class ImageController @Inject() (
     jsonBody
       .map { json =>
         val labelType: String = (json \ "label_type").as[String]
-        initializeDirIfNeeded(labelType)
-        val b64String: String = (json \ "b64").as[String].split(",")(1)
-        val filename: String  =
-          CROPS_DIR_NAME + File.separator + labelType + File.separator + (json \ "name").as[String] + ".png"
-        try {
-          writeImageFile(filename, b64String)
-          Future.successful(Ok("Got: " + (json \ "name").as[String]))
-        } catch {
-          case e: Exception =>
-            logger.error("Exception when writing image file: " + filename + "\n\t" + e)
-            Future.successful(InternalServerError("Exception when writing image file: " + filename + "\n\t" + e))
+        val labelId: Int      = (json \ "label_id").as[Int]
+        // Validate the label type (matching serveCropImage) before using it to build a filesystem path.
+        if (!LabelTypeEnum.validLabelTypes.contains(labelType)) {
+          Future.successful(BadRequest(s"Invalid label type provided: $labelType."))
+        } else {
+          initializeDirIfNeeded(labelType)
+          val b64String: String = (json \ "b64").as[String].split(",")(1)
+          val filename: String  = panoDataService.cropFile(labelId, labelType).getPath
+          try {
+            writeImageFile(filename, b64String)
+            Future.successful(Ok("Got: crop_" + labelId))
+          } catch {
+            case e: Exception =>
+              logger.error("Exception when writing image file: " + filename + "\n\t" + e)
+              Future.successful(InternalServerError("Exception when writing image file: " + filename + "\n\t" + e))
+          }
         }
       }
       .getOrElse {
