@@ -50,8 +50,6 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       val body = contentAsString(resp)
       // Header from LabelDataForApi.csvHeader; assert snake_case field names are present and camelCase absent.
-      // region_id + region_name replace the old `neighborhood` field for consistency with the Streets and
-      // LabelClusters APIs (#3980).
       body must include(
         "label_id,user_id,pano_id,label_type,severity,tags,description,time_created,street_edge_id,osm_way_id," +
           "region_id,region_name,correct,agree_count,disagree_count,unsure_count,validations,audit_task_id,mission_id," +
@@ -60,7 +58,7 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       )
       body must not include "labelId"
       body must not include "streetEdgeId"
-      body must not include "neighborhood" // Renamed to region_name (#3980).
+      body must not include "neighborhood"
     }
 
     "return 400 INVALID_PARAMETER for a malformed bbox" in {
