@@ -1,6 +1,6 @@
 name := """sidewalk-webpage"""
 
-version := "11.4.3"
+version := "11.5.0"
 
 scalaVersion := "2.13.18"
 
