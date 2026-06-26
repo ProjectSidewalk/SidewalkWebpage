@@ -113,7 +113,7 @@ function Main (params) {
 
         svl.missionModel.trigger("MissionFactory:create", params.mission); // create current mission and set as current
         svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.panoStore,
-            svl.taskContainer, svl.navigationService, svl.compass, svl.tracker, params.dataStoreUrl);
+            svl.taskContainer, svl.tracker, params.dataStoreUrl);
         if (params.mission.current_audit_task_id) {
             const currTask = svl.taskContainer.getCurrentTask();
             const currTaskId = currTask.getProperty('auditTaskId');

@@ -98,7 +98,7 @@ function Tracker() {
         // TODO: change action buffer size limit
         if (actions.length > 10) {
             let data = sg.form.compileSubmissionData();
-            sg.form.submit(data, true);
+            sg.form.submit(data);
         }
         return this;
     }
