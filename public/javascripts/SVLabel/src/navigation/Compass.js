@@ -246,7 +246,8 @@ function Compass (svl, navigationService, taskContainer) {
             if (_checkEnRoute()) {
                 self.stopBlinking();
                 self.setTurnMessage();
-            } else {
+            } else if (!navigationService.getStatus('movingToNewLocation')) {
+                // Only warn that the user is off-route if they're not mid-move. (#4174)
                 self.blink();
                 _setBackToRouteMessage();
             }
