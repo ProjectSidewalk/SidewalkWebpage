@@ -131,7 +131,7 @@
                             </li>
                             @if(user.get.role == "Administrator" || user.get.role == "Owner") {
                                 <li role="presentation">
-                                    <a id="navbar-admin-btn" role="menuitem" href='@routes.AdminController.index'>
+                                    <a id="navbar-admin-btn" role="menuitem" href='@routes.AdminDashboardController.overview'>
                                         @Messages("navbar.admin")
                                     </a>
                                 </li>

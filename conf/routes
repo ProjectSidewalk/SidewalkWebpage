@@ -49,8 +49,10 @@ POST    /cspReport                                      controllers.SecurityPoli
 GET     /cityMapParams                                  controllers.ConfigController.getCityMapParams()
 
 # Admin
-GET     /admin                                          controllers.AdminController.index
-# Redesigned admin dashboard (#4272). Coexists with the legacy /admin page above until it reaches parity.
+# Redesigned admin dashboard (#4272) is now the default /admin. The legacy monolith is kept reachable at /admin/classic
+# for one release (linked as "Classic Admin" in the dashboard sidebar) before it is removed.
+GET     /admin                                          controllers.AdminDashboardController.overview
+GET     /admin/classic                                  controllers.AdminController.index
 GET     /admin/overview                                 controllers.AdminDashboardController.overview
 GET     /admin/coverage                                 controllers.AdminDashboardController.coverage
 GET     /admin/label-map                                controllers.AdminDashboardController.labelMap
