@@ -1,10 +1,35 @@
-function Form(url, beaconUrl) {
-    let properties = {
-        dataStoreUrl : url,
-        beaconDataStoreUrl : beaconUrl
-    };
+/**
+ * Compiles and submits Validate interaction and validation data to the back end.
+ */
+class Form {
+    #dataStoreUrl;
 
-    function getSource() {
+    /**
+     * @param {string} url - URL to send validation/interaction data to.
+     */
+    constructor(url) {
+        this.#dataStoreUrl = url;
+
+        // Flush any remaining logs when the page is being dismissed. `pagehide` is the reliable, bfcache-compatible
+        // unload signal; `keepalive` lets the POST outlive the page while still routing through AppManager's fetch
+        // wrapper, which attaches the `Csrf-Token` header Play's CSRF filter requires (#3935).
+        window.addEventListener('pagehide', () => {
+            svv.tracker.push('Unload');
+            const data = this.compileSubmissionData(false);
+            fetch(this.#dataStoreUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify(data),
+                keepalive: true
+            });
+        });
+    }
+
+    /**
+     * Returns the source label identifying which Validate UI produced the data.
+     * @returns {string} One of 'ValidateMobile', 'ExpertValidate', or 'Validate'.
+     */
+    getSource() {
         if (isMobile()) {
             return 'ValidateMobile';
         } else if (svv.adminVersion) {
@@ -15,12 +40,13 @@ function Form(url, beaconUrl) {
     }
 
     /**
-     * Compiles data into a format that can be parsed by our backend.
-     * @returns {{}}
-     * @param {boolean} missionComplete Whether or not the mission is complete. To ensure we only send once per mission.
+     * Compiles data into a format that can be parsed by our back end.
+     *
+     * @param {boolean} missionComplete - Whether the mission is complete. Ensures we only send once per mission.
+     * @returns {Object} The log data to submit.
      */
-    function compileSubmissionData(missionComplete) {
-        let data = { timestamp: new Date(), source: getSource() };
+    compileSubmissionData(missionComplete) {
+        let data = { timestamp: new Date(), source: this.getSource() };
         let missionContainer = svv.missionContainer;
         let mission = missionContainer ? missionContainer.getCurrentMission() : null;
 
@@ -57,10 +83,10 @@ function Form(url, beaconUrl) {
             screen_width: screen.width,
             screen_height: screen.height,
             avail_width: screen.availWidth,              // total width - interface (taskbar)
-            avail_height: screen.availHeight,            // total height - interface };
+            avail_height: screen.availHeight,            // total height - interface ;
             operating_system: util.getOperatingSystem(),
             language: i18next.language,
-            css_zoom: 100 // The UI no longer uses CSS zoom; scaling is done via real layout sizes (--ui-scale).
+            css_zoom: 100 // Sent for back-end compatibility; UI scaling is done via real layout sizes (--ui-scale).
         };
 
         data.validate_params = {
@@ -99,12 +125,13 @@ function Form(url, beaconUrl) {
     }
 
     /**
-     * Submits all front-end data to the backend.
-     * @param data  Data object (containing Interactions, Missions, etc...)
+     * Submits all front-end data to the back end.
+     *
+     * @param {Object} data - Data object (containing interactions, missions, etc.).
      * @returns {Promise<void>}
      */
-    function submit(data) {
-        return fetch(properties.dataStoreUrl, {
+    submit(data) {
+        return fetch(this.#dataStoreUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
             body: JSON.stringify(data)
@@ -129,26 +156,4 @@ function Form(url, beaconUrl) {
                 window.location.reload(); // Refresh the page in case the server has gone down.
             });
     }
-
-    $(window).on('beforeunload', function () {
-        svv.tracker.push('Unload');
-
-        // April 17, 2019
-        // What we want here is type: 'application/json'. Can't do that quite yet because the
-        // feature has been disabled, but we should switch back when we can.
-        //
-        // // For now, we send plaintext and the server converts it to actual JSON
-        //
-        // Source for fix and ongoing discussion is here:
-        // https://bugs.chromium.org/p/chromium/issues/detail?id=490015
-        let data = compileSubmissionData(false);
-        let jsonData = JSON.stringify(data);
-        navigator.sendBeacon(properties.beaconDataStoreUrl, jsonData);
-    });
-
-    self.getSource = getSource;
-    self.compileSubmissionData = compileSubmissionData;
-    self.submit = submit;
-
-    return self;
 }

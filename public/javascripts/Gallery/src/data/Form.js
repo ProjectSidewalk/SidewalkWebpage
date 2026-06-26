@@ -1,23 +1,36 @@
 /**
- * Compiles and submits log data from Gallery.
- *
- * @param {*} url URL to send interaction data to.
- * @param {*} beaconUrl URL to send interaction data to on page unload.
- * @returns {Form}
- * @constructor
+ * Compiles and submits Gallery interaction log data to the back end.
  */
-function Form(url, beaconUrl) {
-    let properties = {
-        dataStoreUrl : url,
-        beaconDataStoreUrl : beaconUrl
-    };
+class Form {
+    #dataStoreUrl;
 
     /**
-     * Compiles data into a format that can be parsed by our backend.
-     * @returns {{}}
+     * @param {string} url - URL to send interaction data to.
      */
-    function compileSubmissionData() {
-        let data = {};
+    constructor(url) {
+        this.#dataStoreUrl = url;
+
+        // Flush any remaining logs when the page is being dismissed. `pagehide` is the reliable, bfcache-compatible
+        // unload signal; `keepalive` lets the POST outlive the page while still routing through AppManager's fetch
+        // wrapper, which attaches the `Csrf-Token` header Play's CSRF filter requires (#3935).
+        window.addEventListener('pagehide', () => {
+            sg.tracker.push("Unload");
+            const data = [this.compileSubmissionData()];
+            fetch(this.#dataStoreUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify(data),
+                keepalive: true
+            });
+        });
+    }
+
+    /**
+     * Compiles the buffered interaction data into a format that can be parsed by our back end.
+     * @returns {Object} The log data to submit.
+     */
+    compileSubmissionData() {
+        const data = {};
 
         data.environment = {
             browser: util.getBrowser(),
@@ -38,56 +51,28 @@ function Form(url, beaconUrl) {
     }
 
     /**
-     * Submits all front-end data to the backend.
+     * Submits front-end log data to the back end.
      *
-     * @param data  Data object containing interactions.
-     * @param async Whether to submit asynchronously or not.
-     * @returns {*}
+     * @param {Object|Object[]} data - A single submission object, or an array of them.
+     * @returns {Promise<void>}
      */
-    function submit(data, async) {
-        if (typeof async === "undefined") {
-            async = false;
-        }
-
+    submit(data) {
         if (data.constructor !== Array) {
             data = [data];
         }
 
-        $.ajax({
-            async: async,
-            contentType: 'application/json; charset=utf-8',
-            url: properties.dataStoreUrl,
+        return fetch(this.#dataStoreUrl, {
             method: 'POST',
-            data: JSON.stringify(data),
-            success: function () {
-                console.log("Data logged successfully");
-            },
-            error: function (xhr, status, result) {
-                console.error(xhr.responseText);
-                console.error(result);
-            }
-        });
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify(data)
+        })
+            .then((response) => {
+                if (response.ok) {
+                    console.log("Data logged successfully");
+                } else {
+                    console.error(`Failed to log data: ${response.status}`);
+                }
+            })
+            .catch((error) => { console.error(error); });
     }
-
-    // On page unload, we compile stored interaction data and send it over.
-    $(window).on('beforeunload', function () {
-        sg.tracker.push("Unload");
-
-        // April 17, 2019
-        // What we want here is type: 'application/json'. Can't do that quite yet because the
-        // feature has been disabled, but we should switch back when we can.
-        //
-        // // For now, we send plaintext and the server converts it to actual JSON
-        //
-        // Source for fix and ongoing discussion is here:
-        // https://bugs.chromium.org/p/chromium/issues/detail?id=490015
-        let data = [compileSubmissionData()];
-        let jsonData = JSON.stringify(data);
-        navigator.sendBeacon(properties.beaconDataStoreUrl, jsonData);
-    });
-
-    self.compileSubmissionData = compileSubmissionData;
-    self.submit = submit;
-
-    return self;
 }

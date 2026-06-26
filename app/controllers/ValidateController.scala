@@ -273,7 +273,7 @@ class ValidateController @Inject() (
   /**
    * Helper function that updates database with all data submitted through the validation page.
    */
-  def processValidationTaskSubmissions(
+  private def processValidationTaskSubmissions(
       data: ValidationTaskSubmission,
       ipAddress: String,
       user: SidewalkUserWithRole
@@ -353,18 +353,6 @@ class ValidateController @Inject() (
     }
 
     response
-  }
-
-  /**
-   * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
-   */
-  def postBeacon = cc.securityService.SecuredAction(parse.text) { implicit request =>
-    val json       = Json.parse(request.body)
-    val submission = json.validate[ValidationTaskSubmission]
-    submission.fold(
-      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => { processValidationTaskSubmissions(submission, request.ipAddress, request.identity) }
-    )
   }
 
   /**
