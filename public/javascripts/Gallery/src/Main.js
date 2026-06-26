@@ -89,7 +89,7 @@ async function Main (params) {
         sg.keyboard = new Keyboard(sg.expandedView());
 
         // Initialize data collection.
-        sg.form = new Form(params.dataStoreUrl, params.beaconDataStoreUrl);
+        sg.form = new Form(params.dataStoreUrl);
         sg.tracker = new Tracker();
 
         let sidebarWrapper = sg.ui.cardFilter.wrapper;

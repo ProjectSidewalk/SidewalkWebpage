@@ -11,7 +11,7 @@ import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsValue, Json}
-import play.api.mvc.{Action, AnyContent, Result}
+import play.api.mvc.{Action, AnyContent}
 import play.silhouette.api.Silhouette
 import service._
 
@@ -132,36 +132,17 @@ class GalleryController @Inject() (
   }
 
   /**
-   * Take parsed JSON data and insert it into the database, only responding once the writes have committed.
-   */
-  def processGalleryTaskSubmissions(
-      submission: Seq[GalleryTaskSubmission],
-      ipAddress: String,
-      userId: String
-  ): Future[Result] = {
-    galleryService.submitGalleryTasks(submission, ipAddress, userId).map(_ => Ok("Got request"))
-  }
-
-  /**
-   * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
-   */
-  def postBeacon = cc.securityService.SecuredAction(parse.text) { implicit request =>
-    val json       = Json.parse(request.body)
-    val submission = json.validate[Seq[GalleryTaskSubmission]]
-    submission.fold(
-      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => { processGalleryTaskSubmissions(submission, request.ipAddress, request.identity.userId) }
-    )
-  }
-
-  /**
-   * Parse submitted gallery data and submit to tables.
+   * Parse submitted gallery data and insert it into the database, only responding once the writes have committed.
    */
   def post = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val submission = request.body.validate[Seq[GalleryTaskSubmission]]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => { processGalleryTaskSubmissions(submission, request.ipAddress, request.identity.userId) }
+      submission => {
+        galleryService
+          .submitGalleryTasks(submission, request.ipAddress, request.identity.userId)
+          .map(_ => Ok("Got request"))
+      }
     )
   }
 }

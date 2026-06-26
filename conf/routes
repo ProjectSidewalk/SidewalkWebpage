@@ -113,11 +113,8 @@ GET     /adminValidate                                  controllers.ValidateCont
 GET     /tasks                                          controllers.ExploreController.getTasksInARegion(regionId: Int)
 GET     /routeTasks                                     controllers.ExploreController.getTasksInARoute(userRouteId: Int)
 POST    /task                                           controllers.ExploreController.post
-POST    /taskBeacon                                     controllers.ExploreController.postBeacon
 POST    /validationTask                                 controllers.ValidateController.post
-POST    /validationTaskBeacon                           controllers.ValidateController.postBeacon
 POST    /galleryTask                                    controllers.GalleryController.post
-POST    /galleryTaskBeacon                              controllers.GalleryController.postBeacon
 POST    /labelmap/validate                              controllers.ValidateController.postLabelMapValidation
 POST    /labelmap/comment                               controllers.ValidateController.postLabelMapComment
 

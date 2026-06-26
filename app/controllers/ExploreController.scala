@@ -183,18 +183,6 @@ class ExploreController @Inject() (
   }
 
   /**
-   * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
-   */
-  def postBeacon = cc.securityService.SecuredAction(parse.text) { implicit request =>
-    val json: JsValue = Json.parse(request.body)
-    val submission    = json.validate[AuditTaskSubmission]
-    submission.fold(
-      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => { processAuditTaskSubmissions(submission, request.ipAddress, request.identity) }
-    )
-  }
-
-  /**
    * Parse the submitted data and insert them into tables.
    */
   def post = cc.securityService.SecuredAction(parse.json) { implicit request =>
@@ -208,7 +196,7 @@ class ExploreController @Inject() (
   /**
    * Helper function that updates database with all data submitted through the explore page.
    */
-  def processAuditTaskSubmissions(
+  private def processAuditTaskSubmissions(
       data: AuditTaskSubmission,
       ipAddress: String,
       user: SidewalkUserWithRole

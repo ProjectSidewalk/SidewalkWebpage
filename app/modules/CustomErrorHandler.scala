@@ -2,7 +2,7 @@ package modules
 
 import models.api.ApiError
 import play.api.http.DefaultHttpErrorHandler
-import play.api.http.Status.{FORBIDDEN, NOT_FOUND}
+import play.api.http.Status.NOT_FOUND
 import play.api.libs.typedmap.TypedMap
 import play.api.mvc.Results._
 import play.api.mvc._
@@ -36,15 +36,13 @@ class CustomErrorHandler @Inject() (
 
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
     // Don't log common, harmless 404s
-    val shouldSkipLogging = (
+    val shouldSkipLogging =
       statusCode == NOT_FOUND && (
         request.path.endsWith(".map") ||              // Source maps
           request.path.startsWith("/.well-known/") || // Well-known URLs
           request.path == "/favicon.ico" ||           // Common favicon requests
           request.path.endsWith("-india.json")        // We only added the India files for en so far so we expect these.
       )
-    ) || // Beacon requests that we need to fix, but they happen constantly so we don't need this extra logging.
-      (statusCode == FORBIDDEN && request.path.contains("Beacon"))
 
     if (!shouldSkipLogging) {
       logger.warn(s"Client error occurred: ${request.uri} - $statusCode - $message")

@@ -2,15 +2,11 @@
  * Compiles and submits log data from Gallery.
  *
  * @param {*} url URL to send interaction data to.
- * @param {*} beaconUrl URL to send interaction data to on page unload.
  * @returns {Form}
  * @constructor
  */
-function Form(url, beaconUrl) {
-    let properties = {
-        dataStoreUrl : url,
-        beaconDataStoreUrl : beaconUrl
-    };
+function Form(url) {
+    const dataStoreUrl = url;
 
     /**
      * Compiles data into a format that can be parsed by our backend.
@@ -56,7 +52,7 @@ function Form(url, beaconUrl) {
         $.ajax({
             async: async,
             contentType: 'application/json; charset=utf-8',
-            url: properties.dataStoreUrl,
+            url: dataStoreUrl,
             method: 'POST',
             data: JSON.stringify(data),
             success: function () {
@@ -69,21 +65,18 @@ function Form(url, beaconUrl) {
         });
     }
 
-    // On page unload, we compile stored interaction data and send it over.
-    $(window).on('beforeunload', function () {
+    // Flush any remaining logs when the page is being dismissed. `pagehide` is the reliable, bfcache-compatible
+    // unload signal; `keepalive` lets the POST outlive the page while still routing through AppManager's fetch
+    // wrapper, which attaches the `Csrf-Token` header Play's CSRF filter requires (#3935).
+    window.addEventListener('pagehide', function () {
         sg.tracker.push("Unload");
-
-        // April 17, 2019
-        // What we want here is type: 'application/json'. Can't do that quite yet because the
-        // feature has been disabled, but we should switch back when we can.
-        //
-        // // For now, we send plaintext and the server converts it to actual JSON
-        //
-        // Source for fix and ongoing discussion is here:
-        // https://bugs.chromium.org/p/chromium/issues/detail?id=490015
         let data = [compileSubmissionData()];
-        let jsonData = JSON.stringify(data);
-        navigator.sendBeacon(properties.beaconDataStoreUrl, jsonData);
+        fetch(dataStoreUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify(data),
+            keepalive: true
+        });
     });
 
     self.compileSubmissionData = compileSubmissionData;

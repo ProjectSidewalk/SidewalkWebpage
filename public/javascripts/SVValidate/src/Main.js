@@ -113,7 +113,7 @@ function Main (param) {
 
         svv.validationMenu = isMobile() ? new MobileValidationMenu(svv.ui.validationMenu) : new DesktopValidationMenu(svv.ui.validationMenu);
 
-        svv.form = new Form(param.dataStoreUrl, param.beaconDataStoreUrl);
+        svv.form = new Form(param.dataStoreUrl);
 
         if (svv.adminVersion) svv.adminInfo = new AdminInfo(svv.ui.status.admin);
 
