@@ -322,9 +322,9 @@
                         validationStatus = `Invalidated (${props.agree_count} agree, ${props.disagree_count} disagree)`;
                     }
 
-                    // Add the image URL link to the popup content.
-                    const panoLink = props.image_url ?
-                        `<p><a href="${props.image_url}" target="_blank" rel="noopener noreferrer">View in Google Street View</a></p>` :
+                    // Add the panorama viewer link to the popup content (absent for providers without one, e.g. infra3d).
+                    const panoLink = props.pano_url ?
+                        `<p><a href="${props.pano_url}" target="_blank" rel="noopener noreferrer">View panorama</a></p>` :
                         '';
 
                     layer.bindPopup(`

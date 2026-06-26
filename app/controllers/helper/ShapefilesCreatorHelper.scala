@@ -282,7 +282,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "cameraHdng:Double,"      // Camera heading
       + "cameraPtch:Double,"      // Camera pitch
       + "cameraRoll:Double,"      // Camera roll
-      + "imageUrl:String"         // Pano URL
+      + "panoUrl:String"          // Provider viewer URL (empty for providers without one)
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -335,7 +335,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.cameraHeading.orNull)
       featureBuilder.add(label.cameraPitch.orNull)
       featureBuilder.add(label.cameraRoll.orNull)
-      featureBuilder.add(label.imageUrl)
+      featureBuilder.add(label.panoUrl.getOrElse(""))
 
       featureBuilder.buildFeature(null)
     }
@@ -734,7 +734,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "camera_heading:Double,"  // Camera heading
       + "camera_pitch:Double,"    // Camera pitch
       + "camera_roll:Double,"     // Camera pitch
-      + "image_url:String"        // Pano URL
+      + "pano_url:String"         // Provider viewer URL (empty for providers without one)
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -779,7 +779,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.cameraHeading.orNull)
       featureBuilder.add(label.cameraPitch.orNull)
       featureBuilder.add(label.cameraRoll.orNull)
-      featureBuilder.add(label.imageUrl)
+      featureBuilder.add(label.panoUrl.getOrElse(""))
       featureBuilder.buildFeature(null)
     }
 
