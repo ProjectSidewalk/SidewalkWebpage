@@ -54,6 +54,7 @@ GET     /admin                                          controllers.AdminControl
 GET     /admin/coverage                                 controllers.AdminDashboardController.coverage
 GET     /admin/quality                                  controllers.AdminDashboardController.quality
 GET     /admin/contributors                             controllers.AdminDashboardController.contributors
+GET     /admin/activity                                 controllers.AdminDashboardController.activity
 GET     /admin/api-analytics                            controllers.AdminDashboardController.apiAnalytics
 GET     /admin/user/:username                           controllers.AdminController.userProfile(username: String)
 GET     /admin/task/:taskId                             controllers.AdminController.task(taskId: Int)
@@ -80,10 +81,13 @@ GET     /adminapi/getContributionTimeStats              controllers.AdminControl
 GET     /adminapi/getLabelCountStats                    controllers.AdminController.getLabelCountStats
 GET     /adminapi/getValidationCountStats               controllers.AdminController.getValidationCountStats
 GET     /adminapi/getRecentComments                     controllers.AdminController.getRecentComments
+GET     /adminapi/recentActivity                        controllers.AdminController.getRecentActivity(n: Int ?= 25)
 GET     /adminapi/getRecentLabelMetadata                controllers.AdminController.getRecentLabelMetadata
 GET     /adminapi/getUserStats                          controllers.AdminController.getUserStats
+GET     /adminapi/contributorLeaderboards               controllers.AdminController.getContributorLeaderboards(n: Int ?= 15)
 GET     /adminapi/apiAnalytics                          controllers.AdminController.getApiAnalytics(excludeApiDocs: Boolean ?= true, days: Int ?= 30)
 GET     /adminapi/apiAnalyticsBySource                  controllers.AdminController.getApiAnalyticsBySource(days: Int ?= 30)
+GET     /adminapi/activityByDay                          controllers.AdminController.getActivityByDay
 
 PUT     /adminapi/setRole                               controllers.AdminController.setUserRole
 PUT     /adminapi/setUserQualityManual                  controllers.AdminController.setUserQualityManual

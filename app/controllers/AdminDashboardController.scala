@@ -67,6 +67,22 @@ class AdminDashboardController @Inject() (
   }
 
   /**
+   * Renders the Activity page: the time/tempo lens on the deployment — how much work happens, and when.
+   *
+   * Answers "what's our activity over time, and what just happened?" — daily/weekly volume of labels, validations,
+   * audits, missions, sign-ins, and new users, an active-users-over-time line (registered vs anonymous), and a
+   * recent-activity feed. Stays aggregate (per-person ranking is Contributors') and volume-focused (quality-over-time
+   * is Data Quality's, cumulative coverage is Coverage's). Driven by the unified `/adminapi/activityByDay` series plus
+   * the recent-comments and recent-labels feeds.
+   */
+  def activity = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Activity")
+      Ok(views.html.admin.dashboard.activity(commonData, request.identity))
+    }
+  }
+
+  /**
    * Renders the API Analytics page: v3 public-API usage, framed around real external adoption vs our own docs traffic.
    *
    * Answers "is our public API being used, by whom, for what?" — external vs apiDocs call volume over time, top

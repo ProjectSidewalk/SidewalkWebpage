@@ -382,6 +382,33 @@ class AdminController @Inject() (
   }
 
   /**
+   * Unified daily activity time series for the redesigned admin dashboard's Activity page (#4272).
+   *
+   * Returns one row per calendar day with the volume of each contribution type (labels, validations, audits, missions),
+   * sign-ins and active users split registered-vs-anonymous, and new registered accounts. Only days with activity are
+   * emitted; the client zero-fills and rolls up by range/granularity. snake_case output per the dashboard convention.
+   */
+  def getActivityByDay = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getActivityByDay.map { series =>
+      Ok(Json.obj("series" -> JsArray(series.map { r =>
+        Json.obj(
+          "date"               -> r.date.toString,
+          "labels"             -> r.labels,
+          "validations"        -> r.validations,
+          "audits"             -> r.audits,
+          "missions"           -> r.missions,
+          "signins_registered" -> r.signinsRegistered,
+          "signins_anon"       -> r.signinsAnon,
+          "active_registered"  -> r.activeRegistered,
+          "active_anon"        -> r.activeAnon,
+          "new_users"          -> r.newUsers
+        )
+      })))
+    }
+  }
+
+  /**
    * Updates the role in the database for the given user.
    */
   def setUserRole = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
@@ -615,6 +642,28 @@ class AdminController @Inject() (
     adminService.getRecentExploreAndValidateComments.map(comment => Ok(Json.toJson(comment)))
   }
 
+  /**
+   * Recent-activity stream for the redesigned admin dashboard's Activity page (#4272): the latest labels, validations,
+   * and comments interleaved by recency, each tagged with who did it and (where applicable) the label it points at.
+   * snake_case output per the dashboard convention.
+   */
+  def getRecentActivity(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getRecentActivity(n).map { items =>
+      Ok(Json.obj("activity" -> JsArray(items.map { i =>
+        Json.obj(
+          "activity_type"     -> i.activityType,
+          "username"          -> i.username,
+          "timestamp"         -> i.timestamp,
+          "label_id"          -> i.labelId,
+          "label_type"        -> i.labelType,
+          "validation_result" -> i.validationResult,
+          "comment"           -> i.comment
+        )
+      })))
+    }
+  }
+
   def getRecentLabelMetadata = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     labelService.getRecentLabelMetadata(5000).map(labelMetadata => Ok(Json.toJson(labelMetadata)))
@@ -623,6 +672,49 @@ class AdminController @Inject() (
   /**
    * Get the stats for the users table in the admin page.
    */
+  /**
+   * Contributors-page leaderboards for the redesigned admin dashboard (#4272): top labelers (with label-type mix and
+   * severity distribution) and top validators (with agree/disagree/unsure split). snake_case per the dashboard convention.
+   */
+  def getContributorLeaderboards(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getContributorLeaderboards(n).map { boards =>
+      Ok(
+        Json.obj(
+          "top_labelers" -> JsArray(boards.labelers.map { l =>
+            Json.obj(
+              "user_id"                  -> l.userId,
+              "username"                 -> l.username,
+              "role"                     -> l.role,
+              "labels"                   -> l.labels,
+              "own_validated"            -> l.ownValidated,
+              "own_validated_agreed_pct" -> l.ownValidatedAgreedPct,
+              "high_quality"             -> l.highQuality,
+              "label_type_counts" -> JsArray(l.labelTypeCounts.map { case (labelType, count) =>
+                Json.obj("label_type" -> labelType, "count" -> count)
+              }),
+              "severity_counts" -> JsArray(l.severityCounts.map { case (severity, count) =>
+                Json.obj("severity" -> severity, "count" -> count)
+              })
+            )
+          }),
+          "top_validators" -> JsArray(boards.validators.map { v =>
+            Json.obj(
+              "user_id"     -> v.userId,
+              "username"    -> v.username,
+              "role"        -> v.role,
+              "validations"   -> v.validations,
+              "agree"         -> v.agree,
+              "disagree"      -> v.disagree,
+              "unsure"        -> v.unsure,
+              "agreement_pct" -> v.agreementPct
+            )
+          })
+        )
+      )
+    }
+  }
+
   def getUserStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     for {

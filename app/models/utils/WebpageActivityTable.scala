@@ -102,6 +102,67 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
   }
 
   /**
+   * Daily count of successful sign-in events, split by whether the signer is anonymous.
+   *
+   * Registered logins log `SignIn` / `SignInSuccess`; anonymous sessions log `AnonAutoSignUp`. Failed attempts
+   * (`SignInAttempt`, `SignInFailed`) are excluded — they aren't sign-ins, and their activity strings embed the typed
+   * email address. The anon flag is derived from the activity name, which already distinguishes the two cases, so no
+   * role join is needed.
+   *
+   * @return DBIO[Seq[(day, isAnonymous, count)]] — `day` is the timestamp truncated to the day; sorted ascending.
+   */
+  def getSignInCountsByDate: DBIO[Seq[(OffsetDateTime, Boolean, Int)]] = {
+    val successfulSignIns = Seq("SignIn", "SignInSuccess")
+    activities
+      .filter(a => (a.activity inSet successfulSignIns) || a.activity === "AnonAutoSignUp")
+      .map(a => (a.timestamp.trunc("day"), a.activity === "AnonAutoSignUp", a.webpageActivityId))
+      .groupBy(x => (x._1, x._2))
+      .map { case ((day, isAnon), group) => (day, isAnon, group.length) }
+      .sortBy(_._1)
+      .result
+  }
+
+  /**
+   * Daily count of distinct active users (anyone with logged webpage activity that day), split by anonymous vs not.
+   *
+   * "Active" is intentionally broad — any logged activity counts — so this measures how many people showed up, not how
+   * much they did. Split on role "Anonymous" so registered engagement can be read separately from drive-by anon traffic.
+   *
+   * @return DBIO[Seq[(day, isAnonymous, distinctUserCount)]] — sorted ascending by day.
+   */
+  def getActiveUserCountsByDate: DBIO[Seq[(OffsetDateTime, Boolean, Int)]] = {
+    val activeUsers = for {
+      _activity <- activities
+      _userRole <- userRoles if _activity.userId === _userRole.userId
+      _role     <- roles if _userRole.roleId === _role.roleId
+    } yield (_activity.timestamp.trunc("day"), _role.role === "Anonymous", _activity.userId)
+
+    activeUsers
+      .groupBy(x => (x._1, x._2))
+      .map { case ((day, isAnon), group) => (day, isAnon, group.map(_._3).countDistinct) }
+      .sortBy(_._1)
+      .result
+  }
+
+  /**
+   * Daily count of newly registered users, bucketed by their `SignUp` event.
+   *
+   * Only registered sign-ups count — anonymous `AnonAutoSignUp` events fire for every drive-by session and would swamp
+   * the signal, so they're excluded; this is "new accounts per day".
+   *
+   * @return DBIO[Seq[(day, count)]] — sorted ascending by day.
+   */
+  def getNewUserCountsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {
+    activities
+      .filter(_.activity === "SignUp")
+      .map(_.timestamp.trunc("day"))
+      .groupBy(x => x)
+      .map { case (day, group) => (day, group.length) }
+      .sortBy(_._1)
+      .result
+  }
+
+  /**
    * See if the user has previous logs for a specific activity.
    */
   def findUserActivity(activity: String, userId: String): DBIO[Seq[WebpageActivity]] = {

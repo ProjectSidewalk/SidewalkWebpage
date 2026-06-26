@@ -11,8 +11,8 @@ class MiniLineChart {
      * @param {Array<{name: string, key: string, values: Array<number|null>, tooltips?: string[]}>} series -
      *   each series' values align to `categories`; null = gap. Optional per-point tooltip strings.
      * @param {{yMax?: number, tickFormat?: function(number): string, valueFormat?: function(number): string,
-     *          ariaLabel?: string}} [opts] - yMax defaults to the data max; tickFormat labels the y-axis; valueFormat
-     *   formats values in the default tooltip.
+     *          ariaLabel?: string, dotRadius?: number}} [opts] - yMax defaults to the data max; tickFormat labels the
+     *   y-axis; valueFormat formats values in the default tooltip; dotRadius sizes the point markers (default 3).
      * @returns {string} SVG markup plus an optional HTML legend.
      */
     static svg(categories, series, opts = {}) {
@@ -24,6 +24,7 @@ class MiniLineChart {
         const yMax = opts.yMax || Math.max(1, ...allVals);
         const tickFormat = opts.tickFormat || (v => Math.round(v).toLocaleString());
         const valueFormat = opts.valueFormat || (v => Math.round(v).toLocaleString());
+        const dotRadius = opts.dotRadius != null ? opts.dotRadius : 3;
 
         let grid = '';
         for (const f of [0, 0.25, 0.5, 0.75, 1]) {
@@ -46,7 +47,7 @@ class MiniLineChart {
                 const tip = (s.tooltips && s.tooltips[i] != null)
                     ? s.tooltips[i]
                     : `${categories[i]} · ${s.name}: ${valueFormat(v)}`;
-                return `<circle class="mini-pt mini-pt--${s.key}" cx="${x(i).toFixed(1)}" cy="${yFrac(v / yMax).toFixed(1)}" r="3">` +
+                return `<circle class="mini-pt mini-pt--${s.key}" cx="${x(i).toFixed(1)}" cy="${yFrac(v / yMax).toFixed(1)}" r="${dotRadius}">` +
                     `<title>${MiniLineChart.#esc(tip)}</title></circle>`;
             }).join('');
             body += `<path class="mini-line mini-line--${s.key}" d="${d.trim()}"/>${dots}`;

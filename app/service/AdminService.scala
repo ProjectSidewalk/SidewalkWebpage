@@ -10,12 +10,12 @@ import models.street.StreetEdgeTable
 import models.user._
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.{ApiDailyCount, ApiDailySourceCount, ApiEndpointCount, ApiEndpointSourceCount, ApiFormatCount, ApiFormatSourceCount, ApiSourceIpCount, MyPostgresProfile, WebpageActivityTable}
-import models.validation.{LabelValidationTable, ValidationCount, ValidationTaskCommentTable}
+import models.validation.{LabelValidationTable, ValidationCount, ValidationOption, ValidationTaskCommentTable}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval.TimeInterval
 import slick.dbio.DBIO
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -50,6 +50,101 @@ case class ApiAnalyticsBySourceData(
     lastApiCall: Option[String]
 )
 
+/**
+ * One day in the admin Activity page's daily time series — the volume/tempo of each kind of contribution on that date.
+ *
+ * Sign-ins and active-user counts are split into registered vs anonymous so registered engagement can be read apart
+ * from drive-by anonymous traffic. Days with no activity in any series are simply absent; the client zero-fills.
+ *
+ * @param date              Calendar day (DB session time zone, truncated to the day).
+ * @param labels            Labels placed that day (includes tutorial labels, matching the legacy by-date count).
+ * @param validations       Human validations completed that day.
+ * @param audits            Explore tasks (streets) completed that day.
+ * @param missions          Completed, non-skipped, non-onboarding missions that ended that day.
+ * @param signinsRegistered Registered sign-in events that day.
+ * @param signinsAnon       Anonymous auto sign-ups that day.
+ * @param activeRegistered  Distinct registered users with any logged activity that day.
+ * @param activeAnon        Distinct anonymous users with any logged activity that day.
+ * @param newUsers          Newly registered accounts (SignUp events) that day.
+ */
+case class ActivityDayRecord(
+    date: LocalDate,
+    labels: Int,
+    validations: Int,
+    audits: Int,
+    missions: Int,
+    signinsRegistered: Int,
+    signinsAnon: Int,
+    activeRegistered: Int,
+    activeAnon: Int,
+    newUsers: Int
+)
+
+/**
+ * One entry in the admin Activity page's recent-activity stream — a single recent contribution by a person.
+ *
+ * Unifies three kinds of activity so the feed can show them interleaved by recency. The optional fields carry only
+ * what the kind needs: a label has a `labelType`; a validation adds a `validationResult`; a comment carries `comment`
+ * text. `labelId` is present whenever the item points at a specific label (so the feed can deep-link it).
+ *
+ * @param activityType     "label", "validation", or "comment".
+ * @param username         Who did it.
+ * @param timestamp        When.
+ * @param labelId          The label this points at, if any.
+ * @param labelType        Label type name (labels and validations).
+ * @param validationResult "Agree" / "Disagree" / "Unsure" (validations only).
+ * @param comment          Comment text (comments only).
+ */
+case class RecentActivityItem(
+    activityType: String,
+    username: String,
+    timestamp: OffsetDateTime,
+    labelId: Option[Int],
+    labelType: Option[String],
+    validationResult: Option[String],
+    comment: Option[String]
+)
+
+/**
+ * One row of the Contributors page's "Top labelers" leaderboard: a prolific labeler with the breakdowns that reveal
+ * *how* they label, not just how much — for spotting patterns and anomalies.
+ *
+ * @param labelTypeCounts Per-label-type counts, descending — drives the label-type mix bar (canonical colors).
+ * @param severityCounts  Per-severity-rating counts, ascending by rating — drives the severity mini-distribution.
+ */
+case class LabelerLeaderboardEntry(
+    userId: String,
+    username: String,
+    role: String,
+    labels: Int,
+    ownValidated: Int,
+    ownValidatedAgreedPct: Double,
+    highQuality: Boolean,
+    labelTypeCounts: Seq[(String, Int)],
+    severityCounts: Seq[(Int, Int)]
+)
+
+/**
+ * One row of the Contributors page's "Top validators" leaderboard: an active validator with their agree/disagree/unsure
+ * split, so an over-harsh or unsure-everything validator stands out.
+ */
+case class ValidatorLeaderboardEntry(
+    userId: String,
+    username: String,
+    role: String,
+    validations: Int,
+    agree: Int,
+    disagree: Int,
+    unsure: Int,
+    agreementPct: Double
+)
+
+/** The two Contributors leaderboards, assembled together so the page fetches them in one call. */
+case class ContributorLeaderboards(
+    labelers: Seq[LabelerLeaderboardEntry],
+    validators: Seq[ValidatorLeaderboardEntry]
+)
+
 @ImplementedBy(classOf[AdminServiceImpl])
 trait AdminService {
   def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int]
@@ -60,6 +155,7 @@ trait AdminService {
   def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
   def getLabelCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
   def getValidationCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
+  def getActivityByDay: Future[Seq[ActivityDayRecord]]
   def getTagCounts: Future[Seq[TagCount]]
   def getSignInCounts: Future[Seq[(String, String, Int)]]
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]]
@@ -72,6 +168,8 @@ trait AdminService {
   def getLabelCountStats: Future[Seq[LabelCount]]
   def getValidationCountStats: Future[Seq[ValidationCount]]
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]]
+  def getRecentActivity(n: Int): Future[Seq[RecentActivityItem]]
+  def getContributorLeaderboards(n: Int): Future[ContributorLeaderboards]
   def getUserStatsForAdminPage: Future[Seq[UserStatsForAdminPage]]
   def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Double)]]
   def updateUserStatTable(cutoffTime: OffsetDateTime): Future[Int]
@@ -111,6 +209,71 @@ class AdminServiceImpl @Inject() (
   def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]]       = db.run(auditTaskTable.getAuditCountsByDate)
   def getLabelCountsByDate: Future[Seq[(OffsetDateTime, Int)]]       = db.run(labelTable.getLabelCountsByDate)
   def getValidationCountsByDate: Future[Seq[(OffsetDateTime, Int)]]  = db.run(labelValidationTable.getValidationsByDate)
+
+  /**
+   * Assembles the unified daily activity time series for the admin Activity page.
+   *
+   * Each underlying by-date query runs as its own parallel db round-trip, then the results are merged on calendar date
+   * so the page can be driven from a single fetch (mirroring how Coverage is driven by one endpoint). Only days that
+   * appear in at least one series are emitted; the client zero-fills the gaps.
+   *
+   * @return Activity records sorted ascending by date.
+   */
+  def getActivityByDay: Future[Seq[ActivityDayRecord]] = {
+    val labelsFut      = db.run(labelTable.getLabelCountsByDate)
+    val validationsFut = db.run(labelValidationTable.getValidationsByDate)
+    val auditsFut      = db.run(auditTaskTable.getAuditCountsByDate)
+    val missionsFut    = db.run(missionTable.getMissionCountsByDate)
+    val signinsFut     = db.run(webpageActivityTable.getSignInCountsByDate)
+    val activeFut      = db.run(webpageActivityTable.getActiveUserCountsByDate)
+    val newUsersFut    = db.run(webpageActivityTable.getNewUserCountsByDate)
+
+    for {
+      labels      <- labelsFut
+      validations <- validationsFut
+      audits      <- auditsFut
+      missions    <- missionsFut
+      signins     <- signinsFut
+      active      <- activeFut
+      newUsers    <- newUsersFut
+    } yield {
+      def toDayMap(rows: Seq[(OffsetDateTime, Int)]): Map[LocalDate, Int] =
+        rows.map(r => r._1.toLocalDate -> r._2).toMap
+      // The anon-split series carry an isAnonymous flag; partition into two single-valued maps keyed by day.
+      def splitMap(rows: Seq[(OffsetDateTime, Boolean, Int)], anon: Boolean): Map[LocalDate, Int] =
+        rows.filter(_._2 == anon).map(r => r._1.toLocalDate -> r._3).toMap
+
+      val labelMap       = toDayMap(labels)
+      val validationMap  = toDayMap(validations)
+      val auditMap       = toDayMap(audits)
+      val missionMap     = toDayMap(missions)
+      val newUserMap     = toDayMap(newUsers)
+      val signinRegMap   = splitMap(signins, anon = false)
+      val signinAnonMap  = splitMap(signins, anon = true)
+      val activeRegMap   = splitMap(active, anon = false)
+      val activeAnonMap  = splitMap(active, anon = true)
+
+      val allDates: Seq[LocalDate] = (labelMap.keySet ++ validationMap.keySet ++ auditMap.keySet ++ missionMap.keySet ++
+        newUserMap.keySet ++ signinRegMap.keySet ++ signinAnonMap.keySet ++ activeRegMap.keySet ++
+        activeAnonMap.keySet).toSeq.sorted
+
+      allDates.map { d =>
+        ActivityDayRecord(
+          date = d,
+          labels = labelMap.getOrElse(d, 0),
+          validations = validationMap.getOrElse(d, 0),
+          audits = auditMap.getOrElse(d, 0),
+          missions = missionMap.getOrElse(d, 0),
+          signinsRegistered = signinRegMap.getOrElse(d, 0),
+          signinsAnon = signinAnonMap.getOrElse(d, 0),
+          activeRegistered = activeRegMap.getOrElse(d, 0),
+          activeAnon = activeAnonMap.getOrElse(d, 0),
+          newUsers = newUserMap.getOrElse(d, 0)
+        )
+      }
+    }
+  }
+
   def getTagCounts: Future[Seq[TagCount]]                            = db.run(labelTable.getTagCounts)
   def getSignInCounts: Future[Seq[(String, String, Int)]]            = db.run(webpageActivityTable.getSignInCounts)
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]] =
@@ -340,6 +503,93 @@ class AdminServiceImpl @Inject() (
     } yield {
       (exploreComments ++ validateComments).sortBy(_.timestamp).reverse.take(100)
     })
+  }
+
+  /**
+   * Assembles the recent-activity stream for the admin Activity page: the latest labels, validations, and comments,
+   * interleaved by recency.
+   *
+   * Each source is queried for its own `n` most-recent rows in parallel, then the union is re-sorted by timestamp and
+   * trimmed to `n` so the result is the true `n` most-recent contributions across all three kinds.
+   *
+   * @param n Number of stream items to return.
+   * @return Recent activity items, most recent first.
+   */
+  def getRecentActivity(n: Int): Future[Seq[RecentActivityItem]] = {
+    val labelsFut   = db.run(labelTable.getRecentLabels(n))
+    val valsFut     = db.run(labelValidationTable.getRecentValidations(n))
+    val commentsFut = getRecentExploreAndValidateComments
+    for {
+      labels   <- labelsFut
+      vals     <- valsFut
+      comments <- commentsFut
+    } yield {
+      val labelItems = labels.map { case (labelId, labelType, username, ts) =>
+        RecentActivityItem("label", username, ts, Some(labelId), Some(labelType), None, None)
+      }
+      val validationItems = vals.map { case (labelId, labelType, username, result, ts) =>
+        RecentActivityItem("validation", username, ts, Some(labelId), Some(labelType), Some(result.toString), None)
+      }
+      val commentItems = comments.map { c =>
+        RecentActivityItem("comment", c.username, c.timestamp, c.labelId, None, None, Some(c.comment))
+      }
+      (labelItems ++ validationItems ++ commentItems).sortBy(_.timestamp).reverse.take(n)
+    }
+  }
+
+  /**
+   * Assembles the Contributors page's two leaderboards: the top `n` labelers (by label count) and top `n` validators
+   * (by validations performed), each enriched with the breakdowns that surface behavior patterns.
+   *
+   * Ranking and the base per-user fields come from the existing admin user-stats; the per-user breakdowns (label-type
+   * mix, severity distribution, validation-result split) are then queried only for the ranked users, so those joins
+   * stay scoped to ~`n` ids rather than the whole user base.
+   *
+   * @param n Number of rows per leaderboard.
+   * @return The two assembled leaderboards.
+   */
+  def getContributorLeaderboards(n: Int): Future[ContributorLeaderboards] = {
+    getUserStatsForAdminPage.flatMap { stats =>
+      val topLabelers   = stats.filter(_.labels > 0).sortBy(-_.labels).take(n)
+      val topValidators = stats.filter(_.othersValidated > 0).sortBy(-_.othersValidated).take(n)
+      val labelerIds    = topLabelers.map(_.userId)
+      val validatorIds  = topValidators.map(_.userId)
+
+      val typeCountsFut = db.run(labelTable.getLabelTypeCountsForUsers(labelerIds))
+      val sevCountsFut  = db.run(labelTable.getSeverityCountsForUsers(labelerIds))
+      val valCountsFut  = db.run(labelValidationTable.getValidationResultCountsForUsers(validatorIds))
+
+      for {
+        typeCounts <- typeCountsFut
+        sevCounts  <- sevCountsFut
+        valCounts  <- valCountsFut
+      } yield {
+        // Group each breakdown by user, sorting type counts by frequency (desc) and severities by rating (asc).
+        val typesByUser: Map[String, Seq[(String, Int)]] =
+          typeCounts.groupBy(_._1).map { case (u, rows) => u -> rows.map(r => (r._2, r._3)).sortBy(-_._2) }
+        val sevByUser: Map[String, Seq[(Int, Int)]] =
+          sevCounts.collect { case (u, Some(s), c) => (u, s, c) }
+            .groupBy(_._1)
+            .map { case (u, rows) => u -> rows.map(r => (r._2, r._3)).sortBy(_._1) }
+        val resultsByUser: Map[String, Seq[(ValidationOption.Value, Int)]] =
+          valCounts.groupBy(_._1).map { case (u, rows) => u -> rows.map(r => (r._2, r._3)) }
+
+        val labelers = topLabelers.map { u =>
+          LabelerLeaderboardEntry(
+            u.userId, u.username, u.role, u.labels, u.ownValidated, u.ownValidatedAgreedPct, u.highQuality,
+            typesByUser.getOrElse(u.userId, Seq.empty), sevByUser.getOrElse(u.userId, Seq.empty)
+          )
+        }
+        val validators = topValidators.map { u =>
+          val counts                          = resultsByUser.getOrElse(u.userId, Seq.empty)
+          def of(result: ValidationOption.Value) = counts.find(_._1 == result).map(_._2).getOrElse(0)
+          ValidatorLeaderboardEntry(u.userId, u.username, u.role, u.othersValidated,
+            of(ValidationOption.Agree), of(ValidationOption.Disagree), of(ValidationOption.Unsure),
+            u.othersValidatedAgreedPct)
+        }
+        ContributorLeaderboards(labelers, validators)
+      }
+    }
   }
 
   /**

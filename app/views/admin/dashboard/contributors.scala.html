@@ -31,7 +31,30 @@
     <div class="api-section" id="label-source-section">
         <h2 class="api-heading" id="label-source">Where the labels come from <a href="#label-source" class="permalink">#</a></h2>
         <p>Share of all labels contributed by high- vs low-quality users — a sense of how much low-quality data is in the mix.</p>
+        <h3 class="dq-subhead">By contributor quality</h3>
         <div id="contrib-label-source"></div>
+        <h3 class="dq-subhead">By account role</h3>
+        <p>The same labels, split by who placed them — registered volunteers, crowd workers, staff, and so on.</p>
+        <div id="contrib-label-role"></div>
+    </div>
+
+    <div class="api-section" id="top-labelers-section">
+        <h2 class="api-heading" id="top-labelers">Top labelers <a href="#top-labelers" class="permalink">#</a></h2>
+        <p>
+            The most prolific labelers, by label count. Accuracy is the agreement rate on each labeler's own validated
+            labels (with the number validated) — volume and trustworthiness side by side. Click a name for their admin
+            profile.
+        </p>
+        <div id="contrib-top-labelers"></div>
+    </div>
+
+    <div class="api-section" id="top-validators-section">
+        <h2 class="api-heading" id="top-validators">Top validators <a href="#top-validators" class="permalink">#</a></h2>
+        <p>
+            The most active validators, by number of others' labels they've validated. Agreement is how often their
+            validation matched the eventual consensus — a check on validation quality, not just quantity.
+        </p>
+        <div id="contrib-top-validators"></div>
     </div>
 
     <div class="api-section" id="contributor-accuracy-section">
@@ -49,7 +72,10 @@
     <script src="@assets.path("javascripts/admin-dashboard/contributors.js")"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            new ContributorsPage({ userStatsUrl: '/adminapi/getUserStats' }).init();
+            new ContributorsPage({
+                userStatsUrl: '/adminapi/getUserStats',
+                leaderboardsUrl: '/adminapi/contributorLeaderboards'
+            }).init();
         });
     </script>
 }

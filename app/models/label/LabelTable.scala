@@ -826,6 +826,63 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Lightweight feed of the most recently placed labels, for the admin Activity stream.
+   *
+   * Excludes AI-placed labels (role "AI") so the stream reads as people's activity; deleted/tutorial/excluded-user
+   * labels are already excluded by the `labels` subquery. Returns just what the feed renders, not full metadata.
+   *
+   * @param n Number of labels to retrieve.
+   * @return DBIO[Seq[(labelId, labelType, username, timeCreated)]], most recent first.
+   */
+  def getRecentLabels(n: Int): DBIO[Seq[(Int, String, String, OffsetDateTime)]] = {
+    (for {
+      _label     <- labels
+      _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
+      _user      <- usersUnfiltered if _label.userId === _user.userId
+      _userRole  <- userRoles if _user.userId === _userRole.userId
+      _role      <- roleTable if _userRole.roleId === _role.roleId && _role.role =!= "AI"
+    } yield (_label.labelId, _labelType.labelType, _user.username, _label.timeCreated))
+      .sortBy(_._4.desc)
+      .take(n)
+      .result
+  }
+
+  /**
+   * Per-user label counts broken down by label type, for the given users (the Contributors leaderboard's top labelers).
+   *
+   * Scoped to a small set of user ids so it stays cheap. Uses the `labels` subquery, so deleted/tutorial/excluded-user
+   * labels are already excluded.
+   *
+   * @param userIds The users to break down.
+   * @return DBIO[Seq[(userId, labelType, count)]].
+   */
+  def getLabelTypeCountsForUsers(userIds: Seq[String]): DBIO[Seq[(String, String, Int)]] = {
+    (for {
+      _label     <- labels if _label.userId inSet userIds
+      _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
+    } yield (_label.userId, _labelType.labelType))
+      .groupBy(x => x)
+      .map { case ((userId, labelType), group) => (userId, labelType, group.length) }
+      .result
+  }
+
+  /**
+   * Per-user counts of labels at each severity rating, for the given users (the Contributors leaderboard's top
+   * labelers). Labels with no severity are excluded.
+   *
+   * @param userIds The users to break down.
+   * @return DBIO[Seq[(userId, severity, count)]] — severity is the raw rating value present in the data.
+   */
+  def getSeverityCountsForUsers(userIds: Seq[String]): DBIO[Seq[(String, Option[Int], Int)]] = {
+    (for {
+      _label <- labels if (_label.userId inSet userIds) && _label.severity.isDefined
+    } yield (_label.userId, _label.severity))
+      .groupBy(x => x)
+      .map { case ((userId, severity), group) => (userId, severity, group.length) }
+      .result
+  }
+
+  /**
    * Gets metadata for the `takeN` most recent labels. Optionally filter by user_id of the labeler.
    * @param takeN Number of labels to retrieve
    * @param labelerId user_id of the person who placed the labels; an optional filter

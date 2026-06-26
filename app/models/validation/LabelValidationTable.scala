@@ -302,6 +302,45 @@ class LabelValidationTable @Inject() (
   }
 
   /**
+   * Per-user validation counts broken down by result (Agree/Disagree/Unsure), for the given users (the Contributors
+   * leaderboard's top validators). Scoped to a small set of user ids so it stays cheap.
+   *
+   * @param userIds The users to break down.
+   * @return DBIO[Seq[(userId, validationResult, count)]].
+   */
+  def getValidationResultCountsForUsers(
+      userIds: Seq[String]
+  ): DBIO[Seq[(String, ValidationOption.Value, Int)]] = {
+    validations
+      .filter(_.userId inSet userIds)
+      .groupBy(v => (v.userId, v.validationResult))
+      .map { case ((userId, result), group) => (userId, result, group.length) }
+      .result
+  }
+
+  /**
+   * Lightweight feed of the most recent human validations, for the admin Activity stream.
+   *
+   * Excludes AI validations (joins through `humanUsers`) so the stream reads as people's activity. Returns just what
+   * the feed renders, joined to the validated label's type.
+   *
+   * @param n Number of validations to retrieve.
+   * @return DBIO[Seq[(labelId, labelType, username, validationResult, endTimestamp)]], most recent first.
+   */
+  def getRecentValidations(n: Int): DBIO[Seq[(Int, String, String, ValidationOption.Value, OffsetDateTime)]] = {
+    (for {
+      _validation <- validations
+      _user       <- sidewalkUserTable.humanUsers if _validation.userId === _user.userId
+      _label      <- labelsWithoutDeleted if _validation.labelId === _label.labelId
+      _labelType  <- labelTypeTable if _label.labelTypeId === _labelType.labelTypeId
+    } yield (_validation.labelId, _labelType.labelType, _user.username, _validation.validationResult,
+      _validation.endTimestamp))
+      .sortBy(_._5.desc)
+      .take(n)
+      .result
+  }
+
+  /**
    * Gets validation data for API with filters applied. Returns raw tuples to be converted to ValidationDataForApi.
    *
    * @param filters The filters to apply to the validation data.
