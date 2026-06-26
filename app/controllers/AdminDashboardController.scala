@@ -94,4 +94,19 @@ class AdminDashboardController @Inject() (
       Ok(views.html.admin.dashboard.apiAnalytics(commonData, request.identity))
     }
   }
+
+  /**
+   * Renders the Humans vs AI page: the cross-cutting comparison between human and AI contributions.
+   *
+   * Answers "how does the AI compare to people?" across all three AI roles — as a labeler (volume, type mix, severity,
+   * and acceptance rate when validated), as a validator (verdict mix), and as a tagger (tag distribution vs the human
+   * baseline). Driven client-side from the unified `/adminapi/humanVsAi` endpoint; the AI side shows per-lens empty
+   * states on deployments without AI activity.
+   */
+  def humansVsAi = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_HumansVsAI")
+      Ok(views.html.admin.dashboard.humansVsAi(commonData, request.identity))
+    }
+  }
 }

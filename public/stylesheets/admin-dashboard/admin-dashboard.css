@@ -794,3 +794,97 @@
     white-space: nowrap;
     text-align: right;
 }
+
+/* --- Humans vs AI ------------------------------------------------------------------------------------------- */
+/* Human/AI series colors: Okabe-Ito blue + vermillion (colorblind-safe, distinct in hue AND luminance). */
+:root { --hva-human: #0072b2; --hva-ai: #d55e00; }
+
+.hva-boundary { color: var(--color-text-secondary, #5a7785); font-size: var(--font-size-sm, 0.875rem); }
+.hva-summary {
+    font-weight: 600;
+    color: var(--color-text-heading, #263238);
+    margin: var(--space-sm, 12px) 0 0;
+}
+.hva-note { color: var(--color-text-secondary, #5a7785); font-size: var(--font-size-sm, 0.875rem); }
+.hva-empty {
+    color: var(--color-text-secondary, #5a7785);
+    background: var(--color-neutral-50, #fafafa);
+    border: 1px dashed var(--color-neutral-200, #e1e1e1);
+    border-radius: 6px;
+    padding: var(--space-sm, 12px) var(--space-md, 16px);
+    font-size: var(--font-size-sm, 0.875rem);
+}
+
+.hva-fill--human { background: var(--hva-human); }
+.hva-fill--ai { background: var(--hva-ai); }
+
+/* Legend atop each grouped viz. */
+.hva-legend { display: flex; gap: var(--space-md, 16px); margin-bottom: var(--space-sm, 12px); }
+.hva-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+.hva-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+/* A label-type / category row with its paired human+AI bars. */
+.hva-group {
+    display: grid;
+    grid-template-columns: minmax(120px, 200px) 1fr;
+    align-items: center;
+    gap: var(--space-md, 16px);
+    padding: 8px 0;
+    border-top: 1px solid var(--color-neutral-100, #f0f0f0);
+}
+.hva-group:first-of-type { border-top: 0; }
+.hva-group-label { font-size: var(--font-size-sm, 0.875rem); color: var(--color-text-primary, #222); }
+.hva-group-bars { display: flex; flex-direction: column; gap: 5px; }
+
+/* One human-or-AI bar: side label, track, value. */
+.hva-bar {
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    align-items: center;
+    gap: var(--space-sm, 12px);
+}
+.hva-bar--muted { opacity: 0.45; }
+.hva-bar-side {
+    font-size: var(--font-size-xs, 0.8125rem);
+    font-weight: 600;
+    color: var(--color-text-secondary, #5a7785);
+}
+.hva-bar-value {
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 600;
+    color: var(--color-text-heading, #263238);
+    white-space: nowrap;
+}
+
+/* Label-type cell: icon/dot + name. */
+.hva-type { display: inline-flex; align-items: center; gap: 8px; }
+.hva-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; }
+
+/* Validator verdict rows. */
+.hva-verdict-row {
+    display: grid;
+    grid-template-columns: 72px 1fr 64px;
+    align-items: center;
+    gap: var(--space-md, 16px);
+    padding: 8px 0;
+}
+.hva-verdict-name { font-weight: 600; color: var(--color-text-heading, #263238); }
+.hva-verdict-n { text-align: right; }
+/* Stretch the reused verdict bar full-width here (it's fixed-width in the Contributors tables). */
+.hva-verdict-row .contrib-verdictwrap { display: flex; width: 100%; align-items: center; gap: var(--space-sm, 12px); }
+.hva-verdict-row .contrib-verdictbar { width: auto; flex: 1; height: 14px; border-radius: 7px; }
+
+/* Tagger: two ranked tag lists side by side. */
+.hva-tags { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-lg, 24px); }
+.hva-taglist-title {
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 600;
+    color: var(--color-text-heading, #263238);
+    margin: 0 0 var(--space-sm, 12px);
+}

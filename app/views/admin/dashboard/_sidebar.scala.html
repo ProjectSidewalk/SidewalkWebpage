@@ -26,7 +26,9 @@
         <a href="@routes.AdminDashboardController.activity"
            class="api-nav-item @if(activePage == "activity"){active}"
            @if(activePage == "activity"){aria-current="page"}>Activity</a>
-        <span class="api-nav-item disabled" aria-disabled="true">Humans vs AI <span class="nav-soon-badge">soon</span></span>
+        <a href="@routes.AdminDashboardController.humansVsAi"
+           class="api-nav-item @if(activePage == "humans-vs-ai"){active}"
+           @if(activePage == "humans-vs-ai"){aria-current="page"}>Humans vs AI</a>
         <a href="@routes.AdminDashboardController.apiAnalytics"
            class="api-nav-item @if(activePage == "api-analytics"){active}"
            @if(activePage == "api-analytics"){aria-current="page"}>API Analytics</a>

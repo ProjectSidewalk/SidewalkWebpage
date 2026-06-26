@@ -319,6 +319,24 @@ class LabelValidationTable @Inject() (
   }
 
   /**
+   * Validation counts broken down by result (Agree/Disagree/Unsure) and whether the validator is the AI user, for the
+   * Humans-vs-AI dashboard's validator lens. Lets the page compare how much validation work AI does versus humans and
+   * how their verdict mixes differ.
+   *
+   * @return DBIO[Seq[(isAi, validationResult, count)]].
+   */
+  def getValidationCountsByValidatorRole: DBIO[Seq[(Boolean, ValidationOption.Value, Int)]] = {
+    (for {
+      _validation <- validations
+      _userRole   <- userRoles if _validation.userId === _userRole.userId
+      _role       <- roleTable if _userRole.roleId === _role.roleId
+    } yield (_role.role === "AI", _validation.validationResult))
+      .groupBy(r => (r._1, r._2))
+      .map { case ((isAi, result), group) => (isAi, result, group.length) }
+      .result
+  }
+
+  /**
    * Lightweight feed of the most recent human validations, for the admin Activity stream.
    *
    * Excludes AI validations (joins through `humanUsers`) so the stream reads as people's activity. Returns just what

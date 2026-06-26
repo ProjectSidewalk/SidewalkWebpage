@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
 import models.audit._
-import models.label.{LabelCount, LabelTable, TagCount}
+import models.label.{LabelAiAssessmentTable, LabelCount, LabelTable, TagCount}
 import models.mission.{MissionTable, RegionalMission}
 import models.region.Region
 import models.street.StreetEdgeTable
@@ -151,6 +151,53 @@ case class ContributorLeaderboards(
  */
 case class TagSeverityCount(labelType: String, tag: String, severity: Int, count: Int)
 
+/**
+ * One label-type row of the Humans-vs-AI labeler comparison: for a given author group, how many labels of this type
+ * were placed, how many have a validation verdict, and how many were judged correct.
+ */
+case class HumanAiTypeStat(labelType: String, count: Int, validated: Int, correct: Int)
+
+/**
+ * The labeler-lens stats for one author group (human or AI): totals plus the per-type and per-severity breakdowns the
+ * page uses to compare what each group labels and how its labels hold up under validation.
+ *
+ * @param group          "human" or "ai".
+ * @param severityCounts Per-severity counts on the canonical 1–3 scale (raw legacy ratings are clamped into it).
+ */
+case class HumanAiLabelerStats(
+    group: String,
+    total: Int,
+    validated: Int,
+    correct: Int,
+    typeStats: Seq[HumanAiTypeStat],
+    severityCounts: Seq[(Int, Int)]
+)
+
+/** The validator-lens stats for one validator group: total validations plus the agree/disagree/unsure verdict mix. */
+case class HumanAiValidatorStats(group: String, total: Int, agree: Int, disagree: Int, unsure: Int)
+
+/**
+ * The tagger lens: the AI tagger's activity (labels assessed, mean confidence, tag distribution) alongside the human
+ * tag distribution as a baseline. There is no per-group split here because humans tag inline while the AI tagger runs
+ * as a separate pass — the comparison is AI's tag mix vs humans' tag mix, not two symmetric groups.
+ */
+case class HumanAiTaggerStats(
+    labelsAssessed: Int,
+    avgConfidence: Option[Double],
+    aiTags: Seq[(String, Int)],
+    humanTags: Seq[(String, Int)]
+)
+
+/**
+ * Everything the Humans-vs-AI dashboard page needs, assembled in one payload. `labelers` and `validators` each hold
+ * the human group then the AI group (the AI group is present but all-zero on deployments without AI activity).
+ */
+case class HumanVsAiStats(
+    labelers: Seq[HumanAiLabelerStats],
+    validators: Seq[HumanAiValidatorStats],
+    tagger: HumanAiTaggerStats
+)
+
 @ImplementedBy(classOf[AdminServiceImpl])
 trait AdminService {
   def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int]
@@ -177,6 +224,7 @@ trait AdminService {
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]]
   def getRecentActivity(n: Int): Future[Seq[RecentActivityItem]]
   def getContributorLeaderboards(n: Int): Future[ContributorLeaderboards]
+  def getHumanVsAiStats: Future[HumanVsAiStats]
   def getUserStatsForAdminPage: Future[Seq[UserStatsForAdminPage]]
   def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Double)]]
   def updateUserStatTable(cutoffTime: OffsetDateTime): Future[Int]
@@ -198,6 +246,7 @@ class AdminServiceImpl @Inject() (
     streetEdgeTable: StreetEdgeTable,
     labelTable: LabelTable,
     labelValidationTable: LabelValidationTable,
+    labelAiAssessmentTable: LabelAiAssessmentTable,
     userTeamTable: UserTeamTable,
     webpageActivityTable: WebpageActivityTable,
     teamTable: TeamTable,
@@ -610,6 +659,69 @@ class AdminServiceImpl @Inject() (
         }
         ContributorLeaderboards(labelers, validators)
       }
+    }
+  }
+
+  /**
+   * Assembles the Humans-vs-AI page's comparison across all three AI roles, in one payload: AI vs human as a labeler
+   * (volume, type mix, severity, and acceptance rate when validated), as a validator (verdict mix), and as a tagger
+   * (tag distribution + confidence vs the human tag baseline).
+   *
+   * The AI group is always present even when a deployment has no AI activity (it comes back all-zero), so the page can
+   * render a consistent shape and show per-lens empty states. The tagger queries hit `label_ai_assessment`, which may
+   * be absent in older schemas, so they degrade to empty rather than failing the whole call.
+   *
+   * @return The assembled comparison.
+   */
+  def getHumanVsAiStats: Future[HumanVsAiStats] = {
+    val labelStatsFut = db.run(labelTable.getLabelStatsByAuthorRole)
+    val sevFut        = db.run(labelTable.getSeverityCountsByAuthorRole)
+    val valFut        = db.run(labelValidationTable.getValidationCountsByValidatorRole)
+    val humanTagsFut  = db.run(labelTable.getHumanTagCounts)
+    val taggerSummaryFut =
+      db.run(labelAiAssessmentTable.getAssessmentSummary).recover { case _ => (0, Option.empty[Double]) }
+    val aiTagsFut = db.run(labelAiAssessmentTable.getAiTagCounts).recover { case _ => Seq.empty[(String, Int)] }
+
+    for {
+      labelStats    <- labelStatsFut
+      sev           <- sevFut
+      vals          <- valFut
+      humanTags     <- humanTagsFut
+      taggerSummary <- taggerSummaryFut
+      aiTags        <- aiTagsFut
+    } yield {
+      // Clamp a raw rating into the canonical 1–3 severity scale; legacy dumps carry 1–5 values (#3306).
+      def clampSeverity(s: Int): Int = math.max(1, math.min(3, s))
+
+      def labelerGroup(isAi: Boolean, name: String): HumanAiLabelerStats = {
+        val types = labelStats
+          .collect { case (g, lt, total, validated, correct) if g == isAi => HumanAiTypeStat(lt, total, validated, correct) }
+          .sortBy(-_.count)
+        val severityCounts: Seq[(Int, Int)] = sev
+          .collect { case (g, Some(s), c) if g == isAi => (clampSeverity(s), c) }
+          .groupBy(_._1)
+          .map { case (rating, rows) => (rating, rows.map(_._2).sum) }
+          .toSeq
+          .sortBy(_._1)
+        HumanAiLabelerStats(name, types.map(_.count).sum, types.map(_.validated).sum, types.map(_.correct).sum,
+          types, severityCounts)
+      }
+
+      def validatorGroup(isAi: Boolean, name: String): HumanAiValidatorStats = {
+        def of(result: ValidationOption.Value): Int = vals.collect { case (g, r, c) if g == isAi && r == result => c }.sum
+        val agree    = of(ValidationOption.Agree)
+        val disagree = of(ValidationOption.Disagree)
+        val unsure   = of(ValidationOption.Unsure)
+        HumanAiValidatorStats(name, agree + disagree + unsure, agree, disagree, unsure)
+      }
+
+      val tagger = HumanAiTaggerStats(taggerSummary._1, taggerSummary._2, aiTags.sortBy(-_._2), humanTags.sortBy(-_._2))
+
+      HumanVsAiStats(
+        labelers = Seq(labelerGroup(isAi = false, "human"), labelerGroup(isAi = true, "ai")),
+        validators = Seq(validatorGroup(isAi = false, "human"), validatorGroup(isAi = true, "ai")),
+        tagger = tagger
+      )
     }
   }
 

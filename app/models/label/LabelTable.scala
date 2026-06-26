@@ -883,6 +883,73 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Per-label-type label counts split by whether the author is the AI user, for the Humans-vs-AI dashboard's labeler
+   * lens. For each (isAi, labelType) returns the total placed, how many have a validation verdict (`correct` set),
+   * and how many were judged correct — so the page can compare AI's acceptance rate against humans' per type.
+   *
+   * Built on `labelsWithExcludedUsers` rather than `labels` on purpose: that base does not inner-join `user_stat`, so
+   * AI-placed labels (whose AI user may have no `user_stat` row) are counted instead of silently dropped. The tradeoff
+   * is that excluded human users' labels are included; for an aggregate human-vs-AI split that is acceptable.
+   *
+   * @return DBIO[Seq[(isAi, labelType, total, validated, correct)]].
+   */
+  def getLabelStatsByAuthorRole: DBIO[Seq[(Boolean, String, Int, Int, Int)]] = {
+    (for {
+      _label     <- labelsWithExcludedUsers
+      _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
+      _userRole  <- userRoles if _label.userId === _userRole.userId
+      _role      <- roleTable if _userRole.roleId === _role.roleId
+    } yield (_role.role === "AI", _labelType.labelType, _label.correct))
+      .groupBy(r => (r._1, r._2))
+      .map { case ((isAi, labelType), group) =>
+        (
+          isAi,
+          labelType,
+          group.length,
+          group.map(r => Case.If(r._3.isDefined).Then(1).Else(0)).sum.getOrElse(0),
+          group.map(r => Case.If(r._3.getOrElse(false) === true).Then(1).Else(0)).sum.getOrElse(0)
+        )
+      }
+      .result
+  }
+
+  /**
+   * Per-severity-rating label counts split by whether the author is the AI user, for the Humans-vs-AI labeler lens'
+   * severity-distribution comparison. Labels with no severity are excluded; the raw rating is returned (callers bucket
+   * it to the canonical 1–3 scale). Uses `labelsWithExcludedUsers` for the same AI-safe reason as
+   * [[getLabelStatsByAuthorRole]].
+   *
+   * @return DBIO[Seq[(isAi, severity, count)]].
+   */
+  def getSeverityCountsByAuthorRole: DBIO[Seq[(Boolean, Option[Int], Int)]] = {
+    (for {
+      _label    <- labelsWithExcludedUsers if _label.severity.isDefined
+      _userRole <- userRoles if _label.userId === _userRole.userId
+      _role     <- roleTable if _userRole.roleId === _role.roleId
+    } yield (_role.role === "AI", _label.severity))
+      .groupBy(r => (r._1, r._2))
+      .map { case ((isAi, severity), group) => (isAi, severity, group.length) }
+      .result
+  }
+
+  /**
+   * Tag-application counts on human-authored labels, for the Humans-vs-AI tagger lens' baseline (the AI tagger's tag
+   * distribution is compared against this). AI-authored labels are excluded so the baseline is purely human tagging.
+   *
+   * @return DBIO[Seq[(tag, count)]].
+   */
+  def getHumanTagCounts: DBIO[Seq[(String, Int)]] = {
+    (for {
+      _label    <- labelsWithExcludedUsers
+      _userRole <- userRoles if _label.userId === _userRole.userId
+      _role     <- roleTable if _userRole.roleId === _role.roleId && _role.role =!= "AI"
+    } yield _label.tags.unnest)
+      .groupBy(tag => tag)
+      .map { case (tag, group) => (tag, group.length) }
+      .result
+  }
+
+  /**
    * Gets metadata for the `takeN` most recent labels. Optionally filter by user_id of the labeler.
    * @param takeN Number of labels to retrieve
    * @param labelerId user_id of the person who placed the labels; an optional filter

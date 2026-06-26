@@ -728,6 +728,46 @@ class AdminController @Inject() (
     }
   }
 
+  /**
+   * Humans-vs-AI comparison for the redesigned admin dashboard: AI vs human as labeler, validator, and tagger.
+   * Output is snake_case per the v3 naming convention; the AI group is always present (all-zero where there's no AI
+   * activity) so the page can render consistent empty states.
+   */
+  def getHumanVsAiStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getHumanVsAiStats.map { stats =>
+      def labelerJson(l: service.HumanAiLabelerStats): JsObject = Json.obj(
+        "group"     -> l.group,
+        "total"     -> l.total,
+        "validated" -> l.validated,
+        "correct"   -> l.correct,
+        "type_stats" -> JsArray(l.typeStats.map { t =>
+          Json.obj("label_type" -> t.labelType, "count" -> t.count, "validated" -> t.validated, "correct" -> t.correct)
+        }),
+        "severity_counts" -> JsArray(l.severityCounts.map { case (severity, count) =>
+          Json.obj("severity" -> severity, "count" -> count)
+        })
+      )
+      def validatorJson(v: service.HumanAiValidatorStats): JsObject = Json.obj(
+        "group" -> v.group, "total" -> v.total, "agree" -> v.agree, "disagree" -> v.disagree, "unsure" -> v.unsure
+      )
+      def tagsJson(tags: Seq[(String, Int)]): JsArray =
+        JsArray(tags.map { case (tag, count) => Json.obj("tag" -> tag, "count" -> count) })
+      Ok(
+        Json.obj(
+          "labelers"   -> JsArray(stats.labelers.map(labelerJson)),
+          "validators" -> JsArray(stats.validators.map(validatorJson)),
+          "tagger" -> Json.obj(
+            "labels_assessed" -> stats.tagger.labelsAssessed,
+            "avg_confidence"  -> stats.tagger.avgConfidence,
+            "ai_tags"         -> tagsJson(stats.tagger.aiTags),
+            "human_tags"      -> tagsJson(stats.tagger.humanTags)
+          )
+        )
+      )
+    }
+  }
+
   def getUserStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     for {
