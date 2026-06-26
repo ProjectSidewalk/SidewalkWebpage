@@ -28,23 +28,29 @@ class DataQualityPage {
     #tagsUrl;
     #labelTypesUrl;
     #byDayUrl;
+    #tagSeverityUrl;
     #order = [];           // Canonical label-type order (machine names) from /v3/api/labelTypes.
     #meta = new Map();     // name -> { color, icon, display }
     #validations = null;   // Kept so the validator toggle can re-render without refetching.
 
-    /** @param {{statsUrl: string, tagsUrl: string, labelTypesUrl: string, byDayUrl: string}} opts */
+    /**
+     * @param {{statsUrl: string, tagsUrl: string, labelTypesUrl: string, byDayUrl: string,
+     *          tagSeverityUrl: string}} opts
+     */
     constructor(opts = {}) {
         this.#statsUrl = opts.statsUrl;
         this.#tagsUrl = opts.tagsUrl;
         this.#labelTypesUrl = opts.labelTypesUrl;
         this.#byDayUrl = opts.byDayUrl;
+        this.#tagSeverityUrl = opts.tagSeverityUrl;
     }
 
     async init() {
         try {
-            const [stats, tags, labelTypes, byDay] = await Promise.all([
+            const [stats, tags, labelTypes, byDay, tagSeverity] = await Promise.all([
                 this.#fetchJson(this.#statsUrl), this.#fetchJson(this.#tagsUrl),
-                this.#fetchJson(this.#labelTypesUrl), this.#fetchJson(this.#byDayUrl)
+                this.#fetchJson(this.#labelTypesUrl), this.#fetchJson(this.#byDayUrl),
+                this.#fetchJson(this.#tagSeverityUrl)
             ]);
 
             this.#buildMeta(labelTypes);
@@ -56,6 +62,7 @@ class DataQualityPage {
             this.#renderValidation('combined');
             this.#wireValidatorToggle();
             this.#renderTags(Array.isArray(tags) ? tags : []);
+            this.#renderTagSeverity((tagSeverity && tagSeverity.tag_severity) || []);
             this.#renderQualityOverTime(byDay);
 
             this.#setStatus('', false, true);
@@ -247,6 +254,60 @@ class DataQualityPage {
             });
         document.getElementById('dq-tags').innerHTML = blocks.join('') ||
             '<p class="dq-empty">No tags recorded yet.</p>';
+    }
+
+    /**
+     * Tag-severity heatmap: one small matrix per severity-bearing label type, rows = its top tags, columns = severity
+     * 1–3, cell shade = how that tag's labels distribute across severities. Each row is normalized to its own max so a
+     * tag's *severity profile* pops (e.g. a tag that's almost always severity 3), regardless of how common the tag is;
+     * the trailing count gives the volume the profile is based on. Hover a cell for the exact count and share.
+     */
+    #renderTagSeverity(rows) {
+        const el = document.getElementById('dq-tag-severity');
+        if (!el) return;
+        const hasSeverity = t => { try { return util.misc.labelTypeHasSeverity(t); } catch (e) { return true; } };
+
+        const byType = new Map();
+        for (const r of rows) {
+            if (!byType.has(r.label_type)) byType.set(r.label_type, new Map());
+            const tagMap = byType.get(r.label_type);
+            if (!tagMap.has(r.tag)) tagMap.set(r.tag, { 1: 0, 2: 0, 3: 0, total: 0 });
+            const cell = tagMap.get(r.tag);
+            cell[r.severity] = (cell[r.severity] || 0) + r.count;
+            cell.total += r.count;
+        }
+
+        const blocks = this.#order
+            .filter(type => byType.has(type) && hasSeverity(type))
+            .map(type => {
+                const color = this.#color(type);
+                const tags = [...byType.get(type).entries()]
+                    .sort((a, b) => b[1].total - a[1].total)
+                    .slice(0, DataQualityPage.#TOP_TAGS_PER_TYPE);
+                const body = tags.map(([tag, c]) => {
+                    const rowMax = Math.max(c[1], c[2], c[3], 1);
+                    const cells = [1, 2, 3].map(s => {
+                        const n = c[s] || 0;
+                        const share = c.total ? Math.round((n / c.total) * 100) : 0;
+                        const opacity = (0.1 + 0.9 * (n / rowMax)).toFixed(2); // row-normalized intensity
+                        const title = `${tag} · severity ${s}: ${n.toLocaleString()} (${share}% of this tag)`;
+                        return `<div class="dq-heat-cell" title="${DataQualityPage.#esc(title)}" ` +
+                            `style="background:${color};opacity:${opacity}"></div>`;
+                    }).join('');
+                    return `<div class="dq-heat-rowlabel" title="${DataQualityPage.#esc(tag)}">${DataQualityPage.#esc(tag)}</div>` +
+                        cells + `<div class="dq-heat-total">${c.total.toLocaleString()}</div>`;
+                }).join('');
+                const head =
+                    `<div class="dq-tag-head"><img class="dq-icon" src="${this.#icon(type)}" alt="" width="20" ` +
+                    `height="20"><span class="dq-name">${this.#name(type)}</span></div>`;
+                const colHead = '<div class="dq-heat-corner"></div>' +
+                    '<div class="dq-heat-colhead">1</div><div class="dq-heat-colhead">2</div>' +
+                    '<div class="dq-heat-colhead">3</div><div class="dq-heat-colhead">n</div>';
+                return `<div class="dq-tag-group"><div class="dq-heat-matrix">${head}` +
+                    `<div class="dq-heat-grid">${colHead}${body}</div></div></div>`;
+            });
+        el.innerHTML = blocks.join('') ||
+            '<p class="dq-empty">No tag-severity data yet.</p>';
     }
 
     /**

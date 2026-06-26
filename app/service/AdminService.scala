@@ -145,6 +145,12 @@ case class ContributorLeaderboards(
     validators: Seq[ValidatorLeaderboardEntry]
 )
 
+/**
+ * One cell of the Data Quality tag-severity heatmap: how many labels of a given type carry a given tag at a given
+ * severity. Severity is bucketed to the canonical 1–3 scale (#3306).
+ */
+case class TagSeverityCount(labelType: String, tag: String, severity: Int, count: Int)
+
 @ImplementedBy(classOf[AdminServiceImpl])
 trait AdminService {
   def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int]
@@ -157,6 +163,7 @@ trait AdminService {
   def getValidationCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
   def getActivityByDay: Future[Seq[ActivityDayRecord]]
   def getTagCounts: Future[Seq[TagCount]]
+  def getTagSeverityCounts: Future[Seq[TagSeverityCount]]
   def getSignInCounts: Future[Seq[(String, String, Int)]]
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]]
   def findAuditTask(taskId: Int): Future[Option[AuditTask]]
@@ -275,6 +282,20 @@ class AdminServiceImpl @Inject() (
   }
 
   def getTagCounts: Future[Seq[TagCount]]                            = db.run(labelTable.getTagCounts)
+
+  /**
+   * Tag-severity counts for the Data Quality heatmap, with severity bucketed to the canonical 1–3 scale (legacy
+   * out-of-range ratings are clamped into the nearest bucket and re-summed).
+   */
+  def getTagSeverityCounts: Future[Seq[TagSeverityCount]] = {
+    db.run(labelTable.getTagSeverityCounts).map { rows =>
+      rows
+        .collect { case (labelType, tag, Some(sev), count) => (labelType, tag, math.min(3, math.max(1, sev)), count) }
+        .groupBy { case (labelType, tag, severity, _) => (labelType, tag, severity) }
+        .map { case ((labelType, tag, severity), group) => TagSeverityCount(labelType, tag, severity, group.map(_._4).sum) }
+        .toSeq
+    }
+  }
   def getSignInCounts: Future[Seq[(String, String, Int)]]            = db.run(webpageActivityTable.getSignInCounts)
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]] =
     db.run(auditTaskTable.getAuditedStreetsWithTimestamps)

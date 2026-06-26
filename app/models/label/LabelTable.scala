@@ -1485,6 +1485,26 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Counts of (label type, tag, severity) over labels that carry a severity, for the Data Quality tag-severity heatmap.
+   *
+   * Tags are a label array column, so they're unnested — a label contributes to one row per tag it carries. Severity is
+   * returned raw (callers bucket it to the 1–3 scale). Deleted/tutorial/excluded-user labels are excluded via `labels`.
+   *
+   * @return DBIO[Seq[(labelType, tag, severity, count)]]; severity is the raw rating, `None`-filtered by the query.
+   */
+  def getTagSeverityCounts: DBIO[Seq[(String, String, Option[Int], Int)]] = {
+    val rows = for {
+      _l     <- labels if _l.severity.isDefined
+      _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
+    } yield (_lType.labelType, _l.tags.unnest, _l.severity)
+
+    rows
+      .groupBy(r => (r._1, r._2, r._3))
+      .map { case ((labelType, tag, severity), group) => (labelType, tag, severity, group.length) }
+      .result
+  }
+
+  /**
    * Returns a list of labels submitted by the given user, either everywhere or just in the given region.
    */
   def getLabelLocations(userId: String, regionId: Option[Int] = None): DBIO[Seq[LabelLocation]] = {

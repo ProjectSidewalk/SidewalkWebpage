@@ -171,6 +171,19 @@ class AdminController @Inject() (
   }
 
   /**
+   * Tag-by-severity counts for the Data Quality tag-severity heatmap (#4272): how each label type's tags distribute
+   * across the 1–3 severity scale. snake_case per the dashboard convention.
+   */
+  def getTagSeverityCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getTagSeverityCounts.map { counts =>
+      Ok(Json.obj("tag_severity" -> JsArray(counts.map { c =>
+        Json.obj("label_type" -> c.labelType, "tag" -> c.tag, "severity" -> c.severity, "count" -> c.count)
+      })))
+    }
+  }
+
+  /**
    * Get a list of all labels with metadata needed for /labelMap.
    */
   def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =

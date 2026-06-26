@@ -83,6 +83,17 @@
         <div id="dq-tags"></div>
     </div>
 
+    <div class="api-section" id="tag-severity-section">
+        <h2 class="api-heading" id="tag-severity">Tag severity patterns <a href="#tag-severity" class="permalink">#</a></h2>
+        <p>
+            For each label type that carries a severity, how its tags distribute across the 1–3 severity scale (higher =
+            worse). Each row is shaded relative to its own busiest cell, so a tag's <em>profile</em> stands out — e.g. a
+            tag that almost always rides with the worst severity — independent of how common the tag is. The
+            <strong>n</strong> column is the tag's total; hover a cell for the exact count and share.
+        </p>
+        <div id="dq-tag-severity"></div>
+    </div>
+
     <script src="@assets.path("javascripts/admin-dashboard/mini-line-chart.js")"></script>
     <script src="@assets.path("javascripts/admin-dashboard/data-quality.js")"></script>
     <script>
@@ -91,7 +102,8 @@
                 statsUrl: '/v3/api/overallStats',
                 tagsUrl: '/adminapi/labelTags',
                 labelTypesUrl: '/v3/api/labelTypes',
-                byDayUrl: '/v3/api/overallStatsByDay'
+                byDayUrl: '/v3/api/overallStatsByDay',
+                tagSeverityUrl: '/adminapi/tagSeverity'
             }).init();
         });
     </script>

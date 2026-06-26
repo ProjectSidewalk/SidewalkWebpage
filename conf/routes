@@ -68,6 +68,7 @@ GET     /adminapi/auditpath/:id                         controllers.AdminControl
 GET     /adminapi/auditedStreetTimes                    controllers.AdminController.getAuditedStreetsWithTimestamps
 GET     /adminapi/labels/all                            controllers.AdminController.getAllLabels
 GET     /adminapi/labelTags                             controllers.AdminController.getTagCounts
+GET     /adminapi/tagSeverity                            controllers.AdminController.getTagSeverityCounts
 GET     /adminapi/label/id/:labelId                     controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/labelCounts                           controllers.AdminController.getAllUserLabelCounts
 GET     /adminapi/panos                                 controllers.api.LabelApiController.getAllPanoIdsWithLabels

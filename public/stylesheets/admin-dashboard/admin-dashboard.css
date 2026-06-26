@@ -318,6 +318,48 @@
 .dq-tag-head { display: flex; align-items: center; gap: var(--space-xs, 8px); margin-bottom: var(--space-xs, 8px); }
 .dq-tag-head .dq-name { font-weight: 600; color: var(--color-text-heading, #263238); }
 .dq-tag-bars { display: flex; flex-direction: column; gap: 4px; }
+
+/* Tag-severity heatmap: a responsive grid of compact per-label-type matrices (rows = tags, cols = severity 1–3). */
+#dq-tag-severity {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-lg, 24px);
+}
+/* Size the tag-name column to its content (not a flex fraction) so the matrix stays compact and sits directly under
+   its label-type header, instead of stretching across the cell and leaving the header stranded to the left. */
+.dq-heat-grid {
+    display: grid;
+    grid-template-columns: max-content repeat(3, 30px) max-content;
+    gap: 3px;
+    align-items: center;
+    justify-content: start;
+}
+.dq-heat-colhead {
+    font-size: var(--font-size-xs, 0.8125rem);
+    font-weight: 600;
+    color: var(--color-text-secondary, #5a7785);
+    text-align: center;
+}
+.dq-heat-colhead:last-child { text-align: right; }
+.dq-heat-rowlabel {
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-primary, #222);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right; /* hug the cells so short tag names don't leave a big gap before the matrix */
+}
+.dq-heat-cell {
+    height: 26px;
+    border-radius: 3px;
+    border: 1px solid var(--color-neutral-100, #f0f0f0);
+}
+.dq-heat-total {
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-heading, #263238);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
 .dq-tag-row {
     display: grid;
     grid-template-columns: minmax(110px, 180px) 1fr 56px;
