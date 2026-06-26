@@ -1,0 +1,60 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@content = {
+    <div class="api-section" id="contributors-intro-section">
+        <h1 class="api-heading" id="contributors">Contributors <a href="#contributors" class="permalink">#</a></h1>
+        <p>
+            Who produces this deployment's data, and how much can we trust it? Project Sidewalk flags each contributor
+            as high- or low-quality from their labeling and validation behavior. This page aggregates that: how many
+            contributors there are by quality and role, how much of the data comes from low-quality users, and how
+            contributor accuracy is distributed.
+        </p>
+        <div class="coverage-kpis" id="contrib-kpis">
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-contributors">—</span><span class="coverage-kpi-label">Contributors (labelers)</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-high-quality">—</span><span class="coverage-kpi-label">High-quality</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-low-quality">—</span><span class="coverage-kpi-label">Low-quality</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-labels-high-quality">—</span><span class="coverage-kpi-label">Labels from high-quality users</span><span class="coverage-kpi-note" id="kpi-labels-high-quality-note"></span></div>
+        </div>
+        <div class="coverage-status" id="contrib-status" role="status" aria-live="polite">Loading contributor data…</div>
+    </div>
+
+    <div class="api-section" id="contributor-quality-section">
+        <h2 class="api-heading" id="contributor-quality">Contributors by quality <a href="#contributor-quality" class="permalink">#</a></h2>
+        <p>How many contributors are flagged high- vs low-quality.</p>
+        <div id="contrib-quality"></div>
+    </div>
+
+    <div class="api-section" id="label-source-section">
+        <h2 class="api-heading" id="label-source">Where the labels come from <a href="#label-source" class="permalink">#</a></h2>
+        <p>Share of all labels contributed by high- vs low-quality users — a sense of how much low-quality data is in the mix.</p>
+        <div id="contrib-label-source"></div>
+    </div>
+
+    <div class="api-section" id="contributor-accuracy-section">
+        <h2 class="api-heading" id="contributor-accuracy">Contributor accuracy <a href="#contributor-accuracy" class="permalink">#</a></h2>
+        <p>Distribution of contributors by the agreement rate of their own labels (for those with validated labels).</p>
+        <div class="dq-rows" id="contrib-accuracy"></div>
+    </div>
+
+    <div class="api-section" id="contributors-by-role-section">
+        <h2 class="api-heading" id="contributors-by-role">Contributors by role <a href="#contributors-by-role" class="permalink">#</a></h2>
+        <p>Contributors broken down by account role.</p>
+        <div class="dq-rows" id="contrib-roles"></div>
+    </div>
+
+    <script src="@assets.path("javascripts/admin-dashboard/contributors.js")"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            new ContributorsPage({ userStatsUrl: '/adminapi/getUserStats' }).init();
+        });
+    </script>
+}
+
+@common.main(commonData, "Sidewalk - Admin Contributors") {
+    @common.navbar(commonData, Some(user))
+    @admin.dashboard.adminLayout("contributors")(content)
+}

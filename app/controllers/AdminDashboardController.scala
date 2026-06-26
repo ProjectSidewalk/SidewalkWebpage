@@ -51,4 +51,18 @@ class AdminDashboardController @Inject() (
       Ok(views.html.admin.dashboard.quality(commonData, request.identity))
     }
   }
+
+  /**
+   * Renders the Contributors page: aggregate view of who produces the data and how good their contributions are.
+   *
+   * Answers "what are our contributors doing, and can we trust them?" — counts by quality and role, the share of
+   * labels coming from high- vs low-quality users, and the distribution of contributor accuracy. Driven client-side
+   * from the admin user-stats endpoint (per-user quality flag, label counts, and accuracy).
+   */
+  def contributors = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Contributors")
+      Ok(views.html.admin.dashboard.contributors(commonData, request.identity))
+    }
+  }
 }

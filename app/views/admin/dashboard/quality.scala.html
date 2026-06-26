@@ -67,6 +67,16 @@
         <div class="dq-rows" id="dq-validation"></div>
     </div>
 
+    <div class="api-section" id="quality-over-time-section">
+        <h2 class="api-heading" id="quality-over-time">Quality over time <a href="#quality-over-time" class="permalink">#</a></h2>
+        <p>
+            Validation agreement by month (share of validations that agreed with the original label). Human and AI
+            validators are shown separately — AI validation isn't yet at human level, so the two shouldn't be conflated.
+            Use it to see whether data quality is trending up or down over the life of the deployment.
+        </p>
+        <div id="dq-trend" class="dq-trend"></div>
+    </div>
+
     <div class="api-section" id="tag-usage-section">
         <h2 class="api-heading" id="tag-usage">Tag usage <a href="#tag-usage" class="permalink">#</a></h2>
         <p>The most-used tags within each label type.</p>
@@ -79,7 +89,8 @@
             new DataQualityPage({
                 statsUrl: '/v3/api/overallStats',
                 tagsUrl: '/adminapi/labelTags',
-                labelTypesUrl: '/v3/api/labelTypes'
+                labelTypesUrl: '/v3/api/labelTypes',
+                byDayUrl: '/v3/api/overallStatsByDay'
             }).init();
         });
     </script>

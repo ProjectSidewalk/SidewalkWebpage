@@ -27,21 +27,24 @@ class DataQualityPage {
     #statsUrl;
     #tagsUrl;
     #labelTypesUrl;
+    #byDayUrl;
     #order = [];           // Canonical label-type order (machine names) from /v3/api/labelTypes.
     #meta = new Map();     // name -> { color, icon, display }
     #validations = null;   // Kept so the validator toggle can re-render without refetching.
 
-    /** @param {{statsUrl: string, tagsUrl: string, labelTypesUrl: string}} opts */
+    /** @param {{statsUrl: string, tagsUrl: string, labelTypesUrl: string, byDayUrl: string}} opts */
     constructor(opts = {}) {
         this.#statsUrl = opts.statsUrl;
         this.#tagsUrl = opts.tagsUrl;
         this.#labelTypesUrl = opts.labelTypesUrl;
+        this.#byDayUrl = opts.byDayUrl;
     }
 
     async init() {
         try {
-            const [stats, tags, labelTypes] = await Promise.all([
-                this.#fetchJson(this.#statsUrl), this.#fetchJson(this.#tagsUrl), this.#fetchJson(this.#labelTypesUrl)
+            const [stats, tags, labelTypes, byDay] = await Promise.all([
+                this.#fetchJson(this.#statsUrl), this.#fetchJson(this.#tagsUrl),
+                this.#fetchJson(this.#labelTypesUrl), this.#fetchJson(this.#byDayUrl)
             ]);
 
             this.#buildMeta(labelTypes);
@@ -53,6 +56,7 @@ class DataQualityPage {
             this.#renderValidation('combined');
             this.#wireValidatorToggle();
             this.#renderTags(Array.isArray(tags) ? tags : []);
+            this.#renderQualityOverTime(byDay);
 
             this.#setStatus('', false, true);
         } catch (err) {
@@ -243,6 +247,91 @@ class DataQualityPage {
             });
         document.getElementById('dq-tags').innerHTML = blocks.join('') ||
             '<p class="dq-empty">No tags recorded yet.</p>';
+    }
+
+    /**
+     * Quality over time: validation agreement by month, drawn as a lightweight inline SVG line chart (no charting
+     * library). Human and AI validators get separate lines so their gap is visible — AI validation isn't yet at human
+     * level — and the AI line is only drawn when there's AI validation data.
+     */
+    #renderQualityOverTime(byDay) {
+        const rows = (byDay && byDay.data) || [];
+        const byMonth = new Map();
+        for (const r of rows) {
+            const month = String(r.date).slice(0, 7); // YYYY-MM
+            const a = byMonth.get(month) || { hA: 0, hD: 0, aA: 0, aD: 0 };
+            a.hA += r.human_validations_agree || 0;
+            a.hD += r.human_validations_disagree || 0;
+            a.aA += r.ai_validations_agree || 0;
+            a.aD += r.ai_validations_disagree || 0;
+            byMonth.set(month, a);
+        }
+        const months = [...byMonth.keys()]
+            .filter(m => { const a = byMonth.get(m); return a.hA + a.hD + a.aA + a.aD > 0; })
+            .sort();
+
+        const el = document.getElementById('dq-trend');
+        if (months.length < 2) {
+            el.innerHTML = '<p class="dq-empty">Not enough validation history to chart a trend yet.</p>';
+            return;
+        }
+        const seriesFor = (agreeKey, disagreeKey) => months.map(m => {
+            const a = byMonth.get(m);
+            const total = a[agreeKey] + a[disagreeKey];
+            return { value: total ? a[agreeKey] / total : null, n: total };
+        });
+        const series = [{ name: 'Human', key: 'human', pts: seriesFor('hA', 'hD') }];
+        const ai = seriesFor('aA', 'aD');
+        if (ai.some(p => p.value !== null)) series.push({ name: 'AI', key: 'ai', pts: ai });
+
+        el.innerHTML = DataQualityPage.#lineChartSvg(months, series);
+    }
+
+    /**
+     * Renders one or more agreement series as a responsive SVG line chart (y fixed to 0–100%), plus an HTML legend.
+     * @param {string[]} months - shared x categories (YYYY-MM).
+     * @param {Array<{name: string, key: string, pts: Array<{value: number|null, n: number}>}>} series
+     */
+    static #lineChartSvg(months, series) {
+        const W = 760, H = 220, m = { l: 44, r: 14, t: 14, b: 30 };
+        const iw = W - m.l - m.r, ih = H - m.t - m.b, n = months.length;
+        const x = i => m.l + (n === 1 ? iw / 2 : (i / (n - 1)) * iw);
+        const y = v => m.t + (1 - v) * ih;
+
+        let grid = '';
+        for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+            const yy = y(t).toFixed(1);
+            grid += `<line class="dq-trend-grid" x1="${m.l}" y1="${yy}" x2="${W - m.r}" y2="${yy}"/>` +
+                `<text class="dq-trend-axis" x="${m.l - 6}" y="${(y(t) + 3).toFixed(1)}" text-anchor="end">${t * 100}%</text>`;
+        }
+
+        let seriesSvg = '';
+        for (const s of series) {
+            let d = '';
+            let move = true; // Start a fresh subpath after any gap (months with no validations for this series).
+            s.pts.forEach((p, i) => {
+                if (p.value === null) { move = true; return; }
+                d += `${move ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.value).toFixed(1)} `;
+                move = false;
+            });
+            const dots = s.pts.map((p, i) => p.value === null ? '' :
+                `<circle class="dq-trend-pt dq-trend-pt--${s.key}" cx="${x(i).toFixed(1)}" cy="${y(p.value).toFixed(1)}" r="3">` +
+                `<title>${months[i]} · ${s.name}: ${Math.round(p.value * 100)}% (${p.n.toLocaleString()} validations)</title></circle>`
+            ).join('');
+            seriesSvg += `<path class="dq-trend-line dq-trend-line--${s.key}" d="${d.trim()}"/>${dots}`;
+        }
+
+        const step = Math.max(1, Math.ceil(n / 6));
+        let xlab = '';
+        for (let i = 0; i < n; i += step) {
+            xlab += `<text class="dq-trend-axis" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">${months[i]}</text>`;
+        }
+        const svg = `<svg class="dq-trend-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" ` +
+            `aria-label="Validation agreement over time by validator"><g>${grid}</g>${seriesSvg}<g>${xlab}</g></svg>`;
+        const legend = '<div class="dq-trend-legend">' + series.map(s =>
+            `<span class="dq-trend-legend-item"><span class="dq-trend-swatch dq-trend-swatch--${s.key}"></span>${s.name}</span>`
+        ).join('') + '</div>';
+        return svg + legend;
     }
 
     #wireValidatorToggle() {
