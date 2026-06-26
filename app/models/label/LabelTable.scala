@@ -478,6 +478,7 @@ object LabelTable {
       labelId = r.nextInt(),
       userId = r.nextString(),
       panoId = r.nextString(),
+      panoSource = PanoSource.withName(r.nextString()),
       labelType = r.nextString(),
       severity = r.nextIntOption(),
       tags = {
@@ -1642,6 +1643,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       SELECT label.label_id,
              label.user_id,
              label.pano_id,
+             pano_data.source::text,
              label_type.label_type,
              label.severity,
              array_to_string(label.tags, ','),

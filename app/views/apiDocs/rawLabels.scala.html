@@ -267,7 +267,7 @@
                 "camera_heading": 228.928619384766,
                 "camera_pitch": -0.998329997062683,
                 "camera_roll": 0.888324597068312,
-                "image_url": "https://www.google.com/maps/@@40.88399124145508,-74.02436065673828,3a,75y,94.31143188476562h,65.3222501t/data=!3m4!1e1!3m2!1sDsCvWstZYz9JL81V9NloOQ!2e0"
+                "pano_url": "https://www.google.com/maps/@@?api=1&map_action=pano&pano=DsCvWstZYz9JL81V9NloOQ&heading=94.3114318847656&pitch=-24.6774997711182"
             }
         },
         {
@@ -324,7 +324,7 @@
                 "camera_heading": 228.928619384766,
                 "camera_pitch": -0.998329997062683,
                 "camera_roll": 0.888324597068312,
-                "image_url": "https://www.google.com/maps/@@40.883941650390625,-74.02438354492188,3a,75y,140.74000549316406h,71.84035682679t/data=!3m4!1e1!3m2!1sDsCvWstZYz9JL81V9NloOQ!2e0"
+                "pano_url": "https://www.google.com/maps/@@?api=1&map_action=pano&pano=DsCvWstZYz9JL81V9NloOQ&heading=140.740005493164&pitch=-18.1596431732178"
             }
         },
         ...
@@ -464,9 +464,9 @@
                         <td>Date when the imagery was captured, typically in "YYYY-MM" format (e.g., "2012-08").</td>
                     </tr>
                     <tr>
-                        <td><code>properties.image_url</code></td>
-                        <td><code>string</code></td>
-                        <td>URL to the panorama where this label was placed, including parameters to position the view at the correct heading and pitch.</td>
+                        <td><code>properties.pano_url</code></td>
+                        <td><code>string | null</code></td>
+                        <td>Link to view the panorama where this label was placed in its imagery provider's viewer, positioned at the label's heading and pitch. For Google Street View panoramas this uses Google's <a target="_blank" href="https://developers.google.com/maps/documentation/urls/get-started#street-view-action">Maps URLs</a> format (no API key required); for Mapillary it links to the Mapillary web app. <code>null</code> for providers without a shareable public viewer (e.g., infra3d).</td>
                     </tr>
 
                         <!-- Camera and View Position Information -->
