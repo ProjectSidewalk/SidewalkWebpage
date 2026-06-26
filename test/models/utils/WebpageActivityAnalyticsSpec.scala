@@ -90,4 +90,53 @@ class WebpageActivityAnalyticsSpec extends PlaySpec with GuiceOneAppPerSuite {
       nonJsonFormats mustBe empty
     }
   }
+
+  // The source-split queries power the redesigned admin API Analytics page; every row's source must be one of the two
+  // known tags so the dashboard can pivot it into external/apiDocs columns.
+  private val validSources = Set("external", "apiDocs")
+
+  "WebpageActivityTable.getApiEndpointCountsBySource" should {
+    "execute and tag every row with a known source and non-negative count" in {
+      val results = run(table.getApiEndpointCountsBySource(days = 0))
+      results mustBe a[Seq[_]]
+      results.foreach { row =>
+        row.endpoint must not be empty
+        validSources must contain(row.source)
+        row.count must be >= 0L
+      }
+    }
+  }
+
+  "WebpageActivityTable.getApiDailyCountsBySource" should {
+    "execute, tag every row with a known source, and return dates in ascending order" in {
+      val results = run(table.getApiDailyCountsBySource(days = 90))
+      results mustBe a[Seq[_]]
+      results.foreach(row => validSources must contain(row.source))
+      val dates = results.map(_.date)
+      dates mustBe dates.sorted
+    }
+  }
+
+  "WebpageActivityTable.getApiFormatCountsBySource" should {
+    "execute and tag every row with a known source" in {
+      val results = run(table.getApiFormatCountsBySource(days = 30))
+      results mustBe a[Seq[_]]
+      results.foreach { row =>
+        row.format must not be empty
+        validSources must contain(row.source)
+      }
+    }
+  }
+
+  "WebpageActivityTable.getApiUniqueIpCountsBySource" should {
+    "execute, return at most one row per source, with non-negative distinct counts" in {
+      val results = run(table.getApiUniqueIpCountsBySource(days = 0))
+      results mustBe a[Seq[_]]
+      results.foreach { row =>
+        validSources must contain(row.source)
+        row.uniqueIps must be >= 0L
+      }
+      results.map(_.source).distinct.size mustBe results.size // No duplicate source rows.
+    }
+  }
 }

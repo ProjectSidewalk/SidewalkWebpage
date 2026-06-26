@@ -25,7 +25,9 @@
            @if(activePage == "contributors"){aria-current="page"}>Contributors</a>
         <span class="api-nav-item disabled" aria-disabled="true">Activity <span class="nav-soon-badge">soon</span></span>
         <span class="api-nav-item disabled" aria-disabled="true">Humans vs AI <span class="nav-soon-badge">soon</span></span>
-        <span class="api-nav-item disabled" aria-disabled="true">API Analytics <span class="nav-soon-badge">soon</span></span>
+        <a href="@routes.AdminDashboardController.apiAnalytics"
+           class="api-nav-item @if(activePage == "api-analytics"){active}"
+           @if(activePage == "api-analytics"){aria-current="page"}>API Analytics</a>
 
         <div class="api-nav-header">Legacy</div>
         <a href="@routes.AdminController.index" class="api-nav-item">Classic Admin</a>

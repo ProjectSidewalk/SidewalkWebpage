@@ -22,6 +22,15 @@ case class ApiEndpointCount(endpoint: String, count: Long)
 case class ApiDailyCount(date: String, count: Long)
 case class ApiFormatCount(endpoint: String, format: String, count: Long)
 
+/**
+ * Source-split analytics rows: each count is tagged with `source` = "apiDocs" (the docs "Try it" widgets) or
+ * "external" (everything else), so the dashboard can distinguish real external API adoption from our own docs traffic.
+ */
+case class ApiEndpointSourceCount(endpoint: String, source: String, count: Long)
+case class ApiDailySourceCount(date: String, source: String, count: Long)
+case class ApiFormatSourceCount(format: String, source: String, count: Long)
+case class ApiSourceIpCount(source: String, uniqueIps: Long)
+
 class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "webpage_activity") {
   def webpageActivityId: Rep[Int]    = column[Int]("webpage_activity_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]            = column[String]("user_id")
@@ -193,5 +202,100 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
       GROUP BY endpoint, format
       ORDER BY endpoint, call_count DESC
     """.as[ApiFormatCount]
+  }
+
+  /** SQL CASE that tags each v3 API request as docs-driven ("apiDocs") vs "external". */
+  private val sourceCase = "CASE WHEN activity LIKE '%source=apiDocs%' THEN 'apiDocs' ELSE 'external' END"
+
+  /**
+   * Per-endpoint v3 API call counts split by source (external vs apiDocs).
+   * @param days Number of past days to include (0 = all time).
+   */
+  def getApiEndpointCountsBySource(days: Int): DBIO[Seq[ApiEndpointSourceCount]] = {
+    implicit val gr: GetResult[ApiEndpointSourceCount] =
+      GetResult(r => ApiEndpointSourceCount(r.nextString(), r.nextString(), r.nextLong()))
+    val dateFilter = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
+    sql"""
+      SELECT SPLIT_PART(SPLIT_PART(activity, ' ', 2), '?', 1) AS endpoint,
+             #$sourceCase AS source,
+             COUNT(*) AS call_count
+      FROM webpage_activity
+      WHERE activity LIKE 'GET /v3/api/%'
+        #$dateFilter
+      GROUP BY endpoint, source
+      ORDER BY call_count DESC
+    """.as[ApiEndpointSourceCount]
+  }
+
+  /**
+   * Daily v3 API call counts split by source (external vs apiDocs), ordered by date ascending.
+   * @param days Number of past days to include (0 = all time).
+   */
+  def getApiDailyCountsBySource(days: Int): DBIO[Seq[ApiDailySourceCount]] = {
+    implicit val gr: GetResult[ApiDailySourceCount] =
+      GetResult(r => ApiDailySourceCount(r.nextString(), r.nextString(), r.nextLong()))
+    val dateFilter = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
+    sql"""
+      SELECT DATE(timestamp)::text AS date,
+             #$sourceCase AS source,
+             COUNT(*) AS call_count
+      FROM webpage_activity
+      WHERE activity LIKE 'GET /v3/api/%'
+        #$dateFilter
+      GROUP BY date, source
+      ORDER BY date ASC
+    """.as[ApiDailySourceCount]
+  }
+
+  /**
+   * v3 API call counts by requested format (filetype, defaulting to json) split by source (external vs apiDocs).
+   * @param days Number of past days to include (0 = all time).
+   */
+  def getApiFormatCountsBySource(days: Int): DBIO[Seq[ApiFormatSourceCount]] = {
+    implicit val gr: GetResult[ApiFormatSourceCount] =
+      GetResult(r => ApiFormatSourceCount(r.nextString(), r.nextString(), r.nextLong()))
+    val dateFilter = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
+    sql"""
+      SELECT COALESCE((REGEXP_MATCH(activity, '[?&]filetype=([^&\s]+)'))[1], 'json') AS format,
+             #$sourceCase AS source,
+             COUNT(*) AS call_count
+      FROM webpage_activity
+      WHERE activity LIKE 'GET /v3/api/%'
+        #$dateFilter
+      GROUP BY format, source
+      ORDER BY call_count DESC
+    """.as[ApiFormatSourceCount]
+  }
+
+  /**
+   * Distinct IP counts for v3 API requests split by source (external vs apiDocs). Note: per-source distinct counts
+   * cannot be summed to a grand total (an IP may appear in both), so the dashboard's overall unique-IP figure comes
+   * from getApiUniqueIpCount.
+   * @param days Number of past days to include (0 = all time).
+   */
+  def getApiUniqueIpCountsBySource(days: Int): DBIO[Seq[ApiSourceIpCount]] = {
+    implicit val gr: GetResult[ApiSourceIpCount] = GetResult(r => ApiSourceIpCount(r.nextString(), r.nextLong()))
+    val dateFilter = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
+    sql"""
+      SELECT #$sourceCase AS source, COUNT(DISTINCT ip_address) AS ip_count
+      FROM webpage_activity
+      WHERE activity LIKE 'GET /v3/api/%'
+        #$dateFilter
+      GROUP BY source
+    """.as[ApiSourceIpCount]
+  }
+
+  /**
+   * The date of the most recent v3 API call across all time (window-independent). Lets the dashboard explain an empty
+   * trend — "no calls in the last N days; the most recent was on ..." — and distinguish that from a never-used API.
+   *
+   * @return ISO date (`YYYY-MM-DD`) of the latest v3 API call, or `None` if the API has never been called.
+   */
+  def getLastApiCallDate: DBIO[Option[String]] = {
+    sql"""
+      SELECT MAX(DATE(timestamp))::text
+      FROM webpage_activity
+      WHERE activity LIKE 'GET /v3/api/%'
+    """.as[Option[String]].head
   }
 }

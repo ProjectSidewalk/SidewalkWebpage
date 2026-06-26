@@ -381,28 +381,124 @@
 .dq-validate-btn:focus-visible { outline: 2px solid var(--color-accent-link, #0566f5); outline-offset: 2px; }
 
 /* --- Data Quality: quality-over-time line chart (inline SVG, no charting lib) -------------------------------- */
-/* Human vs AI series colors (blue/orange = colorblind-safe pair). */
-:root { --dq-human: #2171b5; --dq-ai: #f68d3e; }
 .dq-trend { width: 100%; }
-.dq-trend-svg { width: 100%; height: auto; }
-.dq-trend-grid { stroke: var(--color-neutral-200, #e1e1e1); stroke-width: 1; }
-.dq-trend-axis { fill: var(--color-text-secondary, #5a7785); font-size: 11px; font-family: var(--font-sans, sans-serif); }
-.dq-trend-line { fill: none; stroke-width: 2; }
-.dq-trend-line--human { stroke: var(--dq-human); }
-.dq-trend-line--ai { stroke: var(--dq-ai); }
-.dq-trend-pt--human { fill: var(--dq-human); }
-.dq-trend-pt--ai { fill: var(--dq-ai); }
-.dq-trend-legend {
+
+/* --- Shared MiniLineChart (Data Quality agreement trend, API usage trend) ----------------------------------- */
+/* Series colors (blue/orange = colorblind-safe pair; apiDocs muted grey since it's our own traffic). */
+:root {
+    --dq-human: #2171b5;  --dq-ai: #f68d3e;
+    --api-external: #2171b5;  --api-docs: #8f8f8f;
+}
+.mini-chart-svg { width: 100%; height: auto; }
+.mini-grid { stroke: var(--color-neutral-200, #e1e1e1); stroke-width: 1; }
+.mini-axis { fill: var(--color-text-secondary, #5a7785); font-size: 11px; font-family: var(--font-sans, sans-serif); }
+.mini-line { fill: none; stroke-width: 2; }
+.mini-line--human { stroke: var(--dq-human); }      .mini-pt--human { fill: var(--dq-human); }
+.mini-line--ai { stroke: var(--dq-ai); }            .mini-pt--ai { fill: var(--dq-ai); }
+.mini-line--external { stroke: var(--api-external); } .mini-pt--external { fill: var(--api-external); }
+.mini-line--apidocs { stroke: var(--api-docs); }    .mini-pt--apidocs { fill: var(--api-docs); }
+.mini-legend {
     display: flex;
     gap: var(--space-md, 16px);
     margin-top: var(--space-xs, 8px);
     font-size: var(--font-size-sm, 0.875rem);
     color: var(--color-text-secondary, #5a7785);
 }
-.dq-trend-legend-item { display: inline-flex; align-items: center; gap: 6px; }
-.dq-trend-swatch { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
-.dq-trend-swatch--human { background: var(--dq-human); }
-.dq-trend-swatch--ai { background: var(--dq-ai); }
+.mini-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.mini-swatch { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+.mini-swatch--human { background: var(--dq-human); }
+.mini-swatch--ai { background: var(--dq-ai); }
+.mini-swatch--external { background: var(--api-external); }
+.mini-swatch--apidocs { background: var(--api-docs); }
+/* Square swatch variant for bar-chart legends (the base .mini-swatch is a thin line for the line chart). */
+.mini-swatch--block { width: 12px; height: 12px; border-radius: 3px; }
+
+/* API source-split stacked bars (external = blue, docs = grey; shown when a chart's "docs traffic" switch is on). */
+.api-bar-external { height: 100%; background: var(--api-external, #2171b5); }
+.api-bar-docs { height: 100%; background: var(--api-docs, #8f8f8f); }
+
+/* Per-chart "show docs traffic" control: the active date range, a switch, and a legend that appears once it's on. */
+.api-docs-control {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md, 16px);
+    margin-bottom: var(--space-sm, 12px);
+    /* Tight line-height so the caption text's box matches the switch/dot height and align-items truly centers them. */
+    line-height: 1;
+}
+
+/* Active date-range caption shown on each chart so the selected range is always explicit. */
+.api-range-caption {
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+.api-range-caption--block {
+    display: block;
+    margin-bottom: var(--space-sm, 12px);
+}
+
+/* Dot divider between the date-range caption and the docs-traffic switch (CSS circle so it centers cleanly). */
+.api-control-sep {
+    flex: none;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--color-neutral-400, #c2c2c2);
+}
+.api-docs-legend {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-md, 16px);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+.api-docs-legend.hidden { display: none; }
+
+/* Accessible switch: a visually-hidden checkbox drives a sliding track + knob. */
+.api-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    /* Reset the global Bootstrap `label` margin/weight so the switch centers in the flex row and the text isn't bold. */
+    margin: 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 400;
+    color: var(--color-text-secondary, #5a7785);
+}
+.api-toggle input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+.api-toggle-slider {
+    position: relative;
+    flex: none;
+    width: 34px;
+    height: 18px;
+    background: var(--color-neutral-300, #c2c2c2);
+    border-radius: 9px;
+    transition: background 0.15s ease;
+}
+.api-toggle-slider::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: var(--color-neutral-white, #fff);
+    border-radius: 50%;
+    transition: transform 0.15s ease;
+}
+.api-toggle input:checked + .api-toggle-slider { background: var(--api-external, #2171b5); }
+.api-toggle input:checked + .api-toggle-slider::before { transform: translateX(16px); }
+.api-toggle input:focus-visible + .api-toggle-slider {
+    outline: 2px solid var(--color-accent-link, #0566f5);
+    outline-offset: 2px;
+}
 
 /* --- Contributors page -------------------------------------------------------------------------------------- */
 .contrib-seg { height: 100%; }
@@ -433,4 +529,28 @@
     font-weight: 600;
     color: var(--color-text-heading, #263238);
     text-align: right;
+}
+
+/* --- API Analytics: endpoint / format rows ------------------------------------------------------------------ */
+.api-ep-row {
+    display: grid;
+    grid-template-columns: minmax(150px, 220px) 1fr minmax(130px, 170px);
+    align-items: center;
+    gap: var(--space-sm, 12px);
+    padding: 5px 0;
+}
+.api-ep-label {
+    font-size: var(--font-size-sm, 0.875rem);
+    font-family: var(--font-mono, monospace);
+    color: var(--color-text-primary, #222);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.api-ep-value {
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 600;
+    color: var(--color-text-heading, #263238);
+    text-align: right;
+    white-space: nowrap;
 }

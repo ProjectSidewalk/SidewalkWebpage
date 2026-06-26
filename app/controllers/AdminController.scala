@@ -710,6 +710,65 @@ class AdminController @Inject() (
       }
   }
 
+  /**
+   * Returns v3 API usage split by source (external vs the docs "Try it" widgets) for the redesigned admin dashboard.
+   *
+   * Pivots the per-source rows into `external`/`api_docs` columns per endpoint, day, and format so the page can show
+   * real external adoption alongside docs-driven traffic in one request.
+   *
+   * @param days Number of past days to include (0 = all time).
+   */
+  def getApiAnalyticsBySource(days: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getApiAnalyticsBySource(days).map { data =>
+      def split(rows: Seq[(String, Long)]): (Long, Long) = (
+        rows.collect { case (s, c) if s == "external" => c }.sum,
+        rows.collect { case (s, c) if s == "apiDocs" => c }.sum
+      )
+      // Pivot the per-source rows for each dimension into (key, external, apiDocs); sort endpoints/formats by external
+      // usage (the signal we care about) and days chronologically.
+      val endpoints = data.endpointCounts
+        .groupBy(_.endpoint)
+        .map { case (ep, rows) => val (e, d) = split(rows.map(r => (r.source, r.count))); (ep, e, d) }
+        .toSeq.sortBy(-_._2)
+      val daily = data.dailyCounts
+        .groupBy(_.date)
+        .map { case (date, rows) => val (e, d) = split(rows.map(r => (r.source, r.count))); (date, e, d) }
+        .toSeq.sortBy(_._1)
+      val formats = data.formatCounts
+        .groupBy(_.format)
+        .map { case (fmt, rows) => val (e, d) = split(rows.map(r => (r.source, r.count))); (fmt, e, d) }
+        .toSeq.sortBy(-_._2)
+
+      val extCalls  = endpoints.map(_._2).sum
+      val docsCalls = endpoints.map(_._3).sum
+      val extIps    = data.ipCounts.find(_.source == "external").map(_.uniqueIps).getOrElse(0L)
+      val docsIps   = data.ipCounts.find(_.source == "apiDocs").map(_.uniqueIps).getOrElse(0L)
+
+      Ok(
+        Json.obj(
+          "days"             -> days,
+          "total_calls"      -> (extCalls + docsCalls),
+          "total_unique_ips" -> data.totalUniqueIps,
+          "last_api_call"    -> data.lastApiCall,
+          "sources" -> Json.obj(
+            "external" -> Json.obj("calls" -> extCalls, "unique_ips" -> extIps),
+            "api_docs" -> Json.obj("calls" -> docsCalls, "unique_ips" -> docsIps)
+          ),
+          "endpoints" -> JsArray(endpoints.map { case (ep, e, d) =>
+            Json.obj("endpoint" -> ep, "external" -> e, "api_docs" -> d)
+          }),
+          "daily" -> JsArray(daily.map { case (date, e, d) =>
+            Json.obj("date" -> date, "external" -> e, "api_docs" -> d)
+          }),
+          "formats" -> JsArray(formats.map { case (fmt, e, d) =>
+            Json.obj("format" -> fmt, "external" -> e, "api_docs" -> d)
+          })
+        )
+      )
+    }
+  }
+
   def getThreadPoolStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     val dispatcherNames = List("database-operations", "cpu-intensive", "pekko.actor.default-dispatcher")

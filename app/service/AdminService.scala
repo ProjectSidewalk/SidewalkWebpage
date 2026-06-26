@@ -9,7 +9,7 @@ import models.region.Region
 import models.street.StreetEdgeTable
 import models.user._
 import models.utils.CommonUtils.METERS_TO_MILES
-import models.utils.{ApiDailyCount, ApiEndpointCount, ApiFormatCount, MyPostgresProfile, WebpageActivityTable}
+import models.utils.{ApiDailyCount, ApiDailySourceCount, ApiEndpointCount, ApiEndpointSourceCount, ApiFormatCount, ApiFormatSourceCount, ApiSourceIpCount, MyPostgresProfile, WebpageActivityTable}
 import models.validation.{LabelValidationTable, ValidationCount, ValidationTaskCommentTable}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval.TimeInterval
@@ -40,6 +40,16 @@ case class StreetDistanceData(
 )
 case class CoverageData(streetCounts: StreetCountsData, streetDistance: StreetDistanceData)
 
+/** Source-split v3 API usage, assembled for the admin API Analytics page. */
+case class ApiAnalyticsBySourceData(
+    endpointCounts: Seq[ApiEndpointSourceCount],
+    dailyCounts: Seq[ApiDailySourceCount],
+    formatCounts: Seq[ApiFormatSourceCount],
+    ipCounts: Seq[ApiSourceIpCount],
+    totalUniqueIps: Long,
+    lastApiCall: Option[String]
+)
+
 @ImplementedBy(classOf[AdminServiceImpl])
 trait AdminService {
   def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int]
@@ -66,6 +76,7 @@ trait AdminService {
   def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Double)]]
   def updateUserStatTable(cutoffTime: OffsetDateTime): Future[Int]
   def getApiAnalytics(excludeApiDocs: Boolean, days: Int): Future[(Seq[ApiEndpointCount], Seq[ApiDailyCount], Long, Seq[ApiFormatCount])]
+  def getApiAnalyticsBySource(days: Int): Future[ApiAnalyticsBySourceData]
 }
 
 @Singleton
@@ -447,5 +458,16 @@ class AdminServiceImpl @Inject() (
       uniqueIps      <- webpageActivityTable.getApiUniqueIpCount(excludeApiDocs, days)
       formatCounts   <- webpageActivityTable.getApiFormatCounts(excludeApiDocs, days)
     } yield (endpointCounts, dailyCounts, uniqueIps, formatCounts))
+  }
+
+  def getApiAnalyticsBySource(days: Int): Future[ApiAnalyticsBySourceData] = {
+    db.run(for {
+      endpointCounts <- webpageActivityTable.getApiEndpointCountsBySource(days)
+      dailyCounts    <- webpageActivityTable.getApiDailyCountsBySource(days)
+      formatCounts   <- webpageActivityTable.getApiFormatCountsBySource(days)
+      ipCounts       <- webpageActivityTable.getApiUniqueIpCountsBySource(days)
+      totalUniqueIps <- webpageActivityTable.getApiUniqueIpCount(excludeApiDocs = false, days)
+      lastApiCall    <- webpageActivityTable.getLastApiCallDate
+    } yield ApiAnalyticsBySourceData(endpointCounts, dailyCounts, formatCounts, ipCounts, totalUniqueIps, lastApiCall))
   }
 }

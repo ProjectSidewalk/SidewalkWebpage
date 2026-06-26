@@ -65,4 +65,17 @@ class AdminDashboardController @Inject() (
       Ok(views.html.admin.dashboard.contributors(commonData, request.identity))
     }
   }
+
+  /**
+   * Renders the API Analytics page: v3 public-API usage, framed around real external adoption vs our own docs traffic.
+   *
+   * Answers "is our public API being used, by whom, for what?" — external vs apiDocs call volume over time, top
+   * endpoints, formats requested, and unique clients. Driven client-side from the source-split analytics endpoint.
+   */
+  def apiAnalytics = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_ApiAnalytics")
+      Ok(views.html.admin.dashboard.apiAnalytics(commonData, request.identity))
+    }
+  }
 }
