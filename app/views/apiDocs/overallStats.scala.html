@@ -140,6 +140,8 @@
         "label_count_with_severity": 162320,
         "avg_label_timestamp": "2021-05-10T20:20:25.147504Z",
         "avg_age_of_image_when_labeled": "672 days",
+        "stddev_label_timestamp": "188 days",
+        "stddev_age_of_image_when_labeled": "543 days",
         "CurbRamp": {
             "count": 72964,
             "count_with_severity": 61837,
@@ -267,6 +269,8 @@
                     <tr><td><code>labels.label_count_with_severity</code></td><td><code>integer</code></td><td>Total number of labels placed by all users with an associated severity rating.</td></tr>
                     <tr><td><code>avg_label_timestamp</code></td><td><code>string</code></td><td>ISO 8601 formatted average timestamp when labels were created.</td></tr>
                     <tr><td><code>labels.avg_age_of_image_when_labeled</code></td><td><code>string</code></td><td>The average, across all labels, of the age of the image when the label was placed (in days).</td></tr>
+                    <tr><td><code>labels.stddev_label_timestamp</code></td><td><code>string</code></td><td>Standard deviation (spread) of label creation timestamps, expressed as a duration in days. A standard deviation of dates is a duration, not a date.</td></tr>
+                    <tr><td><code>labels.stddev_age_of_image_when_labeled</code></td><td><code>string</code></td><td>Standard deviation (spread), in days, of the age of the image when each label was placed.</td></tr>
                     <tr><td><code>labels.[type].count</code></td><td><code>integer</code></td><td>Total number of labels of this type.</td></tr>
                     <tr><td><code>labels.[type].count_with_severity</code></td><td><code>integer | null</code></td><td>Number of labels of this type that have severity ratings, or null if no severity ratings exist.</td></tr>
                     <tr><td><code>labels.[type].severity_mean</code></td><td><code>number | null</code></td><td>Mean severity rating for this label type, or null if no severity ratings exist.</td></tr>

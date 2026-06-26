@@ -85,6 +85,14 @@ object ApiFormats {
           (
             "avg_age_of_image_when_labeled",
             stats.avgImageAgeByLabel.map(avgImgAge => JsString(s"${avgImgAge.toDays} days")).getOrElse(JsNull)
+          ),
+          (
+            "stddev_label_timestamp",
+            stats.stddevLabelTimestamp.map(sd => JsString(s"${sd.toDays} days")).getOrElse(JsNull)
+          ),
+          (
+            "stddev_age_of_image_when_labeled",
+            stats.stddevImageAgeByLabel.map(sd => JsString(s"${sd.toDays} days")).getOrElse(JsNull)
           )
         ) ++
           // Turns into { "CurbRamp" -> { "count" -> ###, ... }, ... }.
