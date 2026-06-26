@@ -200,8 +200,11 @@ class ModalMissionComplete {
                 if (task.isComplete()) {
                     end = task.getEndCoordinate();
                 } else {
-                    const furthest = task.getFurthestPointReached().geometry.coordinates;
-                    end = { lat: furthest[1], lng: furthest[0] };
+                    // The furthest point is only recorded once the user advances along a street; without it (e.g. a
+                    // street reached via a jump that the user never moved along) there's nothing to draw here. (#4204)
+                    const furthest = task.getFurthestPointReached();
+                    if (!furthest) return null;
+                    end = { lat: furthest.geometry.coordinates[1], lng: furthest.geometry.coordinates[0] };
                 }
                 coordinates = task.getSubsetOfCoordinates(start, end);
             } else {
@@ -243,10 +246,28 @@ class ModalMissionComplete {
             : this.#taskContainer.getCompletedTasksAllUsersUsingPriority();
 
         return {
-            thisMission: { type: 'FeatureCollection', features: thisMissionFeatures },
-            previous: { type: 'FeatureCollection', features: previousFeatures },
-            community: { type: 'FeatureCollection', features: communityTasks.map(task => task.getFeature()) }
+            thisMission: { type: 'FeatureCollection', features: thisMissionFeatures.filter(this.#isDrawableLine) },
+            previous: { type: 'FeatureCollection', features: previousFeatures.filter(this.#isDrawableLine) },
+            community: {
+                type: 'FeatureCollection',
+                features: communityTasks.map(task => task.getFeature()).filter(this.#isDrawableLine)
+            }
         };
+    }
+
+    /**
+     * Reports whether a LineString feature has enough real coordinates to hand to Mapbox. A mission can cover ~zero
+     * usable length of a street (it ended at a street boundary, the street was reached via a jump, etc.), in which case
+     * turf.lineSlice/cleanCoords collapses the segment to a single point or nothing. Mapbox then throws deep in its
+     * tiler ("Cannot read properties of null (reading 'x')") and the failure bubbles up into a page reload; filtering
+     * those degenerate features out here keeps them out of the source entirely. (#4204)
+     * @param {object} feature A GeoJSON Feature, or null/undefined.
+     * @returns {boolean} True if the feature is a LineString with at least two finite [lng, lat] coordinates.
+     */
+    #isDrawableLine(feature) {
+        const coords = feature?.geometry?.coordinates;
+        if (!Array.isArray(coords) || coords.length < 2) return false;
+        return coords.every(c => Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1]));
     }
 
     /**
