@@ -15,7 +15,9 @@
         <a href="@routes.AdminDashboardController.coverage"
            class="api-nav-item @if(activePage == "coverage"){active}"
            @if(activePage == "coverage"){aria-current="page"}>Coverage</a>
-        <span class="api-nav-item disabled" aria-disabled="true">Data Quality <span class="nav-soon-badge">soon</span></span>
+        <a href="@routes.AdminDashboardController.quality"
+           class="api-nav-item @if(activePage == "quality"){active}"
+           @if(activePage == "quality"){aria-current="page"}>Data Quality</a>
 
         <div class="api-nav-header">People &amp; Usage</div>
         <span class="api-nav-item disabled" aria-disabled="true">Activity <span class="nav-soon-badge">soon</span></span>

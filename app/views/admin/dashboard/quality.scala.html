@@ -1,0 +1,71 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@content = {
+    <div class="api-section" id="quality-intro-section">
+        <h1 class="api-heading" id="data-quality">Data Quality <a href="#data-quality" class="permalink">#</a></h1>
+        <p>
+            How good is this deployment's data? This page breaks the labels down by type, shows how severe the reported
+            problems are, how often validators agreed with the original labels, and which tags get used — the signals
+            we use to judge whether the data is trustworthy and complete.
+        </p>
+        <div class="coverage-kpis" id="dq-kpis">
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-total-labels">—</span><span class="coverage-kpi-label">Labels</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-with-severity">—</span><span class="coverage-kpi-label">With a severity rating</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-agreement">—</span><span class="coverage-kpi-label">Validation agreement</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-total-validations">—</span><span class="coverage-kpi-label">Validations</span></div>
+        </div>
+        <div class="coverage-status" id="dq-status" role="status" aria-live="polite">Loading data quality…</div>
+    </div>
+
+    <div class="api-section" id="labels-by-type-section">
+        <h2 class="api-heading" id="labels-by-type">Labels by type <a href="#labels-by-type" class="permalink">#</a></h2>
+        <p>How many of each label type have been placed, with the official label colors and icons.</p>
+        <div class="dq-rows" id="dq-labels"></div>
+    </div>
+
+    <div class="api-section" id="severity-by-type-section">
+        <h2 class="api-heading" id="severity-by-type">Severity by type <a href="#severity-by-type" class="permalink">#</a></h2>
+        <p>
+            Average severity (1 = mild, 5 = severe) for the label types that carry a severity rating. The marker is the
+            mean; the band spans ± one standard deviation.
+        </p>
+        <div class="dq-rows" id="dq-severity"></div>
+    </div>
+
+    <div class="api-section" id="validation-agreement-section">
+        <h2 class="api-heading" id="validation-agreement">Validation agreement <a href="#validation-agreement" class="permalink">#</a></h2>
+        <p>Share of validations that agreed with the original label, by type. Switch between all validators, humans, or AI.</p>
+        <div class="coverage-toggle" role="group" aria-label="Validator">
+            <span class="coverage-sort-label">Validator</span>
+            <button type="button" class="coverage-toggle-btn dq-validator-btn active" data-validator="combined" aria-pressed="true">Combined</button>
+            <button type="button" class="coverage-toggle-btn dq-validator-btn" data-validator="human" aria-pressed="false">Human</button>
+            <button type="button" class="coverage-toggle-btn dq-validator-btn" data-validator="ai" aria-pressed="false">AI</button>
+        </div>
+        <div class="dq-rows" id="dq-validation"></div>
+    </div>
+
+    <div class="api-section" id="tag-usage-section">
+        <h2 class="api-heading" id="tag-usage">Tag usage <a href="#tag-usage" class="permalink">#</a></h2>
+        <p>The most-used tags within each label type.</p>
+        <div id="dq-tags"></div>
+    </div>
+
+    <script src="@assets.path("javascripts/admin-dashboard/data-quality.js")"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            new DataQualityPage({
+                statsUrl: '/v3/api/overallStats',
+                tagsUrl: '/adminapi/labelTags'
+            }).init();
+        });
+    </script>
+}
+
+@common.main(commonData, "Sidewalk - Admin Data Quality") {
+    @common.navbar(commonData, Some(user))
+    @admin.dashboard.adminLayout("quality")(content)
+}

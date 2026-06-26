@@ -239,3 +239,85 @@
     box-shadow: inset 3px 0 0 var(--coverage-selected, #f68d3e);
 }
 
+
+/* --- Data Quality scorecard --------------------------------------------------------------------------------- */
+.dq-rows { display: flex; flex-direction: column; }
+.dq-row {
+    display: grid;
+    grid-template-columns: 22px 10px minmax(120px, 160px) 1fr minmax(120px, 150px);
+    align-items: center;
+    gap: var(--space-sm, 12px);
+    padding: 6px 0;
+    border-bottom: 1px solid var(--color-neutral-100, #f0f0f0);
+}
+.dq-icon { width: 20px; height: 20px; object-fit: contain; }
+.dq-swatch { width: 10px; height: 10px; border-radius: 2px; }
+.dq-name {
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-primary, #222);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dq-chart { min-width: 0; }
+.dq-value {
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-heading, #263238);
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+}
+.dq-sub { color: var(--color-text-secondary, #5a7785); font-weight: 400; }
+.dq-empty { color: var(--color-text-secondary, #5a7785); font-size: var(--font-size-sm, 0.875rem); }
+
+/* Horizontal bars (counts + stacked agree/disagree). */
+.dq-bar-track {
+    height: 14px;
+    background: var(--color-neutral-100, #f0f0f0);
+    border-radius: 7px;
+    overflow: hidden;
+}
+.dq-bar { height: 100%; border-radius: 7px; }
+.dq-stack { display: flex; }
+.dq-bar-agree { height: 100%; background: var(--color-pine-500, #4a9d6d); }
+.dq-bar-disagree { height: 100%; background: var(--color-accent-delete, #f93e3e); opacity: 0.8; }
+
+/* Severity 1–5 track: translucent ±SD band with a marker at the mean. */
+.dq-sev-track {
+    position: relative;
+    height: 14px;
+    background: var(--color-neutral-100, #f0f0f0);
+    border-radius: 7px;
+}
+.dq-sev-band {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: var(--color-neutral-400, #c2c2c2);
+    opacity: 0.45;
+    border-radius: 7px;
+}
+.dq-sev-marker {
+    position: absolute;
+    top: -2px;
+    width: 4px;
+    height: 18px;
+    border-radius: 2px;
+    transform: translateX(-50%);
+}
+
+/* Tag usage: per-type chip groups. */
+.dq-tag-group { margin-bottom: var(--space-md, 16px); }
+.dq-tag-head { display: flex; align-items: center; gap: var(--space-xs, 8px); margin-bottom: var(--space-xs, 8px); }
+.dq-tag-head .dq-name { font-weight: 600; color: var(--color-text-heading, #263238); }
+.dq-tag-chips { display: flex; flex-wrap: wrap; }
+.dq-chip {
+    display: inline-block;
+    border: 1px solid var(--color-neutral-400, #c2c2c2);
+    border-radius: 14px;
+    padding: 2px 10px;
+    margin: 0 6px 6px 0;
+    font-size: var(--font-size-xs, 0.8125rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+.dq-chip b { color: var(--color-text-heading, #263238); font-weight: 700; }

@@ -38,4 +38,17 @@ class AdminDashboardController @Inject() (
       Ok(views.html.admin.dashboard.coverage(commonData, request.identity))
     }
   }
+
+  /**
+   * Renders the Data Quality page: per-label-type label counts, severity, validation agreement, and tag usage.
+   *
+   * Answers "how good is the data?" for the current deployment. Driven client-side from the per-city v3 overallStats
+   * endpoint (counts, severity mean/SD, validation agreement incl. a human-vs-AI split) plus label tag counts.
+   */
+  def quality = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Quality")
+      Ok(views.html.admin.dashboard.quality(commonData, request.identity))
+    }
+  }
 }
