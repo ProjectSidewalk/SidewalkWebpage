@@ -14,9 +14,10 @@
         </p>
         <div class="coverage-kpis" id="dq-kpis">
             <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-total-labels">—</span><span class="coverage-kpi-label">Labels</span></div>
-            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-with-severity">—</span><span class="coverage-kpi-label">With a severity rating</span></div>
-            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-agreement">—</span><span class="coverage-kpi-label">Validation agreement</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-with-severity">—</span><span class="coverage-kpi-label">With a severity rating</span><span class="coverage-kpi-note" id="kpi-with-severity-note"></span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-agreement">—</span><span class="coverage-kpi-label">Validation agreement</span><span class="coverage-kpi-note" id="kpi-agreement-note"></span></div>
             <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-total-validations">—</span><span class="coverage-kpi-label">Validations</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-image-age">—</span><span class="coverage-kpi-label">Avg image age when labeled</span></div>
         </div>
         <div class="coverage-status" id="dq-status" role="status" aria-live="polite">Loading data quality…</div>
     </div>
@@ -28,12 +29,30 @@
     </div>
 
     <div class="api-section" id="severity-by-type-section">
-        <h2 class="api-heading" id="severity-by-type">Severity by type <a href="#severity-by-type" class="permalink">#</a></h2>
+        <h2 class="api-heading" id="severity-by-type">Severity &amp; quality ratings <a href="#severity-by-type" class="permalink">#</a></h2>
         <p>
-            Average severity (1 = mild, 5 = severe) for the label types that carry a severity rating. The marker is the
-            mean; the band spans ± one standard deviation.
+            Average rating (1–3) for label types that carry one. Curb ramps and crosswalks use a <strong>quality</strong>
+            scale (1 = Good → 3 = Bad); other types use a <strong>severity</strong> scale (1 = Low → 3 = High). In both,
+            higher means worse for accessibility. The marker is the mean; the band spans ± one standard deviation.
         </p>
-        <div class="dq-rows" id="dq-severity"></div>
+
+        <h3 class="dq-subhead">Quality — curb ramps &amp; crosswalks</h3>
+        <div class="dq-sevlegend" id="dq-sevlegend-positive"></div>
+        <div class="dq-rows" id="dq-severity-positive"></div>
+
+        <h3 class="dq-subhead">Severity — obstacles, surface problems &amp; more</h3>
+        <div class="dq-sevlegend" id="dq-sevlegend-negative"></div>
+        <div class="dq-rows" id="dq-severity-negative"></div>
+    </div>
+
+    <div class="api-section" id="validation-coverage-section">
+        <h2 class="api-heading" id="validation-coverage">Validation coverage <a href="#validation-coverage" class="permalink">#</a></h2>
+        <p>
+            How much of the data has actually been checked — the share of labels with at least one validation, by type
+            (least-validated first). This is "how much is checked", complementing the agreement rate below ("how often
+            it's right").
+        </p>
+        <div class="dq-rows" id="dq-coverage"></div>
     </div>
 
     <div class="api-section" id="validation-agreement-section">
@@ -59,7 +78,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             new DataQualityPage({
                 statsUrl: '/v3/api/overallStats',
-                tagsUrl: '/adminapi/labelTags'
+                tagsUrl: '/adminapi/labelTags',
+                labelTypesUrl: '/v3/api/labelTypes'
             }).init();
         });
     </script>
