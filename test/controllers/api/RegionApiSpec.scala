@@ -39,11 +39,37 @@ class RegionApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       val body = contentAsString(resp)
       body must include(
-        "region_id,name,label_count,street_count,user_count,audit_count,first_label_date,last_label_date,center_point"
+        "region_id,name,label_count,street_count,user_count,audit_count,total_distance_m,audited_distance_m," +
+          "completion_rate,first_label_date,last_label_date,center_point"
       )
       // camelCase headers must not appear per v3 naming convention (#3871).
       body must not include "regionId"
       body must not include "labelCount"
+      body must not include "completionRate"
+    }
+  }
+
+  "GET /v3/api/regions?filetype=geojson" should {
+    "expose snake_case coverage fields (total_distance_m, audited_distance_m, completion_rate) on each feature" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/regions?filetype=geojson")).get
+      status(resp) mustBe OK
+
+      val json = contentAsJson(resp)
+      (json \ "type").as[String] mustBe "FeatureCollection"
+
+      // Assert the contract on the first feature if the seed has any regions; shape, not data values.
+      val features = (json \ "features").as[Seq[play.api.libs.json.JsValue]]
+      features.headOption.foreach { feature =>
+        val props = feature \ "properties"
+        (props \ "total_distance_m").asOpt[Double] mustBe defined
+        (props \ "audited_distance_m").asOpt[Double] mustBe defined
+        // completion_rate is a fraction in [0, 1].
+        val rate = (props \ "completion_rate").as[Double]
+        rate must be >= 0.0
+        rate must be <= 1.0
+        // camelCase keys must not leak into properties per #3871.
+        (props \ "completionRate").asOpt[Double] mustBe empty
+      }
     }
   }
 

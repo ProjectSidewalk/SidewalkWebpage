@@ -1,0 +1,167 @@
+/*
+ * Styles for the redesigned admin dashboard (#4272).
+ *
+ * The three-column shell (sidebar / content / TOC) is inherited wholesale from api-docs.css via shared .api-* class
+ * names. This file only adds what the docs don't have: the "coming soon" nav treatment and the Coverage page's
+ * map, legend, KPIs, chart, and details panel. Colors/spacing come from the design-system tokens in main.css and
+ * api-docs.css — avoid hardcoding values that already exist as tokens.
+ *
+ * Coverage sequential color scale (ColorBrewer "Blues", colorblind-safe). Keep these in sync with
+ * CoverageColors.STOPS in coverage-map.js so the map, legend, and bar chart all agree.
+ */
+:root {
+    --coverage-c0: #eff3ff; /* ~0%   */
+    --coverage-c1: #bdd7e7; /* ~33%  */
+    --coverage-c2: #6baed6; /* ~66%  */
+    --coverage-c3: #2171b5; /* ~100% */
+    --coverage-selected: #f68d3e; /* SurfaceProblem orange — high-contrast highlight against the Blues scale */
+}
+
+/* --- Left nav: disabled "coming soon" items ------------------------------------------------------------------ */
+.api-nav-item.disabled {
+    color: var(--color-neutral-600, #8f8f8f);
+    cursor: default;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.nav-soon-badge {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--color-neutral-200, #e1e1e1);
+    color: var(--color-neutral-700, #6b6b6b);
+    border-radius: 10px;
+    padding: 1px 7px;
+    margin-left: var(--space-xs, 8px);
+}
+
+/* --- KPIs ---------------------------------------------------------------------------------------------------- */
+.coverage-kpis {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md, 16px);
+    margin: var(--space-lg, 24px) 0;
+}
+.coverage-kpi {
+    flex: 1 1 140px;
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: 8px;
+    padding: var(--space-md, 16px);
+    background: var(--color-neutral-white, #fff);
+}
+.coverage-kpi-value {
+    display: block;
+    font-size: var(--font-size-xxl, 1.5rem);
+    font-weight: 700;
+    color: var(--color-text-heading, #263238);
+    line-height: 1.1;
+}
+.coverage-kpi-label {
+    display: block;
+    margin-top: 4px;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+
+/* --- Status / error line ------------------------------------------------------------------------------------- */
+.coverage-status {
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+.coverage-status.error {
+    color: var(--color-accent-delete, #f93e3e);
+}
+.coverage-status.hidden {
+    display: none;
+}
+
+/* --- Map ----------------------------------------------------------------------------------------------------- */
+.coverage-map {
+    width: 100%;
+    height: 480px;
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Coverage legend: a gradient bar with 0% / 100% end labels. */
+.coverage-legend {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 12px);
+    margin-top: var(--space-sm, 12px);
+    font-size: var(--font-size-xs, 0.8125rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+.coverage-legend-gradient {
+    flex: 0 0 220px;
+    height: 12px;
+    border-radius: 6px;
+    background: linear-gradient(to right,
+        var(--coverage-c0), var(--coverage-c1), var(--coverage-c2), var(--coverage-c3));
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+}
+
+/* Mapbox popup tweaks so the tooltip matches the dashboard type. */
+.coverage-map .mapboxgl-popup-content {
+    font-family: var(--font-sans, sans-serif);
+    font-size: var(--font-size-xs, 0.8125rem);
+    padding: 8px 10px;
+}
+.coverage-popup-name {
+    font-weight: 700;
+    color: var(--color-text-heading, #263238);
+    margin-bottom: 4px;
+}
+.coverage-popup-dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 2px var(--space-sm, 12px);
+    margin: 0;
+}
+.coverage-popup-dl dt { color: var(--color-text-secondary, #5a7785); }
+.coverage-popup-dl dd { margin: 0; color: var(--color-text-primary, #222); font-weight: 600; }
+
+/* --- Bar chart ----------------------------------------------------------------------------------------------- */
+/* No overflow-x:auto — a scrollable box lets the Vega SVG keep its natural (slightly-too-wide) size instead of
+   fitting; hiding overflow lets autosize:fit-x size the chart exactly to the container with no sliver scrollbar. */
+.coverage-bars {
+    width: 100%;
+    overflow-x: hidden;
+}
+.coverage-bars .vega-embed { width: 100%; }
+.coverage-bars .vega-embed svg { display: block; }
+
+/* Sort toggle above the chart. */
+.coverage-sort {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs, 8px);
+    margin-bottom: var(--space-sm, 12px);
+}
+.coverage-sort-label {
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+.coverage-sort-btn {
+    font-size: var(--font-size-sm, 0.875rem);
+    padding: 4px 12px;
+    border: 1px solid var(--color-neutral-400, #c2c2c2);
+    background: var(--color-neutral-white, #fff);
+    color: var(--color-text-primary, #222);
+    border-radius: 6px;
+    cursor: pointer;
+}
+.coverage-sort-btn:hover { background: var(--color-neutral-100, #f0f0f0); }
+.coverage-sort-btn.active {
+    background: var(--color-asphalt-500, #263238);
+    border-color: var(--color-asphalt-500, #263238);
+    color: var(--color-neutral-white, #fff);
+}
+.coverage-sort-btn:focus-visible {
+    outline: 2px solid var(--color-accent-link, #0566f5);
+    outline-offset: 2px;
+}
+

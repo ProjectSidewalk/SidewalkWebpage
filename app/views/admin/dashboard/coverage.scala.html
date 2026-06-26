@@ -1,0 +1,72 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@content = {
+    <div class="api-section" id="coverage-intro-section">
+        <h1 class="api-heading" id="coverage">Coverage <a href="#coverage" class="permalink">#</a></h1>
+        <p>
+            How much of each neighborhood has been explored? Coverage is the share of a region's street distance that
+            has been audited at least once, weighted by street length (not a simple street count). Use it to spot
+            under-explored neighborhoods and to gauge how representative the data is across the city.
+        </p>
+        <div class="coverage-kpis" id="coverage-kpis">
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-city-coverage">—</span><span class="coverage-kpi-label">City-wide coverage</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-regions">—</span><span class="coverage-kpi-label">Regions</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-fully-audited">—</span><span class="coverage-kpi-label">Fully audited (100%)</span></div>
+        </div>
+        <div class="coverage-status" id="coverage-status" role="status" aria-live="polite">Loading coverage data…</div>
+    </div>
+
+    <div class="api-section" id="coverage-map-section">
+        <h2 class="api-heading" id="coverage-map">Coverage map <a href="#coverage-map" class="permalink">#</a></h2>
+        <p>
+            Each region is shaded by its audit coverage — darker means more complete. Hover for details; click a region
+            to highlight its bar in the chart below.
+        </p>
+        <div id="coverage-choropleth" class="coverage-map"
+             role="img" aria-label="Choropleth map of neighborhood audit coverage"></div>
+        <div class="coverage-legend" id="coverage-legend"></div>
+    </div>
+
+    <div class="api-section" id="coverage-bars-section">
+        <h2 class="api-heading" id="coverage-by-region">Coverage by region <a href="#coverage-by-region" class="permalink">#</a></h2>
+        <p>
+            Hover a bar to highlight its region on the map above (and vice-versa); click to pin the highlight. The two
+            views stay in sync.
+        </p>
+        <div class="coverage-sort" role="group" aria-label="Sort regions by">
+            <span class="coverage-sort-label">Sort by</span>
+            <button type="button" class="coverage-sort-btn active" data-sort="coverage" aria-pressed="true">Coverage</button>
+            <button type="button" class="coverage-sort-btn" data-sort="name" aria-pressed="false">Name</button>
+        </div>
+        <div id="coverage-bars" class="coverage-bars"></div>
+    </div>
+
+    <!-- Page-specific libraries: loaded only on this page (Mapbox for the choropleth, Vega for the bar chart).
+         Vega is vendored + version-pinned (not a CDN) so the dashboard works offline and can't break under us. -->
+    <link rel="stylesheet" href="@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")">
+    <script src="@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")"></script>
+    <script src="@assets.path("javascripts/lib/vega-5.30.0.min.js")"></script>
+    <script src="@assets.path("javascripts/lib/vega-lite-5.21.0.min.js")"></script>
+    <script src="@assets.path("javascripts/lib/vega-embed-6.29.0.min.js")"></script>
+
+    <script src="@assets.path("javascripts/admin-dashboard/coverage-map.js")"></script>
+    <script src="@assets.path("javascripts/admin-dashboard/coverage-bars.js")"></script>
+    <script src="@assets.path("javascripts/admin-dashboard/coverage-page.js")"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            new CoveragePage({
+                mapboxToken: '@commonData.mapboxApiKey',
+                regionsUrl: '/v3/api/regions?filetype=geojson'
+            }).init();
+        });
+    </script>
+}
+
+@common.main(commonData, "Sidewalk - Admin Coverage") {
+    @common.navbar(commonData, Some(user))
+    @admin.dashboard.adminLayout("coverage")(content)
+}
