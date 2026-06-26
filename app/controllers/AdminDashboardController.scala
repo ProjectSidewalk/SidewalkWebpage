@@ -3,7 +3,7 @@ package controllers
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import models.auth.WithAdmin
 import play.api.Configuration
-import service.ConfigService
+import service.{ConfigService, LabelService}
 
 import javax.inject._
 import scala.concurrent.ExecutionContext
@@ -21,7 +21,8 @@ class AdminDashboardController @Inject() (
     cc: CustomControllerComponents,
     val config: Configuration,
     implicit val assets: AssetsFinder,
-    configService: ConfigService
+    configService: ConfigService,
+    labelService: LabelService
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -122,6 +123,24 @@ class AdminDashboardController @Inject() (
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_HumansVsAI")
       Ok(views.html.admin.dashboard.humansVsAi(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Renders the Label Map page: an interactive per-label point map for spatially exploring and inspecting labels.
+   *
+   * Answers "where are the labels, and what's there?" — every label as a point colored by type, with the shared map
+   * sidebar (filter by label type, severity, tags, validation status, and the admin-only "not validated by an admin"
+   * filter), and click-to-open the label-detail popup. A label-ID search box jumps straight to any label's popup. This
+   * is the redesign's home for the legacy admin "Map" tab; it reuses the shared PSMap component and `/adminapi/labels/all`.
+   */
+  def labelMap = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      tags       <- labelService.getTagsForCurrentCity
+    } yield {
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_LabelMap")
+      Ok(views.html.admin.dashboard.labelMap(commonData, request.identity, tags))
     }
   }
 

@@ -1223,3 +1223,33 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); }
     border-radius: 5px;
     font-size: var(--font-size-sm, 0.875rem);
 }
+
+/* --- Label Map page ------------------------------------------------------------------------------------------ */
+/* The shared PSMap fills a fixed-height holder; the common map sidebar positions itself absolutely inside it
+   (choropleth.css sets position:relative on .choropleth-holder). */
+.label-map-holder {
+    position: relative;
+    width: 100%;
+    min-height: 460px;
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+/* The holder also carries .choropleth-holder, whose `height: 100%` (choropleth.css, loaded after this
+   file) ties on specificity and would win by source order — collapsing the map div's `height: 100%` to
+   0. Pin the definite height via the holder's id so percentages below it resolve against a real height. */
+#admin-labelmap-choropleth-holder.label-map-holder { height: 72vh; }
+#admin-labelmap-choropleth { width: 100%; height: 100%; }
+
+/* Label-ID search row above the map. */
+.label-map-search {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-xs, 8px);
+    margin-top: var(--space-sm, 12px);
+}
+.label-map-search-label { font-size: var(--font-size-sm, 0.875rem); color: var(--color-text-secondary, #5a7785); }
+.label-map-search .mgmt-search { flex: 0 1 160px; }
+.label-map-search-msg { margin-left: var(--space-xs, 8px); }
+.label-map-search-msg.error { color: #a32020; }
