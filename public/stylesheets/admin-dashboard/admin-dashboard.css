@@ -165,3 +165,77 @@
     outline-offset: 2px;
 }
 
+/* --- View toggle (Per region / Distribution) ----------------------------------------------------------------- */
+.coverage-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs, 8px);
+    margin-bottom: var(--space-md, 16px);
+}
+.coverage-toggle-btn {
+    font-size: var(--font-size-sm, 0.875rem);
+    padding: 4px 12px;
+    border: 1px solid var(--color-neutral-400, #c2c2c2);
+    background: var(--color-neutral-white, #fff);
+    color: var(--color-text-primary, #222);
+    border-radius: 6px;
+    cursor: pointer;
+}
+.coverage-toggle-btn:hover { background: var(--color-neutral-100, #f0f0f0); }
+.coverage-toggle-btn.active {
+    background: var(--color-asphalt-500, #263238);
+    border-color: var(--color-asphalt-500, #263238);
+    color: var(--color-neutral-white, #fff);
+}
+.coverage-toggle-btn:focus-visible {
+    outline: 2px solid var(--color-accent-link, #0566f5);
+    outline-offset: 2px;
+}
+
+/* --- Distribution view: histogram --------------------------------------------------------------------------- */
+.coverage-histogram { width: 100%; overflow-x: hidden; margin-bottom: var(--space-md, 16px); }
+.coverage-histogram .vega-embed { width: 100%; }
+.coverage-histogram .vega-embed svg { display: block; }
+
+/* --- Distribution view: searchable region table ------------------------------------------------------------- */
+.coverage-table-controls { margin: var(--space-sm, 12px) 0; }
+.coverage-table-search {
+    width: 100%;
+    max-width: 320px;
+    font-size: var(--font-size-sm, 0.875rem);
+    padding: 6px 10px;
+    border: 1px solid var(--color-neutral-400, #c2c2c2);
+    border-radius: 6px;
+}
+.coverage-table-search:focus-visible { outline: 2px solid var(--color-accent-link, #0566f5); outline-offset: 1px; }
+.coverage-table-wrap {
+    max-height: 380px;
+    overflow-y: auto;
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: 8px;
+}
+.coverage-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-sm, 0.875rem); }
+.coverage-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--color-neutral-100, #f0f0f0);
+    text-align: left;
+    padding: 8px 10px;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    color: var(--color-text-heading, #263238);
+    font-weight: 600;
+    border-bottom: 1px solid var(--color-neutral-200, #e1e1e1);
+}
+.coverage-table thead th:focus-visible { outline: 2px solid var(--color-accent-link, #0566f5); outline-offset: -2px; }
+.coverage-table th:not(:first-child), .coverage-table td:not(:first-child) { text-align: right; }
+.coverage-table tbody td { padding: 6px 10px; border-bottom: 1px solid var(--color-neutral-100, #f0f0f0); }
+.coverage-table tbody tr { cursor: pointer; }
+.coverage-table tbody tr:hover { background: var(--color-neutral-100, #f0f0f0); }
+.coverage-table tbody tr.highlighted {
+    background: rgba(246, 141, 62, 0.14);
+    box-shadow: inset 3px 0 0 var(--coverage-selected, #f68d3e);
+}
+

@@ -34,15 +34,36 @@
     <div class="api-section" id="coverage-bars-section">
         <h2 class="api-heading" id="coverage-by-region">Coverage by region <a href="#coverage-by-region" class="permalink">#</a></h2>
         <p>
-            Hover a bar to highlight its region on the map above (and vice-versa); click to pin the highlight. The two
-            views stay in sync.
+            Hover to highlight the matching region(s) on the map above (and vice-versa); click to pin. The views stay
+            in sync. Large deployments default to the distribution view; switch any time.
         </p>
-        <div class="coverage-sort" role="group" aria-label="Sort regions by">
-            <span class="coverage-sort-label">Sort by</span>
-            <button type="button" class="coverage-sort-btn active" data-sort="coverage" aria-pressed="true">Coverage</button>
-            <button type="button" class="coverage-sort-btn" data-sort="name" aria-pressed="false">Name</button>
+        <div class="coverage-toggle" role="group" aria-label="Choose view">
+            <span class="coverage-sort-label">View</span>
+            <button type="button" class="coverage-toggle-btn" data-view="bars" aria-pressed="false">Per region</button>
+            <button type="button" class="coverage-toggle-btn" data-view="distribution" aria-pressed="false">Distribution</button>
         </div>
-        <div id="coverage-bars" class="coverage-bars"></div>
+
+        @* Per-region bars — default for small deployments. *@
+        <div id="coverage-bars-view">
+            <div class="coverage-sort" role="group" aria-label="Sort regions by">
+                <span class="coverage-sort-label">Sort by</span>
+                <button type="button" class="coverage-sort-btn active" data-sort="coverage" aria-pressed="true">Coverage</button>
+                <button type="button" class="coverage-sort-btn" data-sort="name" aria-pressed="false">Name</button>
+            </div>
+            <div id="coverage-bars" class="coverage-bars"></div>
+        </div>
+
+        @* Distribution histogram + searchable region table — default for large deployments. *@
+        <div id="coverage-distribution-view" hidden>
+            <div id="coverage-histogram" class="coverage-histogram"></div>
+            <div class="coverage-table-controls">
+                <input type="search" id="coverage-table-search" class="coverage-table-search"
+                       placeholder="Search regions…" aria-label="Search regions">
+            </div>
+            <div class="coverage-table-wrap">
+                <table id="coverage-table" class="coverage-table"></table>
+            </div>
+        </div>
     </div>
 
     <!-- Page-specific libraries: loaded only on this page (Mapbox for the choropleth, Vega for the bar chart).
@@ -55,6 +76,8 @@
 
     <script src="@assets.path("javascripts/admin-dashboard/coverage-map.js")"></script>
     <script src="@assets.path("javascripts/admin-dashboard/coverage-bars.js")"></script>
+    <script src="@assets.path("javascripts/admin-dashboard/coverage-histogram.js")"></script>
+    <script src="@assets.path("javascripts/admin-dashboard/coverage-table.js")"></script>
     <script src="@assets.path("javascripts/admin-dashboard/coverage-page.js")"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {

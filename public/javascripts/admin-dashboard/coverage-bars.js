@@ -70,7 +70,9 @@ class CoverageBars {
                 },
                 color: { field: 'color', type: 'nominal', scale: null, legend: null },
                 opacity: {
-                    condition: { test: 'externalSelect === null || datum.region_id === externalSelect', value: 1 },
+                    condition: {
+                        test: 'externalSelect === null || indexof(externalSelect, datum.region_id) >= 0', value: 1
+                    },
                     value: 0.25
                 },
                 tooltip: [
@@ -112,9 +114,14 @@ class CoverageBars {
         });
     }
 
-    /** Dims every bar except the given region. @param {number} regionId */
+    /** Dims every bar except the given regions. @param {number[]} ids */
+    highlightBars(ids) {
+        if (this.#view) this.#view.signal('externalSelect', ids).run();
+    }
+
+    /** Convenience for a single-region highlight. @param {number} regionId */
     highlightBar(regionId) {
-        if (this.#view) this.#view.signal('externalSelect', regionId).run();
+        this.highlightBars([regionId]);
     }
 
     /** Restores all bars to full opacity. */

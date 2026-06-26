@@ -71,7 +71,7 @@ class CoverageMap {
     #onRegionHover;
     #onRegionHoverEnd;
     #popup;
-    #selectedId = null;
+    #selectedIds = new Set();
     #hoverId = null;
 
     /**
@@ -170,19 +170,31 @@ class CoverageMap {
         }
     }
 
-    /** Highlights (and pans to) the given region. @param {number} regionId */
-    highlightRegion(regionId) {
+    /**
+     * Highlights exactly the given set of regions (outlining them and dimming the rest), replacing any prior
+     * highlight. Accepts one id (map/table/bar selection) or many (a histogram coverage bucket).
+     * @param {number[]} ids
+     */
+    highlightRegions(ids) {
         const src = CoverageMap.#SOURCE;
-        if (this.#selectedId !== null) this.#map.setFeatureState({ source: src, id: this.#selectedId }, { selected: false });
-        this.#selectedId = regionId;
-        this.#map.setFeatureState({ source: src, id: regionId }, { selected: true });
+        const next = new Set(ids.map(Number));
+        for (const id of this.#selectedIds) {
+            if (!next.has(id)) this.#map.setFeatureState({ source: src, id }, { selected: false });
+        }
+        for (const id of next) {
+            if (!this.#selectedIds.has(id)) this.#map.setFeatureState({ source: src, id }, { selected: true });
+        }
+        this.#selectedIds = next;
+    }
+
+    /** Convenience for a single-region highlight. @param {number} regionId */
+    highlightRegion(regionId) {
+        this.highlightRegions([regionId]);
     }
 
     /** Clears any selected-region highlight. */
     clearHighlight() {
-        if (this.#selectedId === null) return;
-        this.#map.setFeatureState({ source: CoverageMap.#SOURCE, id: this.#selectedId }, { selected: false });
-        this.#selectedId = null;
+        this.highlightRegions([]);
     }
 
     /** Builds the hover-popup HTML showing a region's coverage details. */
