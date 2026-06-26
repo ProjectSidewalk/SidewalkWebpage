@@ -759,11 +759,42 @@
 .activity-feed { display: flex; flex-direction: column; gap: 2px; }
 .activity-feed-item {
     display: grid;
-    grid-template-columns: 92px 1fr auto;
-    align-items: baseline;
-    gap: var(--space-sm, 12px);
-    padding: 8px 0;
+    grid-template-columns: 104px 92px 1fr auto;
+    align-items: start;
+    gap: var(--space-md, 16px);
+    padding: var(--space-md, 16px) 0;
     border-bottom: 1px solid var(--color-neutral-100, #f0f0f0);
+}
+/* Leading preview thumbnail (or an empty placeholder that holds the column so rows stay aligned). */
+.activity-feed-thumb {
+    width: 104px;
+    height: 72px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: var(--color-neutral-100, #f0f0f0);
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+}
+.activity-feed-thumb--none { background: transparent; border: 0; }
+.activity-feed-thumb.is-broken { visibility: hidden; }
+img.activity-feed-thumb { cursor: pointer; transition: box-shadow 0.12s ease; }
+img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); }
+/* Contributor identity: a linked username, a role chip, and a quiet all-time totals line. */
+.activity-feed-user { font-weight: 600; color: var(--color-accent-link, #0566f5); }
+.activity-feed-role {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: var(--font-size-xs, 0.8125rem);
+    font-weight: 600;
+    color: var(--color-text-secondary, #5a7785);
+    background: var(--color-neutral-100, #f0f0f0);
+    vertical-align: 1px;
+}
+.activity-feed-sub {
+    margin-top: 3px;
+    font-size: var(--font-size-xs, 0.8125rem);
+    color: var(--color-text-tertiary, #88a1ad);
 }
 .activity-feed-badge {
     font-size: var(--font-size-xs, 0.8125rem);
@@ -888,3 +919,158 @@
     color: var(--color-text-heading, #263238);
     margin: 0 0 var(--space-sm, 12px);
 }
+
+/* === Overview landing page (#4272) ============================================================================== */
+/* The "latest activity" pulse line under the intro: a quiet, single-line read that the deployment is alive. */
+.ov-pulse {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 12px);
+    margin: var(--space-lg, 24px) 0 0;
+    padding: var(--space-sm, 12px) var(--space-md, 16px);
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: 8px;
+    background: var(--color-neutral-50, #f7f9fa);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+.ov-pulse strong { color: var(--color-text-heading, #263238); font-weight: 600; }
+.ov-pulse-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+
+/* The lens cards: a responsive grid of clickable summary tiles, each linking to its detailed page. */
+.ov-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--space-md, 16px);
+    margin: var(--space-lg, 24px) 0;
+}
+.ov-card {
+    display: block;
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: 8px;
+    padding: var(--space-md, 16px);
+    background: var(--color-neutral-white, #fff);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+.ov-card:hover, .ov-card:focus-visible {
+    border-color: var(--color-primary, #4a90d9);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+.ov-card:focus-visible { outline: 2px solid var(--color-primary, #4a90d9); outline-offset: 2px; }
+.ov-card-head { display: flex; align-items: center; justify-content: space-between; }
+.ov-card-title {
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 600;
+    color: var(--color-text-secondary, #5a7785);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.ov-card-arrow { color: var(--color-neutral-300, #c5cdd2); font-size: 1.1rem; transition: color 0.12s ease; }
+.ov-card:hover .ov-card-arrow, .ov-card:focus-visible .ov-card-arrow { color: var(--color-primary, #4a90d9); }
+.ov-card-value {
+    display: block;
+    margin-top: var(--space-sm, 12px);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.05;
+    color: var(--color-text-heading, #263238);
+}
+.ov-card-sub {
+    display: block;
+    margin-top: 4px;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+    min-height: 1.2em;
+}
+.ov-card-desc {
+    margin: var(--space-sm, 12px) 0 0;
+    font-size: var(--font-size-xs, 0.8125rem);
+    color: var(--color-text-tertiary, #88a1ad);
+    line-height: 1.35;
+}
+/* Week-over-week trend line under the headline value (direction-colored). */
+.ov-card-trend {
+    display: block;
+    margin-top: 4px;
+    font-size: var(--font-size-xs, 0.8125rem);
+    font-weight: 600;
+    min-height: 1.1em;
+    color: var(--color-text-secondary, #5a7785);
+}
+.ov-trend--up { color: #1f7a44; }
+.ov-trend--down { color: #c0392b; }
+.ov-trend--flat { color: var(--color-text-tertiary, #88a1ad); }
+/* Compact line-only sparkline. */
+.ov-card-spark { margin-top: var(--space-sm, 12px); height: 36px; }
+.ov-spark-svg { width: 100%; height: 36px; display: block; overflow: visible; }
+.ov-spark-line { fill: none; stroke: var(--color-primary, #4a90d9); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.ov-spark-dot { fill: var(--color-primary, #4a90d9); }
+
+/* "Needs attention" panel: deep-linked action rows with a severity dot. */
+.ov-attention { display: flex; flex-direction: column; gap: var(--space-sm, 12px); margin: var(--space-md, 16px) 0; }
+.ov-attention-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--space-sm, 12px);
+    padding: var(--space-sm, 12px) var(--space-md, 16px);
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-left-width: 4px;
+    border-radius: 8px;
+    background: var(--color-neutral-white, #fff);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.ov-attention-item:hover, .ov-attention-item:focus-visible {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    text-decoration: none;
+}
+.ov-attention-item:focus-visible { outline: 2px solid var(--color-primary, #4a90d9); outline-offset: 2px; }
+.ov-attention--warn { border-left-color: #e0a800; }
+.ov-attention--info { border-left-color: var(--color-primary, #4a90d9); }
+.ov-attention-dot { width: 9px; height: 9px; border-radius: 50%; }
+.ov-attention--warn .ov-attention-dot { background: #e0a800; }
+.ov-attention--info .ov-attention-dot { background: var(--color-primary, #4a90d9); }
+.ov-attention-text { font-size: var(--font-size-sm, 0.875rem); color: var(--color-text-primary, #222); }
+.ov-attention-text strong { color: var(--color-text-heading, #263238); }
+.ov-attention-go { font-size: var(--font-size-sm, 0.875rem); font-weight: 600; color: var(--color-accent-link, #0566f5); white-space: nowrap; }
+.ov-attention-clear {
+    margin: var(--space-md, 16px) 0;
+    padding: var(--space-md, 16px);
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-left: 4px solid #1f7a44;
+    border-radius: 8px;
+    background: var(--color-neutral-white, #fff);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+
+/* Live recent-activity strip. */
+.ov-recent { display: flex; flex-direction: column; margin: var(--space-md, 16px) 0 var(--space-sm, 12px); }
+.ov-recent-item {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    align-items: center;
+    gap: var(--space-md, 16px);
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-neutral-100, #f0f0f0);
+}
+.ov-recent-thumb {
+    width: 72px;
+    height: 50px;
+    border-radius: 5px;
+    object-fit: cover;
+    background: var(--color-neutral-100, #f0f0f0);
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+}
+.ov-recent-thumb--none { background: transparent; border: 0; }
+.ov-recent-thumb.is-broken { visibility: hidden; }
+.ov-recent-text { font-size: var(--font-size-sm, 0.875rem); color: var(--color-text-primary, #222); }
+.ov-recent-meta { margin-top: 2px; font-size: var(--font-size-xs, 0.8125rem); color: var(--color-text-secondary, #5a7785); }
+.ov-recent-more { display: inline-block; font-size: var(--font-size-sm, 0.875rem); font-weight: 600; color: var(--color-accent-link, #0566f5); text-decoration: none; }
+.ov-recent-more:hover { text-decoration: underline; }

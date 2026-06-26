@@ -292,6 +292,10 @@ class ActivityPage {
         const rows = items.map(it => {
             const badge = ActivityPage.#BADGES[it.activity_type] || { label: 'Activity', cls: '' };
             const who = ActivityPage.#esc(it.username || 'Unknown');
+            // Username deep-links to the contributor's admin profile (the "what have they been doing" detail view).
+            const userLink = `<a class="activity-feed-user" href="/admin/user/${encodeURIComponent(it.username || '')}">${who}</a>`;
+            const roleChip = it.user_role
+                ? `<span class="activity-feed-role">${ActivityPage.#esc(it.user_role)}</span>` : '';
             const link = (it.label_id != null)
                 // The href is a real fallback (works without JS / before the popup loads); the click handler intercepts
                 // it to open the label inline once the popup is ready.
@@ -299,14 +303,24 @@ class ActivityPage {
                   `data-label-id="${ActivityPage.#esc(it.label_id)}">label #${ActivityPage.#esc(it.label_id)}</a>`
                 : '';
             const text = ActivityPage.#feedText(it);
-            const meta = link ? `${who} · ${link}` : who;
+            const meta = `${userLink}${roleChip}${link ? ` · ${link}` : ''}`;
+            const summary = ActivityPage.#contributionSummary(it);
             const when = ActivityPage.#relativeTime(it.timestamp);
             const fullDate = ActivityPage.#fmtDateTime(it.timestamp);
+            // A preview of the label this item is about, when one is available (placements/validations of GSV or
+            // locally-cropped labels). Decorative (alt="") since the text already names the type; clickable as a
+            // convenience that reuses the same delegated handler as the text link, so it opens the label popup inline.
+            const thumb = it.thumbnail_url
+                ? `<img class="activity-feed-thumb activity-label-link" loading="lazy" alt="" ` +
+                  `src="${ActivityPage.#esc(it.thumbnail_url)}" data-label-id="${ActivityPage.#esc(it.label_id)}">`
+                : '<span class="activity-feed-thumb activity-feed-thumb--none" aria-hidden="true"></span>';
             return '<div class="activity-feed-item">' +
+                thumb +
                 `<span class="activity-feed-badge ${badge.cls}">${ActivityPage.#esc(badge.label)}</span>` +
                 '<div class="activity-feed-body">' +
                 `<div class="activity-feed-text">${text}</div>` +
                 `<div class="activity-feed-meta">${meta}</div>` +
+                (summary ? `<div class="activity-feed-sub">${summary}</div>` : '') +
                 '</div>' +
                 `<span class="activity-feed-time" title="${ActivityPage.#esc(fullDate)}">${ActivityPage.#esc(when)}</span>` +
                 '</div>';
@@ -315,6 +329,11 @@ class ActivityPage {
             ? `<p class="dq-empty">Showing the ${items.length} most recent items.</p>`
             : '';
         el.innerHTML = rows + caption;
+        // A signed crop/GSV URL can still 404 (file pruned, pano expired); hide a broken thumbnail so the row keeps its
+        // layout (the column collapses to its placeholder) rather than showing a broken-image icon.
+        el.querySelectorAll('img.activity-feed-thumb').forEach(img => {
+            img.addEventListener('error', () => img.classList.add('is-broken'), { once: true });
+        });
     }
 
     /**
@@ -335,6 +354,24 @@ class ActivityPage {
             return `Validated ${type} — ${verdict}`;
         }
         return `“${ActivityPage.#esc(it.comment || '')}”`;
+    }
+
+    /**
+     * A quiet one-line summary of how much the contributor has done overall (their lifetime labels and validations),
+     * so each row says a bit about who the person is, not just the single action shown. Empty when we have no totals.
+     *
+     * @param {object} it - A recent-activity item (carrying user_labels / user_validations when available).
+     * @returns {string} Trusted HTML, or '' when there's nothing to show.
+     */
+    static #contributionSummary(it) {
+        const parts = [];
+        if (it.user_labels != null) {
+            parts.push(`${it.user_labels.toLocaleString()} ${it.user_labels === 1 ? 'label' : 'labels'}`);
+        }
+        if (it.user_validations != null) {
+            parts.push(`${it.user_validations.toLocaleString()} ${it.user_validations === 1 ? 'validation' : 'validations'}`);
+        }
+        return parts.length ? `${parts.join(' · ')} all-time` : '';
     }
 
     /** A short phrase naming an item for the "most recent activity" banner. */

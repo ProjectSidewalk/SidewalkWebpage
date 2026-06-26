@@ -9,7 +9,9 @@
 <div class="api-sidebar">
     <nav class="api-nav" aria-label="Admin dashboard sections">
         <div class="api-nav-header">Admin Dashboard</div>
-        <span class="api-nav-item disabled" aria-disabled="true">Overview <span class="nav-soon-badge">soon</span></span>
+        <a href="@routes.AdminDashboardController.overview"
+           class="api-nav-item @if(activePage == "overview"){active}"
+           @if(activePage == "overview"){aria-current="page"}>Overview</a>
 
         <div class="api-nav-header">Data</div>
         <a href="@routes.AdminDashboardController.coverage"

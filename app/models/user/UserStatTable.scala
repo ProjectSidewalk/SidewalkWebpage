@@ -585,6 +585,22 @@ class UserStatTable @Inject() (
     otherUsers.result.map(_.map(SidewalkUserWithRole.tupled))
   }
 
+  /**
+   * Counts non-anonymous users currently flagged as low quality (high_quality = false), for the admin Overview's
+   * "needs attention" panel. Mirrors `getUserQuality`'s anonymous exclusion so the count matches what's reviewable.
+   *
+   * @return Number of low-quality registered users.
+   */
+  def countLowQualityUsers: DBIO[Int] = {
+    userStats
+      .join(userRoleTable)
+      .on(_.userId === _.userId)
+      .filter(_._2.roleId =!= 6) // Exclude anonymous users.
+      .filter(!_._1.highQuality)
+      .length
+      .result
+  }
+
   def getUserQuality: DBIO[Seq[(String, Boolean)]] = {
     // TODO temporarily removing to improve admin page load time:
     // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802

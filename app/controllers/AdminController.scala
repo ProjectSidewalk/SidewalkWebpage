@@ -7,6 +7,7 @@ import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin}
+import models.label.LabelTypeEnum
 import models.user.{RoleTable, SidewalkUserWithRole}
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.dispatch.Dispatcher
@@ -662,18 +663,57 @@ class AdminController @Inject() (
    */
   def getRecentActivity(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getRecentActivity(n).map { items =>
-      Ok(Json.obj("activity" -> JsArray(items.map { i =>
-        Json.obj(
-          "activity_type"     -> i.activityType,
-          "username"          -> i.username,
-          "timestamp"         -> i.timestamp,
-          "label_id"          -> i.labelId,
-          "label_type"        -> i.labelType,
-          "validation_result" -> i.validationResult,
-          "comment"           -> i.comment
-        )
-      })))
+    adminService.getRecentActivity(n).flatMap { items =>
+      // Enrich the feed batch with two cheap scoped lookups, run in parallel: a preview thumbnail per labelled item,
+      // and a "who is this contributor" summary (role + totals) per distinct user.
+      val labelIds  = items.collect { case i if i.labelId.isDefined && i.labelType.isDefined => i.labelId.get }.distinct
+      val usernames = items.map(_.username).distinct
+      val metaFut   = adminService.getLabelThumbnailMeta(labelIds)
+      val userFut   = adminService.getUserSummaries(usernames)
+      for {
+        metaById  <- metaFut
+        userByName <- userFut
+      } yield {
+        Ok(Json.obj("activity" -> JsArray(items.map { i =>
+          val user = userByName.get(i.username)
+          Json.obj(
+            "activity_type"     -> i.activityType,
+            "username"          -> i.username,
+            "timestamp"         -> i.timestamp,
+            "label_id"          -> i.labelId,
+            "label_type"        -> i.labelType,
+            "validation_result" -> i.validationResult,
+            "comment"           -> i.comment,
+            "thumbnail_url"     -> thumbnailUrl(i, metaById),
+            "user_role"         -> user.map(_.role),
+            "user_labels"       -> user.map(_.labels),
+            "user_validations"  -> user.map(_.validations)
+          )
+        })))
+      }
+    }
+  }
+
+  /**
+   * Builds the best available preview-image URL for a recent-activity item, or None when it has no label to preview.
+   *
+   * Prefers a saved label crop (the actual cropped label view) when one exists on disk; otherwise falls back to a
+   * Street View Static thumbnail built from the label's pano/POV metadata (GSV panos only). Mirrors the Gallery's
+   * crop-then-GSV image strategy.
+   *
+   * @param item     The recent-activity item.
+   * @param metaById Pano/POV metadata for the batch's label ids, keyed by label id.
+   * @return A signed image URL, or None for items without a previewable label (e.g. comments).
+   */
+  private def thumbnailUrl(item: RecentActivityItem, metaById: Map[Int, LabelThumbnailMeta]): Option[String] = {
+    (item.labelId, item.labelType) match {
+      case (Some(id), Some(labelType)) if LabelTypeEnum.validLabelTypes.contains(labelType) =>
+        panoDataService
+          .cropUrl(id, LabelTypeEnum.byName(labelType))
+          .orElse(metaById.get(id).flatMap { m =>
+            panoDataService.getImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom)
+          })
+      case _ => None
     }
   }
 
@@ -763,6 +803,53 @@ class AdminController @Inject() (
             "ai_tags"         -> tagsJson(stats.tagger.aiTags),
             "human_tags"      -> tagsJson(stats.tagger.humanTags)
           )
+        )
+      )
+    }
+  }
+
+  /**
+   * Top-line snapshot for the redesigned admin dashboard's Overview landing page (#4272): one KPI cluster per lens
+   * (coverage, data quality, contributors, activity pulse, humans-vs-AI share, API usage). snake_case per the dashboard
+   * convention. Every percentage's denominator is included so the page can show its N.
+   */
+  def getOverviewSummary = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getOverviewSummary.map { s =>
+      val lastActivity = s.lastActivity.map { i =>
+        Json.obj(
+          "activity_type"     -> i.activityType,
+          "username"          -> i.username,
+          "timestamp"         -> i.timestamp,
+          "label_id"          -> i.labelId,
+          "label_type"        -> i.labelType,
+          "validation_result" -> i.validationResult,
+          "comment"           -> i.comment
+        )
+      }
+      Ok(
+        Json.obj(
+          "total_streets"         -> s.totalStreets,
+          "audited_streets"       -> s.auditedStreets,
+          "total_distance_mi"     -> s.totalDistanceMi,
+          "audited_distance_mi"   -> s.auditedDistanceMi,
+          "total_labels"          -> s.totalLabels,
+          "total_validations"     -> s.totalValidations,
+          "labels_past_week"      -> s.labelsPastWeek,
+          "validations_past_week" -> s.validationsPastWeek,
+          "audits_past_week"      -> s.auditsPastWeek,
+          "contributors"          -> s.contributors,
+          "human_labels"          -> s.humanLabels,
+          "ai_labels"             -> s.aiLabels,
+          "human_validations"     -> s.humanValidations,
+          "ai_validations"        -> s.aiValidations,
+          "ai_assessments"        -> s.aiAssessments,
+          "api_calls_external"    -> s.apiCallsExternal,
+          "api_unique_clients"    -> s.apiUniqueClients,
+          "api_window_days"       -> s.apiWindowDays,
+          "labels_awaiting_validation" -> s.labelsAwaitingValidation,
+          "low_quality_users"     -> s.lowQualityUsers,
+          "last_activity"         -> lastActivity
         )
       )
     }

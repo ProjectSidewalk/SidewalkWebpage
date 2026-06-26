@@ -27,6 +27,21 @@ class AdminDashboardController @Inject() (
   implicit val implicitConfig: Configuration = config
 
   /**
+   * Renders the Overview landing page: an at-a-glance snapshot that routes into the detailed pages.
+   *
+   * Answers "how is this deployment doing, in one screen?" — a scannable card per lens (coverage, data quality,
+   * contributors, recent activity, humans-vs-AI, and API usage), each with a top-line KPI and a deep link to the page
+   * that owns that lens. Deliberately introduces no new analysis of its own; it's driven by the lightweight
+   * `/adminapi/overviewSummary` endpoint, which composes existing aggregate queries rather than re-fetching each page.
+   */
+  def overview = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Overview")
+      Ok(views.html.admin.dashboard.overview(commonData, request.identity))
+    }
+  }
+
+  /**
    * Renders the Coverage page: a region choropleth linked to a per-region coverage bar chart.
    *
    * Answers "what is our data coverage like, by region?". Both views are driven by a single call to the v3

@@ -5,6 +5,7 @@ import executors.CpuIntensiveExecutionContext
 import models.audit._
 import models.label.{LabelAiAssessmentTable, LabelCount, LabelTable, TagCount}
 import models.mission.{MissionTable, RegionalMission}
+import models.pano.PanoSource.PanoSource
 import models.region.Region
 import models.street.StreetEdgeTable
 import models.user._
@@ -106,6 +107,22 @@ case class RecentActivityItem(
 )
 
 /**
+ * The pano + point-of-view metadata needed to build a preview-image URL for one label (a saved crop or a Street View
+ * Static thumbnail). Carried alongside a recent-activity item so the admin Activity feed can show a thumbnail.
+ */
+case class LabelThumbnailMeta(panoId: String, panoSource: PanoSource, heading: Double, pitch: Double, zoom: Double)
+
+/**
+ * A compact "who is this contributor" summary for annotating a recent-activity item: their role plus how much they've
+ * contributed overall. Lets the admin Activity feed say a bit about each person, not just the single action shown.
+ *
+ * @param role        The user's role (e.g. "Registered", "Researcher", "Anonymous").
+ * @param labels      Total labels they've placed (same base as the Contributors page, so the numbers agree).
+ * @param validations Total validations they've performed.
+ */
+case class UserSummary(role: String, labels: Int, validations: Int)
+
+/**
  * One row of the Contributors page's "Top labelers" leaderboard: a prolific labeler with the breakdowns that reveal
  * *how* they label, not just how much — for spotting patterns and anomalies.
  *
@@ -198,6 +215,64 @@ case class HumanVsAiStats(
     tagger: HumanAiTaggerStats
 )
 
+/**
+ * One headline number per dashboard lens, assembled for the Overview landing page so it can render a scannable set of
+ * cards that route into the detailed pages without re-fetching each page's full payload. Every KPI carries the
+ * denominator the card needs (e.g. audited *and* total distance, AI *and* human counts) so percentages can show their N.
+ *
+ * @param totalDistanceMi    Total street distance (miles), matching the legacy admin coverage metric.
+ * @param auditedDistanceMi  Audited street distance (miles); the card's coverage % is this over the total.
+ * @param totalLabels        All labels placed (includes tutorial labels, matching the by-type admin count).
+ * @param labelsPastWeek     Labels placed in the last 7 days — the Activity pulse.
+ * @param contributors       Distinct users who have contributed any labels or validations.
+ * @param aiLabels           Labels placed by the AI labeler (human + ai sum to the labeler total).
+ * @param aiValidations      Validations performed by the AI validator.
+ * @param aiAssessments      Labels assessed by the AI tagger (0 where `label_ai_assessment` is absent/empty).
+ * @param apiCallsExternal   External (non-docs) v3 API calls in the trailing `apiWindowDays`.
+ * @param lastActivity       The single most recent contribution across labels/validations/comments, if any.
+ */
+case class OverviewSummary(
+    totalStreets: Int,
+    auditedStreets: Int,
+    totalDistanceMi: Double,
+    auditedDistanceMi: Double,
+    totalLabels: Int,
+    totalValidations: Int,
+    labelsPastWeek: Int,
+    validationsPastWeek: Int,
+    auditsPastWeek: Int,
+    contributors: Int,
+    humanLabels: Int,
+    aiLabels: Int,
+    humanValidations: Int,
+    aiValidations: Int,
+    aiAssessments: Int,
+    apiCallsExternal: Long,
+    apiUniqueClients: Long,
+    apiWindowDays: Int,
+    labelsAwaitingValidation: Int,
+    lowQualityUsers: Int,
+    lastActivity: Option[RecentActivityItem]
+)
+
+/** The batched-query portion of the Overview snapshot, before the reused AI/recent-activity reads are folded in. */
+private case class OverviewCore(
+    totalStreets: Int,
+    auditedStreets: Int,
+    totalDistanceMi: Double,
+    auditedDistanceMi: Double,
+    totalLabels: Int,
+    totalValidations: Int,
+    labelsPastWeek: Int,
+    validationsPastWeek: Int,
+    auditsPastWeek: Int,
+    contributors: Int,
+    apiCallsExternal: Long,
+    apiUniqueClients: Long,
+    labelsAwaitingValidation: Int,
+    lowQualityUsers: Int
+)
+
 @ImplementedBy(classOf[AdminServiceImpl])
 trait AdminService {
   def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int]
@@ -223,8 +298,11 @@ trait AdminService {
   def getValidationCountStats: Future[Seq[ValidationCount]]
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]]
   def getRecentActivity(n: Int): Future[Seq[RecentActivityItem]]
+  def getLabelThumbnailMeta(labelIds: Seq[Int]): Future[Map[Int, LabelThumbnailMeta]]
+  def getUserSummaries(usernames: Seq[String]): Future[Map[String, UserSummary]]
   def getContributorLeaderboards(n: Int): Future[ContributorLeaderboards]
   def getHumanVsAiStats: Future[HumanVsAiStats]
+  def getOverviewSummary: Future[OverviewSummary]
   def getUserStatsForAdminPage: Future[Seq[UserStatsForAdminPage]]
   def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Double)]]
   def updateUserStatTable(cutoffTime: OffsetDateTime): Future[Int]
@@ -236,6 +314,7 @@ trait AdminService {
 class AdminServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     userStatTable: UserStatTable,
+    sidewalkUserTable: SidewalkUserTable,
     userCurrentRegionTable: UserCurrentRegionTable,
     missionTable: MissionTable,
     auditTaskTable: AuditTaskTable,
@@ -254,6 +333,9 @@ class AdminServiceImpl @Inject() (
     cpuEc: CpuIntensiveExecutionContext
 ) extends AdminService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
+
+  // Trailing window for the Overview page's API-usage KPI; matches the API Analytics page's default range.
+  private val OverviewApiWindowDays: Int = 30
 
   def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int] =
     db.run(teamTable.updateVisibility(teamId, visible))
@@ -608,6 +690,50 @@ class AdminServiceImpl @Inject() (
   }
 
   /**
+   * Fetches the pano/POV metadata for a batch of labels, keyed by label id, so the caller can build a preview-image
+   * URL for each. Returns an empty map for an empty input (no query run).
+   *
+   * @param labelIds Label ids to fetch metadata for (typically a recent-activity batch).
+   * @return Map of label id to its thumbnail metadata; ids without point/pano rows are simply absent.
+   */
+  def getLabelThumbnailMeta(labelIds: Seq[Int]): Future[Map[Int, LabelThumbnailMeta]] = {
+    if (labelIds.isEmpty) Future.successful(Map.empty)
+    else
+      db.run(labelTable.getPanoMetadataForLabels(labelIds)).map { rows =>
+        rows.map { case (id, panoId, source, heading, pitch, zoom) =>
+          id -> LabelThumbnailMeta(panoId, source, heading, pitch, zoom)
+        }.toMap
+      }
+  }
+
+  /**
+   * Fetches a compact contribution summary (role, total labels, total validations) for a batch of users, keyed by
+   * username, so a list can annotate who each person is. Resolves the usernames to ids/roles, then counts labels and
+   * validations only for those ids. Returns an empty map for empty input (no query run).
+   *
+   * @param usernames Usernames to summarize (typically a recent-activity batch; duplicates are fine).
+   * @return Map of username to its summary; usernames that don't resolve to a user are absent.
+   */
+  def getUserSummaries(usernames: Seq[String]): Future[Map[String, UserSummary]] = {
+    val distinct = usernames.distinct
+    if (distinct.isEmpty) Future.successful(Map.empty)
+    else
+      db.run(sidewalkUserTable.getUserIdAndRoleByUsernames(distinct)).flatMap { idRoles =>
+        val userIds = idRoles.map(_._2)
+        db.run(labelTable.countLabelsForUsers(userIds) zip labelValidationTable.getValidationResultCountsForUsers(userIds))
+          .map { case (labelCounts, valCounts) =>
+            val labelByUser: Map[String, Int] = labelCounts.toMap
+            // getValidationResultCountsForUsers is split by verdict; sum the verdicts for each user's validation total.
+            val valByUser: Map[String, Int] =
+              valCounts.groupBy(_._1).map { case (userId, rows) => userId -> rows.map(_._3).sum }
+            idRoles.map { case (username, userId, role) =>
+              username -> UserSummary(role, labelByUser.getOrElse(userId, 0), valByUser.getOrElse(userId, 0))
+            }.toMap
+          }
+      }
+  }
+
+  /**
    * Assembles the Contributors page's two leaderboards: the top `n` labelers (by label count) and top `n` validators
    * (by validations performed), each enriched with the breakdowns that surface behavior patterns.
    *
@@ -721,6 +847,82 @@ class AdminServiceImpl @Inject() (
         labelers = Seq(labelerGroup(isAi = false, "human"), labelerGroup(isAi = true, "ai")),
         validators = Seq(validatorGroup(isAi = false, "human"), validatorGroup(isAi = true, "ai")),
         tagger = tagger
+      )
+    }
+  }
+
+  /**
+   * Assembles the Overview landing page's snapshot: one headline KPI cluster per dashboard lens, in a single light
+   * payload. Deliberately reuses cheap existing aggregate queries rather than each page's full endpoint, so the landing
+   * page loads fast and never duplicates a page's detailed viz. The AI share (Humans-vs-AI lens) reuses
+   * `getHumanVsAiStats`, and the freshest single contribution reuses `getRecentActivity(1)`; the remaining counts run as
+   * one batched DB action. All three kick off together and are combined when they complete.
+   *
+   * @return The assembled snapshot.
+   */
+  def getOverviewSummary: Future[OverviewSummary] = {
+    // Kick the three independent reads off together so they run concurrently rather than in series.
+    val hvaFut    = getHumanVsAiStats
+    val recentFut = getRecentActivity(1)
+    val coreFut   = db.run(for {
+      totalStreets   <- streetService.getStreetCountDBIO
+      auditedStreets <- streetEdgeTable.countDistinctAuditedStreets()
+      totalDist      <- streetService.getTotalStreetDistanceDBIO
+      auditedDist    <- streetEdgeTable.auditedStreetDistance()
+      labelsAll      <- labelTable.countLabelsByType()
+      labelsWeek     <- labelTable.countLabelsByType(TimeInterval.Week)
+      valsAll        <- labelValidationTable.countValidationsByResultAndLabelType()
+      valsWeek       <- labelValidationTable.countValidationsByResultAndLabelType(TimeInterval.Week)
+      contributors   <- userStatTable.countAllUsersContributed()
+      auditsWeek     <- auditTaskTable.countCompletedAudits(TimeInterval.Week)
+      apiExternal    <- webpageActivityTable.getApiEndpointCounts(excludeApiDocs = true, OverviewApiWindowDays)
+      apiClients     <- webpageActivityTable.getApiUniqueIpCount(excludeApiDocs = true, OverviewApiWindowDays)
+      awaitingVal    <- labelTable.countLabelsAwaitingValidation
+      lowQualityUsrs <- userStatTable.countLowQualityUsers
+    } yield {
+      // The by-type counts carry an "All" subtotal row; the validation counts carry a grand-total row keyed by the
+      // "All"/None/"Both" subgroup. Pull those rather than re-summing so the totals match the detailed pages exactly.
+      def labelTotal(counts: Seq[LabelCount]): Int = counts.find(_.labelType == "All").map(_.count).getOrElse(0)
+      def valTotal(counts: Seq[ValidationCount]): Int = counts
+        .find(c => c.labelType == "All" && c.validationResult.isEmpty && c.validatorType == "Both")
+        .map(_.count)
+        .getOrElse(0)
+      OverviewCore(
+        totalStreets, auditedStreets, totalDist * METERS_TO_MILES, auditedDist * METERS_TO_MILES,
+        labelTotal(labelsAll), valTotal(valsAll), labelTotal(labelsWeek), valTotal(valsWeek), auditsWeek,
+        contributors.count, apiExternal.map(_.count).sum, apiClients, awaitingVal, lowQualityUsrs
+      )
+    })
+
+    for {
+      core   <- coreFut
+      hva    <- hvaFut
+      recent <- recentFut
+    } yield {
+      def labeler(group: String): Int   = hva.labelers.find(_.group == group).map(_.total).getOrElse(0)
+      def validator(group: String): Int = hva.validators.find(_.group == group).map(_.total).getOrElse(0)
+      OverviewSummary(
+        totalStreets = core.totalStreets,
+        auditedStreets = core.auditedStreets,
+        totalDistanceMi = core.totalDistanceMi,
+        auditedDistanceMi = core.auditedDistanceMi,
+        totalLabels = core.totalLabels,
+        totalValidations = core.totalValidations,
+        labelsPastWeek = core.labelsPastWeek,
+        validationsPastWeek = core.validationsPastWeek,
+        auditsPastWeek = core.auditsPastWeek,
+        contributors = core.contributors,
+        humanLabels = labeler("human"),
+        aiLabels = labeler("ai"),
+        humanValidations = validator("human"),
+        aiValidations = validator("ai"),
+        aiAssessments = hva.tagger.labelsAssessed,
+        apiCallsExternal = core.apiCallsExternal,
+        apiUniqueClients = core.apiUniqueClients,
+        apiWindowDays = OverviewApiWindowDays,
+        labelsAwaitingValidation = core.labelsAwaitingValidation,
+        lowQualityUsers = core.lowQualityUsers,
+        lastActivity = recent.headOption
       )
     }
   }

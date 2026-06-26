@@ -68,6 +68,19 @@ class SidewalkUserTable @Inject() (
     db.run(sidewalkUserWithRole.filter(_._1 === userId).result.headOption).map(_.map(SidewalkUserWithRole.tupled))
   }
 
+  /**
+   * Resolves a batch of usernames to their user id and role, for annotating a list (e.g. the admin activity feed).
+   *
+   * @param usernames Usernames to look up.
+   * @return Per matched user: (username, userId, role).
+   */
+  def getUserIdAndRoleByUsernames(usernames: Seq[String]): DBIO[Seq[(String, String, String)]] = {
+    sidewalkUserToRoleJoin
+      .filter(_._1.username inSet usernames)
+      .map { case (user, _userRole, role) => (user.username, user.userId, role.role) }
+      .result
+  }
+
   def findByUsername(username: String): Future[Option[SidewalkUserWithRole]] = {
     db.run(sidewalkUserWithRole.filter(_._2 === username).result.headOption).map(_.map(SidewalkUserWithRole.tupled))
   }

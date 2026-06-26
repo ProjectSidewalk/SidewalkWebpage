@@ -51,6 +51,7 @@ GET     /cityMapParams                                  controllers.ConfigContro
 # Admin
 GET     /admin                                          controllers.AdminController.index
 # Redesigned admin dashboard (#4272). Coexists with the legacy /admin page above until it reaches parity.
+GET     /admin/overview                                 controllers.AdminDashboardController.overview
 GET     /admin/coverage                                 controllers.AdminDashboardController.coverage
 GET     /admin/quality                                  controllers.AdminDashboardController.quality
 GET     /admin/contributors                             controllers.AdminDashboardController.contributors
@@ -91,6 +92,7 @@ GET     /adminapi/apiAnalytics                          controllers.AdminControl
 GET     /adminapi/apiAnalyticsBySource                  controllers.AdminController.getApiAnalyticsBySource(days: Int ?= 30)
 GET     /adminapi/activityByDay                          controllers.AdminController.getActivityByDay
 GET     /adminapi/humanVsAi                              controllers.AdminController.getHumanVsAiStats
+GET     /adminapi/overviewSummary                       controllers.AdminController.getOverviewSummary
 
 PUT     /adminapi/setRole                               controllers.AdminController.setUserRole
 PUT     /adminapi/setUserQualityManual                  controllers.AdminController.setUserQualityManual

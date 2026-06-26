@@ -804,6 +804,34 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Counts labels that have not yet received a single validation (agree/disagree/unsure all zero), for the admin
+   * Overview's "needs attention" panel. Uses the standard `labels` base, so it counts real, non-excluded labels.
+   *
+   * @return Number of labels awaiting their first validation.
+   */
+  def countLabelsAwaitingValidation: DBIO[Int] = {
+    labels
+      .filter(label => label.agreeCount === 0 && label.disagreeCount === 0 && label.unsureCount === 0)
+      .length
+      .result
+  }
+
+  /**
+   * Per-user label counts scoped to the given users (cheap version of `countLabelsByUser` for a small batch). Uses the
+   * same label base as `countLabelsByUser` so the totals agree with the rest of the admin pages.
+   *
+   * @param userIds User ids to count for.
+   * @return Per user with any labels: (userId, labelCount). Users with none are absent.
+   */
+  def countLabelsForUsers(userIds: Seq[String]): DBIO[Seq[(String, Int)]] = {
+    labelsWithTutorialAndExcludedUsers
+      .filter(_.userId inSet userIds)
+      .groupBy(_.userId)
+      .map { case (_userId, rows) => (_userId, rows.length) }
+      .result
+  }
+
+  /**
    * Returns the number of labels submitted by the given user.
    * @param userId ID of user whose labels we're counting
    * @return A number of labels submitted by the user
@@ -2292,6 +2320,25 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   def nextTempLabelId(userId: String): DBIO[Int] = {
     labelsUnfiltered.filter(_.userId === userId).map(_.temporaryLabelId).max.result.map(_.map(x => x + 1).getOrElse(1))
+  }
+
+  /**
+   * Gets the pano + point-of-view metadata needed to build a preview image URL for a set of labels.
+   *
+   * Scoped to the given label ids (typically a small recent-activity batch) so the join stays cheap. Returns the pano
+   * id, imagery source, and the camera heading/pitch/zoom captured when the label was placed — enough to construct a
+   * Street View Static thumbnail or to look up a saved crop.
+   *
+   * @param labelIds Label ids to fetch metadata for.
+   * @return Per label: (labelId, panoId, panoSource, heading, pitch, zoom).
+   */
+  def getPanoMetadataForLabels(labelIds: Seq[Int]): DBIO[Seq[(Int, String, PanoSource, Double, Double, Double)]] = {
+    (for {
+      _label      <- labels if _label.labelId inSet labelIds
+      _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
+      _panoData   <- panoData if _label.panoId === _panoData.panoId
+    } yield (_label.labelId, _label.panoId, _panoData.source, _labelPoint.heading, _labelPoint.pitch, _labelPoint.zoom))
+      .result
   }
 
   /**
