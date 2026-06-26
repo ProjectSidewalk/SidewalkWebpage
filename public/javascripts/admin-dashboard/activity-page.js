@@ -11,6 +11,7 @@
 class ActivityPage {
     #seriesUrl;
     #recentUrl;
+    #contributionTimeUrl;
     #range = 90;       // selected window in days; 0 = all time
     #gran = 'day';     // 'day' | 'week'
     #series = null;    // raw daily records (sorted ascending by date)
@@ -37,10 +38,11 @@ class ActivityPage {
         { title: 'New users', fields: ['new_users'], unit: 'users' }
     ];
 
-    /** @param {{seriesUrl: string, recentUrl: string}} opts */
+    /** @param {{seriesUrl: string, recentUrl: string, contributionTimeUrl: string}} opts */
     constructor(opts = {}) {
         this.#seriesUrl = opts.seriesUrl;
         this.#recentUrl = opts.recentUrl;
+        this.#contributionTimeUrl = opts.contributionTimeUrl;
     }
 
     init() {
@@ -60,14 +62,21 @@ class ActivityPage {
     async #load() {
         this.#setStatus('Loading activity…', false);
         try {
-            const [seriesResp, recentResp] = await Promise.all([
+            // The contribution-time stats are a non-critical all-time summary, so a failure there shouldn't blank the
+            // whole page — swallow it to null and leave its tiles as placeholders.
+            const [seriesResp, recentResp, timeResp] = await Promise.all([
                 this.#fetchJson(this.#seriesUrl),
-                this.#fetchJson(this.#recentUrl)
+                this.#fetchJson(this.#recentUrl),
+                this.#fetchJson(this.#contributionTimeUrl).catch(err => {
+                    console.error('Activity page: contribution-time stats failed to load.', err);
+                    return null;
+                })
             ]);
             this.#series = (seriesResp && seriesResp.series) || [];
             this.#recent = (recentResp && recentResp.activity) || [];
             this.#renderRangeDependent();
             this.#renderFeed();
+            this.#renderContributionTime(timeResp || []); // All-time, not range-dependent — render once here.
             this.#setStatus('', false, true);
         } catch (err) {
             console.error('Activity page failed to load:', err);
@@ -147,6 +156,30 @@ class ActivityPage {
         set('audits', 'audits');
         set('missions', 'missions');
         set('newusers', 'new_users');
+    }
+
+    /**
+     * Fills the all-time "Time spent contributing" tiles. Unlike the KPIs above, these are all-time totals (the
+     * endpoint also returns today/week, which we ignore here) and so are rendered once, independent of the range toggle.
+     *
+     * @param {Array<{time: ?number, stat: string, time_interval: string}>} stats - Rows from getContributionTimeStats.
+     */
+    #renderContributionTime(stats) {
+        const allTime = (Array.isArray(stats) ? stats : []).filter(s => s.time_interval === 'all_time');
+        const valueOf = stat => {
+            const row = allTime.find(s => s.stat === stat);
+            return row && row.time != null ? row.time : null;
+        };
+        // explore/validate totals are in hours; show a decimal only for small deployments where rounding would hide it.
+        const fmtHours = h => {
+            if (h == null) return 'N/A';
+            const digits = h < 100 ? 1 : 0;
+            return `${h.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits })} hr`;
+        };
+        const fmtMinutes = m => m == null ? 'N/A' : `${m.toFixed(1)} min`; // explore_per_100m is median minutes/100 m.
+        this.#setText('kpi-explore-time', fmtHours(valueOf('explore_total')));
+        this.#setText('kpi-validate-time', fmtHours(valueOf('validate_total')));
+        this.#setText('kpi-explore-pace', fmtMinutes(valueOf('explore_per_100m')));
     }
 
     // --- Volume small-multiples ---------------------------------------------------------------------------------

@@ -636,7 +636,7 @@ class AdminController @Inject() (
     adminService.getNumUsersContributed.map(userCounts => Ok(Json.toJson(userCounts)))
   }
 
-  def getContributionTimeStats = silhouette.UserAwareAction.async { implicit request =>
+  def getContributionTimeStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     adminService.getContributionTimeStats.map(timeStat => Ok(Json.toJson(timeStat)))
   }

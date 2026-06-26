@@ -26,6 +26,20 @@
         <div class="activity-latest" id="activity-latest" role="status" aria-live="polite"></div>
     </div>
 
+    <div class="api-section" id="time-spent-section">
+        <h2 class="api-heading" id="time-spent">Time spent contributing <a href="#time-spent" class="permalink">#</a></h2>
+        <p>
+            All-time effort logged across the deployment: the total hours people have spent exploring (auditing) streets
+            and validating others' labels, plus the typical pace of auditing. Pace is the median minutes spent per 100&nbsp;m
+            of street audited, computed over users with enough activity to be meaningful.
+        </p>
+        <div class="coverage-kpis" id="time-spent-kpis">
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-explore-time">—</span><span class="coverage-kpi-label">Time exploring</span><span class="coverage-kpi-note">total, all users</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-validate-time">—</span><span class="coverage-kpi-label">Time validating</span><span class="coverage-kpi-note">total, all users</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-explore-pace">—</span><span class="coverage-kpi-label">Median pace exploring</span><span class="coverage-kpi-note">per 100&nbsp;m audited</span></div>
+        </div>
+    </div>
+
     <div class="api-section" id="volume-over-time-section">
         <h2 class="api-heading" id="volume-over-time">Volume over time <a href="#volume-over-time" class="permalink">#</a></h2>
         <p>
@@ -102,7 +116,8 @@
         window.appManager.ready(async function () {
             const page = new ActivityPage({
                 seriesUrl: '/adminapi/activityByDay',
-                recentUrl: '/adminapi/recentActivity'
+                recentUrl: '/adminapi/recentActivity',
+                contributionTimeUrl: '/adminapi/getContributionTimeStats'
             });
             page.init();
             updateTimestamps("@messages.lang.code");
