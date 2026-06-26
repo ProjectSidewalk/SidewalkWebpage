@@ -82,6 +82,10 @@ before your first PR:
 - **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens.
 - **Public API (`/v3`):** response fields are `snake_case`, query params are `camelCase`, and new DTOs go in
   `app/models/api/`.
+- **Don't hardcode backend values in the frontend.** Domain values — enums, ranges (min/max), thresholds, and
+  especially the *mappings* between them (e.g. severity → `good`/`ok`/`bad`, which runs in opposite directions
+  for positive vs. negative access features) — come from the backend (a `/v3/api/...` endpoint or a value
+  injected into the view), not literals in JS, so the two can't drift. See [`CLAUDE.md`](CLAUDE.md).
 
 See [`docs/style-guide.md`](docs/style-guide.md) for the full rules, including the request-flow and Slick/SQL
 conventions.

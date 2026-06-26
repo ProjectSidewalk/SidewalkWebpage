@@ -115,6 +115,34 @@ is the `/v3/api/labelTypes` endpoint.
 `app/views/apiDocs/layout.scala.html` or the main app bundles. Do **not** hardcode the hex values in
 feature code; use `getLabelColors()` so colors stay in sync automatically.
 
+## Backend is the source of truth — avoid hardcoded literals in the frontend
+
+The [Label Type Colors and Icons](#label-type-colors-and-icons) rule (colors/icons come from
+`/v3/api/labelTypes`, read via `getLabelColors()`) is one instance of a broader discipline: **domain values —
+enum members, value ranges (min/max), thresholds, and especially the *mappings* between them — must come from
+the backend** (a `/v3/api/...` endpoint, or a value the controller injects into the Twirl view), **not be
+re-declared as literals in JavaScript.** A hardcoded frontend copy silently drifts from the backend the moment
+either side changes, and nothing catches it.
+
+**The trap: a value that *looks* trivial often encodes domain logic.** Severity is `1`–`3`, but the
+`good`/`ok`/`bad` interpretation is **not** a fixed mapping. **Positive** access features (e.g. curb ramps,
+where the feature's *presence* is good) and **negative** access features (e.g. obstacles, surface problems,
+where presence is bad) map severity to quality in **opposite** directions. So a frontend
+`const quality = {1: 'good', 2: 'ok', 3: 'bad'}` is wrong for half the label types — and even if it were
+right today, it would rot the next time the backend's logic changed. This is exactly the kind of literal to
+never hand-write on the frontend.
+
+**What to do, in order of preference:**
+1. **Source it** — pull the value/range/mapping from an existing API endpoint, or from a value the controller
+   passes into the view.
+2. **Expose it** — if no such source exists but the value is non-trivial or shared with the backend,
+   add/extend an endpoint or view binding to surface it, and treat that as part of the task rather than
+   hardcoding a copy.
+3. **Centralize + justify** — only if a literal is genuinely unavoidable (a purely presentational constant
+   with no backend counterpart), define it in one place and comment *why* it isn't sourced from the backend.
+
+When you catch yourself writing a frontend constant that mirrors a backend value, stop and source it instead.
+
 ## Development Guidelines
 - Main development branch is **develop**; **master** is the release branch. PRs target `develop`.
 - If there is an associated Github issue, beging the branch name with the issue number (e.g. `1234-fix-label-popup`).
