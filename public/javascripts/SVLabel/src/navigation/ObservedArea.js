@@ -212,7 +212,11 @@ class ObservedArea {
     update() {
         if (this.#observedAreas.length > 0) {
             this.#syncCanvasSize();
-            this.#updateAngles();
+            // While the heading is settling after a move, hold the FOV at its pre-move angles rather than recomputing
+            // from the mid-animation heading; the settle poll recomputes once it's final. (#4174)
+            if (!svl.navigationService || !svl.navigationService.getStatus('headingSettling')) {
+                this.#updateAngles();
+            }
             this.#renderFogOfWar();
             this.#renderFov();
             this.#renderProgressCircle();

@@ -14,7 +14,11 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         disableWalking: false,
         lockDisableWalking: false,
         labelBeforeJumpState: false,
-        contextMenuWasOpen: false
+        contextMenuWasOpen: false,
+        // True during a move until getPosition() is final; gates position-dependent views like the off-route warning.
+        movingToNewLocation: false,
+        // True from a move's start until getPov() stops settling; we hold their pre-move heading until then. (#4174)
+        headingSettling: false
     };
 
     /**
@@ -24,6 +28,7 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     let missionJump = undefined;
     let _stuckPanos = new Set([]);
     let positionUpdateCallbacks = [];
+    let _povSettlePoll = null; // Interval id; see _refreshHeadingViewsAfterPovSettles.
 
     const END_OF_STREET_THRESHOLD = 25; // Distance from the endpoint of the street when we consider it complete (meters).
     const moveDelay = 800; // Move delay prevents users from spamming through a mission.
@@ -133,7 +138,9 @@ function NavigationService (neighborhoodModel, uiStreetview) {
                 svl.stuckAlert.stuckSkippedStreet();
                 return moveForward();
             } else {
-                // Complete current neighborhood if no new task is available.
+                // No new task: complete the neighborhood. This path skips _updateUiAfterMove(), so clear the flags here.
+                status.movingToNewLocation = false;
+                status.headingSettling = false;
                 svl.neighborhoodModel.setComplete();
                 svl.missionController.wrapUpRouteOrNeighborhood();
                 return Promise.resolve(null);
@@ -155,6 +162,11 @@ function NavigationService (neighborhoodModel, uiStreetview) {
     }
 
     async function jumpToANewTask() {
+        // Flag the move before setCurrentTask() below, which synchronously calls compass.update() while still at the
+        // old location — otherwise it would flash the off-route warning before moveForward() sets these. (#4174)
+        status.movingToNewLocation = true;
+        status.headingSettling = true;
+
         // Finish the current task.
         const mission = missionJump || svl.missionContainer.getCurrentMission()
         finishCurrentTaskBeforeJumping(mission);
@@ -246,6 +258,8 @@ function NavigationService (neighborhoodModel, uiStreetview) {
      * @private
      */
     function _updateUiBeforeMove() {
+        status.movingToNewLocation = true;
+        status.headingSettling = true;
         svl.feedbackModal.hide();
         if (svl.contextMenu.isOpen()) {
             svl.contextMenu.hide();
@@ -294,15 +308,13 @@ function NavigationService (neighborhoodModel, uiStreetview) {
         }
         svl.missionModel.updateMissionProgress(currentMission, neighborhood);
 
-        // Update the minimap location and observed area viz.
-        svl.minimap.setMinimapLocation(newLatLng);
-        svl.peg.setHeading(svl.panoViewer.getPov().heading);
-        svl.observedArea.panoChanged();
-        svl.observedArea.update();
+        // Position is final, so position-dependent checks can run again; heading is still settling (handled below).
+        status.movingToNewLocation = false;
 
-        // Update the compass navigation messages.
-        svl.compass.update();
+        // Update position-dependent views now; heading-dependent ones wait for the pov to settle.
+        svl.minimap.setMinimapLocation(newLatLng);
         svl.compass.enableCompassClick();
+        _refreshHeadingViewsAfterPovSettles();
 
         // Re-enable the keyboard.
         svl.keyboard.setStatus("disableKeyboard", false);
@@ -317,6 +329,45 @@ function NavigationService (neighborhoodModel, uiStreetview) {
 
         // Enable moving again after a timeout.
         setTimeout(resetWalking, moveDelay);
+    }
+
+    /**
+     * Once the viewer's heading stops changing after a move (Mapillary keeps animating it briefly), refreshes the
+     * heading-dependent views — peg, observed-area FOV, compass — with the settled pov. Until then those views keep
+     * their pre-move orientation. Aborts if a new move begins (it runs its own refresh); GSV, whose pov is final
+     * immediately, settles after the first couple of ticks.
+     */
+    function _refreshHeadingViewsAfterPovSettles() {
+        if (_povSettlePoll) window.clearInterval(_povSettlePoll); // Replace any in-flight poll from a prior move.
+
+        let prevHeading = svl.panoViewer.getPov().heading;
+        let stableTicks = 0;
+        const startTime = performance.now();
+        const pollMs = 80;
+        const maxSettleMs = 1500; // Stop polling even if the heading never fully stabilizes.
+
+        _povSettlePoll = window.setInterval(() => {
+            if (status.movingToNewLocation) { // A new move took over.
+                window.clearInterval(_povSettlePoll);
+                _povSettlePoll = null;
+                return;
+            }
+
+            const heading = svl.panoViewer.getPov().heading;
+            const headingDelta = Math.abs(((heading - prevHeading + 540) % 360) - 180); // Shortest angular distance.
+            prevHeading = heading;
+            stableTicks = headingDelta < 0.5 ? stableTicks + 1 : 0;
+
+            if (stableTicks >= 2 || performance.now() - startTime > maxSettleMs) {
+                window.clearInterval(_povSettlePoll);
+                _povSettlePoll = null;
+                status.headingSettling = false; // Clear first so observedArea.update() recomputes from the settled pov.
+                svl.peg.setHeading(heading);
+                svl.observedArea.panoChanged();
+                svl.observedArea.update();
+                svl.compass.update();
+            }
+        }, pollMs);
     }
 
     /**

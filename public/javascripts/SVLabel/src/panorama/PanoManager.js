@@ -350,8 +350,13 @@ class PanoManager {
         const heading = svl.panoViewer.getPov().heading;
         if (svl.canvas) this.updateCanvas();
         if (svl.compass) svl.compass.update();
-        if (svl.observedArea) svl.observedArea.update();
-        if (svl.peg) svl.peg.setHeading(heading);
+
+        // Skip the heading-dependent viz while the heading is still settling; NavigationService's settle poll handles
+        // the final update so these don't swing through the mid-animation heading. (#4174)
+        if (!svl.navigationService || !svl.navigationService.getStatus('headingSettling')) {
+            if (svl.observedArea) svl.observedArea.update();
+            if (svl.peg) svl.peg.setHeading(heading);
+        }
 
         const arrowGroup = svl.ui.streetview.navArrows[0];
         arrowGroup.setAttribute('transform', `rotate(${-heading})`);
