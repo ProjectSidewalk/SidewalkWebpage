@@ -58,6 +58,7 @@ GET     /admin/contributors                             controllers.AdminDashboa
 GET     /admin/activity                                 controllers.AdminDashboardController.activity
 GET     /admin/humans-vs-ai                             controllers.AdminDashboardController.humansVsAi
 GET     /admin/api-analytics                            controllers.AdminDashboardController.apiAnalytics
+GET     /admin/management                               controllers.AdminDashboardController.management
 GET     /admin/user/:username                           controllers.AdminController.userProfile(username: String)
 GET     /admin/task/:taskId                             controllers.AdminController.task(taskId: Int)
 GET     /admin/label/:labelId                           controllers.AdminController.label(labelId: Int)

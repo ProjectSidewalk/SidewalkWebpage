@@ -124,4 +124,20 @@ class AdminDashboardController @Inject() (
       Ok(views.html.admin.dashboard.humansVsAi(commonData, request.identity))
     }
   }
+
+  /**
+   * Renders the Management page: the admin's operational console for the actions the read-only lens pages don't carry.
+   *
+   * Homes the deployment-wide, state-changing tools that used to live on the legacy `/admin` index — a full searchable
+   * user directory with inline role assignment, team open/closed and visible/hidden toggles, and the maintenance jobs
+   * (clear cache, recalculate user stats, recalculate street priority). Per-user actions (quality, infra3d, task flags)
+   * remain on `/admin/user/:username`. Driven client-side from `/adminapi/getUserStats` (users + teams) and the
+   * existing admin mutation endpoints; introduces no new backend.
+   */
+  def management = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Management")
+      Ok(views.html.admin.dashboard.management(commonData, request.identity))
+    }
+  }
 }

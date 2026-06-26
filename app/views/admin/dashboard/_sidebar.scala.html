@@ -13,6 +13,11 @@
            class="api-nav-item @if(activePage == "overview"){active}"
            @if(activePage == "overview"){aria-current="page"}>Overview</a>
 
+        <div class="api-nav-header">Manage</div>
+        <a href="@routes.AdminDashboardController.management"
+           class="api-nav-item @if(activePage == "management"){active}"
+           @if(activePage == "management"){aria-current="page"}>Management</a>
+
         <div class="api-nav-header">Data</div>
         <a href="@routes.AdminDashboardController.coverage"
            class="api-nav-item @if(activePage == "coverage"){active}"

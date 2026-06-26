@@ -951,8 +951,9 @@ class AdminServiceImpl @Inject() (
       validatedCounts: Map[String, (String, Int, Int)] <- labelValidationTable.getValidationCountsByUser.map(_.toMap)
       // Map(user_id: String -> (count: Int, agreed: Int, disagreed: Int)).
       othersValidatedCounts: Map[String, (Int, Int)] <- labelValidationTable.getValidatedCountsPerUser.map(_.toMap)
-      // Map(user_id: String -> high_quality: Boolean).
-      userHighQuality: Map[String, Boolean] <- userStatTable.getUserQuality.map(_.toMap)
+      // Map(user_id: String -> (high_quality: Boolean, high_quality_manual: Option[Boolean])).
+      userHighQuality: Map[String, (Boolean, Option[Boolean])] <- userStatTable.getUserQuality
+        .map(_.map(t => t._1 -> (t._2, t._3)).toMap)
       users: Seq[SidewalkUserWithRole]      <- userStatTable.usersMinusAnonUsersWithNoLabelsAndNoValidations
     } yield {
       // Now left join them all together and put into UserStatsForAdminPage objects.
@@ -987,7 +988,8 @@ class AdminServiceImpl @Inject() (
           ownValidatedAgreedPct = ownValidatedAgreedPct,
           othersValidated = otherValidatedTotal,
           othersValidatedAgreedPct = otherValidatedAgreedPct,
-          highQuality = userHighQuality.getOrElse(user.userId, true)
+          highQuality = userHighQuality.get(user.userId).map(_._1).getOrElse(true),
+          highQualityManual = userHighQuality.get(user.userId).flatMap(_._2)
         )
       }
     })
