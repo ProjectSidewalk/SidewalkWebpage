@@ -5,6 +5,8 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.json.{JsObject, JsValue}
 
+import java.time.Duration
+
 /**
  * Pure (no DB, no app boot) contract test for the `/v3/api/overallStats` JSON shape.
  *
@@ -15,7 +17,12 @@ class ApiFormatsSpec extends AnyFunSuite with Matchers {
 
   /** Builds a ProjectSidewalkStats with distinct combined/human/ai values so the test can tell the blocks apart. */
   private def sampleStats: ProjectSidewalkStats = {
-    def source(total: Int, overall: LabelAccuracy, curbRamp: LabelAccuracy, other: LabelAccuracy): ValidationSourceStats =
+    def source(
+        total: Int,
+        overall: LabelAccuracy,
+        curbRamp: LabelAccuracy,
+        other: LabelAccuracy
+    ): ValidationSourceStats =
       ValidationSourceStats(
         nValidations = total,
         accuracyByLabelType = Map("Overall" -> overall, "CurbRamp" -> curbRamp, "Other" -> other)
@@ -37,18 +44,29 @@ class ApiFormatsSpec extends AnyFunSuite with Matchers {
       nLabelsWithSeverity = 40,
       avgLabelTimestamp = None,
       avgImageAgeByLabel = None,
+      stddevLabelTimestamp = Some(Duration.ofDays(120)),
+      stddevImageAgeByLabel = Some(Duration.ofDays(365)),
       severityByLabelType = Map.empty,
       validations = ValidationStats(
         // "Other" has accuracy = None on purpose, to assert the null-accuracy key is omitted (writeNullable behavior).
-        combined =
-          source(100, LabelAccuracy(80, 70, 10, Some(0.875), 90), LabelAccuracy(40, 38, 2, Some(0.95), 45),
-            LabelAccuracy(0, 0, 0, None, 0)),
-        human =
-          source(90, LabelAccuracy(72, 63, 9, Some(0.875), 81), LabelAccuracy(36, 34, 2, Some(0.944), 40),
-            LabelAccuracy(0, 0, 0, None, 0)),
-        ai =
-          source(10, LabelAccuracy(8, 7, 1, Some(0.875), 9), LabelAccuracy(4, 4, 0, Some(1.0), 5),
-            LabelAccuracy(0, 0, 0, None, 0))
+        combined = source(
+          100,
+          LabelAccuracy(80, 70, 10, Some(0.875), 90),
+          LabelAccuracy(40, 38, 2, Some(0.95), 45),
+          LabelAccuracy(0, 0, 0, None, 0)
+        ),
+        human = source(
+          90,
+          LabelAccuracy(72, 63, 9, Some(0.875), 81),
+          LabelAccuracy(36, 34, 2, Some(0.944), 40),
+          LabelAccuracy(0, 0, 0, None, 0)
+        ),
+        ai = source(
+          10,
+          LabelAccuracy(8, 7, 1, Some(0.875), 9),
+          LabelAccuracy(4, 4, 0, Some(1.0), 5),
+          LabelAccuracy(0, 0, 0, None, 0)
+        )
       ),
       aiPerformance = Map.empty
     )
@@ -82,6 +100,12 @@ class ApiFormatsSpec extends AnyFunSuite with Matchers {
     // Pre-#4223 these lived directly under `validations`; they must now only exist under a source block.
     (json \ "validations" \ "Overall").toOption shouldBe None
     (json \ "validations" \ "total_validations").toOption shouldBe None
+  }
+
+  test("stddev of label/image dates serialize as day-valued durations (#3031)") {
+    val labels = ApiFormats.projectSidewalkStatsToJson(sampleStats) \ "labels"
+    (labels \ "stddev_label_timestamp").as[String] shouldBe "120 days"
+    (labels \ "stddev_age_of_image_when_labeled").as[String] shouldBe "365 days"
   }
 
   test("null accuracy is omitted, but the other fields remain") {

@@ -121,6 +121,8 @@ case class ProjectSidewalkStats(
     nLabelsWithSeverity: Int,
     avgLabelTimestamp: Option[OffsetDateTime],
     avgImageAgeByLabel: Option[Duration],
+    stddevLabelTimestamp: Option[Duration],
+    stddevImageAgeByLabel: Option[Duration],
     severityByLabelType: Map[String, LabelSevStats],
     validations: ValidationStats,
     aiPerformance: Map[String, Map[String, AiConcurrence]]
@@ -699,6 +701,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextInt(),
       r.nextInt(),
       r.nextOffsetDateTimeOption(),
+      r.nextDurationOption(),
+      r.nextDurationOption(),
       r.nextDurationOption(),
       Map(
         CurbRamp.name   -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
@@ -1795,6 +1799,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label_counts_and_severity.n_with_sev,
              label_counts_and_severity.avg_label_timestamp,
              label_counts_and_severity.avg_age_when_labeled,
+             label_counts_and_severity.stddev_label_timestamp,
+             label_counts_and_severity.stddev_age_when_labeled,
              label_counts_and_severity.n_ramp,
              label_counts_and_severity.n_ramp_with_sev,
              label_counts_and_severity.ramp_sev_mean,
@@ -1928,6 +1934,17 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                          THEN time_created - TO_TIMESTAMP(EXTRACT(epoch from CAST(pano_data.capture_date || '-01' AS DATE)))
                      END
                  ) AS avg_age_when_labeled,
+                 -- STDDEV operates on seconds, then `* INTERVAL '1 second'` yields an interval so the spread is read as
+                 -- a Duration (a standard deviation of dates is a duration/spread, not itself a date).
+                 STDDEV(EXTRACT(EPOCH FROM time_created)) * INTERVAL '1 second' AS stddev_label_timestamp,
+                 STDDEV(
+                     EXTRACT(EPOCH FROM (
+                         CASE
+                             WHEN pano_data.capture_date IS NOT NULL AND pano_data.capture_date <> ''
+                             THEN time_created - TO_TIMESTAMP(EXTRACT(epoch from CAST(pano_data.capture_date || '-01' AS DATE)))
+                         END
+                     ))
+                 ) * INTERVAL '1 second' AS stddev_age_when_labeled,
                  COUNT(CASE WHEN label_type.label_type = 'CurbRamp' THEN 1 END) AS n_ramp,
                  COUNT(CASE WHEN label_type.label_type = 'CurbRamp' AND severity IS NOT NULL THEN 1 END) AS n_ramp_with_sev,
                  avg(CASE WHEN label_type.label_type = 'CurbRamp' THEN severity END) AS ramp_sev_mean,

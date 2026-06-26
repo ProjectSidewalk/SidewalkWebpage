@@ -116,6 +116,10 @@ class StatsApiController @Inject() (
             row("Average Label Timestamp", stats.avgLabelTimestamp.getOrElse("NA"))
             val avgImgAge: String = stats.avgImageAgeByLabel.map(avg => s"${avg.toDays} Days").getOrElse("NA")
             row("Average Age of Image When Labeled", avgImgAge)
+            val stddevLabelTs: String = stats.stddevLabelTimestamp.map(sd => s"${sd.toDays} Days").getOrElse("NA")
+            row("Stddev Label Timestamp", stddevLabelTs)
+            val stddevImgAge: String = stats.stddevImageAgeByLabel.map(sd => s"${sd.toDays} Days").getOrElse("NA")
+            row("Stddev Age of Image When Labeled", stddevImgAge)
             for ((labType, sevStats) <- stats.severityByLabelType.toSeq.sorted(labelTypeOrdering)) {
               row(s"$labType Count", sevStats.n)
               row(s"$labType Count With Severity", sevStats.nWithSeverity.getOrElse("NA"))
