@@ -382,6 +382,12 @@
 
 /* --- Data Quality: quality-over-time line chart (inline SVG, no charting lib) -------------------------------- */
 .dq-trend { width: 100%; }
+.dq-trend-caption {
+    margin-top: var(--space-xs, 8px);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+.dq-trend-caption strong { color: var(--color-text-heading, #263238); }
 
 /* --- Shared MiniLineChart (Data Quality agreement trend, API usage trend) ----------------------------------- */
 /* Series colors (blue/orange = colorblind-safe pair; apiDocs muted grey since it's our own traffic). */
@@ -393,7 +399,10 @@
        survives color-vision deficiency and grayscale), which a blue/purple pairing is not. */
     --act-accent: #0072b2;  --act-registered: #0072b2;  --act-anon: #d55e00;
 }
-.mini-chart-svg { width: 100%; height: auto; }
+/* Charts are sized to their container's pixel width by MiniLineChart.renderInto (so text/lines/dots stay constant size
+   while still filling the width); width:100% just lets the rendered SVG occupy its host. */
+.mini-chart-svg { width: 100%; height: auto; display: block; }
+.mini-host { width: 100%; }
 .mini-grid { stroke: var(--color-neutral-200, #e1e1e1); stroke-width: 1; }
 .mini-axis { fill: var(--color-text-secondary, #5a7785); font-size: 11px; font-family: var(--font-sans, sans-serif); }
 .mini-line { fill: none; stroke-width: 2; }

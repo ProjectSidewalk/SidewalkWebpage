@@ -94,7 +94,7 @@ class ApiAnalyticsPage {
             { name: 'Docs', key: 'apidocs', values: keys.map(k => at(k).docs) }
         ];
         const fmt = v => `${Math.round(v).toLocaleString()} calls`;
-        el.innerHTML = MiniLineChart.svg(labels, series, {
+        MiniLineChart.renderInto(el, labels, series, {
             tickFormat: v => Math.round(v).toLocaleString(), valueFormat: fmt, ariaLabel: 'API call volume over time'
         });
     }

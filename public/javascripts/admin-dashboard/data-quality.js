@@ -266,19 +266,22 @@ class DataQualityPage {
             a.aD += r.ai_validations_disagree || 0;
             byMonth.set(month, a);
         }
-        const months = [...byMonth.keys()]
+        const dataMonths = [...byMonth.keys()]
             .filter(m => { const a = byMonth.get(m); return a.hA + a.hD + a.aA + a.aD > 0; })
             .sort();
 
         const el = document.getElementById('dq-trend');
-        if (months.length < 2) {
+        if (dataMonths.length < 2) {
             el.innerHTML = '<p class="dq-empty">Not enough validation history to chart a trend yet.</p>';
             return;
         }
-        // Build an agreement series (value = agree / agree+disagree) with per-point tooltips carrying the N.
+        // Span the axis from the first month with data through the *current* month, so the right edge always reads as
+        // "now" and any gap since the last contribution is visible rather than the chart silently ending early. Months
+        // with no validations render as line gaps (null), not zeros.
+        const months = DataQualityPage.#enumerateMonths(dataMonths[0], DataQualityPage.#currentMonth());
         const agreementSeries = (name, key, agreeKey, disagreeKey) => {
-            const values = months.map(m => { const a = byMonth.get(m); const t = a[agreeKey] + a[disagreeKey]; return t ? a[agreeKey] / t : null; });
-            const tooltips = months.map((m, i) => { const a = byMonth.get(m); const t = a[agreeKey] + a[disagreeKey]; return values[i] == null ? '' : `${m} · ${name}: ${Math.round(values[i] * 100)}% (${t.toLocaleString()} validations)`; });
+            const values = months.map(m => { const a = byMonth.get(m); if (!a) return null; const t = a[agreeKey] + a[disagreeKey]; return t ? a[agreeKey] / t : null; });
+            const tooltips = months.map((m, i) => { const a = byMonth.get(m); if (!a || values[i] == null) return ''; const t = a[agreeKey] + a[disagreeKey]; return `${m} · ${name}: ${Math.round(values[i] * 100)}% (${t.toLocaleString()} validations)`; });
             return { name, key, values, tooltips };
         };
         const series = [agreementSeries('Human', 'human', 'hA', 'hD')];
@@ -286,9 +289,38 @@ class DataQualityPage {
         if (ai.values.some(v => v !== null)) series.push(ai);
 
         const pct = v => `${Math.round(v * 100)}%`;
-        el.innerHTML = MiniLineChart.svg(months, series, {
+        const first = DataQualityPage.#monthLabel(dataMonths[0]);
+        const last = DataQualityPage.#monthLabel(dataMonths[dataMonths.length - 1]);
+        const caption = `<p class="dq-trend-caption">Validation data spans <strong>${first}</strong> to ` +
+            `<strong>${last}</strong>; the axis runs to the current month.</p>`;
+        el.innerHTML = `<div class="mini-host"></div>${caption}`;
+        MiniLineChart.renderInto(el.querySelector('.mini-host'), months, series, {
             yMax: 1, tickFormat: pct, valueFormat: pct, ariaLabel: 'Validation agreement over time by validator'
         });
+    }
+
+    /** Current month as a `YYYY-MM` key (local time). */
+    static #currentMonth() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    /** All `YYYY-MM` month keys from `start` through `end`, inclusive. */
+    static #enumerateMonths(start, end) {
+        const [ey, em] = end.split('-').map(Number);
+        let [y, m] = start.split('-').map(Number);
+        const out = [];
+        while (y < ey || (y === ey && m <= em)) {
+            out.push(`${y}-${String(m).padStart(2, '0')}`);
+            if (++m > 12) { m = 1; y++; }
+        }
+        return out;
+    }
+
+    /** Short month label, e.g. "Sep 2023", from a `YYYY-MM` key. */
+    static #monthLabel(ym) {
+        const [y, m] = ym.split('-').map(Number);
+        return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
     }
 
     #wireValidatorToggle() {

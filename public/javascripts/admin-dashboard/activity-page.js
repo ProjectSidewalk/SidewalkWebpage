@@ -159,20 +159,26 @@ class ActivityPage {
             return;
         }
         const labels = buckets.map(b => b.label);
-        el.innerHTML = ActivityPage.#VOLUME.map(metric => {
+        const cards = ActivityPage.#VOLUME.map((metric, i) => {
             const values = buckets.map(b => metric.fields.reduce((a, f) => a + b.vol[f], 0));
-            const total = values.reduce((a, v) => a + v, 0);
-            const series = [{ name: metric.title, key: 'activity', values }];
-            const chart = MiniLineChart.svg(labels, series, {
-                valueFormat: v => `${Math.round(v).toLocaleString()} ${metric.unit}`,
-                ariaLabel: `${metric.title} over time`
-            });
-            return '<div class="activity-card">' +
-                '<div class="activity-card-head">' +
-                `<span class="activity-card-title">${ActivityPage.#esc(metric.title)}</span>` +
-                `<span class="activity-card-total"><strong>${total.toLocaleString()}</strong> in ${ActivityPage.#esc(this.#rangeNoun())}</span>` +
-                '</div>' + chart + '</div>';
-        }).join('');
+            return { metric, values, total: values.reduce((a, v) => a + v, 0), idx: i };
+        });
+        // Build the card shells first, then render each chart into its host at the host's measured width (responsive).
+        el.innerHTML = cards.map(c =>
+            '<div class="activity-card">' +
+            '<div class="activity-card-head">' +
+            `<span class="activity-card-title">${ActivityPage.#esc(c.metric.title)}</span>` +
+            `<span class="activity-card-total"><strong>${c.total.toLocaleString()}</strong> in ${ActivityPage.#esc(this.#rangeNoun())}</span>` +
+            '</div>' +
+            `<div class="mini-host" data-idx="${c.idx}"></div>` +
+            '</div>').join('');
+        cards.forEach(c => {
+            MiniLineChart.renderInto(el.querySelector(`.mini-host[data-idx="${c.idx}"]`), labels,
+                [{ name: c.metric.title, key: 'activity', values: c.values }], {
+                    valueFormat: v => `${Math.round(v).toLocaleString()} ${c.metric.unit}`,
+                    ariaLabel: `${c.metric.title} over time`
+                });
+        });
     }
 
     // --- Active contributors over time --------------------------------------------------------------------------
@@ -196,15 +202,15 @@ class ActivityPage {
         ];
         const weekly = this.#gran === 'week';
         const unit = weekly ? 'avg users/day' : 'users';
-        const chart = MiniLineChart.svg(labels, series, {
+        const caption = weekly
+            ? '<p class="dq-empty">Weekly points are the average of that week’s daily active-user counts.</p>'
+            : '';
+        el.innerHTML = `<div class="mini-host"></div>${caption}`;
+        MiniLineChart.renderInto(el.querySelector('.mini-host'), labels, series, {
             valueFormat: v => `${Math.round(v).toLocaleString()} ${unit}`,
             ariaLabel: 'Active contributors over time',
             dotRadius: 2
         });
-        const caption = weekly
-            ? '<p class="dq-empty">Weekly points are the average of that week’s daily active-user counts.</p>'
-            : '';
-        el.innerHTML = chart + caption;
     }
 
     // --- Bucketing ----------------------------------------------------------------------------------------------

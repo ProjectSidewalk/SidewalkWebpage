@@ -16,7 +16,7 @@ class MiniLineChart {
      * @returns {string} SVG markup plus an optional HTML legend.
      */
     static svg(categories, series, opts = {}) {
-        const W = 760, H = 220, m = { l: 48, r: 14, t: 14, b: 30 };
+        const W = opts.width || 760, H = 220, m = { l: 48, r: 14, t: 14, b: 30 };
         const iw = W - m.l - m.r, ih = H - m.t - m.b, n = categories.length;
         const x = i => m.l + (n === 1 ? iw / 2 : (i / (n - 1)) * iw);
         const yFrac = f => m.t + (1 - f) * ih; // f in [0, 1]
@@ -66,6 +66,33 @@ class MiniLineChart {
             ).join('') + '</div>'
             : '';
         return svg + legend;
+    }
+
+    /**
+     * Renders the chart into a container sized to the container's *current pixel width*, and re-renders on resize. This
+     * keeps the chart full-width and responsive while font sizes, line widths, and dot radii stay a constant on-screen
+     * size — a fixed-viewBox SVG stretched to 100% width would scale all of those up together on wide screens.
+     *
+     * @param {HTMLElement} container - The element to render into (its innerHTML is replaced).
+     * @param {string[]} categories - x-axis labels (see svg()).
+     * @param {Array<object>} series - data series (see svg()).
+     * @param {object} [opts] - same options as svg(); `width` is supplied automatically from the container.
+     */
+    static renderInto(container, categories, series, opts = {}) {
+        if (!container) return;
+        // Store the latest draw on the container so a persistent container re-rendered with new data (e.g. a trend that
+        // re-fetches on a range change) keeps the resize observer pointed at the current data, not the first call's.
+        container._miniDraw = () => {
+            const width = Math.max(280, Math.round(container.clientWidth) || 760);
+            container.innerHTML = MiniLineChart.svg(categories, series, { ...opts, width });
+        };
+        container._miniDraw();
+        if (typeof ResizeObserver !== 'undefined' && !container._miniResizeObserver) {
+            // Setting innerHTML doesn't change the container's own box, so observing it won't loop.
+            const ro = new ResizeObserver(() => container._miniDraw && container._miniDraw());
+            ro.observe(container);
+            container._miniResizeObserver = ro;
+        }
     }
 
     static #esc(s) {
