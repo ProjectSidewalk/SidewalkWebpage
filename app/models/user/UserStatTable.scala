@@ -58,7 +58,8 @@ case class UserStatsForAdminPage(
     ownValidatedAgreedPct: Double,
     othersValidated: Int,
     othersValidatedAgreedPct: Double,
-    highQuality: Boolean
+    highQuality: Boolean,
+    highQualityManual: Option[Boolean]
 )
 case class UserCount(
     count: Int,
@@ -585,15 +586,32 @@ class UserStatTable @Inject() (
     otherUsers.result.map(_.map(SidewalkUserWithRole.tupled))
   }
 
-  def getUserQuality: DBIO[Seq[(String, Boolean)]] = {
-    // TODO temporarily removing to improve admin page load time:
-    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
-    //    val userHighQuality = userStats.map { x => (x.userId, x.highQuality) }.list.toMap
+  /**
+   * Counts non-anonymous users currently flagged as low quality (high_quality = false), for the admin Overview's
+   * "needs attention" panel. Mirrors `getUserQuality`'s anonymous exclusion so the count matches what's reviewable.
+   *
+   * @return Number of low-quality registered users.
+   */
+  def countLowQualityUsers: DBIO[Int] = {
     userStats
       .join(userRoleTable)
       .on(_.userId === _.userId)
       .filter(_._2.roleId =!= 6) // Exclude anonymous users.
-      .map(x => (x._1.userId, x._1.highQuality))
+      .filter(!_._1.highQuality)
+      .length
+      .result
+  }
+
+  def getUserQuality: DBIO[Seq[(String, Boolean, Option[Boolean])]] = {
+    // TODO temporarily removing to improve admin page load time:
+    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
+    //    val userHighQuality = userStats.map { x => (x.userId, x.highQuality) }.list.toMap
+    // high_quality_manual is included so the admin UI can flag users whose quality was set by hand vs auto-computed.
+    userStats
+      .join(userRoleTable)
+      .on(_.userId === _.userId)
+      .filter(_._2.roleId =!= 6) // Exclude anonymous users.
+      .map(x => (x._1.userId, x._1.highQuality, x._1.highQualityManual))
       .result
   }
 

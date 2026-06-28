@@ -38,7 +38,8 @@ object UserFormats {
       (__ \ "ownValidatedAgreedPct").write[Double] and
       (__ \ "othersValidated").write[Int] and
       (__ \ "othersValidatedAgreedPct").write[Double] and
-      (__ \ "highQuality").write[Boolean]
+      (__ \ "highQuality").write[Boolean] and
+      (__ \ "highQualityManual").writeNullable[Boolean]
   )(unlift(UserStatsForAdminPage.unapply))
 
   implicit val teamWrites: Writes[Team] = (

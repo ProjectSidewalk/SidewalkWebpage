@@ -302,6 +302,63 @@ class LabelValidationTable @Inject() (
   }
 
   /**
+   * Per-user validation counts broken down by result (Agree/Disagree/Unsure), for the given users (the Contributors
+   * leaderboard's top validators). Scoped to a small set of user ids so it stays cheap.
+   *
+   * @param userIds The users to break down.
+   * @return DBIO[Seq[(userId, validationResult, count)]].
+   */
+  def getValidationResultCountsForUsers(
+      userIds: Seq[String]
+  ): DBIO[Seq[(String, ValidationOption.Value, Int)]] = {
+    validations
+      .filter(_.userId inSet userIds)
+      .groupBy(v => (v.userId, v.validationResult))
+      .map { case ((userId, result), group) => (userId, result, group.length) }
+      .result
+  }
+
+  /**
+   * Validation counts broken down by result (Agree/Disagree/Unsure) and whether the validator is the AI user, for the
+   * Humans-vs-AI dashboard's validator lens. Lets the page compare how much validation work AI does versus humans and
+   * how their verdict mixes differ.
+   *
+   * @return DBIO[Seq[(isAi, validationResult, count)]].
+   */
+  def getValidationCountsByValidatorRole: DBIO[Seq[(Boolean, ValidationOption.Value, Int)]] = {
+    (for {
+      _validation <- validations
+      _userRole   <- userRoles if _validation.userId === _userRole.userId
+      _role       <- roleTable if _userRole.roleId === _role.roleId
+    } yield (_role.role === "AI", _validation.validationResult))
+      .groupBy(r => (r._1, r._2))
+      .map { case ((isAi, result), group) => (isAi, result, group.length) }
+      .result
+  }
+
+  /**
+   * Lightweight feed of the most recent human validations, for the admin Activity stream.
+   *
+   * Excludes AI validations (joins through `humanUsers`) so the stream reads as people's activity. Returns just what
+   * the feed renders, joined to the validated label's type.
+   *
+   * @param n Number of validations to retrieve.
+   * @return DBIO[Seq[(labelId, labelType, username, validationResult, endTimestamp)]], most recent first.
+   */
+  def getRecentValidations(n: Int): DBIO[Seq[(Int, String, String, ValidationOption.Value, OffsetDateTime)]] = {
+    (for {
+      _validation <- validations
+      _user       <- sidewalkUserTable.humanUsers if _validation.userId === _user.userId
+      _label      <- labelsWithoutDeleted if _validation.labelId === _label.labelId
+      _labelType  <- labelTypeTable if _label.labelTypeId === _labelType.labelTypeId
+    } yield (_validation.labelId, _labelType.labelType, _user.username, _validation.validationResult,
+      _validation.endTimestamp))
+      .sortBy(_._5.desc)
+      .take(n)
+      .result
+  }
+
+  /**
    * Gets validation data for API with filters applied. Returns raw tuples to be converted to ValidationDataForApi.
    *
    * @param filters The filters to apply to the validation data.

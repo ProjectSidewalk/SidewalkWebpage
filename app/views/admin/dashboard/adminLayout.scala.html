@@ -1,0 +1,29 @@
+@(activePage: String)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
+
+@*
+ * Shared shell for the redesigned admin dashboard (#4272): left nav + main content + right "On this page" TOC.
+ * Deliberately reuses the API-docs stylesheet and its .api-* class names so the two surfaces look identical;
+ * admin-dashboard.css adds only the components the docs don't have (maps, charts, KPI cards). The right TOC is
+ * populated client-side from the page's h2/h3 headings by admin-shell.js.
+ *@
+
+<link rel="stylesheet" href="@assets.path("stylesheets/api-docs/api-docs.css")">
+<link rel="stylesheet" href="@assets.path("stylesheets/admin-dashboard/admin-dashboard.css")">
+
+<div class="api-container">
+    @admin.dashboard._sidebar(activePage)
+
+    <main class="api-content">
+        @content
+    </main>
+
+    <aside class="api-toc" aria-label="On this page">
+        <div class="api-toc-header">On This Page</div>
+        <ul>
+            @* Populated by admin-shell.js from headings in .api-content. *@
+        </ul>
+    </aside>
+</div>
+
+<script src="@assets.path("javascripts/common/UtilitiesSidewalk.js")"></script>
+<script src="@assets.path("javascripts/admin-dashboard/admin-shell.js")"></script>

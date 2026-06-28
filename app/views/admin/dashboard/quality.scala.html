@@ -1,0 +1,115 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@content = {
+    <div class="api-section" id="quality-intro-section">
+        <h1 class="api-heading" id="data-quality">Data Quality <a href="#data-quality" class="permalink">#</a></h1>
+        <p>
+            How good is this deployment's data? This page breaks the labels down by type, shows how severe the reported
+            problems are, how often validators agreed with the original labels, and which tags get used — the signals
+            we use to judge whether the data is trustworthy and complete.
+        </p>
+        <div class="coverage-kpis" id="dq-kpis">
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-total-labels">—</span><span class="coverage-kpi-label">Labels</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-with-severity">—</span><span class="coverage-kpi-label">With a severity rating</span><span class="coverage-kpi-note" id="kpi-with-severity-note"></span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-agreement">—</span><span class="coverage-kpi-label">Validation agreement</span><span class="coverage-kpi-note" id="kpi-agreement-note"></span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-total-validations">—</span><span class="coverage-kpi-label">Validations</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-image-age">—</span><span class="coverage-kpi-label">Avg image age when labeled</span></div>
+        </div>
+        <div class="coverage-status" id="dq-status" role="status" aria-live="polite">Loading data quality…</div>
+    </div>
+
+    <div class="api-section" id="labels-by-type-section">
+        <h2 class="api-heading" id="labels-by-type">Labels by type <a href="#labels-by-type" class="permalink">#</a></h2>
+        <p>How many of each label type have been placed, with the official label colors and icons.</p>
+        <div class="dq-rows" id="dq-labels"></div>
+    </div>
+
+    <div class="api-section" id="severity-by-type-section">
+        <h2 class="api-heading" id="severity-by-type">Severity &amp; quality ratings <a href="#severity-by-type" class="permalink">#</a></h2>
+        <p>
+            Average rating (1–3) for label types that carry one. Curb ramps and crosswalks use a <strong>quality</strong>
+            scale (1 = Good → 3 = Bad); other types use a <strong>severity</strong> scale (1 = Low → 3 = High). In both,
+            higher means worse for accessibility. The marker is the mean; the band spans ± one standard deviation.
+        </p>
+
+        <h3 class="dq-subhead">Quality — curb ramps &amp; crosswalks</h3>
+        <div class="dq-sevlegend" id="dq-sevlegend-positive"></div>
+        <div class="dq-rows" id="dq-severity-positive"></div>
+
+        <h3 class="dq-subhead">Severity — obstacles, surface problems &amp; more</h3>
+        <div class="dq-sevlegend" id="dq-sevlegend-negative"></div>
+        <div class="dq-rows" id="dq-severity-negative"></div>
+    </div>
+
+    <div class="api-section" id="validation-coverage-section">
+        <h2 class="api-heading" id="validation-coverage">Validation coverage <a href="#validation-coverage" class="permalink">#</a></h2>
+        <p>
+            How much of the data has actually been checked — the share of labels with at least one validation, by type
+            (least-validated first). This is "how much is checked", complementing the agreement rate below ("how often
+            it's right").
+        </p>
+        <div class="dq-rows" id="dq-coverage"></div>
+    </div>
+
+    <div class="api-section" id="validation-agreement-section">
+        <h2 class="api-heading" id="validation-agreement">Validation agreement <a href="#validation-agreement" class="permalink">#</a></h2>
+        <p>Share of validations that agreed with the original label, by type. Switch between all validators, humans, or AI.</p>
+        <div class="coverage-toggle" role="group" aria-label="Validator">
+            <span class="coverage-sort-label">Validator</span>
+            <button type="button" class="coverage-toggle-btn dq-validator-btn active" data-validator="combined" aria-pressed="true">Combined</button>
+            <button type="button" class="coverage-toggle-btn dq-validator-btn" data-validator="human" aria-pressed="false">Human</button>
+            <button type="button" class="coverage-toggle-btn dq-validator-btn" data-validator="ai" aria-pressed="false">AI</button>
+        </div>
+        <div class="dq-rows" id="dq-validation"></div>
+    </div>
+
+    <div class="api-section" id="quality-over-time-section">
+        <h2 class="api-heading" id="quality-over-time">Quality over time <a href="#quality-over-time" class="permalink">#</a></h2>
+        <p>
+            Validation agreement by month (share of validations that agreed with the original label). Human and AI
+            validators are shown separately — AI validation isn't yet at human level, so the two shouldn't be conflated.
+            Use it to see whether data quality is trending up or down over the life of the deployment.
+        </p>
+        <div id="dq-trend" class="dq-trend"></div>
+    </div>
+
+    <div class="api-section" id="tag-usage-section">
+        <h2 class="api-heading" id="tag-usage">Tag usage <a href="#tag-usage" class="permalink">#</a></h2>
+        <p>The most-used tags within each label type.</p>
+        <div id="dq-tags"></div>
+    </div>
+
+    <div class="api-section" id="tag-severity-section">
+        <h2 class="api-heading" id="tag-severity">Tag severity patterns <a href="#tag-severity" class="permalink">#</a></h2>
+        <p>
+            For each label type that carries a severity, how its tags distribute across the 1–3 severity scale (higher =
+            worse). Each row is shaded relative to its own busiest cell, so a tag's <em>profile</em> stands out — e.g. a
+            tag that almost always rides with the worst severity — independent of how common the tag is. The
+            <strong>n</strong> column is the tag's total; hover a cell for the exact count and share.
+        </p>
+        <div id="dq-tag-severity"></div>
+    </div>
+
+    <script src="@assets.path("javascripts/admin-dashboard/mini-line-chart.js")"></script>
+    <script src="@assets.path("javascripts/admin-dashboard/data-quality.js")"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            new DataQualityPage({
+                statsUrl: '/v3/api/overallStats',
+                tagsUrl: '/adminapi/labelTags',
+                labelTypesUrl: '/v3/api/labelTypes',
+                byDayUrl: '/v3/api/overallStatsByDay',
+                tagSeverityUrl: '/adminapi/tagSeverity'
+            }).init();
+        });
+    </script>
+}
+
+@common.main(commonData, "Sidewalk - Admin Data Quality") {
+    @common.navbar(commonData, Some(user))
+    @admin.dashboard.adminLayout("quality")(content)
+}

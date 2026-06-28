@@ -24,6 +24,9 @@ import java.time.OffsetDateTime
  * @param streetCount Number of (non-deleted) streets that belong to this region
  * @param userCount Number of unique users who have placed labels within this region
  * @param auditCount Number of completed audits of streets within this region
+ * @param totalDistanceM Total length of all (non-tutorial) streets in this region, in meters
+ * @param auditedDistanceM Length of this region's streets that have been audited, in meters
+ * @param completionRate Fraction of the region's street distance that has been audited (0.0–1.0)
  * @param firstLabelDate Timestamp of the first label placed within this region (if any)
  * @param lastLabelDate Timestamp of the most recent label placed within this region (if any)
  * @param geometry The MultiPolygon geometry representing the region's boundary
@@ -35,6 +38,9 @@ case class RegionDataForApi(
     streetCount: Int,
     userCount: Int,
     auditCount: Int,
+    totalDistanceM: Double,
+    auditedDistanceM: Double,
+    completionRate: Double,
     firstLabelDate: Option[OffsetDateTime] = None,
     lastLabelDate: Option[OffsetDateTime] = None,
     geometry: MultiPolygon
@@ -54,14 +60,17 @@ case class RegionDataForApi(
       "type"       -> "Feature",
       "geometry"   -> geometry,
       "properties" -> Json.obj(
-        "region_id"        -> regionId,
-        "name"             -> name,
-        "label_count"      -> labelCount,
-        "street_count"     -> streetCount,
-        "user_count"       -> userCount,
-        "audit_count"      -> auditCount,
-        "first_label_date" -> firstLabelDate.map(_.toString),
-        "last_label_date"  -> lastLabelDate.map(_.toString)
+        "region_id"          -> regionId,
+        "name"               -> name,
+        "label_count"        -> labelCount,
+        "street_count"       -> streetCount,
+        "user_count"         -> userCount,
+        "audit_count"        -> auditCount,
+        "total_distance_m"   -> totalDistanceM,
+        "audited_distance_m" -> auditedDistanceM,
+        "completion_rate"    -> completionRate,
+        "first_label_date"   -> firstLabelDate.map(_.toString),
+        "last_label_date"    -> lastLabelDate.map(_.toString)
       )
     )
   }
@@ -82,6 +91,9 @@ case class RegionDataForApi(
       streetCount.toString,
       userCount.toString,
       auditCount.toString,
+      totalDistanceM.toString,
+      auditedDistanceM.toString,
+      completionRate.toString,
       firstLabelDate.map(_.toString).getOrElse(""),
       lastLabelDate.map(_.toString).getOrElse(""),
       escapeCsvField(s"${centroid.getX},${centroid.getY}")
@@ -99,8 +111,8 @@ object RegionDataForApi {
    * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.
    */
-  val csvHeader: String = "region_id,name,label_count,street_count,user_count,audit_count,first_label_date," +
-    "last_label_date,center_point\n"
+  val csvHeader: String = "region_id,name,label_count,street_count,user_count,audit_count,total_distance_m," +
+    "audited_distance_m,completion_rate,first_label_date,last_label_date,center_point\n"
 
   /**
    * Implicit JSON writer for RegionDataForApi that uses the toJson method.

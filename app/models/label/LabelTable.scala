@@ -809,6 +809,34 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Counts labels that have not yet received a single validation (agree/disagree/unsure all zero), for the admin
+   * Overview's "needs attention" panel. Uses the standard `labels` base, so it counts real, non-excluded labels.
+   *
+   * @return Number of labels awaiting their first validation.
+   */
+  def countLabelsAwaitingValidation: DBIO[Int] = {
+    labels
+      .filter(label => label.agreeCount === 0 && label.disagreeCount === 0 && label.unsureCount === 0)
+      .length
+      .result
+  }
+
+  /**
+   * Per-user label counts scoped to the given users (cheap version of `countLabelsByUser` for a small batch). Uses the
+   * same label base as `countLabelsByUser` so the totals agree with the rest of the admin pages.
+   *
+   * @param userIds User ids to count for.
+   * @return Per user with any labels: (userId, labelCount). Users with none are absent.
+   */
+  def countLabelsForUsers(userIds: Seq[String]): DBIO[Seq[(String, Int)]] = {
+    labelsWithTutorialAndExcludedUsers
+      .filter(_.userId inSet userIds)
+      .groupBy(_.userId)
+      .map { case (_userId, rows) => (_userId, rows.length) }
+      .result
+  }
+
+  /**
    * Returns the number of labels submitted by the given user.
    * @param userId ID of user whose labels we're counting
    * @return A number of labels submitted by the user
@@ -827,6 +855,130 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .on(_.streetEdgeId === _.streetEdgeId)
       .filter(_._2.regionId === regionId)
       .length
+      .result
+  }
+
+  /**
+   * Lightweight feed of the most recently placed labels, for the admin Activity stream.
+   *
+   * Excludes AI-placed labels (role "AI") so the stream reads as people's activity; deleted/tutorial/excluded-user
+   * labels are already excluded by the `labels` subquery. Returns just what the feed renders, not full metadata.
+   *
+   * @param n Number of labels to retrieve.
+   * @return DBIO[Seq[(labelId, labelType, username, timeCreated)]], most recent first.
+   */
+  def getRecentLabels(n: Int): DBIO[Seq[(Int, String, String, OffsetDateTime)]] = {
+    (for {
+      _label     <- labels
+      _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
+      _user      <- usersUnfiltered if _label.userId === _user.userId
+      _userRole  <- userRoles if _user.userId === _userRole.userId
+      _role      <- roleTable if _userRole.roleId === _role.roleId && _role.role =!= "AI"
+    } yield (_label.labelId, _labelType.labelType, _user.username, _label.timeCreated))
+      .sortBy(_._4.desc)
+      .take(n)
+      .result
+  }
+
+  /**
+   * Per-user label counts broken down by label type, for the given users (the Contributors leaderboard's top labelers).
+   *
+   * Scoped to a small set of user ids so it stays cheap. Uses the `labels` subquery, so deleted/tutorial/excluded-user
+   * labels are already excluded.
+   *
+   * @param userIds The users to break down.
+   * @return DBIO[Seq[(userId, labelType, count)]].
+   */
+  def getLabelTypeCountsForUsers(userIds: Seq[String]): DBIO[Seq[(String, String, Int)]] = {
+    (for {
+      _label     <- labels if _label.userId inSet userIds
+      _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
+    } yield (_label.userId, _labelType.labelType))
+      .groupBy(x => x)
+      .map { case ((userId, labelType), group) => (userId, labelType, group.length) }
+      .result
+  }
+
+  /**
+   * Per-user counts of labels at each severity rating, for the given users (the Contributors leaderboard's top
+   * labelers). Labels with no severity are excluded.
+   *
+   * @param userIds The users to break down.
+   * @return DBIO[Seq[(userId, severity, count)]] — severity is the raw rating value present in the data.
+   */
+  def getSeverityCountsForUsers(userIds: Seq[String]): DBIO[Seq[(String, Option[Int], Int)]] = {
+    (for {
+      _label <- labels if (_label.userId inSet userIds) && _label.severity.isDefined
+    } yield (_label.userId, _label.severity))
+      .groupBy(x => x)
+      .map { case ((userId, severity), group) => (userId, severity, group.length) }
+      .result
+  }
+
+  /**
+   * Per-label-type label counts split by whether the author is the AI user, for the Humans-vs-AI dashboard's labeler
+   * lens. For each (isAi, labelType) returns the total placed, how many have a validation verdict (`correct` set),
+   * and how many were judged correct — so the page can compare AI's acceptance rate against humans' per type.
+   *
+   * Built on `labelsWithExcludedUsers` rather than `labels` on purpose: that base does not inner-join `user_stat`, so
+   * AI-placed labels (whose AI user may have no `user_stat` row) are counted instead of silently dropped. The tradeoff
+   * is that excluded human users' labels are included; for an aggregate human-vs-AI split that is acceptable.
+   *
+   * @return DBIO[Seq[(isAi, labelType, total, validated, correct)]].
+   */
+  def getLabelStatsByAuthorRole: DBIO[Seq[(Boolean, String, Int, Int, Int)]] = {
+    (for {
+      _label     <- labelsWithExcludedUsers
+      _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
+      _userRole  <- userRoles if _label.userId === _userRole.userId
+      _role      <- roleTable if _userRole.roleId === _role.roleId
+    } yield (_role.role === "AI", _labelType.labelType, _label.correct))
+      .groupBy(r => (r._1, r._2))
+      .map { case ((isAi, labelType), group) =>
+        (
+          isAi,
+          labelType,
+          group.length,
+          group.map(r => Case.If(r._3.isDefined).Then(1).Else(0)).sum.getOrElse(0),
+          group.map(r => Case.If(r._3.getOrElse(false) === true).Then(1).Else(0)).sum.getOrElse(0)
+        )
+      }
+      .result
+  }
+
+  /**
+   * Per-severity-rating label counts split by whether the author is the AI user, for the Humans-vs-AI labeler lens'
+   * severity-distribution comparison. Labels with no severity are excluded; the raw rating is returned (callers bucket
+   * it to the canonical 1–3 scale). Uses `labelsWithExcludedUsers` for the same AI-safe reason as
+   * [[getLabelStatsByAuthorRole]].
+   *
+   * @return DBIO[Seq[(isAi, severity, count)]].
+   */
+  def getSeverityCountsByAuthorRole: DBIO[Seq[(Boolean, Option[Int], Int)]] = {
+    (for {
+      _label    <- labelsWithExcludedUsers if _label.severity.isDefined
+      _userRole <- userRoles if _label.userId === _userRole.userId
+      _role     <- roleTable if _userRole.roleId === _role.roleId
+    } yield (_role.role === "AI", _label.severity))
+      .groupBy(r => (r._1, r._2))
+      .map { case ((isAi, severity), group) => (isAi, severity, group.length) }
+      .result
+  }
+
+  /**
+   * Tag-application counts on human-authored labels, for the Humans-vs-AI tagger lens' baseline (the AI tagger's tag
+   * distribution is compared against this). AI-authored labels are excluded so the baseline is purely human tagging.
+   *
+   * @return DBIO[Seq[(tag, count)]].
+   */
+  def getHumanTagCounts: DBIO[Seq[(String, Int)]] = {
+    (for {
+      _label    <- labelsWithExcludedUsers
+      _userRole <- userRoles if _label.userId === _userRole.userId
+      _role     <- roleTable if _userRole.roleId === _role.roleId && _role.role =!= "AI"
+    } yield _label.tags.unnest)
+      .groupBy(tag => tag)
+      .map { case (tag, group) => (tag, group.length) }
       .result
   }
 
@@ -1430,6 +1582,26 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .map { case ((labelType, tag), group) => (labelType, tag, group.length) }
       .result
       .map(_.map(TagCount.tupled))
+  }
+
+  /**
+   * Counts of (label type, tag, severity) over labels that carry a severity, for the Data Quality tag-severity heatmap.
+   *
+   * Tags are a label array column, so they're unnested — a label contributes to one row per tag it carries. Severity is
+   * returned raw (callers bucket it to the 1–3 scale). Deleted/tutorial/excluded-user labels are excluded via `labels`.
+   *
+   * @return DBIO[Seq[(labelType, tag, severity, count)]]; severity is the raw rating, `None`-filtered by the query.
+   */
+  def getTagSeverityCounts: DBIO[Seq[(String, String, Option[Int], Int)]] = {
+    val rows = for {
+      _l     <- labels if _l.severity.isDefined
+      _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
+    } yield (_lType.labelType, _l.tags.unnest, _l.severity)
+
+    rows
+      .groupBy(r => (r._1, r._2, r._3))
+      .map { case ((labelType, tag, severity), group) => (labelType, tag, severity, group.length) }
+      .result
   }
 
   /**
@@ -2167,6 +2339,25 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   def nextTempLabelId(userId: String): DBIO[Int] = {
     labelsUnfiltered.filter(_.userId === userId).map(_.temporaryLabelId).max.result.map(_.map(x => x + 1).getOrElse(1))
+  }
+
+  /**
+   * Gets the pano + point-of-view metadata needed to build a preview image URL for a set of labels.
+   *
+   * Scoped to the given label ids (typically a small recent-activity batch) so the join stays cheap. Returns the pano
+   * id, imagery source, and the camera heading/pitch/zoom captured when the label was placed — enough to construct a
+   * Street View Static thumbnail or to look up a saved crop.
+   *
+   * @param labelIds Label ids to fetch metadata for.
+   * @return Per label: (labelId, panoId, panoSource, heading, pitch, zoom).
+   */
+  def getPanoMetadataForLabels(labelIds: Seq[Int]): DBIO[Seq[(Int, String, PanoSource, Double, Double, Double)]] = {
+    (for {
+      _label      <- labels if _label.labelId inSet labelIds
+      _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
+      _panoData   <- panoData if _label.panoId === _panoData.panoId
+    } yield (_label.labelId, _label.panoId, _panoData.source, _labelPoint.heading, _labelPoint.pitch, _labelPoint.zoom))
+      .result
   }
 
   /**

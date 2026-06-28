@@ -923,6 +923,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "streetCount:Integer,"           // Number of streets in this region
       + "userCount:Integer,"             // Number of unique users who labeled in this region
       + "auditCount:Integer,"            // Number of completed audits in this region
+      + "totalDistM:Double,"             // Total street distance in this region, meters (DBF caps names at 10 chars)
+      + "audDistM:Double,"               // Audited street distance in this region, meters
+      + "complRate:Double,"              // Fraction of street distance audited (0.0–1.0)
       + "firstLabel:String,"             // First label date
       + "lastLabel:String"               // Last label date
     )
@@ -935,6 +938,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(region.streetCount)
       featureBuilder.add(region.userCount)
       featureBuilder.add(region.auditCount)
+      featureBuilder.add(region.totalDistanceM)
+      featureBuilder.add(region.auditedDistanceM)
+      featureBuilder.add(region.completionRate)
       featureBuilder.add(region.firstLabelDate.map(_.toString).orNull)
       featureBuilder.add(region.lastLabelDate.map(_.toString).orNull)
       featureBuilder.buildFeature(null)
@@ -966,6 +972,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "street_count:Integer,"          // Number of streets in this region
       + "user_count:Integer,"            // Number of unique users who labeled in this region
       + "audit_count:Integer,"           // Number of completed audits in this region
+      + "total_distance_m:Double,"       // Total street distance in this region, meters
+      + "audited_distance_m:Double,"     // Audited street distance in this region, meters
+      + "completion_rate:Double,"        // Fraction of street distance audited (0.0–1.0)
       + "first_label_time:String,"       // First label date
       + "last_label_time:String"         // Last label date
     )
@@ -978,6 +987,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(region.streetCount)
       featureBuilder.add(region.userCount)
       featureBuilder.add(region.auditCount)
+      featureBuilder.add(region.totalDistanceM)
+      featureBuilder.add(region.auditedDistanceM)
+      featureBuilder.add(region.completionRate)
       featureBuilder.add(region.firstLabelDate.map(_.toString).orNull)
       featureBuilder.add(region.lastLabelDate.map(_.toString).orNull)
       featureBuilder.buildFeature(null)

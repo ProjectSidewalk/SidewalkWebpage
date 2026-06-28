@@ -259,6 +259,25 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   }
 
   /**
+   * Daily count of completed real missions, bucketed by `mission_end`.
+   *
+   * Counts only completed, non-skipped missions and excludes both onboarding tutorial types (they aren't real
+   * contribution activity). This is a stricter filter than `selectMissionCountsPerUser`, which excludes only
+   * `auditOnboarding`.
+   *
+   * @return DBIO[Seq[(day, count)]] — `day` is `mission_end` truncated to the day; sorted ascending.
+   */
+  def getMissionCountsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {
+    val completedMissions = for {
+      _mission     <- missions if _mission.completed && !_mission.skipped
+      _missionType <- missionTypes if _mission.missionTypeId === _missionType.missionTypeId
+      if _missionType.missionType =!= "auditOnboarding" && _missionType.missionType =!= "validationOnboarding"
+    } yield _mission.missionEnd.trunc("day")
+
+    completedMissions.groupBy(x => x).map { case (day, group) => (day, group.length) }.sortBy(_._1).result
+  }
+
+  /**
    * Get the number of labels validated in a validation mission. Depends on type of validation mission.
    * @param missionType    Name of the validation mission type
    * @return               {validation: 10, labelmapValidation: 1}
