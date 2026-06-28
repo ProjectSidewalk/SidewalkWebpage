@@ -14,21 +14,19 @@ STREET_IDS=$(tail -n +2 $CSV_FILENAME | cut -d',' -f1 | tr '\n' ',' | sed 's/,$/
 echo "Streets to exclude: $STREET_IDS"
 
 
-# Mark streets with no imagery as deleted, remove them from the street_edge_priority table,
+# Mark streets with no imagery as status='no_imagery', remove them from the street_edge_priority table,
 # and truncate the region_completion table to force recalculation of distances.
 psql -v ON_ERROR_STOP=1 -d sidewalk -U $SCHEMA_NAME <<-EOSQL
     BEGIN;
 
-    -- Mark streets with no imagery as deleted.
+    -- Mark streets with no imagery.
     UPDATE street_edge
-    SET deleted = TRUE
+    SET status = 'no_imagery'
     WHERE street_edge_id IN ($STREET_IDS);
 
-    -- Remove street_edge_priority for deleted streets.
+    -- Remove street_edge_priority for the now no-imagery streets (they should not be assignable for auditing).
     DELETE FROM street_edge_priority
-    USING street_edge
-    WHERE street_edge_priority.street_edge_id = street_edge.street_edge_id
-        AND deleted = TRUE;
+    WHERE street_edge_id IN ($STREET_IDS);
 
     -- Truncate the region_completion table to force recalculation of distances.
     TRUNCATE TABLE region_completion;

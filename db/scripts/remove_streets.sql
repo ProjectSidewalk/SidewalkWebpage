@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Remove a set of street_edges from the DB.
---   - Soft-delete (set `deleted = TRUE`) if any work exists on the street (audit_task, label, or route_street).
+--   - Soft-delete (set `status = 'disabled'`) if any work exists on the street (audit_task, label, or route_street).
 --   - Hard-delete otherwise, cleaning up FK-referenced tables first.
 --
 -- Tables with a FK to street_edge:
@@ -52,9 +52,10 @@ SELECT streets_to_soft_delete.street_edge_id,
 FROM streets_to_soft_delete
 ORDER BY streets_to_soft_delete.street_edge_id;
 
--- 4. Soft-delete.
+-- 4. Soft-delete: mark 'disabled' (the manual-removal catch-all in street_edge_status) and drop the priority row so
+--    the street is no longer auditable, while keeping the row for the audit/label/route work that references it (#3888).
 UPDATE street_edge
-SET deleted = TRUE
+SET status = 'disabled'
 WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_soft_delete);
 
 DELETE FROM street_edge_priority WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_soft_delete);

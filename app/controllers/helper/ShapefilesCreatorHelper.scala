@@ -808,6 +808,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "regionId:Integer,"            // Region ID
       + "regionName:String,"           // Region name
       + "wayType:String,"              // Type of street/way
+      + "status:String,"               // Street availability: open, no_imagery, closed, or disabled
       + "labelCount:Integer,"          // Number of labels on this street
       + "auditCount:Integer,"          // Number of times audited
       + "userCount:Integer,"           // Number of unique users
@@ -826,6 +827,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(street.regionId)
       featureBuilder.add(street.regionName)
       featureBuilder.add(street.wayType)
+      featureBuilder.add(street.status)
       featureBuilder.add(street.labelCount)
       featureBuilder.add(street.auditCount)
       featureBuilder.add(street.userIds.size)
@@ -866,6 +868,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "region_id:Integer,"           // Region ID
       + "region_name:String,"          // Region name
       + "way_type:String,"         // Type of street/way. Using String instead of Long to avoid type resolution issues.
+      + "status:String,"           // Street availability: open, no_imagery, closed, or disabled
       + "label_count:Integer,"     // Number of labels on this street
       + "audit_count:Integer,"     // Number of times audited
       + "user_count:Integer,"      // Number of unique users
@@ -887,6 +890,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(street.regionId)
       featureBuilder.add(street.regionName)
       featureBuilder.add(street.wayType)
+      featureBuilder.add(street.status)
       featureBuilder.add(street.labelCount)
       featureBuilder.add(street.auditCount)
       featureBuilder.add(street.userIds.size)

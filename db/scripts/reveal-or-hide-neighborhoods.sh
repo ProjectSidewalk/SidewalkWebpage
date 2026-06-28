@@ -10,16 +10,19 @@ source "$SCRIPT_DIR/helpers.sh"
 # Ask if revealing or hiding regions.
 # If revealing:
 #     Ask which regions to reveal.
-#     Ask for CSV file that lists streets that are missing imagery.
-#     Reveal the regions.
+#     Reveal the regions: set region.deleted = FALSE and flip the regions' 'closed' streets back to 'open'.
 # If hiding:
 #     Ask which regions to hide.
 #     Check if tutorial street is in one of the regions being hidden.
 #     If yes:
 #         Ask user which region to move the tutorial street to and check that it's valid.
 #         Move the tutorial street to that region.
-#     Output CSV listing streets that were marked as deleted in regions we're hiding for easy future reversal.
-#     Hide the regions.
+#     Hide the regions: set region.deleted = TRUE and flip the regions' 'open' streets to 'closed'.
+#
+# Street availability lives on street_edge.status (open/no_imagery/closed/disabled). This script only ever flips
+# streets between 'open' and 'closed' to mirror the region's opened/closed state, so 'no_imagery' and 'disabled'
+# streets are never disturbed and the old streets_with_no_imagery / formerly-hidden-streets CSV bookkeeping (which
+# existed solely to remember no-imagery streets across region toggles) is no longer needed.
 
 SCHEMA_NAME=$(prompt_with_default "Schema name")
 
@@ -54,34 +57,24 @@ if [ "$REVEAL_OR_HIDE" = "reveal" ]; then
     # Ask which regions to reveal.
     regions_to_reveal=$(prompt_with_default "Region IDs to reveal (space-separated)")
 
-    # Prompt user for path to CSV file and prepend working dir.
-    csv_filename=$(prompt_with_default "Path to CSV file (relative to $WORKING_DIR_TO_PRINT dir)" "streets_with_no_imagery.csv")
-    csv_filename=$WORKING_DIR/$csv_filename
-    echo "Using CSV file: $csv_filename"
-
-    # Read list of streets to hide from CSV file.
-    # TODO deal with the situation where list of streets to hide is empty. Both bc no file and empty list.
-    street_ids=$(tail -n +2 "$csv_filename" | cut -d',' -f1 | tr '\n' ',' | sed 's/,$//')
-    echo "Streets to exclude: $street_ids"
-
-    # Reveal the streets/regions.
+    # Reveal the neighborhoods. We only flip the regions' 'closed' streets back to 'open'; 'no_imagery' and 'disabled'
+    # streets keep their status, so no CSV bookkeeping is needed.
     psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U "$PSQL_USER" -p $PORT <<EOSQL
         BEGIN;
-        -- Mark streets as deleted=FALSE unless they are missing imagery.
+        -- Re-open the streets that were closed along with the region (leaves no_imagery/disabled streets alone).
         UPDATE street_edge
-        SET deleted = FALSE
+        SET status = 'open'
         FROM street_edge_region
         WHERE street_edge.street_edge_id = street_edge_region.street_edge_id
-            AND street_edge.deleted = TRUE
-            AND region_id IN (${regions_to_reveal// /,})
-            AND street_edge.street_edge_id NOT IN ($street_ids);
+            AND street_edge_region.region_id IN (${regions_to_reveal// /,})
+            AND street_edge.status = 'closed';
 
-        -- Add entries for the newly added streets to the street_edge_priority table.
+        -- Add street_edge_priority entries for the newly re-opened streets that don't have one yet.
         INSERT INTO street_edge_priority (street_edge_id, priority)
             SELECT street_edge.street_edge_id, 1
             FROM street_edge
             LEFT JOIN street_edge_priority ON street_edge.street_edge_id = street_edge_priority.street_edge_id
-            WHERE deleted = FALSE
+            WHERE street_edge.status = 'open'
                 AND priority IS NULL;
 
         -- Reveal the neighborhoods.
@@ -133,19 +126,9 @@ EOSQL
         echo "Tutorial street successfully updated to $new_tutorial_region!"
     fi
 
-    # Output CSV listing streets that were marked as deleted in regions we're hiding for easy future reversal.
-    curr_date=$(date +"%b-%d-%Y" | tr '[:upper:]' '[:lower:]')
-    output_file="formerly-hidden-streets-$SCHEMA_NAME-$TEST_OR_PROD-$curr_date.csv"
-    psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT -A -F "," --csv <<EOSQL > "$output_file"
-        SELECT street_edge.street_edge_id, region_id
-        FROM street_edge
-        INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
-        WHERE region_id IN (${regions_to_hide// /,})
-            AND deleted = TRUE;
-EOSQL
-    echo "Wrote list of previously deleted streets in hidden neighborhoods to $output_file"
-
-    # Finally, hide the streets/regions, remove any user_current_regions and truncate the region_completion table.
+    # Finally, hide the regions: flip their 'open' streets to 'closed', drop those streets' priority rows, remove any
+    # user_current_regions, and truncate region_completion. We only touch 'open' streets, so 'no_imagery' and
+    # 'disabled' streets keep their status.
     psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT <<EOSQL
         BEGIN;
         UPDATE region
@@ -153,25 +136,28 @@ EOSQL
         WHERE region_id IN (${regions_to_hide// /,});
 
         UPDATE street_edge
-        SET deleted = TRUE
+        SET status = 'closed'
         FROM street_edge_region
         WHERE street_edge.street_edge_id = street_edge_region.street_edge_id
-            AND street_edge_region.region_id IN (${regions_to_hide// /,});
+            AND street_edge_region.region_id IN (${regions_to_hide// /,})
+            AND street_edge.status = 'open';
 
         DELETE FROM user_current_region WHERE region_id IN (${regions_to_hide// /,});
 
+        -- Closed streets should not be assignable for auditing, so remove their priority rows.
         DELETE FROM street_edge_priority
-        USING street_edge
-        WHERE street_edge_priority.street_edge_id = street_edge.street_edge_id
-            AND street_edge.deleted = TRUE;
+        USING street_edge_region
+        WHERE street_edge_priority.street_edge_id = street_edge_region.street_edge_id
+            AND street_edge_region.region_id IN (${regions_to_hide// /,});
 
         TRUNCATE TABLE region_completion;
         COMMIT;
 EOSQL
 fi
 
-# Refresh planner statistics on the modified tables. Bulk-flipping the deleted column stays under autoanalyze's
-# ~10% threshold, leaving the planner with stale row estimates that cause catastrophically slow query plans.
+# Refresh planner statistics on the modified tables. Bulk-flipping the street status / region.deleted columns stays
+# under autoanalyze's ~10% threshold, leaving the planner with stale row estimates that cause catastrophically slow
+# query plans.
 psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT <<EOSQL
     VACUUM ANALYZE street_edge;
     VACUUM ANALYZE street_edge_region;
@@ -180,7 +166,3 @@ psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" 
 EOSQL
 
 echo "Done! Please clear the Play cache for $SCHEMA_NAME to reset remaining distance on landing page"
-
-if [ "$REVEAL_OR_HIDE" = "reveal" ]; then
-    echo "You can now safely delete the street_edge_endpoints.csv and streets_with_no_imagery.csv files"
-fi

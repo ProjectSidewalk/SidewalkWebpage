@@ -73,9 +73,12 @@ fi
 #      I'll add these as the situation arises organically in future deployments.
 psql -v ON_ERROR_STOP=1 -d sidewalk -U $SCHEMA_NAME <<-EOSQL
     BEGIN;
-    -- Fill in the street_edge table using the qgis_road table.
-    INSERT INTO street_edge (street_edge_id, geom, way_type, deleted, timestamp, x1, y1, x2, y2)
-        SELECT road_id, geom, $WAY_TYPE, $REGION_DELETED_Q, now(),
+    -- Fill in the street_edge table using the qgis_road table. A street in a hidden region is seeded 'closed' (the
+    -- whole neighborhood isn't open yet); everything else starts 'open' (#3888). $REGION_DELETED_Q is a boolean
+    -- expression that is TRUE for streets whose region is hidden.
+    INSERT INTO street_edge (street_edge_id, geom, way_type, status, timestamp, x1, y1, x2, y2)
+        SELECT road_id, geom, $WAY_TYPE,
+               (CASE WHEN $REGION_DELETED_Q THEN 'closed' ELSE 'open' END)::street_edge_status, now(),
                ST_X(ST_StartPoint(geom)), ST_Y(ST_StartPoint(geom)), ST_X(ST_EndPoint(geom)), ST_Y(ST_EndPoint(geom))
         FROM qgis_road;
 
@@ -84,8 +87,8 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U $SCHEMA_NAME <<-EOSQL
         SELECT CAST(osm_id AS INT), road_id FROM qgis_road;
 
     -- Add the tutorial street edge from DC into the database and update tutorial id in the config table.
-    INSERT INTO street_edge(street_edge_id, geom, x1, y1, x2, y2, way_type, deleted, timestamp)
-        SELECT MAX(street_edge_id) + 1, '0102000020E6100000040000007C9E3F6D544453C00A2E56D460784340ECF7C43A554453C02B685A6265784340F29A5775564453C0C4D2C08F6A784340F73DEAAF574453C0B0CBF09F6E784340', -77.067653, 38.940455, -77.067852, 38.940876, 'tertiary', FALSE, '2015-11-17 04:20:19.46+00'
+    INSERT INTO street_edge(street_edge_id, geom, x1, y1, x2, y2, way_type, status, timestamp)
+        SELECT MAX(street_edge_id) + 1, '0102000020E6100000040000007C9E3F6D544453C00A2E56D460784340ECF7C43A554453C02B685A6265784340F29A5775564453C0C4D2C08F6A784340F73DEAAF574453C0B0CBF09F6E784340', -77.067653, 38.940455, -77.067852, 38.940876, 'tertiary', 'open'::street_edge_status, '2015-11-17 04:20:19.46+00'
         FROM street_edge;
     UPDATE config SET tutorial_street_edge_id = (SELECT MAX(street_edge_id) FROM street_edge);
 
@@ -102,11 +105,11 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U $SCHEMA_NAME <<-EOSQL
         SELECT MAX(street_edge_id), $TUTORIAL_REGION_ID
         FROM street_edge;
 
-    -- Initialize the street_edge_priority table.
+    -- Initialize the street_edge_priority table for auditable streets only (#3888).
     INSERT INTO street_edge_priority (street_edge_id, priority)
         SELECT street_edge_id, 1
         FROM street_edge
-        WHERE deleted = FALSE;
+        WHERE status = 'open';
 
     -- Update config table's open_status column based on whether regions were removed.
     UPDATE config SET open_status = '$OPEN_STATUS_Q';

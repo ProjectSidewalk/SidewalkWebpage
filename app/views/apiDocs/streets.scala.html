@@ -71,6 +71,7 @@
             <p><code><a href="/v3/api/streets?filetype=csv">/v3/api/streets?filetype=csv</a></code> Get all streets in CSV format</p>
             <p><code><a href="/v3/api/streets?minLabelCount=5">/v3/api/streets?minLabelCount=5</a></code> Get streets with at least 5 accessibility labels</p>
             <p><code><a href="/v3/api/streets?wayType=residential,primary">/v3/api/streets?wayType=residential,primary</a></code> Get only residential and primary roads</p>
+            <p><code><a href="/v3/api/streets?status=no_imagery">/v3/api/streets?status=no_imagery</a></code> Get only streets that lack street-view imagery</p>
             <p><code><a href="/v3/api/streets?minAuditCount=2&minUserCount=2">/v3/api/streets?minAuditCount=2&minUserCount=2</a></code> Get streets audited at least twice by at least two different users</p>
         </div>
     </div>
@@ -170,6 +171,11 @@
                         <td>Filter by one or more way types (road classifications). Provide comma-separated values (e.g., <code>wayType=residential,primary</code>). Common values include: <code>residential</code>, <code>primary</code>, <code>secondary</code>, <code>tertiary</code>, <code>service</code>, <code>footway</code>, <code>path</code>, <code>trunk</code>.</td>
                     </tr>
                     <tr>
+                        <td><code>status</code></td>
+                        <td><code>string</code></td>
+                        <td>Filter by one or more street statuses. Provide comma-separated values (e.g., <code>status=open,no_imagery</code>). Valid values: <code>open</code> (usable for auditing), <code>no_imagery</code> (no street-view imagery available), <code>closed</code> (in a region not yet opened to the public), <code>disabled</code> (manually hidden, e.g. an OSM miscategorization). By default all statuses are returned.</td>
+                    </tr>
+                    <tr>
                         <td><code>filetype</code></td>
                         <td><code>string</code></td>
                         <td>Specify the output format. Options: <code>geojson</code> (default), <code>csv</code>, <code>shapefile</code>, <code>geopackage</code>.</td>
@@ -213,6 +219,7 @@
                 "region_id": 8,
                 "region_name": "Teaneck Community Charter School",
                 "way_type": "residential",
+                "status": "open",
                 "user_ids": [
                     "18b26a38-24ab-402d-a64e-158fc0bb8a8a",
                     "53ad4d79-9a7b-4d3c-a753-63bbfca34c9b"
@@ -239,6 +246,7 @@
                 "region_id": 8,
                 "region_name": "Teaneck Community Charter School",
                 "way_type": "primary",
+                "status": "open",
                 "user_ids": [
                     "8af92eb8-fb84-4aa6-9539-abc95216dcd7"
                 ],
@@ -301,6 +309,11 @@
                         <td><code>string</code></td>
                         <td>OpenStreetMap classification of the road type (e.g., <code>residential</code>, <code>primary</code>, <code>secondary</code>, <code>service</code>, <code>footway</code>).</td>
                     </tr>
+                    <tr>
+                        <td><code>properties.status</code></td>
+                        <td><code>string</code></td>
+                        <td>Availability of the street in Project Sidewalk. One of <code>open</code> (usable for auditing), <code>no_imagery</code> (no street-view imagery available), <code>closed</code> (in a region not yet opened to the public), or <code>disabled</code> (manually hidden, e.g. an OSM miscategorization). A street is auditable only when its status is <code>open</code>.</td>
+                    </tr>
 
                         <!-- Activity Statistics -->
                     <tr>
@@ -341,9 +354,9 @@
 
         <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
         <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus geometry representation. CRS is WGS84 (EPSG:4326).</p>
-        <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,region_id,region_name,way_type,user_ids,label_count,audit_count,user_count,first_label_date,last_label_date,start_point,end_point
-951,11584845,8,Teaneck Community Charter School,residential,"[18b26a38-24ab-402d-a64e-158fc0bb8a8a,53ad4d79-9a7b-4d3c-a753-63bbfca34c9b]",23,5,2,2023-06-20T14:32:45Z,2023-08-15T10:22:18Z,"-74.0243606567383,40.8839912414551","-74.0245123456789,40.8836789012345"
-952,11566031,8,Teaneck Community Charter School,primary,[8af92eb8-fb84-4aa6-9539-abc95216dcd7],8,1,1,2023-06-22T11:12:24Z,2023-06-22T11:45:33Z,"-74.0245835449219,40.8835416503906","-74.0246123456789,40.8833789012345"
+        <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,region_id,region_name,way_type,status,user_ids,label_count,audit_count,user_count,first_label_date,last_label_date,start_point,end_point
+951,11584845,8,Teaneck Community Charter School,residential,open,"[18b26a38-24ab-402d-a64e-158fc0bb8a8a,53ad4d79-9a7b-4d3c-a753-63bbfca34c9b]",23,5,2,2023-06-20T14:32:45Z,2023-08-15T10:22:18Z,"-74.0243606567383,40.8839912414551","-74.0245123456789,40.8836789012345"
+952,11566031,8,Teaneck Community Charter School,primary,open,[8af92eb8-fb84-4aa6-9539-abc95216dcd7],8,1,1,2023-06-22T11:12:24Z,2023-06-22T11:45:33Z,"-74.0245835449219,40.8835416503906","-74.0246123456789,40.8833789012345"
 ...</code></pre>
 
         <p>
