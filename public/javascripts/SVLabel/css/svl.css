@@ -112,7 +112,7 @@ input[type="radio"] {
 
 /* Scale Google's terms / report-a-problem links (bottom-left; moved here from the pano) with the UI. They're Google's
    own elements with no scale hooks, so we scale them visually, anchored to the bottom-left corner they sit in. The
-   other bottom-left overlays (date/info button, speed-limit sign, imagery-source logo) are lifted above these via
+   other bottom-left overlays (date/info button, imagery-source logo) are lifted above these via
    --bottom-left-links-clearance, which PanoManager sets to the links' height for whichever imagery source provides
    a bottom-left links/attribution bar (GSV's terms/report-a-problem links, Mapillary's attribution links). */
 #view-control-layer div:has(> .gmnoprint) {
