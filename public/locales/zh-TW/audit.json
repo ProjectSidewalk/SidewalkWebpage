@@ -116,7 +116,12 @@
         },
         "badges": {
             "title": "徽章",
-            "see-all": "查看所有徽章"
+            "see-all": "查看所有徽章",
+            "labeler-goal": "在探索時放置無障礙標記即可獲得標記者徽章。",
+            "explorer-goal": "在探索頁面評估街道即可獲得探索者徽章。",
+            "next-labels_other": "放置 {{count, number}} 個標記即可獲得下一個徽章。",
+            "next-distance": "探索 {{distance}} 即可獲得下一個徽章。",
+            "earned-all": "您已達到此徽章的最高等級 — 做得太棒了！"
         },
         "neighborhood-progress": {
             "title": "鄰里進度",

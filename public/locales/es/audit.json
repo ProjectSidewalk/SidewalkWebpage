@@ -116,7 +116,13 @@
         },
         "badges": {
             "title": "Insignias",
-            "see-all": "Ver todas las insignias"
+            "see-all": "Ver todas las insignias",
+            "labeler-goal": "Gana insignias de Etiquetador colocando etiquetas de accesibilidad mientras exploras.",
+            "explorer-goal": "Gana insignias de Explorador evaluando calles en la página Explorar.",
+            "next-labels_one": "Coloca {{count, number}} etiqueta para conseguir la siguiente.",
+            "next-labels_other": "Coloca {{count, number}} etiquetas para conseguir la siguiente.",
+            "next-distance": "Explora {{distance}} para conseguir la siguiente.",
+            "earned-all": "¡Has alcanzado el nivel máximo de esta insignia, excelente trabajo!"
         },
         "neighborhood-progress": {
             "title": "Progreso del barrio",

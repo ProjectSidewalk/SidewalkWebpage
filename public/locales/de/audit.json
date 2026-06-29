@@ -116,7 +116,13 @@
         },
         "badges": {
             "title": "Abzeichen",
-            "see-all": "Alle Abzeichen anzeigen"
+            "see-all": "Alle Abzeichen anzeigen",
+            "labeler-goal": "Verdienen Sie Beschrifter-Abzeichen, indem Sie beim Erkunden Barrierefreiheits-Markierungen setzen.",
+            "explorer-goal": "Verdienen Sie Erkunder-Abzeichen, indem Sie auf der Erkunden-Seite Strassen bewerten.",
+            "next-labels_one": "Setzen Sie {{count, number}} Markierung, um das nächste zu erhalten.",
+            "next-labels_other": "Setzen Sie {{count, number}} Markierungen, um das nächste zu erhalten.",
+            "next-distance": "Erkunden Sie {{distance}}, um das nächste zu erhalten.",
+            "earned-all": "Sie haben die höchste Stufe dieses Abzeichens erreicht – großartige Arbeit!"
         },
         "neighborhood-progress": {
             "title": "Fortschritt im Quartier",
