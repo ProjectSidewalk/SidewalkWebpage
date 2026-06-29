@@ -66,4 +66,56 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       perTypeLabels mustBe totalLabels
     }
   }
+
+  "GET /v3/api/overallStats" should {
+    "return 200 JSON exposing the km-by-status and redundant-coverage fields (#3080)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/overallStats")).get
+      status(resp) mustBe OK
+      contentType(resp) mustBe Some("application/json")
+
+      val json = contentAsJson(resp)
+      (json \ "km_explored_multiple_users").asOpt[Double] mustBe defined
+      (json \ "km_explored_single_user").asOpt[Double] mustBe defined
+      (json \ "km_explorable").asOpt[Double] mustBe defined
+      (json \ "km_by_status" \ "open").asOpt[Double] mustBe defined
+      (json \ "km_by_status" \ "no_imagery").asOpt[Double] mustBe defined
+      (json \ "km_by_status" \ "closed").asOpt[Double] mustBe defined
+      (json \ "km_by_status" \ "disabled").asOpt[Double] mustBe defined
+
+      // #3080 ask #1 ("labels with at least one validation") is surfaced as the Overall rollup of has_a_validation.
+      (json \ "validations" \ "combined" \ "Overall" \ "has_a_validation").asOpt[Long] mustBe defined
+    }
+
+    // Data-independent invariants: hold for any test DB contents.
+    "reconcile single + multiple user km with no-overlap km, and alias km_explorable to km_by_status.open" in {
+      val json        = contentAsJson(route(app, FakeRequest(GET, "/v3/api/overallStats")).get)
+      val noOverlap   = (json \ "km_explored_no_overlap").as[Double]
+      val multiple    = (json \ "km_explored_multiple_users").as[Double]
+      val single      = (json \ "km_explored_single_user").as[Double]
+      val explorable  = (json \ "km_explorable").as[Double]
+      val open        = (json \ "km_by_status" \ "open").as[Double]
+
+      // single + multiple == no_overlap (single is derived as no_overlap − multiple), and multiple ≤ no_overlap.
+      (single + multiple) mustBe (noOverlap +- 0.001)
+      multiple must be <= (noOverlap + 0.001)
+      // km_explorable is an alias of the open bucket. NOTE: we deliberately do NOT assert noOverlap ≤ explorable —
+      // a street can be audited and later become closed/no_imagery, so explored can exceed the auditable-now network.
+      explorable mustBe (open +- 0.001)
+    }
+
+    "return 200 CSV containing the new km rows" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/overallStats?filetype=csv")).get
+      status(resp) mustBe OK
+      val body = contentAsString(resp)
+      Seq(
+        "km_explored_multiple_users",
+        "km_explored_single_user",
+        "km_explorable",
+        "km_open",
+        "km_no_imagery",
+        "km_closed",
+        "km_disabled"
+      ).foreach(key => body must include(key))
+    }
+  }
 }

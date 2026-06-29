@@ -116,7 +116,13 @@
         },
         "badges": {
             "title": "Badges",
-            "see-all": "See all badges"
+            "see-all": "See all badges",
+            "labeler-goal": "Earn Labeler badges by placing accessibility labels as you explore.",
+            "explorer-goal": "Earn Explorer badges by auditing streets on the Explore page.",
+            "next-labels_one": "Place {{count, number}} label to earn the next one.",
+            "next-labels_other": "Place {{count, number}} labels to earn the next one.",
+            "next-distance": "Explore {{distance}} to earn the next one.",
+            "earned-all": "You've reached the highest level for this badge — amazing work!"
         },
         "neighborhood-progress": {
             "title": "Neighborhood progress",

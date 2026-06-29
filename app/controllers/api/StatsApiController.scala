@@ -104,6 +104,13 @@ class StatsApiController @Inject() (
             row("Recent Labels Average Timestamp", stats.avgTimestampLast100Labels.getOrElse("NA"))
             row("KM Explored", stats.kmExplored)
             row("KM Explored Without Overlap", stats.kmExploreNoOverlap)
+            row("KM Explored Multiple Users", stats.kmExploredMultipleUsers)
+            row("KM Explored Single User", stats.kmExploredSingleUser)
+            row("KM Explorable", stats.kmOpen) // Auditable-now network (status = open); alias of KM Open below.
+            row("KM Open", stats.kmOpen)
+            row("KM No Imagery", stats.kmNoImagery)
+            row("KM Closed", stats.kmClosed)
+            row("KM Disabled", stats.kmDisabled)
             row("Total User Count", stats.nUsers)
             row("Explore User Count", stats.nExplorers)
             row("Validate User Count", stats.nValidators)

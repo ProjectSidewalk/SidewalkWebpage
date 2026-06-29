@@ -18,11 +18,13 @@ network, no live Google/Mapillary or app calls.
 
 ### Resilience coverage
 
-`check_streets`'s scan is resilient (retry/backoff, fail-soft per-street, checkpoint-based resume) and concurrent
-(thread pool + token-bucket QPS cap). The tests exercise those paths without a network: `make_fetch` retry/giveup (with
-an injected no-op `sleep`), the `RateLimiter` burst/throttle behavior (with an injected clock + sleep), `process_street`
-outcomes (no-imagery / has-imagery / failed on request or API error), the checkpoint load/append, and `main` end-to-end
-through the thread pool (happy, resume, fail-soft, and interrupt) by `monkeypatch`-ing the fetch and using `tmp_path`. The two earlier bugs (#4342 —
+`check_streets`'s scan is resilient (retry/backoff, fail-soft per-street, checkpoint-based resume), concurrent
+(thread pool + token-bucket QPS cap), and captures imagery age. The tests exercise those paths without a network:
+`make_fetch` retry/giveup (with an injected no-op `sleep`), the `RateLimiter` burst/throttle behavior (with an injected
+clock + sleep), capture-date parsing/standardization (`standardize_capture_date`, `gsv_capture_date`, `summarize_dates`),
+`process_street` outcomes incl. captured date range (no-imagery / has-imagery / failed on request or API error), the
+checkpoint + summary persistence, and `main` end-to-end through the thread pool (happy, resume, fail-soft, interrupt,
+and the `street_imagery_summary.csv` output) by `monkeypatch`-ing the fetch and using `tmp_path`. The two earlier bugs (#4342 —
 bbox radius unit, no-op `print`) are now fixed, and `test_create_bounding_box_is_ordered_and_radius_scales` still pins
 that the bounding-box radius is in kilometers.
 

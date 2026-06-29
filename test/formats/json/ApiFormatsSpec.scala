@@ -33,6 +33,12 @@ class ApiFormatsSpec extends AnyFunSuite with Matchers {
       avgTimestampLast100Labels = None,
       kmExplored = 10.0,
       kmExploreNoOverlap = 8.0,
+      kmExploredMultipleUsers = 3.0,
+      kmExploredSingleUser = 5.0, // 8.0 no-overlap − 3.0 multiple
+      kmOpen = 12.0,
+      kmNoImagery = 1.0,
+      kmClosed = 0.5,
+      kmDisabled = 0.2,
       nUsers = 5,
       nExplorers = 4,
       nValidators = 3,
@@ -100,6 +106,17 @@ class ApiFormatsSpec extends AnyFunSuite with Matchers {
     // Pre-#4223 these lived directly under `validations`; they must now only exist under a source block.
     (json \ "validations" \ "Overall").toOption shouldBe None
     (json \ "validations" \ "total_validations").toOption shouldBe None
+  }
+
+  test("km-by-status + redundant-coverage km serialize, with km_explorable aliasing the open bucket (#3080)") {
+    val json = ApiFormats.projectSidewalkStatsToJson(sampleStats)
+    (json \ "km_explored_multiple_users").as[Double] shouldBe 3.0
+    (json \ "km_explored_single_user").as[Double] shouldBe 5.0
+    (json \ "km_explorable").as[Double] shouldBe 12.0
+    (json \ "km_by_status" \ "open").as[Double] shouldBe 12.0
+    (json \ "km_by_status" \ "no_imagery").as[Double] shouldBe 1.0
+    (json \ "km_by_status" \ "closed").as[Double] shouldBe 0.5
+    (json \ "km_by_status" \ "disabled").as[Double] shouldBe 0.2
   }
 
   test("stddev of label/image dates serialize as day-valued durations (#3031)") {
