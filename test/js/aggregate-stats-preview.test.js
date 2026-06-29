@@ -21,6 +21,7 @@ const GOOD_FIXTURE = {
     km_explored_no_overlap: 1000,
     total_labels: 50000,
     total_validations: 30000,
+    total_users: 12345,
     num_cities: 18,
     num_countries: 9,
     num_languages: 7,
@@ -103,6 +104,8 @@ describe('AggregateStatsPreview', () => {
         expect(container.textContent).toContain('18');
         expect(container.textContent).toContain('30,000'); // total_validations
         expect(container.textContent).toContain('50,000'); // total_labels
+        expect(container.textContent).toContain('Total Users');
+        expect(container.textContent).toContain('12,345'); // total_users
 
         // Per-label-type table rendered both rows.
         expect(container.querySelectorAll('tbody tr')).toHaveLength(2);

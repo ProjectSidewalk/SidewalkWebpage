@@ -236,6 +236,7 @@ class StatsApiController @Inject() (
       "total_labels"           -> stats.totalLabels,
       "tutorial_labels"        -> stats.tutorialLabels,
       "total_validations"      -> stats.totalValidations,
+      "total_users"            -> stats.totalUsers,
       "num_cities"             -> stats.numCities,
       "num_countries"          -> stats.numCountries,
       "num_languages"          -> stats.numLanguages,
@@ -261,6 +262,7 @@ class StatsApiController @Inject() (
       s"${toSnakeKey("Total Labels")},${stats.totalLabels}",
       s"${toSnakeKey("Tutorial Labels")},${stats.tutorialLabels}",
       s"${toSnakeKey("Total Validations")},${stats.totalValidations}",
+      s"${toSnakeKey("Total Users")},${stats.totalUsers}",
       s"${toSnakeKey("Number of Cities")},${stats.numCities}",
       s"${toSnakeKey("Number of Countries")},${stats.numCountries}",
       s"${toSnakeKey("Number of Languages")},${stats.numLanguages}"

@@ -34,6 +34,7 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       (json \ "km_explored").asOpt[Double] mustBe defined
       (json \ "total_labels").asOpt[Long] mustBe defined
       (json \ "tutorial_labels").asOpt[Long] mustBe defined
+      (json \ "total_users").asOpt[Long] mustBe defined
       (json \ "num_cities").asOpt[Int] mustBe defined
       (json \ "by_label_type").asOpt[JsObject] mustBe defined
 
@@ -41,6 +42,16 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       (json \ "kmExplored").toOption mustBe None
       (json \ "totalLabels").toOption mustBe None
       (json \ "byLabelType").toOption mustBe None
+    }
+
+    // The CSV export must expose total_users too (#3976) — field changes need coverage in every output format, not
+    // just JSON, since the formats are serialized independently.
+    "include a total_users row in the CSV export" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/aggregateStats?filetype=csv")).get
+      status(resp) mustBe OK
+      val body = contentAsString(resp)
+      body must include("metric,value")
+      body.linesIterator.exists(_.startsWith("total_users,")) mustBe true
     }
 
     // Regression guard for #3981: the per-label-type breakdown must reconcile with the headline total. This held only
