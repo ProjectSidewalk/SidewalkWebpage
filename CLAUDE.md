@@ -84,10 +84,12 @@ Full details (both systems, regional `en-US`/`en-NZ` rules, adding a new languag
 
 ## Python utilities
 
-Two standalone scripts (run via the Python deps in `requirements.txt`, installed in the Docker image), invoked out-of-band rather than from the running web app:
+Two standalone scripts in **`scripts/`** (run via the Python deps in `requirements.txt`, installed in the Docker image), invoked out-of-band rather than from the running web app. Full usage in [`scripts/README.md`](scripts/README.md):
 
-- `label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterController.scala` / `app/models/cluster/`).
-- `check_streets_for_imagery.py` — checks streets for available street-view imagery (related: `make hide-streets-without-imagery`).
+- `scripts/label_clustering.py` — clusters nearby labels. This one is invoked **in-band**: `ClusterController.runMultiUserClustering` shells out to `scripts/label_clustering.py` per region during admin-triggered `/runClustering` (see `ClusterController.scala` / `app/models/cluster/`). If you move/rename it, update that invocation path.
+- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery (related: `make hide-streets-without-imagery`).
+
+Each script's pure logic is refactored into importable functions and **unit-tested** under `test/python/` (`pytest`). Keep I/O (HTTP/file) in thin wrappers and `main` so the logic stays testable; run `make test-python`.
 
 ## Label Type Colors and Icons
 
@@ -338,6 +340,8 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly co
 The API specs **boot the real app against Postgres+PostGIS**, so the `db` container must be up; they assert response contract/shape, not data values. There is no `make` target — invoke sbt directly. The phased testing strategy and rationale live in [`docs/testing-and-ci.md`](docs/testing-and-ci.md).
 
 A prototype **JS** test layer (jsdom) lives under `test/js/` — run `npm run test:js`. It is opt-in and not wired into CI yet (sequenced with the ES5→ES6 migration, #2487); see `test/js/README.md`.
+
+A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `test/python/` — run `make test-python` (runs pytest in the web container) or `docker exec projectsidewalk-web bash -lc "cd /home && python3 -m pytest test/python"`. It needs no DB/network (pure-logic tests only) and runs as an **advisory** CI job; see `test/python/README.md`.
 
 ### Continuous integration
 

@@ -1,4 +1,4 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh stage-import
+.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh stage-import test-python
 
 db ?= sidewalk
 dir ?= ./
@@ -53,6 +53,11 @@ fill-new-schema:
 
 hide-streets-without-imagery:
 	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/hide-streets-without-imagery.sh"
+
+# Run the Python utility test suite (test/python/) inside the running web container. Pass extra pytest flags via args=,
+# e.g. `make test-python args="-k bbox -v"`.
+test-python:
+	@docker exec -it projectsidewalk-web sh -c "cd /home && python3 -m pytest test/python $(args)"
 
 reveal-or-hide-neighborhoods:
 	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/reveal-or-hide-neighborhoods.sh"

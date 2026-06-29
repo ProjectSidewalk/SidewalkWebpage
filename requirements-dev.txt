@@ -1,0 +1,9 @@
+# Python development/test dependencies. Layers on top of requirements.txt (which holds the runtime deps the two
+# scripts in scripts/ need). Install both to run the suite:
+#
+#   pip install -r requirements.txt -r requirements-dev.txt
+#   pytest
+#
+# Pinned to versions that support Python 3.8 (the web container's interpreter) and the pyproject `pythonpath` option.
+pytest==7.4.4
+pytest-cov==4.1.0
