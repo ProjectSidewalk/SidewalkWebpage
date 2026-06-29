@@ -63,6 +63,9 @@ libraryDependencies ++= Seq(
 
   // Testing. scalatestplus-play pulls in ScalaTest + Play's test helpers (FakeRequest, route, etc.).
   "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.1" % Test,
+  // play-jdbc provides the standalone `Databases` factory used by EvolutionsRoundTripSpec to open a connection and
+  // run evolutions without booting the app (play-slick supplies the `Database`/evolutions API but not this factory).
+  "org.playframework" %% "play-jdbc" % "3.0.10" % Test,
 )
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)

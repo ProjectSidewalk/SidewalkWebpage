@@ -1,4 +1,4 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh stage-import test-python
+.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh stage-import test-python lint-evolutions
 
 db ?= sidewalk
 dir ?= ./
@@ -61,6 +61,11 @@ test-python:
 
 reveal-or-hide-neighborhoods:
 	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/reveal-or-hide-neighborhoods.sh"
+
+# Static checks on the Play evolution files (conf/evolutions/default/*.sql). Runs on the host (just bash + grep), so no
+# container is needed. Also wired into CI as the blocking `evolutions-lint` job.
+lint-evolutions:
+	@./db/scripts/lint-evolutions.sh
 
 lint-htmlhint:
 	@echo "Running HTMLHint...";
