@@ -1,0 +1,9 @@
+# Dependencies for the offline check_streets_for_imagery.py utility (run out-of-band to find streets lacking
+# street-view imagery — see scripts/README.md). It is not on the running app's request path, so these are kept out of
+# requirements.txt. Layered on top of requirements.txt (which provides the shared pandas/requests):
+#
+#   pip install -r requirements.txt -r requirements-offline-tools.txt
+shapely==2.0.2
+geopy==2.4.1
+tenacity==8.2.3
+tqdm==4.66.1

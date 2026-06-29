@@ -5,7 +5,7 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
 
   1. Export a CSV of the ``street_edge`` table with columns ``street_edge_id, region_id, x1, y1, x2, y2, geom`` (geom as
      WKB hex), named ``street_edge_endpoints.csv``, in the repo root.
-  2. From the repo root, run one of:
+  2. Run one of (from anywhere — all data files are resolved relative to the repo root, not your working directory):
 
          python3 scripts/check_streets_for_imagery.py --gsv
          python3 scripts/check_streets_for_imagery.py --mapillary
@@ -28,7 +28,8 @@ The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_ha
 ``imagery_verdict``, ``street_has_no_imagery``) are import-safe and unit-tested in
 ``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin wrappers and ``main``.
 
-The paths above are resolved relative to the current working directory, so always run from the repo root.
+The paths above are resolved relative to the repo root (this script's parent directory), so the tool works the same no
+matter which directory you launch it from.
 
 Design lineage
 --------------
@@ -67,6 +68,14 @@ from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
+# Data files are resolved against the repo root (this script's parent dir), not the current working directory, so the
+# tool behaves identically no matter where it's launched from. It previously only worked from the repo root: run from
+# scripts/, the CWD-relative db/ dir didn't exist, so the first checkpoint write raised inside a worker thread and
+# surfaced as a confusing traceback after the progress bar had already painted 0% (#4359).
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Input CSV export of street_edge endpoints + geom (see module docstring), expected in the repo root.
+INPUT_FILE = 'street_edge_endpoints.csv'
 # Final output of streets found to be missing imagery (consumed by `make hide-streets-without-imagery`).
 OUTPUT_FILE = 'db/streets_with_no_imagery.csv'
 # Per-street progress log (street_edge_id, region_id, outcome); enables crash-safe resume.
@@ -456,8 +465,14 @@ def main(argv=None):
         print("Couldn't read API key environment variable.")
         return 1
 
+    # Resolve every data file against the repo root so the script works regardless of the working directory.
+    input_path = os.path.join(REPO_ROOT, INPUT_FILE)
+    checkpoint_path = os.path.join(REPO_ROOT, CHECKPOINT_FILE)
+    output_path = os.path.join(REPO_ROOT, OUTPUT_FILE)
+    failed_path = os.path.join(REPO_ROOT, FAILED_FILE)
+
     # Read street edge data and interpolate vertices roughly every 15 m so we can sample imagery along each street.
-    street_data = pd.read_csv('street_edge_endpoints.csv')
+    street_data = pd.read_csv(input_path)
     street_data = street_data.sort_values(by=['region_id', 'street_edge_id'])
     street_data['geom'] = list(map(lambda g: redistribute_vertices(wkb.loads(g, hex=True)), list(street_data['geom'])))
 
@@ -473,11 +488,11 @@ def main(argv=None):
     def check_and_record(street):
         result = process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url)
         with checkpoint_lock:  # process_street does no file I/O; only the checkpoint append needs serializing.
-            append_checkpoint(result)
+            append_checkpoint(result, checkpoint_path)
         return result
 
     # Resume: skip streets already settled in the checkpoint; failed/unprocessed streets are (re)checked.
-    processed = load_processed()
+    processed = load_processed(checkpoint_path)
     todo = street_data[~street_data['street_edge_id'].isin(processed)]
     total = len(todo)
 
@@ -501,10 +516,10 @@ def main(argv=None):
                 future.result()
     except KeyboardInterrupt:
         print("\nInterrupted; progress saved to the checkpoint. Re-run to resume.")
-        finalize_outputs()
+        finalize_outputs(checkpoint_path, output_path, failed_path)
         return 1
 
-    finalize_outputs()
+    finalize_outputs(checkpoint_path, output_path, failed_path)
     return 0
 
 

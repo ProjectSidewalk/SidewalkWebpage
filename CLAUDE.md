@@ -84,10 +84,10 @@ Full details (both systems, regional `en-US`/`en-NZ` rules, adding a new languag
 
 ## Python utilities
 
-Two standalone scripts in **`scripts/`** (run via the Python deps in `requirements.txt`, installed in the Docker image), invoked out-of-band rather than from the running web app. Full usage in [`scripts/README.md`](scripts/README.md):
+Two standalone scripts in **`scripts/`**, invoked out-of-band rather than from the running web app. Python deps are split by who needs them: **`requirements.txt`** holds the app's in-band deps (`label_clustering.py` runs in-band — see below), and **`requirements-offline-tools.txt`** holds the deps used only by the offline `check_streets_for_imagery.py` utility (`shapely`, `geopy`, `tenacity`, `tqdm`). The Docker image installs both (plus `requirements-dev.txt`) since the test suite imports both scripts. Full usage in [`scripts/README.md`](scripts/README.md):
 
 - `scripts/label_clustering.py` — clusters nearby labels. This one is invoked **in-band**: `ClusterController.runMultiUserClustering` shells out to `scripts/label_clustering.py` per region during admin-triggered `/runClustering` (see `ClusterController.scala` / `app/models/cluster/`). If you move/rename it, update that invocation path.
-- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery (related: `make hide-streets-without-imagery`).
+- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery (related: `make hide-streets-without-imagery`). Resolves its data files relative to the repo root, so it runs from any working directory.
 
 Each script's pure logic is refactored into importable functions and **unit-tested** under `test/python/` (`pytest`). Keep I/O (HTTP/file) in thin wrappers and `main` so the logic stays testable; run `make test-python`.
 

@@ -339,7 +339,13 @@ def _write_street_csv(directory, streets):
 def _setup(monkeypatch, tmp_path, streets, env_var='GOOGLE_MAPS_API_KEY'):
     _write_street_csv(tmp_path, streets)
     (tmp_path / 'db').mkdir()
-    monkeypatch.chdir(tmp_path)
+    # Point the script's repo root at tmp_path, then run from an unrelated CWD that has neither the input CSV nor a
+    # db/ dir. This makes every main() test a regression check that the script resolves its files against the repo
+    # root rather than the working directory (running from scripts/ used to fail at 0% progress, #4359).
+    monkeypatch.setattr(cs, 'REPO_ROOT', str(tmp_path))
+    elsewhere = tmp_path / 'elsewhere'
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
     monkeypatch.setenv(env_var, 'dummy')
 
 
@@ -370,6 +376,25 @@ def test_main_happy_mixed_outcomes(monkeypatch, tmp_path):
     # High QPS so the rate limiter never actually throttles the test; --workers exercises the thread pool.
     assert cs.main(['--gsv', '--workers', '4', '--max-qps', '1000']) == 0
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]
+
+
+def test_main_runs_from_a_different_working_directory(monkeypatch, tmp_path):
+    # Regression for #4359: running from scripts/ (a dir without a db/ subdir) used to fail silently at 0% progress,
+    # because the first checkpoint write hit a CWD-relative db/ path that didn't exist. Anchoring to the repo root
+    # fixes it: here we run from a scripts/ dir that has neither the input CSV nor db/, and the scan still completes.
+    _write_street_csv(tmp_path, [(100, 1, _LINE_60)])
+    (tmp_path / 'db').mkdir()
+    monkeypatch.setattr(cs, 'REPO_ROOT', str(tmp_path))
+    scripts_dir = tmp_path / 'scripts'
+    scripts_dir.mkdir()
+    monkeypatch.chdir(scripts_dir)
+    monkeypatch.setenv('GOOGLE_MAPS_API_KEY', 'dummy')
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})  # no imagery -> flagged
+
+    assert cs.main(['--gsv']) == 0
+    # Output and checkpoint land under the repo root's db/, not the scripts/ working directory.
+    assert _output(tmp_path)['street_edge_id'].tolist() == [100]
+    assert not (scripts_dir / 'db').exists()
 
 
 def test_main_resumes_from_checkpoint(monkeypatch, tmp_path):

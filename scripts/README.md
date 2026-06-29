@@ -1,10 +1,11 @@
 # Python utility scripts
 
 Two standalone Python utilities for Project Sidewalk. They are **not** part of the running web app's request path
-(except as noted below) — they are run out-of-band. Their runtime dependencies are pinned in
-[`requirements.txt`](../requirements.txt) and installed into the web Docker container; unit tests live in
-[`test/python/`](../test/python). **Always run them from the repo root** — paths are resolved relative to the current
-working directory.
+(except as noted below) — they are run out-of-band. `label_clustering.py` runs in-band (see below), so its dependencies
+are pinned in [`requirements.txt`](../requirements.txt); the offline-only `check_streets_for_imagery.py` keeps its extra
+dependencies in [`requirements-offline-tools.txt`](../requirements-offline-tools.txt). Both sets are installed into the
+web Docker container; unit tests live in [`test/python/`](../test/python). `check_streets_for_imagery.py` resolves its
+data files relative to the repo root, so it can be launched from any working directory.
 
 ## `label_clustering.py`
 
@@ -33,7 +34,7 @@ manual — nothing in the app calls it.
 
 1. Export a CSV of the `street_edge` table with columns `street_edge_id, region_id, x1, y1, x2, y2, geom` (geom as WKB
    hex), named `street_edge_endpoints.csv`, in the repo root.
-2. From the repo root, run **one** of:
+2. Run **one** of (from any directory — paths resolve relative to the repo root):
    ```bash
    python3 scripts/check_streets_for_imagery.py --gsv         # needs GOOGLE_MAPS_API_KEY
    python3 scripts/check_streets_for_imagery.py --mapillary   # needs MAPILLARY_ACCESS_TOKEN
