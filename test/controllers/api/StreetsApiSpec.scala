@@ -53,11 +53,22 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val body = contentAsString(resp)
       // Header from StreetDataForApi.csvHeader; assert snake_case field names are present and camelCase absent.
       body must include(
-        "street_edge_id,osm_way_id,region_id,region_name,way_type,user_ids,label_count,audit_count,user_count," +
+        "street_edge_id,osm_way_id,region_id,region_name,way_type,status,user_ids,label_count,audit_count,user_count," +
           "first_label_date,last_label_date,start_point,end_point"
       )
       body must not include "streetEdgeId"
       body must not include "labelCount"
+    }
+
+    "return 400 INVALID_PARAMETER for an unrecognized status value" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/streets?status=bogus")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "status"
+    }
+
+    "accept a valid status filter" in {
+      val resp = route(app, FakeRequest(GET, s"/v3/api/streets?$tinyBbox&status=no_imagery")).get
+      status(resp) mustBe OK
     }
 
     "return 400 INVALID_PARAMETER for a malformed bbox, as an RFC 7807 problem+json body" in {

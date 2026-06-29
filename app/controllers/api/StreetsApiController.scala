@@ -3,6 +3,7 @@ package controllers.api
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import models.api.{ApiError, StreetDataForApi, StreetFiltersForApi}
+import models.street.StreetEdgeStatus
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
@@ -35,6 +36,7 @@ class StreetsApiController @Inject() (
    * @param minAuditCount Optional minimum number of audits for the street
    * @param minUserCount Optional minimum number of users who audited the street
    * @param wayType Comma-separated list of way types to include (e.g., "residential,primary")
+   * @param status Comma-separated list of street statuses to include (e.g., "open,no_imagery,disabled")
    * @param filetype Output format: "geojson" (default), "csv", "shapefile"
    * @param inline Whether to display the file inline or as an attachment
    */
@@ -46,17 +48,20 @@ class StreetsApiController @Inject() (
       minAuditCount: Option[Int],
       minUserCount: Option[Int],
       wayType: Option[String],
+      status: Option[String],
       filetype: Option[String],
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
-    // Parse bbox and way types.
+    // Parse bbox, way types, and statuses. Statuses are lowercased to match the enum's string values.
     val parsedBbox     = parseBBoxString(bbox)
     val parsedWayTypes = parseCommaSeparated(wayType)
+    val parsedStatuses = parseCommaSeparated(status).map(_.map(_.toLowerCase))
 
     // Collect the first invalid-parameter error, if any.
     val firstError: Option[ApiError] = Seq(
       validateBBoxParam(bbox, parsedBbox),
-      validateRegionId(regionId)
+      validateRegionId(regionId),
+      validateStreetStatuses(parsedStatuses)
     ).flatten.headOption
 
     firstError match {
@@ -68,7 +73,8 @@ class StreetsApiController @Inject() (
         // Create filters object.
         val filters = StreetFiltersForApi(
           bbox = finalBbox, regionId = finalRegionId, regionName = finalRegionName, minLabelCount = minLabelCount,
-          minAuditCount = minAuditCount, minUserCount = minUserCount, wayTypes = parsedWayTypes
+          minAuditCount = minAuditCount, minUserCount = minUserCount, wayTypes = parsedWayTypes,
+          statuses = parsedStatuses
         )
 
         // Get the data stream.
@@ -90,6 +96,23 @@ class StreetsApiController @Inject() (
       }
     }
   }
+
+  /**
+   * Returns an ApiError if any supplied status value is not a recognized `street_edge_status` (open, no_imagery,
+   * closed, disabled). Returns None when the parameter was absent or every value is valid.
+   *
+   * @param parsedStatuses The parsed, lowercased status tokens, or None if the parameter was absent.
+   * @return `Some(ApiError)` naming the invalid value(s), else `None`.
+   */
+  private def validateStreetStatuses(parsedStatuses: Option[Seq[String]]): Option[ApiError] =
+    parsedStatuses.flatMap { statuses =>
+      val invalid = statuses.filter(StreetEdgeStatus.fromString(_).isEmpty)
+      if (invalid.nonEmpty) {
+        val valid = StreetEdgeStatus.values.map(_.toString).mkString(", ")
+        Some(ApiError.invalidParameter(s"Invalid status value(s): ${invalid.mkString(", ")}. Valid values: $valid.",
+          "status"))
+      } else None
+    }
 
   /**
    * Returns a list of all street types with counts.

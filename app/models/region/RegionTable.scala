@@ -179,7 +179,7 @@ class RegionTable @Inject() (
         SELECT street_edge_region.region_id, COUNT(DISTINCT street_edge.street_edge_id) AS street_count
         FROM street_edge_region
         JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-        WHERE street_edge.deleted = FALSE
+        WHERE street_edge.status = 'open'
             AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
             AND street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
@@ -189,7 +189,7 @@ class RegionTable @Inject() (
         SELECT street_edge_region.region_id, COUNT(audit_task.audit_task_id) AS audit_count
         FROM street_edge_region
         JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-            AND street_edge.deleted = FALSE
+            AND street_edge.status = 'open'
             AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
         JOIN audit_task ON street_edge_region.street_edge_id = audit_task.street_edge_id
             AND audit_task.completed = TRUE
@@ -205,7 +205,7 @@ class RegionTable @Inject() (
                MAX(label.time_created) AS last_label_date
         FROM street_edge_region
         JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-            AND street_edge.deleted = FALSE
+            AND street_edge.status = 'open'
             AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
         JOIN label ON street_edge_region.street_edge_id = label.street_edge_id
             AND label.deleted = FALSE
