@@ -80,7 +80,8 @@
                 ['Languages', fmt(data.num_languages)],
                 ['Distance Explored', `${Number(data.km_explored || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} km`],
                 ['Total Labels', fmt(data.total_labels)],
-                ['Total Validations', fmt(data.total_validations)]
+                ['Total Validations', fmt(data.total_validations)],
+                ['Total Users', fmt(data.total_users)]
             ];
 
             const grid = document.createElement('div');

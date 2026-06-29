@@ -69,6 +69,11 @@ case class LabelTypeStats(
  * @param tutorialLabels Total number of practice/tutorial labels across all cities. Tracked separately because tutorial
  *                       labels are excluded from `totalLabels` and `byLabelType` (they would skew the per-type ratios).
  * @param totalValidations Total number of validations across all cities
+ * @param totalUsers Number of distinct contributors across all cities — users who added at least one (non-tutorial)
+ *                   label or validated at least one label. Counted as distinct people: because `user_id` is a global
+ *                   identifier shared across city schemas, a user active in multiple cities is counted once (the union
+ *                   of contributor ids, not the sum of per-city counts). The legacy DC deployment contributes a fixed
+ *                   historical estimate (`legacyDCUserCount`) since it has no per-user records.
  * @param numCities Number of cities where Project Sidewalk is deployed
  * @param numCountries Number of countries where Project Sidewalk is deployed
  * @param numLanguages Number of distinct languages supported
@@ -80,6 +85,7 @@ case class AggregateStats(
     totalLabels: Int,
     tutorialLabels: Int,
     totalValidations: Int,
+    totalUsers: Int,
     numCities: Int,
     numCountries: Int,
     numLanguages: Int,
@@ -241,6 +247,16 @@ class ConfigServiceImpl @Inject() (
   private val legacyDCUnfilteredLabelCount = 263403
 
   /**
+   * Distinct contributors from the legacy DC deployment, a fixed historical estimate (#3976).
+   *
+   * The archived DC dataset has no per-user records we can query, so unlike live cities its user count can't be derived
+   * from the union of contributor ids. This value (from the gid=963888605 tab of the DC spreadsheet linked above) is
+   * added on top of the live-city distinct-user union in getAggregateStats. DC user_ids don't exist in current schemas,
+   * so there is nothing to dedup against — the addition is exact.
+   */
+  private val legacyDCUserCount = 1395
+
+  /**
    * Legacy DC deployment rolled into an AggregateStats so getAggregateStats can sum it alongside live cities.
    *
    * `totalLabels` is derived from `legacyDCByLabelType` (249,905, the filtered count), NOT the unfiltered 263,403
@@ -252,6 +268,9 @@ class ConfigServiceImpl @Inject() (
    * value bundles both and is really an UPPER BOUND on DC's tutorial labels. Documented as such in the API docs.
    *
    * Validations were never implemented during the DC deployment, so `totalValidations` is 0.
+   *
+   * `totalUsers` is 0 here: DC's contributors are added separately via `legacyDCUserCount` (they can't be deduped by
+   * union like live-city users), so this field must NOT also contribute to the aggregate user count.
    */
   private val legacyDCData = AggregateStats(
     kmExplored = 5482.0,
@@ -259,6 +278,7 @@ class ConfigServiceImpl @Inject() (
     totalLabels = legacyDCByLabelType.values.map(_.labels).sum,
     tutorialLabels = legacyDCUnfilteredLabelCount - legacyDCByLabelType.values.map(_.labels).sum,
     totalValidations = 0,
+    totalUsers = 0,
     numCities = 0,
     numCountries = 0,
     numLanguages = 0,
@@ -362,7 +382,7 @@ class ConfigServiceImpl @Inject() (
           Future.successful(
             AggregateStats(
               kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
-              numCities = 0, numCountries = 0, numLanguages = 0, byLabelType = Map.empty
+              totalUsers = 0, numCities = 0, numCountries = 0, numLanguages = 0, byLabelType = Map.empty
             )
           )
         } else {
@@ -376,8 +396,22 @@ class ConfigServiceImpl @Inject() (
             getCityAggregateData(cityId)
           }
 
+          // Distinct contributors across all live cities, deduped by the global `user_id` then DC added on top (#3976).
+          // Computed by unioning per-city contributor-id sets rather than summing per-city counts, so a user active in
+          // multiple cities is counted once. Each city recovers to an empty set so one bad schema can't sink the count.
+          val distinctUsersFut: Future[Int] = Future
+            .sequence(availableCities.map { cityId =>
+              db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
+                .map(_.toSet)
+                .recover { case e: Exception =>
+                  logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}")
+                  Set.empty[String]
+                }
+            })
+            .map(perCity => perCity.foldLeft(Set.empty[String])(_ ++ _).size + legacyDCUserCount)
+
           // Wait for all futures to complete and aggregate results.
-          Future.sequence(cityStatsFutures).map { cityStatsOptions =>
+          Future.sequence(cityStatsFutures).zip(distinctUsersFut).map { case (cityStatsOptions, totalUsers) =>
             // Filter out failed requests and aggregate the successful ones.
             val validCityStats = cityStatsOptions.flatten
 
@@ -386,11 +420,12 @@ class ConfigServiceImpl @Inject() (
               // Return empty aggregate stats if no cities provided data.
               AggregateStats(
                 kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
-                numCities = numCities, numCountries = numCountries, numLanguages = numLanguages, byLabelType = Map.empty
+                totalUsers = 0, numCities = numCities, numCountries = numCountries, numLanguages = numLanguages,
+                byLabelType = Map.empty
               )
             } else {
               // Add legacy DC data to the valid city stats before aggregating.
-              aggregateCityData(validCityStats :+ legacyDCData, numCities, numCountries, numLanguages)
+              aggregateCityData(validCityStats :+ legacyDCData, numCities, numCountries, numLanguages, totalUsers)
             }
           }
         }
@@ -556,13 +591,16 @@ class ConfigServiceImpl @Inject() (
    * @param numCities Number of cities in deployment
    * @param numCountries Number of countries in deployment
    * @param numLanguages Number of languages supported
+   * @param totalUsers Distinct contributors across all deployments. Passed in (like numCountries/numLanguages) rather
+   *                   than summed from `cityData`, because it is a cross-schema deduped union, not a per-city sum (#3976).
    * @return Aggregated statistics across all provided cities
    */
   private def aggregateCityData(
       cityData: Seq[AggregateStats],
       numCities: Int,
       numCountries: Int,
-      numLanguages: Int
+      numLanguages: Int,
+      totalUsers: Int
   ): AggregateStats = {
     import scala.collection.mutable
 
@@ -592,8 +630,9 @@ class ConfigServiceImpl @Inject() (
 
     AggregateStats(
       kmExplored = totalKmExplored, kmExploredNoOverlap = totalKmExploredNoOverlap, totalLabels = totalLabelsCount,
-      tutorialLabels = tutorialLabelsCount, totalValidations = totalValidationsCount, numCities = numCities,
-      numCountries = numCountries, numLanguages = numLanguages, byLabelType = labelTypeStatsMap.toMap
+      tutorialLabels = tutorialLabelsCount, totalValidations = totalValidationsCount, totalUsers = totalUsers,
+      numCities = numCities, numCountries = numCountries, numLanguages = numLanguages,
+      byLabelType = labelTypeStatsMap.toMap
     )
   }
 

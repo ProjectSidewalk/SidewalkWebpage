@@ -106,6 +106,7 @@
     "total_labels": 4567890,
     "tutorial_labels": 123456,
     "total_validations": 2345678,
+    "total_users": 12345,
     "num_cities": 18,
     "num_countries": 5,
     "num_languages": 7,
@@ -133,6 +134,7 @@
                     <tr><td><code>total_labels</code></td><td><code>integer</code></td><td>Total number of labels across all deployments, excluding practice/tutorial labels. Equal to the sum of the <code>by_label_type.&lt;type&gt;.labels</code> counts.</td></tr>
                     <tr><td><code>tutorial_labels</code></td><td><code>integer</code></td><td>Number of practice/tutorial labels across all deployments. Reported separately because they are excluded from <code>total_labels</code> and <code>by_label_type</code> (they would skew the per-type ratios). Note: the count contributed by the legacy Washington, DC deployment also includes a small number of low-quality labels that its archived data cannot separate from tutorial labels.</td></tr>
                     <tr><td><code>total_validations</code></td><td><code>integer</code></td><td>Total number of validations across all deployments.</td></tr>
+                    <tr><td><code>total_users</code></td><td><code>integer</code></td><td>Number of distinct contributors across all deployments &mdash; users who added at least one (non-tutorial) label or validated at least one label. Counted as distinct people: a user active in multiple cities is counted once. Registered and anonymous users are counted the same; excluded low-quality users are omitted. The legacy Washington, DC deployment contributes a fixed historical estimate of 1,395 users (its archived data has no per-user records).</td></tr>
                     <tr><td><code>num_cities</code></td><td><code>integer</code></td><td>Number of deployment cities.</td></tr>
                     <tr><td><code>num_countries</code></td><td><code>integer</code></td><td>Number of countries with a deployment.</td></tr>
                     <tr><td><code>num_languages</code></td><td><code>integer</code></td><td>Number of natively translated languages.</td></tr>

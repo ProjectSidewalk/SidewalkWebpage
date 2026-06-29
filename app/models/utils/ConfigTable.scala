@@ -173,6 +173,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           AggregateStats(
             kmExplored = kmExplored, kmExploredNoOverlap = kmExploredNoOverlap, totalLabels = totalLabels,
             tutorialLabels = tutorialLabels, totalValidations = totalValidations,
+            totalUsers = 0,   // Deduped across schemas in ConfigService (getContributorUserIdsBySchema); not a per-city sum
             numCities = 0,    // Individual cities don't have deployment counts
             numCountries = 0, // These are calculated at the service level
             numLanguages = 0, // when aggregating across all cities
@@ -181,6 +182,37 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         }
       }
       .flatten
+  }
+
+  /**
+   * Retrieves the distinct contributor user ids for a single city schema (#3976).
+   *
+   * A "contributor" is a non-excluded user who added at least one non-tutorial label OR validated at least one label.
+   * The two arms reuse the EXACT predicates of `getCityAggregateDataBySchema`'s `label_counts` and `total_val_count`
+   * subqueries, so the contributing set is consistent with `total_labels` / `total_validations`. The `UNION` dedupes
+   * within this city; cross-city dedup (by the global `user_id`) is done by the caller, which unions these id sets
+   * across schemas. Returns ids (not a count) precisely so that caller-side cross-schema dedup is possible.
+   *
+   * @param schema The database schema to query.
+   * @return DBIO action yielding the distinct contributor `user_id`s (a `text` column) for this schema.
+   */
+  def getContributorUserIdsBySchema(schema: String): DBIO[Seq[String]] = {
+    sql"""
+      SELECT label.user_id
+      FROM "#$schema".label
+      INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
+      INNER JOIN "#$schema".audit_task ON label.audit_task_id = audit_task.audit_task_id
+      WHERE NOT user_stat.excluded
+          AND deleted = FALSE
+          AND tutorial = FALSE
+          AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
+          AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
+      UNION
+      SELECT label_validation.user_id
+      FROM "#$schema".label_validation
+      INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
+      WHERE NOT user_stat.excluded;
+    """.as[String]
   }
 
   /**
