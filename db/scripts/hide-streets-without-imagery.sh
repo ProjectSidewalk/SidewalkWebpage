@@ -10,28 +10,10 @@ CSV_FILENAME=$(prompt_with_default "Path to CSV file (relative to db dir)" "stre
 CSV_FILENAME=/opt/$CSV_FILENAME
 
 # Read list of streets to hide from CSV file.
-STREET_IDS=$(tail -n +2 $CSV_FILENAME | cut -d',' -f1 | tr '\n' ',' | sed 's/,$//')
+STREET_IDS=$(read_street_ids_from_csv "$CSV_FILENAME")
 echo "Streets to exclude: $STREET_IDS"
 
-
-# Mark streets with no imagery as status='no_imagery', remove them from the street_edge_priority table,
-# and truncate the region_completion table to force recalculation of distances.
-psql -v ON_ERROR_STOP=1 -d sidewalk -U $SCHEMA_NAME <<-EOSQL
-    BEGIN;
-
-    -- Mark streets with no imagery.
-    UPDATE street_edge
-    SET status = 'no_imagery'
-    WHERE street_edge_id IN ($STREET_IDS);
-
-    -- Remove street_edge_priority for the now no-imagery streets (they should not be assignable for auditing).
-    DELETE FROM street_edge_priority
-    WHERE street_edge_id IN ($STREET_IDS);
-
-    -- Truncate the region_completion table to force recalculation of distances.
-    TRUNCATE TABLE region_completion;
-
-    COMMIT;
-EOSQL
+# Mark the streets without imagery (shared with reveal-or-hide-neighborhoods.sh via helpers.sh).
+mark_streets_no_imagery "$STREET_IDS" -d sidewalk -U "$SCHEMA_NAME"
 
 echo "Done! You can now safely delete the street_edge_endpoints.csv and streets_with_no_imagery.csv files"

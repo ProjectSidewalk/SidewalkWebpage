@@ -11,6 +11,8 @@ source "$SCRIPT_DIR/helpers.sh"
 # If revealing:
 #     Ask which regions to reveal.
 #     Reveal the regions: set region.deleted = FALSE and flip the regions' 'closed' streets back to 'open'.
+#     Optionally take a no-imagery CSV and mark those streets 'no_imagery' (a first-reveal convenience that mirrors
+#     hide-streets-without-imagery.sh; see below).
 # If hiding:
 #     Ask which regions to hide.
 #     Check if tutorial street is in one of the regions being hidden.
@@ -58,7 +60,8 @@ if [ "$REVEAL_OR_HIDE" = "reveal" ]; then
     regions_to_reveal=$(prompt_with_default "Region IDs to reveal (space-separated)")
 
     # Reveal the neighborhoods. We only flip the regions' 'closed' streets back to 'open'; 'no_imagery' and 'disabled'
-    # streets keep their status, so no CSV bookkeeping is needed.
+    # streets keep their status, so the old cross-toggle CSV bookkeeping (which existed to remember no-imagery streets)
+    # is no longer needed. A one-time no-imagery CSV can still be applied for a first reveal -- see below.
     psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U "$PSQL_USER" -p $PORT <<EOSQL
         BEGIN;
         -- Re-open the streets that were closed along with the region (leaves no_imagery/disabled streets alone).
@@ -84,6 +87,17 @@ if [ "$REVEAL_OR_HIDE" = "reveal" ]; then
         TRUNCATE TABLE region_completion;
         COMMIT;
 EOSQL
+
+    # Optionally mark this region's streets without imagery in the same pass. In the new status model 'no_imagery' is
+    # persistent across hide/reveal cycles, so it only needs doing the first time a region is revealed (re-reveals
+    # leave existing 'no_imagery' streets untouched) -- enter 'none' to skip. Folded in here (via the shared helper) so
+    # hide-streets-without-imagery.sh doesn't have to be a separate back-to-back step when revealing (#4335 review).
+    no_imagery_csv=$(prompt_with_default "No-imagery CSV to also mark (relative to $WORKING_DIR_TO_PRINT dir, 'none' to skip)" "none")
+    if [ "$no_imagery_csv" != "none" ]; then
+        no_imagery_ids=$(read_street_ids_from_csv "$WORKING_DIR/$no_imagery_csv")
+        echo "Marking streets without imagery: $no_imagery_ids"
+        mark_streets_no_imagery "$no_imagery_ids" "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -U "$PSQL_USER" -p $PORT
+    fi
 
 # If hiding neighborhoods.
 else
