@@ -16,13 +16,14 @@ network, no live Google/Mapillary or app calls.
   (`redistribute_vertices`), the GSV/Mapillary response parsers (`gsv_has_imagery`, `mapillary_has_imagery`), the
   imagery-decision thresholds (`imagery_verdict`, `street_has_no_imagery`), and the CSV writer (`write_output`).
 
-### Known-bug notes
+### Resilience coverage
 
-Two genuine bugs found during the review are **deferred** to issue #4342 (so the refactor stays behavior-preserving):
-the first Mapillary endpoint uses a 25 km bbox instead of 25 m, and `write_output` has a no-op `print`. The tests do
-**not** assert the buggy behavior, but `test_create_bounding_box_is_ordered_and_radius_scales` documents that the
-bounding-box radius is in kilometers, which is what makes the unit mismatch a bug. When #4342 is fixed, no test here
-should need to change.
+`check_streets`'s scan is resilient (retry/backoff, fail-soft per-street, checkpoint-based resume). The tests exercise
+those paths without a network: `make_fetch` retry/giveup (with an injected no-op `sleep`), `process_street` outcomes
+(no-imagery / has-imagery / failed on request or API error), the checkpoint load/append, and `main` end-to-end (happy,
+resume, fail-soft, and interrupt) by `monkeypatch`-ing the fetch and using `tmp_path`. The two earlier bugs (#4342 —
+bbox radius unit, no-op `print`) are now fixed, and `test_create_bounding_box_is_ordered_and_radius_scales` still pins
+that the bounding-box radius is in kilometers.
 
 ## How to run
 

@@ -11,44 +11,63 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
          python3 scripts/check_streets_for_imagery.py --mapillary
 
      ``--gsv`` needs ``GOOGLE_MAPS_API_KEY``; ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``.
-  3. It writes streets without imagery to ``db/streets_with_no_imagery.csv`` (resumable: re-running picks up where it
-     left off, using the last row of that file as a progress marker).
+  3. It writes streets without imagery to ``db/streets_with_no_imagery.csv``.
   4. Run ``make hide-streets-without-imagery`` to mark those streets in the database.
 
 For each street it first checks both endpoints; if neither has imagery the street is flagged immediately. Otherwise it
 walks points along the street (added roughly every 15 m) and flags the street once enough points lack imagery (see
 ``imagery_verdict`` for the exact thresholds).
 
-The paths above are resolved relative to the current working directory, so always run from the repo root.
+Resilience (so a long scan survives a flaky network): each request is retried with exponential backoff; a street that
+still fails is logged and the scan continues rather than aborting, and the failed set is retried once at the end (any
+still-failing streets land in ``db/failed_streets.csv``). Progress is checkpointed per street to
+``db/streets_imagery_checkpoint.csv``, so a re-run resumes where it left off and re-attempts only failed/unprocessed
+streets. The final ``db/streets_with_no_imagery.csv`` is derived from the checkpoint, so its schema is unchanged.
 
 The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_has_imagery``, ``mapillary_has_imagery``,
 ``imagery_verdict``, ``street_has_no_imagery``) are import-safe and unit-tested in
 ``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin wrappers and ``main``.
 
-Known deferred bugs (tracked in issue #4342, intentionally NOT fixed here so this refactor stays behavior-preserving):
-  * The first Mapillary endpoint is checked with a 25 km bbox instead of 25 m (see ``main``).
-  * ``write_output`` has a no-op ``print`` that drops a progress newline.
+The paths above are resolved relative to the current working directory, so always run from the repo root.
 """
 
 import argparse
+import csv
+import logging
 import os
 import sys
+import time
+from collections import namedtuple
 
 import pandas as pd
 import requests
+import tenacity
 from geopy import Point
 from geopy.distance import geodesic
 from shapely import wkb
 from shapely.geometry import LineString
 
-# Output CSV of streets found to be missing imagery (also used as the resume marker on re-runs).
-OUTPUT_FILE = 'db/streets_with_no_imagery.csv'
+logger = logging.getLogger(__name__)
 
-# Seconds before a request to Google/Mapillary is abandoned, so a slow provider can't hang the run forever.
+# Final output of streets found to be missing imagery (consumed by `make hide-streets-without-imagery`).
+OUTPUT_FILE = 'db/streets_with_no_imagery.csv'
+# Per-street progress log (street_edge_id, region_id, outcome); enables crash-safe resume.
+CHECKPOINT_FILE = 'db/streets_imagery_checkpoint.csv'
+# Streets that still errored after the end-of-run retry, for follow-up.
+FAILED_FILE = 'db/failed_streets.csv'
+
+# Seconds before a single request to Google/Mapillary is abandoned (each attempt; retries are layered on top).
 REQUEST_TIMEOUT = 30
+# Max attempts per request before a street is marked failed.
+MAX_ATTEMPTS = 3
 
 # Spacing between interpolated vertices along a street, in lat/lng degrees (~15 m). Accuracy here is not critical.
 DISTANCE = 0.000135
+
+# Bounding-box half-extents (km) for Mapillary queries: 25 m at endpoints, 15 m at along-street points (a smaller
+# radius along the street avoids picking up imagery from a nearby parallel street). GSV bakes these into the URL.
+ENDPOINT_RADIUS_KM = 0.025
+POINT_RADIUS_KM = 0.015
 
 # A street is flagged as missing imagery once the fraction of checked points without imagery reaches FAIL_FRACTION, or
 # reaches FAIL_FRACTION_WITH_ENDPOINT when at least one endpoint already lacked imagery. Conversely the check stops
@@ -59,13 +78,20 @@ FAIL_FRACTION_WITH_ENDPOINT = 0.25
 SUCCESS_FRACTION = 0.75
 SUCCESS_FRACTION_WITH_ENDPOINT = 0.5
 
-# Verdicts returned by imagery_verdict.
+# Per-point imagery verdicts returned by imagery_verdict.
 NO_IMAGERY = 'no_imagery'
 HAS_IMAGERY = 'has_imagery'
+# Additional per-street outcome when a street could not be checked (all retries exhausted).
+FAILED = 'failed'
+
+CHECKPOINT_COLUMNS = ['street_edge_id', 'region_id', 'outcome']
+
+# Outcome of checking one street: its ids plus one of NO_IMAGERY / HAS_IMAGERY / FAILED.
+StreetResult = namedtuple('StreetResult', CHECKPOINT_COLUMNS)
 
 
 class ImageryApiError(Exception):
-    """Raised when an imagery provider returns an unexpected error response that should abort the run."""
+    """Raised when an imagery provider returns an unexpected error response that should abort checking a street."""
 
 
 def redistribute_vertices(geom, distance=DISTANCE):
@@ -127,7 +153,7 @@ def mapillary_has_imagery(response_json):
     Interprets a Mapillary images response.
 
     An empty ``data`` array means no imagery. Error code 100 means "too many images, request a smaller area" — which
-    actually implies plenty of imagery, so it counts as present. Any other error is unexpected and aborts the run.
+    actually implies plenty of imagery, so it counts as present. Any other error is unexpected and aborts the street.
 
     Args:
         response_json: The decoded JSON from the Mapillary images endpoint.
@@ -167,17 +193,20 @@ def imagery_verdict(n_fail, n_success, n_coords, endpoint_failed):
     return None
 
 
-def street_has_no_imagery(first_endpoint_fail, second_endpoint_fail, point_has_imagery):
+def street_has_no_imagery(first_endpoint_fail, second_endpoint_fail, point_has_imagery, n_coords=None):
     """
-    Pure replay of the along-street imagery decision, mirroring the lazy loop in ``main``.
+    Decides whether a street should be flagged as missing imagery.
 
-    Returns ``True`` as soon as both endpoints lack imagery; otherwise walks the per-point results applying
-    ``imagery_verdict`` and returns the settled verdict (defaulting to "has imagery" if never settled).
+    Returns ``True`` immediately if both endpoints lack imagery; otherwise walks the per-point results applying
+    ``imagery_verdict`` and returns the settled verdict (defaulting to "has imagery" if never settled). ``point_has_
+    imagery`` may be a lazy iterable (e.g. a generator that fetches each point on demand) so the walk stops fetching as
+    soon as the verdict settles; pass ``n_coords`` in that case since the length can't be taken up front.
 
     Args:
         first_endpoint_fail:  Whether the first endpoint lacked imagery.
         second_endpoint_fail: Whether the second endpoint lacked imagery.
         point_has_imagery:    Ordered booleans, one per along-street point (``True`` = imagery present).
+        n_coords:             Total number of points; if ``None``, ``point_has_imagery`` is materialized to count it.
 
     Returns:
         ``True`` if the street should be flagged as missing imagery, else ``False``.
@@ -186,7 +215,10 @@ def street_has_no_imagery(first_endpoint_fail, second_endpoint_fail, point_has_i
         return True
 
     endpoint_failed = first_endpoint_fail or second_endpoint_fail
-    n_coords = len(point_has_imagery)
+    if n_coords is None:
+        point_has_imagery = list(point_has_imagery)
+        n_coords = len(point_has_imagery)
+
     n_fail = n_success = 0
     for has_imagery in point_has_imagery:
         if has_imagery:
@@ -201,38 +233,30 @@ def street_has_no_imagery(first_endpoint_fail, second_endpoint_fail, point_has_i
     return False
 
 
-def write_output(no_imagery_df, curr_street, output_file=OUTPUT_FILE):
-    """
-    Writes the streets-without-imagery DataFrame to CSV.
+def _get_json(url):
+    """GETs a URL and returns the decoded JSON (with a bounded per-attempt timeout)."""
+    return requests.get(url, timeout=REQUEST_TIMEOUT).json()
 
-    When called mid-run (``curr_street`` is not ``None``), the current street is appended as the last row so a re-run can
-    resume from it; that marker row is dropped when the run resumes.
+
+def make_fetch(max_attempts=MAX_ATTEMPTS, sleep=None):
+    """
+    Builds a ``fetch(url) -> json`` that retries transient network errors with exponential backoff + jitter.
 
     Args:
-        no_imagery_df: DataFrame with ``street_edge_id`` and ``region_id`` columns.
-        curr_street:   The street being processed (progress marker), or ``None`` when the run finished.
-        output_file:   Destination CSV path.
+        max_attempts: Attempts before giving up (then the underlying ``requests`` error is re-raised).
+        sleep:        Sleep function between retries; defaults to ``time.sleep`` (injectable so tests run instantly).
+
+    Returns:
+        A ``fetch`` callable.
     """
-    print  # noqa -- no-op today; the intended progress newline (should be print()) is restored in issue #4342.
-
-    # If we aren't done, save the street we're on as the last row so a re-run can resume from it.
-    if curr_street is not None:
-        no_imagery_df = pd.concat([no_imagery_df, _no_imagery_row(curr_street)])
-
-    # street_edge_id/region_id come back as floats from the concat above; the consumer expects integers.
-    no_imagery_df.street_edge_id = no_imagery_df.street_edge_id.astype('int32')
-    no_imagery_df.region_id = no_imagery_df.region_id.astype('int32')
-    no_imagery_df.to_csv(output_file, index=False)
-
-
-def _no_imagery_row(street):
-    """Builds a one-row DataFrame holding a street's ids, for appending to the no-imagery output."""
-    return pd.DataFrame({'street_edge_id': street.street_edge_id, 'region_id': street.region_id}, index=[0])
-
-
-def _get_json(url):
-    """GETs a URL and returns the decoded JSON (with a bounded timeout)."""
-    return requests.get(url, timeout=REQUEST_TIMEOUT).json()
+    retryer = tenacity.Retrying(
+        stop=tenacity.stop_after_attempt(max_attempts),
+        wait=tenacity.wait_random_exponential(multiplier=0.5, max=10),
+        retry=tenacity.retry_if_exception_type(requests.exceptions.RequestException),
+        sleep=sleep if sleep is not None else time.sleep,
+        reraise=True,
+    )
+    return lambda url: retryer(lambda: _get_json(url))
 
 
 def _mapillary_bbox_url(mapillary_url, lat, lng, radius_km):
@@ -241,24 +265,107 @@ def _mapillary_bbox_url(mapillary_url, lat, lng, radius_km):
     return mapillary_url + '&bbox=' + ','.join(str(coord) for coord in bbox)
 
 
-def _point_has_imagery(api, lat, lng, gsv_url, mapillary_url, mapillary_radius_km):
+def _point_has_imagery(api, lat, lng, fetch, gsv_url, mapillary_url, mapillary_radius_km):
+    """Queries the configured provider at one point (via ``fetch``) and returns whether imagery is present."""
+    if api == 'GSV':
+        return gsv_has_imagery(fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)))
+    return mapillary_has_imagery(fetch(_mapillary_bbox_url(mapillary_url, lat, lng, mapillary_radius_km)))
+
+
+def _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url):
+    """Checks both of a street's endpoints; returns ``(first_endpoint_fail, second_endpoint_fail)`` booleans."""
+    if api == 'GSV':
+        first_fail = not gsv_has_imagery(fetch(gsv_url_endpoint + '&location=' + str(street.y1) + ',' + str(street.x1)))
+        second_fail = not gsv_has_imagery(fetch(gsv_url_endpoint + '&location=' + str(street.y2) + ',' + str(street.x2)))
+    else:
+        first_fail = not mapillary_has_imagery(
+            fetch(_mapillary_bbox_url(mapillary_url, street.y1, street.x1, ENDPOINT_RADIUS_KM)))
+        second_fail = not mapillary_has_imagery(
+            fetch(_mapillary_bbox_url(mapillary_url, street.y2, street.x2, ENDPOINT_RADIUS_KM)))
+    return first_fail, second_fail
+
+
+def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url):
     """
-    Queries the configured provider at one point and returns whether imagery is present.
+    Checks one street for imagery and returns its outcome (pure of any file/checkpoint I/O, so it is pool-safe).
+
+    Walks the endpoints, then along-street points with early-exit (points are fetched lazily, so a settled verdict
+    stops further requests). Any network/parse error after retries is caught and reported as ``FAILED`` so the overall
+    scan can continue.
 
     Args:
-        api:                 ``'GSV'`` or ``'Mapillary'``.
-        lat:                 Latitude of the point.
-        lng:                 Longitude of the point.
-        gsv_url:             GSV metadata base URL with the desired ``&radius=`` already baked in (GSV only).
-        mapillary_url:       Mapillary images base URL (Mapillary only).
-        mapillary_radius_km: Bounding-box half-extent in km for the Mapillary query.
+        street:           A street row (Series) with ``street_edge_id``, ``region_id``, endpoint x/y, and ``geom``.
+        api:              ``'GSV'`` or ``'Mapillary'``.
+        fetch:            A ``fetch(url) -> json`` (typically from ``make_fetch``, with retry).
+        gsv_url:          GSV metadata base URL with the along-street radius baked in (GSV only).
+        gsv_url_endpoint: GSV metadata base URL with the endpoint radius baked in (GSV only).
+        mapillary_url:    Mapillary images base URL (Mapillary only).
 
     Returns:
-        ``True`` if imagery is present at the point.
+        A ``StreetResult`` with outcome ``NO_IMAGERY`` / ``HAS_IMAGERY`` / ``FAILED``.
     """
-    if api == 'GSV':
-        return gsv_has_imagery(_get_json(gsv_url + '&location=' + str(lat) + ',' + str(lng)))
-    return mapillary_has_imagery(_get_json(_mapillary_bbox_url(mapillary_url, lat, lng, mapillary_radius_km)))
+    try:
+        first_fail, second_fail = _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url)
+        coords = list(street['geom'].coords)
+        # Lazy generator: street_has_no_imagery stops consuming (and thus fetching) once the verdict settles.
+        point_results = (_point_has_imagery(api, coord[1], coord[0], fetch, gsv_url, mapillary_url, POINT_RADIUS_KM)
+                         for coord in coords)  # Shapely coords are (x=lng, y=lat).
+        no_imagery = street_has_no_imagery(first_fail, second_fail, point_results, n_coords=len(coords))
+        outcome = NO_IMAGERY if no_imagery else HAS_IMAGERY
+    except (requests.exceptions.RequestException, ImageryApiError) as err:
+        logger.warning("Could not check street %s after %d attempts: %s", street.street_edge_id, MAX_ATTEMPTS, err)
+        outcome = FAILED
+    return StreetResult(int(street.street_edge_id), int(street.region_id), outcome)
+
+
+def load_processed(checkpoint_file=CHECKPOINT_FILE):
+    """Returns the set of ``street_edge_id`` already settled (failed streets are excluded so they get re-attempted)."""
+    if not os.path.isfile(checkpoint_file):
+        return set()
+    checkpoint = pd.read_csv(checkpoint_file)
+    return set(checkpoint[checkpoint['outcome'] != FAILED]['street_edge_id'])
+
+
+def append_checkpoint(result, checkpoint_file=CHECKPOINT_FILE):
+    """Appends one street's result to the checkpoint (writing the header on first use)."""
+    write_header = not os.path.isfile(checkpoint_file)
+    with open(checkpoint_file, 'a', newline='') as handle:
+        writer = csv.writer(handle)
+        if write_header:
+            writer.writerow(CHECKPOINT_COLUMNS)
+        writer.writerow([result.street_edge_id, result.region_id, result.outcome])
+
+
+def _write_ids_csv(rows, output_file):
+    """Writes a ``(street_edge_id, region_id)`` frame as CSV with integer ids."""
+    df = pd.DataFrame(rows, columns=['street_edge_id', 'region_id'])
+    df['street_edge_id'] = df['street_edge_id'].astype('int32')
+    df['region_id'] = df['region_id'].astype('int32')
+    df.to_csv(output_file, index=False)
+
+
+def finalize_outputs(checkpoint_file=CHECKPOINT_FILE, output_file=OUTPUT_FILE, failed_file=FAILED_FILE):
+    """
+    Derives the final output files from the checkpoint.
+
+    Writes ``output_file`` (streets with no imagery) and, if any remain, ``failed_file`` (streets that errored out).
+    The latest outcome per street wins, so a street that failed then succeeded on retry is counted as succeeded.
+    """
+    if os.path.isfile(checkpoint_file):
+        checkpoint = pd.read_csv(checkpoint_file).drop_duplicates('street_edge_id', keep='last')
+    else:
+        # Interrupted before any street completed: still emit an (empty) output file.
+        checkpoint = pd.DataFrame(columns=CHECKPOINT_COLUMNS)
+    _write_ids_csv(checkpoint[checkpoint['outcome'] == NO_IMAGERY], output_file)
+    failed = checkpoint[checkpoint['outcome'] == FAILED]
+    if not failed.empty:
+        _write_ids_csv(failed, failed_file)
+
+
+def _print_progress(position, total):
+    """Prints an in-place progress percentage."""
+    sys.stdout.write("\r%.2f%% complete" % (100 * position / total))
+    sys.stdout.flush()
 
 
 def main(argv=None):
@@ -269,7 +376,7 @@ def main(argv=None):
         argv: Optional argument list (defaults to ``sys.argv``); accepted to make the entrypoint testable.
 
     Returns:
-        Process exit code: 0 on success, 1 on a missing API key or an aborted run.
+        Process exit code: 0 on success, 1 on a missing API key or a user interrupt.
     """
     parser = argparse.ArgumentParser(
         description='Loops through streets, outputting any without imagery to a separate file.')
@@ -290,87 +397,42 @@ def main(argv=None):
     # Read street edge data and interpolate vertices roughly every 15 m so we can sample imagery along each street.
     street_data = pd.read_csv('street_edge_endpoints.csv')
     street_data = street_data.sort_values(by=['region_id', 'street_edge_id'])
-    n_streets = len(street_data)
-    street_data['id'] = range(1, n_streets + 1)
     street_data['geom'] = list(map(lambda g: redistribute_vertices(wkb.loads(g, hex=True)), list(street_data['geom'])))
 
-    streets_with_no_imagery = pd.DataFrame(columns=['street_edge_id', 'region_id'])
-
-    # Resume from a previous run, if any: the last row of the output file marks how far we got.
-    if os.path.isfile(OUTPUT_FILE):
-        streets_with_no_imagery = pd.read_csv(OUTPUT_FILE)
-        progress = streets_with_no_imagery.iloc[-1]['street_edge_id']
-        progress_index = int(street_data[street_data.street_edge_id == progress]['id'].iloc[0])
-        street_data = street_data[street_data.id >= progress_index]
-        streets_with_no_imagery.drop(streets_with_no_imagery.tail(1).index, inplace=True)
-
-    # GSV bakes the search radius into the URL (25 m at endpoints, 15 m along the street); Mapillary uses a bbox instead.
+    # GSV bakes the search radius into the URL (25 m at endpoints, 15 m along the street); Mapillary uses a bbox.
     gsv_base_url = 'https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor&key=' + api_key
     gsv_url = gsv_base_url + '&radius=15'
     gsv_url_endpoint = gsv_base_url + '&radius=25'
     mapillary_url = 'https://graph.mapillary.com/images?is_pano=true&access_token=' + api_key
+    fetch = make_fetch()
 
-    street_data = street_data.set_index('id')
-    for index, street in street_data.iterrows():
-        # Print a progress percentage in place.
-        percent_complete = 100 * round(float(index) / n_streets, 4)
-        sys.stdout.write("\r%.2f%% complete" % percent_complete)
-        sys.stdout.flush()
+    def check(street):
+        return process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url)
 
-        # Any network/parse error while checking this street: save progress (with the current street as the marker) and
-        # stop, so a re-run resumes here. One try/except covers both the endpoint and along-street checks below.
-        try:
-            # Check both endpoints first; if neither has imagery we can flag the street without walking it. We use a 25 m
-            # radius at endpoints to guarantee a place to start. NOTE(#4342): the first Mapillary endpoint uses 25 (km),
-            # a ~1000x-too-large box; it should be 0.025 like the second. Preserved here pending the fix in #4342.
-            if api == 'GSV':
-                first_endpoint_fail = not gsv_has_imagery(
-                    _get_json(gsv_url_endpoint + '&location=' + str(street.y1) + ',' + str(street.x1)))
-                second_endpoint_fail = not gsv_has_imagery(
-                    _get_json(gsv_url_endpoint + '&location=' + str(street.y2) + ',' + str(street.x2)))
-            else:
-                first_endpoint_fail = not mapillary_has_imagery(
-                    _get_json(_mapillary_bbox_url(mapillary_url, street.y1, street.x1, 25)))
-                second_endpoint_fail = not mapillary_has_imagery(
-                    _get_json(_mapillary_bbox_url(mapillary_url, street.y2, street.x2, 0.025)))
+    # Resume: skip streets already settled in the checkpoint; failed/unprocessed streets are (re)checked.
+    processed = load_processed()
+    todo = street_data[~street_data['street_edge_id'].isin(processed)]
+    total = len(todo)
 
-            # No imagery at either endpoint: flag and move on.
-            if first_endpoint_fail and second_endpoint_fail:
-                streets_with_no_imagery = pd.concat([streets_with_no_imagery, _no_imagery_row(street)])
-                continue
+    try:
+        failed_streets = []
+        for position, (_, street) in enumerate(todo.iterrows(), start=1):
+            result = check(street)
+            append_checkpoint(result)
+            if result.outcome == FAILED:
+                failed_streets.append(street)
+            _print_progress(position, total)
 
-            # At least one endpoint had imagery: sample points along the street (15 m radius) to decide whether most of
-            # it is missing imagery. The smaller radius avoids picking up imagery from a nearby street.
-            endpoint_failed = first_endpoint_fail or second_endpoint_fail
-            coords = list(street['geom'].coords)
-            n_coords = len(coords)
-            n_fail = n_success = 0
-            # `no branch`: by the final point the cumulative counts always satisfy a NO_IMAGERY or HAS_IMAGERY threshold
-            # (see imagery_verdict), so this loop always exits via break for any real street (geom has >= 2 points).
-            for coord in coords:  # pragma: no branch
-                lng_pt, lat_pt = coord[0], coord[1]  # Shapely coords are (x=lng, y=lat).
-                has_imagery = _point_has_imagery(api, lat_pt, lng_pt, gsv_url, mapillary_url, 0.015)
-                if has_imagery:
-                    n_success += 1
-                else:
-                    n_fail += 1
+        # Retry the streets that errored once more, since such failures are usually transient.
+        for street in failed_streets:
+            append_checkpoint(check(street))
+    except KeyboardInterrupt:
+        print("\nInterrupted; progress saved to the checkpoint. Re-run to resume.")
+        finalize_outputs()
+        return 1
 
-                verdict = imagery_verdict(n_fail, n_success, n_coords, endpoint_failed)
-                if verdict == NO_IMAGERY:
-                    streets_with_no_imagery = pd.concat([streets_with_no_imagery, _no_imagery_row(street)])
-                    break
-                if verdict == HAS_IMAGERY:
-                    break
-        except (requests.exceptions.RequestException, KeyboardInterrupt):
-            write_output(streets_with_no_imagery, street)
-            return 1
-        except ImageryApiError as err:
-            print(err)
-            write_output(streets_with_no_imagery, street)
-            return 1
-
-    print()  # Stops the overflow on a new line.
-    write_output(streets_with_no_imagery, None)
+    print()  # Finish the in-place progress line.
+    finalize_outputs()
     return 0
 
 

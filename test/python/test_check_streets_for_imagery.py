@@ -1,10 +1,12 @@
 """
 Unit tests for scripts/check_streets_for_imagery.py.
 
-Covers the pure helpers (bounding box, vertex interpolation, response parsers, decision thresholds, CSV writer) and the
-`main` scan end-to-end with the HTTP layer mocked (happy path, no-imagery flagging, resume, and every error path). See
-test/python/README.md.
+Covers the pure helpers (bounding box, vertex interpolation, response parsers, decision thresholds), the retry/fetch and
+per-street worker, the checkpoint/output persistence, and the `main` scan end-to-end with the HTTP layer mocked (happy
+path, no-imagery flagging, resume, fail-soft + retry, and interrupt). See test/python/README.md.
 """
+
+import os
 
 import pandas as pd
 import pytest
@@ -13,6 +15,9 @@ from shapely import wkb
 from shapely.geometry import LineString
 
 import check_streets_for_imagery as cs
+
+_LINE_60 = LineString([(-122.300, 47.60), (-122.299, 47.60)])
+_LINE_61 = LineString([(-122.310, 47.61), (-122.309, 47.61)])
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -23,23 +28,19 @@ def test_create_bounding_box_is_ordered_and_radius_scales():
     west, south, east, north = cs.create_bounding_box(47.6, -122.3, 0.025)
     assert west < east
     assert south < north
-
-    # radius_km is in kilometers, so a 25 km box is ~1000x wider than a 25 m (0.025 km) box. This makes the deferred
-    # endpoint-radius unit bug (issue #4342) self-evident: the first Mapillary endpoint passes 25 instead of 0.025.
+    # radius_km is in kilometers, so a 25 km box is ~1000x wider than a 25 m (0.025 km) box.
     small_width = east - west
     large = cs.create_bounding_box(47.6, -122.3, 25)
     assert (large[2] - large[0]) > small_width * 100
 
 
 def test_redistribute_vertices_short_line_keeps_endpoints():
-    short = LineString([(0, 0), (0, cs.DISTANCE / 2)])
-    assert len(cs.redistribute_vertices(short).coords) >= 2
+    assert len(cs.redistribute_vertices(LineString([(0, 0), (0, cs.DISTANCE / 2)])).coords) >= 2
 
 
 def test_redistribute_vertices_long_line_adds_points_every_distance():
-    long_line = LineString([(0, 0), (0, cs.DISTANCE * 10)])
     # length / DISTANCE = 10 segments -> 11 vertices.
-    assert len(cs.redistribute_vertices(long_line).coords) == 11
+    assert len(cs.redistribute_vertices(LineString([(0, 0), (0, cs.DISTANCE * 10)])).coords) == 11
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -57,7 +58,6 @@ def test_mapillary_has_imagery_data_presence():
 
 
 def test_mapillary_has_imagery_error_code_100_means_plenty():
-    # "Too many images, request a smaller area" -> there is clearly imagery present.
     assert cs.mapillary_has_imagery({'error': {'code': 100, 'message': 'too many'}}) is True
 
 
@@ -71,12 +71,12 @@ def test_mapillary_has_imagery_other_error_raises():
 # --------------------------------------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize('n_fail, n_success, n_coords, endpoint_failed, expected', [
-    (5, 0, 10, False, cs.NO_IMAGERY),               # >= 50% of points missing imagery.
-    (3, 0, 10, True, cs.NO_IMAGERY),                # >= 25% missing AND an endpoint already missing.
-    (3, 0, 10, False, None),                        # 30% missing but no endpoint failure -> undecided.
-    (0, 8, 10, True, cs.HAS_IMAGERY),               # > 75% have imagery.
-    (0, 6, 10, False, cs.HAS_IMAGERY),              # > 50% have imagery AND both endpoints had imagery.
-    (0, 6, 10, True, None),                         # > 50% have imagery but an endpoint failed -> undecided.
+    (5, 0, 10, False, cs.NO_IMAGERY),
+    (3, 0, 10, True, cs.NO_IMAGERY),
+    (3, 0, 10, False, None),
+    (0, 8, 10, True, cs.HAS_IMAGERY),
+    (0, 6, 10, False, cs.HAS_IMAGERY),
+    (0, 6, 10, True, None),
 ])
 def test_imagery_verdict(n_fail, n_success, n_coords, endpoint_failed, expected):
     assert cs.imagery_verdict(n_fail, n_success, n_coords, endpoint_failed) == expected
@@ -99,39 +99,52 @@ def test_street_has_no_imagery_quarter_missing_with_failed_endpoint():
 
 
 def test_street_has_no_imagery_never_settles_returns_false():
-    # No points to check and not both endpoints failing -> never settles -> defaults to "has imagery".
     assert cs.street_has_no_imagery(False, False, []) is False
 
 
-# --------------------------------------------------------------------------------------------------------------------
-# write_output
-# --------------------------------------------------------------------------------------------------------------------
+def test_street_has_no_imagery_lazy_iterable_stops_early():
+    fetched = []
 
-def test_write_output_coerces_ids_to_int(tmp_path):
-    out = tmp_path / 'no_imagery.csv'
-    df = pd.DataFrame({'street_edge_id': [1.0, 2.0], 'region_id': [10.0, 20.0]})
+    def lazy_points():
+        for value in [False, False, False, False, False]:
+            fetched.append(value)
+            yield value
 
-    cs.write_output(df, None, output_file=str(out))
-
-    written = pd.read_csv(out)
-    assert written['street_edge_id'].tolist() == [1, 2]
-    assert written['region_id'].tolist() == [10, 20]
-    assert written['street_edge_id'].dtype.kind == 'i'
-
-
-def test_write_output_appends_progress_marker(tmp_path):
-    out = tmp_path / 'no_imagery.csv'
-    df = pd.DataFrame({'street_edge_id': [1.0], 'region_id': [10.0]})
-    street = pd.Series({'street_edge_id': 3, 'region_id': 30})
-
-    cs.write_output(df, street, output_file=str(out))
-
-    assert pd.read_csv(out)['street_edge_id'].tolist() == [1, 3]
+    # 5 points, both endpoints ok, all missing -> NO_IMAGERY once n_fail >= 0.5*5 = 2.5 (at the 3rd point).
+    assert cs.street_has_no_imagery(False, False, lazy_points(), n_coords=5) is True
+    assert len(fetched) == 3  # stopped consuming (and fetching) early
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# small I/O helpers
+# make_fetch (retry)
 # --------------------------------------------------------------------------------------------------------------------
+
+def test_make_fetch_retries_then_succeeds(monkeypatch):
+    calls = {'n': 0}
+
+    def flaky(url):
+        calls['n'] += 1
+        if calls['n'] < 2:
+            raise requests.exceptions.ConnectionError('transient')
+        return {'ok': True}
+
+    monkeypatch.setattr(cs, '_get_json', flaky)
+    sleeps = []
+    fetch = cs.make_fetch(max_attempts=3, sleep=sleeps.append)
+    assert fetch('http://x') == {'ok': True}
+    assert calls['n'] == 2
+    assert len(sleeps) == 1  # slept once between the two attempts
+
+
+def test_make_fetch_reraises_after_max_attempts(monkeypatch):
+    def always_fail(url):
+        raise requests.exceptions.ConnectionError('down')
+
+    monkeypatch.setattr(cs, '_get_json', always_fail)
+    fetch = cs.make_fetch(max_attempts=2, sleep=lambda _seconds: None)
+    with pytest.raises(requests.exceptions.RequestException):
+        fetch('http://x')
+
 
 def test_get_json(monkeypatch):
     class _Resp:
@@ -148,14 +161,131 @@ def test_mapillary_bbox_url_appends_four_coords():
     assert len(url.split('&bbox=')[1].split(',')) == 4
 
 
-def test_point_has_imagery_gsv(monkeypatch):
-    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'OK'})
-    assert cs._point_has_imagery('GSV', 47.6, -122.3, 'gsv', 'map', 0.015) is True
+# --------------------------------------------------------------------------------------------------------------------
+# process_street (fetch stubbed directly, no network)
+# --------------------------------------------------------------------------------------------------------------------
+
+def _street(line, street_edge_id=100, region_id=1):
+    x1, y1 = line.coords[0]
+    x2, y2 = line.coords[-1]
+    return pd.Series({'street_edge_id': street_edge_id, 'region_id': region_id,
+                      'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'geom': line})
 
 
-def test_point_has_imagery_mapillary(monkeypatch):
-    monkeypatch.setattr(cs, '_get_json', lambda url: {'data': []})
-    assert cs._point_has_imagery('Mapillary', 47.6, -122.3, 'gsv', 'map', 0.015) is False
+def _run_process(line, api, fetch):
+    return cs.process_street(_street(line), api, fetch, 'gsv&radius=15', 'gsv&radius=25', 'mapillary')
+
+
+def test_process_street_gsv_no_imagery():
+    result = _run_process(_LINE_60, 'GSV', lambda url: {'status': 'ZERO_RESULTS'})
+    assert result == cs.StreetResult(100, 1, cs.NO_IMAGERY)
+
+
+def test_process_street_gsv_has_imagery():
+    assert _run_process(_LINE_60, 'GSV', lambda url: {'status': 'OK'}).outcome == cs.HAS_IMAGERY
+
+
+def test_process_street_gsv_points_missing_imagery():
+    # Endpoints (radius=25) have imagery; along-street points (radius=15) do not.
+    fetch = lambda url: {'status': 'OK'} if 'radius=25' in url else {'status': 'ZERO_RESULTS'}
+    assert _run_process(_LINE_60, 'GSV', fetch).outcome == cs.NO_IMAGERY
+
+
+def test_process_street_mapillary_has_imagery():
+    assert _run_process(_LINE_60, 'Mapillary', lambda url: {'data': [{'id': 1}]}).outcome == cs.HAS_IMAGERY
+
+
+def test_process_street_mapillary_no_imagery():
+    assert _run_process(_LINE_60, 'Mapillary', lambda url: {'data': []}).outcome == cs.NO_IMAGERY
+
+
+def test_process_street_request_error_is_failed():
+    def boom(url):
+        raise requests.exceptions.ConnectionError('down')
+
+    assert _run_process(_LINE_60, 'GSV', boom).outcome == cs.FAILED
+
+
+def test_process_street_api_error_is_failed():
+    assert _run_process(_LINE_60, 'Mapillary',
+                        lambda url: {'error': {'code': 400, 'message': 'bad'}}).outcome == cs.FAILED
+
+
+def test_process_street_point_error_is_failed():
+    # Endpoints OK, but a point fetch raises mid-walk -> the whole street is FAILED.
+    def fetch(url):
+        if 'radius=25' in url:
+            return {'status': 'OK'}
+        raise requests.exceptions.ConnectionError('down')
+
+    assert _run_process(_LINE_60, 'GSV', fetch).outcome == cs.FAILED
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# persistence: load_processed / append_checkpoint / _write_ids_csv / finalize_outputs / _print_progress
+# --------------------------------------------------------------------------------------------------------------------
+
+def test_load_processed_no_file(tmp_path):
+    assert cs.load_processed(str(tmp_path / 'missing.csv')) == set()
+
+
+def test_load_processed_excludes_failed(tmp_path):
+    checkpoint = tmp_path / 'cp.csv'
+    pd.DataFrame({'street_edge_id': [1, 2, 3], 'region_id': [1, 1, 1],
+                  'outcome': [cs.NO_IMAGERY, cs.HAS_IMAGERY, cs.FAILED]}).to_csv(checkpoint, index=False)
+    assert cs.load_processed(str(checkpoint)) == {1, 2}
+
+
+def test_append_checkpoint_writes_header_then_appends(tmp_path):
+    checkpoint = str(tmp_path / 'cp.csv')
+    cs.append_checkpoint(cs.StreetResult(1, 10, cs.NO_IMAGERY), checkpoint)
+    cs.append_checkpoint(cs.StreetResult(2, 20, cs.HAS_IMAGERY), checkpoint)
+    written = pd.read_csv(checkpoint)
+    assert list(written.columns) == cs.CHECKPOINT_COLUMNS
+    assert written['street_edge_id'].tolist() == [1, 2]
+    assert written['outcome'].tolist() == [cs.NO_IMAGERY, cs.HAS_IMAGERY]
+
+
+def test_write_ids_csv_coerces_to_int(tmp_path):
+    out = tmp_path / 'ids.csv'
+    cs._write_ids_csv(pd.DataFrame({'street_edge_id': [1.0, 2.0], 'region_id': [10.0, 20.0]}), str(out))
+    written = pd.read_csv(out)
+    assert written['street_edge_id'].tolist() == [1, 2]
+    assert written['street_edge_id'].dtype.kind == 'i'
+
+
+def test_finalize_outputs_dedups_keep_last_and_no_failures(tmp_path):
+    checkpoint = str(tmp_path / 'cp.csv')
+    output = str(tmp_path / 'out.csv')
+    failed = str(tmp_path / 'failed.csv')
+    # Street 3 failed, then succeeded as no_imagery on retry -> keep the later outcome.
+    pd.DataFrame({'street_edge_id': [1, 2, 3, 3], 'region_id': [1, 1, 1, 1],
+                  'outcome': [cs.NO_IMAGERY, cs.HAS_IMAGERY, cs.FAILED, cs.NO_IMAGERY]}).to_csv(checkpoint, index=False)
+    cs.finalize_outputs(checkpoint, output, failed)
+    assert pd.read_csv(output)['street_edge_id'].tolist() == [1, 3]
+    assert not os.path.exists(failed)
+
+
+def test_finalize_outputs_writes_failed_file(tmp_path):
+    checkpoint = str(tmp_path / 'cp.csv')
+    output = str(tmp_path / 'out.csv')
+    failed = str(tmp_path / 'failed.csv')
+    pd.DataFrame({'street_edge_id': [1, 2], 'region_id': [1, 1],
+                  'outcome': [cs.NO_IMAGERY, cs.FAILED]}).to_csv(checkpoint, index=False)
+    cs.finalize_outputs(checkpoint, output, failed)
+    assert pd.read_csv(output)['street_edge_id'].tolist() == [1]
+    assert pd.read_csv(failed)['street_edge_id'].tolist() == [2]
+
+
+def test_finalize_outputs_without_checkpoint_writes_empty(tmp_path):
+    output = str(tmp_path / 'out.csv')
+    cs.finalize_outputs(str(tmp_path / 'missing.csv'), output, str(tmp_path / 'failed.csv'))
+    assert pd.read_csv(output).empty
+
+
+def test_print_progress(capsys):
+    cs._print_progress(1, 4)
+    assert '25.00% complete' in capsys.readouterr().out
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -163,7 +293,6 @@ def test_point_has_imagery_mapillary(monkeypatch):
 # --------------------------------------------------------------------------------------------------------------------
 
 def _write_street_csv(directory, streets):
-    """Write a street_edge_endpoints.csv (street_edge_id, region_id, x1, y1, x2, y2, geom-as-WKB-hex) for `streets`."""
     rows = []
     for street_edge_id, region_id, line in streets:
         x1, y1 = line.coords[0]
@@ -173,16 +302,15 @@ def _write_street_csv(directory, streets):
     pd.DataFrame(rows).to_csv(directory / 'street_edge_endpoints.csv', index=False)
 
 
-def _setup_gsv_run(monkeypatch, tmp_path, streets):
-    """Place the input CSV + db/ dir, chdir into tmp, and set the GSV key. Caller patches cs._get_json."""
+def _setup(monkeypatch, tmp_path, streets, env_var='GOOGLE_MAPS_API_KEY'):
     _write_street_csv(tmp_path, streets)
     (tmp_path / 'db').mkdir()
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv('GOOGLE_MAPS_API_KEY', 'dummy')
+    monkeypatch.setenv(env_var, 'dummy')
 
 
-_LINE_100 = LineString([(-122.300, 47.600), (-122.299, 47.600)])
-_LINE_200 = LineString([(-122.310, 47.610), (-122.309, 47.610)])
+def _output(tmp_path):
+    return pd.read_csv(tmp_path / cs.OUTPUT_FILE)
 
 
 def test_main_requires_a_provider_flag():
@@ -200,73 +328,52 @@ def test_main_missing_api_key_returns_1(monkeypatch):
     assert cs.main(['--gsv']) == 1
 
 
-def test_main_flags_street_with_no_endpoint_imagery(monkeypatch, tmp_path):
-    _setup_gsv_run(monkeypatch, tmp_path, [(100, 1, _LINE_100)])
-    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})  # nothing has imagery
-
-    assert cs.main(['--gsv']) == 0
-    assert pd.read_csv(tmp_path / 'db' / 'streets_with_no_imagery.csv')['street_edge_id'].tolist() == [100]
-
-
-def test_main_does_not_flag_street_with_imagery(monkeypatch, tmp_path):
-    _setup_gsv_run(monkeypatch, tmp_path, [(100, 1, _LINE_100)])
-    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'OK'})  # imagery everywhere
-
-    assert cs.main(['--gsv']) == 0
-    assert pd.read_csv(tmp_path / 'db' / 'streets_with_no_imagery.csv').empty
-
-
-def test_main_flags_street_when_along_street_points_lack_imagery(monkeypatch, tmp_path):
-    _setup_gsv_run(monkeypatch, tmp_path, [(100, 1, _LINE_100)])
-    # Endpoints (radius=25) have imagery, but the points along the street (radius=15) do not.
+def test_main_happy_mixed_outcomes(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61)])
+    # Street 200 (lat 47.61) has imagery everywhere; street 100 (lat 47.6) has none.
     monkeypatch.setattr(cs, '_get_json',
-                        lambda url: {'status': 'OK'} if 'radius=25' in url else {'status': 'ZERO_RESULTS'})
-
+                        lambda url: {'status': 'OK'} if '47.61' in url else {'status': 'ZERO_RESULTS'})
     assert cs.main(['--gsv']) == 0
-    assert pd.read_csv(tmp_path / 'db' / 'streets_with_no_imagery.csv')['street_edge_id'].tolist() == [100]
+    assert _output(tmp_path)['street_edge_id'].tolist() == [100]
 
 
-def test_main_resumes_from_existing_output(monkeypatch, tmp_path):
-    _setup_gsv_run(monkeypatch, tmp_path, [(100, 1, _LINE_100), (200, 1, _LINE_200)])
-    # A prior run got as far as street 200 (the last row is the progress marker), so 100 must be skipped on resume.
-    pd.DataFrame({'street_edge_id': [200], 'region_id': [1]}).to_csv(
-        tmp_path / 'db' / 'streets_with_no_imagery.csv', index=False)
+def test_main_resumes_from_checkpoint(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61)])
+    pd.DataFrame({'street_edge_id': [100], 'region_id': [1], 'outcome': [cs.HAS_IMAGERY]}).to_csv(
+        tmp_path / cs.CHECKPOINT_FILE, index=False)
     monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})
-
     assert cs.main(['--gsv']) == 0
-    # Only street 200 was (re)processed; 100 was skipped, so it is absent from the output.
-    assert pd.read_csv(tmp_path / 'db' / 'streets_with_no_imagery.csv')['street_edge_id'].tolist() == [200]
+    # 100 was already settled (has imagery) and skipped; only 200 was processed -> flagged.
+    assert _output(tmp_path)['street_edge_id'].tolist() == [200]
 
 
-def test_main_writes_progress_and_returns_1_on_request_error(monkeypatch, tmp_path):
-    _setup_gsv_run(monkeypatch, tmp_path, [(100, 1, _LINE_100)])
+def test_main_fail_soft_records_failed_streets(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)])
+    monkeypatch.setattr(cs.time, 'sleep', lambda *_a: None)  # neutralize backoff waits
 
-    def _boom(url):
-        raise requests.exceptions.RequestException('connection reset')
+    def boom(url):
+        raise requests.exceptions.ConnectionError('down')
 
-    monkeypatch.setattr(cs, '_get_json', _boom)
+    monkeypatch.setattr(cs, '_get_json', boom)
+    assert cs.main(['--gsv']) == 0  # the scan completes despite the failure
+    assert _output(tmp_path).empty
+    assert pd.read_csv(tmp_path / cs.FAILED_FILE)['street_edge_id'].tolist() == [100]
 
-    assert cs.main(['--gsv']) == 1
-    # The interrupted street is saved as the progress marker so a re-run resumes from it.
-    assert 100 in pd.read_csv(tmp_path / 'db' / 'streets_with_no_imagery.csv')['street_edge_id'].tolist()
 
-
-def test_main_mapillary_does_not_flag_street_with_imagery(monkeypatch, tmp_path):
-    _write_street_csv(tmp_path, [(100, 1, _LINE_100)])
-    (tmp_path / 'db').mkdir()
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv('MAPILLARY_ACCESS_TOKEN', 'dummy')
-    monkeypatch.setattr(cs, '_get_json', lambda url: {'data': [{'id': 1}]})  # imagery everywhere
-
+def test_main_mapillary_branch(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)], env_var='MAPILLARY_ACCESS_TOKEN')
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'data': []})  # no imagery
     assert cs.main(['--mapillary']) == 0
-    assert pd.read_csv(tmp_path / 'db' / 'streets_with_no_imagery.csv').empty
+    assert _output(tmp_path)['street_edge_id'].tolist() == [100]
 
 
-def test_main_returns_1_on_unexpected_mapillary_error(monkeypatch, tmp_path):
-    _write_street_csv(tmp_path, [(100, 1, _LINE_100)])
-    (tmp_path / 'db').mkdir()
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv('MAPILLARY_ACCESS_TOKEN', 'dummy')
-    monkeypatch.setattr(cs, '_get_json', lambda url: {'error': {'code': 400, 'message': 'bad request'}})
+def test_main_keyboard_interrupt_finalizes_and_returns_1(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)])
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'OK'})
 
-    assert cs.main(['--mapillary']) == 1
+    def interrupt(*_args, **_kwargs):
+        raise KeyboardInterrupt()
+
+    monkeypatch.setattr(cs, 'process_street', interrupt)
+    assert cs.main(['--gsv']) == 1
+    assert _output(tmp_path).empty  # finalize still ran, producing an (empty) output file

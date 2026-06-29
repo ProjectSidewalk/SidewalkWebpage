@@ -39,17 +39,21 @@ manual — nothing in the app calls it.
    python3 scripts/check_streets_for_imagery.py --mapillary   # needs MAPILLARY_ACCESS_TOKEN
    ```
    It checks each street's endpoints first, then samples points along the street, and flags streets where enough points
-   lack imagery. It writes results to `db/streets_with_no_imagery.csv` and is **resumable** (re-running continues from
-   the last row of that file).
+   lack imagery. It writes results to `db/streets_with_no_imagery.csv`.
 3. Run `make hide-streets-without-imagery` to mark those streets in the database.
 
-### Known bugs (tracked in issue #4342)
+### Resilience & resume
 
-Two bugs are documented but intentionally left for a separate fix so the quality refactor stayed behavior-preserving:
+The scan is built to survive a flaky network over a long run:
 
-- The **first Mapillary endpoint** is checked with a 25 km bounding box instead of 25 m (the second endpoint correctly
-  uses 25 m). This over-large box can falsely report imagery present.
-- `write_output` contains a no-op bare `print` (should be `print()`), so an intended progress newline is dropped.
+- **Retry:** each request is retried with exponential backoff + jitter (`tenacity`) before giving up.
+- **Fail-soft:** a street that still errors is logged and the scan **continues** (it no longer aborts the whole run);
+  the failed set is retried once at the end, and any still-failing streets are written to `db/failed_streets.csv`.
+- **Resume:** progress is checkpointed per street to `db/streets_imagery_checkpoint.csv`, so a re-run resumes where it
+  left off and re-attempts only failed/unprocessed streets. The final `db/streets_with_no_imagery.csv` is derived from
+  the checkpoint at the end — its schema is unchanged, so `make hide-streets-without-imagery` is unaffected.
+
+(The earlier bbox-radius unit bug and the no-op `print` — issue #4342 — are fixed as part of this.)
 
 ## Testing
 
