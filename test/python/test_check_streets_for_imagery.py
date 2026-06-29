@@ -261,7 +261,7 @@ def test_process_street_point_error_is_failed():
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# persistence: load_processed / append_checkpoint / _write_ids_csv / finalize_outputs / _print_progress
+# persistence: load_processed / append_checkpoint / _write_ids_csv / finalize_outputs
 # --------------------------------------------------------------------------------------------------------------------
 
 def test_load_processed_no_file(tmp_path):
@@ -320,11 +320,6 @@ def test_finalize_outputs_without_checkpoint_writes_empty(tmp_path):
     output = str(tmp_path / 'out.csv')
     cs.finalize_outputs(str(tmp_path / 'missing.csv'), output, str(tmp_path / 'failed.csv'))
     assert pd.read_csv(output).empty
-
-
-def test_print_progress(capsys):
-    cs._print_progress(1, 4)
-    assert '25.00% complete' in capsys.readouterr().out
 
 
 # --------------------------------------------------------------------------------------------------------------------

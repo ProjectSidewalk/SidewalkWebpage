@@ -63,6 +63,7 @@ from geopy import Point
 from geopy.distance import geodesic
 from shapely import wkb
 from shapely.geometry import LineString
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -425,12 +426,6 @@ def finalize_outputs(checkpoint_file=CHECKPOINT_FILE, output_file=OUTPUT_FILE, f
         _write_ids_csv(failed, failed_file)
 
 
-def _print_progress(position, total):
-    """Prints an in-place progress percentage."""
-    sys.stdout.write("\r%.2f%% complete" % (100 * position / total))
-    sys.stdout.flush()
-
-
 def main(argv=None):
     """
     Parses arguments and scans every street for imagery, writing those without it to ``OUTPUT_FILE``.
@@ -493,10 +488,13 @@ def main(argv=None):
         with ThreadPoolExecutor(max_workers=args.workers) as executor:
             futures = {executor.submit(check_and_record, street): street for _, street in todo.iterrows()}
             failed_streets = []
-            for position, future in enumerate(as_completed(futures), start=1):
+            # disable=None makes tqdm auto-suppress when stderr isn't a TTY, so redirected/CI logs get clean output
+            # instead of carriage-return spam.
+            progress = tqdm(as_completed(futures), total=total, desc='Checking %s imagery' % api,
+                            unit='street', disable=None)
+            for future in progress:
                 if future.result().outcome == FAILED:
                     failed_streets.append(futures[future])
-                _print_progress(position, total)
 
             # Retry the streets that errored once more, since such failures are usually transient.
             for future in as_completed({executor.submit(check_and_record, s): s for s in failed_streets}):
@@ -506,7 +504,6 @@ def main(argv=None):
         finalize_outputs()
         return 1
 
-    print()  # Finish the in-place progress line.
     finalize_outputs()
     return 0
 
