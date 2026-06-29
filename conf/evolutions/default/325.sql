@@ -1,7 +1,7 @@
 # --- !Ups
 -- Replace the overloaded boolean street_edge.deleted with a first-class status enum (#3888). The old flag conflated
 -- several unrelated things: no imagery, manually disabled (e.g. OSM miscategorization), and "region not opened yet".
--- The new status makes each of those explicit. region.deleted is kept; street status 'closed' mirrors it and is the
+-- The new status makes each of those explicit. region.deleted is kept, and street status 'closed' mirrors it as the
 -- authoritative per-street availability flag (so we can also mark individual streets closed during partial reveals).
 CREATE TYPE street_edge_status AS ENUM ('open', 'no_imagery', 'closed', 'disabled');
 
@@ -11,7 +11,7 @@ ALTER TABLE street_edge ALTER COLUMN status DROP DEFAULT;
 -- Backfill from the overloaded flag joined to region state (per #3888 discussion with @misaugstad):
 --   deleted = FALSE                       -> 'open'
 --   deleted = TRUE, region closed/deleted -> 'closed'      (the whole neighborhood is hidden)
---   deleted = TRUE, region open           -> 'no_imagery'  (true for nearly all of these; a small number are actually
+--   deleted = TRUE, region open           -> 'no_imagery'  (true for nearly all of these, though a small number are
 --                                                            miscategorizations that an admin can later flip to 'disabled')
 UPDATE street_edge
 SET status = (CASE
