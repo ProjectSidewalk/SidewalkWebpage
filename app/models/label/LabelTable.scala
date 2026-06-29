@@ -1703,7 +1703,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         CROSS JOIN LATERAL (
           SELECT street_edge_id
           FROM street_edge
-          WHERE deleted = FALSE
+          WHERE status = 'open'
           ORDER BY geom <-> point_data.geom
           LIMIT 1
         ) closest_street
