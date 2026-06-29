@@ -3,6 +3,7 @@ name: CI
 #   - backend:       `sbt compile` (BLOCKING) + `scalafmtCheckAll` (advisory)
 #   - frontend:      asset build (grunt)
 #   - backend-tests: DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now).
+#   - python-tests:  pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now).
 # Frontend linting (eslint/htmlhint/stylelint) is intentionally NOT wired in here: it is owned by issue #2487 and
 # sequenced with the in-progress JS ES5->ES6 migration, so it'll be introduced separately on that track.
 
@@ -146,3 +147,25 @@ jobs:
           INFRA3D_CLIENT_SECRET_WINTERTHUR: DUMMY_INFRA3D_CLIENT_SECRET
           ENV_TYPE: local
           SIDEWALK_IMAGES_DIR: .crops
+
+  python-tests:
+    name: Python tests (scripts)
+    runs-on: ubuntu-latest
+    # ADVISORY while the suite is young (plan: ramp to blocking once stable). Does not block PRs yet.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      # Match the web container's interpreter (Dockerfile base eclipse-temurin:17-jdk-focal ships Python 3.8). 3.8 is
+      # EOL; bumping the container's Python is tracked separately and intentionally out of scope here.
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+
+      # The pure-logic unit tests need no DB and no network, only the scripts' runtime deps plus pytest.
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run pytest
+        run: pytest test/python

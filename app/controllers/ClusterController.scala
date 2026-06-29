@@ -125,7 +125,7 @@ class ClusterController @Inject() (
 
         // Run the clustering script for this region.
         val clusteringOutput =
-          Seq("/usr/bin/python3", "label_clustering.py", "--key", key, "--region_id", regionId.toString).!!
+          Seq("/usr/bin/python3", "scripts/label_clustering.py", "--key", key, "--region_id", regionId.toString).!!
         logger.debug(clusteringOutput)
       }
       logger.info("Finished 100% of regions!!\n\n")

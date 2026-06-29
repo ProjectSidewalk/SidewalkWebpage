@@ -25,10 +25,12 @@ WORKDIR /home
 
 COPY package.json ./
 COPY requirements.txt ./
+COPY requirements-dev.txt ./
 
-# Python3 dependencies.
+# Python3 dependencies. requirements.txt holds the scripts' runtime deps; requirements-dev.txt adds pytest so the
+# Python utility test suite (test/python/) can run inside the container via `make test-python`.
 RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install -r requirements.txt
+RUN python3 -m pip install -r requirements.txt -r requirements-dev.txt
 RUN python3 -m pip install --upgrade setuptools
 
 RUN npm install

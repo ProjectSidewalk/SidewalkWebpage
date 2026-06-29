@@ -32,7 +32,7 @@ Play backend ── routes → Controller → Service → Table (DAO/Slick)
         ▼
 External imagery providers (Google Street View / Mapillary / Infra3d / Pannellum)
 
-Out-of-band Python utilities: label_clustering.py, check_streets_for_imagery.py
+Out-of-band Python utilities: scripts/label_clustering.py, scripts/check_streets_for_imagery.py
 ```
 
 ## Backend
@@ -127,11 +127,14 @@ Supported languages: en, es, de, nl, zh-TW, pt-BR, plus regional English variant
 
 ## Python utilities
 
-Two standalone scripts (run out-of-band, not from the web app):
+Two standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
 
-- `label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterController` /
+- `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterController` /
   `app/models/cluster/`).
-- `check_streets_for_imagery.py` — checks streets for available street-view imagery.
+- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery.
+
+Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, advisory in CI). See
+[`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## Label types
 

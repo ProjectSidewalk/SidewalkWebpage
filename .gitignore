@@ -113,7 +113,12 @@ nohup.out
 db/dump
 
 # Python
-scripts/__pycache__
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
 
 # Local images.
 .panos/
