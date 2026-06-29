@@ -141,8 +141,23 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
    before/after screenshots for UI, testing instructions, translations, and logging updates. Link the issue
    (`Resolves #474`).
 4. **Keep PRs small** and scoped to one issue.
-5. A maintainer (usually Mikey) will review. Address feedback in follow-up commits, then leave a comment letting us
-   know it's ready for another look. Once approved, we merge to `develop` (and eventually `master`).
+5. A maintainer (usually Mikey) reviews external contributions; core maintainers may self-merge their own work.
+   Address feedback in follow-up commits, then leave a comment letting us know it's ready for another look. Once the
+   required checks are green, merge to `develop` (and eventually `master`).
+
+### Merge requirements (branch protection)
+
+`develop` is branch-protected so a red build can't land (the failure mode that once shipped a migration that wouldn't
+apply). A PR can only merge once the **blocking CI checks pass** — currently **`Backend (compile + scalafmt)`** and
+**`Frontend (build)`** (the **`Evolutions lint`** check is being added to this set). The rule:
+
+- **Applies to everyone, maintainers included** — there is no admin bypass; it only ever stops a merge while CI is red.
+- **Does not require review approvals.** Tooling won't force a second person to sign off, so you can still open and
+  merge your own PR. Review is by convention (and expected for external contributions), not enforced by a gate.
+- **Advisory jobs never block.** The DB-backed API tests and Python tests report status but are not required checks
+  while they stabilize.
+
+Full gating policy and rationale: [`docs/testing-and-ci.md`](docs/testing-and-ci.md).
 
 ## Where documentation lives
 

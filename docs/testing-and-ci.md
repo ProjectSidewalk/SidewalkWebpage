@@ -80,6 +80,8 @@ Parallel jobs:
 
 **PR** runs fast feedback (compile, unit, build); **main/push** adds coverage; **E2E** is a separate **nightly/advisory** workflow. **Gating policy:** `sbt compile` blocking from day one; **scalafmt advisory** (`scalafmtCheckAll` via `continue-on-error`, no reformat pass yet); frontend lint deferred to #2487 (its own advisory→blocking ramp there); test phases advisory ~1 week then blocking on PR; **E2E always advisory**.
 
+**Branch protection (`develop`, set 2026-06-29).** The deterministic jobs are wired as **required status checks** so a red build can't merge (the failure that shipped the broken evolution 325): **`Backend (compile + scalafmt)`** and **`Frontend (build)`** today, with **`Evolutions lint`** to be added once it's on `develop` and the open PRs pick it up (a required check a PR doesn't *produce* blocks it forever, so it's added only after in-flight branches include the job). Settings: `enforce_admins=true` (no admin bypass — it only ever blocks a *red* merge), **no required reviews** (maintainers self-merge; review stays a convention, not a gate — see [`CONTRIBUTING.md`](../CONTRIBUTING.md)), `strict=false` (no "branch up to date" churn). The **advisory** jobs (`Backend tests (API, PostGIS)`, `Python tests`) are deliberately **not** required while they stabilize. Repo **auto-merge** is enabled (opt-in per PR: queue a merge that fires when checks pass; merges nothing on its own).
+
 **Dependency automation:** **Scala Steward** (GitHub Action) for sbt deps — Dependabot has no native sbt updater — plus **`.github/dependabot.yml`** for `npm`, `github-actions`, and `docker` (covers the open Dependabot alerts), weekly, grouped.
 
 ## Phased rollout (each phase independently mergeable)
