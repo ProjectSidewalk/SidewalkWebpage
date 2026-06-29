@@ -29,6 +29,21 @@ The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_ha
 ``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin wrappers and ``main``.
 
 The paths above are resolved relative to the current working directory, so always run from the repo root.
+
+Design lineage
+--------------
+The resilience and concurrency here are adapted from Jon Froehlich's GSV Tracker (https://github.com/jonfroehlich/
+gsv-tracker) — specifically its retry-with-backoff, fail-soft "log-and-continue", resumable progress, and rate-aware
+concurrent fetching. We deliberately differ from it in three ways, because the two tools answer different questions:
+
+  * Sampling: GSV Tracker samples a uniform geographic *grid* (it measures area-wide coverage and temporal patterns).
+    We instead follow each street's geometry with early-exit, because our question is per-street ("does this
+    ``street_edge`` have usable imagery?"). Street-following is more targeted and makes far fewer API calls than gridding
+    a whole city, and it attributes results directly to a ``street_edge`` instead of needing a spatial join.
+  * Concurrency: GSV Tracker uses asyncio/aiohttp tuned for maximum throughput (toward Google's ~500 req/s ceiling). We
+    use a small thread pool plus a conservative token-bucket QPS cap, deliberately staying well under the limit; at that
+    bounded concurrency, threads are simpler and sufficient, and async's scale advantage would be wasted.
+  * Providers: we support GSV *and* Mapillary (Project Sidewalk uses both); GSV Tracker is GSV-only.
 """
 
 import argparse
@@ -281,6 +296,8 @@ def make_fetch(max_attempts=MAX_ATTEMPTS, sleep=None, rate_limiter=None):
     """
     Builds a ``fetch(url) -> json`` that retries transient network errors with exponential backoff + jitter.
 
+    The retry/backoff approach is adapted from GSV Tracker (see the module "Design lineage" note).
+
     Args:
         max_attempts: Attempts before giving up (then the underlying ``requests`` error is re-raised).
         sleep:        Sleep function between retries; defaults to ``time.sleep`` (injectable so tests run instantly).
@@ -470,8 +487,10 @@ def main(argv=None):
     total = len(todo)
 
     try:
+        # Threads (not asyncio) with a global QPS cap: a deliberately conservative take on GSV Tracker's concurrent
+        # fetching (see the module "Design lineage" note). Parallelize across streets; each worker keeps the sequential
+        # endpoint->points early-exit internally.
         with ThreadPoolExecutor(max_workers=args.workers) as executor:
-            # Parallelize across streets; each worker keeps the sequential endpoint->points early-exit internally.
             futures = {executor.submit(check_and_record, street): street for _, street in todo.iterrows()}
             failed_streets = []
             for position, future in enumerate(as_completed(futures), start=1):

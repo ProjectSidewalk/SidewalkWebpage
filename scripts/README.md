@@ -61,6 +61,24 @@ The scan is built to survive a flaky network over a long run, and to scan a whol
 
 (The earlier bbox-radius unit bug and the no-op `print` — issue #4342 — are fixed as part of this.)
 
+### Design lineage (and why it differs from GSV Tracker)
+
+The resilience and concurrency above are adapted from Jon Froehlich's [GSV Tracker](https://github.com/jonfroehlich/gsv-tracker)
+— its retry/backoff, fail-soft "log-and-continue", resumable progress, and rate-aware concurrent fetching. We diverge
+from it on purpose, because the two tools answer different questions:
+
+- **Sampling — street-following, not a grid.** GSV Tracker samples a uniform geographic *grid* to measure area-wide
+  coverage and *temporal* patterns. Here the question is per-street ("does this `street_edge` have usable imagery?"), so
+  we follow each street's geometry with early-exit: far fewer API calls than gridding a whole city, and results map
+  directly to a `street_edge` (no spatial join).
+- **Concurrency — conservative threads, not async.** GSV Tracker uses `asyncio`/`aiohttp` tuned for maximum throughput
+  (toward Google's ~500 req/s ceiling). We use a small thread pool + a token-bucket QPS cap and deliberately stay well
+  under the limit; at that bounded concurrency, threads are simpler and sufficient and async's scale benefit is wasted.
+- **Providers — GSV *and* Mapillary.** GSV Tracker is GSV-only.
+
+A natural future step (issue #4347) is to also capture the imagery *capture date* from the same GSV responses — exactly
+the temporal angle GSV Tracker specializes in — to know not just whether a street has imagery but how old it is.
+
 ## Testing
 
 ```bash
