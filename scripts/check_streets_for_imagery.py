@@ -11,12 +11,17 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
          python3 scripts/check_streets_for_imagery.py --mapillary
 
      ``--gsv`` needs ``GOOGLE_MAPS_API_KEY``; ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``.
-  3. It writes streets without imagery to ``db/streets_with_no_imagery.csv``.
+  3. It writes streets without imagery to ``db/streets_with_no_imagery.csv``, and a per-street imagery summary
+     (presence + capture-date range) to ``db/street_imagery_summary.csv``.
   4. Run ``make hide-streets-without-imagery`` to mark those streets in the database.
 
 For each street it first checks both endpoints; if neither has imagery the street is flagged immediately. Otherwise it
 walks points along the street (added roughly every 15 m) and flags the street once enough points lack imagery (see
 ``imagery_verdict`` for the exact thresholds).
+
+Imagery age: the GSV responses we already fetch also carry a capture ``date``, so for no extra API calls we record each
+street's imagery capture-date range (oldest/newest) into the summary file — telling us not just whether a street has
+imagery but how old it is. (Mapillary capture dates are a future enhancement; GSV only for now.)
 
 Resilience (so a long scan survives a flaky network): each request is retried with exponential backoff; a street that
 still fails is logged and the scan continues rather than aborting, and the failed set is retried once at the end (any
@@ -25,8 +30,9 @@ still-failing streets land in ``db/failed_streets.csv``). Progress is checkpoint
 streets. The final ``db/streets_with_no_imagery.csv`` is derived from the checkpoint, so its schema is unchanged.
 
 The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_has_imagery``, ``mapillary_has_imagery``,
-``imagery_verdict``, ``street_has_no_imagery``) are import-safe and unit-tested in
-``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin wrappers and ``main``.
+``standardize_capture_date``, ``gsv_capture_date``, ``imagery_verdict``, ``street_has_no_imagery``, ``summarize_dates``)
+are import-safe and unit-tested in ``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin
+wrappers and ``main``.
 
 The paths above are resolved relative to the current working directory, so always run from the repo root.
 
@@ -55,6 +61,7 @@ import threading
 import time
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 
 import pandas as pd
 import requests
@@ -68,7 +75,9 @@ logger = logging.getLogger(__name__)
 
 # Final output of streets found to be missing imagery (consumed by `make hide-streets-without-imagery`).
 OUTPUT_FILE = 'db/streets_with_no_imagery.csv'
-# Per-street progress log (street_edge_id, region_id, outcome); enables crash-safe resume.
+# Per-street imagery summary (presence + capture-date range) for every settled street.
+SUMMARY_FILE = 'db/street_imagery_summary.csv'
+# Per-street progress log; enables crash-safe resume and is the source the other outputs are derived from.
 CHECKPOINT_FILE = 'db/streets_imagery_checkpoint.csv'
 # Streets that still errored after the end-of-run retry, for follow-up.
 FAILED_FILE = 'db/failed_streets.csv'
@@ -106,10 +115,19 @@ HAS_IMAGERY = 'has_imagery'
 # Additional per-street outcome when a street could not be checked (all retries exhausted).
 FAILED = 'failed'
 
-CHECKPOINT_COLUMNS = ['street_edge_id', 'region_id', 'outcome']
+# Date formats Google returns in the GSV metadata ``date`` field, most-specific first.
+CAPTURE_DATE_FORMATS = ('%Y-%m-%d', '%Y-%m', '%Y')
 
-# Outcome of checking one street: its ids plus one of NO_IMAGERY / HAS_IMAGERY / FAILED.
+CHECKPOINT_COLUMNS = ['street_edge_id', 'region_id', 'outcome', 'oldest_capture', 'newest_capture', 'n_panos']
+# Columns of the per-street imagery summary output.
+SUMMARY_COLUMNS = ['street_edge_id', 'region_id', 'has_imagery', 'oldest_capture', 'newest_capture', 'n_panos']
+
+# Outcome of checking one street: its ids, the outcome (NO_IMAGERY / HAS_IMAGERY / FAILED), and the imagery capture-date
+# range observed (oldest/newest ISO dates and the number of dated panos seen; empty/0 when no dated imagery was found).
 StreetResult = namedtuple('StreetResult', CHECKPOINT_COLUMNS)
+
+# Imagery seen at one queried location: whether imagery is present and its (standardized) capture date, if any.
+PanoInfo = namedtuple('PanoInfo', ['has_imagery', 'capture_date'])
 
 
 class ImageryApiError(Exception):
@@ -200,6 +218,45 @@ def gsv_has_imagery(response_json):
     """
     status = pd.json_normalize(response_json).status[0]
     return status != 'ZERO_RESULTS'
+
+
+def standardize_capture_date(raw):
+    """
+    Normalizes a GSV capture date to an ISO ``YYYY-MM-DD`` string.
+
+    Google returns the ``date`` field in varying precision (``2019``, ``2019-06``, or ``2019-06-15``); we standardize
+    so callers get one comparable format (a year-only value becomes January 1st, a year-month becomes the 1st).
+
+    Args:
+        raw: The raw ``date`` value (string, or ``None``/NaN).
+
+    Returns:
+        An ISO ``YYYY-MM-DD`` string, or ``None`` if absent/unparseable.
+    """
+    if raw is None or (isinstance(raw, float) and pd.isna(raw)):
+        return None
+    for fmt in CAPTURE_DATE_FORMATS:
+        try:
+            return datetime.strptime(str(raw), fmt).date().isoformat()
+        except ValueError:
+            continue
+    return None
+
+
+def gsv_capture_date(response_json):
+    """
+    Extracts the standardized imagery capture date from a GSV metadata response.
+
+    Args:
+        response_json: The decoded JSON from the GSV metadata endpoint.
+
+    Returns:
+        An ISO ``YYYY-MM-DD`` string, or ``None`` if the response carries no usable ``date``.
+    """
+    results = pd.json_normalize(response_json)
+    if 'date' not in results.columns:
+        return None
+    return standardize_capture_date(results['date'][0])
 
 
 def mapillary_has_imagery(response_json):
@@ -328,24 +385,49 @@ def _mapillary_bbox_url(mapillary_url, lat, lng, radius_km):
     return mapillary_url + '&bbox=' + ','.join(str(coord) for coord in bbox)
 
 
-def _point_has_imagery(api, lat, lng, fetch, gsv_url, mapillary_url, mapillary_radius_km):
-    """Queries the configured provider at one point (via ``fetch``) and returns whether imagery is present."""
+def _pano_info(api, response_json):
+    """
+    Builds a ``PanoInfo`` (imagery present? + capture date) from one provider response.
+
+    GSV responses carry a capture date; Mapillary capture dates are not yet captured (a future enhancement), so
+    Mapillary panos report ``capture_date=None``.
+    """
     if api == 'GSV':
-        return gsv_has_imagery(fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)))
-    return mapillary_has_imagery(fetch(_mapillary_bbox_url(mapillary_url, lat, lng, mapillary_radius_km)))
+        return PanoInfo(gsv_has_imagery(response_json), gsv_capture_date(response_json))
+    return PanoInfo(mapillary_has_imagery(response_json), None)
+
+
+def _point_pano_info(api, lat, lng, fetch, gsv_url, mapillary_url, mapillary_radius_km):
+    """Queries the configured provider at one point (via ``fetch``) and returns its ``PanoInfo``."""
+    if api == 'GSV':
+        return _pano_info(api, fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)))
+    return _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, lat, lng, mapillary_radius_km)))
 
 
 def _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url):
-    """Checks both of a street's endpoints; returns ``(first_endpoint_fail, second_endpoint_fail)`` booleans."""
+    """Checks both of a street's endpoints; returns ``(first_pano_info, second_pano_info)``."""
     if api == 'GSV':
-        first_fail = not gsv_has_imagery(fetch(gsv_url_endpoint + '&location=' + str(street.y1) + ',' + str(street.x1)))
-        second_fail = not gsv_has_imagery(fetch(gsv_url_endpoint + '&location=' + str(street.y2) + ',' + str(street.x2)))
+        first = _pano_info(api, fetch(gsv_url_endpoint + '&location=' + str(street.y1) + ',' + str(street.x1)))
+        second = _pano_info(api, fetch(gsv_url_endpoint + '&location=' + str(street.y2) + ',' + str(street.x2)))
     else:
-        first_fail = not mapillary_has_imagery(
-            fetch(_mapillary_bbox_url(mapillary_url, street.y1, street.x1, ENDPOINT_RADIUS_KM)))
-        second_fail = not mapillary_has_imagery(
-            fetch(_mapillary_bbox_url(mapillary_url, street.y2, street.x2, ENDPOINT_RADIUS_KM)))
-    return first_fail, second_fail
+        first = _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, street.y1, street.x1, ENDPOINT_RADIUS_KM)))
+        second = _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, street.y2, street.x2, ENDPOINT_RADIUS_KM)))
+    return first, second
+
+
+def summarize_dates(dates):
+    """
+    Summarizes a street's observed imagery capture dates.
+
+    Args:
+        dates: ISO ``YYYY-MM-DD`` date strings (lexicographic order equals chronological order).
+
+    Returns:
+        ``(oldest, newest, n_panos)`` — oldest/newest ISO dates and the count, or ``(None, None, 0)`` if empty.
+    """
+    if not dates:
+        return None, None, 0
+    return min(dates), max(dates), len(dates)
 
 
 def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url):
@@ -365,20 +447,35 @@ def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url)
         mapillary_url:    Mapillary images base URL (Mapillary only).
 
     Returns:
-        A ``StreetResult`` with outcome ``NO_IMAGERY`` / ``HAS_IMAGERY`` / ``FAILED``.
+        A ``StreetResult`` with outcome ``NO_IMAGERY`` / ``HAS_IMAGERY`` / ``FAILED`` and, for settled streets, the
+        observed imagery capture-date range. The capture dates come from the responses we already fetch, so the
+        early-exit point sampling means no extra API calls are made.
     """
     try:
-        first_fail, second_fail = _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url)
+        first, second = _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url)
         coords = list(street['geom'].coords)
-        # Lazy generator: street_has_no_imagery stops consuming (and thus fetching) once the verdict settles.
-        point_results = (_point_has_imagery(api, coord[1], coord[0], fetch, gsv_url, mapillary_url, POINT_RADIUS_KM)
-                         for coord in coords)  # Shapely coords are (x=lng, y=lat).
-        no_imagery = street_has_no_imagery(first_fail, second_fail, point_results, n_coords=len(coords))
+        dates = [d for d in (first.capture_date, second.capture_date) if d]
+
+        # Yield the per-point has_imagery booleans to the (unchanged) decision function, recording each point's capture
+        # date as a side effect. Because street_has_no_imagery consumes this lazily and stops at the verdict, we only
+        # fetch — and only collect dates for — the points actually visited.
+        def has_imagery_stream():
+            # `no branch`: street_has_no_imagery settles and stops consuming before this loop is exhausted (for any
+            # real street, which has >= 2 points), so the generator is abandoned rather than run to completion.
+            for coord in coords:  # pragma: no branch  -- Shapely coords are (x=lng, y=lat).
+                info = _point_pano_info(api, coord[1], coord[0], fetch, gsv_url, mapillary_url, POINT_RADIUS_KM)
+                if info.capture_date:
+                    dates.append(info.capture_date)
+                yield info.has_imagery
+
+        no_imagery = street_has_no_imagery(not first.has_imagery, not second.has_imagery,
+                                           has_imagery_stream(), n_coords=len(coords))
         outcome = NO_IMAGERY if no_imagery else HAS_IMAGERY
+        oldest, newest, n_panos = summarize_dates(dates)
     except (requests.exceptions.RequestException, ImageryApiError) as err:
         logger.warning("Could not check street %s after %d attempts: %s", street.street_edge_id, MAX_ATTEMPTS, err)
-        outcome = FAILED
-    return StreetResult(int(street.street_edge_id), int(street.region_id), outcome)
+        outcome, oldest, newest, n_panos = FAILED, None, None, 0
+    return StreetResult(int(street.street_edge_id), int(street.region_id), outcome, oldest, newest, n_panos)
 
 
 def load_processed(checkpoint_file=CHECKPOINT_FILE):
@@ -396,7 +493,7 @@ def append_checkpoint(result, checkpoint_file=CHECKPOINT_FILE):
         writer = csv.writer(handle)
         if write_header:
             writer.writerow(CHECKPOINT_COLUMNS)
-        writer.writerow([result.street_edge_id, result.region_id, result.outcome])
+        writer.writerow(list(result))
 
 
 def _write_ids_csv(rows, output_file):
@@ -407,19 +504,32 @@ def _write_ids_csv(rows, output_file):
     df.to_csv(output_file, index=False)
 
 
-def finalize_outputs(checkpoint_file=CHECKPOINT_FILE, output_file=OUTPUT_FILE, failed_file=FAILED_FILE):
+def _write_summary_csv(settled, summary_file):
+    """Writes the per-street imagery summary (presence + capture-date range) for the settled streets."""
+    summary = pd.DataFrame(settled, columns=CHECKPOINT_COLUMNS).copy()
+    summary['has_imagery'] = summary['outcome'] == HAS_IMAGERY
+    summary['street_edge_id'] = summary['street_edge_id'].astype('int32')
+    summary['region_id'] = summary['region_id'].astype('int32')
+    summary['n_panos'] = summary['n_panos'].fillna(0).astype('int32')
+    summary[SUMMARY_COLUMNS].to_csv(summary_file, index=False)
+
+
+def finalize_outputs(checkpoint_file=CHECKPOINT_FILE, output_file=OUTPUT_FILE, failed_file=FAILED_FILE,
+                     summary_file=SUMMARY_FILE):
     """
     Derives the final output files from the checkpoint.
 
-    Writes ``output_file`` (streets with no imagery) and, if any remain, ``failed_file`` (streets that errored out).
-    The latest outcome per street wins, so a street that failed then succeeded on retry is counted as succeeded.
+    Writes ``output_file`` (streets with no imagery), ``summary_file`` (every settled street with its imagery
+    presence + capture-date range), and, if any remain, ``failed_file`` (streets that errored out). The latest outcome
+    per street wins, so a street that failed then succeeded on retry is counted as succeeded.
     """
     if os.path.isfile(checkpoint_file):
         checkpoint = pd.read_csv(checkpoint_file).drop_duplicates('street_edge_id', keep='last')
     else:
-        # Interrupted before any street completed: still emit an (empty) output file.
+        # Interrupted before any street completed: still emit (empty) output files.
         checkpoint = pd.DataFrame(columns=CHECKPOINT_COLUMNS)
     _write_ids_csv(checkpoint[checkpoint['outcome'] == NO_IMAGERY], output_file)
+    _write_summary_csv(checkpoint[checkpoint['outcome'] != FAILED], summary_file)
     failed = checkpoint[checkpoint['outcome'] == FAILED]
     if not failed.empty:
         _write_ids_csv(failed, failed_file)

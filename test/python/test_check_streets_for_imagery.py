@@ -1,9 +1,10 @@
 """
 Unit tests for scripts/check_streets_for_imagery.py.
 
-Covers the pure helpers (bounding box, vertex interpolation, response parsers, decision thresholds), the retry/fetch and
-per-street worker, the checkpoint/output persistence, and the `main` scan end-to-end with the HTTP layer mocked (happy
-path, no-imagery flagging, resume, fail-soft + retry, and interrupt). See test/python/README.md.
+Covers the pure helpers (bounding box, vertex interpolation, response parsers, capture-date parsing, decision
+thresholds), the retry/fetch and per-street worker (including imagery-age capture), the checkpoint/output persistence
+(no-imagery list + imagery summary), and the `main` scan end-to-end with the HTTP layer mocked (happy path, no-imagery
+flagging, resume, fail-soft + retry, and interrupt). See test/python/README.md.
 """
 
 import os
@@ -44,7 +45,7 @@ def test_redistribute_vertices_long_line_adds_points_every_distance():
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# response parsers
+# response parsers + capture-date parsing
 # --------------------------------------------------------------------------------------------------------------------
 
 def test_gsv_has_imagery():
@@ -64,6 +65,39 @@ def test_mapillary_has_imagery_error_code_100_means_plenty():
 def test_mapillary_has_imagery_other_error_raises():
     with pytest.raises(cs.ImageryApiError):
         cs.mapillary_has_imagery({'error': {'code': 400, 'message': 'bad request'}})
+
+
+@pytest.mark.parametrize('raw, expected', [
+    ('2019-06-15', '2019-06-15'),   # full date
+    ('2019-06', '2019-06-01'),      # year-month -> 1st of month
+    ('2019', '2019-01-01'),         # year only -> Jan 1
+    (None, None),
+    ('', None),
+    ('not-a-date', None),
+])
+def test_standardize_capture_date(raw, expected):
+    assert cs.standardize_capture_date(raw) == expected
+
+
+def test_standardize_capture_date_handles_nan():
+    assert cs.standardize_capture_date(float('nan')) is None
+
+
+def test_gsv_capture_date():
+    assert cs.gsv_capture_date({'status': 'OK', 'date': '2020-03'}) == '2020-03-01'
+    assert cs.gsv_capture_date({'status': 'ZERO_RESULTS'}) is None  # no 'date' field
+    assert cs.gsv_capture_date({'status': 'OK'}) is None            # imagery but no date
+
+
+def test_pano_info():
+    assert cs._pano_info('GSV', {'status': 'OK', 'date': '2019'}) == cs.PanoInfo(True, '2019-01-01')
+    assert cs._pano_info('GSV', {'status': 'ZERO_RESULTS'}) == cs.PanoInfo(False, None)
+    assert cs._pano_info('Mapillary', {'data': [{'id': 1}]}) == cs.PanoInfo(True, None)  # Mapillary date not captured
+
+
+def test_summarize_dates():
+    assert cs.summarize_dates([]) == (None, None, 0)
+    assert cs.summarize_dates(['2020-05-05', '2019-01-01', '2019-06-01']) == ('2019-01-01', '2020-05-05', 3)
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -116,7 +150,7 @@ def test_street_has_no_imagery_lazy_iterable_stops_early():
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# make_fetch (retry)
+# make_fetch (retry) + rate limiter
 # --------------------------------------------------------------------------------------------------------------------
 
 def test_make_fetch_retries_then_succeeds(monkeypatch):
@@ -173,10 +207,6 @@ def test_make_fetch_acquires_a_rate_limiter_token(monkeypatch):
     assert acquired == [1]  # a token was taken before the request
 
 
-# --------------------------------------------------------------------------------------------------------------------
-# RateLimiter (token bucket, deterministic via injected clock/sleep)
-# --------------------------------------------------------------------------------------------------------------------
-
 def test_rate_limiter_allows_burst_up_to_capacity():
     sleeps = []
     limiter = cs.RateLimiter(max_per_second=2, capacity=2, monotonic=lambda: 0.0, sleep=sleeps.append)
@@ -217,11 +247,27 @@ def _run_process(line, api, fetch):
 
 def test_process_street_gsv_no_imagery():
     result = _run_process(_LINE_60, 'GSV', lambda url: {'status': 'ZERO_RESULTS'})
-    assert result == cs.StreetResult(100, 1, cs.NO_IMAGERY)
+    assert (result.street_edge_id, result.region_id, result.outcome) == (100, 1, cs.NO_IMAGERY)
+    assert (result.oldest_capture, result.newest_capture, result.n_panos) == (None, None, 0)
 
 
-def test_process_street_gsv_has_imagery():
-    assert _run_process(_LINE_60, 'GSV', lambda url: {'status': 'OK'}).outcome == cs.HAS_IMAGERY
+def test_process_street_gsv_has_imagery_without_dates():
+    # Imagery present but the responses carry no 'date' -> no capture dates collected.
+    result = _run_process(_LINE_60, 'GSV', lambda url: {'status': 'OK'})
+    assert result.outcome == cs.HAS_IMAGERY
+    assert (result.oldest_capture, result.newest_capture, result.n_panos) == (None, None, 0)
+
+
+def test_process_street_captures_capture_date_range():
+    # Endpoints (radius=25) older, along-street points (radius=15) newer -> a captured date range.
+    def fetch(url):
+        return {'status': 'OK', 'date': '2018-01'} if 'radius=25' in url else {'status': 'OK', 'date': '2021-07-15'}
+
+    result = _run_process(_LINE_60, 'GSV', fetch)
+    assert result.outcome == cs.HAS_IMAGERY
+    assert result.oldest_capture == '2018-01-01'
+    assert result.newest_capture == '2021-07-15'
+    assert result.n_panos >= 3
 
 
 def test_process_street_gsv_points_missing_imagery():
@@ -277,12 +323,13 @@ def test_load_processed_excludes_failed(tmp_path):
 
 def test_append_checkpoint_writes_header_then_appends(tmp_path):
     checkpoint = str(tmp_path / 'cp.csv')
-    cs.append_checkpoint(cs.StreetResult(1, 10, cs.NO_IMAGERY), checkpoint)
-    cs.append_checkpoint(cs.StreetResult(2, 20, cs.HAS_IMAGERY), checkpoint)
+    cs.append_checkpoint(cs.StreetResult(1, 10, cs.NO_IMAGERY, None, None, 0), checkpoint)
+    cs.append_checkpoint(cs.StreetResult(2, 20, cs.HAS_IMAGERY, '2019-06-01', '2020-01-01', 5), checkpoint)
     written = pd.read_csv(checkpoint)
     assert list(written.columns) == cs.CHECKPOINT_COLUMNS
     assert written['street_edge_id'].tolist() == [1, 2]
     assert written['outcome'].tolist() == [cs.NO_IMAGERY, cs.HAS_IMAGERY]
+    assert written['n_panos'].tolist() == [0, 5]
 
 
 def test_write_ids_csv_coerces_to_int(tmp_path):
@@ -293,33 +340,53 @@ def test_write_ids_csv_coerces_to_int(tmp_path):
     assert written['street_edge_id'].dtype.kind == 'i'
 
 
-def test_finalize_outputs_dedups_keep_last_and_no_failures(tmp_path):
+def _settled_checkpoint(rows):
+    """Build a checkpoint DataFrame (full column set) from (id, region, outcome, oldest, newest, n_panos) tuples."""
+    return pd.DataFrame(rows, columns=cs.CHECKPOINT_COLUMNS)
+
+
+def test_finalize_outputs_dedups_keep_last_and_writes_summary(tmp_path):
     checkpoint = str(tmp_path / 'cp.csv')
-    output = str(tmp_path / 'out.csv')
-    failed = str(tmp_path / 'failed.csv')
+    output, failed, summary = (str(tmp_path / f) for f in ('out.csv', 'failed.csv', 'summary.csv'))
     # Street 3 failed, then succeeded as no_imagery on retry -> keep the later outcome.
-    pd.DataFrame({'street_edge_id': [1, 2, 3, 3], 'region_id': [1, 1, 1, 1],
-                  'outcome': [cs.NO_IMAGERY, cs.HAS_IMAGERY, cs.FAILED, cs.NO_IMAGERY]}).to_csv(checkpoint, index=False)
-    cs.finalize_outputs(checkpoint, output, failed)
+    _settled_checkpoint([
+        (1, 1, cs.NO_IMAGERY, None, None, 0),
+        (2, 1, cs.HAS_IMAGERY, '2019-01-01', '2020-05-05', 4),
+        (3, 1, cs.FAILED, None, None, 0),
+        (3, 1, cs.NO_IMAGERY, None, None, 0),
+    ]).to_csv(checkpoint, index=False)
+
+    cs.finalize_outputs(checkpoint, output, failed, summary)
+
     assert pd.read_csv(output)['street_edge_id'].tolist() == [1, 3]
     assert not os.path.exists(failed)
+    summary_df = pd.read_csv(summary).set_index('street_edge_id').sort_index()
+    assert list(summary_df.index) == [1, 2, 3]  # all settled (failed excluded)
+    assert bool(summary_df.loc[2, 'has_imagery']) is True
+    assert bool(summary_df.loc[1, 'has_imagery']) is False
+    assert summary_df.loc[2, 'newest_capture'] == '2020-05-05'
 
 
 def test_finalize_outputs_writes_failed_file(tmp_path):
     checkpoint = str(tmp_path / 'cp.csv')
-    output = str(tmp_path / 'out.csv')
-    failed = str(tmp_path / 'failed.csv')
-    pd.DataFrame({'street_edge_id': [1, 2], 'region_id': [1, 1],
-                  'outcome': [cs.NO_IMAGERY, cs.FAILED]}).to_csv(checkpoint, index=False)
-    cs.finalize_outputs(checkpoint, output, failed)
+    output, failed, summary = (str(tmp_path / f) for f in ('out.csv', 'failed.csv', 'summary.csv'))
+    _settled_checkpoint([
+        (1, 1, cs.NO_IMAGERY, None, None, 0),
+        (2, 1, cs.FAILED, None, None, 0),
+    ]).to_csv(checkpoint, index=False)
+
+    cs.finalize_outputs(checkpoint, output, failed, summary)
+
     assert pd.read_csv(output)['street_edge_id'].tolist() == [1]
     assert pd.read_csv(failed)['street_edge_id'].tolist() == [2]
+    assert pd.read_csv(summary)['street_edge_id'].tolist() == [1]  # failed streets are not summarized
 
 
 def test_finalize_outputs_without_checkpoint_writes_empty(tmp_path):
-    output = str(tmp_path / 'out.csv')
-    cs.finalize_outputs(str(tmp_path / 'missing.csv'), output, str(tmp_path / 'failed.csv'))
+    output, failed, summary = (str(tmp_path / f) for f in ('out.csv', 'failed.csv', 'summary.csv'))
+    cs.finalize_outputs(str(tmp_path / 'missing.csv'), output, failed, summary)
     assert pd.read_csv(output).empty
+    assert pd.read_csv(summary).empty
 
 
 def test_print_progress(capsys):
@@ -352,6 +419,10 @@ def _output(tmp_path):
     return pd.read_csv(tmp_path / cs.OUTPUT_FILE)
 
 
+def _summary(tmp_path):
+    return pd.read_csv(tmp_path / cs.SUMMARY_FILE).set_index('street_edge_id')
+
+
 def test_main_requires_a_provider_flag():
     with pytest.raises(SystemExit):
         cs.main([])
@@ -367,7 +438,7 @@ def test_main_missing_api_key_returns_1(monkeypatch):
     assert cs.main(['--gsv']) == 1
 
 
-def test_main_happy_mixed_outcomes(monkeypatch, tmp_path):
+def test_main_happy_mixed_outcomes_and_summary(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61)])
     # Street 200 (lat 47.61) has imagery everywhere; street 100 (lat 47.6) has none.
     monkeypatch.setattr(cs, '_get_json',
@@ -375,11 +446,24 @@ def test_main_happy_mixed_outcomes(monkeypatch, tmp_path):
     # High QPS so the rate limiter never actually throttles the test; --workers exercises the thread pool.
     assert cs.main(['--gsv', '--workers', '4', '--max-qps', '1000']) == 0
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]
+    summary = _summary(tmp_path)
+    assert sorted(summary.index) == [100, 200]
+    assert bool(summary.loc[200, 'has_imagery']) is True
+    assert bool(summary.loc[100, 'has_imagery']) is False
+
+
+def test_main_summary_captures_capture_dates(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(200, 1, _LINE_61)])
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'OK', 'date': '2021-08'})
+    assert cs.main(['--gsv', '--max-qps', '1000']) == 0
+    summary = _summary(tmp_path)
+    assert summary.loc[200, 'newest_capture'] == '2021-08-01'
+    assert summary.loc[200, 'n_panos'] >= 1
 
 
 def test_main_resumes_from_checkpoint(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61)])
-    pd.DataFrame({'street_edge_id': [100], 'region_id': [1], 'outcome': [cs.HAS_IMAGERY]}).to_csv(
+    _settled_checkpoint([(100, 1, cs.HAS_IMAGERY, '2019-01-01', '2019-01-01', 3)]).to_csv(
         tmp_path / cs.CHECKPOINT_FILE, index=False)
     monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})
     assert cs.main(['--gsv']) == 0
