@@ -1,4 +1,4 @@
-@(activePage: String)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
+@(activePage: String, isOwner: Boolean = false)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
 
 @*
  * Shared shell for the redesigned admin dashboard (#4272): left nav + main content + right "On this page" TOC.
@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="@assets.path("stylesheets/admin-dashboard/admin-dashboard.css")">
 
 <div class="api-container">
-    @admin.dashboard._sidebar(activePage)
+    @admin.dashboard._sidebar(activePage, isOwner)
 
     <main class="api-content">
         @content

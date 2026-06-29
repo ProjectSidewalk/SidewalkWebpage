@@ -1253,3 +1253,249 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); }
 .label-map-search .mgmt-search { flex: 0 1 160px; }
 .label-map-search-msg { margin-left: var(--space-xs, 8px); }
 .label-map-search-msg.error { color: #a32020; }
+
+/* --- Across Cities page (#4329) -------------------------------------------------------------------------------------
+ * Per-city scorecard table + anomaly chips. Reuses .ov-attention* for the "needs attention" panel and .dq-empty for
+ * empty states; only the table, coverage mini-bar, and chips are new here. */
+.ac-pulse {
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+    margin-top: var(--space-sm, 12px);
+}
+.ac-pulse strong { color: var(--color-text-heading, #263238); }
+
+.ac-table-wrap { overflow-x: auto; margin: var(--space-md, 16px) 0; }
+.ac-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm, 0.875rem);
+}
+.ac-table thead th {
+    text-align: right;
+    padding: var(--space-xs, 8px) var(--space-sm, 12px);
+    border-bottom: 2px solid var(--color-neutral-200, #e1e1e1);
+    color: var(--color-text-secondary, #5a7785);
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+}
+.ac-table thead th.ac-th-text { text-align: left; }
+.ac-table thead th:hover { color: var(--color-text-heading, #263238); }
+.ac-table thead th.ac-sorted { color: var(--color-text-heading, #263238); }
+/* Sort-direction caret on the active column. */
+.ac-table thead th.ac-sorted[data-dir="asc"]::after { content: " \25B2"; font-size: 0.7em; }
+.ac-table thead th.ac-sorted[data-dir="desc"]::after { content: " \25BC"; font-size: 0.7em; }
+
+.ac-table tbody td {
+    padding: var(--space-xs, 8px) var(--space-sm, 12px);
+    border-bottom: 1px solid var(--color-neutral-100, #f0f0f0);
+    vertical-align: middle;
+}
+.ac-table tbody tr:hover { background: var(--color-neutral-100, #f0f0f0); }
+.ac-num { text-align: right; white-space: nowrap; color: var(--color-text-primary, #222); }
+.ac-muted { color: var(--color-text-secondary, #5a7785); }
+.ac-td-city a { color: var(--color-accent-link, #0566f5); text-decoration: none; }
+.ac-td-city a:hover { text-decoration: underline; }
+
+/* Flagged rows get a subtle warning tint + left accent so they stand out in a long table. */
+.ac-row--flagged { background: #fffaf0; }
+.ac-row--flagged:hover { background: #fff4e0; }
+.ac-row--flagged .ac-td-city { box-shadow: inset 3px 0 0 #e0a800; }
+
+/* Coverage mini-bar: a thin track with a filled portion and the percentage overlaid. */
+.ac-bar {
+    position: relative;
+    width: 120px;
+    height: 16px;
+    background: var(--color-neutral-200, #e1e1e1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.ac-bar-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    background: var(--color-primary, #4a90d9);
+    border-radius: 3px;
+}
+.ac-bar-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-xs, 0.8125rem);
+    color: var(--color-text-heading, #263238);
+}
+
+/* Anomaly chips shown inline next to a city's name. */
+.ac-chips { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.ac-chip {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: var(--font-size-xs, 0.8125rem);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.ac-chip--warn { background: #fff3cd; color: #8a6d00; }
+.ac-chip--info { background: #e3f0fb; color: #1c5a91; }
+
+/* --- Across Cities: over-time charts, sparklines, patterns (#4329) ------------------------------------------------- */
+.ac-charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--space-lg, 24px);
+    margin: var(--space-md, 16px) 0;
+}
+.ac-chart { min-width: 0; }
+.ac-chart-title {
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-heading, #263238);
+    margin: 0 0 var(--space-xs, 8px);
+}
+.ac-note { font-size: var(--font-size-xs, 0.8125rem); color: var(--color-text-secondary, #5a7785); }
+
+/* MiniLineChart series colors for the three overview charts (one series each). */
+.mini-line--aclabels { stroke: var(--color-primary, #4a90d9); fill: none; stroke-width: 2; }
+.mini-pt--aclabels   { fill: var(--color-primary, #4a90d9); }
+.mini-line--acvals   { stroke: #63c0ab; fill: none; stroke-width: 2; }
+.mini-pt--acvals     { fill: #63c0ab; }
+.mini-line--acusers  { stroke: #be87d8; fill: none; stroke-width: 2; }
+.mini-pt--acusers    { fill: #be87d8; }
+
+/* Per-city activity sparkline. */
+.ac-spark-cell { width: 100px; color: var(--color-primary, #4a90d9); }
+.ac-spark { display: block; width: 90px; height: 22px; }
+
+/* Data-patterns: legend + normalized stacked bars. */
+.ac-legend { display: flex; flex-wrap: wrap; gap: var(--space-sm, 12px); margin: var(--space-sm, 12px) 0; }
+.ac-legend-item {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: var(--font-size-xs, 0.8125rem); color: var(--color-text-secondary, #5a7785);
+}
+.ac-legend-swatch { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+
+.ac-pattern-row { display: flex; align-items: center; gap: var(--space-md, 16px); margin: 6px 0; }
+.ac-pattern-city {
+    flex: 0 0 200px; font-size: var(--font-size-sm, 0.875rem);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ac-pattern-city a { color: var(--color-accent-link, #0566f5); text-decoration: none; }
+.ac-pattern-city a:hover { text-decoration: underline; }
+.ac-stack {
+    flex: 1 1 auto; display: flex; height: 18px; border-radius: 3px; overflow: hidden;
+    background: var(--color-neutral-100, #f0f0f0);
+}
+.ac-stack-seg { height: 100%; }
+.ac-stack-empty { font-size: var(--font-size-xs, 0.8125rem); color: var(--color-text-secondary, #5a7785); padding-left: 6px; }
+
+/* --- Across Cities: lifecycle status badges (#4329) -------------------------------------------------------------- */
+.ac-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: var(--font-size-xs, 0.8125rem);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.ac-badge--ok   { background: #e3f0fb; color: #1c5a91; }  /* Active */
+.ac-badge--good { background: #e4f4ec; color: #1f7a4d; }  /* Wrapped up (success) */
+.ac-badge--warn { background: #fff3cd; color: #8a6d00; }  /* Stalled */
+.ac-badge--bad  { background: #fbe3e3; color: #a32020; }  /* Low traction */
+
+/* --- Across Cities: over-time range toggle (#4329) --------------------------------------------------------------- */
+.ac-toggle { display: inline-flex; gap: 0; margin: 0 0 var(--space-sm, 12px); }
+.ac-toggle-btn {
+    font-size: var(--font-size-sm, 0.875rem);
+    padding: 4px 12px;
+    border: 1px solid var(--color-neutral-400, #c2c2c2);
+    background: var(--color-neutral-white, #fff);
+    color: var(--color-text-primary, #222);
+    cursor: pointer;
+}
+.ac-toggle-btn:first-child { border-radius: 4px 0 0 4px; }
+.ac-toggle-btn:last-child { border-radius: 0 4px 4px 0; border-left: none; }
+.ac-toggle-btn:hover { background: var(--color-neutral-100, #f0f0f0); }
+.ac-toggle-btn.active {
+    background: var(--color-asphalt-500, #263238);
+    border-color: var(--color-asphalt-500, #263238);
+    color: #fff;
+}
+
+/* --- Across Cities: hero stat band + deployment map (#4329) ------------------------------------------------------ */
+.ac-hero { margin-top: var(--space-lg, 24px); }
+.ac-hero-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md, 16px);
+    margin-bottom: var(--space-md, 16px);
+}
+.ac-hero-stat {
+    flex: 1 1 120px;
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: 8px;
+    padding: var(--space-md, 16px);
+    background: var(--color-neutral-white, #fff);
+}
+.ac-hero-value {
+    display: block;
+    font-size: var(--font-size-xxl, 1.5rem);
+    font-weight: 700;
+    color: var(--color-text-heading, #263238);
+    line-height: 1.1;
+}
+.ac-hero-label {
+    display: block;
+    margin-top: 4px;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+.ac-map {
+    width: 100%;
+    height: 460px;
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* --- Across Cities: deployment map legend (#4329) ---------------------------------------------------------------- */
+.ac-map-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm, 12px) var(--space-md, 16px);
+    margin-top: var(--space-sm, 12px);
+    font-size: var(--font-size-xs, 0.8125rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+.ac-legend-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: -2px;
+    border: 1px solid #ffffff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+.ac-legend-dot--nostats { background: #9aa7b0; }
+/* Private marker: neutral fill with the thick dark ring used on the map. */
+.ac-legend-dot--private { background: #9aa7b0; border: 2px solid #33373a; box-shadow: none; }
+.ac-legend-size {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: -3px;
+    background: rgba(74, 144, 217, 0.35);
+    border: 1px solid rgba(74, 144, 217, 0.7);
+}
+.ac-legend-sep { width: 1px; height: 16px; background: var(--color-neutral-200, #e1e1e1); }
+
+/* --- Across Cities: footnote marker (#4329) --------------------------------------------------------------------- */
+.ac-fn { color: var(--color-accent-link, #0566f5); cursor: help; font-weight: 600; }
+
+/* --- Across Cities: effort-table sub-header (#4329) -------------------------------------------------------------- */
+.ac-th-sub { font-weight: 400; font-size: var(--font-size-xs, 0.8125rem); color: var(--color-text-secondary, #5a7785); }

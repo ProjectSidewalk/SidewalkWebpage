@@ -62,6 +62,7 @@ GET     /admin/activity                                 controllers.AdminDashboa
 GET     /admin/humans-vs-ai                             controllers.AdminDashboardController.humansVsAi
 GET     /admin/api-analytics                            controllers.AdminDashboardController.apiAnalytics
 GET     /admin/management                               controllers.AdminDashboardController.management
+GET     /admin/across-cities                            controllers.AdminDashboardController.acrossCities
 GET     /admin/user/:username                           controllers.AdminController.userProfile(username: String)
 GET     /admin/task/:taskId                             controllers.AdminController.task(taskId: Int)
 GET     /admin/label/:labelId                           controllers.AdminController.label(labelId: Int)
@@ -97,6 +98,7 @@ GET     /adminapi/apiAnalyticsBySource                  controllers.AdminControl
 GET     /adminapi/activityByDay                          controllers.AdminController.getActivityByDay
 GET     /adminapi/humanVsAi                              controllers.AdminController.getHumanVsAiStats
 GET     /adminapi/overviewSummary                       controllers.AdminController.getOverviewSummary
+GET     /adminapi/cityScorecards                        controllers.AdminController.getCityScorecards
 
 PUT     /adminapi/setRole                               controllers.AdminController.setUserRole
 PUT     /adminapi/setUserQualityManual                  controllers.AdminController.setUserQualityManual

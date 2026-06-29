@@ -16,6 +16,7 @@ import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
 
 import java.time.{LocalDate, OffsetDateTime}
+import java.time.temporal.ChronoUnit
 import javax.inject._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
@@ -92,8 +93,226 @@ case class AggregateStats(
     byLabelType: Map[String, LabelTypeStats]
 )
 
+/**
+ * One week's contribution volume for a city, for the Across Cities activity trends (#4329).
+ *
+ * @param weekStart    Monday (Pacific) of the week.
+ * @param labels       Non-tutorial, non-excluded labels created that week.
+ * @param validations  Validations by non-excluded users that week.
+ * @param activeUsers  Distinct non-excluded users who labeled or validated that week. Summed across cities for the
+ *                     "active users over time" overview line, this slightly over-counts users active in multiple cities.
+ */
+case class WeeklyPoint(weekStart: LocalDate, labels: Int, validations: Int, activeUsers: Int)
+
+/**
+ * One city's summary row for the cross-city "Across Cities" admin overview (#4329).
+ *
+ * Unlike [[AggregateStats]], which sums every city into one total, this keeps each deployment separate so they can be
+ * compared side by side across four lenses: coverage (how much is left), activity (what's happening and when), data
+ * patterns (the label-type mix), and data quality (how trustworthy the data is). Display name / URL / visibility are
+ * intentionally NOT here — they come from `getAllCityInfo(lang)` and are merged at the controller layer, so this
+ * (cached) value stays language-agnostic.
+ *
+ * Counts use the same exclusions as the rest of the stats code (`NOT user_stat.excluded`, non-deleted, non-tutorial).
+ *
+ * @param cityId                  The city id (e.g. "seattle-wa").
+ * @param totalStreets            Non-deleted streets in the city.
+ * @param auditedStreets          Distinct streets with a completed audit by a non-excluded user.
+ * @param coverage                auditedStreets / totalStreets in [0, 1]; 0.0 when the city has no streets.
+ * @param totalKm                 Total length of the non-deleted street network, in km.
+ * @param auditedKm               Distinct audited length (no double-counting overlapping audits), in km.
+ * @param totalLabels             Non-tutorial, non-excluded labels (reconciles with the city's single-city total).
+ * @param aiLabels                Subset of totalLabels authored by the AI role.
+ * @param labelsWithSeverity      Subset of totalLabels that have a severity rating (a data-completeness signal).
+ * @param labelsSeverityEligible  Labels whose type CAN take a severity (excludes NoSidewalk/Signal/Occlusion) — the
+ *                                correct denominator for "% with severity".
+ * @param labelsWithTags          Subset of totalLabels that have at least one tag applied.
+ * @param labelsTagEligible       Labels whose type CAN take tags (types present in this deployment's tag table) — the
+ *                                correct denominator for "% with tags".
+ * @param labelsValidated         Labels that have at least one validation.
+ * @param totalValidations        All validations by non-excluded users (the volume, including AI).
+ * @param validationsAgree        HUMAN (non-AI) validations with an "Agree" result.
+ * @param validationsDisagree     HUMAN (non-AI) validations with a "Disagree" result. (Agreement/disagreement is a
+ *                                human-consensus signal; AI verdicts are reported separately via `aiValidations`.)
+ * @param aiValidations           Subset of totalValidations cast by the AI role (distinct from AI-authored labels).
+ * @param byLabelType             Per-label-type counts (labels, validated, agree, disagree) — the data-pattern lens.
+ * @param activeContributors      Distinct non-excluded, non-AI users who placed a label or a validation.
+ * @param lowQualityContributors  Distinct EXCLUDED (low-quality) users who placed a label — the quality lens.
+ * @param labels7d                Labels created in the last 7 days.
+ * @param labels30d               Labels created in the last 30 days.
+ * @param validations7d           Validations in the last 7 days.
+ * @param validations30d          Validations in the last 30 days.
+ * @param audits7d                Streets completed in the last 7 days.
+ * @param audits30d               Streets completed in the last 30 days.
+ * @param lastActivity            Most recent label/validation/audit timestamp; None if the city has no activity.
+ * @param weeklyTrend             Trailing weekly label/validation volume (oldest first) for the activity sparkline.
+ * @param labelsPerUserMedian     Median labels per labeler (robust to the power-law skew; mean would mislead).
+ * @param labelsPerUserP90        90th-percentile labels per labeler (the engaged tail).
+ * @param numLabelers             Distinct non-AI, non-excluded users who placed a label.
+ * @param validationsPerUserMedian Median validations per validator.
+ * @param validationsPerUserP90   90th-percentile validations per validator.
+ * @param numValidators           Distinct non-AI, non-excluded users who validated.
+ * @param validationSecondsMedian Median seconds per validation (clamped to <= 5 min); 0 if unknown. ×10 = "time to
+ *                                validate 10".
+ */
+case class CityScorecard(
+    cityId: String,
+    totalStreets: Int,
+    auditedStreets: Int,
+    coverage: Double,
+    totalKm: Double,
+    auditedKm: Double,
+    totalLabels: Int,
+    aiLabels: Int,
+    labelsWithSeverity: Int,
+    labelsSeverityEligible: Int,
+    labelsWithTags: Int,
+    labelsTagEligible: Int,
+    labelsValidated: Int,
+    totalValidations: Int,
+    validationsAgree: Int,
+    validationsDisagree: Int,
+    aiValidations: Int,
+    byLabelType: Map[String, LabelTypeStats],
+    activeContributors: Int,
+    lowQualityContributors: Int,
+    labels7d: Int,
+    labels30d: Int,
+    validations7d: Int,
+    validations30d: Int,
+    audits7d: Int,
+    audits30d: Int,
+    lastActivity: Option[OffsetDateTime],
+    weeklyTrend: Seq[WeeklyPoint],
+    labelsPerUserMedian: Double,
+    labelsPerUserP90: Double,
+    numLabelers: Int,
+    validationsPerUserMedian: Double,
+    validationsPerUserP90: Double,
+    numValidators: Int,
+    validationSecondsMedian: Double
+)
+
+/**
+ * A [[CityScorecard]] paired with the anomaly flags computed for it across the full cross-city set (#4329).
+ *
+ * @param scorecard The per-city metrics.
+ * @param anomalies Zero or more flag keys: "stalled", "low_coverage", "high_disagreement". The page turns these into a
+ *                  "needs attention" panel.
+ */
+case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[String])
+
+/**
+ * Lifecycle thresholds, the data-quality anomaly thresholds, and the (pure) classification helpers for the cross-city
+ * overview (#4329).
+ *
+ * Centralized here so the thresholds are defined once and both the service and the controller (which echoes them back in
+ * its summary block) read the same values.
+ */
+object ConfigService {
+
+  /** A city with activity within this many days is "active". */
+  val ActiveWithinDays: Long = 30
+
+  /**
+   * Coverage at or above this means a quiet city is treated as having reached its milestone ("wrapped up") rather than
+   * having failed — the Oradell case (#4329). Success is judged by street coverage.
+   */
+  val WrappedUpCoverage: Double = 0.80
+
+  /**
+   * A quiet, under-covered city with fewer than this many distinct contributors "never took off" (low traction) — the
+   * LA case — versus "stalled" (it had a real community and lost momentum before finishing).
+   */
+  val LowTractionContributors: Int = 15
+
+  /** A city with fewer than this many validations is never flagged "high_disagreement" (too small a sample). */
+  val MinValidationsForDisagreement: Int = 100
+
+  /** A disagreement rate above the cross-city median times this multiple flags "high_disagreement". */
+  val DisagreementMedianMultiple: Double = 1.5
+
+  /**
+   * Classifies a city's lifecycle/health into one of four states (#4329), so a quiet-but-finished deployment reads
+   * very differently from one that never took off:
+   *   - "active"       — activity within [[ActiveWithinDays]].
+   *   - "wrapped_up"   — quiet, but coverage >= [[WrappedUpCoverage]] (reached its milestone; celebrate, don't alarm).
+   *   - "low_traction" — quiet, under-covered, and fewer than [[LowTractionContributors]] contributors (never took off).
+   *   - "stalled"      — quiet, under-covered, but had a real community (had momentum, lost it before finishing).
+   *
+   * @param sc  The city scorecard.
+   * @param now Reference time for the recency comparison.
+   * @return    The lifecycle state key.
+   */
+  def lifecycle(sc: CityScorecard, now: OffsetDateTime): String = {
+    val active = sc.lastActivity.exists(ts => ChronoUnit.DAYS.between(ts, now) <= ActiveWithinDays)
+    if (active) "active"
+    else if (sc.coverage >= WrappedUpCoverage) "wrapped_up"
+    else if (sc.activeContributors < LowTractionContributors) "low_traction"
+    else "stalled"
+  }
+
+  /** True if a city's lifecycle is one that warrants attention (stalled or never-took-off). */
+  def lifecycleNeedsAttention(state: String): Boolean = state == "stalled" || state == "low_traction"
+
+  /** Share of a city's HUMAN agree/disagree validations that are disagreements; 0.0 when it has none (AI excluded). */
+  def disagreementRate(sc: CityScorecard): Double = {
+    val denom = sc.validationsAgree + sc.validationsDisagree
+    if (denom > 0) sc.validationsDisagree.toDouble / denom else 0.0
+  }
+
+  /**
+   * Median disagreement rate across cities with enough validations to be meaningful — the baseline the
+   * "high_disagreement" flag compares against.
+   *
+   * @param scorecards All gathered per-city scorecards.
+   * @return           The median rate among cities clearing [[MinValidationsForDisagreement]]; 0.0 if none do.
+   */
+  def medianDisagreementRate(scorecards: Seq[CityScorecard]): Double = {
+    val rates = scorecards.filter(_.totalValidations >= MinValidationsForDisagreement).map(disagreementRate).sorted
+    if (rates.isEmpty) 0.0
+    else if (rates.length % 2 == 1) rates(rates.length / 2)
+    else (rates(rates.length / 2 - 1) + rates(rates.length / 2)) / 2.0
+  }
+}
+
 @ImplementedBy(classOf[ConfigServiceImpl])
 trait ConfigService {
+
+  /**
+   * Computes a per-city summary scorecard for every configured city whose schema exists (#4329).
+   *
+   * Reuses the same cross-schema fan-out as [[getAggregateStats]] — read the configured city ids, keep the ones whose
+   * schema actually exists, query each in parallel with per-city recovery, cache the merged result — but keeps cities
+   * separate rather than summing them. Anomaly flags ("stalled", "low_coverage", "high_disagreement") are computed
+   * across the whole set (the disagreement flag is relative to the cross-city median), so they are returned together.
+   *
+   * @return A Future of one [[CityScorecardWithFlags]] per available city (legacy DC and "staging" excluded).
+   */
+  def getCityScorecards(): Future[Seq[CityScorecardWithFlags]]
+
+  /**
+   * Returns the weekly label/validation/active-user volume summed across all available cities (#4329), for the
+   * "over time" overview charts. Active users are summed per city, so a person active in multiple cities is counted in
+   * each (documented on the page).
+   *
+   * @param weeks Trailing weeks to include, or None for full history (the page's "All time" toggle).
+   * @return      Merged weekly series, ascending by week.
+   */
+  def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Seq[WeeklyPoint]]
+
+  /**
+   * Returns each city's labeling speed as seconds of active auditing per 100 m covered (#4329).
+   *
+   * This is the project's one EXPENSIVE cross-city metric (a window-function scan of each schema's
+   * `audit_task_interaction_small`), so it is computed on its own long (daily) cache rather than on every scorecard
+   * load — the "nightly precompute" half of the hybrid delivery. Cities with no interaction data are omitted from the
+   * map (the page shows them as unknown).
+   *
+   * @return A Future of cityId → seconds per 100 m (lower is faster).
+   */
+  def getCrossCityLabelingSpeed(): Future[Map[String, Double]]
+
 
   /**
    * Maps a city ID to its corresponding database user/schema.
@@ -342,6 +561,132 @@ class ConfigServiceImpl @Inject() (
             Future.successful(None)
         }
       }
+    }
+  }
+
+  def getCityScorecards(): Future[Seq[CityScorecardWithFlags]] = {
+    // Heavier than getAggregateStats (a multi-subquery per city) and only viewed by Owners, so cache a bit longer.
+    cacheApi.getOrElseUpdate[Seq[CityScorecardWithFlags]]("getCityScorecards", Duration(10, "minutes")) {
+      // Same available-schema guard as getAggregateStats. "staging" is skipped (not a real deployment), as in
+      // CitiesApiController; legacy DC is skipped because it predates the modern label_validation schema.
+      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
+
+      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
+        try {
+          val schema = getCitySchema(cityId)
+          checkSchemaExists(schema).map(cityId -> _).recover { case _ => cityId -> false }
+        } catch {
+          case _: Exception => Future.successful(cityId -> false)
+        }
+      }
+
+      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
+        val availableCities = schemaResults.filter(_._2).map(_._1)
+
+        // Query each available city in parallel; one failing schema yields None rather than sinking the whole page.
+        val scorecardFutures: Seq[Future[Option[CityScorecard]]] = availableCities.map { cityId =>
+          val schema = getCitySchema(cityId)
+          db.run(configTable.getCityScorecardBySchema(schema))
+            .map(sc => Some(sc.copy(cityId = cityId))) // The DAO only knows the schema; restore the real cityId here.
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to compute scorecard for city $cityId (schema $schema): ${e.getMessage}")
+              None
+            }
+        }
+
+        Future.sequence(scorecardFutures).map(opts => flagAnomalies(opts.flatten))
+      }
+    }
+  }
+
+  def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Seq[WeeklyPoint]] = {
+    val cacheKey = s"getCrossCityWeeklyTrend_${weeks.map(_.toString).getOrElse("all")}"
+    cacheApi.getOrElseUpdate[Seq[WeeklyPoint]](cacheKey, Duration(10, "minutes")) {
+      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
+
+      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
+        try {
+          checkSchemaExists(getCitySchema(cityId)).map(cityId -> _).recover { case _ => cityId -> false }
+        } catch {
+          case _: Exception => Future.successful(cityId -> false)
+        }
+      }
+
+      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
+        val availableCities = schemaResults.filter(_._2).map(_._1)
+        val perCityFutures = availableCities.map { cityId =>
+          db.run(configTable.getCityWeeklyTrendBySchema(getCitySchema(cityId), weeks))
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to fetch weekly trend for city $cityId: ${e.getMessage}")
+              Seq.empty[WeeklyPoint]
+            }
+        }
+        Future.sequence(perCityFutures).map { perCity =>
+          // Sum each city's weekly points into one cross-city series, week by week.
+          perCity.flatten
+            .groupBy(_.weekStart)
+            .toSeq
+            .sortBy(_._1)
+            .map { case (week, pts) =>
+              WeeklyPoint(week, pts.map(_.labels).sum, pts.map(_.validations).sum, pts.map(_.activeUsers).sum)
+            }
+        }
+      }
+    }
+  }
+
+  def getCrossCityLabelingSpeed(): Future[Map[String, Double]] = {
+    // Daily cache: this is the heavy interaction-table scan, and labeling speed barely moves day to day.
+    cacheApi.getOrElseUpdate[Map[String, Double]]("getCrossCityLabelingSpeed", Duration(24, "hours")) {
+      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
+
+      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
+        try {
+          checkSchemaExists(getCitySchema(cityId)).map(cityId -> _).recover { case _ => cityId -> false }
+        } catch {
+          case _: Exception => Future.successful(cityId -> false)
+        }
+      }
+
+      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
+        val availableCities = schemaResults.filter(_._2).map(_._1)
+        val perCityFutures: Seq[Future[Option[(String, Double)]]] = availableCities.map { cityId =>
+          db.run(configTable.getCityLabelingSpeedBySchema(getCitySchema(cityId)))
+            .map { case (hours, km) =>
+              // Only report cities with both interaction data and audited distance; otherwise speed is unknowable.
+              if (hours > 0 && km > 0) Some(cityId -> (hours * 3600.0) / (km * 10.0)) else None
+            }
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to compute labeling speed for city $cityId: ${e.getMessage}")
+              None
+            }
+        }
+        Future.sequence(perCityFutures).map(_.flatten.toMap)
+      }
+    }
+  }
+
+  /**
+   * Attaches data-quality anomaly flags to each scorecard, using the full set for the relative (median-based) check
+   * (#4329). The activity/coverage story is carried separately by the lifecycle classification
+   * ([[ConfigService.lifecycle]]), not here, so this only surfaces "high_disagreement".
+   *
+   * @param scorecards All gathered per-city scorecards.
+   * @return           Each scorecard paired with its data-quality flags.
+   */
+  private def flagAnomalies(scorecards: Seq[CityScorecard]): Seq[CityScorecardWithFlags] = {
+    val medianDisagreement = ConfigService.medianDisagreementRate(scorecards)
+
+    scorecards.map { sc =>
+      val flags = scala.collection.mutable.ListBuffer.empty[String]
+
+      // Outlier disagreement, but only among cities with a meaningful validation volume.
+      if (sc.totalValidations >= ConfigService.MinValidationsForDisagreement &&
+        ConfigService.disagreementRate(sc) > medianDisagreement * ConfigService.DisagreementMedianMultiple) {
+        flags += "high_disagreement"
+      }
+
+      CityScorecardWithFlags(sc, flags.toSeq)
     }
   }
 
