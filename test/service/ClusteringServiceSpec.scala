@@ -16,19 +16,26 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 /**
- * DB-backed regression test for the mid-clustering atomic swap (#2507).
+ * DB-backed regression tests for the mid-clustering atomic swap (#2507).
  *
- * Nightly clustering used to wipe every dirty region's clusters up front and then repopulate them region-by-region over
- * a long run, so API readers saw a region as empty for the whole gap. The fix moves each region's delete into
- * submitClusteringResults' transaction, so re-submitting a region atomically replaces its clusters rather than
- * emptying-then-refilling. This spec proves that replace-not-duplicate property: submitting twice for the same region
- * leaves exactly one clustering_session and does not double the cluster count.
+ * Nightly clustering used to wipe every dirty region's clusters up front (in getRegionsToClusterAndWipeOldData) and then
+ * repopulate them region-by-region over a long run, so API readers saw a region as empty for the whole gap. The fix has
+ * two halves, each covered below:
+ *   1. submitClusteringResults now deletes a region's old clusters inside the same transaction that inserts the new ones
+ *      -> re-submitting a region atomically *replaces* its clusters (one clustering_session, no duplication), and an
+ *      empty submission clears the region; other regions are untouched.
+ *   2. getRegionsToCluster no longer deletes anything -> querying the to-cluster list leaves existing clusters intact.
  *
- * It mutates real cluster rows for one region, so it snapshots that region's clustering_session/cluster/cluster_label
- * rows up front and restores them (preserving ids via forceInsert) in a finally, leaving the DB untouched even if an
- * assertion fails. Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in
- * dev/CI); cancels gracefully if the connected DB has no clusterable labels. Scheduling actors are disabled so the
- * background clustering actor can't race the test.
+ * Not covered here: the literal "a concurrent reader never observes the region empty mid-swap" guarantee. That follows
+ * from Postgres MVCC plus the single-transaction delete+insert and is not deterministically reproducible in a unit test
+ * (it would require racing a reader against the in-flight transaction); these tests instead pin the committed-state
+ * invariants the guarantee rests on.
+ *
+ * These mutate real cluster rows for one region, so each mutating case runs inside withRegionRestored, which snapshots
+ * the region's clustering_session/cluster/cluster_label rows and restores them (preserving ids) in a finally — leaving
+ * the DB untouched even if an assertion fails. Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER /
+ * DATABASE_PASSWORD, as in dev/CI); cancels gracefully if the connected DB has no clusterable labels. Scheduling actors
+ * are disabled so the background clustering actor can't race the tests.
  */
 class ClusteringServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
 
@@ -48,75 +55,140 @@ class ClusteringServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val clusterLabels = TableQuery[ClusterLabelTableDef]
   private val regions       = TableQuery[RegionTableDef]
 
-  /** Clusters belonging to the given region (cluster has no region_id; join through its clustering_session). */
-  private def clusterCountForRegion(regionId: Int): Int = {
-    val sessionIds: Seq[Int] = run(sessions.filter(_.regionId === regionId).map(_.clusteringSessionId).result)
-    run(clusters.filter(_.clusteringSessionId.inSet(sessionIds)).length.result)
+  /** A real region that has API-eligible labels, so we can build submissions with valid label_id/lat/lng FKs. */
+  private lazy val candidateRegion: Option[(Int, Seq[LabelToCluster])] = {
+    val regionIds: Seq[Int] = run(regions.filter(_.deleted === false).map(_.regionId).result)
+    regionIds.iterator.map(id => id -> run(clusteringSessionTable.getLabelsToClusterInRegion(id))).find(_._2.nonEmpty)
   }
 
+  /** Clustering_session ids for a region (read only the id column, so the un-round-trippable thresholds JSON is skipped). */
   private def sessionIdsForRegion(regionId: Int): Seq[Int] =
     run(sessions.filter(_.regionId === regionId).map(_.clusteringSessionId).result)
 
+  /** Clusters belonging to a region (cluster has no region_id; join through its clustering_session). */
+  private def clusterCountForRegion(regionId: Int): Int =
+    run(clusters.filter(_.clusteringSessionId.inSet(sessionIdsForRegion(regionId))).length.result)
+
+  /** Total clusters NOT in the given region — used to assert a submit touches only its own region. */
+  private def clusterCountOutsideRegion(regionId: Int): Int = {
+    val otherSessionIds = run(sessions.filterNot(_.regionId === regionId).map(_.clusteringSessionId).result)
+    run(clusters.filter(_.clusteringSessionId.inSet(otherSessionIds)).length.result)
+  }
+
+  /** A one-cluster submission built from a real label so its label_id/lat/lng satisfy the cluster FKs. */
+  private def singleClusterSubmission(label: LabelToCluster): (Seq[ClusterSubmission], Seq[ClusteredLabelSubmission]) =
+    (
+      Seq(ClusterSubmission(label.labelType, 1, label.lat, label.lng, label.severity)),
+      Seq(ClusteredLabelSubmission(label.labelId, label.labelType, 1))
+    )
+
+  /**
+   * Runs `body` and then restores the region's cluster data to exactly its pre-test state, so these destructive tests
+   * leave the dev/CI DB untouched. clustering_session is snapshotted/restored via plain SQL (raw `::text`): its
+   * thresholds JSON mapper can't deserialize existing rows — the reader expects "label_type" but the writer emits
+   * "label_type_id" (a latent bug unrelated to #2507) — whereas cluster/cluster_label map cleanly through Slick.
+   */
+  private def withRegionRestored[T](regionId: Int)(body: => T): T = {
+    val snapSessions: Seq[(Int, Int, String, String)] = run(
+      sql"""SELECT clustering_session_id, region_id, thresholds::text, timestamp::text
+            FROM clustering_session WHERE region_id = $regionId""".as[(Int, Int, String, String)]
+    )
+    val snapClusters      = run(clusters.filter(_.clusteringSessionId.inSet(snapSessions.map(_._1))).result)
+    val snapClusterLabels = run(clusterLabels.filter(_.clusterId.inSet(snapClusters.map(_.clusterId))).result)
+
+    try body
+    finally {
+      // Restore in FK order, preserving original ids (forceInsert / explicit-id INSERT).
+      val restoreSessions = DBIO.sequence(snapSessions.map { case (id, rid, thresholds, timestamp) =>
+        sqlu"""INSERT INTO clustering_session (clustering_session_id, region_id, thresholds, timestamp)
+               VALUES ($id, $rid, ${thresholds}::jsonb, ${timestamp}::timestamptz)"""
+      })
+      run(
+        DBIO
+          .seq(
+            sessions.filter(_.regionId === regionId).delete, // cascades away whatever the test left behind
+            restoreSessions,
+            clusters.forceInsertAll(snapClusters),
+            clusterLabels.forceInsertAll(snapClusterLabels)
+          )
+          .transactionally
+      )
+    }
+  }
+
   "ApiService.submitClusteringResults (#2507 atomic swap)" should {
     "replace a region's clusters on re-submit rather than emptying or duplicating them" in {
-      // Find a real region that has API-eligible labels so we can build a submission with valid label_id/lat/lng FKs.
-      val regionIds: Seq[Int] = run(regions.filter(_.deleted === false).map(_.regionId).result)
-      val candidate: Option[(Int, Seq[LabelToCluster])] = regionIds.iterator
-        .map(id => id -> run(clusteringSessionTable.getLabelsToClusterInRegion(id)))
-        .find(_._2.nonEmpty)
-
-      candidate match {
+      candidateRegion match {
         case None => cancel("No region in the connected DB has clusterable labels; nothing to exercise.")
         case Some((regionId, labels)) =>
-          val label           = labels.head
-          val clusterSub      = ClusterSubmission(label.labelType, 1, label.lat, label.lng, label.severity)
-          val clusterLabelSub = ClusteredLabelSubmission(label.labelId, label.labelType, 1)
-          val noThresholds    = Seq.empty[ClusteringThreshold]
+          val (clusterSubs, clusterLabelSubs) = singleClusterSubmission(labels.head)
+          val noThresholds                    = Seq.empty[ClusteringThreshold]
 
-          // Snapshot the region's existing cluster data so we can restore it regardless of how the test ends. Read the
-          // clustering_session rows as raw text via plain SQL rather than the Slick projection: the thresholds JSON
-          // mapper can't deserialize existing rows (its reader expects "label_type" but the writer emits
-          // "label_type_id"), and that latent bug is unrelated to #2507. cluster/cluster_label map cleanly.
-          val snapSessions: Seq[(Int, Int, String, String)] = run(
-            sql"""SELECT clustering_session_id, region_id, thresholds::text, timestamp::text
-                  FROM clustering_session WHERE region_id = $regionId""".as[(Int, Int, String, String)]
-          )
-          val snapSessionIds    = snapSessions.map(_._1)
-          val snapClusters      = run(clusters.filter(_.clusteringSessionId.inSet(snapSessionIds)).result)
-          val snapClusterIds    = snapClusters.map(_.clusterId)
-          val snapClusterLabels = run(clusterLabels.filter(_.clusterId.inSet(snapClusterIds)).result)
+          withRegionRestored(regionId) {
+            val clustersElsewhereBefore = clusterCountOutsideRegion(regionId)
 
-          try {
             // First submit: the region now holds exactly our one synthetic cluster under a single session.
             val sessionA =
-              await(apiService.submitClusteringResults(regionId, Seq(clusterSub), Seq(clusterLabelSub), noThresholds))
+              await(apiService.submitClusteringResults(regionId, clusterSubs, clusterLabelSubs, noThresholds))
             sessionIdsForRegion(regionId) mustBe Seq(sessionA)
             clusterCountForRegion(regionId) mustBe 1
 
             // Second submit: the in-transaction delete must drop session A before inserting session B, so the region
             // still has exactly one session (the new one) and the cluster count has not doubled.
             val sessionB =
-              await(apiService.submitClusteringResults(regionId, Seq(clusterSub), Seq(clusterLabelSub), noThresholds))
+              await(apiService.submitClusteringResults(regionId, clusterSubs, clusterLabelSubs, noThresholds))
             sessionB must not equal sessionA
             sessionIdsForRegion(regionId) mustBe Seq(sessionB)
             clusterCountForRegion(regionId) mustBe 1
-          } finally {
-            // Restore the region to its pre-test state, preserving original ids (forceInsert) and FK order. Sessions go
-            // back via plain SQL (re-casting the snapshotted text), mirroring how they were read out.
-            val restoreSessions = DBIO.sequence(snapSessions.map { case (id, rid, thresholds, timestamp) =>
-              sqlu"""INSERT INTO clustering_session (clustering_session_id, region_id, thresholds, timestamp)
-                     VALUES ($id, $rid, ${thresholds}::jsonb, ${timestamp}::timestamptz)"""
-            })
-            run(
-              DBIO
-                .seq(
-                  sessions.filter(_.regionId === regionId).delete, // cascades to our test clusters/cluster_labels
-                  restoreSessions,
-                  clusters.forceInsertAll(snapClusters),
-                  clusterLabels.forceInsertAll(snapClusterLabels)
-                )
-                .transactionally
-            )
+
+            // The swap is scoped to this region: every other region's clusters are untouched.
+            clusterCountOutsideRegion(regionId) mustBe clustersElsewhereBefore
+          }
+      }
+    }
+
+    "clear a region's clusters when an empty result set is submitted" in {
+      candidateRegion match {
+        case None => cancel("No region in the connected DB has clusterable labels; nothing to exercise.")
+        case Some((regionId, labels)) =>
+          val (clusterSubs, clusterLabelSubs) = singleClusterSubmission(labels.head)
+          val noThresholds                    = Seq.empty[ClusteringThreshold]
+
+          withRegionRestored(regionId) {
+            // Seed a known non-empty state so the clear is observable regardless of the region's starting data.
+            await(apiService.submitClusteringResults(regionId, clusterSubs, clusterLabelSubs, noThresholds))
+            clusterCountForRegion(regionId) must be > 0
+
+            // An empty submission (a region whose labels all disappeared still POSTs an empty payload) must leave the
+            // region with a fresh session but zero clusters — the delete commits even when nothing is inserted.
+            val emptySession = await(apiService.submitClusteringResults(regionId, Seq.empty, Seq.empty, noThresholds))
+            sessionIdsForRegion(regionId) mustBe Seq(emptySession)
+            clusterCountForRegion(regionId) mustBe 0
+          }
+      }
+    }
+  }
+
+  "ApiService.getRegionsToCluster (#2507)" should {
+    "not delete any existing cluster data" in {
+      candidateRegion match {
+        case None => cancel("No region in the connected DB has clusterable labels; nothing to exercise.")
+        case Some((regionId, labels)) =>
+          val (clusterSubs, clusterLabelSubs) = singleClusterSubmission(labels.head)
+          val noThresholds                    = Seq.empty[ClusteringThreshold]
+
+          withRegionRestored(regionId) {
+            // Establish a known cluster for the region, then confirm getRegionsToCluster leaves it in place. This guards
+            // against re-introducing the old up-front wipe (it used to delete every dirty region's data).
+            await(apiService.submitClusteringResults(regionId, clusterSubs, clusterLabelSubs, noThresholds))
+            val regionCountBefore = clusterCountForRegion(regionId)
+            val totalBefore       = run(clusters.length.result)
+            regionCountBefore mustBe 1
+
+            await(apiService.getRegionsToCluster)
+
+            clusterCountForRegion(regionId) mustBe regionCountBefore
+            run(clusters.length.result) mustBe totalBefore
           }
       }
     }
