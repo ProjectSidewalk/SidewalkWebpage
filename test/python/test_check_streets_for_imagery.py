@@ -407,6 +407,27 @@ def test_main_resumes_from_checkpoint(monkeypatch, tmp_path):
     assert _output(tmp_path)['street_edge_id'].tolist() == [200]
 
 
+def test_progress_bar_resumes_at_prior_position(monkeypatch, tmp_path):
+    # The bar tracks the whole city (total) and is seeded with already-settled streets (initial) so a resumed scan
+    # picks up at its prior percentage rather than restarting at 0% (requested on #4360).
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61), (300, 1, _LINE_60)])
+    pd.DataFrame({'street_edge_id': [100, 200], 'region_id': [1, 1], 'outcome': [cs.HAS_IMAGERY, cs.NO_IMAGERY]}).to_csv(
+        tmp_path / cs.CHECKPOINT_FILE, index=False)
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})
+
+    captured = {}
+
+    def spy_tqdm(iterable, **kwargs):
+        captured.update(kwargs)
+        return iterable
+
+    monkeypatch.setattr(cs, 'tqdm', spy_tqdm)
+    assert cs.main(['--gsv']) == 0
+    # 3 streets total, 2 already settled -> bar starts at 2/3, not 0/3.
+    assert captured['total'] == 3
+    assert captured['initial'] == 2
+
+
 def test_main_fail_soft_records_failed_streets(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)])
     monkeypatch.setattr(cs.time, 'sleep', lambda *_a: None)  # neutralize backoff waits

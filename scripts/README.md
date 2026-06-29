@@ -59,8 +59,9 @@ The scan is built to survive a flaky network over a long run, and to scan a whol
 - **Resume:** progress is checkpointed per street to `db/streets_imagery_checkpoint.csv`, so a re-run resumes where it
   left off and re-attempts only failed/unprocessed streets. The final `db/streets_with_no_imagery.csv` is derived from
   the checkpoint at the end — its schema is unchanged, so `make hide-streets-without-imagery` is unaffected.
-- **Progress:** a `tqdm` progress bar (count, %, rate, and ETA) renders to stderr as streets complete; it auto-suppresses
-  when stderr isn't a terminal, so redirected/CI logs stay clean.
+- **Progress:** a `tqdm` progress bar (count, %, rate, and ETA) renders to stderr as streets complete. It tracks the
+  whole city and is seeded with already-settled streets, so a resumed run picks up at its prior percentage rather than
+  restarting at 0%. It auto-suppresses when stderr isn't a terminal, so redirected/CI logs stay clean.
 
 (The earlier bbox-radius unit bug and the no-op `print` — issue #4342 — are fixed as part of this.)
 

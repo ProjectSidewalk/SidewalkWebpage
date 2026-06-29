@@ -494,7 +494,9 @@ def main(argv=None):
     # Resume: skip streets already settled in the checkpoint; failed/unprocessed streets are (re)checked.
     processed = load_processed(checkpoint_path)
     todo = street_data[~street_data['street_edge_id'].isin(processed)]
-    total = len(todo)
+    # Count settled streets via the input set (not len(processed)) so a stale checkpoint with extra ids can't push the
+    # bar past 100%. Seeds tqdm's `initial` below so a resumed scan picks up at its prior percentage, not back at 0%.
+    already_settled = len(street_data) - len(todo)
 
     try:
         # Threads (not asyncio) with a global QPS cap: a deliberately conservative take on GSV Tracker's concurrent
@@ -503,10 +505,11 @@ def main(argv=None):
         with ThreadPoolExecutor(max_workers=args.workers) as executor:
             futures = {executor.submit(check_and_record, street): street for _, street in todo.iterrows()}
             failed_streets = []
+            # total/initial track the whole city so the bar reflects overall progress and resumes at the right percent.
             # disable=None makes tqdm auto-suppress when stderr isn't a TTY, so redirected/CI logs get clean output
             # instead of carriage-return spam.
-            progress = tqdm(as_completed(futures), total=total, desc='Checking %s imagery' % api,
-                            unit='street', disable=None)
+            progress = tqdm(as_completed(futures), total=len(street_data), initial=already_settled,
+                            desc='Checking %s imagery' % api, unit='street', disable=None)
             for future in progress:
                 if future.result().outcome == FAILED:
                     failed_streets.append(futures[future])
