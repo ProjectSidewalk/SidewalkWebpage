@@ -110,6 +110,12 @@ case class ProjectSidewalkStats(
     avgTimestampLast100Labels: Option[OffsetDateTime],
     kmExplored: Double,
     kmExploreNoOverlap: Double,
+    kmExploredMultipleUsers: Double,
+    kmExploredSingleUser: Double,
+    kmOpen: Double,
+    kmNoImagery: Double,
+    kmClosed: Double,
+    kmDisabled: Double,
     nUsers: Int,
     nExplorers: Int,
     nValidators: Int,
@@ -686,12 +692,32 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     )
   }
 
-  implicit val projectSidewalkStatsConverter: GetResult[ProjectSidewalkStats] = GetResult[ProjectSidewalkStats](r =>
+  implicit val projectSidewalkStatsConverter: GetResult[ProjectSidewalkStats] = GetResult[ProjectSidewalkStats] { r =>
+    // Read the leading scalar columns into locals (rather than inline constructor args) so we can derive
+    // kmExploredSingleUser. Reads must stay in SELECT order; GetResult is positional. km_explored_no_overlap counts
+    // streets with ≥1 completed audit and km_explored_multiple_users counts streets with ≥2 distinct auditors, so
+    // single-user = no_overlap − multiple_users by construction.
+    val launchDate                = r.nextString()
+    val avgTimestampLast100Labels = r.nextOffsetDateTimeOption()
+    val kmExplored                = r.nextDouble()
+    val kmExploreNoOverlap        = r.nextDouble()
+    val kmExploredMultipleUsers   = r.nextDouble()
+    val kmExploredSingleUser      = kmExploreNoOverlap - kmExploredMultipleUsers
+    val kmOpen                    = r.nextDouble()
+    val kmNoImagery               = r.nextDouble()
+    val kmClosed                  = r.nextDouble()
+    val kmDisabled                = r.nextDouble()
     ProjectSidewalkStats(
-      r.nextString(),
-      r.nextOffsetDateTimeOption(),
-      r.nextDouble(),
-      r.nextDouble(),
+      launchDate,
+      avgTimestampLast100Labels,
+      kmExplored,
+      kmExploreNoOverlap,
+      kmExploredMultipleUsers,
+      kmExploredSingleUser,
+      kmOpen,
+      kmNoImagery,
+      kmClosed,
+      kmDisabled,
       r.nextInt(),
       r.nextInt(),
       r.nextInt(),
@@ -760,7 +786,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         )
       )
     )
-  )
+  }
 
   def find(labelId: Int): DBIO[Option[Label]] = {
     labelsUnfiltered.filter(_.labelId === labelId).result.headOption
@@ -1962,6 +1988,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              #${avgRecentLabels.map(avg => s"'$avg'").getOrElse("NULL")} AS avg_timestamp_last_100_labels,
              km_audited.km_audited AS km_audited,
              km_audited_no_overlap.km_audited_no_overlap AS km_audited_no_overlap,
+             km_explored_multiple_users.km_explored_multiple_users AS km_explored_multiple_users,
+             km_by_status.km_open,
+             km_by_status.km_no_imagery,
+             km_by_status.km_closed,
+             km_by_status.km_disabled,
              users.total_users,
              users.audit_users,
              users.validation_users,
@@ -2076,6 +2107,33 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               WHERE completed = TRUE AND #$userFilter
           ) distinct_streets
       ) AS km_audited_no_overlap, (
+          -- Redundant-coverage km: streets with a completed audit by ≥2 distinct (non-excluded) users. Mirrors the
+          -- km_audited_no_overlap subquery but groups per street and keeps only those audited by 2+ people. Single-user
+          -- km is derived (no_overlap − multiple_users) in projectSidewalkStatsConverter, so it is not selected here.
+          SELECT COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000, 0) AS km_explored_multiple_users
+          FROM (
+              SELECT street_edge.street_edge_id, geom
+              FROM street_edge
+              INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+              INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
+              WHERE completed = TRUE AND #$userFilter
+              GROUP BY street_edge.street_edge_id, geom
+              HAVING COUNT(DISTINCT audit_task.user_id) >= 2
+          ) multi_user_streets
+      ) AS km_explored_multiple_users, (
+          -- Total street km by availability status (#3888 enum). The `open` bucket is the auditable-now network and is
+          -- surfaced as `km_explorable`. The tutorial street is excluded from every bucket. COALESCE guards buckets a
+          -- given city may have none of (e.g. no `disabled` streets), since the converter reads non-Option Doubles.
+          SELECT COALESCE(SUM(len) FILTER (WHERE status = 'open'), 0)       AS km_open,
+                 COALESCE(SUM(len) FILTER (WHERE status = 'no_imagery'), 0) AS km_no_imagery,
+                 COALESCE(SUM(len) FILTER (WHERE status = 'closed'), 0)     AS km_closed,
+                 COALESCE(SUM(len) FILTER (WHERE status = 'disabled'), 0)   AS km_disabled
+          FROM (
+              SELECT status, ST_LENGTH(ST_TRANSFORM(geom, 26918)) / 1000 AS len
+              FROM street_edge
+              WHERE street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+          ) street_lengths
+      ) AS km_by_status, (
           SELECT COUNT(DISTINCT(users.user_id)) AS total_users,
                  COUNT(CASE WHEN mission_type = 'validation' THEN 1 END) AS validation_users,
                  COUNT(CASE WHEN mission_type = 'audit' THEN 1 END) AS audit_users,
