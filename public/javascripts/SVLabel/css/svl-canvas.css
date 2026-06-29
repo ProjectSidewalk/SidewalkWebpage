@@ -141,19 +141,21 @@
     height: calc(16px * var(--ui-scale));
 }
 
+/* Sits in the top-right just left of the stacked zoom control, scaled down to match its height. transform-origin keeps
+   the top-right corner pinned so the scaled sign still lines up with the zoom buttons. */
 .speed-limit-sign {
     display: none;
     width: calc(60px * var(--ui-scale));
     height: calc(70px * var(--ui-scale));
     padding: calc(3px * var(--ui-scale));
-    margin-left: calc(2px * var(--ui-scale));
-    left: 0;
-    bottom: calc((25px + var(--bottom-left-links-clearance, 0px)) * var(--ui-scale));
+    top: calc(7px * var(--ui-scale));
+    right: calc(36px * var(--ui-scale));
     border-radius: calc(5px * var(--ui-scale));
     position: absolute;
-    z-index: 1;
+    z-index: 2;
     pointer-events: none;
-    transform: scale(0.75);
+    transform: scale(0.657);
+    transform-origin: top right;
     background: rgb(from var(--color-neutral-white) r g b / 75%);
 }
 
@@ -161,10 +163,8 @@
     width: calc(75px * var(--ui-scale));
     height: calc(75px * var(--ui-scale));
     padding: 0px;
-    margin-left: calc(-5px * var(--ui-scale));
-    margin-bottom: calc(-10px * var(--ui-scale));
     border-radius: 100%;
-    transform: scale(0.6);
+    transform: scale(0.613);
 }
 
 .speed-limit-holder {
