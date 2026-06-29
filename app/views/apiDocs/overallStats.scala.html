@@ -126,6 +126,15 @@
     "avg_timestamp_last_100_labels": "2023-09-25T14:32:47Z",
     "km_explored": 1834.26,
     "km_explored_no_overlap": 1523.75,
+    "km_explored_multiple_users": 412.08,
+    "km_explored_single_user": 1111.67,
+    "km_explorable": 1987.40,
+    "km_by_status": {
+        "open": 1987.40,
+        "no_imagery": 142.13,
+        "closed": 38.55,
+        "disabled": 6.20
+    },
     "user_counts": {
         "all_users": 4287,
         "labelers": 3892,
@@ -255,8 +264,12 @@
                 <tbody>
                     <tr><td><code>launch_date</code></td><td><code>string</code></td><td>ISO 8601 formatted date when Project Sidewalk was launched in this city.</td></tr>
                     <tr><td><code>avg_timestamp_last_100_labels</code></td><td><code>string</code></td><td>ISO 8601 formatted average timestamp of the 100 most recent labels, indicating data recency.</td></tr>
-                    <tr><td><code>km_explored</code></td><td><code>number</code></td><td>Total kilometers of streets explored by all users, including overlapping streets.</td></tr>
-                    <tr><td><code>km_explored_no_overlap</code></td><td><code>number</code></td><td>Total kilometers of unique streets explored, excluding overlapping streets.</td></tr>
+                    <tr><td><code>km_explored</code></td><td><code>number</code></td><td>Total kilometers of streets explored by all users, counting a street once per user who completed it (i.e. with overlap — the total auditing work done).</td></tr>
+                    <tr><td><code>km_explored_no_overlap</code></td><td><code>number</code></td><td>Total kilometers of unique streets with at least one completed audit (each street counted once, regardless of how many users explored it).</td></tr>
+                    <tr><td><code>km_explored_multiple_users</code></td><td><code>number</code></td><td>Kilometers of unique streets that have been completely audited by two or more distinct (non-excluded) users — i.e. redundantly covered. A street counts here only if each of the ≥2 users completed the whole street.</td></tr>
+                    <tr><td><code>km_explored_single_user</code></td><td><code>number</code></td><td>Kilometers of unique streets audited by exactly one user. Equals <code>km_explored_no_overlap − km_explored_multiple_users</code>.</td></tr>
+                    <tr><td><code>km_explorable</code></td><td><code>number</code></td><td>Kilometers of streets that are auditable right now (status <code>open</code>). This is the natural denominator for "percent of the city audited" (<code>km_explored_no_overlap / km_explorable</code>). Alias of <code>km_by_status.open</code>. Note: a street can be audited and later marked closed/no-imagery, so <code>km_explored_no_overlap</code> is not strictly bounded by this value.</td></tr>
+                    <tr><td><code>km_by_status</code></td><td><code>object</code></td><td>Total street kilometers broken down by availability status (see the <code>/v3/api/streets</code> <code>status</code> field). Lets you choose your own denominator. Keys: <code>open</code> (auditable now), <code>no_imagery</code> (a real street with no street-view imagery), <code>closed</code> (a real street whose region is not yet open to the public), <code>disabled</code> (not a genuine auditable street, e.g. an OSM miscategorization). The tutorial street is excluded from every bucket.</td></tr>
                     <tr><td><code>user_counts.all_users</code></td><td><code>integer</code></td><td>Total number of users who have contributed to Project Sidewalk.</td></tr>
                     <tr><td><code>user_counts.labelers</code></td><td><code>integer</code></td><td>Number of users who have participated in explore/labeling tasks.</td></tr>
                     <tr><td><code>user_counts.validators</code></td><td><code>integer</code></td><td>Number of users who have participated in validation tasks.</td></tr>
@@ -278,6 +291,7 @@
                     <tr><td><code>validations</code></td><td><code>object</code></td><td>Validation statistics split into three parallel blocks by vote source: <code>combined</code> (all votes), <code>human</code> (votes cast by people), and <code>ai</code> (votes cast by Project Sidewalk's AI). Each block has the identical structure described below. Note that <code>combined</code> includes AI votes, so it is not the same as <code>human</code>.</td></tr>
                     <tr><td><code>validations.[source]</code></td><td><code>object</code></td><td>One of <code>combined</code>, <code>human</code>, or <code>ai</code>. Holds the validation breakdown computed using only that source's votes.</td></tr>
                     <tr><td><code>validations.[source].total_validations</code></td><td><code>integer</code></td><td>Total number of individual validation judgments made by this source across all labels.</td></tr>
+                    <tr><td><code>validations.[source].[type]</code></td><td><code>object</code></td><td>Per-label-type breakdown for this source. The special key <code>Overall</code> aggregates across all label types; in particular <code>validations.[source].Overall.has_a_validation</code> is the total number of labels with at least one validation from this source.</td></tr>
                     <tr><td><code>validations.[source].[type].validated</code></td><td><code>integer</code></td><td>Number of labels of this type that this source has validated as either "correct" or "incorrect" through majority vote; a label is not included if the number of agree and disagree votes are equal.</td></tr>
                     <tr><td><code>validations.[source].[type].agreed</code></td><td><code>integer</code></td><td>Number of labels of this type that this source has validated as "correct" through majority vote.</td></tr>
                     <tr><td><code>validations.[source].[type].disagreed</code></td><td><code>integer</code></td><td>Number of labels of this type that this source has validated as "incorrect" through majority vote.</td></tr>
