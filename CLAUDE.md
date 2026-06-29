@@ -345,7 +345,7 @@ A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `tes
 
 ### Continuous integration
 
-`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (advisory — format Scala you touch with scalafmt, `.scalafmt.conf`), the **frontend grunt build**, and the **DB-backed API tests** (advisory while the suite stabilizes). "Advisory" steps report findings but don't block merges yet.
+`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (advisory — format Scala you touch with scalafmt, `.scalafmt.conf`), the **frontend grunt build**, the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), and the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application). "Advisory" steps report findings but don't block merges yet. **Branch protection** on `develop` (set 2026-06-29) wires the deterministic blocking jobs as **required status checks** (`Backend (compile + scalafmt)`, `Frontend (build)`; `Evolutions lint` being added) so a red build can't merge; `enforce_admins=true`, **no required reviews** (self-merge preserved), advisory jobs not required. Full policy: [`docs/testing-and-ci.md`](docs/testing-and-ci.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ### Building frontend assets
 

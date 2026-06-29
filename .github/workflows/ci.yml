@@ -1,9 +1,11 @@
 name: CI
 
-#   - backend:       `sbt compile` (BLOCKING) + `scalafmtCheckAll` (advisory)
-#   - frontend:      asset build (grunt)
-#   - backend-tests: DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now).
-#   - python-tests:  pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now).
+#   - backend:         `sbt compile` (BLOCKING) + `scalafmtCheckAll` (advisory)
+#   - frontend:        asset build (grunt)
+#   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
+#   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now). Boots
+#                      the app, which auto-applies pending evolutions -- so it doubles as the forward-apply gate.
+#   - python-tests:    pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now).
 # Frontend linting (eslint/htmlhint/stylelint) is intentionally NOT wired in here: it is owned by issue #2487 and
 # sequenced with the in-progress JS ES5->ES6 migration, so it'll be introduced separately on that track.
 
@@ -70,6 +72,19 @@ jobs:
       # Exercises the grunt concat/concat_css asset build (the project's `default` grunt task).
       - name: Build assets
         run: npx grunt
+
+  evolutions-lint:
+    name: Evolutions lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Fast, deterministic, no DB: catches Play-evolution footguns the database won't flag until apply time (e.g. a
+      # semicolon mid-`--`-comment, which Play splits on -- the bug that broke evolution 325). Blocking from day one.
+      # Invoked via `bash` (not `./`) so it doesn't depend on the file's executable bit, which git on some dev setups
+      # (core.fileMode=false) drops.
+      - name: Lint evolution files
+        run: bash db/scripts/lint-evolutions.sh
 
   backend-tests:
     name: Backend tests (API, PostGIS)
