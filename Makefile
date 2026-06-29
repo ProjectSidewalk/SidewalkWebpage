@@ -54,6 +54,9 @@ fill-new-schema:
 hide-streets-without-imagery:
 	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/hide-streets-without-imagery.sh"
 
+import-street-imagery:
+	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/import-street-imagery.sh"
+
 # Run the Python utility test suite (test/python/) inside the running web container. Pass extra pytest flags via args=,
 # e.g. `make test-python args="-k bbox -v"`.
 test-python:

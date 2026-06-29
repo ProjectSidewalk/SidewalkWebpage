@@ -79,6 +79,22 @@ from it on purpose, because the two tools answer different questions:
 A natural future step (issue #4347) is to also capture the imagery *capture date* from the same GSV responses — exactly
 the temporal angle GSV Tracker specializes in — to know not just whether a street has imagery but how old it is.
 
+## Persisting imagery age to the database (#4348)
+
+The `street_imagery` table records, per street, the capture-date range of the panos observed on it (`oldest_capture`,
+`newest_capture`, `n_panos`) so the app can flag streets whose imagery is stale — complementing `street_edge_status`
+(#3888), which only says *whether* a street has imagery. The table has two feeders, distinguished by its `data_source`
+column:
+
+- **Feeder 1 — `pano_data` (automatic).** Evolution `326.sql` creates the table and backfills it from `pano_data`
+  (joined to streets via `label`, which carries both `pano_id` and `street_edge_id`). This runs per-city on deploy at
+  zero API cost and covers every **audited** street, including Mapillary/Infra3d panos. Rows are tagged
+  `data_source = 'pano_data'`.
+- **Feeder 2 — the imagery scan (manual).** For streets a scan reached but that have no labels yet (so Feeder 1 can't
+  see them), run `make import-street-imagery` to ingest `db/street_imagery_summary.csv` — the per-street summary the
+  scan writes once the imagery-age work (#4347) lands. Rows are tagged `data_source = 'imagery_scan'`, and a scan
+  supersedes an existing `pano_data` row for the same street (it's a deliberate, fresher measurement).
+
 ## Testing
 
 ```bash
