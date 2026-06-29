@@ -42,10 +42,16 @@ manual — nothing in the app calls it.
    lack imagery. It writes results to `db/streets_with_no_imagery.csv`.
 3. Run `make hide-streets-without-imagery` to mark those streets in the database.
 
+Optional flags: `--workers N` (streets checked concurrently, default 8) and `--max-qps F` (global cap on requests per
+second across all workers, default 10 — deliberately conservative; Google allows ~500/s).
+
 ### Resilience & resume
 
-The scan is built to survive a flaky network over a long run:
+The scan is built to survive a flaky network over a long run, and to scan a whole city in reasonable time:
 
+- **Concurrency:** streets are checked in parallel (thread pool), but a shared **token-bucket rate limiter** caps total
+  requests/second (`--max-qps`) so we stay well under the provider limit regardless of worker count. Each worker keeps
+  the sequential endpoint→points early-exit, so concurrency doesn't inflate the number of API calls.
 - **Retry:** each request is retried with exponential backoff + jitter (`tenacity`) before giving up.
 - **Fail-soft:** a street that still errors is logged and the scan **continues** (it no longer aborts the whole run);
   the failed set is retried once at the end, and any still-failing streets are written to `db/failed_streets.csv`.

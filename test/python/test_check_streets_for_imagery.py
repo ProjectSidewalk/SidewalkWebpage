@@ -161,6 +161,45 @@ def test_mapillary_bbox_url_appends_four_coords():
     assert len(url.split('&bbox=')[1].split(',')) == 4
 
 
+def test_make_fetch_acquires_a_rate_limiter_token(monkeypatch):
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'ok': True})
+    acquired = []
+
+    class _Limiter:
+        def acquire(self):
+            acquired.append(1)
+
+    cs.make_fetch(sleep=lambda _s: None, rate_limiter=_Limiter())('http://x')
+    assert acquired == [1]  # a token was taken before the request
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# RateLimiter (token bucket, deterministic via injected clock/sleep)
+# --------------------------------------------------------------------------------------------------------------------
+
+def test_rate_limiter_allows_burst_up_to_capacity():
+    sleeps = []
+    limiter = cs.RateLimiter(max_per_second=2, capacity=2, monotonic=lambda: 0.0, sleep=sleeps.append)
+    limiter.acquire()
+    limiter.acquire()
+    assert sleeps == []  # a full bucket lets two through with no waiting
+
+
+def test_rate_limiter_throttles_when_depleted():
+    clock = {'t': 0.0}
+    sleeps = []
+
+    def sleep(seconds):
+        sleeps.append(seconds)
+        clock['t'] += seconds  # advance the fake clock so the bucket refills
+
+    limiter = cs.RateLimiter(max_per_second=2, capacity=2, monotonic=lambda: clock['t'], sleep=sleep)
+    limiter.acquire()
+    limiter.acquire()  # bucket now empty
+    limiter.acquire()  # must wait ~0.5 s for one token to refill at 2/s
+    assert sleeps == [pytest.approx(0.5)]
+
+
 # --------------------------------------------------------------------------------------------------------------------
 # process_street (fetch stubbed directly, no network)
 # --------------------------------------------------------------------------------------------------------------------
@@ -333,7 +372,8 @@ def test_main_happy_mixed_outcomes(monkeypatch, tmp_path):
     # Street 200 (lat 47.61) has imagery everywhere; street 100 (lat 47.6) has none.
     monkeypatch.setattr(cs, '_get_json',
                         lambda url: {'status': 'OK'} if '47.61' in url else {'status': 'ZERO_RESULTS'})
-    assert cs.main(['--gsv']) == 0
+    # High QPS so the rate limiter never actually throttles the test; --workers exercises the thread pool.
+    assert cs.main(['--gsv', '--workers', '4', '--max-qps', '1000']) == 0
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]
 
 
@@ -355,7 +395,7 @@ def test_main_fail_soft_records_failed_streets(monkeypatch, tmp_path):
         raise requests.exceptions.ConnectionError('down')
 
     monkeypatch.setattr(cs, '_get_json', boom)
-    assert cs.main(['--gsv']) == 0  # the scan completes despite the failure
+    assert cs.main(['--gsv', '--max-qps', '1000']) == 0  # the scan completes despite the failure
     assert _output(tmp_path).empty
     assert pd.read_csv(tmp_path / cs.FAILED_FILE)['street_edge_id'].tolist() == [100]
 

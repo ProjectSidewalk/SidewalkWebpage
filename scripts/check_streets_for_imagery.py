@@ -36,8 +36,10 @@ import csv
 import logging
 import os
 import sys
+import threading
 import time
 from collections import namedtuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pandas as pd
 import requests
@@ -60,6 +62,11 @@ FAILED_FILE = 'db/failed_streets.csv'
 REQUEST_TIMEOUT = 30
 # Max attempts per request before a street is marked failed.
 MAX_ATTEMPTS = 3
+
+# Concurrency defaults. Streets are checked in parallel, but a global QPS cap keeps total request rate well under the
+# provider limit (Google allows ~500 req/s; the metadata endpoint is rate-limited but free). Deliberately conservative.
+DEFAULT_WORKERS = 8
+DEFAULT_MAX_QPS = 10.0
 
 # Spacing between interpolated vertices along a street, in lat/lng degrees (~15 m). Accuracy here is not critical.
 DISTANCE = 0.000135
@@ -92,6 +99,38 @@ StreetResult = namedtuple('StreetResult', CHECKPOINT_COLUMNS)
 
 class ImageryApiError(Exception):
     """Raised when an imagery provider returns an unexpected error response that should abort checking a street."""
+
+
+class RateLimiter:
+    """
+    A thread-safe token-bucket rate limiter shared across worker threads.
+
+    ``acquire()`` blocks until a token is available, capping the global request rate at ``max_per_second`` (allowing
+    short bursts up to ``capacity``). Bounding the *rate* — rather than just the worker count — keeps us safely under
+    the provider's limit even if responses come back fast. The clock and sleep are injectable for deterministic tests.
+    """
+
+    def __init__(self, max_per_second, capacity=None, monotonic=time.monotonic, sleep=time.sleep):
+        self._rate = max_per_second
+        self._capacity = capacity if capacity is not None else max_per_second
+        self._tokens = self._capacity
+        self._updated = monotonic()
+        self._monotonic = monotonic
+        self._sleep = sleep
+        self._lock = threading.Lock()
+
+    def acquire(self):
+        """Block until a token is available, then consume it."""
+        while True:
+            with self._lock:
+                now = self._monotonic()
+                self._tokens = min(self._capacity, self._tokens + (now - self._updated) * self._rate)
+                self._updated = now
+                if self._tokens >= 1:
+                    self._tokens -= 1
+                    return
+                wait = (1 - self._tokens) / self._rate
+            self._sleep(wait)  # Sleep outside the lock so other threads can refill/observe progress.
 
 
 def redistribute_vertices(geom, distance=DISTANCE):
@@ -238,13 +277,14 @@ def _get_json(url):
     return requests.get(url, timeout=REQUEST_TIMEOUT).json()
 
 
-def make_fetch(max_attempts=MAX_ATTEMPTS, sleep=None):
+def make_fetch(max_attempts=MAX_ATTEMPTS, sleep=None, rate_limiter=None):
     """
     Builds a ``fetch(url) -> json`` that retries transient network errors with exponential backoff + jitter.
 
     Args:
         max_attempts: Attempts before giving up (then the underlying ``requests`` error is re-raised).
         sleep:        Sleep function between retries; defaults to ``time.sleep`` (injectable so tests run instantly).
+        rate_limiter: Optional ``RateLimiter``; if given, a token is acquired before every request (including retries).
 
     Returns:
         A ``fetch`` callable.
@@ -256,7 +296,13 @@ def make_fetch(max_attempts=MAX_ATTEMPTS, sleep=None):
         sleep=sleep if sleep is not None else time.sleep,
         reraise=True,
     )
-    return lambda url: retryer(lambda: _get_json(url))
+
+    def attempt(url):
+        if rate_limiter is not None:
+            rate_limiter.acquire()
+        return _get_json(url)
+
+    return lambda url: retryer(lambda: attempt(url))
 
 
 def _mapillary_bbox_url(mapillary_url, lat, lng, radius_km):
@@ -382,6 +428,10 @@ def main(argv=None):
         description='Loops through streets, outputting any without imagery to a separate file.')
     parser.add_argument('--gsv', action='store_true', help='Include if checking for GSV imagery')
     parser.add_argument('--mapillary', action='store_true', help='Include if checking for Mapillary imagery')
+    parser.add_argument('--workers', type=int, default=DEFAULT_WORKERS,
+                        help='Number of streets to check concurrently (default: %(default)s).')
+    parser.add_argument('--max-qps', type=float, default=DEFAULT_MAX_QPS,
+                        help='Global cap on requests per second across all workers (default: %(default)s).')
     args = parser.parse_args(argv)
     if not (args.gsv or args.mapillary):
         parser.error('At least one of --gsv or --mapillary is required')
@@ -404,10 +454,15 @@ def main(argv=None):
     gsv_url = gsv_base_url + '&radius=15'
     gsv_url_endpoint = gsv_base_url + '&radius=25'
     mapillary_url = 'https://graph.mapillary.com/images?is_pano=true&access_token=' + api_key
-    fetch = make_fetch()
+    # One shared rate limiter caps total request rate across all worker threads.
+    fetch = make_fetch(rate_limiter=RateLimiter(args.max_qps))
+    checkpoint_lock = threading.Lock()
 
-    def check(street):
-        return process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url)
+    def check_and_record(street):
+        result = process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url)
+        with checkpoint_lock:  # process_street does no file I/O; only the checkpoint append needs serializing.
+            append_checkpoint(result)
+        return result
 
     # Resume: skip streets already settled in the checkpoint; failed/unprocessed streets are (re)checked.
     processed = load_processed()
@@ -415,17 +470,18 @@ def main(argv=None):
     total = len(todo)
 
     try:
-        failed_streets = []
-        for position, (_, street) in enumerate(todo.iterrows(), start=1):
-            result = check(street)
-            append_checkpoint(result)
-            if result.outcome == FAILED:
-                failed_streets.append(street)
-            _print_progress(position, total)
+        with ThreadPoolExecutor(max_workers=args.workers) as executor:
+            # Parallelize across streets; each worker keeps the sequential endpoint->points early-exit internally.
+            futures = {executor.submit(check_and_record, street): street for _, street in todo.iterrows()}
+            failed_streets = []
+            for position, future in enumerate(as_completed(futures), start=1):
+                if future.result().outcome == FAILED:
+                    failed_streets.append(futures[future])
+                _print_progress(position, total)
 
-        # Retry the streets that errored once more, since such failures are usually transient.
-        for street in failed_streets:
-            append_checkpoint(check(street))
+            # Retry the streets that errored once more, since such failures are usually transient.
+            for future in as_completed({executor.submit(check_and_record, s): s for s in failed_streets}):
+                future.result()
     except KeyboardInterrupt:
         print("\nInterrupted; progress saved to the checkpoint. Re-run to resume.")
         finalize_outputs()
