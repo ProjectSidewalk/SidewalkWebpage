@@ -111,5 +111,5 @@
 
 @common.main(commonData, "Sidewalk - Admin Data Quality") {
     @common.navbar(commonData, Some(user))
-    @admin.dashboard.adminLayout("quality")(content)
+    @admin.dashboard.adminLayout("quality", user.role == "Owner")(content)
 }

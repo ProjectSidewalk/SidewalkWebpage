@@ -6,7 +6,7 @@ import executors.CpuIntensiveExecutionContext
 import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
-import models.auth.{DefaultEnv, WithAdmin}
+import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.label.LabelTypeEnum
 import models.user.{RoleTable, SidewalkUserWithRole}
 import org.apache.pekko.actor.ActorSystem
@@ -20,6 +20,7 @@ import play.silhouette.impl.exceptions.IdentityNotFoundException
 import service._
 
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.concurrent.ThreadPoolExecutor
 import javax.inject.{Inject, Singleton}
@@ -850,6 +851,167 @@ class AdminController @Inject() (
           "labels_awaiting_validation" -> s.labelsAwaitingValidation,
           "low_quality_users"     -> s.lowQualityUsers,
           "last_activity"         -> lastActivity
+        )
+      )
+    }
+  }
+
+  /**
+   * Returns a per-city summary scorecard for every deployment, for the cross-city "Across Cities" overview (#4329).
+   *
+   * Owner-gated: all cities share one database, so per-city Administrators must not see other cities' detail. Merges the
+   * computed metrics ([[service.ConfigService.getCityScorecards]]) with each city's display name / URL / visibility
+   * (from config, so they stay language-aware) and echoes the anomaly thresholds + cross-city median in the summary
+   * block so the page can label the "needs attention" items. All field names are snake_case (v3 API convention).
+   */
+  def getCityScorecards = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    val cityInfoById: Map[String, CityInfo] =
+      configService.getAllCityInfo(request2Messages.lang).map(ci => ci.cityId -> ci).toMap
+
+    // Fetch the per-city scorecards and the all-time cross-city weekly series in parallel; the page's "over time" charts
+    // default to the last 12 weeks (derived client-side from each city's weekly_trend) and toggle to this all-time set.
+    val scorecardsF    = configService.getCityScorecards()
+    val allTimeF       = configService.getCrossCityWeeklyTrend(None)
+    val labelingSpeedF = configService.getCrossCityLabelingSpeed()
+
+    for {
+      withFlags     <- scorecardsF
+      allTimeTrend  <- allTimeF
+      labelingSpeed <- labelingSpeedF
+    } yield {
+      val now        = OffsetDateTime.now()
+      val scorecards = withFlags.map(_.scorecard)
+
+      val cities = withFlags.map { case CityScorecardWithFlags(sc, anomalies) =>
+        val info = cityInfoById.get(sc.cityId)
+        // Per-label-type breakdown (the data-pattern lens), keyed by label type with snake_case stat names.
+        val byLabelType = JsObject(sc.byLabelType.toSeq.map { case (labelType, s) =>
+          labelType -> Json.obj(
+            "labels"    -> s.labels,
+            "validated" -> s.labelsValidated,
+            "agree"     -> s.labelsValidatedAgree,
+            "disagree"  -> s.labelsValidatedDisagree
+          )
+        })
+        // Trailing weekly activity (oldest first) — drives per-city sparklines and the aggregate overview line charts.
+        val weeklyTrend = JsArray(sc.weeklyTrend.map { w =>
+          Json.obj(
+            "week_start"   -> w.weekStart.toString,
+            "labels"       -> w.labels,
+            "validations"  -> w.validations,
+            "active_users" -> w.activeUsers
+          )
+        })
+        Json.obj(
+          "city_id"                      -> sc.cityId,
+          "city_name"                    -> info.map(_.cityNameShort),
+          "city_name_formatted"          -> info.map(_.cityNameFormatted),
+          "url"                          -> info.map(_.URL),
+          "visibility"                   -> info.map(_.visibility),
+          // Coverage lens.
+          "coverage"                     -> sc.coverage,
+          "total_streets"                -> sc.totalStreets,
+          "audited_streets"              -> sc.auditedStreets,
+          "streets_remaining"            -> (sc.totalStreets - sc.auditedStreets),
+          "total_km"                     -> sc.totalKm,
+          "audited_km"                   -> sc.auditedKm,
+          "km_remaining"                 -> math.max(0.0, sc.totalKm - sc.auditedKm),
+          // Data + quality lens.
+          "total_labels"                 -> sc.totalLabels,
+          "ai_labels"                    -> sc.aiLabels,
+          "ai_label_share"               -> (if (sc.totalLabels > 0) sc.aiLabels.toDouble / sc.totalLabels else 0.0),
+          "labels_validated"             -> sc.labelsValidated,
+          "labels_validated_share"       -> (if (sc.totalLabels > 0) sc.labelsValidated.toDouble / sc.totalLabels else 0.0),
+          "labels_with_severity"         -> sc.labelsWithSeverity,
+          "labels_severity_eligible"     -> sc.labelsSeverityEligible,
+          // Share computed only over types that CAN have a severity (NoSidewalk/Signal/Occlusion excluded).
+          "severity_share"               -> (if (sc.labelsSeverityEligible > 0) sc.labelsWithSeverity.toDouble / sc.labelsSeverityEligible else 0.0),
+          "labels_with_tags"             -> sc.labelsWithTags,
+          "labels_tag_eligible"          -> sc.labelsTagEligible,
+          // Share computed only over types that CAN have tags (types present in the deployment's tag table).
+          "tags_share"                   -> (if (sc.labelsTagEligible > 0) sc.labelsWithTags.toDouble / sc.labelsTagEligible else 0.0),
+          "validations_per_label"        -> (if (sc.totalLabels > 0) sc.totalValidations.toDouble / sc.totalLabels else 0.0),
+          "total_validations"            -> sc.totalValidations,
+          "validations_agree"            -> sc.validationsAgree,
+          "validations_disagree"         -> sc.validationsDisagree,
+          "validation_disagreement_rate" -> ConfigService.disagreementRate(sc),
+          "ai_validations"               -> sc.aiValidations,
+          "ai_validation_share"          -> (if (sc.totalValidations > 0) sc.aiValidations.toDouble / sc.totalValidations else 0.0),
+          "by_label_type"                -> byLabelType,
+          // People lens.
+          "active_contributors"          -> sc.activeContributors,
+          "low_quality_contributors"     -> sc.lowQualityContributors,
+          // Activity lens.
+          "labels_7d"                    -> sc.labels7d,
+          "labels_30d"                   -> sc.labels30d,
+          "validations_7d"               -> sc.validations7d,
+          "validations_30d"              -> sc.validations30d,
+          "audits_7d"                    -> sc.audits7d,
+          "audits_30d"                   -> sc.audits30d,
+          "last_activity"                -> sc.lastActivity,
+          "days_since_activity"          -> sc.lastActivity.map(ts => ChronoUnit.DAYS.between(ts, now)),
+          "weekly_trend"                 -> weeklyTrend,
+          // Contributors & effort (per-user output is median/p90, not mean±SD — the distribution is power-law).
+          "labels_per_user_median"       -> sc.labelsPerUserMedian,
+          "labels_per_user_p90"          -> sc.labelsPerUserP90,
+          "num_labelers"                 -> sc.numLabelers,
+          "validations_per_user_median"  -> sc.validationsPerUserMedian,
+          "validations_per_user_p90"     -> sc.validationsPerUserP90,
+          "num_validators"               -> sc.numValidators,
+          "seconds_per_validation"       -> sc.validationSecondsMedian,
+          "seconds_to_validate_10"       -> (sc.validationSecondsMedian * 10),
+          // Labeling speed (seconds of active auditing per 100 m) from the daily-cached heavy path; None if no data.
+          "seconds_per_100m"             -> labelingSpeed.get(sc.cityId),
+          // Lifecycle/health state: active | wrapped_up | stalled | low_traction (#4329).
+          "lifecycle"                    -> ConfigService.lifecycle(sc, now),
+          "anomalies"                    -> anomalies
+        )
+      }
+
+      // Cross-city weekly series for the full project history (the "All time" toggle on the over-time charts).
+      val overTimeAllTime = JsArray(allTimeTrend.map { w =>
+        Json.obj(
+          "week_start"   -> w.weekStart.toString,
+          "labels"       -> w.labels,
+          "validations"  -> w.validations,
+          "active_users" -> w.activeUsers
+        )
+      })
+
+      // Project-wide "hero" totals, summed from the cities shown above so they reconcile with the table. Distinct
+      // countries come from city config; languages from the app's supported set. global_agreement is the share of
+      // agree/disagree validations that agreed. total_users is the sum of per-city contributors (a person who
+      // contributes in two cities counts in each — there is no cross-city dedup here).
+      val numCountries     = scorecards.flatMap(sc => cityInfoById.get(sc.cityId).map(_.countryId)).distinct.size
+      val numLanguages     = config.get[Seq[String]]("play.i18n.langs").size
+      val totalContributors = scorecards.map(_.activeContributors).sum
+      val totalKm          = scorecards.map(_.auditedKm).sum
+      val totalLabels      = scorecards.map(_.totalLabels).sum
+      val totalValidations = scorecards.map(_.totalValidations).sum
+      val sumAgree         = scorecards.map(_.validationsAgree).sum
+      val sumDisagree      = scorecards.map(_.validationsDisagree).sum
+      val globalAgreement  = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
+
+      Ok(
+        Json.obj(
+          "cities"             -> cities,
+          "over_time_all_time" -> overTimeAllTime,
+          "summary" -> Json.obj(
+            "num_cities"               -> scorecards.length,
+            "num_countries"            -> numCountries,
+            "num_languages"            -> numLanguages,
+            "total_users"              -> totalContributors,
+            "total_km"                 -> totalKm,
+            "total_labels"             -> totalLabels,
+            "total_validations"        -> totalValidations,
+            "total_datapoints"         -> (totalLabels.toLong + totalValidations.toLong),
+            "global_agreement"         -> globalAgreement,
+            "median_disagreement_rate" -> ConfigService.medianDisagreementRate(scorecards),
+            "active_within_days"       -> ConfigService.ActiveWithinDays,
+            "wrapped_up_coverage"      -> ConfigService.WrappedUpCoverage,
+            "low_traction_contributors" -> ConfigService.LowTractionContributors
+          )
         )
       )
     }

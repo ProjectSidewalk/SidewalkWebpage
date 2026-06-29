@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
-import models.auth.WithAdmin
+import models.auth.{WithAdmin, WithOwner}
 import play.api.Configuration
 import service.{ConfigService, LabelService}
 
@@ -157,6 +157,21 @@ class AdminDashboardController @Inject() (
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Management")
       Ok(views.html.admin.dashboard.management(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Renders the Across Cities page: a cross-deployment overview comparing every Project Sidewalk city at once (#4329).
+   *
+   * Answers "how is the whole project doing, and which deployments need attention?" — a per-city scorecard (coverage,
+   * labels, validations, contributors, AI share, last activity) plus server-computed anomaly flags (stalled, low
+   * coverage, outlier validation disagreement). Owner-gated rather than admin-gated: every city lives in one database,
+   * so per-city Administrators must not see other cities' detail. Driven client-side from `/adminapi/cityScorecards`.
+   */
+  def acrossCities = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_AcrossCities")
+      Ok(views.html.admin.dashboard.acrossCities(commonData, request.identity))
     }
   }
 }

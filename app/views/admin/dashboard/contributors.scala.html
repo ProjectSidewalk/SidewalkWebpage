@@ -82,5 +82,5 @@
 
 @common.main(commonData, "Sidewalk - Admin Contributors") {
     @common.navbar(commonData, Some(user))
-    @admin.dashboard.adminLayout("contributors")(content)
+    @admin.dashboard.adminLayout("contributors", user.role == "Owner")(content)
 }

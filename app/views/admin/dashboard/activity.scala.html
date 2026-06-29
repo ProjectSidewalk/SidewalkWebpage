@@ -139,5 +139,5 @@
 
 @common.main(commonData, "Sidewalk - Admin Activity") {
     @common.navbar(commonData, Some(user))
-    @admin.dashboard.adminLayout("activity")(content)
+    @admin.dashboard.adminLayout("activity", user.role == "Owner")(content)
 }
