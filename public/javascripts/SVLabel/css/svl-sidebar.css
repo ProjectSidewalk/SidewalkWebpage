@@ -111,7 +111,13 @@
     flex: 0 0 auto;
     width: calc(36px * var(--ui-scale));
     height: calc(36px * var(--ui-scale));
-    cursor: zoom-in;
+    cursor: help;
+    border-radius: calc(4px * var(--ui-scale));
+}
+
+.explore-sidebar__badge-icon:focus-visible {
+    outline: 2px solid var(--color-link-200);
+    outline-offset: calc(2px * var(--ui-scale));
 }
 
 .explore-sidebar__badge-icon img {
@@ -134,25 +140,56 @@
     transition: clip-path 0.3s ease;
 }
 
-/* Enlarged badge shown on hover so the small icon's detail is legible. */
-.explore-sidebar__badge-preview {
+/* Tooltip shown on hover/focus: an enlarged, full-color badge alongside its name and how-to-earn text. */
+.explore-sidebar__badge-tooltip {
     position: fixed;
-    width: calc(100px * var(--ui-scale));
-    height: calc(100px * var(--ui-scale));
-    object-fit: contain;
+    left: -9999px; /* Off-screen until JS positions it. */
+    top: -9999px;
+    display: flex;
+    align-items: center;
+    gap: calc(12px * var(--ui-scale));
+    width: calc(280px * var(--ui-scale));
+    padding: calc(12px * var(--ui-scale));
+    background: var(--color-neutral-white);
+    border: 1px solid var(--color-neutral-600);
+    border-radius: calc(12px * var(--ui-scale));
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     pointer-events: none;
     opacity: 0;
     visibility: hidden;
-    transform: scale(0.85);
-    transform-origin: center bottom;
+    transform: scale(0.95);
     transition: opacity 0.12s ease, transform 0.12s ease;
     z-index: calc(var(--navbar-z-index) - 1);
 }
 
-.explore-sidebar__badge-preview--visible {
+.explore-sidebar__badge-tooltip--visible {
     opacity: 1;
     visibility: visible;
     transform: scale(1);
+}
+
+.explore-sidebar__badge-tooltip-icon {
+    flex: 0 0 auto;
+    width: calc(72px * var(--ui-scale));
+    height: calc(72px * var(--ui-scale));
+    object-fit: contain;
+}
+
+.explore-sidebar__badge-tooltip-body {
+    display: flex;
+    flex-direction: column;
+    gap: calc(4px * var(--ui-scale));
+}
+
+.explore-sidebar__badge-tooltip-name {
+    font: var(--text-small-medium);
+    color: var(--color-neutral-black);
+}
+
+.explore-sidebar__badge-tooltip-desc {
+    margin: 0;
+    font: var(--text-tiny-regular);
+    color: var(--color-neutral-black);
 }
 
 .explore-sidebar__badge-info {

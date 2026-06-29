@@ -48,7 +48,6 @@
 
 #minimap-message {
     font: var(--text-tiny-regular);
-    line-height: 125%;
     inset: auto;
     left: calc(3px * var(--ui-scale));
     top: calc(3px * var(--ui-scale));

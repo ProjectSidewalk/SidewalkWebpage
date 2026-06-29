@@ -5,25 +5,44 @@
  * and converted to kilometers for metric users so the displayed values and badge level match the user's unit system.
  */
 class BadgeProgress {
-    // Gap (px, before --ui-scale) between the cursor and the enlarged preview floating above it.
-    static #PREVIEW_GAP = 16;
-    // Minimum distance (px) the preview keeps from the viewport edges when clamped.
-    static #PREVIEW_MARGIN = 8;
+    // Gap (px, before --ui-scale) between the badge icon and the tooltip beside it.
+    static #TOOLTIP_GAP = 12;
+    // Minimum distance (px) the tooltip keeps from the viewport edges when clamped.
+    static #TOOLTIP_MARGIN = 8;
 
     #labelsRow;
     #distanceRow;
-    #preview;
+    #tooltip;
+    #tooltipIcon;
+    #tooltipName;
+    #tooltipDesc;
 
     constructor() {
         this.#labelsRow = this.#cacheRow('explore-sidebar__badge-labels', 'explore-sidebar__badge-labels-count');
         this.#distanceRow = this.#cacheRow('explore-sidebar__badge-distance', 'explore-sidebar__badge-distance-count');
 
-        // The sidebar clips its overflow, so the enlarged preview lives on <body> and is positioned on hover.
-        this.#preview = document.createElement('img');
-        this.#preview.className = 'explore-sidebar__badge-preview';
-        this.#preview.alt = '';
-        this.#preview.setAttribute('aria-hidden', 'true');
-        document.body.appendChild(this.#preview);
+        // The sidebar clips its overflow, so the tooltip lives on <body> and is positioned next to the hovered badge.
+        this.#tooltip = document.createElement('div');
+        this.#tooltip.className = 'explore-sidebar__badge-tooltip';
+        this.#tooltip.setAttribute('role', 'presentation');
+        this.#tooltip.setAttribute('aria-hidden', 'true');
+
+        this.#tooltipIcon = document.createElement('img');
+        this.#tooltipIcon.className = 'explore-sidebar__badge-tooltip-icon';
+        this.#tooltipIcon.alt = '';
+
+        const body = document.createElement('div');
+        body.className = 'explore-sidebar__badge-tooltip-body';
+        this.#tooltipName = document.createElement('span');
+        this.#tooltipName.className = 'explore-sidebar__badge-tooltip-name';
+        this.#tooltipDesc = document.createElement('p');
+        this.#tooltipDesc.className = 'explore-sidebar__badge-tooltip-desc';
+        body.appendChild(this.#tooltipName);
+        body.appendChild(this.#tooltipDesc);
+
+        this.#tooltip.appendChild(this.#tooltipIcon);
+        this.#tooltip.appendChild(body);
+        document.body.appendChild(this.#tooltip);
 
         this.#attachHover(this.#labelsRow);
         this.#attachHover(this.#distanceRow);
@@ -42,51 +61,60 @@ class BadgeProgress {
             iconFill: container.querySelector('.explore-sidebar__badge-icon-fill'),
             name: container.querySelector('.explore-sidebar__badge-name'),
             bar: new ProgressBar(container.querySelector('.ps-progress-bar__fill'), countId),
-            // The next-badge image source, set during render and shown enlarged on hover.
-            iconSrc: null
+            // Tooltip content for this row, set during render and shown on hover/focus.
+            iconSrc: null,
+            tooltipName: '',
+            tooltipDesc: ''
         };
     }
 
-    /** Wires a badge row's icon to show, follow, and hide the enlarged preview on hover. */
+    /**
+     * Wires a badge row's icon to show/hide its tooltip. The icon is focusable, so the tooltip is keyboard-reachable as
+     * well as hoverable; the descriptive text is mirrored onto the icon's aria-label in #renderRow.
+     */
     #attachHover(row) {
-        row.icon.addEventListener('mouseenter', (event) => this.#showPreview(row, event));
-        row.icon.addEventListener('mousemove', (event) => this.#positionPreview(event));
-        row.icon.addEventListener('mouseleave', () => this.#hidePreview());
+        row.icon.addEventListener('mouseenter', () => this.#showTooltip(row));
+        row.icon.addEventListener('mouseleave', () => this.#hideTooltip());
+        row.icon.addEventListener('focusin', () => this.#showTooltip(row));
+        row.icon.addEventListener('focusout', () => this.#hideTooltip());
     }
 
     /**
-     * Shows the enlarged, full-color preview of a row's next-badge icon, floating above the cursor.
+     * Shows the tooltip for a row, populated with the next badge's enlarged icon, name, and how-to-earn text.
      * @param row Cached row elements.
-     * @param {MouseEvent} event The triggering pointer event, used for initial placement.
      */
-    #showPreview(row, event) {
+    #showTooltip(row) {
         if (!row.iconSrc) return;
-        if (this.#preview.getAttribute('src') !== row.iconSrc) this.#preview.src = row.iconSrc;
-        this.#positionPreview(event);
-        this.#preview.classList.add('explore-sidebar__badge-preview--visible');
+        if (this.#tooltipIcon.getAttribute('src') !== row.iconSrc) this.#tooltipIcon.src = row.iconSrc;
+        this.#tooltipName.textContent = row.tooltipName;
+        this.#tooltipDesc.textContent = row.tooltipDesc;
+        this.#tooltip.classList.add('explore-sidebar__badge-tooltip--visible');
+        this.#positionTooltip(row);
     }
 
     /**
-     * Positions the preview centered just above the cursor, clamped within the viewport.
-     * @param {MouseEvent} event The pointer event providing the cursor position.
+     * Positions the tooltip just to the left of the badge icon.
+     * @param row Cached row elements.
      */
-    #positionPreview(event) {
-        const previewRect = this.#preview.getBoundingClientRect();
-        const gap = BadgeProgress.#PREVIEW_GAP * util.uiScale();
-        const margin = BadgeProgress.#PREVIEW_MARGIN;
+    #positionTooltip(row) {
+        const iconRect = row.icon.getBoundingClientRect();
+        const tipRect = this.#tooltip.getBoundingClientRect();
+        const gap = BadgeProgress.#TOOLTIP_GAP * util.uiScale();
+        const margin = BadgeProgress.#TOOLTIP_MARGIN;
 
-        let left = event.clientX - previewRect.width / 2;
-        left = Math.max(margin, Math.min(left, window.innerWidth - previewRect.width - margin));
-        let top = event.clientY - previewRect.height - gap;
-        if (top < margin) top = event.clientY + gap;
+        let left = iconRect.left - gap - tipRect.width;
+        if (left < margin) left = iconRect.right + gap;
 
-        this.#preview.style.left = `${left}px`;
-        this.#preview.style.top = `${top}px`;
+        let top = iconRect.top + iconRect.height / 2 - tipRect.height / 2;
+        top = Math.max(margin, Math.min(top, window.innerHeight - tipRect.height - margin));
+
+        this.#tooltip.style.left = `${left}px`;
+        this.#tooltip.style.top = `${top}px`;
     }
 
-    /** Hides the enlarged badge preview. */
-    #hidePreview() {
-        this.#preview.classList.remove('explore-sidebar__badge-preview--visible');
+    /** Hides the badge tooltip. */
+    #hideTooltip() {
+        this.#tooltip.classList.remove('explore-sidebar__badge-tooltip--visible');
     }
 
     /** Formats a number using the locale-aware i18next number formatter. */
@@ -105,7 +133,9 @@ class BadgeProgress {
             value: labelCount,
             thresholds: BadgeAchievements.THRESHOLDS.labels,
             nameKey: 'common:badges.labeler-name',
+            goalKey: 'audit:right-ui.badges.labeler-goal',
             iconFor: (level) => `/assets/images/badges/badge_labels_badge${level}.png`,
+            nextText: (target) => i18next.t('audit:right-ui.badges.next-labels', { count: target }),
             unit: '',
             decimals: 0
         });
@@ -113,25 +143,32 @@ class BadgeProgress {
         const distanceThresholds = isMetric
             ? BadgeAchievements.THRESHOLDS.distance.map(util.math.milesToKms)
             : BadgeAchievements.THRESHOLDS.distance;
+        const distanceUnit = i18next.t('common:unit-distance-abbreviation');
         this.#renderRow(this.#distanceRow, {
             value: distance,
             thresholds: distanceThresholds,
             nameKey: 'common:badges.explorer-name',
+            goalKey: 'audit:right-ui.badges.explorer-goal',
             iconFor: (level) => isMetric
                 ? `/assets/images/badges/badge_distance_km_badge${level}.png`
                 : `/assets/images/badges/badge_distance_badge${level}.png`,
-            unit: i18next.t('common:unit-distance-abbreviation'),
+            // The badge's total distance goal, shown to one decimal place.
+            nextText: (target) => i18next.t('audit:right-ui.badges.next-distance', {
+                distance: `${this.#formatNumber(Number(target.toFixed(1)))} ${distanceUnit}`
+            }),
+            unit: distanceUnit,
             decimals: 1
         });
     }
 
     /**
-     * Renders a single badge row: next-badge icon + fill, tiered name, progress bar, and "current / target" text.
+     * Renders a single badge row: next-badge icon + fill, tiered name, progress bar, "current / target" text, and the
+     * tooltip content (name + goal + how-to-earn) shown on hover/focus.
      * @param row Cached row elements.
-     * @param config Row config: value, thresholds, nameKey, iconFor, unit, decimals.
+     * @param config Row config: value, thresholds, nameKey, goalKey, iconFor, nextText, unit, decimals.
      */
     #renderRow(row, config) {
-        const { value, thresholds, nameKey, iconFor, unit, decimals } = config;
+        const { value, thresholds, nameKey, goalKey, iconFor, nextText, unit, decimals } = config;
 
         // The next badge is the lowest level the user hasn't reached yet; if they've earned them all, show the top one.
         let nextIndex = thresholds.findIndex(threshold => value < threshold);
@@ -151,8 +188,15 @@ class BadgeProgress {
         row.iconSrc = iconSrc;
         row.iconFill.style.setProperty('--badge-fill', fraction);
 
-        row.name.textContent = `${i18next.t(nameKey)} ${BadgeAchievements.ROMAN[nextIndex]}`;
+        const badgeName = `${i18next.t(nameKey)} ${BadgeAchievements.ROMAN[nextIndex]}`;
+        row.name.textContent = badgeName;
         row.bar.setFraction(fraction);
+
+        // Tooltip: the badge's goal, plus the total it takes to earn it (or a congrats line once it's maxed out).
+        const howTo = maxed ? i18next.t('audit:right-ui.badges.earned-all') : nextText(target);
+        row.tooltipName = badgeName;
+        row.tooltipDesc = `${i18next.t(goalKey)} ${howTo}`;
+        row.icon.setAttribute('aria-label', `${badgeName}. ${row.tooltipDesc}`);
 
         // Floor (don't round) the displayed value so it never shows the target before the bar is actually full.
         const factor = 10 ** decimals;

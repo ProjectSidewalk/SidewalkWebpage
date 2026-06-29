@@ -116,7 +116,13 @@
         },
         "badges": {
             "title": "Badges",
-            "see-all": "Alle badges bekijken"
+            "see-all": "Alle badges bekijken",
+            "labeler-goal": "Verdien Labelaar-badges door toegankelijkheidslabels te plaatsen tijdens het verkennen.",
+            "explorer-goal": "Verdien Ontdekker-badges door straten te beoordelen op de Verkennen-pagina.",
+            "next-labels_one": "Plaats {{count, number}} label om de volgende te verdienen.",
+            "next-labels_other": "Plaats {{count, number}} labels om de volgende te verdienen.",
+            "next-distance": "Verken {{distance}} om de volgende te verdienen.",
+            "earned-all": "Je hebt het hoogste niveau van deze badge bereikt — geweldig gedaan!"
         },
         "neighborhood-progress": {
             "title": "Wijk voortgang",
