@@ -345,7 +345,7 @@ A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `tes
 
 ### Continuous integration
 
-`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (advisory — format Scala you touch with scalafmt, `.scalafmt.conf`), the **frontend grunt build**, the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), the **evolutions round-trip** (advisory — applies the whole history up→down→up against a real PostGIS DB in an isolated schema; `test/evolutions/EvolutionsRoundTripSpec.scala`), and the **DB-backed API tests** (advisory while the suite stabilizes). "Advisory" steps report findings but don't block merges yet.
+`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (advisory — format Scala you touch with scalafmt, `.scalafmt.conf`), the **frontend grunt build**, the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), and the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application). "Advisory" steps report findings but don't block merges yet.
 
 ### Building frontend assets
 

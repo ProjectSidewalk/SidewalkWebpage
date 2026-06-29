@@ -65,7 +65,7 @@ reveal-or-hide-neighborhoods:
 # Static checks on the Play evolution files (conf/evolutions/default/*.sql). Runs on the host (just bash + grep), so no
 # container is needed. Also wired into CI as the blocking `evolutions-lint` job.
 lint-evolutions:
-	@./db/scripts/lint-evolutions.sh
+	@bash db/scripts/lint-evolutions.sh
 
 lint-htmlhint:
 	@echo "Running HTMLHint...";

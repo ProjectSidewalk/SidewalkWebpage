@@ -3,9 +3,8 @@ name: CI
 #   - backend:         `sbt compile` (BLOCKING) + `scalafmtCheckAll` (advisory)
 #   - frontend:        asset build (grunt)
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
-#   - evolutions:      apply all evolutions up -> down -> up against a real PostGIS DB (ADVISORY while we confirm the
-#                      full history applies cleanly from scratch).
-#   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now).
+#   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now). Boots
+#                      the app, which auto-applies pending evolutions -- so it doubles as the forward-apply gate.
 #   - python-tests:    pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now).
 # Frontend linting (eslint/htmlhint/stylelint) is intentionally NOT wired in here: it is owned by issue #2487 and
 # sequenced with the in-progress JS ES5->ES6 migration, so it'll be introduced separately on that track.
@@ -82,62 +81,10 @@ jobs:
 
       # Fast, deterministic, no DB: catches Play-evolution footguns the database won't flag until apply time (e.g. a
       # semicolon mid-`--`-comment, which Play splits on -- the bug that broke evolution 325). Blocking from day one.
+      # Invoked via `bash` (not `./`) so it doesn't depend on the file's executable bit, which git on some dev setups
+      # (core.fileMode=false) drops.
       - name: Lint evolution files
-        run: ./db/scripts/lint-evolutions.sh
-
-  evolutions:
-    name: Evolutions (round-trip apply)
-    runs-on: ubuntu-latest
-    # ADVISORY while we confirm the full 1..N history applies cleanly from scratch (the dev DB is normally seeded from
-    # a dump, not built up by evolutions). Plan: ramp to blocking once proven stable. Does not block PRs yet.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: sbt
-
-      - name: Set up sbt
-        uses: sbt/setup-sbt@v1
-
-      # Reuse the project's db image (db/Dockerfile + init.sh): it provides PostGIS, the shared sidewalk_login schema,
-      # and the `sidewalk` role -- all of which a handful of evolutions reference by name, so a vanilla empty Postgres
-      # wouldn't suffice. No data volume is mounted, so the DB is fresh each run.
-      - name: Start database
-        run: docker compose up -d --build db
-
-      - name: Wait for database init to finish
-        run: |
-          for i in $(seq 1 90); do
-            if docker compose exec -T db psql -U postgres -d sidewalk -tAc \
-                 "SELECT 1 FROM information_schema.schemata WHERE schema_name='sidewalk_login'" 2>/dev/null | grep -q 1; then
-              echo "Database initialized."; exit 0
-            fi
-            sleep 2
-          done
-          echo "Database did not initialize in time."; docker compose logs db | tail -50; exit 1
-
-      # Apply the whole evolution history into an isolated, empty schema so the round-trip (up -> down -> up) builds
-      # every object from scratch and tears it all down again without touching the seeded city schemas. The spec's
-      # connection sets search_path to this schema first (see EVOLUTIONS_DB_URL), so play_evolutions and all unqualified
-      # objects land here.
-      - name: Create isolated round-trip schema
-        run: |
-          docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk \
-            -c "CREATE SCHEMA evolutions_roundtrip AUTHORIZATION sidewalk;"
-
-      - name: Round-trip evolutions (up -> down -> up)
-        run: sbt "testOnly evolutions.EvolutionsRoundTripSpec"
-        env:
-          EVOLUTIONS_DB_URL: jdbc:postgresql://localhost:5432/sidewalk?currentSchema=evolutions_roundtrip,sidewalk_login,public
-          EVOLUTIONS_DB_USER: sidewalk
-          EVOLUTIONS_DB_PASSWORD: sidewalk
-          SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
-          INTERNAL_API_KEY: dummy-ci-internal-key
+        run: bash db/scripts/lint-evolutions.sh
 
   backend-tests:
     name: Backend tests (API, PostGIS)
