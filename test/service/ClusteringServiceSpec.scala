@@ -61,7 +61,7 @@ class ClusteringServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
     regionIds.iterator.map(id => id -> run(clusteringSessionTable.getLabelsToClusterInRegion(id))).find(_._2.nonEmpty)
   }
 
-  /** Clustering_session ids for a region (read only the id column, so the un-round-trippable thresholds JSON is skipped). */
+  /** Clustering_session ids for a region. */
   private def sessionIdsForRegion(regionId: Int): Seq[Int] =
     run(sessions.filter(_.regionId === regionId).map(_.clusteringSessionId).result)
 
@@ -87,30 +87,23 @@ class ClusteringServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   /**
    * Runs `body` and then restores the region's cluster data to exactly its pre-test state, so these destructive tests
-   * leave the dev/CI DB untouched. clustering_session is snapshotted/restored via plain SQL (raw `::text`): its
-   * thresholds JSON mapper can't deserialize existing rows — the reader expects "label_type" but the writer emits
-   * "label_type_id" (a latent bug unrelated to #2507) — whereas cluster/cluster_label map cleanly through Slick.
+   * leave the dev/CI DB untouched. Snapshots the region's clustering_session/cluster/cluster_label rows through their
+   * Slick projections and re-inserts them (preserving ids) in a finally.
    */
   private def withRegionRestored[T](regionId: Int)(body: => T): T = {
-    val snapSessions: Seq[(Int, Int, String, String)] = run(
-      sql"""SELECT clustering_session_id, region_id, thresholds::text, timestamp::text
-            FROM clustering_session WHERE region_id = $regionId""".as[(Int, Int, String, String)]
-    )
-    val snapClusters      = run(clusters.filter(_.clusteringSessionId.inSet(snapSessions.map(_._1))).result)
+    val snapSessions = run(sessions.filter(_.regionId === regionId).result)
+    val snapClusters =
+      run(clusters.filter(_.clusteringSessionId.inSet(snapSessions.map(_.clusteringSessionId))).result)
     val snapClusterLabels = run(clusterLabels.filter(_.clusterId.inSet(snapClusters.map(_.clusterId))).result)
 
     try body
     finally {
-      // Restore in FK order, preserving original ids (forceInsert / explicit-id INSERT).
-      val restoreSessions = DBIO.sequence(snapSessions.map { case (id, rid, thresholds, timestamp) =>
-        sqlu"""INSERT INTO clustering_session (clustering_session_id, region_id, thresholds, timestamp)
-               VALUES ($id, $rid, ${thresholds}::jsonb, ${timestamp}::timestamptz)"""
-      })
+      // Restore in FK order, preserving original ids (forceInsertAll writes the given id past the AutoInc column).
       run(
         DBIO
           .seq(
             sessions.filter(_.regionId === regionId).delete, // cascades away whatever the test left behind
-            restoreSessions,
+            sessions.forceInsertAll(snapSessions),
             clusters.forceInsertAll(snapClusters),
             clusterLabels.forceInsertAll(snapClusterLabels)
           )
