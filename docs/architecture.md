@@ -59,7 +59,8 @@ The backend follows a consistent layering: **routes → Controller → Service �
 - **Per-city schemas** — each city is its own schema (`sidewalk_<city>`); they're essentially identical.
   Authentication lives in `sidewalk_login`.
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
-  `# --- !Ups` / `# --- !Downs`. The dev DB is seeded from a dump rather than built up from evolutions.
+  `# --- !Ups` / `# --- !Downs`. The dev DB is seeded from a dump rather than built up from evolutions; the scripts that
+  do that seeding (and other DB lifecycle/maintenance tasks) live in [`db/scripts/`](../db/scripts/README.md).
 
 ### Dependency injection & runtime
 

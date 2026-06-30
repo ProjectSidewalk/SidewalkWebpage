@@ -1,5 +1,5 @@
-#!/bin/bash
-set -e  # Exit on any error
+#!/usr/bin/env bash
+set -euo pipefail
 
 # Feeder 2 for the street_imagery table (#4348): ingest the per-street imagery summary produced by
 # check_streets_for_imagery.py (db/street_imagery_summary.csv) into street_imagery with data_source = 'imagery_scan'.
@@ -14,6 +14,10 @@ SCHEMA_NAME=$(prompt_with_default "Schema name")
 # Prompt user for path to CSV file and prepend working dir.
 CSV_FILENAME=$(prompt_with_default "Path to CSV file (relative to db dir)" "street_imagery_summary.csv")
 CSV_FILENAME=/opt/$CSV_FILENAME
+if [[ ! -f "$CSV_FILENAME" ]]; then
+    echo "Error: CSV not found at $CSV_FILENAME. Generate it with check_streets_for_imagery.py first." >&2
+    exit 1
+fi
 
 # Stage the CSV in a temp table (all text so empty date fields survive as ''), then upsert only the streets that have
 # imagery. Empty oldest/newest fields become NULL; a street with imagery but no parseable capture date still gets a row
