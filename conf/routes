@@ -55,6 +55,7 @@ GET     /admin                                          controllers.AdminDashboa
 GET     /admin/classic                                  controllers.AdminController.index
 GET     /admin/overview                                 controllers.AdminDashboardController.overview
 GET     /admin/coverage                                 controllers.AdminDashboardController.coverage
+GET     /admin/street-status                             controllers.AdminDashboardController.streetStatus
 GET     /admin/label-map                                controllers.AdminDashboardController.labelMap
 GET     /admin/quality                                  controllers.AdminDashboardController.quality
 GET     /admin/contributors                             controllers.AdminDashboardController.contributors

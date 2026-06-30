@@ -1499,3 +1499,44 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); }
 
 /* --- Across Cities: effort-table sub-header (#4329) -------------------------------------------------------------- */
 .ac-th-sub { font-weight: 400; font-size: var(--font-size-xs, 0.8125rem); color: var(--color-text-secondary, #5a7785); }
+
+/* --- Street Status page (#4331) -------------------------------------------------------------------------------
+ * Reuses the Coverage page's map / KPI / table / status classes; this block only adds the categorical status
+ * legend, the small status swatch (legend + popup), and the per-region 100%-stacked-bar cell. The status colors
+ * are owned by StreetStatusColors.STATUSES in street-status-map.js (no canonical backend color); these tokens
+ * mirror them for the CSS-only swatch borders and must be kept in sync there. */
+.street-status-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm, 12px);
+    margin-top: var(--space-sm, 12px);
+    font-size: var(--font-size-xs, 0.8125rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+.street-status-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Small color chip shared by the legend and the map popup. */
+.street-status-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
+/* Per-region 100%-stacked bar: one span per status, sized by share, colored inline from the JS palette. */
+.street-status-bar {
+    display: flex;
+    width: 120px;
+    height: 12px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: var(--color-neutral-100, #f0f0f0);
+}
+.street-status-bar span { display: block; height: 100%; }
+
+/* The distribution cell is decorative, so keep it left-aligned and let the count columns stay right-aligned. */
+.street-status-table td:last-child, .street-status-table th:last-child { text-align: left; }
