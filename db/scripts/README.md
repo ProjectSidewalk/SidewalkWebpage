@@ -37,7 +37,7 @@ are **git-ignored** and must be placed in `db/` yourself; see [`docs/dev-environ
 | File | `make` target | What it does | When you need it |
 |------|---------------|--------------|------------------|
 | `init.sh` | _(automatic on first boot)_ | Creates the `sidewalk` DB + roles, enables PostGIS, restores the committed **template** dumps (`sidewalk_init-dump`, `sidewalk_init_users-dump`), seeds the `SidewalkAI` user and read-only `readonly_user` role, and switches local auth to `trust`. | Never run by hand — it runs itself on a fresh db volume. |
-| `import-users.sh` | `make import-users` | Drops and reloads the shared **login schema** (`sidewalk_login`) from `sidewalk_users-dump` (~900 MB). | After first boot, and whenever you refresh the users dump. |
+| `import-users.sh` | `make import-users` | Drops and reloads the shared **login schema** (`sidewalk_login`) from `sidewalk_users-dump` (~900 MB); re-grants read-only afterward. | After first boot, and whenever you refresh the users dump. |
 | `import-dump.sh` | `make import-dump db=<schema>` | Drops and reloads **one city's schema** from `<schema>-dump`; recreates the role, sets its `search_path`, re-grants read-only. | To load or refresh a city's data. |
 | `create-new-schema.sh` | `make create-new-schema name=<schema>` | Builds a **brand-new empty city schema** from the `sidewalk_init` template (no data dump needed yet). | When standing up a city you don't yet have a dump for. |
 | `fill-new-schema.sh` | `make fill-new-schema` | Interactively populates a new city's `street_edge` / `region` / priority tables from **QGIS staging tables** (`qgis_road`, `qgis_region`), adds the tutorial street, sets the city center. | After `create-new-schema` + loading QGIS data, to bring the city online. |
@@ -91,14 +91,14 @@ or `ROLLBACK`. Edit the candidate-id list and the `search_path` (target city sch
   if a dump is missing, rather than a cryptic `pg_restore` error.
 - **Schema / city names must be valid bare SQL identifiers** (`^[a-z][a-z0-9_]*$`) — they're interpolated into DDL.
   `import-dump.sh` and `create-new-schema.sh` validate this.
-- **Large restores take minutes.** The users dump is ~900 MB. The restore scripts show a live elapsed-time clock and run
-  `pg_restore` in parallel (`-j`), but it's still a wait — don't assume it's hung.
+- **Large restores can run for a minute or more.** The ~900 MB users dump is the slowest (~1 min). The restore scripts
+  show a live elapsed-time clock and run `pg_restore` in parallel (`-j`), but it's still a wait — don't assume it's hung.
 - **`init.sh` only runs on a fresh volume.** Editing it does nothing to an existing dev DB until you recreate the volume
   (`make docker-stop` + remove the db volume, or `docker compose down -v`).
 - **`reveal-or-hide-neighborhoods.sh` has a server mode** (test/prod) with different connection params; the default is
   local. Only run the server mode if you know what you're doing.
 - **Inspect the DB read-only** with the `readonly_user` role (created by `init.sh`): it has `SELECT` only — never use
-  `-U sidewalk` for exploration.
+  `-U sidewalk` for exploration. The import scripts re-grant it after each restore, so read access survives re-imports.
 - **Maintenance scripts assume the *current* (post-evolution) schema.** A freshly imported dump sits at whatever schema
   version it was dumped at; Play applies pending evolutions only when the **app next starts**. So right after
   `import-dump`, a script like `reveal-or-hide-neighborhoods.sh` can fail with `column ... does not exist` (e.g.
