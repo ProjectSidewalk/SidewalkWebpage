@@ -9,6 +9,7 @@ class ActorModule extends AbstractModule with PekkoGuiceSupport {
     bindActor[CheckImageExpiryActor]("check-image-expiry-actor")
     bindActor[GetAiValidationsActor]("get-ai-validations-actor")
     bindActor[UserStatActor]("user-stats-actor")
+    bindActor[FunnelStatActor]("funnel-stat-actor")
     bindActor[RecalculateStreetPriorityActor]("recalculate-street-priority-actor")
     bindActor[AuthTokenCleanerActor]("auth-token-cleaner-actor")
     bindActor[ClusteringActor]("clustering-actor")

@@ -84,6 +84,7 @@ GET     /adminapi/labels/cvMetadata                     controllers.api.LabelApi
 GET     /adminapi/validationCounts                      controllers.AdminController.getAllUserValidationCounts
 PUT     /adminapi/clearPlayCache                        controllers.AdminController.clearPlayCache()
 GET     /adminapi/updateUserStats                       controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
+GET     /adminapi/updateFunnelStats                     controllers.AdminController.updateFunnelStats
 GET     /adminapi/getCoverageData                       controllers.AdminController.getCoverageData
 GET     /adminapi/getNumUsersContributed                controllers.AdminController.getNumUsersContributed
 GET     /adminapi/getContributionTimeStats              controllers.AdminController.getContributionTimeStats
@@ -100,6 +101,7 @@ GET     /adminapi/activityByDay                          controllers.AdminContro
 GET     /adminapi/humanVsAi                              controllers.AdminController.getHumanVsAiStats
 GET     /adminapi/overviewSummary                       controllers.AdminController.getOverviewSummary
 GET     /adminapi/cityScorecards                        controllers.AdminController.getCityScorecards
+GET     /adminapi/cityFunnels                           controllers.AdminController.getCityFunnels(window: Option[String])
 
 PUT     /adminapi/setRole                               controllers.AdminController.setUserRole
 PUT     /adminapi/setUserQualityManual                  controllers.AdminController.setUserQualityManual

@@ -37,6 +37,44 @@ class AcrossCitiesPage {
         active: '#4a90d9', wrapped_up: '#1f7a4d', stalled: '#e0a800', low_traction: '#c0392b'
     };
 
+    /**
+     * Display names for the funnel steps, keyed by the backend step keys (each funnel's `steps` array is the source of
+     * truth for the set and order; this map only supplies presentational labels). `full` is for the bar rows; `short`
+     * for the comparison-table column headers. Covers both the mapping and contribution funnels.
+     */
+    static #FUNNEL_STEP_LABELS = {
+        visited:                { full: 'Visited site',                     short: 'Visited' },
+        tutorial_started:       { full: 'Started tutorial',                short: 'Tutorial start' },
+        tutorial_finished:      { full: 'Finished or skipped tutorial',    short: 'Tutorial done' },
+        took_step:              { full: 'Took a step',                     short: 'Took a step' },
+        labeled:                { full: 'Placed a label',                  short: 'Labeled' },
+        mission_completed:      { full: 'Completed a mapping mission',     short: 'Mission done' },
+        contributed:            { full: 'Labeled or validated',           short: 'Contributed' },
+        contribution_completed: { full: 'Completed a labeling/validation mission', short: 'Mission done' }
+    };
+
+    /** Title + one-line description for each funnel, shown above its table/bars. Keyed by funnel type. */
+    static #FUNNEL_META = {
+        mapping:      { title: 'Mapping funnel',
+            desc: 'The Explore onboarding flow: tutorial, then walking, labeling, and completing an audit mission.' },
+        contribution: { title: 'Contribution funnel',
+            desc: 'The broad view: any contribution (labeling or validation) and finishing a mission.' }
+    };
+
+    /** Funnel display order on the page. The endpoint may include any subset of these. */
+    static #FUNNEL_ORDER = ['mapping', 'contribution'];
+
+    /** Which segment keys (matching the endpoint's per-city objects) each breakdown dimension shows, with labels. */
+    static #FUNNEL_DIMS = {
+        all:    [{ key: 'all',        label: 'All users' }],
+        role:   [{ key: 'registered', label: 'Registered' }, { key: 'anonymous', label: 'Anonymous' }],
+        device: [{ key: 'desktop',    label: 'Desktop' }, { key: 'mobile', label: 'Mobile' },
+            { key: 'device_unknown', label: 'Unknown' }]
+    };
+
+    /** Bar colors per segment, by position within the active dimension. */
+    static #FUNNEL_SEG_COLORS = ['#4a90d9', '#e0a800', '#b3b3b3'];
+
     #scorecardsUrl;
     #citiesUrl;
     #mapboxToken;
@@ -49,11 +87,17 @@ class AcrossCitiesPage {
     #sortKey = 'coverage'; // Current sort column.
     #sortDir = 'desc';     // 'asc' | 'desc'.
 
-    /** @param {{scorecardsUrl: string, citiesUrl?: string, mapboxToken?: string}} opts */
+    #funnelsUrl;
+    #funnels = {};         // { mapping: {steps, cities}, contribution: {steps, cities} } for the current window.
+    #funnelWindow = '30d'; // '30d' | '90d' | 'all'.
+    #funnelDim = 'all';    // 'all' | 'role' | 'device'.
+
+    /** @param {{scorecardsUrl: string, citiesUrl?: string, mapboxToken?: string, funnelsUrl?: string}} opts */
     constructor(opts = {}) {
         this.#scorecardsUrl = opts.scorecardsUrl;
         this.#citiesUrl = opts.citiesUrl;
         this.#mapboxToken = opts.mapboxToken;
+        this.#funnelsUrl = opts.funnelsUrl;
     }
 
     async init() {
@@ -78,6 +122,12 @@ class AcrossCitiesPage {
             this.#renderEffort();
             this.#renderPatterns();
             this.#renderQuality();
+            // Funnel data comes from its own endpoint and is refetched on window change, so load it separately; its
+            // internal error handling keeps a funnel failure from blanking the rest of the page.
+            if (this.#funnelsUrl) {
+                this.#wireFunnelControls();
+                await this.#loadFunnels();
+            }
         } catch (err) {
             console.error('Across Cities page failed to load:', err);
             this.#setText('ac-pulse', 'Could not load city data. Please try again.');
@@ -580,6 +630,161 @@ class AcrossCitiesPage {
                 `<td class="ac-num" title="${this.#num(c.low_quality_contributors)} of ${this.#num(contribDenom)} contributors">${this.#pct(lowQShare)}</td>` +
                 '</tr>';
         }).join('');
+    }
+
+    // --- Engagement funnel (#288) -----------------------------------------------------------------------------------
+
+    /** Wires the window selector (refetches) and the breakdown toggle (re-renders from cached data). */
+    #wireFunnelControls() {
+        const win = document.getElementById('ac-funnel-window');
+        if (win) win.querySelectorAll('.ac-toggle-btn').forEach(btn => btn.addEventListener('click', () => {
+            if (this.#funnelWindow === btn.dataset.window) return;
+            this.#funnelWindow = btn.dataset.window;
+            win.querySelectorAll('.ac-toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
+            this.#loadFunnels();
+        }));
+        const dim = document.getElementById('ac-funnel-dim');
+        if (dim) dim.querySelectorAll('.ac-toggle-btn').forEach(btn => btn.addEventListener('click', () => {
+            if (this.#funnelDim === btn.dataset.dim) return;
+            this.#funnelDim = btn.dataset.dim;
+            dim.querySelectorAll('.ac-toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
+            this.#renderFunnels();
+        }));
+    }
+
+    /** Fetches the funnels for the current window and renders them; a failure shows a message but leaves the page intact. */
+    async #loadFunnels() {
+        this.#setText('ac-funnel-status', 'Loading funnels…');
+        try {
+            const data = await this.#fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(this.#funnelWindow)}`);
+            this.#funnels = (data && data.funnels) || {};
+            this.#renderFunnels();
+        } catch (err) {
+            console.error('Funnel load failed:', err);
+            this.#setText('ac-funnel-status', 'Could not load funnel data.');
+        }
+    }
+
+    /** Renders each funnel (mapping, contribution) as its own block for the active breakdown dimension. */
+    #renderFunnels() {
+        const host = document.getElementById('ac-funnels');
+        if (!host) return;
+        const segs = AcrossCitiesPage.#FUNNEL_DIMS[this.#funnelDim] || AcrossCitiesPage.#FUNNEL_DIMS.all;
+        const types = AcrossCitiesPage.#FUNNEL_ORDER.filter(t => this.#funnels[t]);
+        host.innerHTML = types.map(t => this.#funnelBlock(t, this.#funnels[t], segs)).join('');
+        const n = types.reduce((max, t) => Math.max(max, (this.#funnels[t].cities || []).length), 0);
+        this.#setText('ac-funnel-status', n ? `${n} ${n === 1 ? 'city' : 'cities'} with funnel data.` : 'No funnel data yet.');
+    }
+
+    /**
+     * One funnel block: heading + description, the comparison table, and the per-city small-multiples.
+     * @param {string} funnelType  'mapping' | 'contribution'.
+     * @param {{steps: string[], cities: object[]}} funnel  The funnel's step keys and per-city rows.
+     * @param {{key: string, label: string}[]} segs  Segments to show for the active dimension.
+     * @returns {string} The block's HTML.
+     */
+    #funnelBlock(funnelType, funnel, segs) {
+        const meta = AcrossCitiesPage.#FUNNEL_META[funnelType] || { title: funnelType, desc: '' };
+        const steps = funnel.steps || [];
+        const cities = funnel.cities || [];
+        return '<div class="ac-funnel-block">' +
+            `<h3 class="ac-funnel-block-title">${AcrossCitiesPage.#esc(meta.title)}</h3>` +
+            `<p class="ac-note">${AcrossCitiesPage.#esc(meta.desc)}</p>` +
+            `<div class="ac-table-wrap">${this.#funnelTableHtml(steps, cities, segs)}</div>` +
+            `<div class="ac-funnel-grid">${this.#funnelBarsHtml(steps, cities, segs)}</div>` +
+            '</div>';
+    }
+
+    /**
+     * The comparison table for one funnel: one row per (city, segment), sorted by overall conversion. Step columns are
+     * driven by the funnel's `steps` order; each cell carries the count and (past the first step) its drop-off.
+     * @returns {string} The `<table>` HTML.
+     */
+    #funnelTableHtml(steps, cities, segs) {
+        const labels = AcrossCitiesPage.#FUNNEL_STEP_LABELS;
+        const multi = segs.length > 1;
+        const head = '<tr>' +
+            '<th class="ac-th-text">City</th>' +
+            (multi ? '<th class="ac-th-text">Group</th>' : '') +
+            steps.map(k => {
+                const l = labels[k] || { full: k, short: k };
+                return `<th title="${AcrossCitiesPage.#esc(l.full)}">${AcrossCitiesPage.#esc(l.short)}</th>`;
+            }).join('') +
+            '<th title="Final step as a share of visitors">Overall</th></tr>';
+
+        const rows = [];
+        for (const c of cities) {
+            for (const seg of segs) {
+                const d = c[seg.key];
+                if (d) rows.push({ c, seg, d });
+            }
+        }
+        rows.sort((a, b) => (b.d.overall_conversion || 0) - (a.d.overall_conversion || 0));
+
+        let body;
+        if (!rows.length) {
+            const span = steps.length + (multi ? 3 : 2);
+            body = `<tr><td colspan="${span}" class="dq-empty">No funnel data to show.</td></tr>`;
+        } else {
+            body = rows.map(({ c, seg, d }) => {
+                const stepCells = d.steps.map((v, i) => {
+                    const title = i === 0
+                        ? `${this.#num(v)} visitors`
+                        : `${this.#num(v)} — ${this.#pct(d.step_conversion[i])} of previous step`;
+                    return `<td class="ac-num" title="${title}">${this.#compact(v)}</td>`;
+                }).join('');
+                return '<tr>' +
+                    `<td class="ac-td-city">${this.#cityLink(c)}</td>` +
+                    (multi ? `<td>${AcrossCitiesPage.#esc(seg.label)}</td>` : '') +
+                    stepCells +
+                    `<td class="ac-num">${this.#pct(d.overall_conversion)}</td>` +
+                    '</tr>';
+            }).join('');
+        }
+        return `<table class="ac-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    }
+
+    /**
+     * Per-city small-multiples for one funnel: a horizontal funnel of bars, each normalized to that segment's visitors
+     * (= 100%) and labeled with the count and (past the first step) the drop-off. Cities are ordered by overall traffic.
+     * @returns {string} The concatenated panel HTML.
+     */
+    #funnelBarsHtml(steps, cities, segs) {
+        if (!cities.length || !steps.length) return '';
+        const ordered = cities.slice()
+            .sort((a, b) => ((b.all && b.all.steps[0]) || 0) - ((a.all && a.all.steps[0]) || 0));
+        return ordered.map(c => this.#funnelPanel(steps, c, segs)).join('');
+    }
+
+    /** Builds one city's funnel panel for the given steps (title, optional legend, and the step bars). */
+    #funnelPanel(steps, c, segs) {
+        const labels = AcrossCitiesPage.#FUNNEL_STEP_LABELS;
+        const palette = AcrossCitiesPage.#FUNNEL_SEG_COLORS;
+        const legend = segs.length > 1
+            ? '<div class="ac-funnel-legend">' + segs.map((s, i) =>
+                `<span class="ac-funnel-legend-item"><span class="ac-funnel-swatch" style="background:${palette[i] || palette[0]}"></span>${AcrossCitiesPage.#esc(s.label)}</span>`).join('') + '</div>'
+            : '';
+        const stepRows = steps.map((k, i) => {
+            const full = (labels[k] || { full: k }).full;
+            const bars = segs.map((s, si) => {
+                const d = c[s.key];
+                const v = d ? d.steps[i] : 0;
+                const base = d && d.steps[0] > 0 ? d.steps[0] : 0;
+                const width = base > 0 ? (v / base) * 100 : 0;
+                const conv = d ? d.step_conversion[i] : 0;
+                const valText = i === 0 ? this.#compact(v) : `${this.#compact(v)} · ${this.#pct(conv)}`;
+                const title = i === 0
+                    ? `${AcrossCitiesPage.#esc(full)}: ${this.#num(v)} visitors`
+                    : `${AcrossCitiesPage.#esc(full)}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
+                return `<div class="ac-funnel-bar" title="${title}">` +
+                    `<span class="ac-funnel-bar-fill" style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>` +
+                    `<span class="ac-funnel-bar-val">${valText}</span></div>`;
+            }).join('');
+            return `<div class="ac-funnel-step"><div class="ac-funnel-step-label">${AcrossCitiesPage.#esc(full)}</div>` +
+                `<div class="ac-funnel-bars">${bars}</div></div>`;
+        }).join('');
+        return `<div class="ac-funnel-panel"><div class="ac-funnel-panel-title">${this.#cityLink(c)}</div>` +
+            `${legend}${stepRows}</div>`;
     }
 
     // --- Shared cell builders ---------------------------------------------------------------------------------------
