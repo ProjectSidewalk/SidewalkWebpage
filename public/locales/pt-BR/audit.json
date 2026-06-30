@@ -95,7 +95,7 @@
     },
     "controls": {
         "stuck": "Travado",
-        "stuck-tooltip": "Vamos tentar fazê-lo voltar à sua missão",
+        "stuck-tooltip": "Vamos tentar fazê-lo voltar à sua missão — ou pressione a barra de espaço",
         "sound": "Som",
         "feedback": "Opinião",
         "feedback-tooltip": "Compartilhe suas ideias conosco",
@@ -250,6 +250,7 @@
         "signup-body": "Você quer criar uma conta para acompanhar seu progresso?",
         "severity-shortcuts": "Por favor, forneça classificações de gravidade para cada rótulo pressionando as teclas <kbd>1</kbd> a <kbd>3</kbd>",
         "zoom-shortcuts": "Você também pode pressionar a tecla <kbd>Z</kbd> para ampliar e as teclas <kbd>Shift</kbd> + <kbd>Z</kbd> para reduzir.",
+        "move-forward-shortcut": "Você também pode pressionar a <kbd>barra de espaço</kbd> para avançar ao longo da sua rota.",
         "label-shortcuts-curb-ramp": "Você também pode pressionar a tecla <kbd>{{key}}</kbd> para selecionar o rótulo Rampa de Meio-Fio.",
         "label-shortcuts-no-curb-ramp": "Você também pode pressionar a tecla <kbd>{{key}}</kbd> para selecionar o rótulo Rampa de Meio-Fio Ausente.",
         "label-shortcuts-obstacle": "Você também pode pressionar a tecla <kbd>{{key}}</kbd> para selecionar o rótulo Obstáculo.",

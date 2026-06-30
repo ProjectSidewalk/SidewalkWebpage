@@ -56,6 +56,35 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
     };
 
     /**
+     * Advance one step forward along the user's assigned route, keeping their current POV (heading/pitch/zoom).
+     *
+     * First tries to step to the GSV-linked pano in the route direction (not just wherever the camera happens to
+     * face); if there's no such link — e.g. GSV shows no navigation arrow that way — falls back to the route-aware
+     * moveForward() engine that probes along the assigned street geometry for the next available imagery. This is
+     * the spacebar shortcut for the "routed where there's no forward arrow" case from #619/#1041.
+     */
+    this._advanceForwardAlongRoute = async function() {
+        // No-op while walking is disabled (e.g. mid-load), matching the arrow keys — otherwise moveToLinkedPano()
+        // resolves false and we'd both fall through to a no-op moveForward() and log a move that never happened.
+        if (navigationService.getStatus('disableWalking')) return;
+
+        try {
+            // Bias the forward step toward the route direction rather than wherever the camera is currently pointed.
+            // moveToLinkedPano() takes a heading offset relative to the current heading, so subtract the current one.
+            const routeHeading = svl.compass.getTargetAngle();
+            const currHeading = svl.panoViewer.getPov().heading;
+            const moved = await navigationService.moveToLinkedPano(routeHeading - currHeading);
+            if (!moved) {
+                await navigationService.moveForward();
+            }
+            svl.tracker.push('KeyboardShortcut_MoveForwardAlongRoute', { usedRoute: !moved });
+        } catch (e) {
+            // Keep a failed forward step from surfacing as an unhandled promise rejection out of a key event.
+            console.error('Spacebar route-advance failed:', e);
+        }
+    };
+
+    /**
      * This is a callback for a key down event
      * @param {object} e An event object
      * @private
@@ -76,6 +105,12 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
                         break;
                     case "ArrowDown":
                         navigationService.moveToLinkedPano(180);
+                        break;
+                    case " ":
+                        // preventDefault stops the page from scrolling and stops space from re-activating a
+                        // focused button (e.g. the Stuck/ribbon button right after a mouse click).
+                        e.preventDefault();
+                        self._advanceForwardAlongRoute();
                         break;
                 }
             }
