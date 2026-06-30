@@ -235,6 +235,17 @@ case class CityFunnel(
 )
 
 /**
+ * The current deployment's own engagement funnels for a single time window, for the per-city Contributors page (#4379).
+ *
+ * This is the single-city counterpart of the cross-city read: one [[CityFunnel]] per funnel type for *this* schema
+ * only (no cross-schema fan-out), plus when the rows were last precomputed so the page can show a "data as of" label.
+ *
+ * @param computedAt When this city's `funnel_stat` was last recomputed; `None` if the table has no rows yet.
+ * @param byType     One [[CityFunnel]] per funnel type ("mapping", "contribution"); empty if there is no funnel data.
+ */
+case class CurrentCityFunnels(computedAt: Option[OffsetDateTime], byType: Map[String, CityFunnel])
+
+/**
  * Lifecycle thresholds, the data-quality anomaly thresholds, and the (pure) classification helpers for the cross-city
  * overview (#4329).
  *
@@ -319,6 +330,9 @@ object ConfigService {
     "contribution" -> Seq("visited", "contributed", "contribution_completed")
   )
 
+  /** The funnel time windows offered by the API and precomputed in `funnel_stat`; the source of truth for the set. */
+  val FunnelWindowKeys: Seq[String] = Seq("30d", "90d", "all")
+
   /** Step keys for one funnel type. */
   def funnelStepKeys(funnelType: String): Seq[String] = FunnelDefs.toMap.getOrElse(funnelType, Seq.empty)
 
@@ -352,6 +366,30 @@ object ConfigService {
    */
   def overallConversion(steps: Seq[Int]): Double =
     if (steps.nonEmpty && steps.head > 0) steps.last.toDouble / steps.head else 0.0
+
+  /**
+   * Builds a [[CityFunnel]] for one funnel type from a city's precomputed `funnel_stat` rows (#288), zero-filling any
+   * segment that has no row (e.g. a city with no mobile or no anonymous users) and trimming the stored six-slot steps
+   * to the funnel's actual step count.
+   *
+   * Pure (depends only on [[funnelStepKeys]]) so both the cross-city read ([[ConfigService.getCityFunnels]]) and the
+   * single-city read ([[ConfigService.getCurrentCityFunnels]]) share one assembly, and it can be unit-tested without a
+   * DB.
+   *
+   * @param cityId     The city id to stamp on the result.
+   * @param funnelType "mapping" or "contribution"; determines the step count the steps are trimmed to.
+   * @param rowsOfType The `funnel_stat` rows for that city and funnel type (any subset of the six segments).
+   * @return           One [[CityFunnel]] with every segment present (zero-filled when absent).
+   */
+  def assembleCityFunnel(cityId: String, funnelType: String, rowsOfType: Seq[FunnelStat]): CityFunnel = {
+    val numSteps                              = funnelStepKeys(funnelType).length
+    val stepsBySegment: Map[String, Seq[Int]] = rowsOfType.map(r => r.segment -> r.steps.take(numSteps)).toMap
+    def seg(key: String): FunnelSegment       = FunnelSegment(stepsBySegment.getOrElse(key, Seq.fill(numSteps)(0)))
+    CityFunnel(
+      cityId = cityId, all = seg("all"), registered = seg("role:registered"), anonymous = seg("role:anon"),
+      desktop = seg("device:desktop"), mobile = seg("device:mobile"), deviceUnknown = seg("device:unknown")
+    )
+  }
 }
 
 @ImplementedBy(classOf[ConfigServiceImpl])
@@ -403,6 +441,29 @@ trait ConfigService {
    * @return       Per funnel type ("mapping", "contribution"), one [[CityFunnel]] per available city with funnel data.
    */
   def getCityFunnels(window: String): Future[Map[String, Seq[CityFunnel]]]
+
+  /**
+   * Returns THIS deployment's own precomputed engagement funnels for a time window (#4379), for the per-city
+   * Contributors page.
+   *
+   * The single-city counterpart of [[getCityFunnels]]: reads only the current city's `funnel_stat` (no cross-schema
+   * fan-out), so per-city Administrators can see their own onboarding/contribution conversion without Owner access.
+   * Returns an empty result (no funnel types) when the table has not been populated yet.
+   *
+   * @param window The funnel window key: "30d", "90d", or "all".
+   * @return       One [[CityFunnel]] per funnel type for this city, plus when the rows were last recomputed.
+   */
+  def getCurrentCityFunnels(window: String): Future[CurrentCityFunnels]
+
+  /**
+   * Drops the cached funnel reads ([[getCityFunnels]] and [[getCurrentCityFunnels]]) for every window (#4379).
+   *
+   * Called after a funnel recompute so a manual `/adminapi/updateFunnelStats` (or the nightly job) is reflected on the
+   * next page load instead of after the 10-minute cache TTL.
+   *
+   * @return Completes when all entries have been removed.
+   */
+  def invalidateFunnelCaches(): Future[Unit]
 
   /**
    * Maps a city ID to its corresponding database user/schema.
@@ -786,7 +847,7 @@ class ConfigServiceImpl @Inject() (
           // Group into funnelType -> one CityFunnel per city, in the page's funnel order.
           ConfigService.FunnelDefs.map { case (funnelType, _) =>
             funnelType -> citiesWithRows.map { case (cityId, rows) =>
-              assembleCityFunnel(cityId, funnelType, rows.filter(_.funnelType == funnelType))
+              ConfigService.assembleCityFunnel(cityId, funnelType, rows.filter(_.funnelType == funnelType))
             }
           }.toMap
         }
@@ -794,19 +855,33 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  /**
-   * Builds a [[CityFunnel]] for one funnel type from a city's precomputed `funnel_stat` rows, zero-filling any segment
-   * that has no row (e.g. a city with no mobile or no anonymous users) and trimming the stored six-slot steps to the
-   * funnel's actual step count (#288).
-   */
-  private def assembleCityFunnel(cityId: String, funnelType: String, rowsOfType: Seq[FunnelStat]): CityFunnel = {
-    val numSteps                              = ConfigService.funnelStepKeys(funnelType).length
-    val stepsBySegment: Map[String, Seq[Int]] = rowsOfType.map(r => r.segment -> r.steps.take(numSteps)).toMap
-    def seg(key: String): FunnelSegment       = FunnelSegment(stepsBySegment.getOrElse(key, Seq.fill(numSteps)(0)))
-    CityFunnel(
-      cityId = cityId, all = seg("all"), registered = seg("role:registered"), anonymous = seg("role:anon"),
-      desktop = seg("device:desktop"), mobile = seg("device:mobile"), deviceUnknown = seg("device:unknown")
-    )
+  def getCurrentCityFunnels(window: String): Future[CurrentCityFunnels] = {
+    // Reads only this deployment's own precomputed funnel_stat (no cross-schema fan-out), so it is cheap; the short
+    // cache just coalesces bursts of requests from the Contributors page.
+    cacheApi.getOrElseUpdate[CurrentCityFunnels](s"getCurrentCityFunnels_$window", Duration(10, "minutes")) {
+      val cityId = getCityId
+      db.run(funnelStatTable.getFunnelStatsBySchema(getCitySchema(cityId), window)).map { rows =>
+        // No rows yet (the nightly FunnelStatActor hasn't run, or /adminapi/updateFunnelStats hasn't been hit): return
+        // an empty result so the page can show its "no funnel data yet" state rather than zero-filled funnels.
+        if (rows.isEmpty) CurrentCityFunnels(None, Map.empty)
+        else {
+          val byType = ConfigService.FunnelDefs.map { case (funnelType, _) =>
+            funnelType -> ConfigService.assembleCityFunnel(cityId, funnelType, rows.filter(_.funnelType == funnelType))
+          }.toMap
+          CurrentCityFunnels(rows.headOption.map(_.computedAt), byType)
+        }
+      }
+    }
+  }
+
+  def invalidateFunnelCaches(): Future[Unit] = {
+    // Both reads cache per window for 10 min; drop every window's entry so a recompute is reflected immediately rather
+    // than after the TTL. Tiny, fixed key set — cheaper and clearer than a tagged/region cache.
+    Future
+      .sequence(ConfigService.FunnelWindowKeys.flatMap { w =>
+        Seq(cacheApi.remove(s"getCityFunnels_$w"), cacheApi.remove(s"getCurrentCityFunnels_$w"))
+      })
+      .map(_ => ())
   }
 
   /**
