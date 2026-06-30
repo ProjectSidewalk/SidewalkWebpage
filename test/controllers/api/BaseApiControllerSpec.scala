@@ -12,8 +12,8 @@ import org.scalatestplus.play.PlaySpec
  */
 class BaseApiControllerSpec extends PlaySpec {
 
-  private val cityParams = MapParams(centerLat = 47.6, centerLng = -122.35, zoom = 12,
-                                     lat1 = 47.5, lng1 = -122.45, lat2 = 47.7, lng2 = -122.25)
+  private val cityParams = MapParams(centerLat = 47.6, centerLng = -122.35, zoom = 12, lat1 = 47.5, lng1 = -122.45,
+    lat2 = 47.7, lng2 = -122.25)
   private val explicitBox = LatLngBBox(minLng = -1.0, minLat = -1.0, maxLng = 1.0, maxLat = 1.0)
 
   "BaseApiController.validateBBoxParam" should {
@@ -52,32 +52,29 @@ class BaseApiControllerSpec extends PlaySpec {
 
   "BaseApiController.resolveGeoFilters" should {
     "use the explicit bbox and ignore region filters when bbox is valid" in {
-      val (bbox, rid, rname) = BaseApiController.resolveGeoFilters(
-        Some("..."), Some(explicitBox), Some(1), Some("Seattle"), cityParams)
+      val (bbox, rid, rname) =
+        BaseApiController.resolveGeoFilters(Some("..."), Some(explicitBox), Some(1), Some("Seattle"), cityParams)
       bbox mustBe Some(explicitBox)
       rid mustBe None   // regionId discarded: bbox wins
       rname mustBe None // regionName discarded: bbox wins
     }
 
     "pass regionId through and clear regionName when only regionId is supplied" in {
-      val (bbox, rid, rname) = BaseApiController.resolveGeoFilters(
-        None, None, Some(5), Some("Seattle"), cityParams)
+      val (bbox, rid, rname) = BaseApiController.resolveGeoFilters(None, None, Some(5), Some("Seattle"), cityParams)
       bbox mustBe None
       rid mustBe Some(5)
       rname mustBe None // regionId takes precedence over regionName
     }
 
     "pass regionName through when only regionName is supplied" in {
-      val (bbox, rid, rname) = BaseApiController.resolveGeoFilters(
-        None, None, None, Some("Seattle"), cityParams)
+      val (bbox, rid, rname) = BaseApiController.resolveGeoFilters(None, None, None, Some("Seattle"), cityParams)
       bbox mustBe None
       rid mustBe None
       rname mustBe Some("Seattle")
     }
 
     "fall back to the city-default bbox when no filter is provided" in {
-      val (bbox, rid, rname) = BaseApiController.resolveGeoFilters(
-        None, None, None, None, cityParams)
+      val (bbox, rid, rname) = BaseApiController.resolveGeoFilters(None, None, None, None, cityParams)
       rid mustBe None
       rname mustBe None
       bbox mustBe defined

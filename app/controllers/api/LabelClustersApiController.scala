@@ -98,99 +98,99 @@ class LabelClustersApiController @Inject() (
 
     firstError match {
       case Some(error) => Future.successful(badRequest(error))
-      case None =>
+      case None        =>
         configService.getCityMapParams.flatMap { cityMapParams =>
-        val (finalBbox, finalRegionId, finalRegionName) = resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
+          val (finalBbox, finalRegionId, finalRegionName) =
+            resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
 
-        // Create filters object.
-        val filters = LabelClusterFiltersForApi(
-          bbox = finalBbox, labelTypes = parsedLabelTypes, regionId = finalRegionId, regionName = finalRegionName,
-          includeRawLabels = includeRawLabels.getOrElse(false), minClusterSize = clusterSize,
-          minAvgImageCaptureDate = parsedAvgImageCaptureDate.toOption.flatten,
-          minAvgLabelDate = parsedAvgLabelDate.toOption.flatten,
-          minSeverity = minSeverity, maxSeverity = maxSeverity
-        )
+          // Create filters object.
+          val filters = LabelClusterFiltersForApi(
+            bbox = finalBbox, labelTypes = parsedLabelTypes, regionId = finalRegionId, regionName = finalRegionName,
+            includeRawLabels = includeRawLabels.getOrElse(false), minClusterSize = clusterSize,
+            minAvgImageCaptureDate = parsedAvgImageCaptureDate.toOption.flatten,
+            minAvgLabelDate = parsedAvgLabelDate.toOption.flatten, minSeverity = minSeverity, maxSeverity = maxSeverity
+          )
 
-        // Get the data stream.
-        val dbDataStream: Source[LabelClusterForApi, _] = apiService.getLabelClusters(filters, DEFAULT_BATCH_SIZE)
-        val baseFileName: String                        = s"labelClusters_${OffsetDateTime.now()}"
+          // Get the data stream.
+          val dbDataStream: Source[LabelClusterForApi, _] = apiService.getLabelClusters(filters, DEFAULT_BATCH_SIZE)
+          val baseFileName: String                        = s"labelClusters_${OffsetDateTime.now()}"
 
-        // Output data in the appropriate file format.
-        filetype match {
-          case Some("csv") if filters.includeRawLabels =>
-            // When raw labels are included, create two CSVs (clusters + labels) zipped together.
-            val clusterCsvPath = Files.createTempFile(baseFileName + "_clusters", ".csv")
-            val labelCsvPath   = Files.createTempFile(baseFileName + "_labels", ".csv")
-            val clusterWriter  = Files.newBufferedWriter(clusterCsvPath)
-            val labelWriter    = Files.newBufferedWriter(labelCsvPath)
+          // Output data in the appropriate file format.
+          filetype match {
+            case Some("csv") if filters.includeRawLabels =>
+              // When raw labels are included, create two CSVs (clusters + labels) zipped together.
+              val clusterCsvPath = Files.createTempFile(baseFileName + "_clusters", ".csv")
+              val labelCsvPath   = Files.createTempFile(baseFileName + "_labels", ".csv")
+              val clusterWriter  = Files.newBufferedWriter(clusterCsvPath)
+              val labelWriter    = Files.newBufferedWriter(labelCsvPath)
 
-            clusterWriter.write(LabelClusterForApi.csvHeader)
-            labelWriter.write(RawLabelInClusterDataForApi.csvHeader)
+              clusterWriter.write(LabelClusterForApi.csvHeader)
+              labelWriter.write(RawLabelInClusterDataForApi.csvHeader)
 
-            dbDataStream
-              .grouped(DEFAULT_BATCH_SIZE)
-              .runForeach { batch =>
-                batch.foreach { cluster =>
-                  clusterWriter.write(cluster.toCsvRow)
-                  clusterWriter.write("\n")
-                  cluster.labels.foreach { labelsList =>
-                    labelsList.foreach { label =>
-                      labelWriter.write(RawLabelInClusterDataForApi.toCsvRow(cluster.labelClusterId, label))
-                      labelWriter.write("\n")
+              dbDataStream
+                .grouped(DEFAULT_BATCH_SIZE)
+                .runForeach { batch =>
+                  batch.foreach { cluster =>
+                    clusterWriter.write(cluster.toCsvRow)
+                    clusterWriter.write("\n")
+                    cluster.labels.foreach { labelsList =>
+                      labelsList.foreach { label =>
+                        labelWriter.write(RawLabelInClusterDataForApi.toCsvRow(cluster.labelClusterId, label))
+                        labelWriter.write("\n")
+                      }
                     }
                   }
                 }
-              }
-              .flatMap { _ =>
-                clusterWriter.close()
-                labelWriter.close()
-                zipAndStreamCsvFiles(
-                  Seq(
-                    (clusterCsvPath, baseFileName + "_clusters.csv"),
-                    (labelCsvPath, baseFileName + "_labels.csv")
-                  ),
-                  baseFileName
-                )
-              }
-              .recoverWith { case NonFatal(e) =>
-                // Ensure writers are closed and temp files removed if streaming or zipping failed.
-                scala.util.Try(clusterWriter.close())
-                scala.util.Try(labelWriter.close())
-                Files.deleteIfExists(clusterCsvPath)
-                Files.deleteIfExists(labelCsvPath)
-                logger.error(s"Error generating label clusters CSV: ${e.getMessage}", e)
-                Future.successful(
-                  ApiError.toResult(ApiError.internalServerError(s"Error processing request: ${e.getMessage}"))
-                )
-              }
-          case Some("csv") =>
-            outputCSV(dbDataStream, LabelClusterForApi.csvHeader, inline, baseFileName + ".csv")
-          case Some("shapefile") if filters.includeRawLabels =>
-            // When raw labels are included, create both clusters and labels shapefiles in the ZIP.
-            shapefileCreator
-              .createLabelClusterShapefileWithLabels(dbDataStream, baseFileName, DEFAULT_BATCH_SIZE)
-              .map {
-                case Some(p) =>
-                  val zipSrc: Source[ByteString, Future[Boolean]] = shapefileCreator.zipShapefile(p, baseFileName)
-                  Ok.chunked(zipSrc)
-                    .as("application/zip")
-                    .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
-                case None =>
-                  ApiError.toResult(ApiError.internalServerError("Failed to create shapefile"))
-              }
-          case Some("shapefile") =>
-            outputShapefile(
-              dbDataStream,
-              baseFileName,
-              shapefileCreator.createLabelClusterShapefile,
+                .flatMap { _ =>
+                  clusterWriter.close()
+                  labelWriter.close()
+                  zipAndStreamCsvFiles(
+                    Seq(
+                      (clusterCsvPath, baseFileName + "_clusters.csv"),
+                      (labelCsvPath, baseFileName + "_labels.csv")
+                    ),
+                    baseFileName
+                  )
+                }
+                .recoverWith { case NonFatal(e) =>
+                  // Ensure writers are closed and temp files removed if streaming or zipping failed.
+                  scala.util.Try(clusterWriter.close())
+                  scala.util.Try(labelWriter.close())
+                  Files.deleteIfExists(clusterCsvPath)
+                  Files.deleteIfExists(labelCsvPath)
+                  logger.error(s"Error generating label clusters CSV: ${e.getMessage}", e)
+                  Future.successful(
+                    ApiError.toResult(ApiError.internalServerError(s"Error processing request: ${e.getMessage}"))
+                  )
+                }
+            case Some("csv") =>
+              outputCSV(dbDataStream, LabelClusterForApi.csvHeader, inline, baseFileName + ".csv")
+            case Some("shapefile") if filters.includeRawLabels =>
+              // When raw labels are included, create both clusters and labels shapefiles in the ZIP.
               shapefileCreator
-            )
-          case Some("geopackage") =>
-            outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createLabelClusterGeopackage, inline)
-          case _ => // Default to GeoJSON.
-            outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
+                .createLabelClusterShapefileWithLabels(dbDataStream, baseFileName, DEFAULT_BATCH_SIZE)
+                .map {
+                  case Some(p) =>
+                    val zipSrc: Source[ByteString, Future[Boolean]] = shapefileCreator.zipShapefile(p, baseFileName)
+                    Ok.chunked(zipSrc)
+                      .as("application/zip")
+                      .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
+                  case None =>
+                    ApiError.toResult(ApiError.internalServerError("Failed to create shapefile"))
+                }
+            case Some("shapefile") =>
+              outputShapefile(
+                dbDataStream,
+                baseFileName,
+                shapefileCreator.createLabelClusterShapefile,
+                shapefileCreator
+              )
+            case Some("geopackage") =>
+              outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createLabelClusterGeopackage, inline)
+            case _ => // Default to GeoJSON.
+              outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
+          }
         }
-      }
     }
   }
 }

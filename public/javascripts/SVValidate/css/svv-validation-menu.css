@@ -224,7 +224,7 @@
 /* Selectize renders its own .option nodes; DesktopValidationMenu adds the tag-pill classes so they pick up the
    shared pill look. These rules out-rank selectize's own stylesheet, which is more specific than .tag-pill. */
 .selectize-dropdown .option.tag-pill {
-    padding: calc(3px * var(--ui-scale)) calc(10px * var(--ui-scale));
+    padding: calc(5px * var(--ui-scale)) calc(10px * var(--ui-scale));
     font: var(--text-tiny-semibold);
     text-align: center;
     transition: all 0.3s;

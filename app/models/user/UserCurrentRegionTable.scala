@@ -28,7 +28,7 @@ class UserCurrentRegionTable @Inject() (protected val dbConfigProvider: Database
 ) extends UserCurrentRegionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  val userCurrRegions    = TableQuery[UserCurrentRegionTableDef]
+  val userCurrRegions       = TableQuery[UserCurrentRegionTableDef]
   val regions               = TableQuery[RegionTableDef]
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
 

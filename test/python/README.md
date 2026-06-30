@@ -30,8 +30,9 @@ that the bounding-box radius is in kilometers.
 
 ## How to run
 
-The scripts' runtime dependencies (`pandas`, `scipy`, `shapely`, `geopy`, ...) are installed in the **web** Docker
-container from `requirements.txt`, and `pytest` from `requirements-dev.txt`. From the repo root:
+The scripts' runtime dependencies are installed in the **web** Docker container from `requirements.txt` (the app's
+in-band deps: `pandas`, `scipy`, ...) and `requirements-offline-tools.txt` (the offline `check_streets` deps:
+`shapely`, `geopy`, ...), with `pytest` from `requirements-dev.txt`. From the repo root:
 
 ```bash
 make test-python
@@ -46,7 +47,7 @@ docker exec -it projectsidewalk-web sh -c "cd /home && python3 -m pytest test/py
 Or on the host, if you have the deps installed locally:
 
 ```bash
-pip install -r requirements.txt -r requirements-dev.txt
+pip install -r requirements.txt -r requirements-dev.txt -r requirements-offline-tools.txt
 pytest
 ```
 

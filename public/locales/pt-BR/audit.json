@@ -116,7 +116,13 @@
         },
         "badges": {
             "title": "Insígnias",
-            "see-all": "Ver todas as insígnias"
+            "see-all": "Ver todas as insígnias",
+            "labeler-goal": "Ganhe insígnias de Rotulador adicionando rótulos de acessibilidade enquanto explora.",
+            "explorer-goal": "Ganhe insígnias de Explorador avaliando ruas na página Explorar.",
+            "next-labels_one": "Adicione {{count, number}} rótulo para conquistar a próxima.",
+            "next-labels_other": "Adicione {{count, number}} rótulos para conquistar a próxima.",
+            "next-distance": "Explore {{distance}} para conquistar a próxima.",
+            "earned-all": "Você alcançou o nível máximo desta insígnia — excelente trabalho!"
         },
         "neighborhood-progress": {
             "title": "Progresso do bairro",

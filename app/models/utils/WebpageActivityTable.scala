@@ -204,8 +204,8 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    */
   def getApiDailyCounts(excludeApiDocs: Boolean, days: Int): DBIO[Seq[ApiDailyCount]] = {
     implicit val gr: GetResult[ApiDailyCount] = GetResult(r => ApiDailyCount(r.nextString(), r.nextLong()))
-    val dateFilter    = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
-    val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%source=apiDocs%'" else ""
+    val dateFilter                            = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
+    val apiDocsFilter                         = if (excludeApiDocs) "AND activity NOT LIKE '%source=apiDocs%'" else ""
     sql"""
       SELECT DATE(timestamp)::text AS date, COUNT(*) AS call_count
       FROM webpage_activity

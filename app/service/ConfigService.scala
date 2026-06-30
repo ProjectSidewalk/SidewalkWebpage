@@ -203,6 +203,38 @@ case class CityScorecard(
 case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[String])
 
 /**
+ * One demographic slice of a city's engagement funnel: the eight monotonic step counts for that slice (#288).
+ *
+ * @param steps Distinct users reaching each step, index 0 = step 1 (see [[ConfigService.FunnelDefs]]), non-increasing.
+ */
+case class FunnelSegment(steps: Seq[Int])
+
+/**
+ * One city's engagement funnel for a single time window, split by the dimensions the Across Cities page toggles (#288).
+ *
+ * The `all` segment is the whole (human, non-AI) population; the role and device segments partition it two different
+ * ways. Device is only reliably known once a user enters the (desktop-only) audit tool, so `deviceUnknown` collects
+ * everyone whose device could not be determined — see the page's caveat.
+ *
+ * @param cityId        The city id (e.g. "seattle-wa").
+ * @param all           The funnel for every counted user.
+ * @param registered    Users with a non-anonymous role.
+ * @param anonymous     Users with the Anonymous role (a per-cookie identity, not necessarily a unique person).
+ * @param desktop       Users classified as desktop.
+ * @param mobile        Users classified as mobile.
+ * @param deviceUnknown Users whose device could not be determined.
+ */
+case class CityFunnel(
+    cityId: String,
+    all: FunnelSegment,
+    registered: FunnelSegment,
+    anonymous: FunnelSegment,
+    desktop: FunnelSegment,
+    mobile: FunnelSegment,
+    deviceUnknown: FunnelSegment
+)
+
+/**
  * Lifecycle thresholds, the data-quality anomaly thresholds, and the (pure) classification helpers for the cross-city
  * overview (#4329).
  *
@@ -274,6 +306,52 @@ object ConfigService {
     else if (rates.length % 2 == 1) rates(rates.length / 2)
     else (rates(rates.length / 2 - 1) + rates(rates.length / 2)) / 2.0
   }
+
+  /**
+   * The step keys for each engagement funnel (#288), in order. This is the source of truth for step identity and
+   * count; the API echoes the relevant list to the client so the frontend never hardcodes its own copy.
+   *   - "mapping":      the Explore onboarding flow (6 steps).
+   *   - "contribution": any labeling-or-validation contribution (3 steps).
+   * The iteration order here is the order the funnels are presented on the page.
+   */
+  val FunnelDefs: Seq[(String, Seq[String])] = Seq(
+    "mapping" -> Seq("visited", "tutorial_started", "tutorial_finished", "took_step", "labeled", "mission_completed"),
+    "contribution" -> Seq("visited", "contributed", "contribution_completed")
+  )
+
+  /** Step keys for one funnel type. */
+  def funnelStepKeys(funnelType: String): Seq[String] = FunnelDefs.toMap.getOrElse(funnelType, Seq.empty)
+
+  /** The longest funnel's step count (the mapping funnel), derived from [[FunnelDefs]] rather than hardcoded. */
+  val MaxFunnelSteps: Int = FunnelDefs.map(_._2.length).max
+
+  /** An all-zero funnel of the maximum length — the empty/identity input for the conversion helpers. */
+  val ZeroFunnelSteps: Seq[Int] = Seq.fill(MaxFunnelSteps)(0)
+
+  /**
+   * Step-over-step conversion for a funnel: `stepConversion(i)` = `steps(i) / steps(i-1)` (#288).
+   *
+   * The first element is 1.0 (the entry step converts from itself). A ratio is 0.0 when the previous step had no users
+   * (avoids divide-by-zero).
+   *
+   * @param steps The eight monotonic step counts.
+   * @return      One conversion ratio per step, same length as `steps`.
+   */
+  def stepConversion(steps: Seq[Int]): Seq[Double] = steps.zipWithIndex.map {
+    case (_, 0)     => 1.0
+    case (count, i) =>
+      val prev = steps(i - 1)
+      if (prev > 0) count.toDouble / prev else 0.0
+  }
+
+  /**
+   * Overall funnel conversion: last step / first step (#288).
+   *
+   * @param steps The eight monotonic step counts.
+   * @return      Fraction of entrants who reached the final step; 0.0 when there were no entrants.
+   */
+  def overallConversion(steps: Seq[Int]): Double =
+    if (steps.nonEmpty && steps.head > 0) steps.last.toDouble / steps.head else 0.0
 }
 
 @ImplementedBy(classOf[ConfigServiceImpl])
@@ -313,6 +391,18 @@ trait ConfigService {
    */
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]]
 
+  /**
+   * Returns each available city's precomputed engagement funnels for a time window (#288).
+   *
+   * Reads each schema's nightly-precomputed `funnel_stat` table (cheap) and assembles one [[CityFunnel]] per city,
+   * using the same available-schema fan-out as [[getCityScorecards]]. Cities whose deployment has not yet created or
+   * populated `funnel_stat` are omitted (they appear once their nightly job has run). Segments absent from a city's
+   * rows (e.g. no mobile users) are zero-filled.
+   *
+   * @param window The funnel window key: "30d", "90d", or "all".
+   * @return       Per funnel type ("mapping", "contribution"), one [[CityFunnel]] per available city with funnel data.
+   */
+  def getCityFunnels(window: String): Future[Map[String, Seq[CityFunnel]]]
 
   /**
    * Maps a city ID to its corresponding database user/schema.
@@ -389,6 +479,7 @@ class ConfigServiceImpl @Inject() (
     cacheApi: AsyncCacheApi,
     ws: WSClient,
     configTable: ConfigTable,
+    funnelStatTable: FunnelStatTable,
     versionTable: VersionTable,
     panoDataService: PanoDataService
 )(implicit val ec: ExecutionContext)
@@ -411,50 +502,50 @@ class ConfigServiceImpl @Inject() (
    * NOT be used as the total. `legacyDCData.totalLabels` is therefore derived from this breakdown (#3981).
    */
   private val legacyDCByLabelType: Map[String, LabelTypeStats] = Map(
-      LabelTypeEnum.CurbRamp.name -> LabelTypeStats(
-        labels = 150680,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.NoCurbRamp.name -> LabelTypeStats(
-        labels = 19792,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.Obstacle.name -> LabelTypeStats(
-        labels = 22264,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.SurfaceProblem.name -> LabelTypeStats(
-        labels = 8964,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.NoSidewalk.name -> LabelTypeStats(
-        labels = 45395,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.Other.name -> LabelTypeStats(
-        labels = 1471,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.Occlusion.name -> LabelTypeStats(
-        labels = 1339,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      )
-      // Note: Crosswalk and Signal data not available (NA) for DC legacy deployment.
+    LabelTypeEnum.CurbRamp.name -> LabelTypeStats(
+      labels = 150680,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.NoCurbRamp.name -> LabelTypeStats(
+      labels = 19792,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.Obstacle.name -> LabelTypeStats(
+      labels = 22264,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.SurfaceProblem.name -> LabelTypeStats(
+      labels = 8964,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.NoSidewalk.name -> LabelTypeStats(
+      labels = 45395,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.Other.name -> LabelTypeStats(
+      labels = 1471,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.Occlusion.name -> LabelTypeStats(
+      labels = 1339,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
     )
+    // Note: Crosswalk and Signal data not available (NA) for DC legacy deployment.
+  )
 
   /**
    * DC's UNFILTERED historical label count from the source spreadsheet (gid=963888605 tab):
@@ -614,7 +705,7 @@ class ConfigServiceImpl @Inject() (
 
       Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
         val availableCities = schemaResults.filter(_._2).map(_._1)
-        val perCityFutures = availableCities.map { cityId =>
+        val perCityFutures  = availableCities.map { cityId =>
           db.run(configTable.getCityWeeklyTrendBySchema(getCitySchema(cityId), weeks))
             .recover { case e: Exception =>
               logger.warn(s"Failed to fetch weekly trend for city $cityId: ${e.getMessage}")
@@ -649,7 +740,7 @@ class ConfigServiceImpl @Inject() (
       }
 
       Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
-        val availableCities = schemaResults.filter(_._2).map(_._1)
+        val availableCities                                       = schemaResults.filter(_._2).map(_._1)
         val perCityFutures: Seq[Future[Option[(String, Double)]]] = availableCities.map { cityId =>
           db.run(configTable.getCityLabelingSpeedBySchema(getCitySchema(cityId)))
             .map { case (hours, km) =>
@@ -664,6 +755,58 @@ class ConfigServiceImpl @Inject() (
         Future.sequence(perCityFutures).map(_.flatten.toMap)
       }
     }
+  }
+
+  def getCityFunnels(window: String): Future[Map[String, Seq[CityFunnel]]] = {
+    // Reads the precomputed funnel_stat per schema, so it is cheap; the short cache just coalesces bursts of requests.
+    cacheApi.getOrElseUpdate[Map[String, Seq[CityFunnel]]](s"getCityFunnels_$window", Duration(10, "minutes")) {
+      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
+
+      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
+        try {
+          checkSchemaExists(getCitySchema(cityId)).map(cityId -> _).recover { case _ => cityId -> false }
+        } catch {
+          case _: Exception => Future.successful(cityId -> false)
+        }
+      }
+
+      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
+        val availableCities = schemaResults.filter(_._2).map(_._1)
+        // Each city's rows cover all funnel types for this window; None ⇒ no funnel_stat yet, so omit the city.
+        val perCityFutures: Seq[Future[Option[(String, Seq[FunnelStat])]]] = availableCities.map { cityId =>
+          db.run(funnelStatTable.getFunnelStatsBySchema(getCitySchema(cityId), window))
+            .map(rows => if (rows.isEmpty) None else Some(cityId -> rows))
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to read funnel for city $cityId (window $window): ${e.getMessage}")
+              None
+            }
+        }
+        Future.sequence(perCityFutures).map { results =>
+          val citiesWithRows = results.flatten
+          // Group into funnelType -> one CityFunnel per city, in the page's funnel order.
+          ConfigService.FunnelDefs.map { case (funnelType, _) =>
+            funnelType -> citiesWithRows.map { case (cityId, rows) =>
+              assembleCityFunnel(cityId, funnelType, rows.filter(_.funnelType == funnelType))
+            }
+          }.toMap
+        }
+      }
+    }
+  }
+
+  /**
+   * Builds a [[CityFunnel]] for one funnel type from a city's precomputed `funnel_stat` rows, zero-filling any segment
+   * that has no row (e.g. a city with no mobile or no anonymous users) and trimming the stored six-slot steps to the
+   * funnel's actual step count (#288).
+   */
+  private def assembleCityFunnel(cityId: String, funnelType: String, rowsOfType: Seq[FunnelStat]): CityFunnel = {
+    val numSteps                              = ConfigService.funnelStepKeys(funnelType).length
+    val stepsBySegment: Map[String, Seq[Int]] = rowsOfType.map(r => r.segment -> r.steps.take(numSteps)).toMap
+    def seg(key: String): FunnelSegment       = FunnelSegment(stepsBySegment.getOrElse(key, Seq.fill(numSteps)(0)))
+    CityFunnel(
+      cityId = cityId, all = seg("all"), registered = seg("role:registered"), anonymous = seg("role:anon"),
+      desktop = seg("device:desktop"), mobile = seg("device:mobile"), deviceUnknown = seg("device:unknown")
+    )
   }
 
   /**
@@ -681,8 +824,10 @@ class ConfigServiceImpl @Inject() (
       val flags = scala.collection.mutable.ListBuffer.empty[String]
 
       // Outlier disagreement, but only among cities with a meaningful validation volume.
-      if (sc.totalValidations >= ConfigService.MinValidationsForDisagreement &&
-        ConfigService.disagreementRate(sc) > medianDisagreement * ConfigService.DisagreementMedianMultiple) {
+      if (
+        sc.totalValidations >= ConfigService.MinValidationsForDisagreement &&
+        ConfigService.disagreementRate(sc) > medianDisagreement * ConfigService.DisagreementMedianMultiple
+      ) {
         flags += "high_disagreement"
       }
 
@@ -801,15 +946,15 @@ class ConfigServiceImpl @Inject() (
         Future.successful(Seq.empty)
       } else {
         val cityDataFutures = availableCities.map { cityId =>
-          val schema = getCitySchema(cityId)
-          val labelsFuture = db.run(configTable.getCityDailyLabelStatsBySchema(schema, startDate, endDate,
-            filterLowQuality))
+          val schema       = getCitySchema(cityId)
+          val labelsFuture = db
+            .run(configTable.getCityDailyLabelStatsBySchema(schema, startDate, endDate, filterLowQuality))
             .recover { case e: Exception =>
               logger.warn(s"Failed daily label stats for city $cityId: ${e.getMessage}")
               Seq.empty[(LocalDate, String, Int, Int)]
             }
-          val valsFuture = db.run(configTable.getCityDailyValidationStatsBySchema(schema, startDate, endDate,
-            filterLowQuality))
+          val valsFuture = db
+            .run(configTable.getCityDailyValidationStatsBySchema(schema, startDate, endDate, filterLowQuality))
             .recover { case e: Exception =>
               logger.warn(s"Failed daily validation stats for city $cityId: ${e.getMessage}")
               Seq.empty[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
@@ -826,19 +971,20 @@ class ConfigServiceImpl @Inject() (
             .groupBy(r => (r.date, r.labelType))
             .map { case ((date, labelType), records) =>
               DailyStatRecord(
-                date                     = date,
-                labelType                = labelType,
-                humanLabels              = records.map(_.humanLabels).sum,
-                aiLabels                 = records.map(_.aiLabels).sum,
-                humanValidationsAgree    = records.map(_.humanValidationsAgree).sum,
+                date = date,
+                labelType = labelType,
+                humanLabels = records.map(_.humanLabels).sum,
+                aiLabels = records.map(_.aiLabels).sum,
+                humanValidationsAgree = records.map(_.humanValidationsAgree).sum,
                 humanValidationsDisagree = records.map(_.humanValidationsDisagree).sum,
-                humanValidationsUnsure   = records.map(_.humanValidationsUnsure).sum,
-                aiValidationsAgree       = records.map(_.aiValidationsAgree).sum,
-                aiValidationsDisagree    = records.map(_.aiValidationsDisagree).sum,
-                aiValidationsUnsure      = records.map(_.aiValidationsUnsure).sum
+                humanValidationsUnsure = records.map(_.humanValidationsUnsure).sum,
+                aiValidationsAgree = records.map(_.aiValidationsAgree).sum,
+                aiValidationsDisagree = records.map(_.aiValidationsDisagree).sum,
+                aiValidationsUnsure = records.map(_.aiValidationsUnsure).sum
               )
             }
-            .toSeq.sortBy(r => (r.date, r.labelType))
+            .toSeq
+            .sortBy(r => (r.date, r.labelType))
         }
       }
     }

@@ -1,6 +1,6 @@
 name: CI
 
-#   - backend:         `sbt compile` (BLOCKING) + `scalafmtCheckAll` (advisory)
+#   - backend:         `sbt compile` + `scalafmtCheckAll` (both BLOCKING)
 #   - frontend:        asset build (grunt)
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
 #   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now). Boots
@@ -47,10 +47,11 @@ jobs:
           SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
           INTERNAL_API_KEY: dummy-ci-internal-key
 
-      # Advisory only for now: the codebase has not had a repo-wide reformat pass, so this is expected to report
-      # findings. It must not block PRs yet (continue-on-error). Flip to blocking once the baseline is clean.
-      - name: scalafmt check (advisory)
-        continue-on-error: true
+      # Blocking: the tree is kept scalafmt-clean, so any formatting drift fails the build. `if: always()` runs this
+      # even when the compile step above failed, so a contributor sees compile and format problems in one run instead
+      # of one at a time. Auto-format locally with `make scalafmt-fix` (or `sbt scalafmtAll`) before pushing.
+      - name: scalafmt check (blocking)
+        if: always()
         run: sbt scalafmtCheckAll
 
   frontend:
@@ -178,9 +179,10 @@ jobs:
         with:
           python-version: '3.8'
 
-      # The pure-logic unit tests need no DB and no network, only the scripts' runtime deps plus pytest.
+      # The pure-logic unit tests need no DB and no network, only the scripts' runtime deps plus pytest. The suite
+      # imports both scripts, so the offline check_streets deps (requirements-offline-tools.txt) are required too.
       - name: Install dependencies
-        run: pip install -r requirements.txt -r requirements-dev.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt -r requirements-offline-tools.txt
 
       - name: Run pytest
         run: pytest test/python

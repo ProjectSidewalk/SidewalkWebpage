@@ -1,10 +1,11 @@
 # Python utility scripts
 
 Two standalone Python utilities for Project Sidewalk. They are **not** part of the running web app's request path
-(except as noted below) — they are run out-of-band. Their runtime dependencies are pinned in
-[`requirements.txt`](../requirements.txt) and installed into the web Docker container; unit tests live in
-[`test/python/`](../test/python). **Always run them from the repo root** — paths are resolved relative to the current
-working directory.
+(except as noted below) — they are run out-of-band. `label_clustering.py` runs in-band (see below), so its dependencies
+are pinned in [`requirements.txt`](../requirements.txt); the offline-only `check_streets_for_imagery.py` keeps its extra
+dependencies in [`requirements-offline-tools.txt`](../requirements-offline-tools.txt). Both sets are installed into the
+web Docker container; unit tests live in [`test/python/`](../test/python). `check_streets_for_imagery.py` resolves its
+data files relative to the repo root, so it can be launched from any working directory.
 
 ## `label_clustering.py`
 
@@ -33,7 +34,7 @@ manual — nothing in the app calls it.
 
 1. Export a CSV of the `street_edge` table with columns `street_edge_id, region_id, x1, y1, x2, y2, geom` (geom as WKB
    hex), named `street_edge_endpoints.csv`, in the repo root.
-2. From the repo root, run **one** of:
+2. Run **one** of (from any directory — paths resolve relative to the repo root):
    ```bash
    python3 scripts/check_streets_for_imagery.py --gsv         # needs GOOGLE_MAPS_API_KEY
    python3 scripts/check_streets_for_imagery.py --mapillary   # needs MAPILLARY_ACCESS_TOKEN
@@ -68,6 +69,9 @@ The scan is built to survive a flaky network over a long run, and to scan a whol
 - **Resume:** progress is checkpointed per street to `db/streets_imagery_checkpoint.csv`, so a re-run resumes where it
   left off and re-attempts only failed/unprocessed streets. The final `db/streets_with_no_imagery.csv` is derived from
   the checkpoint at the end — its schema is unchanged, so `make hide-streets-without-imagery` is unaffected.
+- **Progress:** a `tqdm` progress bar (count, %, rate, and ETA) renders to stderr as streets complete. It tracks the
+  whole city and is seeded with already-settled streets, so a resumed run picks up at its prior percentage rather than
+  restarting at 0%. It auto-suppresses when stderr isn't a terminal, so redirected/CI logs stay clean.
 
 (The earlier bbox-radius unit bug and the no-op `print` — issue #4342 — are fixed as part of this.)
 
@@ -86,9 +90,6 @@ from it on purpose, because the two tools answer different questions:
   under the limit; at that bounded concurrency, threads are simpler and sufficient and async's scale benefit is wasted.
 - **Providers — GSV *and* Mapillary.** GSV Tracker is GSV-only.
 
-A natural future step (issue #4347) is to also capture the imagery *capture date* from the same GSV responses — exactly
-the temporal angle GSV Tracker specializes in — to know not just whether a street has imagery but how old it is.
-
 ## Persisting imagery age to the database (#4348)
 
 The `street_imagery` table records, per street, the capture-date range of the panos observed on it (`oldest_capture`,
@@ -102,7 +103,7 @@ column:
   `data_source = 'pano_data'`.
 - **Feeder 2 — the imagery scan (manual).** For streets a scan reached but that have no labels yet (so Feeder 1 can't
   see them), run `make import-street-imagery` to ingest `db/street_imagery_summary.csv` — the per-street summary the
-  scan writes once the imagery-age work (#4347) lands. Rows are tagged `data_source = 'imagery_scan'`, and a scan
+  scan writes. Rows are tagged `data_source = 'imagery_scan'`, and a scan
   supersedes an existing `pano_data` row for the same street (it's a deliberate, fresher measurement).
 
 ## Testing

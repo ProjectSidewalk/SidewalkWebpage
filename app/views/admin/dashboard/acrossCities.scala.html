@@ -151,6 +151,34 @@
         </div>
     </div>
 
+    <div class="api-section" id="ac-funnel-section">
+        <h2 class="api-heading" id="funnel">Engagement funnels <a href="#funnel" class="permalink">#</a></h2>
+        <p>Of the people who arrive, how many make it through each step, for each city. Two funnels: the
+            <strong>mapping</strong> funnel follows the Explore onboarding (tutorial → first label → first mission), and
+            the <strong>contribution</strong> funnel is the broader “did they contribute anything (labeling or
+            validation) and finish a mission”. Bars are normalized to visitors (= 100%); the percentage on each step is
+            its share of the step before it (the drop-off).</p>
+        <p class="ac-note">Two caveats. <strong>Anonymous visitors are counted per browser</strong> (a new id each time
+            cookies are cleared), so the top of each funnel counts sessions, not unique people, and headline conversion
+            reads low. <strong>The mapping tool is desktop-only</strong> — mobile visitors are redirected to a landing
+            page and can't proceed, so in the “Desktop vs mobile” view mobile drops off early by design. In the mapping
+            funnel, “took a step” means a user walked some distance in a real (non-tutorial) mission.</p>
+        <div class="ac-funnel-controls">
+            <div class="ac-toggle" id="ac-funnel-window" role="group" aria-label="Funnel time window">
+                <button type="button" class="ac-toggle-btn active" data-window="30d">Last 30 days</button>
+                <button type="button" class="ac-toggle-btn" data-window="90d">Last 90 days</button>
+                <button type="button" class="ac-toggle-btn" data-window="all">All time</button>
+            </div>
+            <div class="ac-toggle" id="ac-funnel-dim" role="group" aria-label="Funnel breakdown">
+                <button type="button" class="ac-toggle-btn active" data-dim="all">All users</button>
+                <button type="button" class="ac-toggle-btn" data-dim="role">Registered vs anonymous</button>
+                <button type="button" class="ac-toggle-btn" data-dim="device">Desktop vs mobile</button>
+            </div>
+        </div>
+        <div id="ac-funnels"></div>
+        <div class="coverage-status" id="ac-funnel-status" role="status" aria-live="polite"></div>
+    </div>
+
     <div class="api-section" id="ac-effort-section">
         <h2 class="api-heading" id="effort">Contributors &amp; effort <a href="#effort" class="permalink">#</a></h2>
         <p>How much each contributor produces and how fast they work. Per-user output is shown as <strong>median</strong>
@@ -223,6 +251,7 @@
             new AcrossCitiesPage({
                 scorecardsUrl: '/adminapi/cityScorecards',
                 citiesUrl: '/v3/api/cities',
+                funnelsUrl: '/adminapi/cityFunnels',
                 mapboxToken: '@commonData.mapboxApiKey'
             }).init();
         });

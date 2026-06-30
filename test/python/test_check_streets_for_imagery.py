@@ -307,7 +307,7 @@ def test_process_street_point_error_is_failed():
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# persistence: load_processed / append_checkpoint / _write_ids_csv / finalize_outputs / _print_progress
+# persistence: load_processed / append_checkpoint / _write_ids_csv / finalize_outputs
 # --------------------------------------------------------------------------------------------------------------------
 
 def test_load_processed_no_file(tmp_path):
@@ -389,11 +389,6 @@ def test_finalize_outputs_without_checkpoint_writes_empty(tmp_path):
     assert pd.read_csv(summary).empty
 
 
-def test_print_progress(capsys):
-    cs._print_progress(1, 4)
-    assert '25.00% complete' in capsys.readouterr().out
-
-
 # --------------------------------------------------------------------------------------------------------------------
 # main (HTTP mocked)
 # --------------------------------------------------------------------------------------------------------------------
@@ -411,7 +406,13 @@ def _write_street_csv(directory, streets):
 def _setup(monkeypatch, tmp_path, streets, env_var='GOOGLE_MAPS_API_KEY'):
     _write_street_csv(tmp_path, streets)
     (tmp_path / 'db').mkdir()
-    monkeypatch.chdir(tmp_path)
+    # Point the script's repo root at tmp_path, then run from an unrelated CWD that has neither the input CSV nor a
+    # db/ dir. This makes every main() test a regression check that the script resolves its files against the repo
+    # root rather than the working directory (running from scripts/ used to fail at 0% progress, #4359).
+    monkeypatch.setattr(cs, 'REPO_ROOT', str(tmp_path))
+    elsewhere = tmp_path / 'elsewhere'
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
     monkeypatch.setenv(env_var, 'dummy')
 
 
@@ -461,6 +462,25 @@ def test_main_summary_captures_capture_dates(monkeypatch, tmp_path):
     assert summary.loc[200, 'n_panos'] >= 1
 
 
+def test_main_runs_from_a_different_working_directory(monkeypatch, tmp_path):
+    # Regression for #4359: running from scripts/ (a dir without a db/ subdir) used to fail silently at 0% progress,
+    # because the first checkpoint write hit a CWD-relative db/ path that didn't exist. Anchoring to the repo root
+    # fixes it: here we run from a scripts/ dir that has neither the input CSV nor db/, and the scan still completes.
+    _write_street_csv(tmp_path, [(100, 1, _LINE_60)])
+    (tmp_path / 'db').mkdir()
+    monkeypatch.setattr(cs, 'REPO_ROOT', str(tmp_path))
+    scripts_dir = tmp_path / 'scripts'
+    scripts_dir.mkdir()
+    monkeypatch.chdir(scripts_dir)
+    monkeypatch.setenv('GOOGLE_MAPS_API_KEY', 'dummy')
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})  # no imagery -> flagged
+
+    assert cs.main(['--gsv']) == 0
+    # Output and checkpoint land under the repo root's db/, not the scripts/ working directory.
+    assert _output(tmp_path)['street_edge_id'].tolist() == [100]
+    assert not (scripts_dir / 'db').exists()
+
+
 def test_main_resumes_from_checkpoint(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61)])
     _settled_checkpoint([(100, 1, cs.HAS_IMAGERY, '2019-01-01', '2019-01-01', 3)]).to_csv(
@@ -469,6 +489,27 @@ def test_main_resumes_from_checkpoint(monkeypatch, tmp_path):
     assert cs.main(['--gsv']) == 0
     # 100 was already settled (has imagery) and skipped; only 200 was processed -> flagged.
     assert _output(tmp_path)['street_edge_id'].tolist() == [200]
+
+
+def test_progress_bar_resumes_at_prior_position(monkeypatch, tmp_path):
+    # The bar tracks the whole city (total) and is seeded with already-settled streets (initial) so a resumed scan
+    # picks up at its prior percentage rather than restarting at 0% (requested on #4360).
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61), (300, 1, _LINE_60)])
+    _settled_checkpoint([(100, 1, cs.HAS_IMAGERY, '2019-01-01', '2019-01-01', 3),
+                         (200, 1, cs.NO_IMAGERY, None, None, 0)]).to_csv(tmp_path / cs.CHECKPOINT_FILE, index=False)
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})
+
+    captured = {}
+
+    def spy_tqdm(iterable, **kwargs):
+        captured.update(kwargs)
+        return iterable
+
+    monkeypatch.setattr(cs, 'tqdm', spy_tqdm)
+    assert cs.main(['--gsv']) == 0
+    # 3 streets total, 2 already settled -> bar starts at 2/3, not 0/3.
+    assert captured['total'] == 3
+    assert captured['initial'] == 2
 
 
 def test_main_fail_soft_records_failed_streets(monkeypatch, tmp_path):

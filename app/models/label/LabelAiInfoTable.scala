@@ -15,7 +15,7 @@ case class LabelAiInfo(
     confidence: Double,
     apiVersion: String,
     modelId: String,
-    modelTrainingDate: OffsetDateTime,
+    modelTrainingDate: OffsetDateTime
 )
 
 class LabelAiInfoTableDef(tag: Tag) extends Table[LabelAiInfo](tag, "label_ai_info") {

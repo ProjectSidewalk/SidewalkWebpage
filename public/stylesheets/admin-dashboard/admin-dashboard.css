@@ -1499,3 +1499,107 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); }
 
 /* --- Across Cities: effort-table sub-header (#4329) -------------------------------------------------------------- */
 .ac-th-sub { font-weight: 400; font-size: var(--font-size-xs, 0.8125rem); color: var(--color-text-secondary, #5a7785); }
+
+/* --- Street Status page (#4331) -------------------------------------------------------------------------------
+ * Reuses the Coverage page's map / KPI / table / status classes; this block only adds the categorical status
+ * legend, the small status swatch (legend + popup), and the per-region 100%-stacked-bar cell. The status colors
+ * are owned by StreetStatusColors.STATUSES in street-status-map.js (no canonical backend color); these tokens
+ * mirror them for the CSS-only swatch borders and must be kept in sync there. */
+.street-status-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm, 12px);
+    margin-top: var(--space-sm, 12px);
+    font-size: var(--font-size-xs, 0.8125rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+.street-status-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Small color chip shared by the legend and the map popup. */
+.street-status-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
+/* Per-region 100%-stacked bar: one span per status, sized by share, colored inline from the JS palette. */
+.street-status-bar {
+    display: flex;
+    width: 120px;
+    height: 12px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: var(--color-neutral-100, #f0f0f0);
+}
+.street-status-bar span { display: block; height: 100%; }
+
+/* The distribution cell is decorative, so keep it left-aligned and let the count columns stay right-aligned. */
+.street-status-table td:last-child, .street-status-table th:last-child { text-align: left; }
+
+/* --- Across Cities: engagement funnels (#288) ------------------------------------------------------------------- */
+.ac-funnel-controls { display: flex; flex-wrap: wrap; gap: var(--space-md, 16px); margin: 0 0 var(--space-md, 16px); }
+
+/* Each funnel (mapping, contribution) is its own block with a heading, table, and small-multiples. */
+.ac-funnel-block { margin-bottom: var(--space-lg, 24px); }
+.ac-funnel-block-title {
+    font-size: var(--font-size-md, 1rem);
+    font-weight: 600;
+    color: var(--color-text-heading, #263238);
+    margin: var(--space-md, 16px) 0 var(--space-xs, 8px);
+}
+
+/* Responsive small-multiples: one compact funnel card per city. */
+.ac-funnel-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-md, 16px);
+    margin-top: var(--space-md, 16px);
+}
+.ac-funnel-panel {
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: 6px;
+    padding: var(--space-sm, 12px);
+    background: var(--color-surface, #fff);
+}
+.ac-funnel-panel-title { font-weight: 600; color: var(--color-text-heading, #263238); margin-bottom: var(--space-sm, 12px); }
+.ac-funnel-legend { display: flex; flex-wrap: wrap; gap: var(--space-sm, 12px); margin-bottom: var(--space-sm, 12px); }
+.ac-funnel-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: var(--font-size-xs, 0.8125rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+.ac-funnel-swatch { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+
+.ac-funnel-step { margin-bottom: var(--space-xs, 8px); }
+.ac-funnel-step-label {
+    font-size: var(--font-size-xs, 0.8125rem);
+    color: var(--color-text-secondary, #5a7785);
+    margin-bottom: 2px;
+}
+.ac-funnel-bars { display: flex; flex-direction: column; gap: 2px; }
+
+/* A single bar: a full-width track with a left-anchored fill and a count/drop-off label that stays legible on top. */
+.ac-funnel-bar {
+    position: relative;
+    height: 16px;
+    background: var(--color-neutral-200, #e1e1e1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.ac-funnel-bar-fill { position: absolute; top: 0; left: 0; bottom: 0; border-radius: 3px; }
+.ac-funnel-bar-val {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    padding-left: 6px;
+    font-size: var(--font-size-xs, 0.8125rem);
+    color: var(--color-text-heading, #263238);
+}

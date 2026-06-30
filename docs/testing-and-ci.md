@@ -67,18 +67,18 @@ addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.3.1")
 - **Runner: `pytest`** for the two standalone scripts in [`scripts/`](../scripts) (`label_clustering.py`, `check_streets_for_imagery.py`) — the only Python in the repo. Tests live in [`test/python/`](../test/python); config is in `pyproject.toml` (`[tool.pytest.ini_options]`, with `scripts/` on `pythonpath`).
 - The scripts were refactored so their decision logic sits in **pure, importable** functions (distance metric, coordinate cleaning, clustering, cluster-id offsetting; bounding-box/vertex math, GSV/Mapillary response parsing, imagery-decision thresholds, CSV writing), with network/file I/O isolated in thin wrappers and `main`. Tests target the pure functions — **no DB, no network**.
 - **Coverage gate:** the suite measures line + branch coverage (`pytest-cov`) and **fails under 100%** (`--cov-fail-under=100` in `pyproject.toml`). Justified: the scripts are small and now pure, so full correctness coverage is achievable and keeps a new uncovered branch from slipping in. (Contrast the Scala suite, which starts with a low, *ratcheting* scoverage threshold in Phase 4 — a large legacy surface can't jump to 100%.) `main`'s I/O is covered by mocking the network wrappers + `tmp_path`; the only exclusions are the `__main__` guards and one provably-unreachable loop branch (`# pragma: no branch`).
-- Deps: `requirements.txt` (runtime) + `requirements-dev.txt` (`pytest`, `pytest-cov`), both installed into the web container by the `Dockerfile`. Run locally with `make test-python`.
+- Deps: `requirements.txt` (the app's in-band script deps) + `requirements-offline-tools.txt` (the offline `check_streets` utility's deps) + `requirements-dev.txt` (`pytest`, `pytest-cov`), all installed into the web container by the `Dockerfile` (the suite imports both scripts). Run locally with `make test-python`.
 - **Python version:** tests run on **3.8** to match the web container (`eclipse-temurin:17-jdk-focal`). 3.8 is EOL; bumping the container's Python is tracked separately.
 
 ## CI — GitHub Actions (`.github/workflows/ci.yml`)
 
 Parallel jobs:
 - **evolutions-lint** — host bash; `bash db/scripts/lint-evolutions.sh` (also `make lint-evolutions`). Static checks on `conf/evolutions/default/*.sql`: a semicolon mid-`--`-comment (Play splits statements on every `;`, including ones inside comments, then executes the orphaned text — this broke evolution 325, see #4335/#4351) and missing `!Ups`/`!Downs` markers. **Blocking** — fast, deterministic, no DB. (Forward *application* of new evolutions is already exercised by `backend-tests`, which boots the app and auto-applies pending evolutions. A from-scratch up→down→up round-trip was prototyped and dropped: applying the full history against the project `db` image re-inserts already-seeded `sidewalk_login` rows — a bespoke empty-login DB would be needed, not worth it for an advisory check.)
-- **python-tests** — `setup-python@v5` (3.8); `pip install -r requirements.txt -r requirements-dev.txt` → `pytest test/python`. Advisory (`continue-on-error`); no DB/network. Ramp to blocking once stable.
+- **python-tests** — `setup-python@v5` (3.8); `pip install -r requirements.txt -r requirements-dev.txt -r requirements-offline-tools.txt` → `pytest test/python`. Advisory (`continue-on-error`); no DB/network. Ramp to blocking once stable.
 - **backend** — `setup-java@v4` (temurin 17, `cache: sbt` + coursier/`~/.sbt`); `services:` `postgis/postgis:16-3.5` (health-checked); dummy env (`SIDEWALK_APPLICATION_SECRET`, `SILHOUETTE_SIGNER_KEY`/`CRYPTER_KEY`, `INTERNAL_API_KEY`, `DATABASE_USER`/`PASSWORD` required; Mapbox/Google/Gemini/Mapillary/Infra3d/SciStarter dummy). Steps grow by phase.
 - **frontend** — `setup-node@v4` (Node 23); `npm install` → `npx grunt` (exercises grunt concat) → (Phase 1+) `jest`. (`make lint` is **not** here — see #2487. No committed `package-lock.json` yet, so `npm install` not `npm ci`, and no npm cache.)
 
-**PR** runs fast feedback (compile, unit, build); **main/push** adds coverage; **E2E** is a separate **nightly/advisory** workflow. **Gating policy:** `sbt compile` blocking from day one; **scalafmt advisory** (`scalafmtCheckAll` via `continue-on-error`, no reformat pass yet); frontend lint deferred to #2487 (its own advisory→blocking ramp there); test phases advisory ~1 week then blocking on PR; **E2E always advisory**.
+**PR** runs fast feedback (compile, unit, build); **main/push** adds coverage; **E2E** is a separate **nightly/advisory** workflow. **Gating policy:** `sbt compile` blocking from day one; **scalafmt blocking** (`scalafmtCheckAll`, run with `if: always()` so it reports alongside a compile failure; the tree is kept format-clean and `make scalafmt-fix` auto-formats); frontend lint deferred to #2487 (its own advisory→blocking ramp there); test phases advisory ~1 week then blocking on PR; **E2E always advisory**.
 
 **Branch protection (`develop`, set 2026-06-29).** The deterministic jobs are wired as **required status checks** so a red build can't merge (the failure that shipped the broken evolution 325): **`Backend (compile + scalafmt)`** and **`Frontend (build)`** today, with **`Evolutions lint`** to be added once it's on `develop` and the open PRs pick it up (a required check a PR doesn't *produce* blocks it forever, so it's added only after in-flight branches include the job). Settings: `enforce_admins=true` (no admin bypass — it only ever blocks a *red* merge), **no required reviews** (maintainers self-merge; review stays a convention, not a gate — see [`CONTRIBUTING.md`](../CONTRIBUTING.md)), `strict=false` (no "branch up to date" churn). The **advisory** jobs (`Backend tests (API, PostGIS)`, `Python tests`) are deliberately **not** required while they stabilize. Repo **auto-merge** is enabled (opt-in per PR: queue a merge that fires when checks pass; merges nothing on its own).
 
@@ -86,7 +86,7 @@ Parallel jobs:
 
 ## Phased rollout (each phase independently mergeable)
 
-- **Phase 0 — gate, zero tests required (land first):** add sbt-scalafmt/sbt-scoverage plugins; `ci.yml` with `sbt compile` (blocking) + `scalafmtCheckAll` (advisory) + frontend asset build; `.github/dependabot.yml` + Scala Steward; fix the `npm test` placeholder. (Frontend lint excluded — owned by #2487.) **Implemented on `feature/ci-phase0`.**
+- **Phase 0 — gate, zero tests required (land first):** add sbt-scalafmt/sbt-scoverage plugins; `ci.yml` with `sbt compile` (blocking) + `scalafmtCheckAll` (blocking) + frontend asset build; `.github/dependabot.yml` + Scala Steward; fix the `npm test` placeholder. (Frontend lint excluded — owned by #2487.) **Implemented on `feature/ci-phase0`.**
 - **Phase 1 — unit:** backend Layer-(a) specs + Jest util tests + **`pytest` for the `scripts/` utilities** (advisory `python-tests` job, already landed); run on every PR (no DB service needed for the unit subset).
 - **Phase 2 — DB integration:** PostGIS service + `PostgresTestKit`; #4239 + #4228 regression specs; measure evolution time.
 - **Phase 3 — functional:** silhouette-testkit + `FakeAuth`/`GuiceTestApp`/`WsStubs`; `ImageControllerSpec` + `PublicApiSpec`.
@@ -94,7 +94,7 @@ Parallel jobs:
 
 ## Key decisions
 
-- **scalafmt: advisory only** for now, no repo-wide reformat pass yet (the plugin is still added for local use).
+- **scalafmt: blocking** — the tree is kept format-clean; `make scalafmt-fix` (or `sbt scalafmtAll`) auto-formats before pushing.
 - **E2E: thin & advisory** (3 smoke flows, stubbed imagery, nightly, never blocks PRs).
 - **Test DB: GitHub Actions `services:` PostGIS** (Testcontainers optional/local), not Testcontainers-in-CI.
 

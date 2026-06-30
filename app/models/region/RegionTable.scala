@@ -159,7 +159,8 @@ class RegionTable @Inject() (
     val regionIdFilter = filters.regionId.map { regionId => s"AND region.region_id = $regionId" }.getOrElse("")
 
     val regionNameFilter =
-      filters.regionName.map { regionName => s"AND LOWER(region.name) = LOWER('${regionName.replace("'", "''")}')" }
+      filters.regionName
+        .map { regionName => s"AND LOWER(region.name) = LOWER('${regionName.replace("'", "''")}')" }
         .getOrElse("")
 
     val minLabelCountFilter =

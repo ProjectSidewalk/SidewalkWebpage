@@ -84,10 +84,10 @@ Full details (both systems, regional `en-US`/`en-NZ` rules, adding a new languag
 
 ## Python utilities
 
-Two standalone scripts in **`scripts/`** (run via the Python deps in `requirements.txt`, installed in the Docker image), invoked out-of-band rather than from the running web app. Full usage in [`scripts/README.md`](scripts/README.md):
+Two standalone scripts in **`scripts/`**, invoked out-of-band rather than from the running web app. Python deps are split by who needs them: **`requirements.txt`** holds the app's in-band deps (`label_clustering.py` runs in-band — see below), and **`requirements-offline-tools.txt`** holds the deps used only by the offline `check_streets_for_imagery.py` utility (`shapely`, `geopy`, `tenacity`, `tqdm`). The Docker image installs both (plus `requirements-dev.txt`) since the test suite imports both scripts. Full usage in [`scripts/README.md`](scripts/README.md):
 
 - `scripts/label_clustering.py` — clusters nearby labels. This one is invoked **in-band**: `ClusterController.runMultiUserClustering` shells out to `scripts/label_clustering.py` per region during admin-triggered `/runClustering` (see `ClusterController.scala` / `app/models/cluster/`). If you move/rename it, update that invocation path.
-- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery (related: `make hide-streets-without-imagery`).
+- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery (related: `make hide-streets-without-imagery`). Resolves its data files relative to the repo root, so it runs from any working directory.
 
 Each script's pure logic is refactored into importable functions and **unit-tested** under `test/python/` (`pytest`). Keep I/O (HTTP/file) in thin wrappers and `main` so the logic stays testable; run `make test-python`.
 
@@ -154,6 +154,7 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 - Update said code to use the native `fetch` API rather than jQuery, and to make use of Promises. But if said refactor would impact many other functions that use it, then wait for a dedicated refactor.
 - Replace uses of Bootstrap with native JS alternatives as you come across them
 - When writing SQL, avoid table aliases
+- After editing any Scala file, run `make scalafmt-fix` (reformats the whole tree in place via the sbt thin client) before treating the change as done — scalafmt is a blocking CI gate, so unformatted Scala fails the build. One run after a batch of edits is enough; no need to format after every single edit.
 - User interactions are logged (clicks, key presses, mode switches, pano changes, mission/task events, etc.) to the activity/interaction tables. When you **add or change an interaction**, add or adjust the corresponding logging so analytics stay complete; keep event names consistent with the existing ones, and update [`docs/logged-events.md`](docs/logged-events.md) (how logging works + the event reference).
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
 - When adding or refactoring code, use the fonts, colors, button styling, etc. defined in main.css :root. These are pulled from our "Design System Tokens" Figma, and we are pushing to use these going forward.
@@ -345,7 +346,7 @@ A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `tes
 
 ### Continuous integration
 
-`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (advisory — format Scala you touch with scalafmt, `.scalafmt.conf`), the **frontend grunt build**, the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), and the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application). "Advisory" steps report findings but don't block merges yet. **Branch protection** on `develop` (set 2026-06-29) wires the deterministic blocking jobs as **required status checks** (`Backend (compile + scalafmt)`, `Frontend (build)`; `Evolutions lint` being added) so a red build can't merge; `enforce_admins=true`, **no required reviews** (self-merge preserved), advisory jobs not required. Full policy: [`docs/testing-and-ci.md`](docs/testing-and-ci.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (blocking — the tree is kept format-clean; auto-format with `make scalafmt-fix` / `sbt scalafmtAll`, config in `.scalafmt.conf`), the **frontend grunt build**, the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), and the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application). "Advisory" steps report findings but don't block merges yet. **Branch protection** on `develop` (set 2026-06-29) wires the deterministic blocking jobs as **required status checks** (`Backend (compile + scalafmt)`, `Frontend (build)`; `Evolutions lint` being added) so a red build can't merge; `enforce_admins=true`, **no required reviews** (self-merge preserved), advisory jobs not required. Full policy: [`docs/testing-and-ci.md`](docs/testing-and-ci.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ### Building frontend assets
 

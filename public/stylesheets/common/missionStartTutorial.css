@@ -328,7 +328,6 @@
     justify-content: center;
     align-items: center;
     font: var(--text-tiny-semibold);
-    line-height: 120%;
     text-align: left;
     border-bottom: calc(3px * var(--ui-scale, 1)) solid var(--color-neutral-200);
     padding: 0 calc(3px * var(--ui-scale, 1));

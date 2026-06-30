@@ -1,4 +1,4 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh stage-import test-python lint-evolutions
+.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh stage-import test-python lint-evolutions scalafmt scalafmt-fix
 
 db ?= sidewalk
 dir ?= ./
@@ -69,6 +69,15 @@ reveal-or-hide-neighborhoods:
 # container is needed. Also wired into CI as the blocking `evolutions-lint` job.
 lint-evolutions:
 	@bash db/scripts/lint-evolutions.sh
+
+# Scala formatting (.scalafmt.conf), the backend counterpart to the eslint/stylelint targets above. Runs in the web
+# container via the sbt thin client (`--client`) so it shares the running `sbt ~ run`'s server instead of colliding
+# with it over build locks. `scalafmt` checks (matches the blocking CI gate); `scalafmt-fix` reformats in place.
+scalafmt:
+	@echo "Checking Scala formatting..."; docker exec -it projectsidewalk-web bash -lc "cd /home && sbt --client scalafmtCheckAll"
+
+scalafmt-fix:
+	@echo "Formatting Scala..."; docker exec -it projectsidewalk-web bash -lc "cd /home && sbt --client scalafmtAll"
 
 lint-htmlhint:
 	@echo "Running HTMLHint...";
