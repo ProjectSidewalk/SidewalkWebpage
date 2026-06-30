@@ -2,15 +2,17 @@
 @import models.user.SidewalkUserWithRole
 @import models.userdashboard.DashboardMock
 @import play.api.Configuration
-@(commonData: CommonPageData, user: SidewalkUserWithRole
+@(commonData: CommonPageData, user: SidewalkUserWithRole, isSignedIn: Boolean
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
  * Redesigned Leaderboard — Phase 1 comps prototype (mock data, no backend) (#4323).
  *
- * Shares the User Dashboard shell. Leads with the cross-city community band and the lively weekly slice so even a tiny,
- * brand-new deployment has something alive to show, then the podium, team/class tables, and an all-time table. Tables
- * with too few rows degrade to celebratory "be the first" cards rather than looking empty. All numbers are placeholders.
+ * PUBLIC page: like the live /leaderboard, anyone (including anonymous accounts) can view it. The community band,
+ * podium, and tables show for everyone; the personal "you" pieces (your highlighted row, "you vs community") render
+ * only when `isSignedIn`, with a sign-up CTA shown to anonymous visitors instead. Shares the User Dashboard shell and
+ * leads with the cross-city community band + lively weekly slice so even a tiny, brand-new deployment feels alive. All
+ * numbers are placeholders.
  *@
 
 @row(rank: Int, name: String, labels: String, missions: String, distance: String, accuracy: String, you: Boolean) = {
@@ -39,7 +41,20 @@
 @content = {
     <div class="api-section" id="lb-intro-section">
         <h1 class="api-heading" id="leaderboard">Leaderboard <a href="#leaderboard" class="permalink">#</a></h1>
-        <p>Every label makes sidewalks more accessible. Here's how the community — and you — are doing.</p>
+        <p>Every label makes sidewalks more accessible. Here's how the community@if(isSignedIn){ — and you} — are doing.</p>
+
+        @if(!isSignedIn) {
+            <div class="ud-cta">
+                <div class="ud-cta-text">
+                    <strong>Want to see where you rank?</strong>
+                    <span>Create a free account to track your labels, earn badges and trophies, and climb the board.</span>
+                </div>
+                <div class="ud-cta-actions">
+                    <a class="ud-btn-primary" href="@routes.UserController.signUp()">Create an account</a>
+                    <a class="ud-btn-secondary" href="@routes.UserController.signIn()">Sign in</a>
+                </div>
+            </div>
+        }
     </div>
 
     @* ---- Community impact band (cross-city) ----------------------------------------------------------------- *@
@@ -94,7 +109,7 @@
                 <tbody>
                     @row(1, "jordan_m", "412", "9", "3.1 km", "92%", you = false)
                     @row(2, "priya_k", "355", "8", "2.7 km", "90%", you = false)
-                    @row(3, "you", "298", "7", "2.2 km", "88%", you = true)
+                    @if(isSignedIn){@row(3, "you", "298", "7", "2.2 km", "88%", you = true)}else{@row(3, "taylor_b", "298", "7", "2.2 km", "88%", you = false)}
                     @row(4, "sam_l", "240", "6", "1.9 km", "85%", you = false)
                     @row(5, "ada_w", "198", "5", "1.6 km", "94%", you = false)
                 </tbody>
@@ -133,27 +148,29 @@
                     @allTimeRow(1, "curb_crusader", "Seattle, WA", "11,540", "312", "142 km", "90%", you = false)
                     @allTimeRow(2, "ramp_ranger", "Chicago, IL", "8,902", "256", "118 km", "92%", you = false)
                     @allTimeRow(3, "sidewalk_sam", "Seattle, WA", "7,418", "201", "96 km", "88%", you = false)
-                    @allTimeRow(28, "you", "Seattle, WA", "1,284", "42", "18.4 km", "88%", you = true)
+                    @if(isSignedIn){@allTimeRow(28, "you", "Seattle, WA", "1,284", "42", "18.4 km", "88%", you = true)}
                 </tbody>
             </table>
         </div>
     </div>
 
-    @* ---- You vs community --------------------------------------------------------------------------------- *@
-    <div class="api-section" id="lb-you-section">
-        <h2 class="api-heading" id="you">You vs the community <a href="#you" class="permalink">#</a></h2>
-        <p>Where you sit this week, and who's just ahead and behind.</p>
-        <div class="ud-standing-card ud-standing-card-wide">
-            <div class="ud-standing-tag">This week · 290 mappers</div>
-            <div class="ud-standing-rank">Top <strong>12%</strong></div>
-            <div class="ud-standing-detail">#34 of 290 by labels this week — up 6 spots from last week. 📈</div>
-            <ul class="ud-standing-slice">
-                @for(r <- DashboardMock.standingSlice) {
-                    <li @if(r.you){class="ud-rank-you"}><span class="ud-rank">@r.rank</span><span class="ud-rank-user">@if(r.you){You}else{@r.user}</span><span class="ud-rank-val">@r.labels</span></li>
-                }
-            </ul>
+    @* ---- You vs community (signed-in only) ---------------------------------------------------------------- *@
+    @if(isSignedIn) {
+        <div class="api-section" id="lb-you-section">
+            <h2 class="api-heading" id="you">You vs the community <a href="#you" class="permalink">#</a></h2>
+            <p>Where you sit this week, and who's just ahead and behind.</p>
+            <div class="ud-standing-card ud-standing-card-wide">
+                <div class="ud-standing-tag">This week · 290 mappers</div>
+                <div class="ud-standing-rank">Top <strong>12%</strong></div>
+                <div class="ud-standing-detail">#34 of 290 by labels this week — up 6 spots from last week. 📈</div>
+                <ul class="ud-standing-slice">
+                    @for(r <- DashboardMock.standingSlice) {
+                        <li @if(r.you){class="ud-rank-you"}><span class="ud-rank">@r.rank</span><span class="ud-rank-user">@if(r.you){You}else{@r.user}</span><span class="ud-rank-val">@r.labels</span></li>
+                    }
+                </ul>
+            </div>
         </div>
-    </div>
+    }
 }
 
 @common.main(commonData, "Sidewalk - Leaderboard") {

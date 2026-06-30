@@ -47,12 +47,16 @@ class UserDashboardController @Inject() (
    * Renders the redesigned Leaderboard prototype: community-impact band, podium, weekly/all-time/team tables, and a
    * "you vs community" standing widget, sharing the dashboard shell.
    *
-   * Phase 1 shows hardcoded mock data. Secured to any signed-in user, matching the real `/leaderboard`.
+   * Like the live `/leaderboard`, this is a bare `SecuredAction` (no `WithSignedIn`), so the general public — including
+   * anonymous auto-accounts — can view it. The view shows the community/podium/tables to everyone and gates the
+   * personal "you" pieces behind `isSignedIn` (role != "Anonymous"), offering a sign-up CTA otherwise. Phase 1 shows
+   * hardcoded mock data.
    */
-  def leaderboardPreview = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
+  def leaderboardPreview = cc.securityService.SecuredAction { implicit request =>
+    val isSignedIn: Boolean = request.identity.role != "Anonymous"
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_LeaderboardPreview")
-      Ok(views.html.userDashboard.leaderboard(commonData, request.identity))
+      Ok(views.html.userDashboard.leaderboard(commonData, request.identity, isSignedIn))
     }
   }
 }
