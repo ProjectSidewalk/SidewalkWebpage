@@ -99,6 +99,11 @@ or `ROLLBACK`. Edit the candidate-id list and the `search_path` (target city sch
   local. Only run the server mode if you know what you're doing.
 - **Inspect the DB read-only** with the `readonly_user` role (created by `init.sh`): it has `SELECT` only — never use
   `-U sidewalk` for exploration.
+- **Maintenance scripts assume the *current* (post-evolution) schema.** A freshly imported dump sits at whatever schema
+  version it was dumped at; Play applies pending evolutions only when the **app next starts**. So right after
+  `import-dump`, a script like `reveal-or-hide-neighborhoods.sh` can fail with `column ... does not exist` (e.g.
+  `street_edge.status` from evolution 325 / #3888) because the dump is older. Start the app once against that city to
+  apply pending evolutions, then re-run the script. (These run in a transaction, so such a failure rolls back cleanly.)
 
 ## Conventions for editing these scripts
 
