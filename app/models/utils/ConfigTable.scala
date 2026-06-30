@@ -79,6 +79,21 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
 
   val config = TableQuery[ConfigTableDef]
 
+  /**
+   * Runs `action` in a transaction with JIT disabled for the duration of that transaction.
+   *
+   * Interim workaround for #4376: the projectsidewalk/db image ships a broken Postgres JIT (PostGIS bitcode built with
+   * LLVM 16, runtime llvmjit linked against LLVM 11). An expensive query that JIT-inlines PostGIS function bitcode
+   * (ST_TRANSFORM/ST_LENGTH) segfaults the backend, surfacing as a dropped connection (SQLSTATE 08006). The cross-city
+   * scorecard and labeling-speed queries cross the JIT cost thresholds and call those functions, so they trip it.
+   * `SET LOCAL` scopes the setting to this one transaction. Remove once #4376 disables JIT at the DB config level.
+   *
+   * @param action The DBIO to run with JIT off.
+   * @return       The same action, wrapped so JIT is disabled for its transaction.
+   */
+  private def withJitOff[T](action: DBIO[T]): DBIO[T] =
+    (sqlu"SET LOCAL jit = off" >> action).transactionally
+
   def getCityMapParams: DBIO[MapParams] = {
     config.result.head.map(_.cityMapParams)
   }
@@ -499,8 +514,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
 
     // Fold in the per-label-type breakdown, the weekly trend, and the (cheap) per-user output/speed stats (same
     // connection), then assemble the full scorecard. The expensive labeling-speed query is NOT here — it is computed on
-    // a separate long-cached path (getCrossCityLabelingSpeed).
-    for {
+    // a separate long-cached path (getCrossCityLabelingSpeed). Wrapped in withJitOff because coreQuery's km calc uses
+    // PostGIS (#4376).
+    withJitOff(for {
       core        <- coreQuery
       byLabelType <- getLabelTypeStatsBySchema(schema)
       weeklyTrend <- getCityWeeklyTrendBySchema(schema, Some(ScorecardTrendWeeks))
@@ -544,7 +560,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         numValidators = nValidators,
         validationSecondsMedian = valSecMedian
       )
-    }
+    })
   }
 
   /**
@@ -670,7 +686,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   def getCityLabelingSpeedBySchema(schema: String): DBIO[(Double, Double)] = {
     implicit val getResult: GetResult[(Double, Double)] = GetResult(r => (r.nextDouble(), r.nextDouble()))
 
-    sql"""
+    // Wrapped in withJitOff because the audited-km subquery uses PostGIS (#4376).
+    withJitOff(sql"""
       SELECT COALESCE(audit_time.hours, 0) AS hours,
              COALESCE(audited.km, 0)       AS km
       FROM (
@@ -688,7 +705,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
           WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.deleted = FALSE
       ) AS audited;
-    """.as[(Double, Double)].head
+    """.as[(Double, Double)].head)
   }
 
   def getTutorialStreetId: DBIO[Int] = {
