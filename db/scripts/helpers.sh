@@ -12,8 +12,8 @@
 # Function to prompt for input. If no default given, require user input. Optional param to list valid responses.
 prompt_with_default() {
     local prompt=$1
-    local default=$2          # Optional default response.
-    local valid_responses=$3  # Optional pipe-separated list of valid responses.
+    local default=${2:-}          # Optional default response (guarded so callers under `set -u` can omit it).
+    local valid_responses=${3:-}  # Optional pipe-separated list of valid responses (guarded for `set -u`).
     local input
     local prompt_text
 
