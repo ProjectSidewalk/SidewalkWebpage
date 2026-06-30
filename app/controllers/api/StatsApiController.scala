@@ -303,7 +303,7 @@ class StatsApiController @Inject() (
   ): Either[ApiError, (Option[LocalDate], Option[LocalDate])] = {
     def parseOpt(opt: Option[String], paramName: String): Either[ApiError, Option[LocalDate]] =
       opt match {
-        case None => Right(None)
+        case None    => Right(None)
         case Some(s) =>
           try Right(Some(LocalDate.parse(s)))
           catch {
@@ -314,7 +314,7 @@ class StatsApiController @Inject() (
     for {
       start <- parseOpt(startDateStr, "startDate")
       end   <- parseOpt(endDateStr, "endDate")
-      _ <- (start, end) match {
+      _     <- (start, end) match {
         case (Some(s), Some(e)) if s.isAfter(e) =>
           Left(ApiError.invalidParameter("startDate must not be after endDate.", "startDate"))
         case _ => Right(())
@@ -366,7 +366,7 @@ class StatsApiController @Inject() (
       filetype: Option[String]
   ) = silhouette.UserAwareAction.async { implicit request =>
     parseDateParams(startDate, endDate) match {
-      case Left(err) => Future.successful(ApiError.toResult(err))
+      case Left(err)           => Future.successful(ApiError.toResult(err))
       case Right((start, end)) =>
         apiService.getOverallStatsByDay(start, end, filterLowQuality).map { stats =>
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
@@ -392,7 +392,7 @@ class StatsApiController @Inject() (
       filetype: Option[String]
   ) = silhouette.UserAwareAction.async { implicit request =>
     parseDateParams(startDate, endDate) match {
-      case Left(err) => Future.successful(ApiError.toResult(err))
+      case Left(err)           => Future.successful(ApiError.toResult(err))
       case Right((start, end)) =>
         configService.getAggregateStatsByDay(start, end, filterLowQuality).map { stats =>
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)

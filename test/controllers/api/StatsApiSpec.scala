@@ -88,12 +88,12 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     // Data-independent invariants: hold for any test DB contents.
     "reconcile single + multiple user km with no-overlap km, and alias km_explorable to km_by_status.open" in {
-      val json        = contentAsJson(route(app, FakeRequest(GET, "/v3/api/overallStats")).get)
-      val noOverlap   = (json \ "km_explored_no_overlap").as[Double]
-      val multiple    = (json \ "km_explored_multiple_users").as[Double]
-      val single      = (json \ "km_explored_single_user").as[Double]
-      val explorable  = (json \ "km_explorable").as[Double]
-      val open        = (json \ "km_by_status" \ "open").as[Double]
+      val json       = contentAsJson(route(app, FakeRequest(GET, "/v3/api/overallStats")).get)
+      val noOverlap  = (json \ "km_explored_no_overlap").as[Double]
+      val multiple   = (json \ "km_explored_multiple_users").as[Double]
+      val single     = (json \ "km_explored_single_user").as[Double]
+      val explorable = (json \ "km_explorable").as[Double]
+      val open       = (json \ "km_by_status" \ "open").as[Double]
 
       // single + multiple == no_overlap (single is derived as no_overlap − multiple), and multiple ≤ no_overlap.
       (single + multiple) mustBe (noOverlap +- 0.001)
@@ -108,13 +108,8 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(resp) mustBe OK
       val body = contentAsString(resp)
       Seq(
-        "km_explored_multiple_users",
-        "km_explored_single_user",
-        "km_explorable",
-        "km_open",
-        "km_no_imagery",
-        "km_closed",
-        "km_disabled"
+        "km_explored_multiple_users", "km_explored_single_user", "km_explorable", "km_open", "km_no_imagery",
+        "km_closed", "km_disabled"
       ).foreach(key => body must include(key))
     }
   }

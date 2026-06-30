@@ -101,14 +101,14 @@ object ApiError {
    */
   def forStatus(status: Int, detail: String): ApiError = {
     val (code, title) = status match {
-      case 400               => ("BAD_REQUEST", "Bad Request")
-      case 401               => ("UNAUTHORIZED", "Unauthorized")
-      case 403               => ("FORBIDDEN", "Forbidden")
-      case 404               => ("NOT_FOUND", "Not Found")
-      case 405               => ("METHOD_NOT_ALLOWED", "Method Not Allowed")
-      case 415               => ("UNSUPPORTED_MEDIA_TYPE", "Unsupported Media Type")
-      case s if s >= 500     => ("INTERNAL_SERVER_ERROR", "Internal Server Error")
-      case _                 => ("CLIENT_ERROR", "Client Error")
+      case 400           => ("BAD_REQUEST", "Bad Request")
+      case 401           => ("UNAUTHORIZED", "Unauthorized")
+      case 403           => ("FORBIDDEN", "Forbidden")
+      case 404           => ("NOT_FOUND", "Not Found")
+      case 405           => ("METHOD_NOT_ALLOWED", "Method Not Allowed")
+      case 415           => ("UNSUPPORTED_MEDIA_TYPE", "Unsupported Media Type")
+      case s if s >= 500 => ("INTERNAL_SERVER_ERROR", "Internal Server Error")
+      case _             => ("CLIENT_ERROR", "Client Error")
     }
     ApiError(status, code, title, detail)
   }

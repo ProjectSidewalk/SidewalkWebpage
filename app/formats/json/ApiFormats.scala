@@ -72,14 +72,14 @@ object ApiFormats {
       "km_explored_single_user"       -> stats.kmExploredSingleUser,
       // `km_explorable` is the auditable-now network (status = open). A street can be audited and later become
       // closed/no_imagery, so km_explored_no_overlap is NOT bounded by km_explorable.
-      "km_explorable"                 -> stats.kmOpen,
-      "km_by_status"                  -> Json.obj(
+      "km_explorable" -> stats.kmOpen,
+      "km_by_status"  -> Json.obj(
         "open"       -> stats.kmOpen,
         "no_imagery" -> stats.kmNoImagery,
         "closed"     -> stats.kmClosed,
         "disabled"   -> stats.kmDisabled
       ),
-      "user_counts"                   -> Json.obj(
+      "user_counts" -> Json.obj(
         "all_users"  -> stats.nUsers,
         "labelers"   -> stats.nExplorers,
         "validators" -> stats.nValidators,

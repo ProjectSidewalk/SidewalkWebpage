@@ -46,7 +46,7 @@ class LabelClustersApiModelsSpec extends AnyFunSuite with Matchers {
   }
 
   test("every GeoJSON property key is snake_case (no uppercase letters)") {
-    val props = (sampleCluster.toJson \ "properties").as[JsObject]
+    val props     = (sampleCluster.toJson \ "properties").as[JsObject]
     val offenders = props.keys.filter(k => k != k.toLowerCase)
     offenders shouldBe empty
   }

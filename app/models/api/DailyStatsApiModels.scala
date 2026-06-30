@@ -42,7 +42,7 @@ case class DailyStatRecord(
 
 object DailyStatRecord {
   // snake_case JSON output per the v3 API convention (#3871).
-  private implicit val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  implicit private val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
   implicit val writes: OWrites[DailyStatRecord]  = Json.writes[DailyStatRecord]
 
   val csvHeader: String =
@@ -67,8 +67,8 @@ object DailyStatRecord {
     val labelMap      = labels.map(r => (r._1, r._2) -> (r._3, r._4)).toMap
     val validationMap = validations.map(r => (r._1, r._2) -> (r._3, r._4, r._5, r._6, r._7, r._8)).toMap
     (labelMap.keySet ++ validationMap.keySet).toSeq.sortBy(k => (k._1, k._2)).map { key =>
-      val (date, labelType)         = key
-      val (humanLabels, aiLabels)   = labelMap.getOrElse(key, (0, 0))
+      val (date, labelType)        = key
+      val (humanLabels, aiLabels)  = labelMap.getOrElse(key, (0, 0))
       val (ha, hd, hu, aa, ad, au) = validationMap.getOrElse(key, (0, 0, 0, 0, 0, 0))
       DailyStatRecord(date, labelType, humanLabels, aiLabels, ha, hd, hu, aa, ad, au)
     }

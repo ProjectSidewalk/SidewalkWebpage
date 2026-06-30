@@ -10,7 +10,17 @@ import models.region.Region
 import models.street.StreetEdgeTable
 import models.user._
 import models.utils.CommonUtils.METERS_TO_MILES
-import models.utils.{ApiDailyCount, ApiDailySourceCount, ApiEndpointCount, ApiEndpointSourceCount, ApiFormatCount, ApiFormatSourceCount, ApiSourceIpCount, MyPostgresProfile, WebpageActivityTable}
+import models.utils.{
+  ApiDailyCount,
+  ApiDailySourceCount,
+  ApiEndpointCount,
+  ApiEndpointSourceCount,
+  ApiFormatCount,
+  ApiFormatSourceCount,
+  ApiSourceIpCount,
+  MyPostgresProfile,
+  WebpageActivityTable
+}
 import models.validation.{LabelValidationTable, ValidationCount, ValidationOption, ValidationTaskCommentTable}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval.TimeInterval
@@ -306,7 +316,10 @@ trait AdminService {
   def getUserStatsForAdminPage: Future[Seq[UserStatsForAdminPage]]
   def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Double)]]
   def updateUserStatTable(cutoffTime: OffsetDateTime): Future[Int]
-  def getApiAnalytics(excludeApiDocs: Boolean, days: Int): Future[(Seq[ApiEndpointCount], Seq[ApiDailyCount], Long, Seq[ApiFormatCount])]
+  def getApiAnalytics(
+      excludeApiDocs: Boolean,
+      days: Int
+  ): Future[(Seq[ApiEndpointCount], Seq[ApiDailyCount], Long, Seq[ApiFormatCount])]
   def getApiAnalyticsBySource(days: Int): Future[ApiAnalyticsBySourceData]
 }
 
@@ -381,15 +394,15 @@ class AdminServiceImpl @Inject() (
       def splitMap(rows: Seq[(OffsetDateTime, Boolean, Int)], anon: Boolean): Map[LocalDate, Int] =
         rows.filter(_._2 == anon).map(r => r._1.toLocalDate -> r._3).toMap
 
-      val labelMap       = toDayMap(labels)
-      val validationMap  = toDayMap(validations)
-      val auditMap       = toDayMap(audits)
-      val missionMap     = toDayMap(missions)
-      val newUserMap     = toDayMap(newUsers)
-      val signinRegMap   = splitMap(signins, anon = false)
-      val signinAnonMap  = splitMap(signins, anon = true)
-      val activeRegMap   = splitMap(active, anon = false)
-      val activeAnonMap  = splitMap(active, anon = true)
+      val labelMap      = toDayMap(labels)
+      val validationMap = toDayMap(validations)
+      val auditMap      = toDayMap(audits)
+      val missionMap    = toDayMap(missions)
+      val newUserMap    = toDayMap(newUsers)
+      val signinRegMap  = splitMap(signins, anon = false)
+      val signinAnonMap = splitMap(signins, anon = true)
+      val activeRegMap  = splitMap(active, anon = false)
+      val activeAnonMap = splitMap(active, anon = true)
 
       val allDates: Seq[LocalDate] = (labelMap.keySet ++ validationMap.keySet ++ auditMap.keySet ++ missionMap.keySet ++
         newUserMap.keySet ++ signinRegMap.keySet ++ signinAnonMap.keySet ++ activeRegMap.keySet ++
@@ -412,7 +425,7 @@ class AdminServiceImpl @Inject() (
     }
   }
 
-  def getTagCounts: Future[Seq[TagCount]]                            = db.run(labelTable.getTagCounts)
+  def getTagCounts: Future[Seq[TagCount]] = db.run(labelTable.getTagCounts)
 
   /**
    * Tag-severity counts for the Data Quality heatmap, with severity bucketed to the canonical 1–3 scale (legacy
@@ -423,11 +436,13 @@ class AdminServiceImpl @Inject() (
       rows
         .collect { case (labelType, tag, Some(sev), count) => (labelType, tag, math.min(3, math.max(1, sev)), count) }
         .groupBy { case (labelType, tag, severity, _) => (labelType, tag, severity) }
-        .map { case ((labelType, tag, severity), group) => TagSeverityCount(labelType, tag, severity, group.map(_._4).sum) }
+        .map { case ((labelType, tag, severity), group) =>
+          TagSeverityCount(labelType, tag, severity, group.map(_._4).sum)
+        }
         .toSeq
     }
   }
-  def getSignInCounts: Future[Seq[(String, String, Int)]]            = db.run(webpageActivityTable.getSignInCounts)
+  def getSignInCounts: Future[Seq[(String, String, Int)]] = db.run(webpageActivityTable.getSignInCounts)
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]] =
     db.run(auditTaskTable.getAuditedStreetsWithTimestamps)
   def findAuditTask(taskId: Int): Future[Option[AuditTask]] = db.run(auditTaskTable.find(taskId))
@@ -440,10 +455,10 @@ class AdminServiceImpl @Inject() (
    */
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData] = {
     db.run(for {
-      currRegion: Option[Region]              <- userCurrentRegionTable.getCurrentRegion(userId)
-      completedAudits: Int                    <- auditTaskTable.countCompletedAuditsForUser(userId)
-      hoursWorked: Double                     <- auditTaskInteractionTable.getHoursAuditingAndValidating(userId)
-      existingStats: Option[UserStat]         <- userStatTable.getStatsFromUserId(userId)
+      currRegion: Option[Region]      <- userCurrentRegionTable.getCurrentRegion(userId)
+      completedAudits: Int            <- auditTaskTable.countCompletedAuditsForUser(userId)
+      hoursWorked: Double             <- auditTaskInteractionTable.getHoursAuditingAndValidating(userId)
+      existingStats: Option[UserStat] <- userStatTable.getStatsFromUserId(userId)
       // Insert a user_stat if the user hasn't visited this server before, allowing this page to load.
       userStats: UserStat <- existingStats match {
         case Some(stats) => DBIO.successful(stats)
@@ -720,16 +735,17 @@ class AdminServiceImpl @Inject() (
     else
       db.run(sidewalkUserTable.getUserIdAndRoleByUsernames(distinct)).flatMap { idRoles =>
         val userIds = idRoles.map(_._2)
-        db.run(labelTable.countLabelsForUsers(userIds) zip labelValidationTable.getValidationResultCountsForUsers(userIds))
-          .map { case (labelCounts, valCounts) =>
-            val labelByUser: Map[String, Int] = labelCounts.toMap
-            // getValidationResultCountsForUsers is split by verdict; sum the verdicts for each user's validation total.
-            val valByUser: Map[String, Int] =
-              valCounts.groupBy(_._1).map { case (userId, rows) => userId -> rows.map(_._3).sum }
-            idRoles.map { case (username, userId, role) =>
-              username -> UserSummary(role, labelByUser.getOrElse(userId, 0), valByUser.getOrElse(userId, 0))
-            }.toMap
-          }
+        db.run(
+          labelTable.countLabelsForUsers(userIds) zip labelValidationTable.getValidationResultCountsForUsers(userIds)
+        ).map { case (labelCounts, valCounts) =>
+          val labelByUser: Map[String, Int] = labelCounts.toMap
+          // getValidationResultCountsForUsers is split by verdict; sum the verdicts for each user's validation total.
+          val valByUser: Map[String, Int] =
+            valCounts.groupBy(_._1).map { case (userId, rows) => userId -> rows.map(_._3).sum }
+          idRoles.map { case (username, userId, role) =>
+            username -> UserSummary(role, labelByUser.getOrElse(userId, 0), valByUser.getOrElse(userId, 0))
+          }.toMap
+        }
       }
   }
 
@@ -764,7 +780,8 @@ class AdminServiceImpl @Inject() (
         val typesByUser: Map[String, Seq[(String, Int)]] =
           typeCounts.groupBy(_._1).map { case (u, rows) => u -> rows.map(r => (r._2, r._3)).sortBy(-_._2) }
         val sevByUser: Map[String, Seq[(Int, Int)]] =
-          sevCounts.collect { case (u, Some(s), c) => (u, s, c) }
+          sevCounts
+            .collect { case (u, Some(s), c) => (u, s, c) }
             .groupBy(_._1)
             .map { case (u, rows) => u -> rows.map(r => (r._2, r._3)).sortBy(_._1) }
         val resultsByUser: Map[String, Seq[(ValidationOption.Value, Int)]] =
@@ -772,16 +789,22 @@ class AdminServiceImpl @Inject() (
 
         val labelers = topLabelers.map { u =>
           LabelerLeaderboardEntry(
-            u.userId, u.username, u.role, u.labels, u.ownValidated, u.ownValidatedAgreedPct, u.highQuality,
-            typesByUser.getOrElse(u.userId, Seq.empty), sevByUser.getOrElse(u.userId, Seq.empty)
+            u.userId,
+            u.username,
+            u.role,
+            u.labels,
+            u.ownValidated,
+            u.ownValidatedAgreedPct,
+            u.highQuality,
+            typesByUser.getOrElse(u.userId, Seq.empty),
+            sevByUser.getOrElse(u.userId, Seq.empty)
           )
         }
         val validators = topValidators.map { u =>
-          val counts                          = resultsByUser.getOrElse(u.userId, Seq.empty)
+          val counts                             = resultsByUser.getOrElse(u.userId, Seq.empty)
           def of(result: ValidationOption.Value) = counts.find(_._1 == result).map(_._2).getOrElse(0)
-          ValidatorLeaderboardEntry(u.userId, u.username, u.role, u.othersValidated,
-            of(ValidationOption.Agree), of(ValidationOption.Disagree), of(ValidationOption.Unsure),
-            u.othersValidatedAgreedPct)
+          ValidatorLeaderboardEntry(u.userId, u.username, u.role, u.othersValidated, of(ValidationOption.Agree),
+            of(ValidationOption.Disagree), of(ValidationOption.Unsure), u.othersValidatedAgreedPct)
         }
         ContributorLeaderboards(labelers, validators)
       }
@@ -800,10 +823,10 @@ class AdminServiceImpl @Inject() (
    * @return The assembled comparison.
    */
   def getHumanVsAiStats: Future[HumanVsAiStats] = {
-    val labelStatsFut = db.run(labelTable.getLabelStatsByAuthorRole)
-    val sevFut        = db.run(labelTable.getSeverityCountsByAuthorRole)
-    val valFut        = db.run(labelValidationTable.getValidationCountsByValidatorRole)
-    val humanTagsFut  = db.run(labelTable.getHumanTagCounts)
+    val labelStatsFut    = db.run(labelTable.getLabelStatsByAuthorRole)
+    val sevFut           = db.run(labelTable.getSeverityCountsByAuthorRole)
+    val valFut           = db.run(labelValidationTable.getValidationCountsByValidatorRole)
+    val humanTagsFut     = db.run(labelTable.getHumanTagCounts)
     val taggerSummaryFut =
       db.run(labelAiAssessmentTable.getAssessmentSummary).recover { case _ => (0, Option.empty[Double]) }
     val aiTagsFut = db.run(labelAiAssessmentTable.getAiTagCounts).recover { case _ => Seq.empty[(String, Int)] }
@@ -821,7 +844,9 @@ class AdminServiceImpl @Inject() (
 
       def labelerGroup(isAi: Boolean, name: String): HumanAiLabelerStats = {
         val types = labelStats
-          .collect { case (g, lt, total, validated, correct) if g == isAi => HumanAiTypeStat(lt, total, validated, correct) }
+          .collect {
+            case (g, lt, total, validated, correct) if g == isAi => HumanAiTypeStat(lt, total, validated, correct)
+          }
           .sortBy(-_.count)
         val severityCounts: Seq[(Int, Int)] = sev
           .collect { case (g, Some(s), c) if g == isAi => (clampSeverity(s), c) }
@@ -829,12 +854,20 @@ class AdminServiceImpl @Inject() (
           .map { case (rating, rows) => (rating, rows.map(_._2).sum) }
           .toSeq
           .sortBy(_._1)
-        HumanAiLabelerStats(name, types.map(_.count).sum, types.map(_.validated).sum, types.map(_.correct).sum,
-          types, severityCounts)
+        HumanAiLabelerStats(
+          name,
+          types.map(_.count).sum,
+          types.map(_.validated).sum,
+          types.map(_.correct).sum,
+          types,
+          severityCounts
+        )
       }
 
       def validatorGroup(isAi: Boolean, name: String): HumanAiValidatorStats = {
-        def of(result: ValidationOption.Value): Int = vals.collect { case (g, r, c) if g == isAi && r == result => c }.sum
+        def of(result: ValidationOption.Value): Int = vals.collect {
+          case (g, r, c) if g == isAi && r == result => c
+        }.sum
         val agree    = of(ValidationOption.Agree)
         val disagree = of(ValidationOption.Disagree)
         val unsure   = of(ValidationOption.Unsure)
@@ -882,15 +915,26 @@ class AdminServiceImpl @Inject() (
     } yield {
       // The by-type counts carry an "All" subtotal row; the validation counts carry a grand-total row keyed by the
       // "All"/None/"Both" subgroup. Pull those rather than re-summing so the totals match the detailed pages exactly.
-      def labelTotal(counts: Seq[LabelCount]): Int = counts.find(_.labelType == "All").map(_.count).getOrElse(0)
+      def labelTotal(counts: Seq[LabelCount]): Int    = counts.find(_.labelType == "All").map(_.count).getOrElse(0)
       def valTotal(counts: Seq[ValidationCount]): Int = counts
         .find(c => c.labelType == "All" && c.validationResult.isEmpty && c.validatorType == "Both")
         .map(_.count)
         .getOrElse(0)
       OverviewCore(
-        totalStreets, auditedStreets, totalDist * METERS_TO_MILES, auditedDist * METERS_TO_MILES,
-        labelTotal(labelsAll), valTotal(valsAll), labelTotal(labelsWeek), valTotal(valsWeek), auditsWeek,
-        contributors.count, apiExternal.map(_.count).sum, apiClients, awaitingVal, lowQualityUsrs
+        totalStreets,
+        auditedStreets,
+        totalDist * METERS_TO_MILES,
+        auditedDist * METERS_TO_MILES,
+        labelTotal(labelsAll),
+        valTotal(valsAll),
+        labelTotal(labelsWeek),
+        valTotal(valsWeek),
+        auditsWeek,
+        contributors.count,
+        apiExternal.map(_.count).sum,
+        apiClients,
+        awaitingVal,
+        lowQualityUsrs
       )
     })
 
@@ -902,26 +946,15 @@ class AdminServiceImpl @Inject() (
       def labeler(group: String): Int   = hva.labelers.find(_.group == group).map(_.total).getOrElse(0)
       def validator(group: String): Int = hva.validators.find(_.group == group).map(_.total).getOrElse(0)
       OverviewSummary(
-        totalStreets = core.totalStreets,
-        auditedStreets = core.auditedStreets,
-        totalDistanceMi = core.totalDistanceMi,
-        auditedDistanceMi = core.auditedDistanceMi,
-        totalLabels = core.totalLabels,
-        totalValidations = core.totalValidations,
-        labelsPastWeek = core.labelsPastWeek,
-        validationsPastWeek = core.validationsPastWeek,
-        auditsPastWeek = core.auditsPastWeek,
-        contributors = core.contributors,
-        humanLabels = labeler("human"),
-        aiLabels = labeler("ai"),
-        humanValidations = validator("human"),
-        aiValidations = validator("ai"),
-        aiAssessments = hva.tagger.labelsAssessed,
-        apiCallsExternal = core.apiCallsExternal,
-        apiUniqueClients = core.apiUniqueClients,
-        apiWindowDays = OverviewApiWindowDays,
-        labelsAwaitingValidation = core.labelsAwaitingValidation,
-        lowQualityUsers = core.lowQualityUsers,
+        totalStreets = core.totalStreets, auditedStreets = core.auditedStreets, totalDistanceMi = core.totalDistanceMi,
+        auditedDistanceMi = core.auditedDistanceMi, totalLabels = core.totalLabels,
+        totalValidations = core.totalValidations, labelsPastWeek = core.labelsPastWeek,
+        validationsPastWeek = core.validationsPastWeek, auditsPastWeek = core.auditsPastWeek,
+        contributors = core.contributors, humanLabels = labeler("human"), aiLabels = labeler("ai"),
+        humanValidations = validator("human"), aiValidations = validator("ai"),
+        aiAssessments = hva.tagger.labelsAssessed, apiCallsExternal = core.apiCallsExternal,
+        apiUniqueClients = core.apiUniqueClients, apiWindowDays = OverviewApiWindowDays,
+        labelsAwaitingValidation = core.labelsAwaitingValidation, lowQualityUsers = core.lowQualityUsers,
         lastActivity = recent.headOption
       )
     }
@@ -954,7 +987,7 @@ class AdminServiceImpl @Inject() (
       // Map(user_id: String -> (high_quality: Boolean, high_quality_manual: Option[Boolean])).
       userHighQuality: Map[String, (Boolean, Option[Boolean])] <- userStatTable.getUserQuality
         .map(_.map(t => t._1 -> (t._2, t._3)).toMap)
-      users: Seq[SidewalkUserWithRole]      <- userStatTable.usersMinusAnonUsersWithNoLabelsAndNoValidations
+      users: Seq[SidewalkUserWithRole] <- userStatTable.usersMinusAnonUsersWithNoLabelsAndNoValidations
     } yield {
       // Now left join them all together and put into UserStatsForAdminPage objects.
       users.map { user =>

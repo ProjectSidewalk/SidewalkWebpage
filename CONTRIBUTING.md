@@ -78,7 +78,7 @@ before your first PR:
 
 - **New JavaScript is ES6+** (`const`/`let`, arrow functions, native `fetch`). We're actively migrating *off*
   ES5/jQuery/Bootstrap — don't add to them.
-- **Format Scala with scalafmt** before pushing; CI checks it.
+- **Format Scala with scalafmt** before pushing (`make scalafmt-fix`, or format-on-save) — CI blocks the merge on it.
 - **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens.
 - **Public API (`/v3`):** response fields are `snake_case`, query params are `camelCase`, and new DTOs go in
   `app/models/api/`.
@@ -134,8 +134,8 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
 ## Submitting a pull request
 
 1. Merge the latest `develop` (`git pull origin develop`) and test one more time.
-2. **Run scalafmt** on any Scala files you changed (CI also checks formatting). Set up format-on-save once via
-   [`docs/editor-setup.md`](docs/editor-setup.md) so this is automatic.
+2. **Run scalafmt** on any Scala files you changed — `make scalafmt-fix` (CI blocks the merge on formatting). Set up
+   format-on-save once via [`docs/editor-setup.md`](docs/editor-setup.md) so this is automatic.
 3. Push your branch and [open a PR](https://github.com/ProjectSidewalk/SidewalkWebpage/compare) with **base
    `develop`** ← your branch. Fill out the [PR template](.github/PULL_REQUEST_TEMPLATE.md): clear title, description,
    before/after screenshots for UI, testing instructions, translations, and logging updates. Link the issue

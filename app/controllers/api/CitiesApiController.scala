@@ -132,7 +132,7 @@ class CitiesApiController @Inject() (
           "center_lat" -> mapParams.centerLat,
           "center_lng" -> mapParams.centerLng,
           "zoom"       -> mapParams.zoom,
-          "bounds"    -> Json.obj(
+          "bounds"     -> Json.obj(
             "north" -> north,
             "south" -> south,
             "east"  -> east,

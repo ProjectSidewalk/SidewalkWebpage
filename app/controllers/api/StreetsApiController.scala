@@ -66,34 +66,35 @@ class StreetsApiController @Inject() (
 
     firstError match {
       case Some(error) => Future.successful(badRequest(error))
-      case None =>
+      case None        =>
         configService.getCityMapParams.flatMap { cityMapParams =>
-        val (finalBbox, finalRegionId, finalRegionName) = resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
+          val (finalBbox, finalRegionId, finalRegionName) =
+            resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
 
-        // Create filters object.
-        val filters = StreetFiltersForApi(
-          bbox = finalBbox, regionId = finalRegionId, regionName = finalRegionName, minLabelCount = minLabelCount,
-          minAuditCount = minAuditCount, minUserCount = minUserCount, wayTypes = parsedWayTypes,
-          statuses = parsedStatuses
-        )
+          // Create filters object.
+          val filters = StreetFiltersForApi(
+            bbox = finalBbox, regionId = finalRegionId, regionName = finalRegionName, minLabelCount = minLabelCount,
+            minAuditCount = minAuditCount, minUserCount = minUserCount, wayTypes = parsedWayTypes,
+            statuses = parsedStatuses
+          )
 
-        // Get the data stream.
-        val dbDataStream: Source[StreetDataForApi, _] = apiService.getStreets(filters, DEFAULT_BATCH_SIZE)
-        val baseFileName: String                      = s"streets_${OffsetDateTime.now()}"
-        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+          // Get the data stream.
+          val dbDataStream: Source[StreetDataForApi, _] = apiService.getStreets(filters, DEFAULT_BATCH_SIZE)
+          val baseFileName: String                      = s"streets_${OffsetDateTime.now()}"
+          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
-        // Output data in the appropriate file format.
-        filetype match {
-          case Some("csv") =>
-            outputCSV(dbDataStream, StreetDataForApi.csvHeader, inline, baseFileName + ".csv")
-          case Some("shapefile") =>
-            outputShapefile(dbDataStream, baseFileName, shapefileCreator.createStreetDataShapefile, shapefileCreator)
-          case Some("geopackage") =>
-            outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createStreetDataGeopackage, inline)
-          case _ => // Default to GeoJSON.
-            outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
+          // Output data in the appropriate file format.
+          filetype match {
+            case Some("csv") =>
+              outputCSV(dbDataStream, StreetDataForApi.csvHeader, inline, baseFileName + ".csv")
+            case Some("shapefile") =>
+              outputShapefile(dbDataStream, baseFileName, shapefileCreator.createStreetDataShapefile, shapefileCreator)
+            case Some("geopackage") =>
+              outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createStreetDataGeopackage, inline)
+            case _ => // Default to GeoJSON.
+              outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
+          }
         }
-      }
     }
   }
 
@@ -109,8 +110,12 @@ class StreetsApiController @Inject() (
       val invalid = statuses.filter(StreetEdgeStatus.fromString(_).isEmpty)
       if (invalid.nonEmpty) {
         val valid = StreetEdgeStatus.values.map(_.toString).mkString(", ")
-        Some(ApiError.invalidParameter(s"Invalid status value(s): ${invalid.mkString(", ")}. Valid values: $valid.",
-          "status"))
+        Some(
+          ApiError.invalidParameter(
+            s"Invalid status value(s): ${invalid.mkString(", ")}. Valid values: $valid.",
+            "status"
+          )
+        )
       } else None
     }
 

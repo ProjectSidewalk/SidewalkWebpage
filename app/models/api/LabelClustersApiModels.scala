@@ -69,7 +69,7 @@ case class RawLabelInClusterDataForApi(
  */
 object RawLabelInClusterDataForApi {
   // snake_case JSON output per the v3 API convention (#3871).
-  private implicit val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  implicit private val config: JsonConfiguration                           = JsonConfiguration(JsonNaming.SnakeCase)
   implicit val clusterLabelDataWrites: Writes[RawLabelInClusterDataForApi] = Json.writes[RawLabelInClusterDataForApi]
 
   /**
