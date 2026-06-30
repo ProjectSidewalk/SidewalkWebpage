@@ -28,8 +28,9 @@ function KeyboardShortcutAlert(alertHandler) {
     }
 
     /**
-     * Nudges the user toward the spacebar shortcut after they've clicked the Stuck button several times. The
-     * spacebar runs the same route-aware "move forward" the Stuck button does (see Keyboard._advanceForwardAlongRoute).
+     * Nudges the user toward the spacebar shortcut after they've clicked the Stuck button several times. The spacebar
+     * first tries a routed linked-pano step and only falls back to the Stuck button's route-aware moveForward() when
+     * no such link exists (see Keyboard._advanceForwardAlongRoute).
      */
     function stuckButtonClicked() {
         if ('Stuck' in self['clickCount'])
