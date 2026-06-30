@@ -551,6 +551,15 @@ class AdminController @Inject() (
   }
 
   /**
+   * Forces an immediate recompute of this deployment's engagement funnel (#288) into `funnel_stat` — the same work the
+   * nightly FunnelStatActor does. Handy after a deploy so the Across Cities page shows this city without waiting a day.
+   */
+  def updateFunnelStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    adminService.updateFunnelStatTable().map { rowsUpdated => Ok(s"Funnel stats updated ($rowsUpdated rows)!") }
+  }
+
+  /**
    * Updates a single flag for a single audit task specified by the audit task id.
    */
   def setTaskFlag() = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
@@ -1021,6 +1030,54 @@ class AdminController @Inject() (
           )
         )
       )
+    }
+  }
+
+  /**
+   * Returns every available city's precomputed engagement funnel for one time window (#288), for the Across Cities
+   * page's funnel comparison. Owner-only (cross-deployment data). Output is snake_case per the v3 convention; the
+   * `steps` array names the eight funnel steps in order so the client never hardcodes them.
+   *
+   * @param window "30d", "90d", or "all"; anything else (or absent) falls back to "30d".
+   */
+  def getCityFunnels(window: Option[String]) = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    // Only these three windows are precomputed in funnel_stat; reject anything else rather than 500 on a cache miss.
+    val windowKey                           = window.filter(Set("30d", "90d", "all")).getOrElse("30d")
+    val cityInfoById: Map[String, CityInfo] =
+      configService.getAllCityInfo(request2Messages.lang).map(ci => ci.cityId -> ci).toMap
+
+    configService.getCityFunnels(windowKey).map { funnelsByType =>
+      def segJson(seg: FunnelSegment): JsObject = Json.obj(
+        "steps"              -> seg.steps,
+        "step_conversion"    -> ConfigService.stepConversion(seg.steps),
+        "overall_conversion" -> ConfigService.overallConversion(seg.steps)
+      )
+      def cityJson(f: CityFunnel): JsObject = {
+        val info = cityInfoById.get(f.cityId)
+        Json.obj(
+          "city_id"             -> f.cityId,
+          "city_name"           -> info.map(_.cityNameShort),
+          "city_name_formatted" -> info.map(_.cityNameFormatted),
+          "url"                 -> info.map(_.URL),
+          "visibility"          -> info.map(_.visibility),
+          "all"                 -> segJson(f.all),
+          "registered"          -> segJson(f.registered),
+          "anonymous"           -> segJson(f.anonymous),
+          "desktop"             -> segJson(f.desktop),
+          "mobile"              -> segJson(f.mobile),
+          "device_unknown"      -> segJson(f.deviceUnknown)
+        )
+      }
+      // One entry per funnel type ("mapping", "contribution"), each with its own step list and per-city rows. `steps`
+      // names the steps in order so the client never hardcodes them.
+      val funnels = JsObject(ConfigService.FunnelDefs.map { case (funnelType, stepKeys) =>
+        funnelType -> Json.obj(
+          "steps"  -> stepKeys,
+          "cities" -> JsArray(funnelsByType.getOrElse(funnelType, Seq.empty).map(cityJson))
+        )
+      })
+      Ok(Json.obj("window" -> windowKey, "funnels" -> funnels))
     }
   }
 
