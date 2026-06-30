@@ -41,3 +41,17 @@ EOSQL
 # large users dump. Wrapped in run_with_progress so the multi-minute restore isn't a silent wait.
 run_with_progress "Restoring users dump (sidewalk_login)" \
     pg_restore -U sidewalk -Fc -j 4 -d sidewalk "$DUMP"
+
+# The DROP SCHEMA above wiped readonly_user's grants on sidewalk_login, and the restored objects don't carry them, so
+# re-grant read-only access (mirrors init.sh and import-dump.sh) — otherwise DB exploration via readonly_user breaks
+# after every users re-import.
+psql -v ON_ERROR_STOP=1 -U sidewalk -d sidewalk <<-EOSQL
+    DO \$\$
+    BEGIN
+        IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'readonly_user') THEN
+            GRANT USAGE ON SCHEMA sidewalk_login TO readonly_user;
+            GRANT SELECT ON ALL TABLES IN SCHEMA sidewalk_login TO readonly_user;
+            ALTER DEFAULT PRIVILEGES FOR ROLE sidewalk IN SCHEMA sidewalk_login GRANT SELECT ON TABLES TO readonly_user;
+        END IF;
+    END \$\$;
+EOSQL
