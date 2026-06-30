@@ -3,6 +3,8 @@ function KeyboardShortcutAlert(alertHandler) {
         'clickCount': {}
     };
     var MINIMUM_CLICKS_BEFORE_ALERT = 10;
+    // Stuck is clicked far less often than the mode buttons, so nudge after fewer clicks.
+    var MINIMUM_STUCK_CLICKS_BEFORE_ALERT = 5;
 
     function modeSwitchButtonClicked(labelType) {
         if(labelType === 'Walk')
@@ -25,6 +27,23 @@ function KeyboardShortcutAlert(alertHandler) {
         }
     }
 
+    /**
+     * Nudges the user toward the spacebar shortcut after they've clicked the Stuck button several times. The
+     * spacebar runs the same route-aware "move forward" the Stuck button does (see Keyboard._advanceForwardAlongRoute).
+     */
+    function stuckButtonClicked() {
+        if ('Stuck' in self['clickCount'])
+            self['clickCount']['Stuck']++;
+        else
+            self['clickCount']['Stuck'] = 1;
+
+        if (self['clickCount']['Stuck'] >= MINIMUM_STUCK_CLICKS_BEFORE_ALERT && (svl.isOnboarding() === false)) {
+            alertHandler.showAlert(i18next.t('popup.move-forward-shortcut'), 'MoveForwardShortcut', true);
+            self['clickCount']['Stuck'] = 0;
+        }
+    }
+
     self.modeSwitchButtonClicked = modeSwitchButtonClicked;
+    self.stuckButtonClicked = stuckButtonClicked;
     return self;
 }

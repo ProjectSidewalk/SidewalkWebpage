@@ -95,7 +95,7 @@
     },
     "controls": {
         "stuck": "卡住",
-        "stuck-tooltip": "我們會盡力讓您回到您的使命",
+        "stuck-tooltip": "我們會盡力讓您回到您的使命，或按空白鍵",
         "sound": "音效",
         "feedback": "回饋",
         "feedback-tooltip": "和我們分享一下你的想法",
@@ -249,6 +249,7 @@
         "signup-body": "您想要設立一個帳號以便持續追蹤進度嗎？",
         "severity-shortcuts": "請為每個標記紀錄品質評分，請點選<kbd>1</kbd>至<kbd>3</kbd>",
         "zoom-shortcuts": "您也可按下<kbd>Z</kbd>鍵來放大視窗或<kbd>Shift</kbd> + <kbd>Z</kbd>鍵來縮小視窗。",
+        "move-forward-shortcut": "您也可按下<kbd>空白鍵</kbd>沿著您的路線向前移動。",
         "label-shortcuts-curb-ramp": "您也可按下<kbd>{{key}}</kbd>鍵以選擇「路緣斜坡」標記。",
         "label-shortcuts-no-curb-ramp": "您也可按下<kbd>{{key}}</kbd>鍵以選擇「缺路緣斜坡」標記。",
         "label-shortcuts-obstacle": "您也可按下<kbd>{{key}}</kbd>鍵以選擇「有障礙物」標記。",

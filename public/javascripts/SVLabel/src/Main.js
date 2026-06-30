@@ -147,7 +147,8 @@ function Main (params) {
         svl.modalMissionComplete.hide();
 
         svl.feedbackModal = new FeedbackModal(svl, svl.tracker, svl.ribbon, svl.taskContainer);
-        svl.panoOverlayControls = new PanoOverlayControls(svl.tracker, svl.navigationService, svl.stuckAlert);
+        svl.panoOverlayControls = new PanoOverlayControls(svl.tracker, svl.navigationService, svl.stuckAlert,
+            svl.keyboardShortcutAlert);
 
         svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, svl.panoViewer, svl.panoViewer.getPosition,
             svl.panoViewer.getPanoId, svl.taskContainer.getCurrentTaskStreetEdgeId,
