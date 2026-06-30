@@ -6,7 +6,33 @@
  * gallery cards). It reuses their design tokens (--space-*, --color-*, --font-size-*, brand ramps from main.css, and
  * label-type colors --color-label-*) rather than introducing new literals, so the three surfaces stay visually unified.
  * Label-type colors come from the --color-label-* tokens (source of truth: /v3/api/labelTypes) — never hardcoded hex.
+ *
+ * Type scale policy (per design review): primary content — table cells, rank rows, stat detail — is at least
+ * --font-size-md (16px). --font-size-sm (14px) is for secondary labels only. --font-size-xs (13px) and smaller are
+ * reserved for true footnotes/captions/legends. Tables on this surface override the shared --font-size-sm default.
  */
+
+/* Primary-content tables on the user surface read larger than the admin default (which stays --font-size-sm). */
+.api-content .coverage-table { font-size: var(--font-size-md, 1rem); }
+.api-content .coverage-table thead th { font-size: var(--font-size-sm, 0.875rem); }
+.api-content .coverage-table tbody td { padding: 9px 12px; }
+
+/* The admin tables right-align every non-first column (numeric); on the leaderboard the name column — and the
+   all-time "Most active in" city column — are text, so left-align them. */
+.api-content .coverage-table td:nth-child(2),
+.api-content .coverage-table th:nth-child(2) { text-align: left; }
+.api-content .ud-lb-alltime td:nth-child(3),
+.api-content .ud-lb-alltime th:nth-child(3) { text-align: left; }
+.api-content .coverage-table tbody tr { cursor: default; }
+
+.ud-lb-user,
+.ud-lb-city {
+    color: var(--color-accent-link, #0566f5);
+    text-decoration: none;
+}
+
+.ud-lb-user:hover,
+.ud-lb-city:hover { text-decoration: underline; }
 
 /* ---- Hero / "Your impact" -------------------------------------------------------------------------------------- */
 .ud-hero {
@@ -159,7 +185,7 @@
 }
 
 .ud-badge-track-next {
-    font-size: var(--font-size-xxs, 0.75rem);
+    font-size: var(--font-size-sm, 0.875rem);
     color: var(--color-text-tertiary, #88a1ad);
 }
 
@@ -209,33 +235,52 @@
 }
 
 .ud-trophy {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 2px;
-    width: 150px;
-    padding: var(--space-md, 16px) var(--space-sm, 12px);
+    gap: 4px;
+    width: 184px;
+    padding: var(--space-lg, 24px) var(--space-md, 16px);
     border: 1px solid var(--color-neutral-200, #e1e1e1);
     border-radius: var(--border-radius-lg, 8px);
     background: var(--color-neutral-white, #fff);
-    border-top: 3px solid var(--color-neutral-300, #c5cdd2);
+    border-top: 4px solid var(--color-neutral-300, #c5cdd2);
 }
 
 .ud-trophy-1 { border-top-color: var(--color-banana-500, #f3c220); }
 .ud-trophy-2 { border-top-color: var(--color-neutral-400, #a8b0b5); }
 .ud-trophy-3 { border-top-color: var(--color-orange-500, #e07b2f); }
+.ud-trophy-region {
+    border-top-color: var(--color-pine-600, #4a7c59);
+    background: linear-gradient(160deg, var(--color-pine-100, #eaf3ec), var(--color-neutral-white, #fff));
+}
 
-.ud-trophy-medal { font-size: 2rem; line-height: 1; }
+.ud-trophy-tag {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: var(--font-size-xxs, 0.75rem);
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--color-pine-800, #2f5239);
+    background: var(--color-pine-200, #cfe3d4);
+}
+
+.ud-trophy-medal { font-size: 3rem; line-height: 1; }
 
 .ud-trophy-title {
     font-weight: 700;
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--font-size-lg, 1.125rem);
     color: var(--color-text-heading, #263238);
 }
 
 .ud-trophy-sub {
-    font-size: var(--font-size-xxs, 0.75rem);
+    font-size: var(--font-size-xs, 0.8125rem);
     color: var(--color-text-tertiary, #88a1ad);
 }
 
@@ -258,6 +303,8 @@
     background: linear-gradient(120deg, var(--color-pine-100, #eaf3ec), var(--color-neutral-white, #fff));
 }
 
+.ud-standing-card-wide { max-width: 560px; }
+
 .ud-standing-tag {
     font-size: var(--font-size-xxs, 0.75rem);
     text-transform: uppercase;
@@ -268,14 +315,14 @@
 
 .ud-standing-rank {
     font-family: var(--font-accent, 'Raleway', sans-serif);
-    font-size: var(--font-size-xl, 1.25rem);
+    font-size: var(--font-size-xxl, 1.5rem);
     font-weight: 700;
     color: var(--color-text-heading, #263238);
 }
 
 .ud-standing-detail {
     margin-top: var(--space-xs, 8px);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--font-size-md, 1rem);
     color: var(--color-text-secondary, #5a7785);
 }
 
@@ -289,9 +336,9 @@
     display: flex;
     align-items: center;
     gap: var(--space-sm, 12px);
-    padding: 6px 8px;
+    padding: 8px 10px;
     border-radius: var(--border-radius, 4px);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--font-size-md, 1rem);
 }
 
 .ud-rank-you {
@@ -306,7 +353,7 @@
 }
 
 .ud-rank-user { flex: 1 1 auto; color: var(--color-text-heading, #263238); }
-.ud-rank-val { flex: 0 0 auto; font-variant-numeric: tabular-nums; color: var(--color-text-secondary, #5a7785); }
+.ud-rank-val { flex: 0 0 auto; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--color-text-secondary, #5a7785); }
 
 /* ---- Accuracy-by-type bars ------------------------------------------------------------------------------------- */
 .ud-accuracy-bars {
@@ -330,11 +377,11 @@
 }
 
 .ud-acc-label {
-    flex: 0 0 160px;
+    flex: 0 0 170px;
     display: flex;
     align-items: center;
     gap: var(--space-xs, 8px);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--font-size-md, 1rem);
     color: var(--color-text-heading, #263238);
 }
 
@@ -356,10 +403,11 @@
 .ud-acc-fill { display: block; height: 100%; border-radius: inherit; }
 
 .ud-acc-pct {
-    flex: 0 0 44px;
+    flex: 0 0 48px;
     text-align: right;
     font-variant-numeric: tabular-nums;
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--font-size-md, 1rem);
+    font-weight: 600;
     color: var(--color-text-secondary, #5a7785);
 }
 
@@ -420,7 +468,7 @@
 .ud-card-title { font-weight: 700; color: var(--color-text-heading, #263238); }
 
 .ud-card-note {
-    font-size: var(--font-size-xs, 0.8125rem);
+    font-size: var(--font-size-sm, 0.875rem);
     color: var(--color-text-secondary, #5a7785);
     line-height: 1.4;
 }
@@ -513,8 +561,8 @@
 .ud-community-label {
     display: block;
     margin-top: 4px;
-    font-size: var(--font-size-xs, 0.8125rem);
-    opacity: 0.85;
+    font-size: var(--font-size-sm, 0.875rem);
+    opacity: 0.9;
 }
 
 .ud-podium {
@@ -537,16 +585,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 56px;
-    height: 56px;
+    width: 68px;
+    height: 68px;
     border-radius: 50%;
     background: var(--color-pine-600, #4a7c59);
     color: var(--color-neutral-white, #fff);
+    font-size: var(--font-size-lg, 1.125rem);
     font-weight: 700;
 }
 
-.ud-podium-name { font-weight: 700; color: var(--color-text-heading, #263238); }
-.ud-podium-score { font-size: var(--font-size-sm, 0.875rem); color: var(--color-text-secondary, #5a7785); }
+.ud-podium-name { font-weight: 700; font-size: var(--font-size-md, 1rem); color: var(--color-text-heading, #263238); }
+.ud-podium-score { font-size: var(--font-size-md, 1rem); color: var(--color-text-secondary, #5a7785); }
 
 .ud-podium-block {
     display: flex;
@@ -555,25 +604,16 @@
     width: 100%;
     padding-top: var(--space-sm, 12px);
     border-radius: var(--border-radius) var(--border-radius) 0 0;
-    font-size: 1.6rem;
+    font-size: 2.4rem;
     color: var(--color-neutral-white, #fff);
 }
 
-.ud-podium-1 .ud-podium-block { height: 90px; background: var(--color-banana-500, #f3c220); }
-.ud-podium-2 .ud-podium-block { height: 66px; background: var(--color-neutral-400, #a8b0b5); }
-.ud-podium-3 .ud-podium-block { height: 48px; background: var(--color-orange-500, #e07b2f); }
+.ud-podium-1 .ud-podium-block { height: 104px; background: var(--color-banana-500, #f3c220); }
+.ud-podium-2 .ud-podium-block { height: 76px; background: var(--color-neutral-400, #a8b0b5); }
+.ud-podium-3 .ud-podium-block { height: 54px; background: var(--color-orange-500, #e07b2f); }
 .ud-podium-1 { order: 2; }
 .ud-podium-2 { order: 1; }
 .ud-podium-3 { order: 3; }
-
-.ud-empty-card {
-    padding: var(--space-lg, 24px);
-    border: 1px dashed var(--color-neutral-300, #c5cdd2);
-    border-radius: var(--border-radius-lg, 8px);
-    background: var(--color-neutral-100, #f5f6f7);
-    text-align: center;
-    color: var(--color-text-secondary, #5a7785);
-}
 
 /* ---- Responsive ------------------------------------------------------------------------------------------------ */
 @media (max-width: 700px) {

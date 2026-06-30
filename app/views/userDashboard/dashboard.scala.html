@@ -120,10 +120,11 @@
         </div>
 
         <h3 class="api-heading" id="trophy-case">Trophy case <a href="#trophy-case" class="permalink">#</a></h3>
-        <p class="ud-section-note">Trophies are awarded for finishing in the top 3 each week or all-time. They only show once you've earned one — so your shelf grows as you climb.</p>
+        <p class="ud-section-note">Trophies are awarded for finishing in the top 3 each week or all-time, and for being the top labeler in a neighborhood (👑). They only show once you've earned one — so your shelf grows as you climb.</p>
         <div class="ud-trophy-case">
             @for(t <- DashboardMock.trophies) {
-                <div class="ud-trophy ud-trophy-@t.rank">
+                <div class="ud-trophy @if(t.region){ud-trophy-region}else{ud-trophy-@t.rank}">
+                    @if(t.region){<span class="ud-trophy-tag">Region</span>}
                     <span class="ud-trophy-medal" aria-hidden="true">@t.medal</span>
                     <span class="ud-trophy-title">@t.title</span>
                     <span class="ud-trophy-sub">@t.sub</span>

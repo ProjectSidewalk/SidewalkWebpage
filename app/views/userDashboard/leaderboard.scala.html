@@ -16,7 +16,19 @@
 @row(rank: Int, name: String, labels: String, missions: String, distance: String, accuracy: String, you: Boolean) = {
     <tr @if(you){class="highlighted"}>
         <td>@rank</td>
-        <td>@if(you){<strong>@name (you)</strong>}else{<a href="#" class="ud-lb-user">@name</a>}</td>
+        <td>@if(you){<strong>You</strong>}else{<a href="#" class="ud-lb-user">@name</a>}</td>
+        <td>@labels</td>
+        <td>@missions</td>
+        <td>@distance</td>
+        <td>@accuracy</td>
+    </tr>
+}
+
+@allTimeRow(rank: Int, name: String, city: String, labels: String, missions: String, distance: String, accuracy: String, you: Boolean) = {
+    <tr @if(you){class="highlighted"}>
+        <td>@rank</td>
+        <td>@if(you){<strong>You</strong>}else{<a href="#" class="ud-lb-user">@name</a>}</td>
+        <td><a href="#" class="ud-lb-city">@city</a></td>
         <td>@labels</td>
         <td>@missions</td>
         <td>@distance</td>
@@ -92,8 +104,8 @@
 
     @* ---- Teams / classes ---------------------------------------------------------------------------------- *@
     <div class="api-section" id="lb-teams-section">
-        <h2 class="api-heading" id="teams">Teams &amp; classes <a href="#teams" class="permalink">#</a></h2>
-        <p>Map together. Great for classrooms and community groups.</p>
+        <h2 class="api-heading" id="teams">Teams <a href="#teams" class="permalink">#</a></h2>
+        <p>Map together. Great for classes and community groups.</p>
         <div class="coverage-table-wrap">
             <table class="coverage-table">
                 <thead>
@@ -111,17 +123,17 @@
     @* ---- All-time ----------------------------------------------------------------------------------------- *@
     <div class="api-section" id="lb-alltime-section">
         <h2 class="api-heading" id="all-time">All-time <a href="#all-time" class="permalink">#</a></h2>
-        <p>The most prolific mappers in this city, ever.</p>
+        <p>The most prolific mappers in this city, ever — and the city where each is most active.</p>
         <div class="coverage-table-wrap">
-            <table class="coverage-table">
+            <table class="coverage-table ud-lb-alltime">
                 <thead>
-                    <tr><th>#</th><th>Mapper</th><th>Labels</th><th>Missions</th><th>Distance</th><th>Accuracy</th></tr>
+                    <tr><th>#</th><th>Mapper</th><th>Most active in</th><th>Labels</th><th>Missions</th><th>Distance</th><th>Accuracy</th></tr>
                 </thead>
                 <tbody>
-                    @row(1, "curb_crusader", "11,540", "312", "142 km", "90%", you = false)
-                    @row(2, "ramp_ranger", "8,902", "256", "118 km", "92%", you = false)
-                    @row(3, "sidewalk_sam", "7,418", "201", "96 km", "88%", you = false)
-                    @row(28, "you", "1,284", "42", "18.4 km", "88%", you = true)
+                    @allTimeRow(1, "curb_crusader", "Seattle, WA", "11,540", "312", "142 km", "90%", you = false)
+                    @allTimeRow(2, "ramp_ranger", "Chicago, IL", "8,902", "256", "118 km", "92%", you = false)
+                    @allTimeRow(3, "sidewalk_sam", "Seattle, WA", "7,418", "201", "96 km", "88%", you = false)
+                    @allTimeRow(28, "you", "Seattle, WA", "1,284", "42", "18.4 km", "88%", you = true)
                 </tbody>
             </table>
         </div>
@@ -130,20 +142,16 @@
     @* ---- You vs community --------------------------------------------------------------------------------- *@
     <div class="api-section" id="lb-you-section">
         <h2 class="api-heading" id="you">You vs the community <a href="#you" class="permalink">#</a></h2>
-        <div class="ud-standing-grid">
-            <div class="ud-standing-card">
-                <div class="ud-standing-tag">This week · 290 mappers</div>
-                <div class="ud-standing-rank">Top <strong>12%</strong></div>
-                <div class="ud-standing-detail">#34 of 290 by labels this week — up 6 spots from last week. 📈</div>
-                <ul class="ud-standing-slice">
-                    @for(r <- DashboardMock.standingSlice) {
-                        <li @if(r.you){class="ud-rank-you"}><span class="ud-rank">@r.rank</span><span class="ud-rank-user">@r.user</span><span class="ud-rank-val">@r.labels</span></li>
-                    }
-                </ul>
-            </div>
-            <div class="ud-empty-card">
-                <p><strong>Small group?</strong> When a city or class is just getting started, we celebrate the shared goal instead of ranking a handful of people — so it never feels empty.</p>
-            </div>
+        <p>Where you sit this week, and who's just ahead and behind.</p>
+        <div class="ud-standing-card ud-standing-card-wide">
+            <div class="ud-standing-tag">This week · 290 mappers</div>
+            <div class="ud-standing-rank">Top <strong>12%</strong></div>
+            <div class="ud-standing-detail">#34 of 290 by labels this week — up 6 spots from last week. 📈</div>
+            <ul class="ud-standing-slice">
+                @for(r <- DashboardMock.standingSlice) {
+                    <li @if(r.you){class="ud-rank-you"}><span class="ud-rank">@r.rank</span><span class="ud-rank-user">@if(r.you){You}else{@r.user}</span><span class="ud-rank-val">@r.labels</span></li>
+                }
+            </ul>
         </div>
     </div>
 }

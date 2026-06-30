@@ -12,8 +12,11 @@ object DashboardMock {
   /** One labeling/exploring/validating badge track: which levels are earned and progress toward the next. */
   case class BadgeTrack(name: String, icon: String, earned: Int, pct: Int, nextLabel: String)
 
-  /** A leaderboard trophy the user has earned (podium placement, weekly or all-time). */
-  case class Trophy(rank: Int, medal: String, title: String, sub: String)
+  /**
+   * A leaderboard trophy the user has earned: a podium placement (weekly or all-time), or a region "champion" trophy
+   * (Strava KOM-style — top labeler in a specific neighborhood). `region` flags the latter for distinct styling.
+   */
+  case class Trophy(rank: Int, medal: String, title: String, sub: String, region: Boolean = false)
 
   /** Per-label-type accuracy, with the user's weakest type flagged for emphasis. */
   case class AccuracyRow(name: String, cssKey: String, pct: Int, weakest: Boolean)
@@ -32,6 +35,7 @@ object DashboardMock {
   )
 
   val trophies: Seq[Trophy] = Seq(
+    Trophy(1, "👑", "Capitol Hill champion", "Most labels in this neighborhood", region = true),
     Trophy(1, "🥇", "Top labeler", "Week of Jun 16 · this city"),
     Trophy(2, "🥈", "Top validator", "Week of Jun 9 · this city"),
     Trophy(3, "🥉", "Top labeler", "Week of May 26 · this city")
