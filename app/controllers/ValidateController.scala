@@ -7,7 +7,12 @@ import formats.json.CommentSubmissionFormats.LabelMapValidationCommentSubmission
 import formats.json.LabelFormats
 import formats.json.LabelFormats.validationLabelMetadataToJson
 import formats.json.MissionFormats._
-import formats.json.ValidateFormats.{EnvironmentSubmission, LabelMapValidationSubmission, SkipLabelSubmission, ValidationTaskSubmission}
+import formats.json.ValidateFormats.{
+  EnvironmentSubmission,
+  LabelMapValidationSubmission,
+  SkipLabelSubmission,
+  ValidationTaskSubmission
+}
 import models.auth.WithAdmin
 import models.label.{LabelTypeEnum, Tag}
 import models.pano.PanoSource.PanoSource

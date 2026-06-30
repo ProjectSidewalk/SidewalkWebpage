@@ -672,7 +672,7 @@ class AdminController @Inject() (
       val metaFut   = adminService.getLabelThumbnailMeta(labelIds)
       val userFut   = adminService.getUserSummaries(usernames)
       for {
-        metaById  <- metaFut
+        metaById   <- metaFut
         userByName <- userFut
       } yield {
         Ok(Json.obj("activity" -> JsArray(items.map { i =>
@@ -744,7 +744,7 @@ class AdminController @Inject() (
               "own_validated"            -> l.ownValidated,
               "own_validated_agreed_pct" -> l.ownValidatedAgreedPct,
               "high_quality"             -> l.highQuality,
-              "label_type_counts" -> JsArray(l.labelTypeCounts.map { case (labelType, count) =>
+              "label_type_counts"        -> JsArray(l.labelTypeCounts.map { case (labelType, count) =>
                 Json.obj("label_type" -> labelType, "count" -> count)
               }),
               "severity_counts" -> JsArray(l.severityCounts.map { case (severity, count) =>
@@ -754,9 +754,9 @@ class AdminController @Inject() (
           }),
           "top_validators" -> JsArray(boards.validators.map { v =>
             Json.obj(
-              "user_id"     -> v.userId,
-              "username"    -> v.username,
-              "role"        -> v.role,
+              "user_id"       -> v.userId,
+              "username"      -> v.username,
+              "role"          -> v.role,
               "validations"   -> v.validations,
               "agree"         -> v.agree,
               "disagree"      -> v.disagree,
@@ -778,10 +778,10 @@ class AdminController @Inject() (
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     adminService.getHumanVsAiStats.map { stats =>
       def labelerJson(l: service.HumanAiLabelerStats): JsObject = Json.obj(
-        "group"     -> l.group,
-        "total"     -> l.total,
-        "validated" -> l.validated,
-        "correct"   -> l.correct,
+        "group"      -> l.group,
+        "total"      -> l.total,
+        "validated"  -> l.validated,
+        "correct"    -> l.correct,
         "type_stats" -> JsArray(l.typeStats.map { t =>
           Json.obj("label_type" -> t.labelType, "count" -> t.count, "validated" -> t.validated, "correct" -> t.correct)
         }),
@@ -790,7 +790,11 @@ class AdminController @Inject() (
         })
       )
       def validatorJson(v: service.HumanAiValidatorStats): JsObject = Json.obj(
-        "group" -> v.group, "total" -> v.total, "agree" -> v.agree, "disagree" -> v.disagree, "unsure" -> v.unsure
+        "group"    -> v.group,
+        "total"    -> v.total,
+        "agree"    -> v.agree,
+        "disagree" -> v.disagree,
+        "unsure"   -> v.unsure
       )
       def tagsJson(tags: Seq[(String, Int)]): JsArray =
         JsArray(tags.map { case (tag, count) => Json.obj("tag" -> tag, "count" -> count) })
@@ -798,7 +802,7 @@ class AdminController @Inject() (
         Json.obj(
           "labelers"   -> JsArray(stats.labelers.map(labelerJson)),
           "validators" -> JsArray(stats.validators.map(validatorJson)),
-          "tagger" -> Json.obj(
+          "tagger"     -> Json.obj(
             "labels_assessed" -> stats.tagger.labelsAssessed,
             "avg_confidence"  -> stats.tagger.avgConfidence,
             "ai_tags"         -> tagsJson(stats.tagger.aiTags),
@@ -830,27 +834,27 @@ class AdminController @Inject() (
       }
       Ok(
         Json.obj(
-          "total_streets"         -> s.totalStreets,
-          "audited_streets"       -> s.auditedStreets,
-          "total_distance_mi"     -> s.totalDistanceMi,
-          "audited_distance_mi"   -> s.auditedDistanceMi,
-          "total_labels"          -> s.totalLabels,
-          "total_validations"     -> s.totalValidations,
-          "labels_past_week"      -> s.labelsPastWeek,
-          "validations_past_week" -> s.validationsPastWeek,
-          "audits_past_week"      -> s.auditsPastWeek,
-          "contributors"          -> s.contributors,
-          "human_labels"          -> s.humanLabels,
-          "ai_labels"             -> s.aiLabels,
-          "human_validations"     -> s.humanValidations,
-          "ai_validations"        -> s.aiValidations,
-          "ai_assessments"        -> s.aiAssessments,
-          "api_calls_external"    -> s.apiCallsExternal,
-          "api_unique_clients"    -> s.apiUniqueClients,
-          "api_window_days"       -> s.apiWindowDays,
+          "total_streets"              -> s.totalStreets,
+          "audited_streets"            -> s.auditedStreets,
+          "total_distance_mi"          -> s.totalDistanceMi,
+          "audited_distance_mi"        -> s.auditedDistanceMi,
+          "total_labels"               -> s.totalLabels,
+          "total_validations"          -> s.totalValidations,
+          "labels_past_week"           -> s.labelsPastWeek,
+          "validations_past_week"      -> s.validationsPastWeek,
+          "audits_past_week"           -> s.auditsPastWeek,
+          "contributors"               -> s.contributors,
+          "human_labels"               -> s.humanLabels,
+          "ai_labels"                  -> s.aiLabels,
+          "human_validations"          -> s.humanValidations,
+          "ai_validations"             -> s.aiValidations,
+          "ai_assessments"             -> s.aiAssessments,
+          "api_calls_external"         -> s.apiCallsExternal,
+          "api_unique_clients"         -> s.apiUniqueClients,
+          "api_window_days"            -> s.apiWindowDays,
           "labels_awaiting_validation" -> s.labelsAwaitingValidation,
-          "low_quality_users"     -> s.lowQualityUsers,
-          "last_activity"         -> lastActivity
+          "low_quality_users"          -> s.lowQualityUsers,
+          "last_activity"              -> lastActivity
         )
       )
     }
@@ -904,68 +908,71 @@ class AdminController @Inject() (
           )
         })
         Json.obj(
-          "city_id"                      -> sc.cityId,
-          "city_name"                    -> info.map(_.cityNameShort),
-          "city_name_formatted"          -> info.map(_.cityNameFormatted),
-          "url"                          -> info.map(_.URL),
-          "visibility"                   -> info.map(_.visibility),
+          "city_id"             -> sc.cityId,
+          "city_name"           -> info.map(_.cityNameShort),
+          "city_name_formatted" -> info.map(_.cityNameFormatted),
+          "url"                 -> info.map(_.URL),
+          "visibility"          -> info.map(_.visibility),
           // Coverage lens.
-          "coverage"                     -> sc.coverage,
-          "total_streets"                -> sc.totalStreets,
-          "audited_streets"              -> sc.auditedStreets,
-          "streets_remaining"            -> (sc.totalStreets - sc.auditedStreets),
-          "total_km"                     -> sc.totalKm,
-          "audited_km"                   -> sc.auditedKm,
-          "km_remaining"                 -> math.max(0.0, sc.totalKm - sc.auditedKm),
+          "coverage"          -> sc.coverage,
+          "total_streets"     -> sc.totalStreets,
+          "audited_streets"   -> sc.auditedStreets,
+          "streets_remaining" -> (sc.totalStreets - sc.auditedStreets),
+          "total_km"          -> sc.totalKm,
+          "audited_km"        -> sc.auditedKm,
+          "km_remaining"      -> math.max(0.0, sc.totalKm - sc.auditedKm),
           // Data + quality lens.
-          "total_labels"                 -> sc.totalLabels,
-          "ai_labels"                    -> sc.aiLabels,
-          "ai_label_share"               -> (if (sc.totalLabels > 0) sc.aiLabels.toDouble / sc.totalLabels else 0.0),
-          "labels_validated"             -> sc.labelsValidated,
-          "labels_validated_share"       -> (if (sc.totalLabels > 0) sc.labelsValidated.toDouble / sc.totalLabels else 0.0),
-          "labels_with_severity"         -> sc.labelsWithSeverity,
-          "labels_severity_eligible"     -> sc.labelsSeverityEligible,
+          "total_labels"             -> sc.totalLabels,
+          "ai_labels"                -> sc.aiLabels,
+          "ai_label_share"           -> (if (sc.totalLabels > 0) sc.aiLabels.toDouble / sc.totalLabels else 0.0),
+          "labels_validated"         -> sc.labelsValidated,
+          "labels_validated_share"   -> (if (sc.totalLabels > 0) sc.labelsValidated.toDouble / sc.totalLabels else 0.0),
+          "labels_with_severity"     -> sc.labelsWithSeverity,
+          "labels_severity_eligible" -> sc.labelsSeverityEligible,
           // Share computed only over types that CAN have a severity (NoSidewalk/Signal/Occlusion excluded).
-          "severity_share"               -> (if (sc.labelsSeverityEligible > 0) sc.labelsWithSeverity.toDouble / sc.labelsSeverityEligible else 0.0),
-          "labels_with_tags"             -> sc.labelsWithTags,
-          "labels_tag_eligible"          -> sc.labelsTagEligible,
+          "severity_share" -> (if (sc.labelsSeverityEligible > 0)
+                                 sc.labelsWithSeverity.toDouble / sc.labelsSeverityEligible
+                               else 0.0),
+          "labels_with_tags"    -> sc.labelsWithTags,
+          "labels_tag_eligible" -> sc.labelsTagEligible,
           // Share computed only over types that CAN have tags (types present in the deployment's tag table).
-          "tags_share"                   -> (if (sc.labelsTagEligible > 0) sc.labelsWithTags.toDouble / sc.labelsTagEligible else 0.0),
-          "validations_per_label"        -> (if (sc.totalLabels > 0) sc.totalValidations.toDouble / sc.totalLabels else 0.0),
-          "total_validations"            -> sc.totalValidations,
-          "validations_agree"            -> sc.validationsAgree,
-          "validations_disagree"         -> sc.validationsDisagree,
+          "tags_share" -> (if (sc.labelsTagEligible > 0) sc.labelsWithTags.toDouble / sc.labelsTagEligible else 0.0),
+          "validations_per_label" -> (if (sc.totalLabels > 0) sc.totalValidations.toDouble / sc.totalLabels else 0.0),
+          "total_validations"     -> sc.totalValidations,
+          "validations_agree"     -> sc.validationsAgree,
+          "validations_disagree"  -> sc.validationsDisagree,
           "validation_disagreement_rate" -> ConfigService.disagreementRate(sc),
           "ai_validations"               -> sc.aiValidations,
-          "ai_validation_share"          -> (if (sc.totalValidations > 0) sc.aiValidations.toDouble / sc.totalValidations else 0.0),
-          "by_label_type"                -> byLabelType,
+          "ai_validation_share" -> (if (sc.totalValidations > 0) sc.aiValidations.toDouble / sc.totalValidations
+                                    else 0.0),
+          "by_label_type" -> byLabelType,
           // People lens.
-          "active_contributors"          -> sc.activeContributors,
-          "low_quality_contributors"     -> sc.lowQualityContributors,
+          "active_contributors"      -> sc.activeContributors,
+          "low_quality_contributors" -> sc.lowQualityContributors,
           // Activity lens.
-          "labels_7d"                    -> sc.labels7d,
-          "labels_30d"                   -> sc.labels30d,
-          "validations_7d"               -> sc.validations7d,
-          "validations_30d"              -> sc.validations30d,
-          "audits_7d"                    -> sc.audits7d,
-          "audits_30d"                   -> sc.audits30d,
-          "last_activity"                -> sc.lastActivity,
-          "days_since_activity"          -> sc.lastActivity.map(ts => ChronoUnit.DAYS.between(ts, now)),
-          "weekly_trend"                 -> weeklyTrend,
+          "labels_7d"           -> sc.labels7d,
+          "labels_30d"          -> sc.labels30d,
+          "validations_7d"      -> sc.validations7d,
+          "validations_30d"     -> sc.validations30d,
+          "audits_7d"           -> sc.audits7d,
+          "audits_30d"          -> sc.audits30d,
+          "last_activity"       -> sc.lastActivity,
+          "days_since_activity" -> sc.lastActivity.map(ts => ChronoUnit.DAYS.between(ts, now)),
+          "weekly_trend"        -> weeklyTrend,
           // Contributors & effort (per-user output is median/p90, not mean±SD — the distribution is power-law).
-          "labels_per_user_median"       -> sc.labelsPerUserMedian,
-          "labels_per_user_p90"          -> sc.labelsPerUserP90,
-          "num_labelers"                 -> sc.numLabelers,
-          "validations_per_user_median"  -> sc.validationsPerUserMedian,
-          "validations_per_user_p90"     -> sc.validationsPerUserP90,
-          "num_validators"               -> sc.numValidators,
-          "seconds_per_validation"       -> sc.validationSecondsMedian,
-          "seconds_to_validate_10"       -> (sc.validationSecondsMedian * 10),
+          "labels_per_user_median"      -> sc.labelsPerUserMedian,
+          "labels_per_user_p90"         -> sc.labelsPerUserP90,
+          "num_labelers"                -> sc.numLabelers,
+          "validations_per_user_median" -> sc.validationsPerUserMedian,
+          "validations_per_user_p90"    -> sc.validationsPerUserP90,
+          "num_validators"              -> sc.numValidators,
+          "seconds_per_validation"      -> sc.validationSecondsMedian,
+          "seconds_to_validate_10"      -> (sc.validationSecondsMedian * 10),
           // Labeling speed (seconds of active auditing per 100 m) from the daily-cached heavy path; None if no data.
-          "seconds_per_100m"             -> labelingSpeed.get(sc.cityId),
+          "seconds_per_100m" -> labelingSpeed.get(sc.cityId),
           // Lifecycle/health state: active | wrapped_up | stalled | low_traction (#4329).
-          "lifecycle"                    -> ConfigService.lifecycle(sc, now),
-          "anomalies"                    -> anomalies
+          "lifecycle" -> ConfigService.lifecycle(sc, now),
+          "anomalies" -> anomalies
         )
       }
 
@@ -983,33 +990,33 @@ class AdminController @Inject() (
       // countries come from city config; languages from the app's supported set. global_agreement is the share of
       // agree/disagree validations that agreed. total_users is the sum of per-city contributors (a person who
       // contributes in two cities counts in each — there is no cross-city dedup here).
-      val numCountries     = scorecards.flatMap(sc => cityInfoById.get(sc.cityId).map(_.countryId)).distinct.size
-      val numLanguages     = config.get[Seq[String]]("play.i18n.langs").size
+      val numCountries      = scorecards.flatMap(sc => cityInfoById.get(sc.cityId).map(_.countryId)).distinct.size
+      val numLanguages      = config.get[Seq[String]]("play.i18n.langs").size
       val totalContributors = scorecards.map(_.activeContributors).sum
-      val totalKm          = scorecards.map(_.auditedKm).sum
-      val totalLabels      = scorecards.map(_.totalLabels).sum
-      val totalValidations = scorecards.map(_.totalValidations).sum
-      val sumAgree         = scorecards.map(_.validationsAgree).sum
-      val sumDisagree      = scorecards.map(_.validationsDisagree).sum
-      val globalAgreement  = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
+      val totalKm           = scorecards.map(_.auditedKm).sum
+      val totalLabels       = scorecards.map(_.totalLabels).sum
+      val totalValidations  = scorecards.map(_.totalValidations).sum
+      val sumAgree          = scorecards.map(_.validationsAgree).sum
+      val sumDisagree       = scorecards.map(_.validationsDisagree).sum
+      val globalAgreement   = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
 
       Ok(
         Json.obj(
           "cities"             -> cities,
           "over_time_all_time" -> overTimeAllTime,
-          "summary" -> Json.obj(
-            "num_cities"               -> scorecards.length,
-            "num_countries"            -> numCountries,
-            "num_languages"            -> numLanguages,
-            "total_users"              -> totalContributors,
-            "total_km"                 -> totalKm,
-            "total_labels"             -> totalLabels,
-            "total_validations"        -> totalValidations,
-            "total_datapoints"         -> (totalLabels.toLong + totalValidations.toLong),
-            "global_agreement"         -> globalAgreement,
-            "median_disagreement_rate" -> ConfigService.medianDisagreementRate(scorecards),
-            "active_within_days"       -> ConfigService.ActiveWithinDays,
-            "wrapped_up_coverage"      -> ConfigService.WrappedUpCoverage,
+          "summary"            -> Json.obj(
+            "num_cities"                -> scorecards.length,
+            "num_countries"             -> numCountries,
+            "num_languages"             -> numLanguages,
+            "total_users"               -> totalContributors,
+            "total_km"                  -> totalKm,
+            "total_labels"              -> totalLabels,
+            "total_validations"         -> totalValidations,
+            "total_datapoints"          -> (totalLabels.toLong + totalValidations.toLong),
+            "global_agreement"          -> globalAgreement,
+            "median_disagreement_rate"  -> ConfigService.medianDisagreementRate(scorecards),
+            "active_within_days"        -> ConfigService.ActiveWithinDays,
+            "wrapped_up_coverage"       -> ConfigService.WrappedUpCoverage,
             "low_traction_contributors" -> ConfigService.LowTractionContributors
           )
         )
@@ -1124,15 +1131,18 @@ class AdminController @Inject() (
       val endpoints = data.endpointCounts
         .groupBy(_.endpoint)
         .map { case (ep, rows) => val (e, d) = split(rows.map(r => (r.source, r.count))); (ep, e, d) }
-        .toSeq.sortBy(-_._2)
+        .toSeq
+        .sortBy(-_._2)
       val daily = data.dailyCounts
         .groupBy(_.date)
         .map { case (date, rows) => val (e, d) = split(rows.map(r => (r.source, r.count))); (date, e, d) }
-        .toSeq.sortBy(_._1)
+        .toSeq
+        .sortBy(_._1)
       val formats = data.formatCounts
         .groupBy(_.format)
         .map { case (fmt, rows) => val (e, d) = split(rows.map(r => (r.source, r.count))); (fmt, e, d) }
-        .toSeq.sortBy(-_._2)
+        .toSeq
+        .sortBy(-_._2)
 
       val extCalls  = endpoints.map(_._2).sum
       val docsCalls = endpoints.map(_._3).sum
@@ -1145,7 +1155,7 @@ class AdminController @Inject() (
           "total_calls"      -> (extCalls + docsCalls),
           "total_unique_ips" -> data.totalUniqueIps,
           "last_api_call"    -> data.lastApiCall,
-          "sources" -> Json.obj(
+          "sources"          -> Json.obj(
             "external" -> Json.obj("calls" -> extCalls, "unique_ips" -> extIps),
             "api_docs" -> Json.obj("calls" -> docsCalls, "unique_ips" -> docsIps)
           ),

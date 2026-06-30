@@ -39,25 +39,25 @@ class AccessScoreService @Inject() (
       batchSize: Int
   ): Future[Seq[StreetAccessScoreForApi]] = {
     apiService.selectStreetsIntersecting(spatialQueryType, bbox).flatMap { streets: Seq[StreetEdgeInfo] =>
-      val streetIds: Seq[Int]     = streets.map(_.street.streetEdgeId)
-      val lengthsFuture           = apiService.getStreetLengths(streetIds)
+      val streetIds: Seq[Int] = streets.map(_.street.streetEdgeId)
+      val lengthsFuture       = apiService.getStreetLengths(streetIds)
 
       // Accumulate the streamed cluster rows by street. The sink runs single-threaded, so the mutable map is safe.
       val rowsByStreet: mutable.Map[Int, mutable.Buffer[ClusterScoreRow]] = mutable.Map.empty
-      val streamFuture = apiService
+      val streamFuture                                                    = apiService
         .getClusterScoreRows(spatialQueryType, bbox, AccessScoreCalculator.scoredTypeNames, batchSize)
-        .runWith(Sink.foreach { row =>
-          rowsByStreet.getOrElseUpdate(row.streetEdgeId, mutable.Buffer.empty) += row
-        })
+        .runWith(Sink.foreach { row => rowsByStreet.getOrElseUpdate(row.streetEdgeId, mutable.Buffer.empty) += row })
 
       // Join the concurrent length lookup and cluster stream, then do the (CPU-bound) scoring off the default pool.
-      lengthsFuture.zip(streamFuture).map { case (lengths, _) =>
-        streets.map { s =>
-          val streetId: Int              = s.street.streetEdgeId
-          val rows: Seq[ClusterScoreRow] = rowsByStreet.getOrElse(streetId, mutable.Buffer.empty).toSeq
-          buildStreetScore(s, rows, lengths.getOrElse(streetId, 0.0))
-        }
-      }(cpuEc)
+      lengthsFuture
+        .zip(streamFuture)
+        .map { case (lengths, _) =>
+          streets.map { s =>
+            val streetId: Int              = s.street.streetEdgeId
+            val rows: Seq[ClusterScoreRow] = rowsByStreet.getOrElse(streetId, mutable.Buffer.empty).toSeq
+            buildStreetScore(s, rows, lengths.getOrElse(streetId, 0.0))
+          }
+        }(cpuEc)
     }
   }
 
@@ -76,10 +76,12 @@ class AccessScoreService @Inject() (
   ): StreetAccessScoreForApi = {
     val inputs: Seq[ClusterScoreInput] =
       rows.map(r => ClusterScoreInput(r.labelType, r.severity, r.labelCount, r.tagCounts))
-    val rawScore: Double               = AccessScoreCalculator.scoreStreet(inputs)
+    val rawScore: Double                            = AccessScoreCalculator.scoreStreet(inputs)
     val byType: Map[String, Seq[ClusterScoreInput]] = inputs.groupBy(_.labelType)
-    val clusterCounts: Map[String, Int]    = byType.map { case (lt, cs) => lt -> cs.size }
-    val subScores: Map[String, Double]     = byType.map { case (lt, cs) => lt -> cs.map(AccessScoreCalculator.scoreCluster).sum }
+    val clusterCounts: Map[String, Int]             = byType.map { case (lt, cs) => lt -> cs.size }
+    val subScores: Map[String, Double]              = byType.map { case (lt, cs) =>
+      lt -> cs.map(AccessScoreCalculator.scoreCluster).sum
+    }
 
     StreetAccessScoreForApi(
       streetEdgeId = s.street.streetEdgeId,

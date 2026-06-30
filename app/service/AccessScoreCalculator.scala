@@ -73,17 +73,17 @@ object AccessScoreCalculator {
   // --- TUNABLE: additive weight adjustments for impactful tags. (labelType, tag) -> delta; unlisted tags contribute 0.
   // Sign is absolute (added directly to the cluster's contribution), independent of the base weight's sign. ---
   val tagAdjustments: Map[(String, String), Double] = Map(
-    (LabelTypeEnum.Signal.name, "hard to reach buttons")    -> -0.25,
-    (LabelTypeEnum.Signal.name, "button waist height")      -> +0.15,
-    (LabelTypeEnum.Signal.name, "APS")                      -> +0.25,
-    (LabelTypeEnum.CurbRamp.name, "steep")                  -> -0.25,
-    (LabelTypeEnum.CurbRamp.name, "narrow")                 -> -0.25,
-    (LabelTypeEnum.CurbRamp.name, "missing tactile warning")-> -0.25,
-    (LabelTypeEnum.CurbRamp.name, "points into traffic")    -> -0.25,
-    (LabelTypeEnum.Crosswalk.name, "level with sidewalk")   -> +0.25,
-    (LabelTypeEnum.Crosswalk.name, "paint fading")          -> -0.25,
-    (LabelTypeEnum.Crosswalk.name, "no pedestrian priority")-> -0.25,
-    (LabelTypeEnum.NoCurbRamp.name, "no alternate route")   -> -0.50,
+    (LabelTypeEnum.Signal.name, "hard to reach buttons")       -> -0.25,
+    (LabelTypeEnum.Signal.name, "button waist height")         -> +0.15,
+    (LabelTypeEnum.Signal.name, "APS")                         -> +0.25,
+    (LabelTypeEnum.CurbRamp.name, "steep")                     -> -0.25,
+    (LabelTypeEnum.CurbRamp.name, "narrow")                    -> -0.25,
+    (LabelTypeEnum.CurbRamp.name, "missing tactile warning")   -> -0.25,
+    (LabelTypeEnum.CurbRamp.name, "points into traffic")       -> -0.25,
+    (LabelTypeEnum.Crosswalk.name, "level with sidewalk")      -> +0.25,
+    (LabelTypeEnum.Crosswalk.name, "paint fading")             -> -0.25,
+    (LabelTypeEnum.Crosswalk.name, "no pedestrian priority")   -> -0.25,
+    (LabelTypeEnum.NoCurbRamp.name, "no alternate route")      -> -0.50,
     (LabelTypeEnum.NoCurbRamp.name, "alternate route present") -> +0.25
   )
 
@@ -113,7 +113,7 @@ object AccessScoreCalculator {
    */
   def scoreCluster(c: ClusterScoreInput): Double = {
     typeWeights.get(c.labelType) match {
-      case None => 0.0 // Not a scored type.
+      case None                            => 0.0 // Not a scored type.
       case Some(TypeWeight(base, scoring)) =>
         val typeContribution: Double = scoring match {
           case PresenceOnly     => base

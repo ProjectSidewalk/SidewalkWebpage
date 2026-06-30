@@ -84,8 +84,8 @@ class AiController @Inject() (
 
     for {
       gsvImageUrls   <- panoDataService.getGsvImageUrlsForStreet(streetEdgeId) // Get image URLs for the street
-      imageObjects   <- fetchAndEncodeImages(gsvImageUrls) // Fetch and encode images
-      geminiResponse <- sendToGeminiApi(prompt, imageObjects)               // Send to Gemini API
+      imageObjects   <- fetchAndEncodeImages(gsvImageUrls)                     // Fetch and encode images
+      geminiResponse <- sendToGeminiApi(prompt, imageObjects)                  // Send to Gemini API
     } yield {
       val activity = s"Analyzing street $streetEdgeId with URLs: ${gsvImageUrls.mkString(", ")}"
       cc.loggingService.insert(request.identity.userId, request.ipAddress, activity)

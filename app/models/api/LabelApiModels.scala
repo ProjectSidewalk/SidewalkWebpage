@@ -59,7 +59,7 @@ case class LabelValidationSummaryForApi(
  */
 object LabelValidationSummaryForApi {
   // snake_case JSON output per the v3 API convention (#3871).
-  private implicit val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  implicit private val config: JsonConfiguration                           = JsonConfiguration(JsonNaming.SnakeCase)
   implicit val validationDataFormat: OFormat[LabelValidationSummaryForApi] =
     Json.format[LabelValidationSummaryForApi]
 }
@@ -383,6 +383,6 @@ object LabelCVMetadata {
     "Camera Heading,Camera Pitch,Camera Roll\n"
 
   // snake_case JSON output per the v3 API convention (#3871).
-  private implicit val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  implicit private val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
   implicit val writes: Writes[LabelCVMetadata]   = Json.writes[LabelCVMetadata]
 }

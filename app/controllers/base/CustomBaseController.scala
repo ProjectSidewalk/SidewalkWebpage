@@ -19,7 +19,8 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
   // See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/465
   implicit class RequestHeaderExtensions(request: RequestHeader) {
     def ipAddress: String = {
-      request.headers.get("X-Forwarded-For")
+      request.headers
+        .get("X-Forwarded-For")
         .map(_.split(",").head.trim)
         .filter(_.nonEmpty)
         .orElse(request.headers.get("X-Real-IP"))

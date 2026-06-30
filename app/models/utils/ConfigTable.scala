@@ -172,8 +172,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         getLabelTypeStatsBySchema(schema).map { labelTypeStats =>
           AggregateStats(
             kmExplored = kmExplored, kmExploredNoOverlap = kmExploredNoOverlap, totalLabels = totalLabels,
-            tutorialLabels = tutorialLabels, totalValidations = totalValidations,
-            totalUsers = 0,   // Deduped across schemas in ConfigService (getContributorUserIdsBySchema); not a per-city sum
+            tutorialLabels = tutorialLabels, totalValidations = totalValidations, totalUsers = 0, // Deduped across schemas in ConfigService (getContributorUserIdsBySchema); not a per-city sum
             numCities = 0,    // Individual cities don't have deployment counts
             numCountries = 0, // These are calculated at the service level
             numLanguages = 0, // when aggregating across all cities
@@ -604,7 +603,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    */
   def getCityContributorOutputBySchema(schema: String): DBIO[(Double, Double, Int, Double, Double, Int, Double)] = {
     implicit val getResult: GetResult[(Double, Double, Int, Double, Double, Int, Double)] =
-      GetResult(r => (r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble()))
+      GetResult(r =>
+        (r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble())
+      )
 
     sql"""
       SELECT COALESCE(lbl.median, 0), COALESCE(lbl.p90, 0), COALESCE(lbl.n, 0),
@@ -732,7 +733,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       endDate: Option[LocalDate],
       filterLowQuality: Boolean
   ): DBIO[Seq[(LocalDate, String, Int, Int)]] = {
-    val userFilter = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
+    val userFilter   = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
     val whereClauses = scala.collection.mutable.ListBuffer(
       "label.deleted = FALSE",
       "label.tutorial = FALSE",
@@ -782,7 +783,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       endDate: Option[LocalDate],
       filterLowQuality: Boolean
   ): DBIO[Seq[(LocalDate, String, Int, Int, Int, Int, Int, Int)]] = {
-    val userFilter = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
+    val userFilter   = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
     val whereClauses = scala.collection.mutable.ListBuffer(
       "label.deleted = FALSE",
       userFilter
@@ -792,8 +793,10 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     val where = whereClauses.mkString(" AND ")
 
     implicit val getResult: GetResult[(LocalDate, String, Int, Int, Int, Int, Int, Int)] =
-      GetResult(r => (LocalDate.parse(r.nextString()), r.nextString(),
-        r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()))
+      GetResult(r =>
+        (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
+          r.nextInt(), r.nextInt())
+      )
 
     sql"""
       SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,

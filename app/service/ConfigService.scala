@@ -313,7 +313,6 @@ trait ConfigService {
    */
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]]
 
-
   /**
    * Maps a city ID to its corresponding database user/schema.
    *
@@ -411,50 +410,50 @@ class ConfigServiceImpl @Inject() (
    * NOT be used as the total. `legacyDCData.totalLabels` is therefore derived from this breakdown (#3981).
    */
   private val legacyDCByLabelType: Map[String, LabelTypeStats] = Map(
-      LabelTypeEnum.CurbRamp.name -> LabelTypeStats(
-        labels = 150680,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.NoCurbRamp.name -> LabelTypeStats(
-        labels = 19792,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.Obstacle.name -> LabelTypeStats(
-        labels = 22264,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.SurfaceProblem.name -> LabelTypeStats(
-        labels = 8964,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.NoSidewalk.name -> LabelTypeStats(
-        labels = 45395,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.Other.name -> LabelTypeStats(
-        labels = 1471,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.Occlusion.name -> LabelTypeStats(
-        labels = 1339,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      )
-      // Note: Crosswalk and Signal data not available (NA) for DC legacy deployment.
+    LabelTypeEnum.CurbRamp.name -> LabelTypeStats(
+      labels = 150680,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.NoCurbRamp.name -> LabelTypeStats(
+      labels = 19792,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.Obstacle.name -> LabelTypeStats(
+      labels = 22264,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.SurfaceProblem.name -> LabelTypeStats(
+      labels = 8964,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.NoSidewalk.name -> LabelTypeStats(
+      labels = 45395,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.Other.name -> LabelTypeStats(
+      labels = 1471,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.Occlusion.name -> LabelTypeStats(
+      labels = 1339,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
     )
+    // Note: Crosswalk and Signal data not available (NA) for DC legacy deployment.
+  )
 
   /**
    * DC's UNFILTERED historical label count from the source spreadsheet (gid=963888605 tab):
@@ -614,7 +613,7 @@ class ConfigServiceImpl @Inject() (
 
       Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
         val availableCities = schemaResults.filter(_._2).map(_._1)
-        val perCityFutures = availableCities.map { cityId =>
+        val perCityFutures  = availableCities.map { cityId =>
           db.run(configTable.getCityWeeklyTrendBySchema(getCitySchema(cityId), weeks))
             .recover { case e: Exception =>
               logger.warn(s"Failed to fetch weekly trend for city $cityId: ${e.getMessage}")
@@ -649,7 +648,7 @@ class ConfigServiceImpl @Inject() (
       }
 
       Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
-        val availableCities = schemaResults.filter(_._2).map(_._1)
+        val availableCities                                       = schemaResults.filter(_._2).map(_._1)
         val perCityFutures: Seq[Future[Option[(String, Double)]]] = availableCities.map { cityId =>
           db.run(configTable.getCityLabelingSpeedBySchema(getCitySchema(cityId)))
             .map { case (hours, km) =>
@@ -681,8 +680,10 @@ class ConfigServiceImpl @Inject() (
       val flags = scala.collection.mutable.ListBuffer.empty[String]
 
       // Outlier disagreement, but only among cities with a meaningful validation volume.
-      if (sc.totalValidations >= ConfigService.MinValidationsForDisagreement &&
-        ConfigService.disagreementRate(sc) > medianDisagreement * ConfigService.DisagreementMedianMultiple) {
+      if (
+        sc.totalValidations >= ConfigService.MinValidationsForDisagreement &&
+        ConfigService.disagreementRate(sc) > medianDisagreement * ConfigService.DisagreementMedianMultiple
+      ) {
         flags += "high_disagreement"
       }
 
@@ -801,15 +802,15 @@ class ConfigServiceImpl @Inject() (
         Future.successful(Seq.empty)
       } else {
         val cityDataFutures = availableCities.map { cityId =>
-          val schema = getCitySchema(cityId)
-          val labelsFuture = db.run(configTable.getCityDailyLabelStatsBySchema(schema, startDate, endDate,
-            filterLowQuality))
+          val schema       = getCitySchema(cityId)
+          val labelsFuture = db
+            .run(configTable.getCityDailyLabelStatsBySchema(schema, startDate, endDate, filterLowQuality))
             .recover { case e: Exception =>
               logger.warn(s"Failed daily label stats for city $cityId: ${e.getMessage}")
               Seq.empty[(LocalDate, String, Int, Int)]
             }
-          val valsFuture = db.run(configTable.getCityDailyValidationStatsBySchema(schema, startDate, endDate,
-            filterLowQuality))
+          val valsFuture = db
+            .run(configTable.getCityDailyValidationStatsBySchema(schema, startDate, endDate, filterLowQuality))
             .recover { case e: Exception =>
               logger.warn(s"Failed daily validation stats for city $cityId: ${e.getMessage}")
               Seq.empty[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
@@ -826,19 +827,20 @@ class ConfigServiceImpl @Inject() (
             .groupBy(r => (r.date, r.labelType))
             .map { case ((date, labelType), records) =>
               DailyStatRecord(
-                date                     = date,
-                labelType                = labelType,
-                humanLabels              = records.map(_.humanLabels).sum,
-                aiLabels                 = records.map(_.aiLabels).sum,
-                humanValidationsAgree    = records.map(_.humanValidationsAgree).sum,
+                date = date,
+                labelType = labelType,
+                humanLabels = records.map(_.humanLabels).sum,
+                aiLabels = records.map(_.aiLabels).sum,
+                humanValidationsAgree = records.map(_.humanValidationsAgree).sum,
                 humanValidationsDisagree = records.map(_.humanValidationsDisagree).sum,
-                humanValidationsUnsure   = records.map(_.humanValidationsUnsure).sum,
-                aiValidationsAgree       = records.map(_.aiValidationsAgree).sum,
-                aiValidationsDisagree    = records.map(_.aiValidationsDisagree).sum,
-                aiValidationsUnsure      = records.map(_.aiValidationsUnsure).sum
+                humanValidationsUnsure = records.map(_.humanValidationsUnsure).sum,
+                aiValidationsAgree = records.map(_.aiValidationsAgree).sum,
+                aiValidationsDisagree = records.map(_.aiValidationsDisagree).sum,
+                aiValidationsUnsure = records.map(_.aiValidationsUnsure).sum
               )
             }
-            .toSeq.sortBy(r => (r.date, r.labelType))
+            .toSeq
+            .sortBy(r => (r.date, r.labelType))
         }
       }
     }

@@ -1,6 +1,15 @@
 package controllers.helper
 
-import models.api.{AccessScoreApiModels, LabelClusterForApi, LabelDataForApi, RawLabelInClusterDataForApi, RegionAccessScoreForApi, RegionDataForApi, StreetAccessScoreForApi, StreetDataForApi}
+import models.api.{
+  AccessScoreApiModels,
+  LabelClusterForApi,
+  LabelDataForApi,
+  RawLabelInClusterDataForApi,
+  RegionAccessScoreForApi,
+  RegionDataForApi,
+  StreetAccessScoreForApi,
+  StreetDataForApi
+}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
@@ -1014,7 +1023,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       batchSize: Int
   ): Future[Option[Path]] = {
     val perTypeSpec: String = AccessScoreApiModels.orderedTypes
-      .map { t => val c = AccessScoreApiModels.shapefileTypeCode(t); s"n$c:Integer,s$c:Double" }
+      .map { t =>
+        val c = AccessScoreApiModels.shapefileTypeCode(t); s"n$c:Integer,s$c:Double"
+      }
       .mkString(",")
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "AccessScoreStreet",
@@ -1055,7 +1066,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       batchSize: Int
   ): Future[Option[Path]] = {
     val perTypeSpec: String = AccessScoreApiModels.orderedTypes
-      .flatMap { t => val n = AccessScoreApiModels.snakeType(t); Seq(s"n_$n:Integer", s"score_$n:Double") }
+      .flatMap { t =>
+        val n = AccessScoreApiModels.snakeType(t); Seq(s"n_$n:Integer", s"score_$n:Double")
+      }
       .mkString(",")
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "access_score_streets",

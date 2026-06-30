@@ -29,7 +29,7 @@ class WebpageActivityAnalyticsSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   private lazy val table: WebpageActivityTable = app.injector.instanceOf[WebpageActivityTable]
 
-  private val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
+  private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
   private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 10.seconds)
 
   "WebpageActivityTable.getApiEndpointCounts" should {
@@ -83,9 +83,11 @@ class WebpageActivityAnalyticsSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "return 'json' as the format for requests without a filetype param" in {
       // If there is any data, calls without filetype= in the activity string must count as 'json'.
-      val results = run(table.getApiFormatCounts(excludeApiDocs = false, days = 0))
-      val nonJsonFormats = results.filter(r => r.format != "json" && r.format != "csv" &&
-        r.format != "shapefile" && r.format != "geopackage" && r.format != "geojson")
+      val results        = run(table.getApiFormatCounts(excludeApiDocs = false, days = 0))
+      val nonJsonFormats = results.filter(r =>
+        r.format != "json" && r.format != "csv" &&
+          r.format != "shapefile" && r.format != "geopackage" && r.format != "geojson"
+      )
       // Any format must be one of the known filetypes or the 'json' default.
       nonJsonFormats mustBe empty
     }
