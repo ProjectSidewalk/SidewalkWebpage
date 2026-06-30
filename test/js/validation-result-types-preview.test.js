@@ -89,10 +89,11 @@ describe('ValidationResultTypesPreview', () => {
         expect(container.textContent).toContain('10');
     });
 
-    test('fetch is called against the expected endpoint', async () => {
+    test('fetch is called against the expected endpoint, tagged source=apiDocs', async () => {
         stubFetch(GOOD_FIXTURE);
         await window.ValidationResultTypesPreview.setup({}).init();
-        expect(global.fetch).toHaveBeenCalledWith('/v3/api/validationResultTypes');
+        // The preview tags its request with source=apiDocs so the API analytics can attribute doc-page traffic.
+        expect(global.fetch).toHaveBeenCalledWith('/v3/api/validationResultTypes?source=apiDocs');
     });
 
     // Documents the drift-detection value of this layer: the wrong (camelCase) shape does not throw — the module is

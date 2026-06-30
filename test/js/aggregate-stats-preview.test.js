@@ -113,10 +113,11 @@ describe('AggregateStatsPreview', () => {
         expect(container.textContent).toContain('Obstacle');
     });
 
-    test('fetch is called against the expected endpoint', async () => {
+    test('fetch is called against the expected endpoint, tagged source=apiDocs', async () => {
         stubFetch(GOOD_FIXTURE);
         await window.AggregateStatsPreview.setup({}).init();
-        expect(global.fetch).toHaveBeenCalledWith('/v3/api/aggregateStats');
+        // The preview tags its request with source=apiDocs so the API analytics can attribute doc-page traffic.
+        expect(global.fetch).toHaveBeenCalledWith('/v3/api/aggregateStats?source=apiDocs');
     });
 
     // The renderer is null-safe (every field goes through `fmt()`), so a missing top-level `total_validations` does
