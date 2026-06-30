@@ -179,9 +179,10 @@ jobs:
         with:
           python-version: '3.8'
 
-      # The pure-logic unit tests need no DB and no network, only the scripts' runtime deps plus pytest.
+      # The pure-logic unit tests need no DB and no network, only the scripts' runtime deps plus pytest. The suite
+      # imports both scripts, so the offline check_streets deps (requirements-offline-tools.txt) are required too.
       - name: Install dependencies
-        run: pip install -r requirements.txt -r requirements-dev.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt -r requirements-offline-tools.txt
 
       - name: Run pytest
         run: pytest test/python
