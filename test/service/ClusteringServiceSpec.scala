@@ -70,10 +70,13 @@ class ClusteringServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
     run(clusters.filter(_.clusteringSessionId.inSet(sessionIdsForRegion(regionId))).length.result)
 
   /** Total clusters NOT in the given region — used to assert a submit touches only its own region. */
-  private def clusterCountOutsideRegion(regionId: Int): Int = {
-    val otherSessionIds = run(sessions.filterNot(_.regionId === regionId).map(_.clusteringSessionId).result)
-    run(clusters.filter(_.clusteringSessionId.inSet(otherSessionIds)).length.result)
-  }
+  private def clusterCountOutsideRegion(regionId: Int): Int =
+    run(
+      clusters
+        .filter(_.clusteringSessionId.in(sessions.filterNot(_.regionId === regionId).map(_.clusteringSessionId)))
+        .length
+        .result
+    )
 
   /** A one-cluster submission built from a real label so its label_id/lat/lng satisfy the cluster FKs. */
   private def singleClusterSubmission(label: LabelToCluster): (Seq[ClusterSubmission], Seq[ClusteredLabelSubmission]) =
