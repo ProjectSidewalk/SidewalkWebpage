@@ -1,0 +1,241 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import models.userdashboard.DashboardMock
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@*
+ * Redesigned User Dashboard — Phase 1 comps prototype (mock data, no backend).
+ *
+ * Single page of "your impact" sections on the shared API-docs/admin shell. Every section is an `.api-section` with an
+ * `h2.api-heading[id]` so admin-shell.js auto-builds the right-hand TOC. All numbers below are hardcoded placeholders
+ * to lock the visual language and information architecture before any data is wired in. Sections are ordered to lead
+ * with personal accomplishment (works at N=1) and treat social comparison as a graceful, never-empty extra.
+ *@
+
+@content = {
+    @* ---- Hero / "Your impact" ----------------------------------------------------------------------------- *@
+    <div class="api-section" id="ud-hero-section">
+        <h1 class="api-heading" id="overview">Your dashboard <a href="#overview" class="permalink">#</a></h1>
+
+        <div class="ud-hero">
+            <div class="ud-hero-avatar" aria-hidden="true">AC</div>
+            <div class="ud-hero-text">
+                <p class="ud-hero-greeting">Welcome back, <strong>accessibility_champ</strong> 👋</p>
+                <p class="ud-hero-headline">You've placed <strong>1,284 labels</strong> making sidewalks more accessible.</p>
+                <p class="ud-hero-sub">That's part of <strong>1.6M labels</strong> from the Project Sidewalk community across 50 cities.</p>
+            </div>
+        </div>
+
+        <div class="coverage-kpis ud-kpis">
+            <div class="coverage-kpi">
+                <span class="coverage-kpi-value">42</span>
+                <span class="coverage-kpi-label">Missions completed</span>
+            </div>
+            <div class="coverage-kpi">
+                <span class="coverage-kpi-value">18.4 km</span>
+                <span class="coverage-kpi-label">Distance explored</span>
+            </div>
+            <div class="coverage-kpi">
+                <span class="coverage-kpi-value">1,284</span>
+                <span class="coverage-kpi-label">Labels placed</span>
+            </div>
+            <div class="coverage-kpi">
+                <span class="coverage-kpi-value">3,910</span>
+                <span class="coverage-kpi-label">Validations given</span>
+            </div>
+            <div class="coverage-kpi">
+                <span class="coverage-kpi-value">88%</span>
+                <span class="coverage-kpi-label">Label accuracy</span>
+            </div>
+        </div>
+    </div>
+
+    @* ---- Streak / activity rhythm -------------------------------------------------------------------------- *@
+    <div class="api-section" id="ud-streak-section">
+        <h2 class="api-heading" id="streak">Your streak <a href="#streak" class="permalink">#</a></h2>
+        <p>Keep your momentum going — every day you map, validate, or explore counts.</p>
+
+        <div class="ud-streak">
+            <div class="ud-streak-stats">
+                <div class="coverage-kpi ud-streak-kpi ud-streak-current">
+                    <span class="coverage-kpi-value">🔥 6 days</span>
+                    <span class="coverage-kpi-label">Current streak</span>
+                </div>
+                <div class="coverage-kpi ud-streak-kpi">
+                    <span class="coverage-kpi-value">14 days</span>
+                    <span class="coverage-kpi-label">Longest streak</span>
+                </div>
+                <div class="coverage-kpi ud-streak-kpi">
+                    <span class="coverage-kpi-value">73</span>
+                    <span class="coverage-kpi-label">Total active days</span>
+                </div>
+            </div>
+
+            <figure class="ud-heatmap" aria-label="Activity over the last 16 weeks (mock data)">
+                <div class="ud-heatmap-grid">
+                    @* 16 weeks x 7 days of mock activity, intensity 0-4. *@
+                    @for(cell <- DashboardMock.heatmap) {
+                        <span class="ud-heat ud-heat-@cell" title="mock"></span>
+                    }
+                </div>
+                <figcaption class="ud-heatmap-legend">
+                    <span>Less</span>
+                    <span class="ud-heat ud-heat-0"></span>
+                    <span class="ud-heat ud-heat-1"></span>
+                    <span class="ud-heat ud-heat-2"></span>
+                    <span class="ud-heat ud-heat-3"></span>
+                    <span class="ud-heat ud-heat-4"></span>
+                    <span>More</span>
+                </figcaption>
+            </figure>
+        </div>
+    </div>
+
+    @* ---- Badges + Trophies ------------------------------------------------------------------------------- *@
+    <div class="api-section" id="ud-achievements-section">
+        <h2 class="api-heading" id="achievements">Badges &amp; trophies <a href="#achievements" class="permalink">#</a></h2>
+        <p>Badges you've earned by labeling, exploring, and validating — plus trophies for leaderboard placements.</p>
+
+        <div class="ud-badge-tracks">
+            @for(track <- DashboardMock.badgeTracks) {
+                <div class="ud-badge-track">
+                    <div class="ud-badge-track-head">
+                        <span class="ud-badge-track-name">@track.name</span>
+                        <span class="ud-badge-track-next">@track.nextLabel</span>
+                    </div>
+                    <div class="ud-badge-levels">
+                        @for(level <- 1 to 5) {
+                            <img class="ud-badge @if(level > track.earned){ud-badge-locked}"
+                                 src="@assets.path(s"images/badges/badge_${track.icon}_badge${level}.png")"
+                                 alt="@track.name level @level @if(level <= track.earned){(earned)}else{(locked)}">
+                        }
+                    </div>
+                    <div class="ud-progress" role="img" aria-label="@track.pct% to next badge">
+                        <div class="ud-progress-fill" style="width: @track.pct%"></div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <h3 class="api-heading" id="trophy-case">Trophy case <a href="#trophy-case" class="permalink">#</a></h3>
+        <p class="ud-section-note">Trophies are awarded for finishing in the top 3 each week or all-time. They only show once you've earned one — so your shelf grows as you climb.</p>
+        <div class="ud-trophy-case">
+            @for(t <- DashboardMock.trophies) {
+                <div class="ud-trophy ud-trophy-@t.rank">
+                    <span class="ud-trophy-medal" aria-hidden="true">@t.medal</span>
+                    <span class="ud-trophy-title">@t.title</span>
+                    <span class="ud-trophy-sub">@t.sub</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* ---- Your standing (graceful social) ---------------------------------------------------------------- *@
+    <div class="api-section" id="ud-standing-section">
+        <h2 class="api-heading" id="standing">Your standing <a href="#standing" class="permalink">#</a></h2>
+        <p>How you compare this week. We only show a numeric rank when there are enough people to make it meaningful — otherwise we celebrate the shared effort.</p>
+
+        <div class="ud-standing-grid">
+            @* Framing A: large cohort -> numeric rank/percentile. *@
+            <div class="ud-standing-card">
+                <div class="ud-standing-tag">Big city · 290 mappers this week</div>
+                <div class="ud-standing-rank">Top <strong>12%</strong></div>
+                <div class="ud-standing-detail">#34 of 290 by labels this week</div>
+                <ul class="ud-standing-slice">
+                    <li><span class="ud-rank">33</span><span class="ud-rank-user">curb_crusader</span><span class="ud-rank-val">312</span></li>
+                    <li class="ud-rank-you"><span class="ud-rank">34</span><span class="ud-rank-user">you</span><span class="ud-rank-val">298</span></li>
+                    <li><span class="ud-rank">35</span><span class="ud-rank-user">ramp_ranger</span><span class="ud-rank-val">291</span></li>
+                </ul>
+            </div>
+
+            @* Framing B: small cohort -> reframe to shared-goal + top contributor (NEVER "ranked 3 of 4"). *@
+            <div class="ud-standing-card ud-standing-community">
+                <div class="ud-standing-tag">Small deployment · shared goal</div>
+                <div class="ud-standing-rank">🏅 Top contributor this week</div>
+                <div class="ud-standing-detail">Your class has labeled <strong>1,240</strong> of a <strong>1,500</strong> weekly goal.</div>
+                <div class="ud-progress ud-progress-lg" role="img" aria-label="83% of weekly community goal">
+                    <div class="ud-progress-fill" style="width: 83%"></div>
+                </div>
+                <div class="ud-standing-detail">You added <strong>298</strong> of those labels. Almost there together! 🎉</div>
+            </div>
+        </div>
+        <p class="ud-section-note">Both cards above are illustrative — the live dashboard picks one framing based on how many people are in your community.</p>
+    </div>
+
+    @* ---- Learning — Recent mistakes gallery ------------------------------------------------------------- *@
+    <div class="api-section" id="ud-mistakes-section">
+        <h2 class="api-heading" id="mistakes">What you can improve <a href="#mistakes" class="permalink">#</a></h2>
+        <p>Labels that other mappers validated as incorrect, so you can sharpen your eye. Your accuracy varies by label type — your trickiest type is highlighted.</p>
+
+        <div class="ud-accuracy-bars">
+            @for(a <- DashboardMock.accuracyByType) {
+                <div class="ud-acc-row @if(a.weakest){ud-acc-weakest}">
+                    <span class="ud-acc-label">
+                        <span class="ud-acc-swatch" style="background: var(--color-label-@a.cssKey)"></span>@a.name
+                    </span>
+                    <span class="ud-acc-bar"><span class="ud-acc-fill" style="width: @a.pct%; background: var(--color-label-@a.cssKey)"></span></span>
+                    <span class="ud-acc-pct">@a.pct%</span>
+                </div>
+            }
+        </div>
+
+        <h3 class="api-heading" id="recent-mistakes">Recent mistakes <a href="#recent-mistakes" class="permalink">#</a></h3>
+        <div class="ud-mistake-cards">
+            @for(m <- DashboardMock.mistakes) {
+                <figure class="ud-card">
+                    <div class="ud-card-img" style="background: linear-gradient(135deg, #cfd8dc, #90a4ae)">
+                        <span class="ud-card-type-icon" style="border-color: var(--color-label-@m.cssKey)">
+                            <span class="ud-acc-swatch" style="background: var(--color-label-@m.cssKey)"></span>
+                        </span>
+                        <span class="ud-card-verdict">Marked incorrect</span>
+                    </div>
+                    <figcaption class="ud-card-body">
+                        <span class="ud-card-title">@m.name</span>
+                        <span class="ud-card-note">@m.note</span>
+                    </figcaption>
+                </figure>
+            }
+        </div>
+        <p class="ud-section-note">Cards reuse the Gallery card look (#4388). If you have no mistakes, this becomes an encouraging "great accuracy!" state instead of an empty rail.</p>
+    </div>
+
+    @* ---- Map — where you've explored ------------------------------------------------------------------- *@
+    <div class="api-section" id="ud-map-section">
+        <h2 class="api-heading" id="map">Where you've explored <a href="#map" class="permalink">#</a></h2>
+        <p>The neighborhoods you've helped map, with your labels colored by type.</p>
+        <div class="ud-map-placeholder" role="img" aria-label="Map placeholder — the live dashboard renders your audited streets and labels here">
+            <span>🗺️ Your contribution map</span>
+            <small>(live choropleth + your labels render here)</small>
+        </div>
+    </div>
+
+    @* ---- Team / class --------------------------------------------------------------------------------- *@
+    <div class="api-section" id="ud-team-section">
+        <h2 class="api-heading" id="team">Your team <a href="#team" class="permalink">#</a></h2>
+        <p>Map together with a team or class. Friendly competition within a small group is half the fun.</p>
+
+        <div class="ud-team">
+            <div class="ud-team-card">
+                <span class="ud-team-name">Ms. Rivera's 7th Grade 🧭</span>
+                <span class="ud-team-meta">24 members · 6,420 labels this term</span>
+                <button type="button" class="ud-btn-secondary">Leave team</button>
+            </div>
+            <div class="ud-team-board">
+                <div class="ud-team-board-head">Your class this week</div>
+                <ul class="ud-standing-slice">
+                    <li><span class="ud-rank">1</span><span class="ud-rank-user">🥇 jordan_m</span><span class="ud-rank-val">412</span></li>
+                    <li><span class="ud-rank">2</span><span class="ud-rank-user">🥈 priya_k</span><span class="ud-rank-val">355</span></li>
+                    <li class="ud-rank-you"><span class="ud-rank">3</span><span class="ud-rank-user">🥉 you</span><span class="ud-rank-val">298</span></li>
+                    <li><span class="ud-rank">4</span><span class="ud-rank-user">sam_l</span><span class="ud-rank-val">240</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+}
+
+@common.main(commonData, "Sidewalk - Dashboard") {
+    @common.navbar(commonData, Some(user))
+    @userDashboard.layout("dashboard")(content)
+}

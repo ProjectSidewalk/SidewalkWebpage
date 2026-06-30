@@ -1,0 +1,583 @@
+/*
+ * User Dashboard + Leaderboard redesign — gamification components.
+ *
+ * Layered on top of api-docs.css and admin-dashboard.css: this file adds ONLY the components those two surfaces don't
+ * already provide (hero banner, streak heatmap, badge tracks, trophy case, podium, medals, standing widget, mistake
+ * gallery cards). It reuses their design tokens (--space-*, --color-*, --font-size-*, brand ramps from main.css, and
+ * label-type colors --color-label-*) rather than introducing new literals, so the three surfaces stay visually unified.
+ * Label-type colors come from the --color-label-* tokens (source of truth: /v3/api/labelTypes) — never hardcoded hex.
+ */
+
+/* ---- Hero / "Your impact" -------------------------------------------------------------------------------------- */
+.ud-hero {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg, 24px);
+    padding: var(--space-lg, 24px);
+    margin: var(--space-md, 16px) 0 var(--space-lg, 24px);
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: var(--border-radius-lg, 8px);
+    background: linear-gradient(120deg, var(--color-pine-100, #eaf3ec), var(--color-banana-100, #fdf6e3));
+}
+
+.ud-hero-avatar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--color-pine-600, #4a7c59);
+    color: var(--color-neutral-white, #fff);
+    font-family: var(--font-accent, 'Raleway', sans-serif);
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.ud-hero-greeting {
+    margin: 0 0 4px;
+    font-size: var(--font-size-lg, 1.125rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-hero-headline {
+    margin: 0 0 4px;
+    font-family: var(--font-accent, 'Raleway', sans-serif);
+    font-size: var(--font-size-xxl, 1.5rem);
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--color-text-heading, #263238);
+}
+
+.ud-hero-sub {
+    margin: 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-section-note {
+    margin: var(--space-sm, 12px) 0 0;
+    font-size: var(--font-size-xs, 0.8125rem);
+    color: var(--color-text-tertiary, #88a1ad);
+    font-style: italic;
+}
+
+/* ---- Streak / activity heatmap --------------------------------------------------------------------------------- */
+.ud-streak {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-lg, 24px);
+    align-items: flex-start;
+}
+
+.ud-streak-stats {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm, 12px);
+    flex: 0 0 200px;
+}
+
+.ud-streak-kpi {
+    margin: 0;
+}
+
+.ud-streak-current {
+    border-color: var(--color-orange-400, #f0913e);
+    background: var(--color-orange-100, #fdeede);
+}
+
+.ud-heatmap {
+    flex: 1 1 360px;
+    margin: 0;
+}
+
+.ud-heatmap-grid {
+    display: grid;
+    grid-template-rows: repeat(7, 1fr);
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 3px;
+}
+
+.ud-heat {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 2px;
+    background: var(--color-neutral-100, #f0f0f0);
+}
+
+.ud-heat-0 { background: var(--color-neutral-200, #e6e6e6); }
+.ud-heat-1 { background: var(--color-pine-200, #cfe3d4); }
+.ud-heat-2 { background: var(--color-pine-400, #8fc09b); }
+.ud-heat-3 { background: var(--color-pine-600, #4a7c59); }
+.ud-heat-4 { background: var(--color-pine-800, #2f5239); }
+
+.ud-heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: var(--space-sm, 12px);
+    font-size: var(--font-size-xxs, 0.75rem);
+    color: var(--color-text-tertiary, #88a1ad);
+}
+
+.ud-heatmap-legend .ud-heat {
+    width: 12px;
+    height: 12px;
+    aspect-ratio: auto;
+}
+
+/* ---- Badge tracks ---------------------------------------------------------------------------------------------- */
+.ud-badge-tracks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-md, 16px);
+    margin: var(--space-md, 16px) 0;
+}
+
+.ud-badge-track {
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: var(--border-radius-lg, 8px);
+    padding: var(--space-md, 16px);
+    background: var(--color-neutral-white, #fff);
+}
+
+.ud-badge-track-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-sm, 12px);
+    margin-bottom: var(--space-sm, 12px);
+}
+
+.ud-badge-track-name {
+    font-family: var(--font-accent, 'Raleway', sans-serif);
+    font-weight: 700;
+    color: var(--color-text-heading, #263238);
+}
+
+.ud-badge-track-next {
+    font-size: var(--font-size-xxs, 0.75rem);
+    color: var(--color-text-tertiary, #88a1ad);
+}
+
+.ud-badge-levels {
+    display: flex;
+    gap: var(--space-xs, 8px);
+    margin-bottom: var(--space-sm, 12px);
+}
+
+.ud-badge {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+}
+
+.ud-badge-locked {
+    opacity: 0.18;
+    filter: grayscale(1);
+}
+
+/* ---- Progress bar (shared) ------------------------------------------------------------------------------------- */
+.ud-progress {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--color-neutral-200, #e6e6e6);
+    overflow: hidden;
+}
+
+.ud-progress-lg {
+    height: 14px;
+    border-radius: 7px;
+    margin: var(--space-sm, 12px) 0;
+}
+
+.ud-progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--color-pine-500, #5a8f6a), var(--color-pine-700, #3a6347));
+}
+
+/* ---- Trophy case ----------------------------------------------------------------------------------------------- */
+.ud-trophy-case {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md, 16px);
+    margin: var(--space-md, 16px) 0;
+}
+
+.ud-trophy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 2px;
+    width: 150px;
+    padding: var(--space-md, 16px) var(--space-sm, 12px);
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: var(--border-radius-lg, 8px);
+    background: var(--color-neutral-white, #fff);
+    border-top: 3px solid var(--color-neutral-300, #c5cdd2);
+}
+
+.ud-trophy-1 { border-top-color: var(--color-banana-500, #f3c220); }
+.ud-trophy-2 { border-top-color: var(--color-neutral-400, #a8b0b5); }
+.ud-trophy-3 { border-top-color: var(--color-orange-500, #e07b2f); }
+
+.ud-trophy-medal { font-size: 2rem; line-height: 1; }
+
+.ud-trophy-title {
+    font-weight: 700;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-heading, #263238);
+}
+
+.ud-trophy-sub {
+    font-size: var(--font-size-xxs, 0.75rem);
+    color: var(--color-text-tertiary, #88a1ad);
+}
+
+/* ---- Your standing --------------------------------------------------------------------------------------------- */
+.ud-standing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-md, 16px);
+    margin: var(--space-md, 16px) 0;
+}
+
+.ud-standing-card {
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: var(--border-radius-lg, 8px);
+    padding: var(--space-lg, 24px);
+    background: var(--color-neutral-white, #fff);
+}
+
+.ud-standing-community {
+    background: linear-gradient(120deg, var(--color-pine-100, #eaf3ec), var(--color-neutral-white, #fff));
+}
+
+.ud-standing-tag {
+    font-size: var(--font-size-xxs, 0.75rem);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-secondary, #5a7785);
+    margin-bottom: var(--space-xs, 8px);
+}
+
+.ud-standing-rank {
+    font-family: var(--font-accent, 'Raleway', sans-serif);
+    font-size: var(--font-size-xl, 1.25rem);
+    font-weight: 700;
+    color: var(--color-text-heading, #263238);
+}
+
+.ud-standing-detail {
+    margin-top: var(--space-xs, 8px);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-standing-slice {
+    list-style: none;
+    margin: var(--space-md, 16px) 0 0;
+    padding: 0;
+}
+
+.ud-standing-slice li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 12px);
+    padding: 6px 8px;
+    border-radius: var(--border-radius, 4px);
+    font-size: var(--font-size-sm, 0.875rem);
+}
+
+.ud-rank-you {
+    background: var(--color-banana-100, #fdf6e3);
+    font-weight: 700;
+}
+
+.ud-rank {
+    flex: 0 0 28px;
+    color: var(--color-text-tertiary, #88a1ad);
+    font-variant-numeric: tabular-nums;
+}
+
+.ud-rank-user { flex: 1 1 auto; color: var(--color-text-heading, #263238); }
+.ud-rank-val { flex: 0 0 auto; font-variant-numeric: tabular-nums; color: var(--color-text-secondary, #5a7785); }
+
+/* ---- Accuracy-by-type bars ------------------------------------------------------------------------------------- */
+.ud-accuracy-bars {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs, 8px);
+    margin: var(--space-md, 16px) 0;
+}
+
+.ud-acc-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 12px);
+    padding: 4px 6px;
+    border-radius: var(--border-radius, 4px);
+}
+
+.ud-acc-weakest {
+    background: var(--color-orange-100, #fdeede);
+    outline: 1px solid var(--color-orange-300, #f4b277);
+}
+
+.ud-acc-label {
+    flex: 0 0 160px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs, 8px);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-heading, #263238);
+}
+
+.ud-acc-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex: 0 0 auto;
+}
+
+.ud-acc-bar {
+    flex: 1 1 auto;
+    height: 10px;
+    border-radius: 5px;
+    background: var(--color-neutral-200, #e6e6e6);
+    overflow: hidden;
+}
+
+.ud-acc-fill { display: block; height: 100%; border-radius: inherit; }
+
+.ud-acc-pct {
+    flex: 0 0 44px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+
+/* ---- Mistake gallery cards (#4388) ----------------------------------------------------------------------------- */
+.ud-mistake-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--space-md, 16px);
+    margin: var(--space-md, 16px) 0;
+}
+
+.ud-card {
+    margin: 0;
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: var(--border-radius-lg, 8px);
+    overflow: hidden;
+    background: var(--color-neutral-white, #fff);
+}
+
+.ud-card-img {
+    position: relative;
+    height: 130px;
+}
+
+.ud-card-type-icon {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--color-neutral-white, #fff);
+    border-radius: 50%;
+    background: var(--color-neutral-white, #fff);
+}
+
+.ud-card-verdict {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: var(--font-size-xxs, 0.75rem);
+    font-weight: 600;
+    color: var(--color-neutral-white, #fff);
+    background: var(--color-error, #d32f2f);
+}
+
+.ud-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: var(--space-sm, 12px);
+}
+
+.ud-card-title { font-weight: 700; color: var(--color-text-heading, #263238); }
+
+.ud-card-note {
+    font-size: var(--font-size-xs, 0.8125rem);
+    color: var(--color-text-secondary, #5a7785);
+    line-height: 1.4;
+}
+
+/* ---- Map placeholder ------------------------------------------------------------------------------------------- */
+.ud-map-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 320px;
+    border: 1px dashed var(--color-neutral-300, #c5cdd2);
+    border-radius: var(--border-radius-lg, 8px);
+    background: var(--color-neutral-100, #f5f6f7);
+    color: var(--color-text-tertiary, #88a1ad);
+    font-size: var(--font-size-lg, 1.125rem);
+}
+
+.ud-map-placeholder small { font-size: var(--font-size-xs, 0.8125rem); }
+
+/* ---- Team / class ---------------------------------------------------------------------------------------------- */
+.ud-team {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: var(--space-md, 16px);
+    margin: var(--space-md, 16px) 0;
+}
+
+.ud-team-card,
+.ud-team-board {
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: var(--border-radius-lg, 8px);
+    padding: var(--space-md, 16px);
+    background: var(--color-neutral-white, #fff);
+}
+
+.ud-team-card { display: flex; flex-direction: column; gap: var(--space-xs, 8px); align-items: flex-start; }
+
+.ud-team-name {
+    font-family: var(--font-accent, 'Raleway', sans-serif);
+    font-size: var(--font-size-lg, 1.125rem);
+    font-weight: 700;
+    color: var(--color-text-heading, #263238);
+}
+
+.ud-team-meta { font-size: var(--font-size-sm, 0.875rem); color: var(--color-text-secondary, #5a7785); }
+
+.ud-team-board-head {
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 600;
+    color: var(--color-text-secondary, #5a7785);
+    margin-bottom: var(--space-xs, 8px);
+}
+
+.ud-btn-secondary {
+    padding: 6px 14px;
+    border: 1px solid var(--color-neutral-300, #c5cdd2);
+    border-radius: var(--border-radius, 4px);
+    background: var(--color-neutral-white, #fff);
+    color: var(--color-text-heading, #263238);
+    font-size: var(--font-size-sm, 0.875rem);
+    cursor: pointer;
+    transition: background var(--transition-fast, 0.15s ease);
+}
+
+.ud-btn-secondary:hover { background: var(--color-neutral-100, #f0f0f0); }
+
+/* ---- Leaderboard: community band + podium ---------------------------------------------------------------------- */
+.ud-community-band {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--space-md, 16px);
+    padding: var(--space-lg, 24px);
+    margin: var(--space-md, 16px) 0;
+    border-radius: var(--border-radius-lg, 8px);
+    background: linear-gradient(120deg, var(--color-asphalt-700, #2d2a3f), var(--color-asphalt-500, #4a4660));
+    color: var(--color-neutral-white, #fff);
+}
+
+.ud-community-stat { text-align: center; }
+
+.ud-community-value {
+    display: block;
+    font-family: var(--font-accent, 'Raleway', sans-serif);
+    font-size: var(--font-size-xxl, 1.5rem);
+    font-weight: 700;
+}
+
+.ud-community-label {
+    display: block;
+    margin-top: 4px;
+    font-size: var(--font-size-xs, 0.8125rem);
+    opacity: 0.85;
+}
+
+.ud-podium {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: var(--space-md, 16px);
+    margin: var(--space-lg, 24px) 0;
+}
+
+.ud-podium-spot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs, 8px);
+    width: 150px;
+}
+
+.ud-podium-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--color-pine-600, #4a7c59);
+    color: var(--color-neutral-white, #fff);
+    font-weight: 700;
+}
+
+.ud-podium-name { font-weight: 700; color: var(--color-text-heading, #263238); }
+.ud-podium-score { font-size: var(--font-size-sm, 0.875rem); color: var(--color-text-secondary, #5a7785); }
+
+.ud-podium-block {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    padding-top: var(--space-sm, 12px);
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    font-size: 1.6rem;
+    color: var(--color-neutral-white, #fff);
+}
+
+.ud-podium-1 .ud-podium-block { height: 90px; background: var(--color-banana-500, #f3c220); }
+.ud-podium-2 .ud-podium-block { height: 66px; background: var(--color-neutral-400, #a8b0b5); }
+.ud-podium-3 .ud-podium-block { height: 48px; background: var(--color-orange-500, #e07b2f); }
+.ud-podium-1 { order: 2; }
+.ud-podium-2 { order: 1; }
+.ud-podium-3 { order: 3; }
+
+.ud-empty-card {
+    padding: var(--space-lg, 24px);
+    border: 1px dashed var(--color-neutral-300, #c5cdd2);
+    border-radius: var(--border-radius-lg, 8px);
+    background: var(--color-neutral-100, #f5f6f7);
+    text-align: center;
+    color: var(--color-text-secondary, #5a7785);
+}
+
+/* ---- Responsive ------------------------------------------------------------------------------------------------ */
+@media (max-width: 700px) {
+    .ud-hero { flex-direction: column; text-align: center; }
+    .ud-streak-stats { flex-direction: row; flex: 1 1 100%; flex-wrap: wrap; }
+    .ud-acc-label { flex-basis: 120px; }
+}

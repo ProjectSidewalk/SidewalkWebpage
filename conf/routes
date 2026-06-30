@@ -157,6 +157,9 @@ GET     /contribution/streets                           controllers.UserProfileC
 GET     /contribution/streets/all                       controllers.UserProfileController.getAllStreets(filterLowQuality: Boolean ?= false, regions: Option[String] ?= None, routes: Option[String] ?= None)
 GET     /contribution/auditCounts/all                   controllers.AdminController.getAllAuditCounts
 GET     /dashboard                                      controllers.UserProfileController.userProfile
+# Redesigned dashboard + leaderboard prototype (behind /preview; prod routes above/at /leaderboard stay live until parity).
+GET     /dashboard/preview                              controllers.UserDashboardController.dashboardPreview
+GET     /leaderboard/preview                            controllers.UserDashboardController.leaderboardPreview
 GET     /userapi/mistakes                               controllers.UserProfileController.getRecentMistakes(userId: String, n: Int ?= 5)
 
 GET     /userapi/basicStats                             controllers.UserProfileController.getBasicUserStats

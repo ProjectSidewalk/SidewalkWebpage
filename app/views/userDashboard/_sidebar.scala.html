@@ -1,0 +1,23 @@
+@(activePage: String)
+
+@*
+ * Left navigation for the redesigned User Dashboard surface. Mirrors the API-docs/admin sidebar markup/classes so the
+ * surfaces share a look. The user surface is only a few pages, so this lists those (Dashboard, Leaderboard) while the
+ * right-hand TOC handles within-page sections. Not-yet-built surfaces (Settings — #2285/#2228) render as disabled
+ * "soon" items so the intended information architecture is visible as the dashboard grows.
+ *@
+
+<div class="api-sidebar">
+    <nav class="api-nav" aria-label="Dashboard sections">
+        <div class="api-nav-header">You</div>
+        <a href="@routes.UserDashboardController.dashboardPreview"
+           class="api-nav-item @if(activePage == "dashboard"){active}"
+           @if(activePage == "dashboard"){aria-current="page"}>Dashboard</a>
+        <span class="api-nav-item disabled" aria-disabled="true">Settings <span class="nav-soon-badge">soon</span></span>
+
+        <div class="api-nav-header">Community</div>
+        <a href="@routes.UserDashboardController.leaderboardPreview"
+           class="api-nav-item @if(activePage == "leaderboard"){active}"
+           @if(activePage == "leaderboard"){aria-current="page"}>Leaderboard</a>
+    </nav>
+</div>

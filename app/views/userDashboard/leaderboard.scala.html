@@ -1,0 +1,154 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import models.userdashboard.DashboardMock
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@*
+ * Redesigned Leaderboard — Phase 1 comps prototype (mock data, no backend) (#4323).
+ *
+ * Shares the User Dashboard shell. Leads with the cross-city community band and the lively weekly slice so even a tiny,
+ * brand-new deployment has something alive to show, then the podium, team/class tables, and an all-time table. Tables
+ * with too few rows degrade to celebratory "be the first" cards rather than looking empty. All numbers are placeholders.
+ *@
+
+@row(rank: Int, name: String, labels: String, missions: String, distance: String, accuracy: String, you: Boolean) = {
+    <tr @if(you){class="highlighted"}>
+        <td>@rank</td>
+        <td>@if(you){<strong>@name (you)</strong>}else{<a href="#" class="ud-lb-user">@name</a>}</td>
+        <td>@labels</td>
+        <td>@missions</td>
+        <td>@distance</td>
+        <td>@accuracy</td>
+    </tr>
+}
+
+@content = {
+    <div class="api-section" id="lb-intro-section">
+        <h1 class="api-heading" id="leaderboard">Leaderboard <a href="#leaderboard" class="permalink">#</a></h1>
+        <p>Every label makes sidewalks more accessible. Here's how the community — and you — are doing.</p>
+    </div>
+
+    @* ---- Community impact band (cross-city) ----------------------------------------------------------------- *@
+    <div class="api-section" id="lb-global-section">
+        <h2 class="api-heading" id="global">Community impact <a href="#global" class="permalink">#</a></h2>
+        <p>The whole Project Sidewalk community, across every city.</p>
+        <div class="ud-community-band">
+            <div class="ud-community-stat"><span class="ud-community-value">19,343</span><span class="ud-community-label">Contributors</span></div>
+            <div class="ud-community-stat"><span class="ud-community-value">1.6M</span><span class="ud-community-label">Labels placed</span></div>
+            <div class="ud-community-stat"><span class="ud-community-value">2.2M</span><span class="ud-community-label">Validations</span></div>
+            <div class="ud-community-stat"><span class="ud-community-value">19,848 mi</span><span class="ud-community-label">Streets explored</span></div>
+            <div class="ud-community-stat"><span class="ud-community-value">50</span><span class="ud-community-label">Cities</span></div>
+        </div>
+    </div>
+
+    @* ---- Podium -------------------------------------------------------------------------------------------- *@
+    <div class="api-section" id="lb-podium-section">
+        <h2 class="api-heading" id="podium">Top of the board <a href="#podium" class="permalink">#</a></h2>
+        <p>This city's all-time leaders. 🏆</p>
+        <div class="ud-podium">
+            <div class="ud-podium-spot ud-podium-2">
+                <div class="ud-podium-avatar" aria-hidden="true">RR</div>
+                <div class="ud-podium-name"><a href="#" class="ud-lb-user">ramp_ranger</a></div>
+                <div class="ud-podium-score">8,902 pts</div>
+                <div class="ud-podium-block" aria-hidden="true">🥈</div>
+            </div>
+            <div class="ud-podium-spot ud-podium-1">
+                <div class="ud-podium-avatar" aria-hidden="true">CC</div>
+                <div class="ud-podium-name"><a href="#" class="ud-lb-user">curb_crusader</a></div>
+                <div class="ud-podium-score">11,540 pts</div>
+                <div class="ud-podium-block" aria-hidden="true">🥇</div>
+            </div>
+            <div class="ud-podium-spot ud-podium-3">
+                <div class="ud-podium-avatar" aria-hidden="true">SW</div>
+                <div class="ud-podium-name"><a href="#" class="ud-lb-user">sidewalk_sam</a></div>
+                <div class="ud-podium-score">7,418 pts</div>
+                <div class="ud-podium-block" aria-hidden="true">🥉</div>
+            </div>
+        </div>
+        <p class="ud-section-note">Click a name to see their public profile. Mappers can keep their profile private — private accounts show as a plain name and never link out (#4323).</p>
+    </div>
+
+    @* ---- This week ----------------------------------------------------------------------------------------- *@
+    <div class="api-section" id="lb-weekly-section">
+        <h2 class="api-heading" id="weekly">This week <a href="#weekly" class="permalink">#</a></h2>
+        <p>Fresh every Monday — the best place to climb fast.</p>
+        <div class="coverage-table-wrap">
+            <table class="coverage-table">
+                <thead>
+                    <tr><th>#</th><th>Mapper</th><th>Labels</th><th>Missions</th><th>Distance</th><th>Accuracy</th></tr>
+                </thead>
+                <tbody>
+                    @row(1, "jordan_m", "412", "9", "3.1 km", "92%", you = false)
+                    @row(2, "priya_k", "355", "8", "2.7 km", "90%", you = false)
+                    @row(3, "you", "298", "7", "2.2 km", "88%", you = true)
+                    @row(4, "sam_l", "240", "6", "1.9 km", "85%", you = false)
+                    @row(5, "ada_w", "198", "5", "1.6 km", "94%", you = false)
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @* ---- Teams / classes ---------------------------------------------------------------------------------- *@
+    <div class="api-section" id="lb-teams-section">
+        <h2 class="api-heading" id="teams">Teams &amp; classes <a href="#teams" class="permalink">#</a></h2>
+        <p>Map together. Great for classrooms and community groups.</p>
+        <div class="coverage-table-wrap">
+            <table class="coverage-table">
+                <thead>
+                    <tr><th>#</th><th>Team</th><th>Labels</th><th>Missions</th><th>Distance</th><th>Accuracy</th></tr>
+                </thead>
+                <tbody>
+                    @row(1, "Ms. Rivera's 7th Grade", "6,420", "142", "38 km", "89%", you = true)
+                    @row(2, "UW Mapping Club", "5,980", "131", "34 km", "91%", you = false)
+                    @row(3, "Beacon Hill Walks", "3,210", "77", "19 km", "87%", you = false)
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @* ---- All-time ----------------------------------------------------------------------------------------- *@
+    <div class="api-section" id="lb-alltime-section">
+        <h2 class="api-heading" id="all-time">All-time <a href="#all-time" class="permalink">#</a></h2>
+        <p>The most prolific mappers in this city, ever.</p>
+        <div class="coverage-table-wrap">
+            <table class="coverage-table">
+                <thead>
+                    <tr><th>#</th><th>Mapper</th><th>Labels</th><th>Missions</th><th>Distance</th><th>Accuracy</th></tr>
+                </thead>
+                <tbody>
+                    @row(1, "curb_crusader", "11,540", "312", "142 km", "90%", you = false)
+                    @row(2, "ramp_ranger", "8,902", "256", "118 km", "92%", you = false)
+                    @row(3, "sidewalk_sam", "7,418", "201", "96 km", "88%", you = false)
+                    @row(28, "you", "1,284", "42", "18.4 km", "88%", you = true)
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @* ---- You vs community --------------------------------------------------------------------------------- *@
+    <div class="api-section" id="lb-you-section">
+        <h2 class="api-heading" id="you">You vs the community <a href="#you" class="permalink">#</a></h2>
+        <div class="ud-standing-grid">
+            <div class="ud-standing-card">
+                <div class="ud-standing-tag">This week · 290 mappers</div>
+                <div class="ud-standing-rank">Top <strong>12%</strong></div>
+                <div class="ud-standing-detail">#34 of 290 by labels this week — up 6 spots from last week. 📈</div>
+                <ul class="ud-standing-slice">
+                    @for(r <- DashboardMock.standingSlice) {
+                        <li @if(r.you){class="ud-rank-you"}><span class="ud-rank">@r.rank</span><span class="ud-rank-user">@r.user</span><span class="ud-rank-val">@r.labels</span></li>
+                    }
+                </ul>
+            </div>
+            <div class="ud-empty-card">
+                <p><strong>Small group?</strong> When a city or class is just getting started, we celebrate the shared goal instead of ranking a handful of people — so it never feels empty.</p>
+            </div>
+        </div>
+    </div>
+}
+
+@common.main(commonData, "Sidewalk - Leaderboard") {
+    @common.navbar(commonData, Some(user))
+    @userDashboard.layout("leaderboard")(content)
+}
