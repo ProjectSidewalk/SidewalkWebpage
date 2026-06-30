@@ -147,6 +147,8 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 
 ## Development Guidelines
 - Main development branch is **develop**; **master** is the release branch. PRs target `develop`.
+- **Maintainers / GitHub @-mentions:** Project Sidewalk is maintained by **@jonfroehlich** (Professor Jon Froehlich) and
+  **@misaugstad** (Mikey / Michael Saugstad).
 - If there is an associated Github issue, beging the branch name with the issue number (e.g. `1234-fix-label-popup`).
 - When changing JS behavior, edit `src/` and let `grunt watch` rebuild; if a new `src/` file isn't picked up, check that its path matches a glob in `Gruntfile.js`.
 - When updating code in JavaScript, migrate that code to ECMA6 (`let`/`const` instead of `var`, etc.).
