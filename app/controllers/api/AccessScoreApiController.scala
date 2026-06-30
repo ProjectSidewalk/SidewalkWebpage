@@ -55,14 +55,14 @@ class AccessScoreApiController @Inject() (
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
     resolveAccessScoreArea(bbox, regionId, regionName).flatMap {
-      case Left(error) => Future.successful(badRequest(error))
+      case Left(error)                           => Future.successful(badRequest(error))
       case Right((resolvedBbox, regionFilterId)) =>
         accessScoreService.computeStreetScoresV3(SpatialQueryType.Street, resolvedBbox, DEFAULT_BATCH_SIZE).flatMap {
           allStreets =>
             // A region's bbox can overlap neighbors, so restrict to the requested region when one was given.
             val streets: Seq[StreetAccessScoreForApi] =
               regionFilterId.fold(allStreets)(id => allStreets.filter(_.regionId == id))
-            val baseFileName: String                  = s"accessScoreStreets_${OffsetDateTime.now()}"
+            val baseFileName: String                             = s"accessScoreStreets_${OffsetDateTime.now()}"
             val streetStream: Source[StreetAccessScoreForApi, _] = Source.fromIterator(() => streets.iterator)
             cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
@@ -71,10 +71,13 @@ class AccessScoreApiController @Inject() (
                 outputCSV(streetStream, StreetAccessScoreForApi.csvHeader, inline, baseFileName + ".csv")
               case Some("shapefile") =>
                 outputShapefile(
-                  streetStream, baseFileName, shapefileCreator.createStreetAccessScoreShapefile, shapefileCreator)
+                  streetStream,
+                  baseFileName,
+                  shapefileCreator.createStreetAccessScoreShapefile,
+                  shapefileCreator
+                )
               case Some("geopackage") =>
-                outputGeopackage(
-                  streetStream, baseFileName, shapefileCreator.createStreetAccessScoreGeopackage, inline)
+                outputGeopackage(streetStream, baseFileName, shapefileCreator.createStreetAccessScoreGeopackage, inline)
               case _ =>
                 outputGeoJSON(streetStream, inline, baseFileName + ".json")
             }
@@ -102,12 +105,12 @@ class AccessScoreApiController @Inject() (
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
     resolveAccessScoreArea(bbox, regionId, regionName).flatMap {
-      case Left(error) => Future.successful(badRequest(error))
+      case Left(error)                           => Future.successful(badRequest(error))
       case Right((resolvedBbox, regionFilterId)) =>
         accessScoreService.computeRegionScoresV3(resolvedBbox, DEFAULT_BATCH_SIZE).flatMap { allRegions =>
           val regions: Seq[RegionAccessScoreForApi] =
             regionFilterId.fold(allRegions)(id => allRegions.filter(_.regionId == id))
-          val baseFileName: String                  = s"accessScoreRegions_${OffsetDateTime.now()}"
+          val baseFileName: String                             = s"accessScoreRegions_${OffsetDateTime.now()}"
           val regionStream: Source[RegionAccessScoreForApi, _] = Source.fromIterator(() => regions.iterator)
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
@@ -116,10 +119,13 @@ class AccessScoreApiController @Inject() (
               outputCSV(regionStream, RegionAccessScoreForApi.csvHeader, inline, baseFileName + ".csv")
             case Some("shapefile") =>
               outputShapefile(
-                regionStream, baseFileName, shapefileCreator.createRegionAccessScoreShapefile, shapefileCreator)
+                regionStream,
+                baseFileName,
+                shapefileCreator.createRegionAccessScoreShapefile,
+                shapefileCreator
+              )
             case Some("geopackage") =>
-              outputGeopackage(
-                regionStream, baseFileName, shapefileCreator.createRegionAccessScoreGeopackage, inline)
+              outputGeopackage(regionStream, baseFileName, shapefileCreator.createRegionAccessScoreGeopackage, inline)
             case _ =>
               outputGeoJSON(regionStream, inline, baseFileName + ".json")
           }
@@ -147,7 +153,7 @@ class AccessScoreApiController @Inject() (
 
     firstError match {
       case Some(error) => Future.successful(Left(error))
-      case None =>
+      case None        =>
         configService.getCityMapParams.flatMap { cityMapParams =>
           val (finalBbox, finalRegionId, finalRegionName) =
             resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)

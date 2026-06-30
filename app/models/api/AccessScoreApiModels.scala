@@ -34,8 +34,13 @@ object AccessScoreApiModels {
    * names at 10 characters. GeoJSON/CSV/GeoPackage use the full names instead.
    */
   val shapefileTypeCode: Map[String, String] = Map(
-    "CurbRamp" -> "CRamp", "NoCurbRamp" -> "NoCRamp", "Obstacle" -> "Obst", "SurfaceProblem" -> "Surf",
-    "NoSidewalk" -> "NoSwk", "Crosswalk" -> "Xwalk", "Signal" -> "Signal"
+    "CurbRamp"       -> "CRamp",
+    "NoCurbRamp"     -> "NoCRamp",
+    "Obstacle"       -> "Obst",
+    "SurfaceProblem" -> "Surf",
+    "NoSidewalk"     -> "NoSwk",
+    "Crosswalk"      -> "Xwalk",
+    "Signal"         -> "Signal"
   )
 
   /** Builds a JSON object keyed by canonical label-type name from a (possibly sparse) per-type map, defaulting to 0. */
@@ -164,7 +169,7 @@ case class RegionAccessScoreForApi(
 
   /** Converts this region access score to a CSV row matching [[RegionAccessScoreForApi.csvHeader]]. */
   override def toCsvRow: String = {
-    val centroid = geometry.getCentroid
+    val centroid   = geometry.getCentroid
     val baseFields = Seq(
       regionId.toString,
       escapeCsvField(name),

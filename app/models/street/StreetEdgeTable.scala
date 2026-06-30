@@ -360,7 +360,8 @@ class StreetEdgeTable @Inject() (
     val regionIdFilter = filters.regionId.map { regionId => s"AND r.region_id = $regionId" }.getOrElse("")
 
     val regionNameFilter =
-      filters.regionName.map { regionName => s"AND LOWER(reg.name) = LOWER('${regionName.replace("'", "''")}')" }
+      filters.regionName
+        .map { regionName => s"AND LOWER(reg.name) = LOWER('${regionName.replace("'", "''")}')" }
         .getOrElse("")
 
     val statusFilter = filters.statuses

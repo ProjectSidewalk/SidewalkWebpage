@@ -28,24 +28,11 @@ class UserStatsApiModelsSpec extends AnyFunSuite with Matchers {
   )
 
   private def sampleUserStat: UserStatForApi = UserStatForApi(
-    userId = "user-1",
-    labels = 100,
-    metersExplored = 1234.5,
-    labelsPerMeter = Some(0.081),
-    highQuality = true,
-    highQualityManual = None,
-    labelAccuracy = Some(0.95),
-    validatedLabels = 50,
-    validationsReceived = 60,
-    labelsValidatedCorrect = 40,
-    labelsValidatedIncorrect = 10,
-    labelsNotValidated = 50,
-    validationsGiven = 20,
-    dissentingValidationsGiven = 2,
-    agreeValidationsGiven = 15,
-    disagreeValidationsGiven = 3,
-    unsureValidationsGiven = 2,
-    statsByLabelType = sampleStatsByLabelType
+    userId = "user-1", labels = 100, metersExplored = 1234.5, labelsPerMeter = Some(0.081), highQuality = true,
+    highQualityManual = None, labelAccuracy = Some(0.95), validatedLabels = 50, validationsReceived = 60,
+    labelsValidatedCorrect = 40, labelsValidatedIncorrect = 10, labelsNotValidated = 50, validationsGiven = 20,
+    dissentingValidationsGiven = 2, agreeValidationsGiven = 15, disagreeValidationsGiven = 3,
+    unsureValidationsGiven = 2, statsByLabelType = sampleStatsByLabelType
   )
 
   test("UserStatForApi JSON uses snake_case keys and a nested per-label-type breakdown") {
@@ -57,7 +44,8 @@ class UserStatsApiModelsSpec extends AnyFunSuite with Matchers {
     json.keys.filter(k => k != k.toLowerCase) shouldBe empty
 
     val byType = (json \ "stats_by_label_type").as[JsObject]
-    byType.keys should contain allOf ("curb_ramp", "no_curb_ramp", "marked_crosswalk", "pedestrian_signal", "cant_see_sidewalk")
+    byType.keys should contain allOf ("curb_ramp", "no_curb_ramp", "marked_crosswalk", "pedestrian_signal",
+      "cant_see_sidewalk")
     (byType \ "curb_ramp" \ "validated_correct").as[Int] shouldBe 1
     (byType \ "curb_ramp" \ "not_validated").as[Int] shouldBe 7
   }
@@ -73,25 +61,9 @@ class UserStatsApiModelsSpec extends AnyFunSuite with Matchers {
   }
 
   private def sampleCVMetadata: LabelCVMetadata = LabelCVMetadata(
-    labelId = 1,
-    panoId = "pano-1",
-    labelTypeId = 2,
-    agreeCount = 3,
-    disagreeCount = 1,
-    unsureCount = 0,
-    panoWidth = None,
-    panoHeight = Some(8192),
-    panoX = 100,
-    panoY = 200,
-    canvasWidth = 720,
-    canvasHeight = 480,
-    canvasX = 50,
-    canvasY = 60,
-    zoom = 1.0,
-    heading = 90.0,
-    pitch = -10.0,
-    cameraHeading = 95.0,
-    cameraPitch = 0.0,
+    labelId = 1, panoId = "pano-1", labelTypeId = 2, agreeCount = 3, disagreeCount = 1, unsureCount = 0,
+    panoWidth = None, panoHeight = Some(8192), panoX = 100, panoY = 200, canvasWidth = 720, canvasHeight = 480,
+    canvasX = 50, canvasY = 60, zoom = 1.0, heading = 90.0, pitch = -10.0, cameraHeading = 95.0, cameraPitch = 0.0,
     cameraRoll = None
   )
 

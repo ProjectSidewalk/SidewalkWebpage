@@ -2414,8 +2414,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _label      <- labels if _label.labelId inSet labelIds
       _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
       _panoData   <- panoData if _label.panoId === _panoData.panoId
-    } yield (_label.labelId, _label.panoId, _panoData.source, _labelPoint.heading, _labelPoint.pitch, _labelPoint.zoom))
-      .result
+    } yield (_label.labelId, _label.panoId, _panoData.source, _labelPoint.heading, _labelPoint.pitch,
+      _labelPoint.zoom)).result
   }
 
   /**

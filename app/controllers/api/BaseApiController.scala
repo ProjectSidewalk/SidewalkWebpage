@@ -120,7 +120,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       dateTime: Option[String],
       paramName: String
   ): Either[ApiError, Option[OffsetDateTime]] = dateTime match {
-    case None => Right(None)
+    case None    => Right(None)
     case Some(s) =>
       try {
         Right(Some(OffsetDateTime.parse(s)))
@@ -144,8 +144,11 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
   protected def validateRegionId(regionId: Option[Int]): Option[ApiError] =
     BaseApiController.validateRegionId(regionId)
   protected def resolveGeoFilters(
-      bbox: Option[String], parsedBbox: Option[LatLngBBox], regionId: Option[Int],
-      regionName: Option[String], cityMapParams: MapParams
+      bbox: Option[String],
+      parsedBbox: Option[LatLngBBox],
+      regionId: Option[Int],
+      regionName: Option[String],
+      cityMapParams: MapParams
   ): (Option[LatLngBBox], Option[Int], Option[String]) =
     BaseApiController.resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
   protected def parseCommaSeparated(raw: Option[String]): Option[Seq[String]] =
@@ -363,8 +366,10 @@ object BaseApiController {
    */
   def validateBBoxParam(bbox: Option[String], parsed: Option[LatLngBBox]): Option[ApiError] =
     if (bbox.isDefined && parsed.isEmpty)
-      Some(ApiError.invalidParameter(
-        "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox"))
+      Some(
+        ApiError
+          .invalidParameter("Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox")
+      )
     else None
 
   /**
@@ -403,8 +408,9 @@ object BaseApiController {
       maxLng = Math.max(cityMapParams.lng1, cityMapParams.lng2),
       maxLat = Math.max(cityMapParams.lat1, cityMapParams.lat2)
     )
-    val bboxActive   = bbox.isDefined && parsedBbox.isDefined
-    val finalBbox    = if (bboxActive) parsedBbox else if (regionId.isDefined || regionName.isDefined) None else Some(defaultBox)
+    val bboxActive = bbox.isDefined && parsedBbox.isDefined
+    val finalBbox  =
+      if (bboxActive) parsedBbox else if (regionId.isDefined || regionName.isDefined) None else Some(defaultBox)
     val finalRegId   = if (bboxActive) None else regionId
     val finalRegName = if (bboxActive || regionId.isDefined) None else regionName
     (finalBbox, finalRegId, finalRegName)
