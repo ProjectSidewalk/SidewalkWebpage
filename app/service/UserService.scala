@@ -7,6 +7,7 @@ import models.mission.{MissionTable, RegionalMission}
 import models.region.Region
 import models.street.StreetEdge
 import models.user._
+import models.userdashboard.{Trophy, TrophyTable}
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile
 import models.utils.ProfanityGuard
@@ -191,6 +192,7 @@ trait UserService {
   def getUserStanding(userId: String): Future[Option[UserStanding]]
   def getActivityStreak(userId: String): Future[StreakStats]
   def getAccuracyByType(userId: String): Future[Seq[AccuracyByType]]
+  def getTrophies(userId: String, cityName: String): Future[Seq[Trophy]]
   def getHoursAuditingAndValidating(userId: String): Future[Double]
   def getAuditedStreets(userId: String): Future[Seq[StreetEdge]]
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]]
@@ -204,6 +206,7 @@ class UserServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     userStatTable: UserStatTable,
     sidewalkUserTable: SidewalkUserTable,
+    trophyTable: TrophyTable,
     missionTable: MissionTable,
     labelTable: LabelTable,
     labelValidationTable: LabelValidationTable,
@@ -388,6 +391,37 @@ class UserServiceImpl @Inject() (
 
   def getAccuracyByType(userId: String): Future[Seq[AccuracyByType]] = {
     db.run(userStatTable.getLabelTypeAccuracy(userId)).map(UserService.computeAccuracyByType)
+  }
+
+  def getTrophies(userId: String, cityName: String): Future[Seq[Trophy]] = {
+    val aiId = SidewalkUserTable.aiUserId
+    // Kick off the four independent queries before the for-comprehension so they run in parallel.
+    val cityPioneerF    = db.run(trophyTable.getCityPioneerUserId(aiId))
+    val regionPioneersF = db.run(trophyTable.getRegionPioneers(userId, aiId, 5))
+    val championsF      = db.run(trophyTable.getRegionChampions(userId, aiId, 6))
+    val weeklyF         = db.run(trophyTable.getWeeklyPodiums(userId, 6))
+    val medals          = Map(1 -> "🥇", 2 -> "🥈", 3 -> "🥉")
+    for {
+      cityPioneer    <- cityPioneerF
+      regionPioneers <- regionPioneersF
+      champions      <- championsF
+      weekly         <- weeklyF
+    } yield {
+      // Order by prestige/rarity: city pioneer, then region pioneers, then region champions, then weekly podiums.
+      val cityTrophy =
+        if (cityPioneer.contains(userId))
+          Seq(Trophy("🌱", "City pioneer", s"First-ever labeler in $cityName", "pioneer"))
+        else Seq.empty
+      val regionPioneerTrophies =
+        regionPioneers.map(name => Trophy("🧭", "Region pioneer", s"First-ever labeler in $name", "pioneer"))
+      val championTrophies = champions.map { case (name, count) =>
+        Trophy("👑", s"$name champion", s"""${"%,d".format(count)} labels — most in this neighborhood""", "region")
+      }
+      val weeklyTrophies = weekly.map { case (weekOf, rank, _) =>
+        Trophy(medals.getOrElse(rank, "🏅"), "Top labeler", s"Week of $weekOf", "podium", rank)
+      }
+      cityTrophy ++ regionPioneerTrophies ++ championTrophies ++ weeklyTrophies
+    }
   }
 
   def getHoursAuditingAndValidating(userId: String): Future[Double] =

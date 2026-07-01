@@ -27,24 +27,6 @@ object DashboardMock {
     def nextLabel: Option[String] = if (earned < 5) Some(s"${roman(earned)}: ${levelNames(earned)}") else None
   }
 
-  /**
-   * A trophy the user has earned. `variant` selects the flavor + styling: "podium" (weekly/all-time top 3, colored by
-   * `rank` 1-3), "region" (Strava KOM-style top labeler in a neighborhood), or "pioneer" (first-ever labeler in a
-   * region or city). `cssClass`/`tagLabel` derive the visual treatment.
-   */
-  case class Trophy(medal: String, title: String, sub: String, variant: String = "podium", rank: Int = 0) {
-    def cssClass: String = variant match {
-      case "region"  => "ud-trophy-region"
-      case "pioneer" => "ud-trophy-pioneer"
-      case _         => s"ud-trophy-$rank"
-    }
-    def tagLabel: Option[String] = variant match {
-      case "region"  => Some("Region")
-      case "pioneer" => Some("Pioneer")
-      case _         => None
-    }
-  }
-
   val badgeTracks: Seq[BadgeTrack] = Seq(
     BadgeTrack(
       "Labeler",

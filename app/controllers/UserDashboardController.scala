@@ -43,6 +43,7 @@ class UserDashboardController @Inject() (
   def dashboardPreview = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     val user     = request.identity
     val isMetric = Messages("measurement.system") == "metric"
+    val cityName = configService.getCityName(request2Messages.lang)
     for {
       profileData <- userService.getUserProfileData(user.userId, isMetric)
       commonData  <- configService.getCommonPageData(request2Messages.lang)
@@ -50,9 +51,13 @@ class UserDashboardController @Inject() (
       standing    <- userService.getUserStanding(user.userId)
       streak      <- userService.getActivityStreak(user.userId)
       accuracy    <- userService.getAccuracyByType(user.userId)
+      trophies    <- userService.getTrophies(user.userId, cityName)
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboardPreview")
-      Ok(views.html.userDashboard.dashboard(commonData, user, profileData, isMetric, tags, standing, streak, accuracy))
+      Ok(
+        views.html.userDashboard
+          .dashboard(commonData, user, profileData, isMetric, tags, standing, streak, accuracy, trophies)
+      )
     }
   }
 
