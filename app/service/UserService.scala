@@ -29,6 +29,26 @@ case class UserProfileData(
     validationCount: Int,
     accuracy: Option[Double]
 )
+
+/**
+ * A user's accuracy for one label type, for the dashboard's learning section.
+ *
+ * @param labelType   LabelTypeEnum name (e.g. "NoCurbRamp").
+ * @param cssKey      Kebab-case key for the `--color-label-*` token (e.g. "no-curb-ramp").
+ * @param displayName Human-readable name (e.g. "No Curb Ramp").
+ * @param pct         Accuracy percent (correct / validated), 0–100.
+ * @param validated   Number of the user's labels of this type that were validated (correct + incorrect).
+ * @param weakest     True for the user's lowest-accuracy type (among those with enough validations), to highlight.
+ */
+case class AccuracyByType(
+    labelType: String,
+    cssKey: String,
+    displayName: String,
+    pct: Int,
+    validated: Int,
+    weakest: Boolean
+)
+
 case class AdminUserProfileData(
     currentRegion: Option[Region],
     numCompletedAudits: Int,
@@ -48,6 +68,37 @@ object UserService {
 
   /** Number of weeks shown in the activity heatmap (~4 months — enough to read a rhythm without lots of empty cells). */
   val HeatmapWeeks: Int = 18
+
+  /** Label types shown in the per-type accuracy bars (the ones with canonical `--color-label-*` colors), in order. */
+  private val PrimaryLabelTypes: Seq[String] =
+    Seq("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "NoSidewalk", "Crosswalk", "Signal")
+
+  /** Minimum validated labels of a type before it's eligible to be flagged as the user's "weakest" (avoids noise). */
+  private val MinValidatedForWeakest: Int = 5
+
+  /**
+   * Builds the per-type accuracy rows from raw (labelType, correct, incorrect) tallies. Pure/testable.
+   *
+   * Keeps only the primary (colored) label types the user has validated labels for, computes each type's accuracy,
+   * flags the lowest-accuracy type (among those with enough validations) as `weakest`, and orders canonically.
+   */
+  def computeAccuracyByType(rows: Seq[(String, Int, Int)]): Seq[AccuracyByType] = {
+    val primary                       = PrimaryLabelTypes.toSet
+    val pcts: Seq[(String, Int, Int)] = rows.collect {
+      case (t, correct, incorrect) if primary.contains(t) && (correct + incorrect) > 0 =>
+        (t, math.round(correct.toDouble / (correct + incorrect) * 100).toInt, correct + incorrect)
+    }
+    val weakest: Option[String] = pcts.filter(_._3 >= MinValidatedForWeakest).sortBy(_._2).headOption.map(_._1)
+    pcts.sortBy(p => PrimaryLabelTypes.indexOf(p._1)).map { case (t, pct, total) =>
+      AccuracyByType(t, kebabCase(t), spacedCase(t), pct, total, weakest.contains(t))
+    }
+  }
+
+  /** "NoCurbRamp" -> "no-curb-ramp" (matches the `--color-label-*` token names). */
+  private def kebabCase(labelType: String): String = labelType.replaceAll("(?<=[a-z])(?=[A-Z])", "-").toLowerCase
+
+  /** "NoCurbRamp" -> "No Curb Ramp". */
+  private def spacedCase(labelType: String): String = labelType.replaceAll("(?<=[a-z])(?=[A-Z])", " ")
 
   /**
    * Computes streak stats and the heatmap grid from a user's per-day activity counts. Pure (no I/O) so it's easy to
@@ -133,6 +184,7 @@ trait UserService {
   ): Future[Seq[LeaderboardStat]]
   def getUserStanding(userId: String): Future[Option[UserStanding]]
   def getActivityStreak(userId: String): Future[StreakStats]
+  def getAccuracyByType(userId: String): Future[Seq[AccuracyByType]]
   def getHoursAuditingAndValidating(userId: String): Future[Double]
   def getAuditedStreets(userId: String): Future[Seq[StreetEdge]]
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]]
@@ -279,6 +331,10 @@ class UserServiceImpl @Inject() (
       val counts = rows.map { case (day, count) => LocalDate.parse(day) -> count }.toMap
       UserService.computeStreakStats(counts, LocalDate.now(ZoneId.of("US/Pacific")))
     }
+  }
+
+  def getAccuracyByType(userId: String): Future[Seq[AccuracyByType]] = {
+    db.run(userStatTable.getLabelTypeAccuracy(userId)).map(UserService.computeAccuracyByType)
   }
 
   def getHoursAuditingAndValidating(userId: String): Future[Double] =

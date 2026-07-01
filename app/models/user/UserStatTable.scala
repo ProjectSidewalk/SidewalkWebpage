@@ -687,6 +687,26 @@ class UserStatTable @Inject() (
   }
 
   /**
+   * Per-label-type validation tallies for a user: how many of their labels of each type were judged correct vs
+   * incorrect (by majority vote). Only non-deleted, non-tutorial labels. Drives the dashboard's per-type accuracy
+   * bars.
+   *
+   * @param userId The user whose labels to tally.
+   * @return       One row per label type present: (label type name, correct count, incorrect count).
+   */
+  def getLabelTypeAccuracy(userId: String): DBIO[Seq[(String, Int, Int)]] = {
+    sql"""
+      SELECT label_type.label_type,
+             COUNT(*) FILTER (WHERE label.correct IS TRUE)::int AS correct,
+             COUNT(*) FILTER (WHERE label.correct IS FALSE)::int AS incorrect
+      FROM label
+      INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+      WHERE label.user_id = $userId AND label.deleted = FALSE AND label.tutorial = FALSE
+      GROUP BY label_type.label_type;
+    """.as[(String, Int, Int)]
+  }
+
+  /**
    * Get all users, excluding anon users who haven't placed any labels or done any validations (to limit table size).
    */
   def usersMinusAnonUsersWithNoLabelsAndNoValidations: DBIO[Seq[SidewalkUserWithRole]] = {

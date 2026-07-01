@@ -45,9 +45,6 @@ object DashboardMock {
     }
   }
 
-  /** Per-label-type accuracy, with the user's weakest type flagged for emphasis. */
-  case class AccuracyRow(name: String, cssKey: String, pct: Int, weakest: Boolean)
-
   val badgeTracks: Seq[BadgeTrack] = Seq(
     BadgeTrack(
       "Labeler",
@@ -90,15 +87,6 @@ object DashboardMock {
     Trophy("🥇", "Top labeler", "Week of Jun 16 · this city", variant = "podium", rank = 1),
     Trophy("🥈", "Top validator", "Week of Jun 9 · this city", variant = "podium", rank = 2),
     Trophy("🥉", "Top labeler", "Week of May 26 · this city", variant = "podium", rank = 3)
-  )
-
-  val accuracyByType: Seq[AccuracyRow] = Seq(
-    AccuracyRow("Curb Ramp", "curb-ramp", 94, weakest = false),
-    AccuracyRow("No Curb Ramp", "no-curb-ramp", 88, weakest = false),
-    AccuracyRow("Crosswalk", "crosswalk", 91, weakest = false),
-    AccuracyRow("Surface Problem", "surface-problem", 77, weakest = false),
-    AccuracyRow("Obstacle", "obstacle", 61, weakest = true),
-    AccuracyRow("No Sidewalk", "no-sidewalk", 83, weakest = false)
   )
 
 }

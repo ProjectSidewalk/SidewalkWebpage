@@ -1,10 +1,10 @@
-@import service.{CommonPageData, UserProfileData}
+@import service.{AccuracyByType, CommonPageData, UserProfileData}
 @import models.user.{SidewalkUserWithRole, StreakStats, UserStanding}
 @import models.label.Tag
 @import models.userdashboard.DashboardMock
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, profileData: UserProfileData, isMetric: Boolean,
-        tags: Seq[Tag], standing: Option[UserStanding], streak: StreakStats
+        tags: Seq[Tag], standing: Option[UserStanding], streak: StreakStats, accuracyByType: Seq[AccuracyByType]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Formats the already-unit-converted audited distance (km when metric, else miles) with one decimal + unit. *@
@@ -176,19 +176,23 @@
     @* ---- Learning — Recent mistakes gallery ------------------------------------------------------------- *@
     <div class="api-section" id="ud-mistakes-section">
         <h2 class="api-heading" id="mistakes">What you can improve <a href="#mistakes" class="permalink">#</a></h2>
-        <p>Labels that other mappers validated as incorrect, so you can sharpen your eye. Your accuracy varies by label type — your trickiest type is highlighted.</p>
+        <p>Labels that other mappers validated as incorrect, so you can sharpen your eye. Your accuracy varies by label type@if(accuracyByType.exists(_.weakest)){ — your trickiest type is highlighted}.</p>
 
-        <div class="ud-accuracy-bars">
-            @for(a <- DashboardMock.accuracyByType) {
-                <div class="ud-acc-row @if(a.weakest){ud-acc-weakest}">
-                    <span class="ud-acc-label">
-                        <span class="ud-acc-swatch" style="background: var(--color-label-@a.cssKey)"></span>@a.name
-                    </span>
-                    <span class="ud-acc-bar"><span class="ud-acc-fill" style="width: @a.pct%; background: var(--color-label-@a.cssKey)"></span></span>
-                    <span class="ud-acc-pct">@a.pct%</span>
-                </div>
-            }
-        </div>
+        @if(accuracyByType.nonEmpty) {
+            <div class="ud-accuracy-bars">
+                @for(a <- accuracyByType) {
+                    <div class="ud-acc-row @if(a.weakest){ud-acc-weakest}">
+                        <span class="ud-acc-label">
+                            <span class="ud-acc-swatch" style="background: var(--color-label-@a.cssKey)"></span>@a.displayName
+                        </span>
+                        <span class="ud-acc-bar"><span class="ud-acc-fill" style="width: @a.pct%; background: var(--color-label-@a.cssKey)"></span></span>
+                        <span class="ud-acc-pct" title="@a.validated validated">@a.pct%</span>
+                    </div>
+                }
+            </div>
+        } else {
+            <div class="ud-nudge">📊 Once your labels have been validated by others, your accuracy by type will show up here.</div>
+        }
 
         <h3 class="api-heading" id="recent-mistakes">Recent mistakes <a href="#recent-mistakes" class="permalink">#</a></h3>
         <p>Disagree with a validation? Tell us — you can stand by your label and leave a note for context.</p>
