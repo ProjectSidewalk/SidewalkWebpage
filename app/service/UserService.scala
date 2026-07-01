@@ -200,6 +200,7 @@ trait UserService {
       isMetric: Boolean,
       cityName: String
   ): Future[Option[PublicProfile]]
+  def resolveVisibleUser(username: String, isOwner: Boolean): Future[Option[String]]
   def changeUsername(userId: String, newUsername: String): Future[Either[String, String]]
   def getUserTeam(userId: String): Future[Option[Team]]
   def setUserTeam(userId: String, newTeamId: Int): Future[Int]
@@ -337,6 +338,23 @@ class UserServiceImpl @Inject() (
             Future.successful(Some(PublicProfile(u.username, visible = false, None, Seq.empty)))
           }
         }
+    }
+  }
+
+  /**
+   * Resolves a username to its user id only if the profile may be shown to this viewer, gating the public profile's
+   * map endpoints. Returns None for an unknown username or a private profile the viewer doesn't own.
+   *
+   * @param username The mapper's username.
+   * @param isOwner  Whether the viewer is that mapper (owners always see their own map).
+   * @return         Some(userId) if visible, else None.
+   */
+  def resolveVisibleUser(username: String, isOwner: Boolean): Future[Option[String]] = {
+    sidewalkUserTable.findByUsername(username).flatMap {
+      case None    => Future.successful(None)
+      case Some(u) =>
+        if (isOwner) Future.successful(Some(u.userId))
+        else db.run(userStatTable.getPrivacySettings(u.userId)).map(p => if (p.exists(_._2)) Some(u.userId) else None)
     }
   }
 

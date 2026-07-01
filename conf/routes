@@ -163,6 +163,9 @@ GET     /dashboard/preview/settings                     controllers.UserDashboar
 POST    /dashboard/preview/settings                     controllers.UserDashboardController.saveSettings
 GET     /dashboard/preview/u/:username                  controllers.UserDashboardController.publicProfilePreview(username: String)
 GET     /leaderboard/preview                            controllers.UserDashboardController.leaderboardPreview
+# Public-profile map data: username-keyed, gated on the target's public_profile flag (or owner). Returns 403 if private.
+GET     /userapi/public/:username/streets               controllers.UserProfileController.getPublicAuditedStreets(username: String)
+GET     /userapi/public/:username/labels                controllers.UserProfileController.getPublicSubmittedLabels(username: String)
 GET     /userapi/mistakes                               controllers.UserProfileController.getRecentMistakes(userId: String, n: Int ?= 5)
 POST    /userapi/contestMistake                         controllers.UserProfileController.contestMistake()
 

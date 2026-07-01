@@ -57,6 +57,35 @@ class UserProfileController @Inject() (
     }
   }
 
+  /** Builds the choropleth GeoJSON FeatureCollection for a set of a user's audited streets. */
+  private def streetsToGeoJson(streets: Seq[models.street.StreetEdge]): JsObject = {
+    val features: Seq[JsObject] = streets.map { street =>
+      val properties: JsObject = Json.obj("street_edge_id" -> street.streetEdgeId, "way_type" -> street.wayType)
+      Json.obj("type" -> "Feature", "geometry" -> street.geom, "properties" -> properties)
+    }
+    Json.obj("type" -> "FeatureCollection", "features" -> features)
+  }
+
+  /** Builds the GeoJSON FeatureCollection of a user's label points for the choropleth. */
+  private def labelsToGeoJson(labels: Seq[models.label.LabelLocation]): JsObject = {
+    val features: Seq[JsObject] = labels.map { label =>
+      Json.obj(
+        "type"       -> "Feature",
+        "geometry"   -> Json.obj("type" -> "Point", "coordinates" -> Json.arr(label.lng, label.lat)),
+        "properties" -> Json.obj(
+          "audit_task_id"   -> label.auditTaskId,
+          "label_id"        -> label.labelId,
+          "pano_id"         -> label.panoId,
+          "label_type"      -> label.labelType,
+          "correct"         -> label.correct,
+          "has_validations" -> label.hasValidations,
+          "expired"         -> label.expired
+        )
+      )
+    }
+    Json.obj("type" -> "FeatureCollection", "features" -> features)
+  }
+
   /**
    * Get the list of streets that have been audited by the given user.
    */
@@ -64,20 +93,23 @@ class UserProfileController @Inject() (
     implicit request =>
       logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
       authenticationService.findByUserId(userId).flatMap {
-        case Some(user) =>
-          userService.getAuditedStreets(userId).map { streets =>
-            val features: Seq[JsObject] = streets.map { street =>
-              val properties: JsObject = Json.obj(
-                "street_edge_id" -> street.streetEdgeId,
-                "way_type"       -> street.wayType
-              )
-              Json.obj("type" -> "Feature", "geometry" -> street.geom, "properties" -> properties)
-            }
-            val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-            Ok(featureCollection)
-          }
-        case _ => Future.failed(new IdentityNotFoundException("Username not found."))
+        case Some(user) => userService.getAuditedStreets(userId).map(streets => Ok(streetsToGeoJson(streets)))
+        case _          => Future.failed(new IdentityNotFoundException("Username not found."))
       }
+  }
+
+  /**
+   * Public version of [[getAuditedStreets]] for the public profile map, keyed by username and gated on the target's
+   * `public_profile` flag (or the viewer being the owner). Returns 403 for a private profile or unknown user, so the
+   * map on a private profile stays empty.
+   *
+   * @param username The mapper whose audited streets to return.
+   */
+  def getPublicAuditedStreets(username: String) = cc.securityService.SecuredAction { implicit request =>
+    userService.resolveVisibleUser(username, isOwner = request.identity.username == username).flatMap {
+      case Some(uid) => userService.getAuditedStreets(uid).map(streets => Ok(streetsToGeoJson(streets)))
+      case None      => Future.successful(Forbidden(Json.obj("status" -> "private")))
+    }
   }
 
   /**
@@ -113,32 +145,23 @@ class UserProfileController @Inject() (
     cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { implicit request =>
       logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
       authenticationService.findByUserId(userId).flatMap {
-        case Some(user) =>
-          userService.getLabelLocations(userId, regionId).map { labels =>
-            val features: Seq[JsObject] = labels.map { label =>
-              Json.obj(
-                "type"     -> "Feature",
-                "geometry" -> Json.obj(
-                  "type"        -> "Point",
-                  "coordinates" -> Json.arr(label.lng, label.lat)
-                ),
-                "properties" -> Json.obj(
-                  "audit_task_id"   -> label.auditTaskId,
-                  "label_id"        -> label.labelId,
-                  "pano_id"         -> label.panoId,
-                  "label_type"      -> label.labelType,
-                  "correct"         -> label.correct,
-                  "has_validations" -> label.hasValidations,
-                  "expired"         -> label.expired
-                )
-              )
-            }
-            val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-            Ok(featureCollection)
-          }
-        case _ => Future.failed(new IdentityNotFoundException("Username not found."))
+        case Some(user) => userService.getLabelLocations(userId, regionId).map(labels => Ok(labelsToGeoJson(labels)))
+        case _          => Future.failed(new IdentityNotFoundException("Username not found."))
       }
     }
+
+  /**
+   * Public version of [[getSubmittedLabels]] for the public profile map, keyed by username and gated on the target's
+   * `public_profile` flag (or the viewer being the owner). Returns 403 for a private profile or unknown user.
+   *
+   * @param username The mapper whose labels to return.
+   */
+  def getPublicSubmittedLabels(username: String) = cc.securityService.SecuredAction { implicit request =>
+    userService.resolveVisibleUser(username, isOwner = request.identity.username == username).flatMap {
+      case Some(uid) => userService.getLabelLocations(uid, None).map(labels => Ok(labelsToGeoJson(labels)))
+      case None      => Future.successful(Forbidden(Json.obj("status" -> "private")))
+    }
+  }
 
   /**
    * Get up `n` recent mistakes for each label type, using validations provided by other users.

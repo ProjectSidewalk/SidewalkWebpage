@@ -1,16 +1,17 @@
 @import service.{CommonPageData, PublicProfile, UserProfileData}
 @import models.user.SidewalkUserWithRole
+@import models.label.Tag
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, profileName: String, isMetric: Boolean,
-        profile: Option[PublicProfile]
+        profile: Option[PublicProfile], tags: Seq[Tag]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
  * Public version of a mapper's dashboard, reached by clicking a name on the leaderboard. Viewable by anyone, including
- * anonymous accounts. Shows only celebratory, non-PII accomplishments — impact KPIs, badges, and trophies — never
- * their email, "recent mistakes"/contest tools, or settings. Three states, resolved server-side into `profile`:
- * None (no such user), Some(visible = false) (kept private), Some(visible = true) (real data). The map is still a
- * placeholder pending public street/label endpoints; everything else is real.
+ * anonymous accounts. Shows only celebratory, non-PII accomplishments — impact KPIs, badges, trophies, and a
+ * contribution map — never their email, "recent mistakes"/contest tools, or settings. Three states, resolved
+ * server-side into `profile`: None (no such user), Some(visible = false) (kept private), Some(visible = true) (real
+ * data). The map reads the public, public_profile-gated `/userapi/public/:username/...` endpoints.
  *@
 
 @monogram = @{ profileName.take(2).toUpperCase }
@@ -84,9 +85,10 @@
 
     <div class="api-section" id="pp-map-section">
         <h2 class="api-heading" id="map">Where they've explored <a href="#map" class="permalink">#</a></h2>
-        <div class="ud-map-placeholder" role="img" aria-label="Map placeholder — the live profile renders this mapper's audited streets and labels here">
-            <span>🗺️ @{profileName}'s contribution map</span>
-            <small>(coming soon — needs public street/label endpoints)</small>
+        <p class="ud-map-caption">@{profileName}'s audited streets and labels. Open the legend to filter.</p>
+        <div id="public-profile-choropleth-holder" class="choropleth-holder">
+            <div id="public-profile-choropleth" class="choropleth"></div>
+            @common.mapSidebar(tags = tags, streetsShownByDefault = true)
         </div>
     </div>
 
@@ -100,6 +102,10 @@
     }
 
     <p class="ud-section-note">Public view — only accomplishments are shown. Email, "recent mistakes", and settings stay private to @profileName.</p>
+
+    @* Contribution map wired to the public, username-keyed, public_profile-gated endpoints. *@
+    @userDashboard._contributionMapScript("public-profile-choropleth", commonData.mapboxApiKey,
+        s"/userapi/public/${profileName}/streets", s"/userapi/public/${profileName}/labels")
 
     <script src="@assets.path("javascripts/common/BadgeAchievements.js")"></script>
     <script src="@assets.path("javascripts/UserDashboard/src/DashboardBadges.js")"></script>

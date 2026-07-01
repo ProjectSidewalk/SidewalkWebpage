@@ -210,46 +210,9 @@
         <div class="ud-nudge">👋 Invite classmates or friends to your team — mapping together is more fun, and you'll climb the team board faster!</div>
     </div>
 
-    @* Contribution map: the existing PSMap choropleth (streets + your labels). No pano popup in this pass, so the
-       heavy pano/label-popup deps are skipped. jQuery, appManager, i18next, and util.* come from common.main. *@
-    <link href="@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")" rel="stylesheet"/>
-    <link href="@assets.path("stylesheets/choropleth.css")" rel="stylesheet"/>
-    <link href="@assets.path("stylesheets/mapSidebar.css")" rel="stylesheet"/>
-    <link href="@assets.path("stylesheets/tag-pills.css")" rel="stylesheet"/>
-    <script src="@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")"></script>
-    <script src="@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")"></script>
-    <script src="@assets.path("javascripts/lib/turf-7.3.4.min.js")"></script>
-    <script src="@assets.path("javascripts/PSMap/build/PSMap.js")"></script>
-    <script>
-        window.appManager.ready(async function () {
-            const params = {
-                mapName: 'user-dashboard-choropleth',
-                mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-                mapboxApiKey: '@commonData.mapboxApiKey',
-                zoomCorrection: -0.5,
-                mapboxLogoLocation: 'bottom-right',
-                neighborhoodsURL: '/neighborhoods',
-                completionRatesURL: '/adminapi/neighborhoodCompletionRate',
-                streetsURL: '/contribution/streets?userId=@user.userId',
-                labelsURL: '/userapi/labels?userId=@user.userId',
-                neighborhoodFillMode: 'singleColor',
-                neighborhoodTooltip: 'none',
-                neighborhoodFillColor: '#5d6d6b',
-                neighborhoodFillOpacity: 0.1,
-                uiSource: 'UserMap',
-                navigationControlPosition: 'top-right'
-            };
-            try {
-                const m = await CreatePSMap($, params);
-                new MapSidebarFilter(m[0], m[4], { highQualityFilter: false });
-                // Start with the legend drawer closed (re-centers the map via the real close handler).
-                const closeBtn = document.getElementById('map-sidebar-close');
-                if (closeBtn) closeBtn.click();
-            } catch (e) {
-                console.error('User contribution map failed to load', e);
-            }
-        });
-    </script>
+    @* Contribution map: the shared PSMap choropleth wired to the signed-in user's own streets/labels. *@
+    @userDashboard._contributionMapScript("user-dashboard-choropleth", commonData.mapboxApiKey,
+        s"/contribution/streets?userId=${user.userId}", s"/userapi/labels?userId=${user.userId}")
 
     @* Badge rendering from real counts (BadgeAchievements is the source of truth for thresholds + level names). *@
     @userDashboard._createTeamDialog()

@@ -152,8 +152,8 @@ class UserDashboardController @Inject() (
    *
    * Bare `SecuredAction` so anyone, including anonymous accounts, can view it after clicking a name on the leaderboard.
    * The service resolves the three states: a missing username (`None` → not-found), a private profile the viewer
-   * doesn't own (`visible = false` → "kept private"), or a visible profile with real KPIs, badges, and trophies. The
-   * map is still a placeholder pending public street/label endpoints.
+   * doesn't own (`visible = false` → "kept private"), or a visible profile with real KPIs, badges, trophies, and a
+   * contribution map (fed by the public `/userapi/public/:username/...` endpoints, gated on the same flag).
    *
    * @param username The mapper whose public profile to show.
    */
@@ -165,9 +165,10 @@ class UserDashboardController @Inject() (
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
       profile    <- userService.getPublicProfile(username, isOwner, isMetric, cityName)
+      tags       <- labelService.getTagsForCurrentCity
     } yield {
       cc.loggingService.insert(viewer.userId, request.ipAddress, "Visit_PublicProfilePreview")
-      Ok(views.html.userDashboard.publicProfile(commonData, viewer, username, isMetric, profile))
+      Ok(views.html.userDashboard.publicProfile(commonData, viewer, username, isMetric, profile, tags))
     }
   }
 }
