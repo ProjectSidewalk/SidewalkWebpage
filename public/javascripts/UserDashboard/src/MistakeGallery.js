@@ -14,15 +14,39 @@ class MistakeGallery {
      * @param {string} opts.userId - The signed-in user's id (the endpoint is self-or-admin only).
      * @param {number} [opts.limit=6] - Max cards to show.
      * @param {HTMLElement} [opts.seeAllEl] - Optional "see all" link, shown only when there are mistakes.
+     * @param {object} [opts.labelPopup] - Optional shared LabelPopup instance; when present, clicking a card image
+     *      opens the interactive pano + detail view and the vote/note controls are mirrored inside it.
      */
     constructor(rootEl, opts) {
         this.root = rootEl;
         this.userId = opts.userId;
         this.limit = opts.limit || 6;
         this.seeAllEl = opts.seeAllEl || null;
+        this.labelPopup = opts.labelPopup || null;
+        // Per-label response state shared between a card and the popup so they stay in sync in-session.
+        this.responses = new Map(); // label_id -> { agrees: boolean|null, note: string }
+        this.popupPanel = null; // the vote/note panel injected into the popup dialog
         // Explore canvas dimensions (fallback if util.EXPLORE_CANVAS_* isn't loaded on this page).
         this.canvasW = (window.util && util.EXPLORE_CANVAS_WIDTH) || 720;
         this.canvasH = (window.util && util.EXPLORE_CANVAS_HEIGHT) || 480;
+    }
+
+    /** Returns (creating if needed) the mutable response state for a label. */
+    #stateFor(labelId) {
+        if (!this.responses.has(labelId)) this.responses.set(labelId, { agrees: null, note: '' });
+        return this.responses.get(labelId);
+    }
+
+    /**
+     * Re-renders every vote/note section currently in the DOM for a label (its card + the popup panel), so a change in
+     * one place is reflected in the other.
+     * @param {Object} m - The label record.
+     */
+    #sync(m) {
+        document.querySelectorAll(`[data-ud-vote="${m.label_id}"]`)
+            .forEach(el => el.replaceWith(this.#voteSection(m)));
+        document.querySelectorAll(`[data-ud-note="${m.label_id}"]`)
+            .forEach(el => el.replaceWith(this.#noteSection(m)));
     }
 
     /** Fetches the mistakes and renders them (or the empty state). */
@@ -95,6 +119,23 @@ class MistakeGallery {
         verdict.className = 'ud-card-verdict';
         verdict.textContent = 'Marked incorrect';
         img.appendChild(verdict);
+
+        // Clicking the image opens the shared interactive label popup (pano + detail), when available.
+        if (this.labelPopup) {
+            img.classList.add('ud-card-img-clickable');
+            img.setAttribute('role', 'button');
+            img.setAttribute('tabindex', '0');
+            img.title = 'Open the interactive label view';
+            const open = () => this.#openPopup(m);
+            img.addEventListener('click', open);
+            img.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+            });
+            const hint = document.createElement('span');
+            hint.className = 'ud-card-expand-hint';
+            hint.textContent = '⤢ Open';
+            img.appendChild(hint);
+        }
         card.appendChild(img);
 
         const body = document.createElement('figcaption');
@@ -115,29 +156,59 @@ class MistakeGallery {
         }
         body.appendChild(valNote);
 
-        // Two independent controls: the vote (instant on click, changeable) and the note (optional, stands alone).
-        body.appendChild(this.#voteSection(card, m, null));
-        body.appendChild(this.#noteSection(card, m, ''));
+        // Two independent controls: the vote (instant, changeable) and the note (optional). Both read shared state so
+        // the card and the popup panel mirror each other.
+        body.appendChild(this.#voteSection(m));
+        body.appendChild(this.#noteSection(m));
 
         card.appendChild(body);
         return card;
     }
 
     /**
-     * The agree/contest vote control. When unvoted it shows the two buttons; once voted it shows the choice and a
-     * "Change response" button. Voting is instant (no separate submit) and re-rendered in place.
-     *
-     * @param {HTMLElement} card - The card element (for the voted tint).
+     * Opens the interactive label popup for a card and mirrors the vote/note controls inside it.
      * @param {Object} m - The label record.
-     * @param {boolean|null} agrees - The current vote, or null if not yet voted.
+     */
+    async #openPopup(m) {
+        try {
+            await this.labelPopup.showLabel(m.label_id, 'UserDashboard');
+            this.#mountPopupPanel(m);
+        } catch (e) {
+            console.error('Failed to open the label popup', e);
+        }
+    }
+
+    /**
+     * Injects (or replaces) the vote/note panel inside the popup dialog for the given label.
+     * @param {Object} m - The label record.
+     */
+    #mountPopupPanel(m) {
+        const dialog = document.getElementById('label-modal');
+        if (!dialog) return;
+        if (this.popupPanel) this.popupPanel.remove();
+        const panel = document.createElement('div');
+        panel.className = 'ud-mistake-response';
+        const heading = document.createElement('p');
+        heading.className = 'ud-card-prompt';
+        heading.textContent = 'This label of yours was validated as incorrect. Your response:';
+        panel.append(heading, this.#voteSection(m), this.#noteSection(m));
+        dialog.appendChild(panel);
+        this.popupPanel = panel;
+    }
+
+    /**
+     * The agree/contest vote control, driven by shared per-label state. Unvoted shows the two buttons; voted shows the
+     * choice + a "Change response" button. Instant (no separate submit). Tagged with data-ud-vote for #sync.
+     * @param {Object} m - The label record.
      * @returns {HTMLElement} The vote-section element.
      */
-    #voteSection(card, m, agrees) {
+    #voteSection(m) {
+        const agrees = this.#stateFor(m.label_id).agrees;
         const sec = document.createElement('div');
         sec.className = 'ud-card-vote';
+        sec.dataset.udVote = m.label_id;
 
         if (agrees === null) {
-            card.classList.remove('ud-card-voted');
             const prompt = document.createElement('p');
             prompt.className = 'ud-card-prompt';
             prompt.textContent = 'Do you agree this was a mistake?';
@@ -147,12 +218,12 @@ class MistakeGallery {
                 'Records that you agree this label was incorrect');
             const contestBtn = MistakeGallery.#chip('ud-chip-disagree', '✋ No — my label was correct',
                 'Stand by your label — contest the validation');
-            agreeBtn.addEventListener('click', () => this.#vote(m, sec, card, true));
-            contestBtn.addEventListener('click', () => this.#vote(m, sec, card, false));
+            agreeBtn.addEventListener('click', () => this.#vote(m, sec, true));
+            contestBtn.addEventListener('click', () => this.#vote(m, sec, false));
             actions.append(agreeBtn, contestBtn);
             sec.append(prompt, actions);
         } else {
-            card.classList.add('ud-card-voted');
+            sec.classList.add('ud-card-vote--done');
             const msg = document.createElement('p');
             msg.className = 'ud-card-voted-msg';
             msg.textContent = agrees
@@ -162,20 +233,19 @@ class MistakeGallery {
             change.type = 'button';
             change.className = 'ud-btn-secondary ud-card-change';
             change.textContent = 'Change response';
-            change.addEventListener('click', () => sec.replaceWith(this.#voteSection(card, m, null)));
+            change.addEventListener('click', () => { this.#stateFor(m.label_id).agrees = null; this.#sync(m); });
             sec.append(msg, change);
         }
         return sec;
     }
 
     /**
-     * Records a vote and, on success, re-renders the vote section in its voted state.
+     * Records a vote and, on success, updates shared state and re-renders every vote section for this label.
      * @param {Object} m - The label record.
-     * @param {HTMLElement} sec - The vote section to replace.
-     * @param {HTMLElement} card - The card element.
+     * @param {HTMLElement} sec - The vote section (buttons disabled during the request).
      * @param {boolean} agrees - True = agree it was a mistake; false = contest.
      */
-    async #vote(m, sec, card, agrees) {
+    async #vote(m, sec, agrees) {
         sec.querySelectorAll('button').forEach(b => b.setAttribute('disabled', 'disabled'));
         try {
             const res = await fetch('/userapi/mistakeVote', {
@@ -184,7 +254,8 @@ class MistakeGallery {
                 body: JSON.stringify({ label_id: m.label_id, agrees: agrees })
             });
             if (!res.ok) throw new Error(`vote failed: ${res.status}`);
-            sec.replaceWith(this.#voteSection(card, m, agrees));
+            this.#stateFor(m.label_id).agrees = agrees;
+            this.#sync(m);
         } catch (e) {
             console.error('Failed to record vote', e);
             sec.querySelectorAll('button').forEach(b => b.removeAttribute('disabled'));
@@ -195,14 +266,14 @@ class MistakeGallery {
      * The optional note control, independent of the vote. Shows the saved note (if any) plus an "Add/Edit note" link
      * that reveals a textarea + "Save note". A note can be left with or without a vote.
      *
-     * @param {HTMLElement} card - The card element.
      * @param {Object} m - The label record.
-     * @param {string} note - The current note ('' if none).
-     * @returns {HTMLElement} The note-section element.
+     * @returns {HTMLElement} The note-section element (tagged data-ud-note for #sync).
      */
-    #noteSection(card, m, note) {
+    #noteSection(m) {
+        const note = this.#stateFor(m.label_id).note;
         const sec = document.createElement('div');
         sec.className = 'ud-card-note-section';
+        sec.dataset.udNote = m.label_id;
 
         if (note) {
             const saved = document.createElement('p');
@@ -237,19 +308,18 @@ class MistakeGallery {
             wrap.hidden = !wrap.hidden;
             if (!wrap.hidden) textarea.focus();
         });
-        saveBtn.addEventListener('click', () => this.#saveNote(m, sec, card, textarea.value));
+        saveBtn.addEventListener('click', () => this.#saveNote(m, sec, textarea.value));
 
         return sec;
     }
 
     /**
-     * Saves a note and, on success, re-renders the note section showing it (with an Edit affordance).
+     * Saves a note and, on success, updates shared state and re-renders every note section for this label.
      * @param {Object} m - The label record.
-     * @param {HTMLElement} sec - The note section to replace.
-     * @param {HTMLElement} card - The card element.
+     * @param {HTMLElement} sec - The note section (disabled during the request).
      * @param {string} comment - The note text.
      */
-    async #saveNote(m, sec, card, comment) {
+    async #saveNote(m, sec, comment) {
         const trimmed = (comment || '').trim();
         sec.querySelectorAll('button, textarea, a').forEach(el => el.setAttribute('disabled', 'disabled'));
         try {
@@ -259,7 +329,8 @@ class MistakeGallery {
                 body: JSON.stringify({ label_id: m.label_id, comment: trimmed })
             });
             if (!res.ok) throw new Error(`note failed: ${res.status}`);
-            sec.replaceWith(this.#noteSection(card, m, trimmed));
+            this.#stateFor(m.label_id).note = trimmed;
+            this.#sync(m);
         } catch (e) {
             console.error('Failed to save note', e);
             sec.querySelectorAll('button, textarea, a').forEach(el => el.removeAttribute('disabled'));

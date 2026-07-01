@@ -2,6 +2,7 @@
 @import models.user.{SidewalkUserWithRole, StreakStats, UserStanding}
 @import models.label.Tag
 @import models.userdashboard.Trophy
+@import models.pano.PanoSource
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, profileData: UserProfileData, isMetric: Boolean,
         tags: Seq[Tag], standing: Option[UserStanding], streak: StreakStats, accuracyByType: Seq[AccuracyByType],
@@ -213,6 +214,29 @@
     @userDashboard._contributionMapScript("user-dashboard-choropleth", commonData.mapboxApiKey,
         s"/contribution/streets?userId=${user.userId}", s"/userapi/labels?userId=${user.userId}")
 
+    @* Interactive label popup (shared common/label-detail stack) so a mistake card expands into the pano + detail,
+       reusing what LabelMap/Gallery use. Loaded directly (not a Grunt bundle) like the redesign's other src. *@
+    @common.labelPopup(admin = false)
+    <link href='@assets.path("stylesheets/labelDetail.css")' rel="stylesheet"/>
+    @if(commonData.imagerySource == PanoSource.Infra3d) {
+        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("javascripts/lib/infra3dapi-1.8.0.js")'></script>
+    } else if (commonData.imagerySource == PanoSource.Mapillary) {
+        <script src='@assets.path("javascripts/lib/three-0.160.1-min.js")'></script>
+        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+    }
+    <script src='@assets.path("javascripts/lib/pannellum-2.5.7.js")'></script>
+    <link rel="stylesheet" href='@assets.path("stylesheets/pannellum-2.5.7.css")'/>
+    <script src='@assets.path("javascripts/lib/panzoom-9.4.4.min.js")'></script>
+    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
+    <script src='@assets.path("javascripts/common/AiLabelIndicator.js")'></script>
+    <script src='@assets.path("javascripts/common/PanoMarker.js")'></script>
+    <script src='@assets.path("javascripts/common/Toast.js")'></script>
+    <script src='@assets.path("javascripts/common/label-detail/PopupPanoManager.js")'></script>
+    <script src='@assets.path("javascripts/common/label-detail/LabelDetail.js")'></script>
+    <script src='@assets.path("javascripts/common/label-detail/LabelPopup.js")'></script>
+
     @* Badge rendering from real counts (BadgeAchievements is the source of truth for thresholds + level names). *@
     @userDashboard._createTeamDialog()
     <script src="@assets.path("javascripts/UserDashboard/src/TeamCreate.js")"></script>
@@ -220,17 +244,30 @@
     <script src="@assets.path("javascripts/UserDashboard/src/DashboardBadges.js")"></script>
     <script src="@assets.path("javascripts/UserDashboard/src/MistakeGallery.js")"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        window.appManager.ready(async function () {
             var badges = document.getElementById('ud-badges');
             if (badges && typeof DashboardBadges !== 'undefined') {
                 try { new DashboardBadges(badges).render(); } catch (e) { console.error('Badge render failed', e); }
             }
+
+            // Build the interactive label popup up front (it initializes the pano viewer). Entirely optional: if it
+            // fails, the mistake cards still work with their inline vote/note controls.
+            let labelPopup = null;
+            try {
+                const src = "@commonData.imagerySource.toString";
+                const viewerType = src === 'mapillary' ? MapillaryViewer : src === 'infra3d' ? Infra3dViewer : GsvViewer;
+                labelPopup = await LabelPopup(false, viewerType, "@commonData.imageryAccessToken", "@user.username");
+            } catch (e) {
+                console.error('Label popup init failed; mistake cards will use inline controls only', e);
+            }
+
             var mistakes = document.getElementById('ud-mistakes');
             if (mistakes && typeof MistakeGallery !== 'undefined') {
                 new MistakeGallery(mistakes, {
                     userId: mistakes.dataset.userId,
                     limit: parseInt(mistakes.dataset.limit, 10) || 6,
-                    seeAllEl: document.getElementById('ud-mistakes-seeall')
+                    seeAllEl: document.getElementById('ud-mistakes-seeall'),
+                    labelPopup: labelPopup
                 }).render();
             }
         });

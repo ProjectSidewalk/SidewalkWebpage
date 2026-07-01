@@ -717,10 +717,45 @@
     font-size: var(--font-size-md, 1rem);
 }
 
-/* Voted state: once the user casts an agree/contest vote, the card tints and the buttons become a confirmed line. */
-.ud-card-voted { background: var(--color-pine-100, #eaf3ec); border-color: var(--color-pine-300, #aacdb4); }
-
 .ud-card-vote { display: flex; flex-direction: column; gap: var(--space-xs, 8px); }
+/* Voted state tints just the vote section (works on the card and inside the popup panel). */
+.ud-card-vote--done {
+    padding: var(--space-xs, 8px);
+    border-radius: var(--border-radius, 4px);
+    background: var(--color-pine-100, #eaf3ec);
+}
+
+/* Clickable card image opens the interactive label popup. */
+.ud-card-img-clickable { cursor: pointer; }
+.ud-card-img-clickable:focus-visible { outline: 2px solid var(--color-accent-link, #0566f5); outline-offset: 2px; }
+.ud-card-expand-hint {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 600;
+    color: var(--color-neutral-white, #fff);
+    background: rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    transition: opacity var(--transition-fast, 0.15s ease);
+    pointer-events: none;
+}
+.ud-card-img-clickable:hover .ud-card-expand-hint,
+.ud-card-img-clickable:focus-visible .ud-card-expand-hint { opacity: 1; }
+
+/* The mistake vote/note panel injected into the label popup dialog so you can respond from the expanded view. */
+.ud-mistake-response {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs, 8px);
+    margin: var(--space-md, 16px);
+    padding: var(--space-md, 16px);
+    border: 1px solid var(--color-pine-200, #cfe3d4);
+    border-radius: var(--border-radius-lg, 8px);
+    background: var(--color-neutral-white, #fff);
+}
 
 .ud-card-voted-msg {
     margin: 0;
