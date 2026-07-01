@@ -74,16 +74,21 @@ class MistakeGallery {
         const card = document.createElement('figure');
         card.className = 'ud-card';
 
-        // The pano is aimed at the label's POV, so the label sits at the image center — mark it with its own icon so
-        // it's clear which feature is theirs (falls back to just the icon on the gradient if no pano image).
+        // Mark the label on the pano at its real position (canvas_x/y over the 720x480 Explore canvas), the same way
+        // the Gallery does — the label is NOT necessarily centered. The image is a 3:2 crop of the pano so the
+        // percentages line up. Falls back to the icon centered on the gradient if there's no pano image.
         const img = document.createElement('div');
         img.className = 'ud-card-img';
         if (m.image_url) img.style.backgroundImage = `url("${m.image_url}")`;
         if (iconPath) {
+            const canvasW = (typeof util !== 'undefined' && util.EXPLORE_CANVAS_WIDTH) || 720;
+            const canvasH = (typeof util !== 'undefined' && util.EXPLORE_CANVAS_HEIGHT) || 480;
             const marker = document.createElement('img');
             marker.className = 'ud-card-label-marker';
             marker.src = iconPath;
             marker.alt = '';
+            marker.style.left = m.canvas_x != null ? `${(100 * m.canvas_x) / canvasW}%` : '50%';
+            marker.style.top = m.canvas_y != null ? `${(100 * m.canvas_y) / canvasH}%` : '50%';
             img.appendChild(marker);
         }
         const verdict = document.createElement('span');

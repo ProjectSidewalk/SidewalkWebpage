@@ -599,19 +599,19 @@
 
 .ud-card-img {
     position: relative;
-    height: 190px;
+    aspect-ratio: 3 / 2; /* Match the Explore canvas (720x480) so the label marker lines up, like the Gallery. */
+    overflow: hidden;
     background: linear-gradient(135deg, var(--color-neutral-200, #d7dbde), var(--color-neutral-400, #a8b0b5));
     background-size: cover;
     background-position: center;
 }
 
-/* The label's own icon, centered on the POV-aimed pano to mark exactly which feature was labeled. */
+/* The label's own icon, placed over the pano at the label's canvas position (left/top set inline) to mark exactly
+   which feature was labeled. Small, like the Gallery's marker. */
 .ud-card-label-marker {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 42px;
-    height: 42px;
+    width: clamp(20px, 7%, 30px);
+    height: auto;
     transform: translate(-50%, -50%);
     filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.55));
     pointer-events: none;
@@ -655,10 +655,11 @@
 
 .ud-card-actions {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* keep the two vote buttons side-by-side; long labels wrap inside each button instead */
     gap: var(--space-xs, 8px);
     margin-top: var(--space-xs, 8px);
 }
+.ud-card-actions .ud-chip { flex: 1 1 0; text-align: center; }
 
 .ud-chip {
     padding: 4px 10px;
