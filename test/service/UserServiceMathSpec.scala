@@ -40,11 +40,11 @@ class UserServiceMathSpec extends AnyFunSuite with Matchers {
 
   test("streak: longest run is found across a gap, independent of the current streak") {
     val counts = Map(
-      today                -> 1,
-      today.minusDays(1)   -> 1, // current run of 2 ...
-      today.minusDays(5)   -> 1,
-      today.minusDays(6)   -> 1,
-      today.minusDays(7)   -> 1 // ... but the longest run is 3
+      today              -> 1,
+      today.minusDays(1) -> 1, // current run of 2 ...
+      today.minusDays(5) -> 1,
+      today.minusDays(6) -> 1,
+      today.minusDays(7) -> 1  // ... but the longest run is 3
     )
     val s = UserService.computeStreakStats(counts, today)
     s.currentStreak shouldBe 2
@@ -71,5 +71,21 @@ class UserServiceMathSpec extends AnyFunSuite with Matchers {
     val acc = UserService.computeAccuracyByType(Seq(("CurbRamp", 9, 1), ("Signal", 1, 2)))
     acc.find(_.labelType == "CurbRamp").get.weakest shouldBe true
     acc.find(_.labelType == "Signal").get.weakest shouldBe false
+  }
+
+  // The public-profile privacy gate — the security-critical decision behind who can see whom's stats/map.
+  test("profileVisible: the owner always sees their own profile, public or not") {
+    UserService.profileVisible(Some((true, true)), isOwner = true) shouldBe true
+    UserService.profileVisible(Some((true, false)), isOwner = true) shouldBe true
+    UserService.profileVisible(None, isOwner = true) shouldBe true
+  }
+
+  test("profileVisible: a non-owner sees only a public profile") {
+    UserService.profileVisible(Some((true, true)), isOwner = false) shouldBe true   // public_profile = true
+    UserService.profileVisible(Some((true, false)), isOwner = false) shouldBe false // public_profile = false
+  }
+
+  test("profileVisible: a missing user_stat row reads as private for a non-owner (privacy-safe default)") {
+    UserService.profileVisible(None, isOwner = false) shouldBe false
   }
 }

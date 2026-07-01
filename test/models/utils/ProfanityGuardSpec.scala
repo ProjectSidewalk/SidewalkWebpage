@@ -33,8 +33,8 @@ class ProfanityGuardSpec extends AnyFunSuite with Matchers {
 
   test("innocent words that merely CONTAIN an excluded term are allowed (no false positives)") {
     ProfanityGuard.isClean("classic pass in the embassy") shouldBe true // 'ass' excluded
-    ProfanityGuard.isClean("grape and therapist") shouldBe true // 'rape' excluded
-    ProfanityGuard.isClean("peacock in the cockpit") shouldBe true // 'cock' excluded
-    ProfanityGuard.isClean("Emily Dickinson") shouldBe true // 'dick' excluded
+    ProfanityGuard.isClean("grape and therapist") shouldBe true         // 'rape' excluded
+    ProfanityGuard.isClean("peacock in the cockpit") shouldBe true      // 'cock' excluded
+    ProfanityGuard.isClean("Emily Dickinson") shouldBe true             // 'dick' excluded
   }
 }

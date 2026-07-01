@@ -98,6 +98,18 @@ object UserService {
   private val MinValidatedForWeakest: Int = 5
 
   /**
+   * The public-profile visibility decision, isolated so it can be unit-tested without a DB. A profile is shown only if
+   * the viewer owns it or its `public_profile` flag is on; a missing user_stat row (privacy = None) reads as private so
+   * nothing leaks by default.
+   *
+   * @param privacy The (onLeaderboard, publicProfile) flags, or None if the user has no user_stat row.
+   * @param isOwner Whether the viewer is the profile's owner.
+   * @return        True if the profile's accomplishments may be shown to this viewer.
+   */
+  def profileVisible(privacy: Option[(Boolean, Boolean)], isOwner: Boolean): Boolean =
+    isOwner || privacy.exists(_._2)
+
+  /**
    * Builds the per-type accuracy rows from raw (labelType, correct, incorrect) tallies. Pure/testable.
    *
    * Keeps only the primary (colored) label types the user has validated labels for, computes each type's accuracy,
@@ -327,8 +339,7 @@ class UserServiceImpl @Inject() (
       case None    => Future.successful(None) // No such user -> the view shows a "not found" state.
       case Some(u) =>
         db.run(userStatTable.getPrivacySettings(u.userId)).flatMap { privacy =>
-          // public_profile flag (privacy-safe: a missing user_stat row reads as private), or the owner viewing their own.
-          val visible = privacy.exists(_._2) || isOwner
+          val visible = UserService.profileVisible(privacy, isOwner)
           if (visible) {
             for {
               profile  <- getUserProfileData(u.userId, isMetric)
@@ -354,7 +365,9 @@ class UserServiceImpl @Inject() (
       case None    => Future.successful(None)
       case Some(u) =>
         if (isOwner) Future.successful(Some(u.userId))
-        else db.run(userStatTable.getPrivacySettings(u.userId)).map(p => if (p.exists(_._2)) Some(u.userId) else None)
+        else
+          db.run(userStatTable.getPrivacySettings(u.userId))
+            .map(p => if (UserService.profileVisible(p, isOwner)) Some(u.userId) else None)
     }
   }
 
