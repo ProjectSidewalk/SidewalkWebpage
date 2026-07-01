@@ -33,6 +33,25 @@ case class UserProfileData(
 )
 
 /**
+ * Everything the public profile page needs for one mapper, or the states in between.
+ *
+ * The service returns `None` when the username doesn't exist (404 state). When it exists, `visible` is the target's
+ * `public_profile` flag OR-ed with the viewer being the owner; `profile`/`trophies` are populated only when visible so
+ * a private profile leaks no stats.
+ *
+ * @param username Display name (as stored).
+ * @param visible  Whether the accomplishments may be shown to this viewer.
+ * @param profile  KPI/team data, present only when visible.
+ * @param trophies The mapper's trophies, empty when not visible.
+ */
+case class PublicProfile(
+    username: String,
+    visible: Boolean,
+    profile: Option[UserProfileData],
+    trophies: Seq[Trophy]
+)
+
+/**
  * A user's accuracy for one label type, for the dashboard's learning section.
  *
  * @param labelType   LabelTypeEnum name (e.g. "NoCurbRamp").
@@ -175,7 +194,12 @@ trait UserService {
   def setManualUserQuality(userId: String, highQualityManual: Option[Boolean]): Future[Option[Boolean]]
   def getPrivacySettings(userId: String): Future[Option[(Boolean, Boolean)]]
   def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): Future[Int]
-  def isProfilePublic(username: String): Future[Boolean]
+  def getPublicProfile(
+      username: String,
+      isOwner: Boolean,
+      isMetric: Boolean,
+      cityName: String
+  ): Future[Option[PublicProfile]]
   def changeUsername(userId: String, newUsername: String): Future[Either[String, String]]
   def getUserTeam(userId: String): Future[Option[Team]]
   def setUserTeam(userId: String, newTeamId: Int): Future[Int]
@@ -292,10 +316,27 @@ class UserServiceImpl @Inject() (
   def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): Future[Int] =
     db.run(userStatTable.updatePrivacySettings(userId, onLeaderboard, publicProfile))
 
-  def isProfilePublic(username: String): Future[Boolean] = {
+  def getPublicProfile(
+      username: String,
+      isOwner: Boolean,
+      isMetric: Boolean,
+      cityName: String
+  ): Future[Option[PublicProfile]] = {
     sidewalkUserTable.findByUsername(username).flatMap {
-      case Some(u) => db.run(userStatTable.getPrivacySettings(u.userId)).map(_.exists(_._2))
-      case None    => Future.successful(false)
+      case None    => Future.successful(None) // No such user -> the view shows a "not found" state.
+      case Some(u) =>
+        db.run(userStatTable.getPrivacySettings(u.userId)).flatMap { privacy =>
+          // public_profile flag (privacy-safe: a missing user_stat row reads as private), or the owner viewing their own.
+          val visible = privacy.exists(_._2) || isOwner
+          if (visible) {
+            for {
+              profile  <- getUserProfileData(u.userId, isMetric)
+              trophies <- getTrophies(u.userId, cityName)
+            } yield Some(PublicProfile(u.username, visible = true, Some(profile), trophies))
+          } else {
+            Future.successful(Some(PublicProfile(u.username, visible = false, None, Seq.empty)))
+          }
+        }
     }
   }
 

@@ -151,21 +151,23 @@ class UserDashboardController @Inject() (
    * Renders a public version of a mapper's dashboard (their accomplishments only — no email, mistakes, or settings).
    *
    * Bare `SecuredAction` so anyone, including anonymous accounts, can view it after clicking a name on the leaderboard.
-   * Honors the target user's `public_profile` flag: if the profile is private and the viewer isn't its owner, the
-   * view renders a "kept private" state instead of the stats. (Stats are still mock pending the public-profile data
-   * phase; the flag gating is real.)
+   * The service resolves the three states: a missing username (`None` → not-found), a private profile the viewer
+   * doesn't own (`visible = false` → "kept private"), or a visible profile with real KPIs, badges, and trophies. The
+   * map is still a placeholder pending public street/label endpoints.
    *
    * @param username The mapper whose public profile to show.
    */
   def publicProfilePreview(username: String) = cc.securityService.SecuredAction { implicit request =>
-    val viewer = request.identity
+    val viewer   = request.identity
+    val isOwner  = viewer.username == username
+    val isMetric = Messages("measurement.system") == "metric"
+    val cityName = configService.getCityName(request2Messages.lang)
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
-      isPublic   <- userService.isProfilePublic(username)
+      profile    <- userService.getPublicProfile(username, isOwner, isMetric, cityName)
     } yield {
       cc.loggingService.insert(viewer.userId, request.ipAddress, "Visit_PublicProfilePreview")
-      val isOwner = viewer.username == username
-      Ok(views.html.userDashboard.publicProfile(commonData, viewer, username, isPublic || isOwner))
+      Ok(views.html.userDashboard.publicProfile(commonData, viewer, username, isMetric, profile))
     }
   }
 }

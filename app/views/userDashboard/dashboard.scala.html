@@ -1,7 +1,7 @@
 @import service.{AccuracyByType, CommonPageData, UserProfileData}
 @import models.user.{SidewalkUserWithRole, StreakStats, UserStanding}
 @import models.label.Tag
-@import models.userdashboard.{DashboardMock, Trophy}
+@import models.userdashboard.Trophy
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, profileData: UserProfileData, isMetric: Boolean,
         tags: Seq[Tag], standing: Option[UserStanding], streak: StreakStats, accuracyByType: Seq[AccuracyByType],
@@ -12,24 +12,13 @@
 @distanceLabel = @{ f"${profileData.auditedDistance}%.1f ${if(isMetric) "km" else "mi"}" }
 @accuracyLabel = @{ profileData.accuracy.map(a => f"${a * 100}%.0f%%").getOrElse("—") }
 
-@* Raw value for a badge track's data attribute. Distance is canonical miles (BadgeAchievements thresholds are miles). *@
-@badgeValue(t: String) = @{
-    t match {
-        case "distance"    => (if (isMetric) profileData.auditedDistance / 1.60934d else profileData.auditedDistance).toString
-        case "missions"    => profileData.missionCount.toString
-        case "validations" => profileData.validationCount.toString
-        case _             => profileData.labelCount.toString
-    }
-}
-
 @*
  * Redesigned User Dashboard. Single page of "your impact" sections on the shared API-docs/admin shell. Every section
  * is an `.api-section` with an `h2.api-heading[id]` so admin-shell.js auto-builds the right-hand TOC. Ordered to lead
  * with personal accomplishment (works at N=1) and treat social comparison as a graceful, never-empty extra.
  *
- * REAL DATA: hero/KPIs, badges (BadgeAchievements from real counts), streak + heatmap, standing/rank, accuracy bars,
- * the contribution map, and the recent-mistakes gallery + contest flow.
- * STILL MOCK (from DashboardMock): the trophy case — pending the trophy backend (Phase 6). Labeled inline.
+ * All sections are real data: hero/KPIs, badges (BadgeAchievements from real counts), streak + heatmap, standing/rank,
+ * accuracy bars, the contribution map, the recent-mistakes gallery + contest flow, and the trophy case.
  *@
 
 @content = {
@@ -128,31 +117,8 @@
 
         @* Skeleton is server-rendered from real counts (data-value); DashboardBadges.js fills in the earned level,
            tier pill, locked icons, progress, and next-tier nudge using BadgeAchievements (the source of truth). *@
-        <div class="ud-badge-tracks" id="ud-badges" data-metric="@isMetric">
-            @for((name, badgeType, baseStem, desc) <- Seq(
-                ("Labeler", "labels", "labels", "Accessibility labels placed"),
-                ("Explorer", "distance", "distance", "Distance explored"),
-                ("Adventurer", "missions", "missions", "Missions completed"),
-                ("Validator", "validations", "validation", "Labels validated")
-            )) {
-                <div class="ud-badge-track" data-badge-type="@badgeType" data-value="@badgeValue(badgeType)">
-                    <div class="ud-badge-track-head">
-                        <span class="ud-badge-track-name">@name</span>
-                        <span class="ud-badge-track-current ud-tier-0" data-tier>—</span>
-                    </div>
-                    <p class="ud-badge-track-desc">@desc</p>
-                    <div class="ud-badge-levels">
-                        @for(level <- 1 to 5) {
-                            <img class="ud-badge" data-level="@level"
-                                 src="@assets.path(s"images/badges/badge_${if(badgeType == "distance" && isMetric) "distance_km" else baseStem}_badge${level}.png")"
-                                 alt="@name badge level @level">
-                        }
-                    </div>
-                    <div class="ud-progress"><div class="ud-progress-fill" data-fill></div></div>
-                    <span class="ud-badge-track-next" data-next></span>
-                </div>
-            }
-        </div>
+        @userDashboard._badgeTracks(profileData.labelCount, profileData.auditedDistance, profileData.missionCount,
+            profileData.validationCount, isMetric)
 
         <h3 class="api-heading" id="trophy-case">Trophy case <a href="#trophy-case" class="permalink">#</a></h3>
         <p>Trophies you've earned for pioneering neighborhoods, topping them, and placing on the weekly board.</p>

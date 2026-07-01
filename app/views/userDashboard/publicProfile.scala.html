@@ -1,21 +1,33 @@
-@import service.CommonPageData
+@import service.{CommonPageData, PublicProfile, UserProfileData}
 @import models.user.SidewalkUserWithRole
-@import models.userdashboard.DashboardMock
 @import play.api.Configuration
-@(commonData: CommonPageData, user: SidewalkUserWithRole, profileName: String, isPublic: Boolean
+@(commonData: CommonPageData, user: SidewalkUserWithRole, profileName: String, isMetric: Boolean,
+        profile: Option[PublicProfile]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
- * Public version of a mapper's dashboard (comps prototype, mock stats), reached by clicking a name on the
- * leaderboard. Viewable by anyone, including anonymous accounts.
- *
- * Shows only celebratory, non-PII stats: their impact, streak, badges, and trophies — deliberately NOT their email,
- * their "recent mistakes"/contest tools, or their settings (those are private to the owner). Honors the target user's
- * `public_profile` flag (passed as `isPublic`, already OR'd with owner-viewing): a private profile renders the "kept
- * private" state instead. The stats are still placeholders that reuse the dashboard mock; the flag gating is real.
+ * Public version of a mapper's dashboard, reached by clicking a name on the leaderboard. Viewable by anyone, including
+ * anonymous accounts. Shows only celebratory, non-PII accomplishments — impact KPIs, badges, and trophies — never
+ * their email, "recent mistakes"/contest tools, or settings. Three states, resolved server-side into `profile`:
+ * None (no such user), Some(visible = false) (kept private), Some(visible = true) (real data). The map is still a
+ * placeholder pending public street/label endpoints; everything else is real.
  *@
 
 @monogram = @{ profileName.take(2).toUpperCase }
+
+@distanceLabel(d: Double) = @{ f"$d%.1f ${if(isMetric) "km" else "mi"}" }
+@accuracyLabel(a: Option[Double]) = @{ a.map(x => f"${x * 100}%.0f%%").getOrElse("—") }
+
+@notFoundState = {
+    <div class="api-section" id="pp-notfound-section">
+        <h1 class="api-heading" id="overview">Mapper not found <a href="#overview" class="permalink">#</a></h1>
+        <div class="ud-empty-state">
+            <span class="ud-empty-emoji" aria-hidden="true">🔍</span>
+            <p><strong>We couldn't find a mapper named "@profileName".</strong></p>
+            <p class="ud-hero-sub">The name may have changed. Head back to the <a href="@routes.UserDashboardController.leaderboardPreview">leaderboard</a> to find them.</p>
+        </div>
+    </div>
+}
 
 @privateState = {
     <div class="api-section" id="pp-private-section">
@@ -28,100 +40,88 @@
     </div>
 }
 
-@* One-line description of what each badge track counts (shown under the track name). *@
-@trackDesc(name: String) = @{
-    name match {
-        case "Labeler"    => "Accessibility labels placed"
-        case "Explorer"   => "Distance explored"
-        case "Adventurer" => "Missions completed"
-        case "Validator"  => "Labels validated"
-        case _            => ""
-    }
-}
-
-@content = {
+@profileContent(pd: UserProfileData, trophies: Seq[models.userdashboard.Trophy]) = {
     <div class="api-section" id="pp-hero-section">
-        <div class="ud-cta ud-cta-warning">
-            <div class="ud-cta-text">
-                <strong>⚠️ Sample profile — not real data yet.</strong>
-                <span>Public profiles aren't wired to the backend. The numbers below are placeholders.</span>
-            </div>
-        </div>
         <h1 class="api-heading" id="overview">@profileName <a href="#overview" class="permalink">#</a></h1>
 
         <div class="ud-hero">
             <div class="ud-hero-avatar" aria-hidden="true">@monogram</div>
             <div class="ud-hero-text">
                 <p class="ud-hero-greeting"><span class="ud-public-tag">Public profile</span></p>
-                <p class="ud-hero-headline"><strong>@profileName</strong> has placed <strong>11,540 labels</strong> making sidewalks more accessible.</p>
-                <p class="ud-hero-sub">Most active in <a href="#" class="ud-lb-city">Seattle, WA</a> · mapping since 2023.</p>
+                <p class="ud-hero-headline"><strong>@profileName</strong> has placed <strong>@{"%,d".format(pd.labelCount)} labels</strong> making sidewalks more accessible.</p>
             </div>
         </div>
 
         <div class="coverage-kpis ud-kpis">
-            <div class="coverage-kpi"><span class="coverage-kpi-value">312</span><span class="coverage-kpi-label">Missions completed</span></div>
-            <div class="coverage-kpi"><span class="coverage-kpi-value">142 km</span><span class="coverage-kpi-label">Distance explored</span></div>
-            <div class="coverage-kpi"><span class="coverage-kpi-value">11,540</span><span class="coverage-kpi-label">Labels placed</span></div>
-            <div class="coverage-kpi"><span class="coverage-kpi-value">8,204</span><span class="coverage-kpi-label">Validations given</span></div>
-            <div class="coverage-kpi"><span class="coverage-kpi-value">90%</span><span class="coverage-kpi-label">Label accuracy</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value">@{"%,d".format(pd.missionCount)}</span><span class="coverage-kpi-label">Missions completed</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value">@distanceLabel(pd.auditedDistance)</span><span class="coverage-kpi-label">Distance explored</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value">@{"%,d".format(pd.labelCount)}</span><span class="coverage-kpi-label">Labels placed</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value">@{"%,d".format(pd.validationCount)}</span><span class="coverage-kpi-label">Validations given</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value">@accuracyLabel(pd.accuracy)</span><span class="coverage-kpi-label">Label accuracy</span></div>
         </div>
     </div>
 
     <div class="api-section" id="pp-achievements-section">
         <h2 class="api-heading" id="achievements">Badges &amp; trophies <a href="#achievements" class="permalink">#</a></h2>
-        <div class="ud-badge-tracks">
-            @for(track <- DashboardMock.badgeTracks) {
-                <div class="ud-badge-track">
-                    <div class="ud-badge-track-head">
-                        <span class="ud-badge-track-name">@track.name</span>
-                        <span class="ud-badge-track-current ud-tier-@track.earned">@track.currentLabel</span>
-                    </div>
-                    <p class="ud-badge-track-desc">@trackDesc(track.name)</p>
-                    <div class="ud-badge-levels">
-                        @for(level <- 1 to 5) {
-                            <img class="ud-badge @if(level > track.earned){ud-badge-locked}"
-                                 src="@assets.path(s"images/badges/badge_${track.icon}_badge${level}.png")"
-                                 alt="@track.name @DashboardMock.roman(level - 1): @track.levelNames(level - 1)"
-                                 title="@track.name @DashboardMock.roman(level - 1): @track.levelNames(level - 1)">
-                        }
-                    </div>
-                </div>
-            }
-        </div>
+        @userDashboard._badgeTracks(pd.labelCount, pd.auditedDistance, pd.missionCount, pd.validationCount, isMetric)
 
         <h3 class="api-heading" id="trophy-case">Trophy case <a href="#trophy-case" class="permalink">#</a></h3>
-        <div class="ud-trophy-case">
-            @for(t <- DashboardMock.trophies) {
-                <div class="ud-trophy @t.cssClass">
-                    @t.tagLabel.map { l => <span class="ud-trophy-tag">@l</span> }
-                    <span class="ud-trophy-medal" aria-hidden="true">@t.medal</span>
-                    <span class="ud-trophy-title">@t.title</span>
-                    <span class="ud-trophy-sub">@t.sub</span>
-                </div>
-            }
-        </div>
+        @if(trophies.nonEmpty) {
+            <div class="ud-trophy-case">
+                @for(t <- trophies) {
+                    <div class="ud-trophy @t.cssClass">
+                        @t.tagLabel.map { l => <span class="ud-trophy-tag">@l</span> }
+                        <span class="ud-trophy-medal" aria-hidden="true">@t.medal</span>
+                        <span class="ud-trophy-title">@t.title</span>
+                        <span class="ud-trophy-sub">@t.sub</span>
+                    </div>
+                }
+            </div>
+        } else {
+            <div class="ud-nudge">🏆 @profileName hasn't earned any trophies yet — but every label counts.</div>
+        }
     </div>
 
     <div class="api-section" id="pp-map-section">
         <h2 class="api-heading" id="map">Where they've explored <a href="#map" class="permalink">#</a></h2>
         <div class="ud-map-placeholder" role="img" aria-label="Map placeholder — the live profile renders this mapper's audited streets and labels here">
             <span>🗺️ @{profileName}'s contribution map</span>
-            <small>(live choropleth + their labels render here)</small>
+            <small>(coming soon — needs public street/label endpoints)</small>
         </div>
     </div>
 
-    <div class="api-section" id="pp-team-section">
-        <h2 class="api-heading" id="team">Team <a href="#team" class="permalink">#</a></h2>
-        <div class="ud-team-card">
-            <span class="ud-team-name">UW Mapping Club</span>
-            <span class="ud-team-meta">1 of 18 members · 5,980 labels this term</span>
+    @pd.userTeam.map { team =>
+        <div class="api-section" id="pp-team-section">
+            <h2 class="api-heading" id="team">Team <a href="#team" class="permalink">#</a></h2>
+            <div class="ud-team-card">
+                <span class="ud-team-name">@team.name</span>
+            </div>
         </div>
-    </div>
+    }
 
-    <p class="ud-section-note">Public view — only accomplishments are shown. Email, "recent mistakes", and settings stay private to @profileName. If a mapper turns off "Make my dashboard public", this page shows a friendly "kept private" message instead.</p>
+    <p class="ud-section-note">Public view — only accomplishments are shown. Email, "recent mistakes", and settings stay private to @profileName.</p>
+
+    <script src="@assets.path("javascripts/common/BadgeAchievements.js")"></script>
+    <script src="@assets.path("javascripts/UserDashboard/src/DashboardBadges.js")"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var badges = document.getElementById('ud-badges');
+            if (badges && typeof DashboardBadges !== 'undefined') {
+                try { new DashboardBadges(badges).render(); } catch (e) { console.error('Badge render failed', e); }
+            }
+        });
+    </script>
+}
+
+@body = {
+    @profile match {
+        case None => { @notFoundState }
+        case Some(p) if !p.visible => { @privateState }
+        case Some(p) => { @profileContent(p.profile.get, p.trophies) }
+    }
 }
 
 @common.main(commonData, s"Sidewalk - ${profileName}") {
     @common.navbar(commonData, Some(user))
-    @userDashboard.layout("")(if(isPublic){content}else{privateState})
+    @userDashboard.layout("")(body)
 }
