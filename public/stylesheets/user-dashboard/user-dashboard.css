@@ -785,8 +785,40 @@
 .ud-check-text { display: flex; flex-direction: column; gap: 2px; }
 
 /* ---- Responsive ------------------------------------------------------------------------------------------------ */
-@media (max-width: 700px) {
+/* 768px matches the shell breakpoint (api-docs.css), where the left nav goes off-canvas behind a hamburger and the
+   right TOC is already hidden — so here we just make the content itself stack and stay reachable on a phone. */
+@media (max-width: 768px) {
     .ud-hero { flex-direction: column; text-align: center; }
+    .ud-hero-text { text-align: center; }
+
+    .ud-streak { flex-direction: column; }
     .ud-streak-stats { flex-direction: row; flex: 1 1 100%; flex-wrap: wrap; }
+    .ud-streak-kpi { flex: 1 1 140px; }
+    .ud-heatmap { flex: 1 1 100%; width: 100%; }
+
     .ud-acc-label { flex-basis: 120px; }
+
+    /* Wide leaderboard tables scroll horizontally instead of overflowing off the screen. */
+    .api-content .coverage-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .api-content .coverage-table { min-width: 520px; }
+
+    /* Podium shrinks to fit a phone: equal-width columns instead of fixed 150px spots. */
+    .ud-podium { gap: var(--space-xs, 8px); }
+    .ud-podium-spot { width: auto; flex: 1 1 0; min-width: 92px; }
+    .ud-podium-avatar { width: 52px; height: 52px; font-size: var(--font-size-md, 1rem); }
+
+    /* CTA and inline form controls stack full width and stay tappable. */
+    .ud-cta { flex-direction: column; align-items: stretch; }
+    .ud-cta-actions { flex-wrap: wrap; }
+    .ud-cta-actions .ud-btn-primary,
+    .ud-cta-actions .ud-btn-secondary { flex: 1 1 auto; text-align: center; }
+    .ud-field-inline { flex-direction: column; align-items: stretch; }
+    .ud-field-inline .ud-input { flex: 1 1 auto; }
+}
+
+@media (max-width: 480px) {
+    .ud-acc-label { flex-basis: 100px; font-size: var(--font-size-sm, 0.875rem); }
+    .ud-trophy { width: 100%; }
+    .ud-badge { width: 38px; height: 38px; }
+    .ud-badge-track-head { flex-wrap: wrap; }
 }
