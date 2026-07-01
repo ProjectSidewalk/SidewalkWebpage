@@ -1,11 +1,18 @@
 version: 2
 # Dependabot has no native sbt/Scala updater — those are handled by the hosted Scala Steward instance
-# (this repo is registered with VirtusLab's public instance). Dependabot here covers npm, GitHub Actions, and Docker.
+# (this repo is registered with VirtusLab's public instance; config in `.scala-steward.conf`). Dependabot
+# here covers npm, GitHub Actions, and Docker.
+#
+# Cadence is monthly so version-currency PRs arrive as one predictable batch for a two-person team, rather
+# than a weekly trickle. This throttles *version* noise only — Dependabot *security* updates (GHSA/CVE-driven)
+# are a separate channel and still fire immediately (enable them in Settings → Code security). Green patch &
+# minor bumps auto-merge via `.github/workflows/dependency-auto-merge.yml`; majors and deliberate freezes need
+# a human. See issue #4385 for the standing dependency/platform maintenance strategy.
 updates:
   - package-ecosystem: npm
     directory: "/"
     schedule:
-      interval: weekly
+      interval: monthly
     open-pull-requests-limit: 5
     groups:
       npm-dependencies:
@@ -14,7 +21,7 @@ updates:
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
-      interval: weekly
+      interval: monthly
     groups:
       github-actions:
         patterns: ["*"]
@@ -22,7 +29,13 @@ updates:
   - package-ecosystem: docker
     directory: "/"
     schedule:
-      interval: weekly
+      interval: monthly
     groups:
       docker:
         patterns: ["*"]
+    ignore:
+      # Stay on JDK 17 (an LTS). Dependabot keeps re-proposing odd, non-LTS temurin majors (19, 21-preview…);
+      # 19 was already rejected as EOL (#4247). The Java 17→21 LTS move is a deliberate, tracked migration
+      # (#4385, #3936), not a bot bump. Minor/OS bumps within 17 (e.g. focal→jammy) are still allowed.
+      - dependency-name: "eclipse-temurin"
+        update-types: ["version-update:semver-major"]
