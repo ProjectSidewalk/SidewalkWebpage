@@ -172,6 +172,9 @@ class MistakeGallery {
     async #openPopup(m) {
         try {
             await this.labelPopup.showLabel(m.label_id, 'UserDashboard');
+            // These are always the viewer's own labels, so prefix the (already-localized) title with "Your label:".
+            const titleEl = document.querySelector('#label-modal .label-detail__title');
+            if (titleEl) titleEl.textContent = `Your label: ${titleEl.textContent}`;
             this.#mountPopupPanel(m);
         } catch (e) {
             console.error('Failed to open the label popup', e);
@@ -189,8 +192,8 @@ class MistakeGallery {
         const panel = document.createElement('div');
         panel.className = 'ud-mistake-response';
         const heading = document.createElement('p');
-        heading.className = 'ud-card-prompt';
-        heading.textContent = 'This label of yours was validated as incorrect. Your response:';
+        heading.className = 'ud-mistake-response-heading';
+        heading.textContent = 'Your label was validated as incorrect. Do you agree this was a mistake?';
         panel.append(heading, this.#voteSection(m), this.#noteSection(m));
         dialog.appendChild(panel);
         this.popupPanel = panel;

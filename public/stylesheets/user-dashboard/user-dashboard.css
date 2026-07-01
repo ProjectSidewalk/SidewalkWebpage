@@ -759,7 +759,14 @@
     background: var(--color-neutral-white, #fff);
     font-size: var(--font-size-lg, 1.125rem);
 }
-.ud-mistake-response .ud-card-prompt { margin: 0; font-size: var(--font-size-lg, 1.125rem); }
+.ud-mistake-response-heading {
+    margin: 0;
+    font-size: var(--font-size-lg, 1.125rem);
+    font-weight: 600;
+    color: var(--color-text-heading, #263238);
+}
+/* The panel heading already asks "Do you agree…", so drop the vote section's own prompt inside the popup. */
+.ud-mistake-response .ud-card-vote .ud-card-prompt { display: none; }
 .ud-mistake-response .ud-card-vote,
 .ud-mistake-response .ud-card-note-section { margin-top: 0; }
 .ud-mistake-response .ud-card-voted-msg,
