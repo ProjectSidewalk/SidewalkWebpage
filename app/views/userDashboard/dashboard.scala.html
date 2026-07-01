@@ -89,13 +89,22 @@
             </div>
 
             <figure class="ud-heatmap" aria-label="Your activity over the last @service.UserService.HeatmapWeeks weeks">
-                <div class="ud-heatmap-grid">
-                    @for(cell <- streak.cells) {
-                        @cell match {
-                            case Some(c) => { <span class="ud-heat ud-heat-@c.intensity" title="@c.tooltip" tabindex="0"></span> }
-                            case None    => { <span class="ud-heat ud-heat-empty" aria-hidden="true"></span> }
+                <div class="ud-heatmap-scaffold">
+                    <div class="ud-heatmap-corner" aria-hidden="true"></div>
+                    <div class="ud-heatmap-months" aria-hidden="true">
+                        @for(m <- streak.columnMonths) { <span>@m.getOrElse("")</span> }
+                    </div>
+                    <div class="ud-heatmap-days" aria-hidden="true">
+                        <span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span>
+                    </div>
+                    <div class="ud-heatmap-grid">
+                        @for(cell <- streak.cells) {
+                            @cell match {
+                                case Some(c) => { <span class="ud-heat ud-heat-@c.intensity" title="@c.tooltip" tabindex="0"></span> }
+                                case None    => { <span class="ud-heat ud-heat-empty" aria-hidden="true"></span> }
+                            }
                         }
-                    }
+                    </div>
                 </div>
                 <figcaption class="ud-heatmap-legend">
                     <span>Less</span>
@@ -123,16 +132,7 @@
         <h3 class="api-heading" id="trophy-case">Trophy case <a href="#trophy-case" class="permalink">#</a></h3>
         <p>Trophies you've earned for pioneering neighborhoods, topping them, and placing on the weekly board.</p>
         @if(trophies.nonEmpty) {
-            <div class="ud-trophy-case">
-                @for(t <- trophies) {
-                    <div class="ud-trophy @t.cssClass">
-                        @t.tagLabel.map { l => <span class="ud-trophy-tag">@l</span> }
-                        <span class="ud-trophy-medal" aria-hidden="true">@t.medal</span>
-                        <span class="ud-trophy-title">@t.title</span>
-                        <span class="ud-trophy-sub">@t.sub</span>
-                    </div>
-                }
-            </div>
+            @userDashboard._trophyCase(trophies)
         } else {
             <div class="ud-nudge">🏆 No trophies yet — finish in the weekly top 3, or be the first or top mapper in a neighborhood, and they'll show up here.</div>
         }

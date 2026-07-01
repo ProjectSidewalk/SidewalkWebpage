@@ -68,16 +68,7 @@
 
         <h3 class="api-heading" id="trophy-case">Trophy case <a href="#trophy-case" class="permalink">#</a></h3>
         @if(trophies.nonEmpty) {
-            <div class="ud-trophy-case">
-                @for(t <- trophies) {
-                    <div class="ud-trophy @t.cssClass">
-                        @t.tagLabel.map { l => <span class="ud-trophy-tag">@l</span> }
-                        <span class="ud-trophy-medal" aria-hidden="true">@t.medal</span>
-                        <span class="ud-trophy-title">@t.title</span>
-                        <span class="ud-trophy-sub">@t.sub</span>
-                    </div>
-                }
-            </div>
+            @userDashboard._trophyCase(trophies)
         } else {
             <div class="ud-nudge">🏆 @profileName hasn't earned any trophies yet — but every label counts.</div>
         }

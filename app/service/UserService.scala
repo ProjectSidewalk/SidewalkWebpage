@@ -184,7 +184,18 @@ object UserService {
       }
     }
 
-    StreakStats(current, longest, dates.size, cells)
+    // Month label for each week column: the abbreviated month on the first column that falls in a new month (GitHub
+    // style), so the heatmap has date scaffolding along the top.
+    val monthFmt                          = DateTimeFormatter.ofPattern("MMM", Locale.ENGLISH)
+    var prevMonth                         = -1
+    val columnMonths: Seq[Option[String]] = (0 until HeatmapWeeks).map { w =>
+      val weekSunday = startSunday.plusWeeks(w.toLong)
+      if (weekSunday.getMonthValue != prevMonth) {
+        prevMonth = weekSunday.getMonthValue; Some(weekSunday.format(monthFmt))
+      } else None
+    }
+
+    StreakStats(current, longest, dates.size, cells, columnMonths)
   }
 }
 
@@ -465,6 +476,9 @@ class UserServiceImpl @Inject() (
     db.run(userStatTable.getLabelTypeAccuracy(userId)).map(UserService.computeAccuracyByType)
   }
 
+  /** Explore-this-neighborhood link for a region trophy — opens the audit tool scoped to that region. */
+  private def exploreRegionLink(regionId: Int): String = s"/explore?regionId=$regionId"
+
   def getTrophies(userId: String, cityName: String): Future[Seq[Trophy]] = {
     val aiId = SidewalkUserTable.aiUserId
     // Kick off the four independent queries before the for-comprehension so they run in parallel.
@@ -484,10 +498,23 @@ class UserServiceImpl @Inject() (
         if (cityPioneer.contains(userId))
           Seq(Trophy("🌱", "City pioneer", s"First-ever labeler in $cityName", "pioneer"))
         else Seq.empty
-      val regionPioneerTrophies =
-        regionPioneers.map(name => Trophy("🧭", "Region pioneer", s"First-ever labeler in $name", "pioneer"))
-      val championTrophies = champions.map { case (name, count) =>
-        Trophy("👑", s"$name champion", s"""${"%,d".format(count)} labels — most in this neighborhood""", "region")
+      val regionPioneerTrophies = regionPioneers.map { case (name, regionId) =>
+        Trophy(
+          "🧭",
+          "Region pioneer",
+          s"First-ever labeler in $name",
+          "pioneer",
+          link = Some(exploreRegionLink(regionId))
+        )
+      }
+      val championTrophies = champions.map { case (name, regionId, count) =>
+        Trophy(
+          "👑",
+          s"$name champion",
+          s"""${"%,d".format(count)} labels — most in this neighborhood""",
+          "region",
+          link = Some(exploreRegionLink(regionId))
+        )
       }
       val weeklyTrophies = weekly.map { case (weekOf, rank, _) =>
         Trophy(medals.getOrElse(rank, "🏅"), "Top labeler", s"Week of $weekOf", "podium", rank)

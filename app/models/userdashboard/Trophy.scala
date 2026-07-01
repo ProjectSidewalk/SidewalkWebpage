@@ -12,8 +12,16 @@ package models.userdashboard
  * @param sub     One-line context (e.g. "First-ever labeler in Seattle", "Week of Jun 16, 2026").
  * @param variant "podium" | "region" | "pioneer".
  * @param rank    1-3 for podium trophies (drives the medal color); 0 otherwise.
+ * @param link    Optional href the trophy links to (e.g. Explore that neighborhood for region/pioneer trophies).
  */
-case class Trophy(medal: String, title: String, sub: String, variant: String = "podium", rank: Int = 0) {
+case class Trophy(
+    medal: String,
+    title: String,
+    sub: String,
+    variant: String = "podium",
+    rank: Int = 0,
+    link: Option[String] = None
+) {
 
   /** CSS class selecting the trophy's color treatment. */
   def cssClass: String = variant match {

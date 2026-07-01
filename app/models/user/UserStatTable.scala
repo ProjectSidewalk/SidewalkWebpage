@@ -120,8 +120,16 @@ case class StreakCell(intensity: Int, tooltip: String)
  * @param longestStreak   Longest run of consecutive active days ever.
  * @param totalActiveDays Distinct days with any activity.
  * @param cells           Heatmap cells in column-major order (7 rows × N weeks); `None` = out-of-window padding.
+ * @param columnMonths    One entry per week column: the abbreviated month name (e.g. "Jun") on the first column of a
+ *                        new month, else `None` — for the month labels along the top of the heatmap.
  */
-case class StreakStats(currentStreak: Int, longestStreak: Int, totalActiveDays: Int, cells: Seq[Option[StreakCell]])
+case class StreakStats(
+    currentStreak: Int,
+    longestStreak: Int,
+    totalActiveDays: Int,
+    cells: Seq[Option[StreakCell]],
+    columnMonths: Seq[Option[String]]
+)
 
 class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
   def userStatId: Rep[Int]                    = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)

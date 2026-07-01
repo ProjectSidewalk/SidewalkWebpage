@@ -114,12 +114,29 @@ class MistakeGallery {
         }
         body.appendChild(note);
 
-        // Contest affordance (#2996/#1680): the two buttons are the submit action; the optional note above is sent
-        // along with whichever choice the user picks. Flow reads top-to-bottom: prompt -> optional note -> choose.
+        // Interactive controls, extracted so they can be re-rendered when the user edits their response.
+        body.appendChild(this.#buildControls(card, m, ''));
+
+        card.appendChild(body);
+        return card;
+    }
+
+    /**
+     * Builds a card's response controls: the two answer buttons plus an expandable note.
+     *
+     * @param {HTMLElement} card - The card element (threaded through to #submit).
+     * @param {Object} m - The label record.
+     * @param {string} prefillNote - Note to pre-fill and auto-expand (when re-editing); '' for a fresh card.
+     * @returns {HTMLElement} The controls container.
+     */
+    #buildControls(card, m, prefillNote) {
+        const controls = document.createElement('div');
+        controls.className = 'ud-card-controls';
+
         const prompt = document.createElement('p');
         prompt.className = 'ud-card-prompt';
         prompt.textContent = 'Do you agree this was a mistake?';
-        body.appendChild(prompt);
+        controls.appendChild(prompt);
 
         const actions = document.createElement('div');
         actions.className = 'ud-card-actions';
@@ -128,67 +145,109 @@ class MistakeGallery {
         const contestBtn = MistakeGallery.#chip('ud-chip-disagree', '✋ No — my label was correct',
             'Contests the validation — you stand by your label');
         actions.append(agreeBtn, contestBtn);
-        body.appendChild(actions);
+        controls.appendChild(actions);
 
+        // "Add a note" reveals a textarea + its own "Submit note" button (a contest with your explanation).
         const commentLink = document.createElement('a');
         commentLink.className = 'ud-card-comment-link';
         commentLink.href = '#';
         commentLink.textContent = '💬 Add a note';
-        body.appendChild(commentLink);
+        controls.appendChild(commentLink);
 
-        // Expands on "Add a note": a textarea + its own explicit "Submit note" button. Submitting a note records a
-        // contest (you're standing by your label) with your explanation.
         const noteWrap = document.createElement('div');
         noteWrap.className = 'ud-card-note-wrap';
-        noteWrap.hidden = true;
+        noteWrap.hidden = prefillNote === '';
         const textarea = document.createElement('textarea');
         textarea.className = 'ud-card-comment-input';
         textarea.rows = 2;
         textarea.placeholder = 'Explain why you think your label was correct…';
+        textarea.value = prefillNote;
         const submitNoteBtn = document.createElement('button');
         submitNoteBtn.type = 'button';
         submitNoteBtn.className = 'ud-btn-primary ud-card-note-submit';
         submitNoteBtn.textContent = 'Submit note';
         noteWrap.append(textarea, submitNoteBtn);
-        body.appendChild(noteWrap);
+        controls.appendChild(noteWrap);
 
         commentLink.addEventListener('click', e => {
             e.preventDefault();
             noteWrap.hidden = !noteWrap.hidden;
             if (!noteWrap.hidden) textarea.focus();
         });
-        agreeBtn.addEventListener('click', () => this.#submit(card, m.label_id, true, ''));
-        contestBtn.addEventListener('click', () => this.#submit(card, m.label_id, false, ''));
-        submitNoteBtn.addEventListener('click', () => this.#submit(card, m.label_id, false, textarea.value));
+        agreeBtn.addEventListener('click', () => this.#submit(card, controls, m, true, ''));
+        contestBtn.addEventListener('click', () => this.#submit(card, controls, m, false, ''));
+        submitNoteBtn.addEventListener('click', () => this.#submit(card, controls, m, false, textarea.value));
 
-        card.appendChild(body);
-        return card;
+        return controls;
     }
 
     /**
-     * Records the user's response to a mistake and, on success, replaces the card with a brief thank-you then removes it.
+     * Records the user's response and, on success, swaps the controls for a confirmed summary with an Edit button.
+     * Re-responding upserts the same (label, user) row, so editing is just a re-submit.
+     *
      * @param {HTMLElement} card - The card element.
-     * @param {number} labelId - The label being responded to.
+     * @param {HTMLElement} controls - The controls container to replace on success.
+     * @param {Object} m - The label record.
      * @param {boolean} agrees - True = agrees it was incorrect; false = contests it.
      * @param {string} comment - Optional note.
      */
-    async #submit(card, labelId, agrees, comment) {
-        card.querySelectorAll('button, textarea, a').forEach(el => el.setAttribute('disabled', 'disabled'));
+    async #submit(card, controls, m, agrees, comment) {
+        controls.querySelectorAll('button, textarea, a').forEach(el => el.setAttribute('disabled', 'disabled'));
+        const trimmed = (comment || '').trim();
         try {
             const res = await fetch('/userapi/contestMistake', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                body: JSON.stringify({ label_id: labelId, agrees: agrees, comment: (comment || '').trim() })
+                body: JSON.stringify({ label_id: m.label_id, agrees: agrees, comment: trimmed })
             });
             if (!res.ok) throw new Error(`contest failed: ${res.status}`);
-            card.classList.add('ud-card-done');
-            const msg = agrees ? "👍 Thanks — noted." : "✋ Got it — we'll take another look.";
-            card.innerHTML = `<div class="ud-card-thanks">${msg}</div>`;
-            setTimeout(() => card.remove(), 1400);
+            card.classList.add('ud-card-resolved');
+            controls.replaceWith(this.#buildResolved(card, m, agrees, trimmed));
         } catch (e) {
             console.error('Failed to record mistake response', e);
-            card.querySelectorAll('button, textarea, a').forEach(el => el.removeAttribute('disabled'));
+            controls.querySelectorAll('button, textarea, a').forEach(el => el.removeAttribute('disabled'));
         }
+    }
+
+    /**
+     * The confirmed-response summary: what the user chose, their note (if any), and an Edit button that restores the
+     * pre-filled controls so they can change and re-submit.
+     *
+     * @param {HTMLElement} card - The card element.
+     * @param {Object} m - The label record.
+     * @param {boolean} agrees - The recorded choice.
+     * @param {string} comment - The recorded note.
+     * @returns {HTMLElement}
+     */
+    #buildResolved(card, m, agrees, comment) {
+        const wrap = document.createElement('div');
+        wrap.className = 'ud-card-resolved-body';
+
+        const msg = document.createElement('p');
+        msg.className = 'ud-card-resolved-msg';
+        msg.textContent = agrees
+            ? '👍 You agreed this was a mistake — noted, thanks.'
+            : "✋ You're standing by your label. We'll take another look.";
+        wrap.appendChild(msg);
+
+        if (comment) {
+            const noteEcho = document.createElement('p');
+            noteEcho.className = 'ud-card-resolved-note';
+            noteEcho.textContent = `Your note: “${comment}”`;
+            wrap.appendChild(noteEcho);
+        }
+
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'ud-btn-secondary ud-card-edit';
+        editBtn.textContent = 'Edit response';
+        editBtn.addEventListener('click', () => {
+            card.classList.remove('ud-card-resolved');
+            wrap.replaceWith(this.#buildControls(card, m, comment));
+        });
+        wrap.appendChild(editBtn);
+
+        return wrap;
     }
 
     /**

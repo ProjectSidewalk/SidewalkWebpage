@@ -24,6 +24,13 @@ class UserServiceMathSpec extends AnyFunSuite with Matchers {
     s.cells.length shouldBe UserService.HeatmapWeeks * 7
   }
 
+  test("streak: month labels — one per week column, with a label on the first column of each month") {
+    val s = UserService.computeStreakStats(Map.empty, today)
+    s.columnMonths.length shouldBe UserService.HeatmapWeeks
+    s.columnMonths.head shouldBe defined                  // the leftmost column always names its month
+    s.columnMonths.flatten.distinct.length should be >= 2 // an 18-week window spans several months
+  }
+
   test("streak: consecutive days ending today count as the current streak") {
     val counts = Map(today -> 3, today.minusDays(1) -> 1, today.minusDays(2) -> 2)
     val s      = UserService.computeStreakStats(counts, today)

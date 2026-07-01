@@ -1,0 +1,31 @@
+@import models.userdashboard.Trophy
+@(trophies: Seq[Trophy])(implicit assets: AssetsFinder)
+
+@*
+ * The trophy-case grid, shared by the dashboard and public profile. A trophy with a `link` (region/pioneer trophies →
+ * Explore that neighborhood) renders as an anchor with an "Explore" affordance; the rest render as plain cards. The
+ * empty state is left to each caller (the copy differs first- vs third-person).
+ *@
+
+@trophyBody(t: Trophy) = {
+    @t.tagLabel.map { l => <span class="ud-trophy-tag">@l</span> }
+    <span class="ud-trophy-medal" aria-hidden="true">@t.medal</span>
+    <span class="ud-trophy-title">@t.title</span>
+    <span class="ud-trophy-sub">@t.sub</span>
+}
+
+<div class="ud-trophy-case">
+    @for(t <- trophies) {
+        @t.link match {
+            case Some(href) => {
+                <a class="ud-trophy ud-trophy-link @t.cssClass" href="@href">
+                    @trophyBody(t)
+                    <span class="ud-trophy-explore" aria-hidden="true">Explore this neighborhood →</span>
+                </a>
+            }
+            case None => {
+                <div class="ud-trophy @t.cssClass">@trophyBody(t)</div>
+            }
+        }
+    }
+</div>

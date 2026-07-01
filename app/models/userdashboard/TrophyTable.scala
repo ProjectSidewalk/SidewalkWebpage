@@ -68,9 +68,9 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @param userId   The user to check.
    * @param aiUserId The AI account id to exclude from the ranking.
    * @param limit    Max regions to return.
-   * @return         (region name, the user's label count in that region).
+   * @return         (region name, region id, the user's label count in that region).
    */
-  def getRegionChampions(userId: String, aiUserId: String, limit: Int): DBIO[Seq[(String, Int)]] = {
+  def getRegionChampions(userId: String, aiUserId: String, limit: Int): DBIO[Seq[(String, Int, Int)]] = {
     sql"""
       WITH region_counts AS (
           SELECT street_edge_region.region_id AS rid,
@@ -84,13 +84,13 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               AND user_stat.excluded = FALSE AND label.user_id <> $aiUserId
           GROUP BY street_edge_region.region_id, label.user_id
       )
-      SELECT region.name, region_counts.lc
+      SELECT region.name, region.region_id, region_counts.lc
       FROM region_counts
       INNER JOIN region ON region_counts.rid = region.region_id
       WHERE region_counts.uid = $userId AND region_counts.rnk = 1 AND region.deleted = FALSE
       ORDER BY region_counts.lc DESC
       LIMIT $limit;
-    """.as[(String, Int)]
+    """.as[(String, Int, Int)]
   }
 
   /**
@@ -99,9 +99,9 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @param userId   The user to check.
    * @param aiUserId The AI account id to exclude.
    * @param limit    Max regions to return.
-   * @return         Region names, alphabetical.
+   * @return         (region name, region id), alphabetical by name.
    */
-  def getRegionPioneers(userId: String, aiUserId: String, limit: Int): DBIO[Seq[String]] = {
+  def getRegionPioneers(userId: String, aiUserId: String, limit: Int): DBIO[Seq[(String, Int)]] = {
     sql"""
       WITH firsts AS (
           SELECT DISTINCT ON (street_edge_region.region_id)
@@ -114,13 +114,13 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               AND user_stat.excluded = FALSE AND label.user_id <> $aiUserId
           ORDER BY street_edge_region.region_id, label.time_created ASC, label.label_id ASC
       )
-      SELECT region.name
+      SELECT region.name, region.region_id
       FROM firsts
       INNER JOIN region ON firsts.rid = region.region_id
       WHERE firsts.uid = $userId AND region.deleted = FALSE
       ORDER BY region.name
       LIMIT $limit;
-    """.as[String]
+    """.as[(String, Int)]
   }
 
   /**

@@ -37,6 +37,15 @@
         try {
             const m = await CreatePSMap($, params);
             new MapSidebarFilter(m[0], m[4], { highQualityFilter: false });
+            // Don't hijack the page's scroll: scroll-to-zoom is off until the user clicks the map, and re-locks when
+            // the pointer leaves it — so scrolling the page over the map scrolls the page, not the map.
+            const map = m[0];
+            if (map && map.scrollZoom) {
+                map.scrollZoom.disable();
+                map.on('click', () => map.scrollZoom.enable());
+                const holder = document.getElementById('@{mapId}-holder');
+                if (holder) holder.addEventListener('mouseleave', () => map.scrollZoom.disable());
+            }
             // Start with the legend drawer closed (re-centers the map via the real close handler).
             const closeBtn = document.getElementById('map-sidebar-close');
             if (closeBtn) closeBtn.click();
