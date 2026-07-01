@@ -196,15 +196,31 @@ class UserProfileController @Inject() (
    *
    * Expects a JSON body: `{ "label_id": Int, "agrees": Boolean, "comment": String? }`.
    */
-  def contestMistake() = cc.securityService.SecuredAction(parse.json) { request =>
+  /**
+   * Records the user's agree/contest vote on one of their own labels validated as incorrect (#2996). Instant — the
+   * dashboard card commits on click. Preserves any note already on the row.
+   */
+  def mistakeVote() = cc.securityService.SecuredAction(parse.json) { request =>
+    val userId: String  = request.identity.userId
+    val labelId: Int    = (request.body \ "label_id").as[Int]
+    val agrees: Boolean = (request.body \ "agrees").as[Boolean]
+    cc.loggingService.insert(userId, request.ipAddress, s"Click_module=MistakeVote_agrees=$agrees")
+    labelService.recordMistakeVote(labelId, userId, agrees).map { recorded =>
+      if (recorded) Ok(Json.obj("success" -> true)) else Forbidden(Json.obj("success" -> false))
+    }
+  }
+
+  /**
+   * Records (or clears) the user's note on one of their own labels validated as incorrect (#2996). Independent of the
+   * vote — a note can stand alone, and saving one preserves any existing vote.
+   */
+  def mistakeNote() = cc.securityService.SecuredAction(parse.json) { request =>
     val userId: String          = request.identity.userId
     val labelId: Int            = (request.body \ "label_id").as[Int]
-    val agrees: Boolean         = (request.body \ "agrees").as[Boolean]
     val comment: Option[String] = (request.body \ "comment").asOpt[String].map(_.trim).filter(_.nonEmpty)
-    cc.loggingService.insert(userId, request.ipAddress, s"Click_module=ContestMistake_agrees=$agrees")
-    labelService.recordMistakeResponse(labelId, userId, agrees, comment).map { recorded =>
-      if (recorded) Ok(Json.obj("success" -> true))
-      else Forbidden(Json.obj("success" -> false))
+    cc.loggingService.insert(userId, request.ipAddress, "Click_module=MistakeNote")
+    labelService.recordMistakeNote(labelId, userId, comment).map { recorded =>
+      if (recorded) Ok(Json.obj("success" -> true)) else Forbidden(Json.obj("success" -> false))
     }
   }
 

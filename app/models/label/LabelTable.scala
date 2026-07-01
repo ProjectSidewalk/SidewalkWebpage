@@ -1461,23 +1461,45 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @return          Query object to get the labels.
    */
   /**
-   * Records (or updates) a user's response to their own incorrectly-validated label (#2996).
+   * Records (or updates) a user's agree/contest vote on their own incorrectly-validated label (#2996). Preserves any
+   * existing note on the row — the vote and the note are independent.
    *
-   * @param labelId The label being responded to.
-   * @param userId  The responding user; must own the label or this is a no-op.
+   * @param labelId The label being voted on.
+   * @param userId  The voting user; must own the label or this is a no-op.
    * @param agrees  True = agrees it was a mistake; false = contests it (claims it was correct).
-   * @param comment Optional context note.
-   * @return        True if a response was recorded; false if the label isn't the user's.
+   * @return        True if the vote was recorded; false if the label isn't the user's.
    */
-  def upsertMistakeResponse(labelId: Int, userId: String, agrees: Boolean, comment: Option[String]): DBIO[Boolean] = {
+  def recordMistakeVote(labelId: Int, userId: String, agrees: Boolean): DBIO[Boolean] = {
     labelsUnfiltered.filter(l => l.labelId === labelId && l.userId === userId).exists.result.flatMap { owns =>
       if (!owns) DBIO.successful(false)
       else
         sqlu"""
-          INSERT INTO user_mistake_response (label_id, user_id, agrees, comment)
-          VALUES ($labelId, $userId, $agrees, $comment)
+          INSERT INTO user_mistake_response (label_id, user_id, agrees)
+          VALUES ($labelId, $userId, $agrees)
           ON CONFLICT (label_id, user_id)
-          DO UPDATE SET agrees = EXCLUDED.agrees, comment = EXCLUDED.comment, created_at = now()
+          DO UPDATE SET agrees = EXCLUDED.agrees, created_at = now()
+        """.map(_ => true)
+    }
+  }
+
+  /**
+   * Records (or updates) a user's note on their own incorrectly-validated label (#2996). The note stands alone — it
+   * preserves any existing vote and does not require one (a note-only row has `agrees` NULL).
+   *
+   * @param labelId The label being annotated.
+   * @param userId  The user; must own the label or this is a no-op.
+   * @param comment The note (None clears it).
+   * @return        True if the note was recorded; false if the label isn't the user's.
+   */
+  def recordMistakeNote(labelId: Int, userId: String, comment: Option[String]): DBIO[Boolean] = {
+    labelsUnfiltered.filter(l => l.labelId === labelId && l.userId === userId).exists.result.flatMap { owns =>
+      if (!owns) DBIO.successful(false)
+      else
+        sqlu"""
+          INSERT INTO user_mistake_response (label_id, user_id, comment)
+          VALUES ($labelId, $userId, $comment)
+          ON CONFLICT (label_id, user_id)
+          DO UPDATE SET comment = EXCLUDED.comment, created_at = now()
         """.map(_ => true)
     }
   }

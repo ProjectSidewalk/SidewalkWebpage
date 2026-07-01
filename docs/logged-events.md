@@ -45,7 +45,7 @@ table (`app/models/utils/WebpageActivityTable.scala`) rather than the interactio
 
 Two naming conventions dominate here: **`Visit_<Page>`** for a page view (e.g. `Visit_UserDashboardPreview`,
 `Visit_LeaderboardPreview`, `Visit_SettingsPreview`, `Visit_PublicProfilePreview`) and **`Click_module=<Action>`** for
-a discrete action (e.g. `Click_module=SaveSettings`, `Click_module=CreateTeam`, `Click_module=ContestMistake_agrees=<bool>`).
+a discrete action (e.g. `Click_module=SaveSettings`, `Click_module=CreateTeam`, `Click_module=MistakeVote_agrees=<bool>`, `Click_module=MistakeNote`).
 Follow these when adding a page or action. The current set lives in the code — grep the controllers:
 
 ```bash

@@ -11,15 +11,16 @@ import java.time.OffsetDateTime
  * @param userMistakeResponseId Primary key.
  * @param labelId               The label being responded to (owned by `userId`).
  * @param userId                The responding user (must own the label).
- * @param agrees                True = agrees it was a mistake; false = contests it (claims it was correct).
- * @param comment               Optional note for context (especially when contesting).
+ * @param agrees                Some(true) = agrees it was a mistake; Some(false) = contests it; None = only a note,
+ *                              no vote cast (#2996).
+ * @param comment               Optional note for context.
  * @param createdAt             When the response was recorded/updated.
  */
 case class MistakeResponse(
     userMistakeResponseId: Int,
     labelId: Int,
     userId: String,
-    agrees: Boolean,
+    agrees: Option[Boolean],
     comment: Option[String],
     createdAt: OffsetDateTime
 )
@@ -28,7 +29,7 @@ class MistakeResponseTableDef(tag: Tag) extends Table[MistakeResponse](tag, "use
   def userMistakeResponseId: Rep[Int] = column[Int]("user_mistake_response_id", O.PrimaryKey, O.AutoInc)
   def labelId: Rep[Int]               = column[Int]("label_id")
   def userId: Rep[String]             = column[String]("user_id")
-  def agrees: Rep[Boolean]            = column[Boolean]("agrees")
+  def agrees: Rep[Option[Boolean]]    = column[Option[Boolean]]("agrees")
   def comment: Rep[Option[String]]    = column[Option[String]]("comment")
   def createdAt: Rep[OffsetDateTime]  = column[OffsetDateTime]("created_at")
 

@@ -605,21 +605,17 @@
     background-position: center;
 }
 
-.ud-card-type-icon {
+/* The label's own icon, centered on the POV-aimed pano to mark exactly which feature was labeled. */
+.ud-card-label-marker {
     position: absolute;
-    top: 8px;
-    left: 8px;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid var(--color-neutral-white, #fff);
-    border-radius: 50%;
-    background: var(--color-neutral-white, #fff);
+    top: 50%;
+    left: 50%;
+    width: 42px;
+    height: 42px;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.55));
+    pointer-events: none;
 }
-
-.ud-card-type-icon img { width: 18px; height: 18px; display: block; }
 
 .ud-card-verdict {
     position: absolute;
@@ -678,15 +674,16 @@
 .ud-chip-agree:hover { background: var(--color-pine-100, #eaf3ec); border-color: var(--color-pine-400, #8fc09b); }
 .ud-chip-disagree:hover { background: var(--color-orange-100, #fdeede); border-color: var(--color-orange-300, #f4b277); }
 
-.ud-card-comment-link {
+.ud-card-note-link {
     display: inline-block;
     margin-top: 6px;
     font-size: var(--font-size-md, 1rem);
     color: var(--color-accent-link, #0566f5);
     text-decoration: none;
+    cursor: pointer;
 }
 
-.ud-card-comment-link:hover { text-decoration: underline; }
+.ud-card-note-link:hover { text-decoration: underline; }
 
 .ud-card-comment-input {
     width: 100%;
@@ -719,25 +716,28 @@
     font-size: var(--font-size-md, 1rem);
 }
 
-/* Resolved state: after the user answers, the card tints and its controls are replaced by a confirmed summary. */
-.ud-card-resolved { background: var(--color-pine-100, #eaf3ec); border-color: var(--color-pine-300, #aacdb4); }
+/* Voted state: once the user casts an agree/contest vote, the card tints and the buttons become a confirmed line. */
+.ud-card-voted { background: var(--color-pine-100, #eaf3ec); border-color: var(--color-pine-300, #aacdb4); }
 
-.ud-card-resolved-body { display: flex; flex-direction: column; gap: var(--space-xs, 8px); }
+.ud-card-vote { display: flex; flex-direction: column; gap: var(--space-xs, 8px); }
 
-.ud-card-resolved-msg {
+.ud-card-voted-msg {
     margin: 0;
     font-weight: 600;
     color: var(--color-pine-800, #2f5239);
 }
 
-.ud-card-resolved-note {
-    margin: 0;
+.ud-card-change { align-self: flex-start; padding: 6px 14px; }
+
+/* The user's own note, independent of the vote. */
+.ud-card-note-section { display: flex; flex-direction: column; margin-top: var(--space-xs, 8px); }
+
+.ud-card-your-note {
+    margin: 0 0 4px;
     font-size: var(--font-size-md, 1rem);
     font-style: italic;
     color: var(--color-text-secondary, #5a7785);
 }
-
-.ud-card-edit { align-self: flex-start; padding: 6px 14px; }
 
 .ud-see-all {
     display: inline-block;
