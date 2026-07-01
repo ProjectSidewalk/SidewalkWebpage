@@ -40,7 +40,7 @@
             <div class="ud-hero-text">
                 <p class="ud-hero-greeting">Welcome back, <strong>@user.username</strong> 👋</p>
                 <p class="ud-hero-headline">You've placed <strong>@{"%,d".format(profileData.labelCount)} labels</strong> making sidewalks more accessible.</p>
-                <p class="ud-hero-sub">Every one helps map the world for people with disabilities.</p>
+                <p class="ud-hero-sub">Every label helps map the world's sidewalks.</p>
             </div>
         </div>
 
@@ -216,26 +216,22 @@
                     <span class="ud-team-name">You're not on a team yet</span>
                     <span class="ud-team-meta">Join a team or class to map together and climb the team leaderboard.</span>
                 }
-                <div class="ud-field-inline">
-                    <select class="ud-input" aria-label="Choose a team">
-                        <option>@profileData.userTeam.map(_.name).getOrElse("Choose a team…")</option>
-                        @for(t <- profileData.allTeams.filter(t => t.open && !profileData.userTeam.contains(t))) {
-                            <option>@t.name</option>
-                        }
-                    </select>
-                    <button type="button" class="ud-btn-secondary">Update</button>
-                </div>
+                @defining(profileData.allTeams.filter(t => t.open && !profileData.userTeam.contains(t))) { joinable =>
+                    @if(joinable.nonEmpty) {
+                        <label class="ud-team-join-label" for="ud-team-select">@if(profileData.userTeam.isDefined){Switch to another team}else{Join an existing team}</label>
+                        <div class="ud-field-inline">
+                            <select class="ud-input" id="ud-team-select" aria-label="Choose a team to join">
+                                <option value="0" selected>Choose a team…</option>
+                                @for(t <- joinable) { <option value="@t.teamId">@t.name</option> }
+                            </select>
+                            <button type="button" class="ud-btn-secondary ud-join-team-btn" data-user-id="@user.userId">Join team</button>
+                        </div>
+                    }
+                }
                 <button type="button" class="ud-btn-primary ud-create-team-btn">➕ Create a team</button>
-            </div>
-            <div class="ud-team-board">
-                <div class="ud-team-board-head">Your team this week</div>
-                <ul class="ud-standing-slice">
-                    <li><span class="ud-rank">1</span><span class="ud-rank-user">🥇 jordan_m</span><span class="ud-rank-val">412</span></li>
-                    <li><span class="ud-rank">2</span><span class="ud-rank-user">🥈 priya_k</span><span class="ud-rank-val">355</span></li>
-                    <li class="ud-rank-you"><span class="ud-rank">3</span><span class="ud-rank-user">🥉 you</span><span class="ud-rank-val">298</span></li>
-                    <li><span class="ud-rank">4</span><span class="ud-rank-user">sam_l</span><span class="ud-rank-val">240</span></li>
-                </ul>
-                <p class="ud-section-note">Team leaderboard is mock for now — wires up with the team-standing data.</p>
+                @profileData.userTeam.map { _ =>
+                    <a class="ud-see-all" href="@routes.UserDashboardController.leaderboardPreview#teams">See the team leaderboard →</a>
+                }
             </div>
         </div>
 

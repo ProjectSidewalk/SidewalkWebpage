@@ -114,27 +114,34 @@ class MistakeGallery {
         }
         body.appendChild(note);
 
-        // Contest affordance (#2996/#1680): agree it was a mistake, or contest it, optionally with a comment.
-        const actions = document.createElement('div');
-        actions.className = 'ud-card-actions';
-        const agreeBtn = MistakeGallery.#chip('ud-chip-agree', '👍 I agree', 'I agree this label was incorrect');
-        const contestBtn = MistakeGallery.#chip('ud-chip-disagree', '✋ It was correct',
-            'I disagree — my label was correct (contest the validation)');
-        actions.append(agreeBtn, contestBtn);
-        body.appendChild(actions);
+        // Contest affordance (#2996/#1680): the two buttons are the submit action; the optional note above is sent
+        // along with whichever choice the user picks. Flow reads top-to-bottom: prompt -> optional note -> choose.
+        const prompt = document.createElement('p');
+        prompt.className = 'ud-card-prompt';
+        prompt.textContent = 'Do you agree this was a mistake?';
+        body.appendChild(prompt);
 
         const commentLink = document.createElement('a');
         commentLink.className = 'ud-card-comment-link';
         commentLink.href = '#';
-        commentLink.textContent = '💬 Add a comment';
+        commentLink.textContent = '💬 Add a note';
         body.appendChild(commentLink);
 
         const textarea = document.createElement('textarea');
         textarea.className = 'ud-card-comment-input';
         textarea.rows = 2;
-        textarea.placeholder = 'Optional: add a note for context…';
+        textarea.placeholder = 'Optional note — sent when you choose below.';
         textarea.hidden = true;
         body.appendChild(textarea);
+
+        const actions = document.createElement('div');
+        actions.className = 'ud-card-actions';
+        const agreeBtn = MistakeGallery.#chip('ud-chip-agree', '👍 I agree I made a mistake',
+            'Records that you agree this label was incorrect');
+        const contestBtn = MistakeGallery.#chip('ud-chip-disagree', '✋ No — my label was correct',
+            'Contests the validation — you stand by your label');
+        actions.append(agreeBtn, contestBtn);
+        body.appendChild(actions);
 
         commentLink.addEventListener('click', e => {
             e.preventDefault();

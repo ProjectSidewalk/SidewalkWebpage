@@ -27,6 +27,34 @@ class TeamCreate {
         });
     }
 
+    /** Wires the "Join team" dropdown button (dashboard only). Safe to call when absent. */
+    static initJoin() {
+        document.querySelectorAll('.ud-join-team-btn').forEach(btn =>
+            btn.addEventListener('click', () => TeamCreate.#join(btn)));
+    }
+
+    /** Switches the user to the selected open team, then reloads. */
+    static async #join(btn) {
+        const select = document.getElementById('ud-team-select');
+        const teamId = parseInt(select && select.value, 10);
+        if (!teamId || teamId <= 0) return; // "Choose a team…" placeholder — nothing to do.
+        btn.setAttribute('disabled', 'disabled');
+        try {
+            const res = await fetch(
+                `/userapi/setUserTeam?userId=${encodeURIComponent(btn.dataset.userId)}&teamId=${teamId}`,
+                { method: 'PUT', headers: { Accept: 'application/json' } });
+            if (res.ok) {
+                window.location.reload();
+                return;
+            }
+            console.error('Join team failed', res.status);
+        } catch (e) {
+            console.error('Join team failed', e);
+        } finally {
+            btn.removeAttribute('disabled');
+        }
+    }
+
     /** Clears the form + any prior error. */
     static #reset() {
         const err = document.getElementById('ud-team-error');
@@ -77,4 +105,7 @@ class TeamCreate {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => TeamCreate.init());
+document.addEventListener('DOMContentLoaded', () => {
+    TeamCreate.init();
+    TeamCreate.initJoin();
+});

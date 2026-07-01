@@ -11,12 +11,17 @@ package models.utils
  */
 object ProfanityGuard {
 
-  // Unambiguous slurs / abusive terms, rot13-encoded so the source file isn't itself a raw slur list (decoded at
-  // load). Deliberately excludes terms that are common substrings of innocent words (e.g. "rape" in therapist/grape)
-  // to limit false positives; those are better handled by reporting than by blanket blocking.
+  // Slurs + common profanity, rot13-encoded so the source file isn't itself a raw slur list (decoded at load).
+  // Deliberately excludes terms that are common substrings of innocent words — e.g. "ass" (class, pass, embassy),
+  // "rape" (grape, therapist), "cock" (peacock, cockpit), "dick" (Dickinson) — to limit false positives; those are
+  // better handled by reporting + rename than by blanket blocking (see #4375).
   private val blockedRot13: Set[String] = Set(
+    // Slurs / hate terms.
     "avttre", "avttn", "snttbg", "snt", "xvxr", "puvax", "fcvp", "jrgonpx", "gbjryurnq", "phag", "juber", "anmv",
-    "uvgyre", "xxx"
+    "uvgyre", "xxx",
+    // Common profanity.
+    "shpx", "fuvg", "ovgpu", "onfgneq", "nffubyr", "qvpxurnq", "pbpxfhpxre", "obyybpxf", "jnax", "jnaxre", "gjng",
+    "cvff", "fyhg", "qbhpur", "qnza"
   )
 
   private def rot13(s: String): String = s.map {

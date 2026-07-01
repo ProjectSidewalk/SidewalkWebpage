@@ -534,6 +534,13 @@
     line-height: 1.4;
 }
 
+.ud-card-prompt {
+    margin: var(--space-sm, 12px) 0 4px;
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 600;
+    color: var(--color-text-heading, #263238);
+}
+
 .ud-card-actions {
     display: flex;
     flex-wrap: wrap;
@@ -935,11 +942,24 @@
     font-size: var(--font-size-sm, 0.875rem);
 }
 
+.ud-dialog-note {
+    margin: var(--space-sm, 12px) 0 0;
+    font-size: var(--font-size-xs, 0.8125rem);
+    color: var(--color-text-tertiary, #88a1ad);
+}
+
 .ud-dialog-actions {
     display: flex;
     justify-content: flex-end;
     gap: var(--space-sm, 12px);
     margin-top: var(--space-lg, 24px);
+}
+
+.ud-team-join-label {
+    display: block;
+    margin-top: var(--space-sm, 12px);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
 }
 
 /* ---- Responsive ------------------------------------------------------------------------------------------------ */
