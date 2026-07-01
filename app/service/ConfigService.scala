@@ -1230,9 +1230,12 @@ class ConfigServiceImpl @Inject() (
 
   def getAiTagSuggestionsEnabled: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$getCityId")
 
-  // A city omitted from private-profiles-by-default is public by default, so a missing key reads as false.
-  def getPrivateProfilesByDefault: Boolean =
-    config.get[Option[Boolean]](s"city-params.private-profiles-by-default.$getCityId").getOrElse(false)
+  // A city omitted from private-profiles-by-default (or a deployment whose config predates the block entirely) is
+  // public by default. hasPath returns false for a missing key OR a missing parent block, so this never throws.
+  def getPrivateProfilesByDefault: Boolean = {
+    val path = s"city-params.private-profiles-by-default.$getCityId"
+    config.underlying.hasPath(path) && config.get[Boolean](path)
+  }
 
   def getPanoSource: PanoSource = PanoSource.withName(config.get[String](s"city-params.pano-viewer-type.$getCityId"))
 

@@ -79,8 +79,9 @@ class AuthenticationServiceImpl @Inject() (
    * @return (onLeaderboard, publicProfile) for a newly created user_stat row.
    */
   private def defaultPrivacyFlags: (Boolean, Boolean) = {
-    val cityId   = config.get[String]("city-id")
-    val isPublic = !config.get[Option[Boolean]](s"city-params.private-profiles-by-default.$cityId").getOrElse(false)
+    val path = s"city-params.private-profiles-by-default.${config.get[String]("city-id")}"
+    // hasPath is false for a missing key OR a missing parent block, so this never throws (public by default).
+    val isPublic = !(config.underlying.hasPath(path) && config.get[Boolean](path))
     (isPublic, isPublic)
   }
 
