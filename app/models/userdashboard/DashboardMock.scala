@@ -9,6 +9,9 @@ package models.userdashboard
  */
 object DashboardMock {
 
+  /** Roman numerals for the five badge levels, so the tier's progression reads clearly alongside its themed name. */
+  val roman: Seq[String] = Seq("I", "II", "III", "IV", "V")
+
   /**
    * One labeling/exploring/validating badge track: which levels are earned, progress toward the next, and the five
    * themed level names (progressively cooler). `earned` is the highest level reached (0-5); `nextCount` is the
@@ -16,8 +19,12 @@ object DashboardMock {
    * BadgeAchievements.js (LEVEL_NAMES, with i18n keys) — this mock mirrors that shape.
    */
   case class BadgeTrack(name: String, icon: String, earned: Int, pct: Int, nextCount: String, levelNames: Seq[String]) {
-    def currentName: String      = if (earned >= 1) levelNames(earned - 1) else "Not started"
-    def nextName: Option[String] = if (earned < 5) Some(levelNames(earned)) else None
+
+    /** Current tier as "IV: Barrier Buster" (Roman numeral makes the progression legible), or "Not started". */
+    def currentLabel: String = if (earned >= 1) s"${roman(earned - 1)}: ${levelNames(earned - 1)}" else "Not started"
+
+    /** Next tier as "V: Sidewalk Sage", or None if maxed out. */
+    def nextLabel: Option[String] = if (earned < 5) Some(s"${roman(earned)}: ${levelNames(earned)}") else None
   }
 
   /**

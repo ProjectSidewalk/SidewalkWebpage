@@ -18,7 +18,7 @@
 @row(rank: Int, name: String, labels: String, missions: String, distance: String, accuracy: String, you: Boolean) = {
     <tr @if(you){class="highlighted"}>
         <td>@rank</td>
-        <td>@if(you){<strong>You</strong>}else{<a href="#" class="ud-lb-user">@name</a>}</td>
+        <td>@if(you){<strong>You</strong>}else{<a href="@routes.UserDashboardController.publicProfilePreview(name)" class="ud-lb-user">@name</a>}</td>
         <td>@labels</td>
         <td>@missions</td>
         <td>@distance</td>
@@ -29,7 +29,7 @@
 @allTimeRow(rank: Int, name: String, city: String, labels: String, missions: String, distance: String, accuracy: String, you: Boolean) = {
     <tr @if(you){class="highlighted"}>
         <td>@rank</td>
-        <td>@if(you){<strong>You</strong>}else{<a href="#" class="ud-lb-user">@name</a>}</td>
+        <td>@if(you){<strong>You</strong>}else{<a href="@routes.UserDashboardController.publicProfilePreview(name)" class="ud-lb-user">@name</a>}</td>
         <td><a href="#" class="ud-lb-city">@city</a></td>
         <td>@labels</td>
         <td>@missions</td>
@@ -77,19 +77,19 @@
         <div class="ud-podium">
             <div class="ud-podium-spot ud-podium-2">
                 <div class="ud-podium-avatar" aria-hidden="true">RR</div>
-                <div class="ud-podium-name"><a href="#" class="ud-lb-user">ramp_ranger</a></div>
+                <div class="ud-podium-name"><a href="@routes.UserDashboardController.publicProfilePreview("ramp_ranger")" class="ud-lb-user">ramp_ranger</a></div>
                 <div class="ud-podium-score">8,902 pts</div>
                 <div class="ud-podium-block" aria-hidden="true">🥈</div>
             </div>
             <div class="ud-podium-spot ud-podium-1">
                 <div class="ud-podium-avatar" aria-hidden="true">CC</div>
-                <div class="ud-podium-name"><a href="#" class="ud-lb-user">curb_crusader</a></div>
+                <div class="ud-podium-name"><a href="@routes.UserDashboardController.publicProfilePreview("curb_crusader")" class="ud-lb-user">curb_crusader</a></div>
                 <div class="ud-podium-score">11,540 pts</div>
                 <div class="ud-podium-block" aria-hidden="true">🥇</div>
             </div>
             <div class="ud-podium-spot ud-podium-3">
                 <div class="ud-podium-avatar" aria-hidden="true">SW</div>
-                <div class="ud-podium-name"><a href="#" class="ud-lb-user">sidewalk_sam</a></div>
+                <div class="ud-podium-name"><a href="@routes.UserDashboardController.publicProfilePreview("sidewalk_sam")" class="ud-lb-user">sidewalk_sam</a></div>
                 <div class="ud-podium-score">7,418 pts</div>
                 <div class="ud-podium-block" aria-hidden="true">🥉</div>
             </div>

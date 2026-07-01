@@ -13,7 +13,9 @@
         <a href="@routes.UserDashboardController.dashboardPreview"
            class="api-nav-item @if(activePage == "dashboard"){active}"
            @if(activePage == "dashboard"){aria-current="page"}>Dashboard</a>
-        <span class="api-nav-item disabled" aria-disabled="true">Settings <span class="nav-soon-badge">soon</span></span>
+        <a href="@routes.UserDashboardController.settingsPreview"
+           class="api-nav-item @if(activePage == "settings"){active}"
+           @if(activePage == "settings"){aria-current="page"}>Settings</a>
 
         <div class="api-nav-header">Community</div>
         <a href="@routes.UserDashboardController.leaderboardPreview"

@@ -59,4 +59,32 @@ class UserDashboardController @Inject() (
       Ok(views.html.userDashboard.leaderboard(commonData, request.identity, isSignedIn))
     }
   }
+
+  /**
+   * Renders the Settings page prototype: username, email, team membership, measurement units, and the two privacy
+   * toggles ("Show me on the leaderboard" and "Make my dashboard public", both default on). Secured to a registered
+   * user (settings are personal). Phase 1 is a static form with mock values.
+   */
+  def settingsPreview = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_SettingsPreview")
+      Ok(views.html.userDashboard.settings(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Renders a public version of a mapper's dashboard (their accomplishments only — no email, mistakes, or settings).
+   *
+   * Bare `SecuredAction` so anyone, including anonymous accounts, can view it after clicking a name on the leaderboard.
+   * The real version will honor the target user's `public_profile` flag (private profiles render a "kept private"
+   * state) and show only non-PII public stats. Phase 1 shows mock data for the given username.
+   *
+   * @param username The mapper whose public profile to show.
+   */
+  def publicProfilePreview(username: String) = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_PublicProfilePreview")
+      Ok(views.html.userDashboard.publicProfile(commonData, request.identity, username))
+    }
+  }
 }

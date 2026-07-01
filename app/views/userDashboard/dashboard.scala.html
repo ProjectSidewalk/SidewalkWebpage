@@ -51,7 +51,7 @@
             </div>
         </div>
 
-        <div class="ud-nudge">🎯 You're just <strong>84 labels</strong> from your next badge — <strong>Sidewalk Sage</strong>. So close!</div>
+        <div class="ud-nudge">🎯 You're just <strong>84 labels</strong> from your next badge — <strong>Labeler V: Sidewalk Sage</strong>. So close!</div>
     </div>
 
     @* ---- Streak / activity rhythm -------------------------------------------------------------------------- *@
@@ -105,21 +105,21 @@
                 <div class="ud-badge-track">
                     <div class="ud-badge-track-head">
                         <span class="ud-badge-track-name">@track.name</span>
-                        <span class="ud-badge-track-current">@track.currentName</span>
+                        <span class="ud-badge-track-current">@track.currentLabel</span>
                     </div>
                     <div class="ud-badge-levels">
                         @for(level <- 1 to 5) {
                             <img class="ud-badge @if(level > track.earned){ud-badge-locked}"
                                  src="@assets.path(s"images/badges/badge_${track.icon}_badge${level}.png")"
-                                 alt="@track.name level @level — @track.levelNames(level - 1) @if(level <= track.earned){(earned)}else{(locked)}"
-                                 title="@track.levelNames(level - 1)">
+                                 alt="@track.name @DashboardMock.roman(level - 1): @track.levelNames(level - 1) @if(level <= track.earned){(earned)}else{(locked)}"
+                                 title="@track.name @DashboardMock.roman(level - 1): @track.levelNames(level - 1)">
                         }
                     </div>
                     <div class="ud-progress" role="img" aria-label="@track.pct% to next level">
                         <div class="ud-progress-fill" style="width: @track.pct%"></div>
                     </div>
-                    @track.nextName.map { next =>
-                        <span class="ud-badge-track-next">@track.nextCount → <strong>@next</strong></span>
+                    @track.nextLabel.map { next =>
+                        <span class="ud-badge-track-next">@track.nextCount → <strong>@track.name @next</strong></span>
                     }.getOrElse {
                         <span class="ud-badge-track-next">Maxed out — you're a legend! 🎉</span>
                     }

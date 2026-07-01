@@ -1,0 +1,98 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import models.userdashboard.DashboardMock
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole, profileName: String
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@*
+ * Public version of a mapper's dashboard (Phase 1 comps prototype, mock data), reached by clicking a name on the
+ * leaderboard. Viewable by anyone, including anonymous accounts.
+ *
+ * Shows only celebratory, non-PII stats: their impact, streak, badges, and trophies — deliberately NOT their email,
+ * their "recent mistakes"/contest tools, or their settings (those are private to the owner). The real version honors
+ * the target user's `public_profile` flag; a private profile renders the "kept private" state instead. All numbers
+ * are placeholders here and reuse the dashboard mock for illustration.
+ *@
+
+@monogram = @{ profileName.take(2).toUpperCase }
+
+@content = {
+    <div class="api-section" id="pp-hero-section">
+        <h1 class="api-heading" id="overview">@profileName <a href="#overview" class="permalink">#</a></h1>
+
+        <div class="ud-hero">
+            <div class="ud-hero-avatar" aria-hidden="true">@monogram</div>
+            <div class="ud-hero-text">
+                <p class="ud-hero-greeting"><span class="ud-public-tag">Public profile</span></p>
+                <p class="ud-hero-headline"><strong>@profileName</strong> has placed <strong>11,540 labels</strong> making sidewalks more accessible.</p>
+                <p class="ud-hero-sub">Most active in <a href="#" class="ud-lb-city">Seattle, WA</a> · mapping since 2023.</p>
+            </div>
+        </div>
+
+        <div class="coverage-kpis ud-kpis">
+            <div class="coverage-kpi"><span class="coverage-kpi-value">312</span><span class="coverage-kpi-label">Missions completed</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value">142 km</span><span class="coverage-kpi-label">Distance explored</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value">11,540</span><span class="coverage-kpi-label">Labels placed</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value">8,204</span><span class="coverage-kpi-label">Validations given</span></div>
+            <div class="coverage-kpi"><span class="coverage-kpi-value">90%</span><span class="coverage-kpi-label">Label accuracy</span></div>
+        </div>
+    </div>
+
+    <div class="api-section" id="pp-achievements-section">
+        <h2 class="api-heading" id="achievements">Badges &amp; trophies <a href="#achievements" class="permalink">#</a></h2>
+        <div class="ud-badge-tracks">
+            @for(track <- DashboardMock.badgeTracks) {
+                <div class="ud-badge-track">
+                    <div class="ud-badge-track-head">
+                        <span class="ud-badge-track-name">@track.name</span>
+                        <span class="ud-badge-track-current">@track.currentLabel</span>
+                    </div>
+                    <div class="ud-badge-levels">
+                        @for(level <- 1 to 5) {
+                            <img class="ud-badge @if(level > track.earned){ud-badge-locked}"
+                                 src="@assets.path(s"images/badges/badge_${track.icon}_badge${level}.png")"
+                                 alt="@track.name @DashboardMock.roman(level - 1): @track.levelNames(level - 1)"
+                                 title="@track.name @DashboardMock.roman(level - 1): @track.levelNames(level - 1)">
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <h3 class="api-heading" id="trophy-case">Trophy case <a href="#trophy-case" class="permalink">#</a></h3>
+        <div class="ud-trophy-case">
+            @for(t <- DashboardMock.trophies) {
+                <div class="ud-trophy @if(t.region){ud-trophy-region}else{ud-trophy-@t.rank}">
+                    @if(t.region){<span class="ud-trophy-tag">Region</span>}
+                    <span class="ud-trophy-medal" aria-hidden="true">@t.medal</span>
+                    <span class="ud-trophy-title">@t.title</span>
+                    <span class="ud-trophy-sub">@t.sub</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="api-section" id="pp-map-section">
+        <h2 class="api-heading" id="map">Where they've explored <a href="#map" class="permalink">#</a></h2>
+        <div class="ud-map-placeholder" role="img" aria-label="Map placeholder — the live profile renders this mapper's audited streets and labels here">
+            <span>🗺️ @{profileName}'s contribution map</span>
+            <small>(live choropleth + their labels render here)</small>
+        </div>
+    </div>
+
+    <div class="api-section" id="pp-team-section">
+        <h2 class="api-heading" id="team">Team <a href="#team" class="permalink">#</a></h2>
+        <div class="ud-team-card">
+            <span class="ud-team-name">UW Mapping Club</span>
+            <span class="ud-team-meta">1 of 18 members · 5,980 labels this term</span>
+        </div>
+    </div>
+
+    <p class="ud-section-note">Public view — only accomplishments are shown. Email, "recent mistakes", and settings stay private to @profileName. If a mapper turns off "Make my dashboard public", this page shows a friendly "kept private" message instead.</p>
+}
+
+@common.main(commonData, s"Sidewalk - ${profileName}") {
+    @common.navbar(commonData, Some(user))
+    @userDashboard.layout("")(content)
+}

@@ -715,6 +715,75 @@
 .ud-podium-2 { order: 1; }
 .ud-podium-3 { order: 3; }
 
+/* ---- Public profile -------------------------------------------------------------------------------------------- */
+.ud-public-tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    background: var(--color-pine-200, #cfe3d4);
+    color: var(--color-pine-800, #2f5239);
+    font-size: var(--font-size-xs, 0.8125rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* ---- Settings form --------------------------------------------------------------------------------------------- */
+.ud-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg, 24px);
+    max-width: 620px;
+    margin: var(--space-md, 16px) 0;
+}
+
+.ud-field { display: flex; flex-direction: column; gap: 6px; }
+
+.ud-label {
+    font-size: var(--font-size-md, 1rem);
+    font-weight: 600;
+    color: var(--color-text-heading, #263238);
+}
+
+.ud-input {
+    padding: 9px 12px;
+    border: 1px solid var(--color-neutral-300, #c5cdd2);
+    border-radius: var(--border-radius, 4px);
+    font-size: var(--font-size-md, 1rem);
+    color: var(--color-text-heading, #263238);
+    background: var(--color-neutral-white, #fff);
+}
+
+.ud-input:focus-visible {
+    outline: 2px solid var(--color-accent-link, #0566f5);
+    outline-offset: 1px;
+    border-color: var(--color-accent-link, #0566f5);
+}
+
+.ud-field-inline { display: flex; flex-wrap: wrap; gap: var(--space-sm, 12px); align-items: center; }
+.ud-field-inline .ud-input { flex: 1 1 240px; }
+
+.ud-field-help {
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-radio-row { display: flex; flex-wrap: wrap; gap: var(--space-md, 16px); }
+
+.ud-radio,
+.ud-check {
+    display: flex;
+    gap: var(--space-xs, 8px);
+    font-size: var(--font-size-md, 1rem);
+    color: var(--color-text-heading, #263238);
+    cursor: pointer;
+}
+
+.ud-radio { align-items: center; }
+.ud-check { align-items: flex-start; }
+.ud-check input { margin-top: 3px; }
+.ud-check-text { display: flex; flex-direction: column; gap: 2px; }
+
 /* ---- Responsive ------------------------------------------------------------------------------------------------ */
 @media (max-width: 700px) {
     .ud-hero { flex-direction: column; text-align: center; }
