@@ -13,11 +13,11 @@
  * pills/ribbons (.ud-trophy-tag, .ud-standing-tag, .ud-card-verdict, .ud-public-tag). Never size real content below md.
  */
 
-/* Primary-content tables on the user surface read larger than the admin default (which stays --font-size-sm): body
-   cells are xl so the data is easy to read; headers stay md (they're secondary labels). */
-.api-content .coverage-table { font-size: var(--font-size-xl, 1.25rem); }
-.api-content .coverage-table thead th { font-size: var(--font-size-md, 1rem); }
-.api-content .coverage-table tbody td { padding: 13px 16px; }
+/* Primary-content tables on the user surface read much larger than the admin default (which stays --font-size-sm):
+   body cells at xxl so the data is loud, headers at lg. */
+.api-content .coverage-table { font-size: var(--font-size-xxl, 1.5rem); }
+.api-content .coverage-table thead th { font-size: var(--font-size-lg, 1.125rem); }
+.api-content .coverage-table tbody td { padding: 14px 16px; }
 
 /* Leaderboard tables are capped at ~10 rows, so show them in full — no inner scroll (admin tables keep theirs). */
 .api-content .coverage-table-wrap { max-height: none; }
@@ -31,7 +31,12 @@
 .api-content .coverage-table tbody tr { cursor: default; }
 
 /* Medal (or number) in the leaderboard rank column — bump the medals so they read clearly. */
-.api-content .coverage-table td.ud-lb-rank { font-size: 1.7rem; line-height: 1; }
+.api-content .coverage-table td.ud-lb-rank { font-size: 2rem; line-height: 1; }
+
+/* Header tooltip trigger (e.g. Accuracy). The native title attribute supplies the hover/focus tooltip text. */
+.ud-th-tip { cursor: help; }
+.ud-th-tip:focus-visible { outline: 2px solid var(--color-accent-link, #0566f5); outline-offset: 2px; }
+.ud-th-info { margin-left: 4px; color: var(--color-text-tertiary, #88a1ad); font-size: 0.8em; vertical-align: middle; }
 
 .ud-lb-user,
 .ud-lb-city {
@@ -957,7 +962,7 @@
 /* ---- "How is this ranked?" explainer --------------------------------------------------------------------------- */
 .ud-explainer {
     margin: 0 0 var(--space-md, 16px);
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--font-size-lg, 1.125rem);
     color: var(--color-text-secondary, #5a7785);
 }
 
