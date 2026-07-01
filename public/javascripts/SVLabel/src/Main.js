@@ -46,8 +46,8 @@ function Main (params) {
         svl.neighborhoodModel.setAsRouteOrNeighborhood(svl.userRouteId ? 'route' : 'neighborhood');
         svl.missionModel = new MissionModel();
 
-        svl.alert = new Alert();
-        svl.stuckAlert = new StuckAlert(svl.alert);
+        svl.alertController = new AlertController();
+        svl.stuckAlert = new StuckAlert(svl.alertController);
 
         const startLat = params.task.properties.current_lat;
         const startLng = params.task.properties.current_lng;
@@ -81,10 +81,10 @@ function Main (params) {
 
         // Set map parameters and instantiate it.
         svl.compass = new Compass(svl, svl.navigationService, svl.taskContainer);
-        svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alert);
-        svl.ratingReminderAlert = new RatingReminderAlert(svl.alert);
-        svl.zoomShortcutAlert = new ZoomShortcutAlert(svl.alert);
-        svl.jumpAlert = new JumpAlert(svl.alert);
+        svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alertController);
+        svl.ratingReminderAlert = new RatingReminderAlert(svl.alertController);
+        svl.zoomShortcutAlert = new ZoomShortcutAlert(svl.alertController);
+        svl.jumpAlert = new JumpAlert(svl.alertController);
 
         svl.badgeProgress = new BadgeProgress();
         svl.overallStats = new OverallStats();
@@ -229,7 +229,7 @@ function Main (params) {
     function startOnboarding () {
         // TODO probably have a GET endpoint to get onboarding mission..?
         //hide any alerts
-        svl.alert.hideAlert();
+        svl.alertController.hideAlert();
 
         if (!onboardingHandAnimation) {
             onboardingHandAnimation = new HandAnimation(svl.rootDirectory, svl.ui.onboarding);

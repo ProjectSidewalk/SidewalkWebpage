@@ -1,75 +1,26 @@
 /**
- * Alert Module
- * @constructor
+ * Base class for the individual alert types shown to the user (keyboard-shortcut nudges, the jump tip, etc.).
+ *
+ * Each subclass decides *when* to alert; this base handles the shared plumbing of *rendering* one — it holds the
+ * AlertController and exposes `_showAlert()` so subclasses never touch the alert DOM or the handler directly.
  */
-function Alert() {
-    var self = {};
+class Alert {
+    #alertHandler;
 
-    function init() {
-        self.ui = {
-            holder: $("#alert-holder"),
-            message: $("#alert-message"),
-            close: $("#alert-close"),
-            dontShow: $("#alert-dont-show")
-        };
-
-        self.ui.close.on('click', function() {
-            self.hideAlert();
-        });
-
-        self.ui.dontShow.on('click', function() {
-            self.dontShowClicked();
-        });
-
-        self.dontShowList = svl.storage.get("alertDontShowList") || [];
+    /**
+     * @param {AlertController} alertHandler - Controller that renders the message in the shared banner.
+     */
+    constructor(alertHandler) {
+        this.#alertHandler = alertHandler;
     }
 
     /**
-     *
-     * @param {string} msg the message in the alert
-     * @param {string} type is a string, used to identifying message types
-     * @param {boolean} dontShow boolean, whether the don't show link is enabled or not
-     * @param callback callback to run after showing alert
+     * Renders a translated message through the shared alert banner, offering the "don't show again" option.
+     * @param {string} translationKey - i18next key for the message.
+     * @param {string} type - Message type identifier, used for the "don't show again" opt-out list.
+     * @param {Object} [interpolation={}] - Interpolation values passed to i18next (e.g. `{ key: shortcut }`).
      */
-    function showAlert(msg, type, dontShow, callback) {
-        if (!dontShow) dontShow = false;
-
-        if (type == null || !(self.dontShowList.indexOf(type) >= 0)) {
-            if(dontShow)
-                self.ui.dontShow.show();
-            else
-                self.ui.dontShow.hide();
-
-            self.hideAlert(function() {
-                self.ui.message.html(msg);
-                self.lastMessageType = type;
-                self.ui.holder.fadeIn(300, callback);
-            });
-
-            self.hideTimeout = setTimeout(function() {
-                self.hideAlert();
-            }, 15000);
-        }
+    _showAlert(translationKey, type, interpolation = {}) {
+        this.#alertHandler.showAlert(i18next.t(translationKey, interpolation), type, true);
     }
-
-    function hideAlert(callback) {
-        self.ui.holder.fadeOut(300, callback);
-        clearTimeout(self.hideTimeout);
-    }
-
-    function dontShowClicked() {
-        if(self.lastMessageType != null) {
-            self.dontShowList.push(self.lastMessageType);
-            svl.storage.set("alertDontShowList", self.dontShowList);
-            self.hideAlert();
-        }
-    }
-
-    init();
-
-    self.showAlert = showAlert;
-    self.hideAlert = hideAlert;
-    self.dontShowClicked = dontShowClicked;
-
-    return self;
 }
