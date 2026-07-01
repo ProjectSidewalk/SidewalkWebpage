@@ -398,7 +398,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
 
         if (tasks) {
             const distanceArray = tasks.map(function (t) { return t.lineDistance(unit); });
-            return distanceArray.sum();
+            return util.array.sum(distanceArray);
         } else {
             return null;
         }
