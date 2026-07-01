@@ -76,8 +76,8 @@ that's the single source of truth, and most rules are enforced for you by the li
 [`CLAUDE.md`](CLAUDE.md) holds the architecture and the ScalaDoc/JSDoc comment standards. A few things worth knowing
 before your first PR:
 
-- **New JavaScript is ES6+** (`const`/`let`, arrow functions, native `fetch`). We're actively migrating *off*
-  ES5/jQuery/Bootstrap — don't add to them.
+- **New JavaScript targets ES2022** (`const`/`let`, arrow functions, `#private` fields, native `fetch`). We're
+  actively migrating *off* ES5/jQuery/Bootstrap — don't add to them.
 - **Format Scala with scalafmt** before pushing (`make scalafmt-fix`, or format-on-save) — CI blocks the merge on it.
 - **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens.
 - **Public API (`/v3`):** response fields are `snake_case`, query params are `camelCase`, and new DTOs go in

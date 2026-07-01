@@ -1,22 +1,17 @@
 /**
  * A Tag Bucket to store Tags.
- *
- * @returns {TagBucket}
- * @constructor
  */
-function TagBucket() {
-    const self = this;
-
+class TagBucket {
     // List of Tags.
-    let bucket = [];
+    #bucket = [];
 
     /**
      * Add Tag.
      *
      * @param {*} tag Tag to add.
      */
-    function push(tag) {
-        bucket.push(tag);
+    push(tag) {
+        this.#bucket.push(tag);
     }
 
     /**
@@ -24,44 +19,35 @@ function TagBucket() {
      *
      * @param {*} uiTagHolder UI element to render Tags in.
      */
-    function render(uiTagHolder) {
-        bucket.forEach(tag => tag.render(uiTagHolder));
+    render(uiTagHolder) {
+        this.#bucket.forEach(tag => tag.render(uiTagHolder));
     }
 
     /**
      * Unapply all tags.
      */
-    function unapplyTags() {
-        bucket.forEach(tag => tag.unapply());
+    unapplyTags() {
+        this.#bucket.forEach(tag => tag.unapply());
     }
 
     /**
      * Return list of Tags.
      */
-    function getTags() {
-        return bucket;
+    getTags() {
+        return this.#bucket;
     }
 
     /**
      * Return number of Tags.
      */
-    function getSize() {
-        return bucket.length;
+    getSize() {
+        return this.#bucket.length;
     }
 
     /**
      * Return list of applied Tags.
      */
-    function getAppliedTags() {
-        return bucket.filter(tag => tag.getStatus().applied);
+    getAppliedTags() {
+        return this.#bucket.filter(tag => tag.getStatus().applied);
     }
-
-    self.push = push;
-    self.render = render;
-    self.unapplyTags = unapplyTags;
-    self.getTags = getTags;
-    self.getSize = getSize;
-    self.getAppliedTags = getAppliedTags;
-
-    return this;
 }

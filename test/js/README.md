@@ -88,7 +88,7 @@ worth unit-testing with fake timers.
 
 ## Why this is opt-in and NOT in CI
 
-Frontend linting and the JS **ES5→ES6 migration** are owned by a separate in-flight effort, **issue #2487**. Dropping
+Frontend linting and the JS **ES5→ES2022 migration** are owned by a separate in-flight effort, **issue #2487**. Dropping
 test/lint tooling into CI mid-migration would create large, conflict-prone churn and risks colliding with that work.
 So:
 

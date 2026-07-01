@@ -1,31 +1,31 @@
 /**
  * Creates the label search UI on both /admin/label and /admin's Label Search tab.
- * @param {boolean} isAdmin
- * @param {LabelPopup} labelPopup
- * @param {string} source The UI that holds the label search, one of 'LabelSearchPage' or 'AdminLabelSearchTab'
- * @returns {Window | (WorkerGlobalScope & Window)}
- * @constructor
  */
-function AdminLabelSearch(isAdmin, labelPopup, source) {
-    self.labelPopup = labelPopup;
-    self.source = source;
-
-    // Prevents the page from refreshing when the enter key is pressed.
-    $('#form-control-input').keypress(function(e) {
-        if (e.keyCode === 13) {
-            const labelId = $('#form-control-input').val();
-            self.labelPopup.showLabel(labelId, self.source);
-            return false;
-        }
-    });
+class AdminLabelSearch {
+    #labelPopup;
+    #source;
 
     /**
-     * Pull information from the Label information box when the submit button is clicked.
+     * @param {boolean} isAdmin - Whether the current user is an admin.
+     * @param {LabelPopup} labelPopup - Popup that displays a searched-for label.
+     * @param {string} source - UI holding the search, one of 'LabelSearchPage' or 'AdminLabelSearchTab'.
      */
-    $('#submit').on('click', async function(e) {
-        const labelId = $('#form-control-input').val();
-        await self.labelPopup.showLabel(labelId, self.source);
-    });
+    constructor(isAdmin, labelPopup, source) {
+        this.#labelPopup = labelPopup;
+        this.#source = source;
 
-    return self;
+        const input = document.getElementById('form-control-input');
+
+        // Show the label on Enter, and stop the keypress from submitting/refreshing the page.
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.#labelPopup.showLabel(input.value, this.#source);
+                e.preventDefault();
+            }
+        });
+
+        document.getElementById('submit').addEventListener('click', async () => {
+            await this.#labelPopup.showLabel(input.value, this.#source);
+        });
+    }
 }

@@ -1,20 +1,18 @@
 /**
  * A Label module.
- * @param params
- * @returns {*}
- * @constructor
+ *
  * @memberof svl
  */
-function Label(params) {
-    var self = { className: 'Label' };
+class Label {
+    className = 'Label'; // Read by Canvas.js for type dispatch (`item.className === 'Label'`).
 
-    let googleMarker;
+    #googleMarker;
 
     // Parameters determined from a series of linear regressions. Here links to the analysis and relevant GitHub issues:
     // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
     // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2374
     // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2362
-    const LATLNG_ESTIMATION_PARAMS = {
+    static #LATLNG_ESTIMATION_PARAMS = {
         1: {
             headingIntercept: -51.2401711,
             headingCanvasXSlope: 0.1443374,
@@ -38,7 +36,7 @@ function Label(params) {
         }
     };
 
-    const properties = {
+    #properties = {
         labelId: 'DefaultValue',
         auditTaskId: undefined,
         missionId: undefined,
@@ -66,167 +64,176 @@ function Label(params) {
         crop: undefined
     };
 
-    const status = {
+    #status = {
         deleted : false,
         hoverInfoVisibility : 'visible',
         visibility : 'visible'
     };
 
-    const hoverInfoProperties = util.misc.getSeverityDescription();
+    #hoverInfoProperties;
 
-    function _init(param) {
-        for (const attrName in param) {
-            if (param.hasOwnProperty(attrName) && properties.hasOwnProperty(attrName)) {
-                properties[attrName] = param[attrName];
+    /**
+     * @param {Object} params - Initial label property values (only keys present in #properties are copied).
+     */
+    constructor(params) {
+        this.#hoverInfoProperties = util.misc.getSeverityDescription();
+
+        for (const attrName in params) {
+            if (params.hasOwnProperty(attrName) && this.#properties.hasOwnProperty(attrName)) {
+                this.#properties[attrName] = params[attrName];
             }
         }
 
         // Save pano data and calculate pano_x/y if the label is new.
-        if (properties.panoXY === undefined) {
-            const panoData = svl.panoStore.getPanoData(properties.panoId).getProperties();
+        if (this.#properties.panoXY === undefined) {
+            const panoData = svl.panoStore.getPanoData(this.#properties.panoId).getProperties();
 
-            properties.panoWidth = panoData.width;
-            properties.panoHeight = panoData.height;
-            properties.cameraHeading = panoData.cameraHeading;
-            properties.panoLat = panoData.lat;
-            properties.panoLng = panoData.lng;
-            properties.panoXY = util.pano.povToPanoCoord(
-                properties.povOfLabelIfCentered, properties.cameraHeading, properties.panoWidth, properties.panoHeight
+            this.#properties.panoWidth = panoData.width;
+            this.#properties.panoHeight = panoData.height;
+            this.#properties.cameraHeading = panoData.cameraHeading;
+            this.#properties.panoLat = panoData.lat;
+            this.#properties.panoLng = panoData.lng;
+            this.#properties.panoXY = util.pano.povToPanoCoord(
+                this.#properties.povOfLabelIfCentered, this.#properties.cameraHeading,
+                this.#properties.panoWidth, this.#properties.panoHeight
             );
         }
 
         // Create the marker on the minimap.
-        const latlng = toLatLng();
-        googleMarker = Label.createMinimapMarker(properties.labelType, latlng);
-        googleMarker.map = svl.minimap.getMap();
+        const latlng = this.toLatLng();
+        this.#googleMarker = Label.createMinimapMarker(this.#properties.labelType, latlng);
+        this.#googleMarker.map = svl.minimap.getMap();
     }
 
     // Some functions for easy access to commonly accessed properties.
-    function getLabelId() { return properties.labelId; }
-    function getLabelType() { return properties.labelType; }
-    function getPanoId () { return properties.panoId; }
+    getLabelId() { return this.#properties.labelId; }
+    getLabelType() { return this.#properties.labelType; }
+    getPanoId() { return this.#properties.panoId; }
 
     /**
      * Returns the coordinate of the label.
-     * @returns { x: number, y: number }
+     * @returns {{x: number, y: number}}
      */
-    function getCanvasXY() {
-        return properties.currCanvasXY;
+    getCanvasXY() {
+        return this.#properties.currCanvasXY;
     }
 
     /**
-     * Return deep copy of properties obj, so one can only modify props from setProperties() (not yet implemented).
-     * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
+     * Returns a deep copy of the properties object, so callers can't mutate the label's internal state directly.
+     * @returns {Object}
      */
-    function getProperties() { return $.extend(true, {}, properties); }
+    getProperties() { return structuredClone(this.#properties); }
 
-    function getProperty(propName) { return (propName in properties) ? properties[propName] : false; }
+    getProperty(propName) { return (propName in this.#properties) ? this.#properties[propName] : false; }
 
-    function setProperty(key, value) { properties[key] = value; }
+    setProperty(key, value) { this.#properties[key] = value; }
 
-    function getStatus(key) { return status[key]; }
-    function isDeleted() { return status.deleted; }
-    function isVisible() { return status.visibility === 'visible'; }
-    function setVisibility(visibility) { status.visibility = visibility; }
+    getStatus(key) { return this.#status[key]; }
+    isDeleted() { return this.#status.deleted; }
+    isVisible() { return this.#status.visibility === 'visible'; }
+    setVisibility(visibility) { this.#status.visibility = visibility; }
 
     /**
      * Set status. Deals with special cases for the various status values that have a limited set of values.
-     * @param key
-     * @param value
+     * @param {string} key
+     * @param {*} value
      */
-    function setStatus (key, value) {
-        if (key in status) {
+    setStatus(key, value) {
+        if (key in this.#status) {
             if (key === 'visibility' && (value === 'visible' || value === 'hidden')) {
-                setVisibility(value);
+                this.setVisibility(value);
             } else if (key === 'hoverInfoVisibility' && (value === 'visible' || value === 'hidden')) {
-                setHoverInfoVisibility(value);
+                this.setHoverInfoVisibility(value);
             } else if (key === 'deleted' && typeof value === 'boolean') {
-                status[key] = value;
+                this.#status[key] = value;
             } else if (key === 'severity') {
-                status[key] = value;
+                this.#status[key] = value;
             }
         }
     }
 
     /**
      * Set the visibility of the hover info.
-     * @param visibility {string} visible or hidden
-     * @returns {setHoverInfoVisibility}
+     * @param {string} visibility - 'visible' or 'hidden'.
+     * @returns {Label} this, for chaining.
      */
-    function setHoverInfoVisibility(visibility) {
+    setHoverInfoVisibility(visibility) {
         if (visibility === 'visible' || visibility === 'hidden') {
-            status['hoverInfoVisibility'] = visibility;
+            this.#status['hoverInfoVisibility'] = visibility;
         }
         return this;
     }
 
-    function getHoverInfoVisibility() {
-        return status.hoverInfoVisibility;
+    getHoverInfoVisibility() {
+        return this.#status.hoverInfoVisibility;
     }
 
     /**
      * Check if this label is under the cursor.
-     * @param x
-     * @param y
+     * @param {number} x
+     * @param {number} y
      * @returns {boolean}
      */
-    function isOn(x, y) {
+    isOn(x, y) {
         const margin = svl.LABEL_ICON_RADIUS / 2 + 2;
-        return !status.deleted
-            && status.visibility === 'visible'
-            && properties.currCanvasXY
-            && x < properties.currCanvasXY.x + margin
-            && x > properties.currCanvasXY.x - margin
-            && y < properties.currCanvasXY.y + margin
-            && y > properties.currCanvasXY.y - margin;
+        return !this.#status.deleted
+            && this.#status.visibility === 'visible'
+            && this.#properties.currCanvasXY
+            && x < this.#properties.currCanvasXY.x + margin
+            && x > this.#properties.currCanvasXY.x - margin
+            && y < this.#properties.currCanvasXY.y + margin
+            && y > this.#properties.currCanvasXY.y - margin;
     }
 
     /**
      * Remove the label (it does not actually remove, but hides the label and set its status to 'deleted').
      */
-    function remove() {
-        setStatus('deleted', true);
-        setStatus('visibility', 'hidden');
+    remove() {
+        this.setStatus('deleted', true);
+        this.setStatus('visibility', 'hidden');
     }
 
     /**
      * Renders this label on a canvas.
-     * @param ctx
-     * @param pov
-     * @returns {self}
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {Object} pov
+     * @returns {Label} this.
      */
-    function render(ctx, pov) {
-        if (!status.deleted && status.visibility === 'visible') {
-            if (status.hoverInfoVisibility === 'visible') {
+    render(ctx, pov) {
+        if (!this.#status.deleted && this.#status.visibility === 'visible') {
+            if (this.#status.hoverInfoVisibility === 'visible') {
                 // Show the hover info tooltip and delete button.
-                updateHoverInfo();
-                showDeleteButton();
+                this.#updateHoverInfo();
+                this.#showDeleteButton();
             }
 
             // Update the coordinates of the label on the canvas.
-            properties.currCanvasXY = util.pano.centeredPovToCanvasCoord(
-                properties.povOfLabelIfCentered, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+            this.#properties.currCanvasXY = util.pano.centeredPovToCanvasCoord(
+                this.#properties.povOfLabelIfCentered, pov,
+                util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
             );
 
             // Draw the label icon if it's in the visible part of the pano.
-            if (properties.currCanvasXY) {
-                Label.renderLabelIcon(ctx, properties.labelType, properties.currCanvasXY.x, properties.currCanvasXY.y);
+            if (this.#properties.currCanvasXY) {
+                Label.renderLabelIcon(
+                    ctx, this.#properties.labelType, this.#properties.currCanvasXY.x, this.#properties.currCanvasXY.y
+                );
 
                 // Only render severity warning if there's a severity option.
-                if (util.misc.labelTypeHasSeverity(properties.labelType) && properties.severity === null) {
-                    showSeverityAlert(ctx);
+                if (util.misc.labelTypeHasSeverity(this.#properties.labelType) && this.#properties.severity === null) {
+                    this.#showSeverityAlert(ctx);
                 }
             }
         }
 
         // Show the label on the Google Maps pane.
-        if (!isDeleted()) {
-            if (googleMarker && !googleMarker.map) {
-                googleMarker.map = svl.minimap.getMap();
+        if (!this.isDeleted()) {
+            if (this.#googleMarker && !this.#googleMarker.map) {
+                this.#googleMarker.map = svl.minimap.getMap();
             }
         } else {
-            if (googleMarker && googleMarker.map) {
-                googleMarker.map = null;
+            if (this.#googleMarker && this.#googleMarker.map) {
+                this.#googleMarker.map = null;
             }
         }
         return this;
@@ -238,14 +245,14 @@ function Label(params) {
      * The tooltip is a single shared DOM element positioned in on-screen pixels, so the label's logical canvas
      * coordinate is scaled to the displayed pano size (see util.exploreDisplayScale).
      */
-    function updateHoverInfo() {
+    #updateHoverInfo() {
         // Don't show the hover tooltip while the context menu is open or before the label has a canvas position.
-        if (('contextMenu' in svl && svl.contextMenu.isOpen()) || !properties.currCanvasXY) {
-            hideHoverInfo();
+        if (('contextMenu' in svl && svl.contextMenu.isOpen()) || !this.#properties.currCanvasXY) {
+            this.#hideHoverInfo();
             return;
         }
 
-        const labelType = properties.labelType;
+        const labelType = this.#properties.labelType;
         const hasSeverity = util.misc.labelTypeHasSeverity(labelType);
 
         svl.ui.canvas.hoverInfoType.text(
@@ -255,10 +262,10 @@ function Label(params) {
 
         // Severity row: hidden for label types without severity; otherwise show the rating (or a prompt to rate).
         if (hasSeverity) {
-            if (properties.severity !== null) {
-                svl.ui.canvas.hoverInfoSeverityText.text(hoverInfoProperties[properties.severity].message);
+            if (this.#properties.severity !== null) {
+                svl.ui.canvas.hoverInfoSeverityText.text(this.#hoverInfoProperties[this.#properties.severity].message);
                 svl.ui.canvas.hoverInfoSeverityIcon
-                    .attr('src', util.misc.getSmileyIconPath(properties.severity, labelType, true))
+                    .attr('src', util.misc.getSmileyIconPath(this.#properties.severity, labelType, true))
                     .css('display', '');
             } else {
                 svl.ui.canvas.hoverInfoSeverityText.text(i18next.t('center-ui.context-menu.severity'));
@@ -270,7 +277,7 @@ function Label(params) {
         }
 
         // Position the tooltip to the right of the label icon, or to the left if there isn't room on the right.
-        const coord = getCanvasXY();
+        const coord = this.getCanvasXY();
         const scale = util.exploreDisplayScale();
         const holder = svl.ui.canvas.hoverInfoHolder;
         const centerX = coord.x * scale;
@@ -292,16 +299,16 @@ function Label(params) {
     /**
      * Hides the shared hover info tooltip.
      */
-    function hideHoverInfo() {
+    #hideHoverInfo() {
         svl.ui.canvas.hoverInfoHolder.css('visibility', 'hidden');
     }
 
-    function showDeleteButton() {
-        if (status.hoverInfoVisibility !== 'hidden') {
+    #showDeleteButton() {
+        if (this.#status.hoverInfoVisibility !== 'hidden') {
             const holder = svl.ui.canvas.deleteIconHolder;
 
             // Hide if the label is not on the canvas.
-            const coord = getCanvasXY();
+            const coord = this.getCanvasXY();
             if (!coord) {
                 holder.css('visibility', 'hidden');
                 return;
@@ -322,11 +329,11 @@ function Label(params) {
 
     /**
      * Renders a question mark if a label has an unmarked severity.
-     * @param ctx Rendering tool for severity (2D context).
+     * @param {CanvasRenderingContext2D} ctx - Rendering tool for severity (2D context).
      */
-    function showSeverityAlert(ctx) {
-        const x = properties.currCanvasXY.x;
-        const y = properties.currCanvasXY.y;
+    #showSeverityAlert(ctx) {
+        const x = this.#properties.currCanvasXY.x;
+        const y = this.#properties.currCanvasXY.y;
 
         // Draws circle.
         ctx.beginPath();
@@ -348,18 +355,18 @@ function Label(params) {
 
     /**
      * Get the label's estimated latlng position.
-     * @returns {lat: number, lng: number, computationMethod: string}
+     * @returns {{lat: number, lng: number, latLngComputationMethod: string}}
      */
-    function toLatLng() {
-        if (!properties.labelLat) {
+    toLatLng() {
+        if (!this.#properties.labelLat) {
             // Estimate the latlng point from the camera position and the heading when point cloud data isn't available.
-            const panoLat = getProperty("panoLat");
-            const panoLng = getProperty("panoLng");
-            const heading = getProperty("originalPov").heading;
-            const canvasX = getProperty('originalCanvasXY').x;
-            const canvasY = getProperty('originalCanvasXY').y;
-            const panoY = getProperty('panoXY').y;
-            const panoHeight = getProperty('panoHeight');
+            const panoLat = this.getProperty('panoLat');
+            const panoLng = this.getProperty('panoLng');
+            const heading = this.getProperty('originalPov').heading;
+            const canvasX = this.getProperty('originalCanvasXY').x;
+            const canvasY = this.getProperty('originalCanvasXY').y;
+            const panoY = this.getProperty('panoXY').y;
+            const panoHeight = this.getProperty('panoHeight');
 
             // Estimate heading diff and distance from pano using output from a regression analysis.
             // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
@@ -367,10 +374,10 @@ function Label(params) {
             // to be noninteger, so we're doing a linear interpolation between the params at the two zoom levels.
             const minZoom = Math.min(svl.zoomControl.getProperty('minZoomLevel'));
             const maxZoom = Math.min(svl.zoomControl.getProperty('maxZoomLevel'));
-            const zoom = Math.min(maxZoom, Math.max(minZoom, getProperty("originalPov").zoom));
+            const zoom = Math.min(maxZoom, Math.max(minZoom, this.getProperty('originalPov').zoom));
 
-            const floor = LATLNG_ESTIMATION_PARAMS[Math.floor(zoom)];
-            const ceiling = LATLNG_ESTIMATION_PARAMS[Math.ceil(zoom)];
+            const floor = Label.#LATLNG_ESTIMATION_PARAMS[Math.floor(zoom)];
+            const ceiling = Label.#LATLNG_ESTIMATION_PARAMS[Math.ceil(zoom)];
             const t = zoom - Math.floor(zoom); // 0 when floor === ceiling.
 
             const headingIntercept = util.math.lerp(floor.headingIntercept, ceiling.headingIntercept, t);
@@ -393,33 +400,33 @@ function Label(params) {
                 lng: destination.geometry.coordinates[0],
                 latLngComputationMethod: 'approximation2'
             };
-            setProperty('labelLat', latlng.lat);
-            setProperty('labelLng', latlng.lng);
-            setProperty('latLngComputationMethod', latlng.latLngComputationMethod);
+            this.setProperty('labelLat', latlng.lat);
+            this.setProperty('labelLng', latlng.lng);
+            this.setProperty('latLngComputationMethod', latlng.latLngComputationMethod);
             return latlng;
         } else {
             // Return the cached value.
             return {
-                lat: getProperty('labelLat'),
-                lng: getProperty('labelLng'),
-                latLngComputationMethod: getProperty('latLngComputationMethod')
+                lat: this.getProperty('labelLat'),
+                lng: this.getProperty('labelLng'),
+                latLngComputationMethod: this.getProperty('latLngComputationMethod')
             };
         }
     }
 
     /**
      * Save a screenshot of the image named crop_<labelId>.png. The crops are stored in subdirs /<city-id>/<label-type>.
-     * @param labelId
-     * @param retryAttempt {number} Current retry attempt if image hasn't been saved yet.
+     * @param {number} labelId
+     * @param {number} retryAttempt - Current retry attempt if image hasn't been saved yet.
      */
-    function updateLabelIdAndUploadCrop(labelId, retryAttempt) {
+    updateLabelIdAndUploadCrop(labelId, retryAttempt) {
         // Retry if crop isn't available yet.
-        if (!getProperty('crop')) {
+        if (!this.getProperty('crop')) {
             if (isNaN(retryAttempt)) retryAttempt = 0;
             if (retryAttempt < 1) {
                 console.log('No crop found to upload, retrying in 3 seconds.');
-                setTimeout(function() {
-                    updateLabelIdAndUploadCrop(labelId, retryAttempt + 1);
+                setTimeout(() => {
+                    this.updateLabelIdAndUploadCrop(labelId, retryAttempt + 1);
                 }, 3000);
             } else {
                 console.log(`No crop found to upload after ${retryAttempt + 1} attempts.`);
@@ -428,106 +435,86 @@ function Label(params) {
         }
 
         // Upload the crop to the server with filename crop_<labelId>.png.
-        setProperty('labelId', labelId);
-        let cropData = {
+        this.setProperty('labelId', labelId);
+        const cropData = {
             label_id: labelId,
-            label_type: getProperty('labelType'),
-            b64: getProperty('crop')
-        }
-        $.ajax({
-            async: true,
+            label_type: this.getProperty('labelType'),
+            b64: this.getProperty('crop')
+        };
+        fetch('saveImage', {
             method: 'POST',
-            url: "saveImage",
-            data: JSON.stringify(cropData),
-            contentType: "application/json; charset=UTF-8",
-            success: function(data){
-                setProperty('crop', null); // Remove reference to crop to save memory.
-            }
-        });
+            headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+            body: JSON.stringify(cropData)
+        }).then(() => {
+            this.setProperty('crop', null); // Remove reference to crop to save memory.
+        }).catch(err => console.error(err));
     }
 
-    self.getCanvasXY = getCanvasXY;
-    self.getLabelId = getLabelId;
-    self.getLabelType = getLabelType;
-    self.getPanoId = getPanoId;
-    self.getProperties = getProperties;
-    self.getProperty = getProperty;
-    self.getstatus = getStatus;
-    self.isDeleted = isDeleted;
-    self.isOn = isOn;
-    self.isVisible = isVisible;
-    self.render = render;
-    self.remove = remove;
-    self.setProperty = setProperty;
-    self.setStatus = setStatus;
-    self.setHoverInfoVisibility = setHoverInfoVisibility;
-    self.getHoverInfoVisibility = getHoverInfoVisibility;
-    self.setVisibility = setVisibility;
-    self.toLatLng = toLatLng;
-    self.updateLabelIdAndUploadCrop = updateLabelIdAndUploadCrop;
+    /**
+     * Preloads and caches every label-type icon. renderLabelIcon draws only from this cache, so warming it up front
+     * lets the icon, its outline, and any overlay drawn after it (e.g. the severity "?" alert) paint together in the
+     * right order — a lazily-loaded icon would instead paint asynchronously, on top of those overlays.
+     * @returns {Promise} Resolves once all icons have loaded (or failed) so callers can render with the cache warm.
+     */
+    static preloadIcons() {
+        const iconPaths = util.misc.getIconImagePaths();
+        const loads = Object.keys(iconPaths).map(function(labelType) {
+            const iconPath = iconPaths[labelType].iconImagePath;
+            if (!iconPath || window.labelIconCache[iconPath]) return Promise.resolve();
+            return new Promise(function(resolve) {
+                const imageObj = new Image();
+                imageObj.onload = function() { window.labelIconCache[iconPath] = imageObj; resolve(); };
+                imageObj.onerror = function() { resolve(); }; // Don't let one missing icon block the rest.
+                imageObj.src = iconPath;
+            });
+        });
+        return Promise.all(loads);
+    }
 
-    _init(params);
-    return self;
+    /**
+     * Draws a label icon and its circular outline. The icon comes from the cache warmed by Label.preloadIcons; the
+     * outline is drawn after it so the ring sits on top of the icon's edge. Also draws tutorial example labels.
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {string} labelType
+     * @param {number} x
+     * @param {number} y
+     */
+    static renderLabelIcon(ctx, labelType, x, y) {
+        const size = 2 * svl.LABEL_ICON_RADIUS - 3;
+        const icon = window.labelIconCache[util.misc.getIconImagePaths(labelType).iconImagePath];
+        if (icon) ctx.drawImage(icon, x - svl.LABEL_ICON_RADIUS + 2, y - svl.LABEL_ICON_RADIUS + 2, size, size);
+
+        ctx.lineWidth = 0.7;
+        ctx.beginPath();
+        ctx.arc(x, y, 15.3, 0, 2 * Math.PI);
+        ctx.strokeStyle = 'black';
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(x, y, 16.2, 0, 2 * Math.PI);
+        ctx.strokeStyle = 'white';
+        ctx.stroke();
+    }
+
+    /**
+     * Creates the marker shown for this label on the minimap using Google Maps AdvancedMarkerElement.
+     * @param {string} labelType
+     * @param {{lat: number, lng: number}} latLng
+     * @returns {google.maps.marker.AdvancedMarkerElement}
+     */
+    static createMinimapMarker(labelType, latLng) {
+        const content = document.createElement('img');
+        content.src = util.misc.getIconImagePaths()[labelType].minimapIconImagePath;
+        // AdvancedMarkerElement anchors content by its bottom-center; shift it down half its height to center it.
+        content.style.transform = 'translateY(50%)';
+        return new google.maps.marker.AdvancedMarkerElement({
+            position: new google.maps.LatLng(latLng.lat, latLng.lng),
+            map: svl.minimap.getMap(),
+            content: content
+        });
+    }
 }
 
 // Set up a global cache for icon images.
 if (!window.labelIconCache) {
     window.labelIconCache = {};
-}
-
-/**
- * Preloads and caches every label-type icon. renderLabelIcon draws only from this cache, so warming it up front lets
- * the icon, its outline, and any overlay drawn after it (e.g. the severity "?" alert) paint together in the right
- * order — a lazily-loaded icon would instead paint asynchronously, on top of those overlays.
- * @returns {Promise} Resolves once all icons have loaded (or failed) so callers can render with the cache warm.
- */
-Label.preloadIcons = function() {
-    const iconPaths = util.misc.getIconImagePaths();
-    const loads = Object.keys(iconPaths).map(function(labelType) {
-        const iconPath = iconPaths[labelType].iconImagePath;
-        if (!iconPath || window.labelIconCache[iconPath]) return Promise.resolve();
-        return new Promise(function(resolve) {
-            const imageObj = new Image();
-            imageObj.onload = function() { window.labelIconCache[iconPath] = imageObj; resolve(); };
-            imageObj.onerror = function() { resolve(); }; // Don't let one missing icon block the rest.
-            imageObj.src = iconPath;
-        });
-    });
-    return Promise.all(loads);
-};
-
-// Draws a label icon and its circular outline. The icon comes from the cache warmed by Label.preloadIcons; the outline
-// is drawn after it so the ring sits on top of the icon's edge. Static (also used to draw tutorial example labels).
-Label.renderLabelIcon = function(ctx, labelType, x, y) {
-    const size = 2 * svl.LABEL_ICON_RADIUS - 3;
-    const icon = window.labelIconCache[util.misc.getIconImagePaths(labelType).iconImagePath];
-    if (icon) ctx.drawImage(icon, x - svl.LABEL_ICON_RADIUS + 2, y - svl.LABEL_ICON_RADIUS + 2, size, size);
-
-    ctx.lineWidth = 0.7;
-    ctx.beginPath();
-    ctx.arc(x, y, 15.3, 0, 2 * Math.PI);
-    ctx.strokeStyle = 'black';
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(x, y, 16.2, 0, 2 * Math.PI);
-    ctx.strokeStyle = 'white';
-    ctx.stroke();
-}
-
-/**
- * Creates the marker shown for this label on the minimap using Google Maps AdvancedMarkerElement.
- * @param {string} labelType
- * @param {{lat: number, lng: number}} latLng
- * @returns {google.maps.marker.AdvancedMarkerElement}
- */
-Label.createMinimapMarker = function(labelType, latLng) {
-    const content = document.createElement('img');
-    content.src = util.misc.getIconImagePaths()[labelType].minimapIconImagePath;
-    // AdvancedMarkerElement anchors content by its bottom-center; shift it down half its height to center it.
-    content.style.transform = 'translateY(50%)';
-    return new google.maps.marker.AdvancedMarkerElement({
-        position: new google.maps.LatLng(latLng.lat, latLng.lng),
-        map: svl.minimap.getMap(),
-        content: content
-    });
 }

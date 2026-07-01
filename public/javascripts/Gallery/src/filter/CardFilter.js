@@ -1,51 +1,66 @@
 /**
  * Card Filter module.
  * This is responsible for allowing users to apply filters to specify what types of cards to render in the gallery.
- *
- * @param uiCardFilter UI element representing filter components of sidebar.
- * @param labelTypeMenu UI element representing dropdown to select label type in sidebar.
- * @param cityMenu UI element representing dropdown to select city in sidebar.
- * @param initialFilters Object containing initial set of filters to pass along.
- * @returns {CardFilter}
- * @constructor
  */
-function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
-    const self = this;
-
-    let status = {
-        currentCity: cityMenu.getCurrentCity(),
-        currentLabelType: initialFilters.labelType
-    };
-
-    // Map label type to their collection of tags.
-    let tagsByType = {
-        Assorted: new TagBucket(),
-        CurbRamp: new TagBucket(),
-        NoCurbRamp: new TagBucket(),
-        Obstacle: new TagBucket(),
-        SurfaceProblem: new TagBucket(),
-        Other: new TagBucket(),
-        Occlusion: new TagBucket(),
-        NoSidewalk: new TagBucket(),
-        Crosswalk: new TagBucket(),
-        Signal: new TagBucket()
-    };
-
-    // Tags of the current label type.
-    let currentTags = tagsByType[status.currentLabelType];
-
-    // Collection of severities.
-    let severities = new SeverityBucket(initialFilters.severities, status.currentLabelType);
-
-    let validationOptions = new ValidationOptionBucket(initialFilters.validationOptions);
+class CardFilter {
+    #uiCardFilter;
+    #labelTypeMenu;
+    #cityMenu;
+    #initialFilters;
+    #status;
+    #tagsByType;
+    #currentTags;
+    #severities;
+    #validationOptions;
 
     /**
-     * Initialize CardFilter.
+     * @param {object} uiCardFilter UI element representing filter components of sidebar.
+     * @param {LabelTypeMenu} labelTypeMenu UI element representing dropdown to select label type in sidebar.
+     * @param {CityMenu} cityMenu UI element representing dropdown to select city in sidebar.
+     * @param {object} initialFilters Object containing initial set of filters to pass along.
      */
-    function _init() {
-        getTags(function () {
-            render();
-            updateURL();
+    constructor(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
+        this.#uiCardFilter = uiCardFilter;
+        this.#labelTypeMenu = labelTypeMenu;
+        this.#cityMenu = cityMenu;
+        this.#initialFilters = initialFilters;
+
+        this.#status = {
+            currentCity: cityMenu.getCurrentCity(),
+            currentLabelType: initialFilters.labelType
+        };
+
+        // Map label type to their collection of tags.
+        this.#tagsByType = {
+            Assorted: new TagBucket(),
+            CurbRamp: new TagBucket(),
+            NoCurbRamp: new TagBucket(),
+            Obstacle: new TagBucket(),
+            SurfaceProblem: new TagBucket(),
+            Other: new TagBucket(),
+            Occlusion: new TagBucket(),
+            NoSidewalk: new TagBucket(),
+            Crosswalk: new TagBucket(),
+            Signal: new TagBucket()
+        };
+
+        // Tags of the current label type.
+        this.#currentTags = this.#tagsByType[this.#status.currentLabelType];
+
+        // Collection of severities.
+        this.#severities = new SeverityBucket(initialFilters.severities, this.#status.currentLabelType);
+
+        this.#validationOptions = new ValidationOptionBucket(initialFilters.validationOptions);
+
+        this.#uiCardFilter.clearFilters.on('click', () => {
+            this.clearFilters();
+            this.#uiCardFilter.clearFilters.hide();
+            this.update();
+        });
+
+        this.#getTags(() => {
+            this.render();
+            this.#updateURL();
         });
     }
 
@@ -54,17 +69,17 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
      *
      * @param {*} callback Function to be called when tags arrive.
      */
-    function getTags(callback) {
-        $.getJSON("/label/tags", function (data) {
+    #getTags(callback) {
+        $.getJSON("/label/tags", (data) => {
             let tag;
             let i = 0;
-            let len = data.length;
+            const len = data.length;
             for (; i < len; i++) {
-                if (data[i].label_type === status.currentLabelType && initialFilters.tags.includes(data[i].tag))
+                if (data[i].label_type === this.#status.currentLabelType && this.#initialFilters.tags.includes(data[i].tag))
                     tag = new Tag(data[i], true);
                 else
                     tag = new Tag(data[i], false);
-                tagsByType[tag.getLabelType()].push(tag);
+                this.#tagsByType[tag.getLabelType()].push(tag);
             }
 
             if (callback) callback();
@@ -74,53 +89,52 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     /**
      * Update filter components and URL when a filter changes.
      */
-    function update() {
+    update() {
         // If label type was changed: clear tags, update cards, and rerender sidebar. Otherwise, just update the cards.
-        let currLabelType = labelTypeMenu.getCurrentLabelType();
-        if (status.currentLabelType !== currLabelType) {
-            clearCurrentTags();
-            setStatus('currentLabelType', currLabelType);
-            currentTags = tagsByType[currLabelType];
-            severities.setLabelType(currLabelType);
-            render();
+        const currLabelType = this.#labelTypeMenu.getCurrentLabelType();
+        if (this.#status.currentLabelType !== currLabelType) {
+            this.#clearCurrentTags();
+            this.setStatus('currentLabelType', currLabelType);
+            this.#currentTags = this.#tagsByType[currLabelType];
+            this.#severities.setLabelType(currLabelType);
+            this.render();
         }
         sg.cardContainer.updateCardsByFilter();
-        updateURL();
+        this.#updateURL();
     }
 
     /**
      * If the city was changed, redirect to that server. Otherwise, update the URL query params.
      */
-    function updateURL() {
-        let newUrl = _buildCurrentURL();
-        let currentCity = cityMenu.getCurrentCity();
-        if (status.currentCity !== currentCity) {
+    #updateURL() {
+        const newUrl = this.#buildCurrentURL();
+        const currentCity = this.#cityMenu.getCurrentCity();
+        if (this.#status.currentCity !== currentCity) {
             window.location.href = currentCity + newUrl;
         } else {
-            let fullUrl = `${window.location.protocol}//${window.location.host}${newUrl}`;
+            const fullUrl = `${window.location.protocol}//${window.location.host}${newUrl}`;
             if (fullUrl !== window.location.href) {
-                window.history.pushState({ },'', fullUrl);
+                window.history.pushState({ }, '', fullUrl);
             }
         }
     }
 
     /**
      * Return a string representing /gallery URL with correct query params. Excluding params if they match the default.
-     * @private
      */
-    function _buildCurrentURL() {
+    #buildCurrentURL() {
         let newUrl = '/gallery';
         let firstQueryParam = true;
-        let currSeverities = severities.getAppliedSeverities();
-        let currAppliedTags = currentTags.getAppliedTags().map(t => t.getTag()).join();
-        let currValOptions = validationOptions.getAppliedValidationOptions().sort().join();
+        const currSeverities = this.#severities.getAppliedSeverities();
+        const currAppliedTags = this.#currentTags.getAppliedTags().map(t => t.getTag()).join();
+        const currValOptions = this.#validationOptions.getAppliedValidationOptions().sort().join();
 
         // TODO use new URL() and .searchParams.append() instead of tracking firstQueryParam ourselves.
 
         // For each type of filter, check if it matches the default. If it doesn't, add to URL in a query param.
-        if (status.currentLabelType !== 'Assorted') {
-            uiCardFilter.clearFilters.show();
-            newUrl += `?labelType=${status.currentLabelType}`;
+        if (this.#status.currentLabelType !== 'Assorted') {
+            this.#uiCardFilter.clearFilters.show();
+            newUrl += `?labelType=${this.#status.currentLabelType}`;
             // Can only have applied tags if there is a specific label type chosen.
             if (currAppliedTags.length > 0) {
                 newUrl += `&tags=${currAppliedTags}`;
@@ -134,12 +148,12 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
         }
         // All four severities (null, 1, 2, 3) selected is the default state, so we omit the param in that case.
         if (currSeverities.length !== 4) {
-            uiCardFilter.clearFilters.show();
+            this.#uiCardFilter.clearFilters.show();
             newUrl += firstQueryParam ? `?severities=${currSeverities}` : `&severities=${currSeverities}`;
             firstQueryParam = false;
         }
         if (currValOptions !== 'correct,unvalidated') {
-            uiCardFilter.clearFilters.show();
+            this.#uiCardFilter.clearFilters.show();
             newUrl += firstQueryParam ? `?validationOptions=${currValOptions}` : `&validationOptions=${currValOptions}`;
             firstQueryParam = false;
         }
@@ -155,53 +169,53 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     /**
      * Render tags and severities in sidebar.
      */
-    function render() {
-        if (util.misc.labelTypeHasSeverity(status.currentLabelType)) {
+    render() {
+        if (util.misc.labelTypeHasSeverity(this.#status.currentLabelType)) {
             // Swap the filter header between "Severity" and "Quality" based on the current label type.
-            const headerKey = util.misc.isPositiveLabelType(status.currentLabelType) ? 'quality' : 'severity';
+            const headerKey = util.misc.isPositiveLabelType(this.#status.currentLabelType) ? 'quality' : 'severity';
             $('#severity-header').text(i18next.t(headerKey)).show();
             $('#severity-select').show();
         } else {
             $('#severity-header').hide();
             $('#severity-select').hide();
         }
-        if (currentTags.getTags().length > 0) {
+        if (this.#currentTags.getTags().length > 0) {
             $("#tags-header").show();
-            currentTags.render(uiCardFilter.tags);
+            this.#currentTags.render(this.#uiCardFilter.tags);
         } else {
             $("#tags-header").hide();
         }
 
-        severities.render(uiCardFilter.severity);
-        validationOptions.render(uiCardFilter.validationOptions)
+        this.#severities.render(this.#uiCardFilter.severity);
+        this.#validationOptions.render(this.#uiCardFilter.validationOptions);
     }
 
     /**
      * Return list of tags that have been selected by user.
      */
-    function getAppliedTagNames() {
-        return currentTags.getAppliedTags().map(tag => tag.getTag());
+    getAppliedTagNames() {
+        return this.#currentTags.getAppliedTags().map(tag => tag.getTag());
     }
 
     /**
      * Return list of all tags for current label type.
      */
-    function getTagNames() {
-        return currentTags.getTags().map(tag => tag.getTag());
+    getTagNames() {
+        return this.#currentTags.getTags().map(tag => tag.getTag());
     }
 
     /**
      * Return object containing all tags.
      */
-    function getTagsByType() {
-        return tagsByType;
+    getTagsByType() {
+        return this.#tagsByType;
     }
 
     /**
      * Return status of CardFilter.
      */
-    function getStatus() {
-        return status;
+    getStatus() {
+        return this.#status;
     }
 
     /**
@@ -210,40 +224,40 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
      * @param {string} key Status name.
      * @param {*} value Status value.
      */
-    function setStatus(key, value) {
-        if (key in status) {
-            status[key] = value;
+    setStatus(key, value) {
+        if (key in this.#status) {
+            this.#status[key] = value;
         } else {
-            throw self.className + ": Illegal status name.";
+            throw `${this.constructor.name}: Illegal status name.`;
         }
     }
 
     /**
      * Return list of severities.
      */
-    function getSeverities() {
-        return severities.getSeverities();
+    getSeverities() {
+        return this.#severities.getSeverities();
     }
 
     /**
      * Return list of selected severities by user.
      */
-    function getAppliedSeverities() {
-        return severities.getAppliedSeverities();
+    getAppliedSeverities() {
+        return this.#severities.getAppliedSeverities();
     }
 
     /**
      * Return list of validationOptions.
      */
-    function getValidationOptions() {
-        return validationOptions.getValidationOptions();
+    getValidationOptions() {
+        return this.#validationOptions.getValidationOptions();
     }
 
     /**
      * Return list of selected validationOptions by user.
      */
-    function getAppliedValidationOptions() {
-        return validationOptions.getAppliedValidationOptions();
+    getAppliedValidationOptions() {
+        return this.#validationOptions.getAppliedValidationOptions();
     }
 
     /**
@@ -251,69 +265,44 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
      *
      * @param {*} labelType Label type of tags to unapply.
      */
-    function unapplyTags(labelType) {
+    unapplyTags(labelType) {
         if (labelType != null) {
-            tagsByType[labelType].unapplyTags();
+            this.#tagsByType[labelType].unapplyTags();
         }
     }
 
     /**
      * Clear tags currently being shown.
      */
-    function clearCurrentTags() {
-        uiCardFilter.tags.empty();
-        unapplyTags(status.currentLabelType);
-        currentTags = new TagBucket();
+    #clearCurrentTags() {
+        this.#uiCardFilter.tags.empty();
+        this.unapplyTags(this.#status.currentLabelType);
+        this.#currentTags = new TagBucket();
     }
 
     /**
      * Disable interaction with filters.
      */
-    function disable() {
-        severities.disable();
+    disable() {
+        this.#severities.disable();
         $('.gallery-filter').prop("disabled", true);
     }
 
     /**
      * Enable interaction with filters.
      */
-    function enable() {
-        severities.enable();
+    enable() {
+        this.#severities.enable();
         $('.gallery-filter').prop("disabled", false);
     }
 
     /**
      * Clear all filters, setting them to their default state.
      */
-    function clearFilters() {
-        severities.selectAllSeverities();
-        validationOptions.setToDefault();
-        clearCurrentTags();
-        labelTypeMenu.setToDefault();
+    clearFilters() {
+        this.#severities.selectAllSeverities();
+        this.#validationOptions.setToDefault();
+        this.#clearCurrentTags();
+        this.#labelTypeMenu.setToDefault();
     }
-
-    uiCardFilter.clearFilters.on('click', function() {
-        clearFilters();
-        uiCardFilter.clearFilters.hide();
-        update();
-    });
-
-    self.update = update;
-    self.render = render;
-    self.getAppliedTagNames = getAppliedTagNames;
-    self.getTagNames = getTagNames;
-    self.getTagsByType = getTagsByType;
-    self.getStatus = getStatus;
-    self.setStatus = setStatus;
-    self.getSeverities = getSeverities;
-    self.getAppliedSeverities = getAppliedSeverities;
-    self.getValidationOptions = getValidationOptions;
-    self.getAppliedValidationOptions = getAppliedValidationOptions;
-    self.unapplyTags = unapplyTags;
-    self.disable = disable;
-    self.enable = enable;
-    self.clearFilters = clearFilters;
-
-    _init();
-    return this;
 }

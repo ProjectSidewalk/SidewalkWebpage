@@ -151,8 +151,8 @@ When you catch yourself writing a frontend constant that mirrors a backend value
   **@misaugstad** (Mikey / Michael Saugstad).
 - If there is an associated Github issue, beging the branch name with the issue number (e.g. `1234-fix-label-popup`).
 - When changing JS behavior, edit `src/` and let `grunt watch` rebuild; if a new `src/` file isn't picked up, check that its path matches a glob in `Gruntfile.js`.
-- When updating code in JavaScript, migrate that code to ECMA6 (`let`/`const` instead of `var`, etc.).
-- When refactoring a JS constructor function (the `function Foo(...) { const self = this; ... return self; }` pattern), convert it to an ES6 `class`. Use `#` private fields/methods. Use arrow functions in event listeners to keep `this` bound correctly.
+- When updating code in JavaScript, migrate it to modern ECMAScript — we target **ES2022** (the `ecmaVersion` in [`eslint.config.js`](eslint.config.js)): `let`/`const` instead of `var`, arrow functions, `#private` class fields, `async`/`await`, optional chaining (`?.`), etc.
+- When refactoring a JS constructor function (the `function Foo(...) { const self = this; ... return self; }` pattern), convert it to a `class`. Use `#` private fields/methods. Use arrow functions in event listeners to keep `this` bound correctly.
 - Update said code to use the native `fetch` API rather than jQuery, and to make use of Promises. But if said refactor would impact many other functions that use it, then wait for a dedicated refactor.
 - Replace uses of Bootstrap with native JS alternatives as you come across them
 - When writing SQL, avoid table aliases
@@ -208,7 +208,7 @@ Rules:
 
 ### JavaScript (JSDoc)
 
-Use `/** ... */` for all JSDoc. Every ES6 class and every non-trivial method gets one — including `#private` methods.
+Use `/** ... */` for all JSDoc. Every `class` and every non-trivial method gets one — including `#private` methods.
 Type annotations in `@param` are especially important in JS because there is no static type checker.
 
 **Method / function:**
@@ -224,7 +224,7 @@ Type annotations in `@param` are especially important in JS because there is no 
  */
 ```
 
-**ES6 class:**
+**Class:**
 ```javascript
 /**
  * One-line description of the class's single responsibility.
@@ -295,7 +295,7 @@ Good targets for inline comments:
   and the function is non-trivial.
 
 ## Linting Rules (frontend lint deferred to #2487; Scala `scalafmt` is checked in CI — see Continuous integration)
-- ESLint: ES6+, `const`/`let` only (no `var`), arrow functions, template literals, semicolons required, 120-char line limit
+- ESLint: ES2022, `const`/`let` only (no `var`), arrow functions, template literals, semicolons required, 120-char line limit
 - Stylelint: 4-space indentation, stylelint-config-standard
 - HTMLHint: lowercase tags/attrs, double quotes, no inline scripts/styles, alt text required
 
@@ -342,7 +342,7 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly co
 
 The API specs **boot the real app against Postgres+PostGIS**, so the `db` container must be up; they assert response contract/shape, not data values. There is no `make` target — invoke sbt directly. The phased testing strategy and rationale live in [`docs/testing-and-ci.md`](docs/testing-and-ci.md).
 
-A prototype **JS** test layer (jsdom) lives under `test/js/` — run `npm run test:js`. It is opt-in and not wired into CI yet (sequenced with the ES5→ES6 migration, #2487); see `test/js/README.md`.
+A prototype **JS** test layer (jsdom) lives under `test/js/` — run `npm run test:js`. It is opt-in and not wired into CI yet (sequenced with the ES5→ES2022 migration, #2487); see `test/js/README.md`.
 
 A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `test/python/` — run `make test-python` (runs pytest in the web container) or `docker exec projectsidewalk-web bash -lc "cd /home && python3 -m pytest test/python"`. It needs no DB/network (pure-logic tests only) and runs as an **advisory** CI job; see `test/python/README.md`.
 

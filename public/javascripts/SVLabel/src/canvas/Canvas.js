@@ -1,68 +1,69 @@
 /**
- * Canvas Module.
- * @param ribbon
- * @returns {{className: string}}
- * @constructor
+ * Canvas Module. Owns the label canvas: drawing labels, hit-testing the cursor, and pano pan/cursor handling.
  */
-function Canvas(ribbon) {
-    let self = { className: 'Canvas' };
-
-    let status = {
+class Canvas {
+    #ribbon;
+    #ctx;
+    #status = {
         currentLabel: null,
         disableLabelDelete: false,
         disableLabeling: false,
         lockDisableLabelDelete: false,
     };
-
-    // Mouse status and mouse event callback functions
-    let mouseStatus = {
+    // Mouse status and mouse event callback functions.
+    #mouseStatus = {
         prevX: 0,
         prevY: 0,
         isLeftDown: false
     };
+    #canvasProperties = { 'height': 0, 'width': 0 };
 
-    // Canvas context.
-    let canvasProperties = { 'height': 0, 'width': 0 };
-    let ctx;
+    /**
+     * @param {Object} ribbon - The RibbonMenu, queried for the selected label type / mode.
+     */
+    constructor(ribbon) {
+        this.#ribbon = ribbon;
+        this.#init();
+    }
 
     /**
      * Initialization: set up the canvas context and attach listeners to DOM elements.
      */
-    function _init() {
+    #init() {
         // Set up the canvas context.
         const el = document.getElementById('label-canvas');
         if (!el) {
-            return false;
+            return;
         }
-        ctx = el.getContext('2d');
+        this.#ctx = el.getContext('2d');
 
         // Render the canvas at its on-screen (and HiDPI) resolution now that pano may be displayed at a different size
         // than the 720x480 logical frame, while keeping all drawing code in that logical frame via a context transform.
-        _sizeCanvasToDisplay(el);
+        this.#sizeCanvasToDisplay(el);
 
-        // clearRect() operates in the logical frame thanks to the context transform set in _sizeCanvasToDisplay.
-        canvasProperties.width = util.EXPLORE_CANVAS_WIDTH;
-        canvasProperties.height = util.EXPLORE_CANVAS_HEIGHT;
+        // clearRect() operates in the logical frame thanks to the context transform set in #sizeCanvasToDisplay.
+        this.#canvasProperties.width = util.EXPLORE_CANVAS_WIDTH;
+        this.#canvasProperties.height = util.EXPLORE_CANVAS_HEIGHT;
 
         // Attach listeners to dom elements. view-control-layer handles panning, drawing-layer handles adding labels.
-        svl.ui.canvas.drawingLayer.bind('mousedown', _handleDrawingLayerMouseDown);
-        svl.ui.canvas.drawingLayer.bind('mouseup', _handleDrawingLayerMouseUp);
-        svl.ui.canvas.drawingLayer.bind('mousemove', _handleDrawingLayerMouseMove);
-        $('#interaction-area-holder').on('mouseleave', _handleDrawingLayerMouseOut);
-        svl.ui.canvas.deleteIcon.bind('click', _labelDeleteIconClick);
-        svl.ui.streetview.viewControlLayer.bind('mousedown', _handlerViewControlLayerMouseDown);
-        svl.ui.streetview.viewControlLayer.bind('mouseup', _handlerViewControlLayerMouseUp);
-        svl.ui.streetview.viewControlLayer.bind('mousemove', _handlerViewControlLayerMouseMove);
-        svl.ui.streetview.viewControlLayer.bind('mouseleave', _handlerViewControlLayerMouseLeave);
-        svl.ui.streetview.viewControlLayer[0].onselectstart = function () { return false; };
+        svl.ui.canvas.drawingLayer.on('mousedown', (e) => this.#handleDrawingLayerMouseDown(e));
+        svl.ui.canvas.drawingLayer.on('mouseup', (e) => this.#handleDrawingLayerMouseUp(e));
+        svl.ui.canvas.drawingLayer.on('mousemove', (e) => this.#handleDrawingLayerMouseMove(e));
+        $('#interaction-area-holder').on('mouseleave', (e) => this.#handleDrawingLayerMouseOut(e));
+        svl.ui.canvas.deleteIcon.on('click', () => this.#labelDeleteIconClick());
+        svl.ui.streetview.viewControlLayer.on('mousedown', (e) => this.#handlerViewControlLayerMouseDown(e));
+        svl.ui.streetview.viewControlLayer.on('mouseup', (e) => this.#handlerViewControlLayerMouseUp(e));
+        svl.ui.streetview.viewControlLayer.on('mousemove', (e) => this.#handlerViewControlLayerMouseMove(e));
+        svl.ui.streetview.viewControlLayer.on('mouseleave', (e) => this.#handlerViewControlLayerMouseLeave(e));
+        svl.ui.streetview.viewControlLayer[0].onselectstart = () => false;
     }
 
     /**
      * Sizes the label canvas bitmap to its on-screen size times the device pixel ratio, and scales the 2D
      * context so all drawing done in the fixed 720x480 logical frame renders at full resolution.
-     * @param {HTMLCanvasElement} el The label canvas element
+     * @param {HTMLCanvasElement} el - The label canvas element.
      */
-    function _sizeCanvasToDisplay(el) {
+    #sizeCanvasToDisplay(el) {
         const rect = el.getBoundingClientRect();
         const displayWidth = rect.width || util.EXPLORE_CANVAS_WIDTH;
         const dpr = window.devicePixelRatio || 1;
@@ -71,15 +72,17 @@ function Canvas(ribbon) {
         // Map the 720x480 logical frame onto the full-resolution bitmap. Setting el.width/height above resets
         // the context, so this transform must be (re)applied here.
         const scale = el.width / util.EXPLORE_CANVAS_WIDTH;
-        ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        this.#ctx.setTransform(scale, 0, 0, scale, 0, 0);
     }
 
     /**
      * Create a label at the given X/Y canvas coordinate.
+     * @param {number} canvasX
+     * @param {number} canvasY
      */
-    function createLabel(canvasX, canvasY) {
+    #createLabel(canvasX, canvasY) {
         // Generate some metadata for the new label.
-        const labelType = ribbon.getStatus('selectedLabelType');
+        const labelType = this.#ribbon.getStatus('selectedLabelType');
         const pov = svl.panoViewer.getPov();
         const povOfLabel = util.pano.canvasCoordToCenteredPov(
             pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT
@@ -100,8 +103,8 @@ function Canvas(ribbon) {
         };
 
         // Create the label and render the context menu.
-        status.currentLabel = svl.labelContainer.createLabel(param, true);
-        svl.contextMenu.show(status.currentLabel);
+        this.#status.currentLabel = svl.labelContainer.createLabel(param, true);
+        svl.contextMenu.show(this.#status.currentLabel);
 
         // Log the labeling event.
         svl.tracker.push('LabelingCanvas_FinishLabeling', {
@@ -109,7 +112,7 @@ function Canvas(ribbon) {
             canvasX: canvasX,
             canvasY: canvasY
         }, {
-            temporaryLabelId: status.currentLabel.getProperty('temporaryLabelId')
+            temporaryLabelId: this.#status.currentLabel.getProperty('temporaryLabelId')
         });
 
         // Play labeling sound effect.
@@ -120,7 +123,7 @@ function Canvas(ribbon) {
         // If in the tutorial, send an event to the onboarding module.
         if (svl.onboarding) {
             const customEvent = new CustomEvent('addTutorialLabel', {
-                detail: { label: status.currentLabel }
+                detail: { label: this.#status.currentLabel }
             });
             document.dispatchEvent(customEvent);
         }
@@ -130,17 +133,16 @@ function Canvas(ribbon) {
         // So we need to ensure we don't switch back to explore mode until the crop is saved.
         // Trying to keep the timeout as low as possible to avoid any delay in switching back to walk mode for now.
         // Can try increasing it if we save crops with the road labels.
-        setTimeout(function() {
-            ribbon.backToWalk();
+        setTimeout(() => {
+            this.#ribbon.backToWalk();
         }, 20);
     }
 
     /**
      * Sets the cursor over the street view image.
-     * @param {string} type One of 'OpenHand', 'ClosedHand', or 'Pointer'; uses 'default' for any other input
-     * @private
+     * @param {string} type - One of 'OpenHand', 'ClosedHand', or 'Pointer'; uses 'default' for any other input.
      */
-    function _setViewControlLayerCursor(type) {
+    #setViewControlLayerCursor(type) {
         switch(type) {
             case 'OpenHand':
                 svl.ui.streetview.viewControlLayer.css('cursor', `url(/assets/images/icons/openhand.cur) 4 4, move`);
@@ -162,127 +164,132 @@ function Canvas(ribbon) {
      * The street view is displayed larger than the logical frame (see the --pano-width CSS variable), so we
      * divide the on-screen position by the display scale.
      *
-     * @param {MouseEvent} e The mouse event
-     * @param {HTMLElement} dom The element the listener is bound to
+     * @param {MouseEvent} e - The mouse event.
+     * @param {HTMLElement} dom - The element the listener is bound to.
      * @returns {{x: number, y: number}}
      */
-    function _canvasMousePosition(e, dom) {
+    #canvasMousePosition(e, dom) {
         const pos = util.mousePosition(e, dom);
         const scale = util.exploreDisplayScale();
         return { x: Math.round(pos.x / scale), y: Math.round(pos.y / scale) };
     }
 
     /**
-     * Callback that is fired with the mousedown event on the view control layer (where you control street view angle).
-     * @param e
+     * Callback fired with the mousedown event on the view control layer (where you control street view angle).
+     * @param {MouseEvent} e
      */
-    function _handlerViewControlLayerMouseDown(e) {
-        const currMousePosition = _canvasMousePosition(e, this);
-        mouseStatus.isLeftDown = true;
+    #handlerViewControlLayerMouseDown(e) {
+        const currMousePosition = this.#canvasMousePosition(e, e.currentTarget);
+        this.#mouseStatus.isLeftDown = true;
         svl.tracker.push('ViewControl_MouseDown', currMousePosition);
-        _setViewControlLayerCursor('ClosedHand');
+        this.#setViewControlLayerCursor('ClosedHand');
     }
 
     /**
      * Callback on mouse up event on the view control layer (where you change the Google Street view angle).
-     * @param e
+     * @param {MouseEvent} e
      */
-    function _handlerViewControlLayerMouseUp(e) {
-        const currMousePosition = _canvasMousePosition(e, this);
-        mouseStatus.isLeftDown = false;
+    #handlerViewControlLayerMouseUp(e) {
+        const currMousePosition = this.#canvasMousePosition(e, e.currentTarget);
+        this.#mouseStatus.isLeftDown = false;
         svl.tracker.push('ViewControl_MouseUp', currMousePosition);
         const currTime = new Date();
 
-        const selectedLabel = onLabel(currMousePosition.x, currMousePosition.y);
+        const selectedLabel = this.onLabel(currMousePosition.x, currMousePosition.y);
         if (selectedLabel && selectedLabel.className === 'Label') {
-            setCurrentLabel(selectedLabel);
-            _setViewControlLayerCursor('Pointer');
+            this.setCurrentLabel(selectedLabel);
+            this.#setViewControlLayerCursor('Pointer');
 
             if ('contextMenu' in svl) {
-                if (status.contextMenuWasOpen) {
+                if (this.#status.contextMenuWasOpen) {
                     svl.contextMenu.hide();
                 } else {
                     svl.contextMenu.show(selectedLabel);
                 }
-                status.contextMenuWasOpen = false;
+                this.#status.contextMenuWasOpen = false;
             }
         } else {
-            _setViewControlLayerCursor('OpenHand');
-            if (currTime - mouseStatus.prevMouseUpTime < 300) {
+            this.#setViewControlLayerCursor('OpenHand');
+            if (currTime - this.#mouseStatus.prevMouseUpTime < 300) {
                 // Continue logging double click. We don't have any features for it now, but it's good to know how
                 // frequently people are trying to double-click. They might be trying to zoom?
                 svl.tracker.push('ViewControl_DoubleClick');
             }
         }
-        mouseStatus.prevMouseUpTime = currTime;
+        this.#mouseStatus.prevMouseUpTime = currTime;
     }
 
-    function _handlerViewControlLayerMouseLeave(e) {
-        _setViewControlLayerCursor('OpenHand');
-        mouseStatus.isLeftDown = false;
+    #handlerViewControlLayerMouseLeave(e) {
+        this.#setViewControlLayerCursor('OpenHand');
+        this.#mouseStatus.isLeftDown = false;
     }
 
     /**
-     * Callback that is fired when a user moves a mouse on the view control layer where you change the pov.
+     * Callback fired when a user moves a mouse on the view control layer where you change the pov.
+     * @param {MouseEvent} e
      */
-    function _handlerViewControlLayerMouseMove(e) {
-        const currMousePosition = _canvasMousePosition(e, this);
+    #handlerViewControlLayerMouseMove(e) {
+        const currMousePosition = this.#canvasMousePosition(e, e.currentTarget);
 
-        const item = onLabel(currMousePosition.x, currMousePosition.y);
-        if (mouseStatus.isLeftDown && svl.panoManager.getStatus('disablePanning') === false) {
+        const item = this.onLabel(currMousePosition.x, currMousePosition.y);
+        if (this.#mouseStatus.isLeftDown && svl.panoManager.getStatus('disablePanning') === false) {
             // If a mouse is being dragged on the control layer, move the pano.
             const pov = svl.panoViewer.getPov();
             const zoomScaling = Math.pow(2, pov.zoom);
-            const dx = (currMousePosition.x - mouseStatus.prevX) / zoomScaling;
-            const dy = (currMousePosition.y - mouseStatus.prevY) / zoomScaling;
+            const dx = (currMousePosition.x - this.#mouseStatus.prevX) / zoomScaling;
+            const dy = (currMousePosition.y - this.#mouseStatus.prevY) / zoomScaling;
             svl.panoManager.updatePov(dx, dy);
-            _setViewControlLayerCursor('ClosedHand');
+            this.#setViewControlLayerCursor('ClosedHand');
 
             // Hide any label hover info while panning so it doesn't linger over the moving pano.
-            showLabelHoverInfo(undefined);
-            setCurrentLabel(undefined);
+            this.showLabelHoverInfo(undefined);
+            this.setCurrentLabel(undefined);
         } else if (item && item.className === 'Label') {
             // Show label delete menu and update cursor when hovering over a label.
-            _setViewControlLayerCursor('Pointer');
+            this.#setViewControlLayerCursor('Pointer');
             const selectedLabel = item;
-            setCurrentLabel(selectedLabel);
-            showLabelHoverInfo(selectedLabel);
-            self.clear().render();
+            this.setCurrentLabel(selectedLabel);
+            this.showLabelHoverInfo(selectedLabel);
+            this.clear().render();
         } else {
-            _setViewControlLayerCursor('OpenHand');
-            showLabelHoverInfo(undefined);
-            setCurrentLabel(undefined);
+            this.#setViewControlLayerCursor('OpenHand');
+            this.showLabelHoverInfo(undefined);
+            this.setCurrentLabel(undefined);
         }
 
-        mouseStatus.prevX = currMousePosition.x;
-        mouseStatus.prevY = currMousePosition.y;
+        this.#mouseStatus.prevX = currMousePosition.x;
+        this.#mouseStatus.prevY = currMousePosition.y;
     }
+
     /**
      * When mousing out of the canvas, stop trying to add a label type, switching back to Explore mode.
+     * @param {MouseEvent} e
      */
-    function _handleDrawingLayerMouseOut(e) {
+    #handleDrawingLayerMouseOut(e) {
         svl.tracker.push('LabelingCanvas_MouseOut');
-        if (!svl.isOnboarding()) ribbon.backToWalk();
+        if (!svl.isOnboarding()) this.#ribbon.backToWalk();
     }
 
     /**
      * Record locations of mouse-down event. Most functionality happens on mouse-up, but mouse-down context matters.
+     * @param {MouseEvent} e
      */
-    function _handleDrawingLayerMouseDown(e) {
-        svl.tracker.push('LabelingCanvas_MouseDown', _canvasMousePosition(e, this));
+    #handleDrawingLayerMouseDown(e) {
+        svl.tracker.push('LabelingCanvas_MouseDown', this.#canvasMousePosition(e, e.currentTarget));
     }
 
     /**
      * Create a new label on mouse-up if we are in a labeling mode.
+     * @param {MouseEvent} e
      */
-    async function _handleDrawingLayerMouseUp(e) {
-        const currMousePosition = _canvasMousePosition(e, this);
+    async #handleDrawingLayerMouseUp(e) {
+        const currMousePosition = this.#canvasMousePosition(e, e.currentTarget);
 
-        if (!status.disableLabeling) {
-            createLabel(currMousePosition.x, currMousePosition.y);
-            clear();
-            setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
-            render();
+        if (!this.#status.disableLabeling) {
+            this.#createLabel(currMousePosition.x, currMousePosition.y);
+            this.clear();
+            this.setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
+            this.render();
         }
 
         svl.tracker.push('LabelingCanvas_MouseUp', currMousePosition);
@@ -290,26 +297,26 @@ function Canvas(ribbon) {
     }
 
     /**
-     * Update the canvas based on a mouse-mouse event: changing cursor, re-rendering, etc.
+     * Update the canvas based on a mouse-move event: changing cursor, re-rendering, etc.
+     * @param {MouseEvent} e
      */
-    function _handleDrawingLayerMouseMove(e) {
+    #handleDrawingLayerMouseMove(e) {
         // Change the cursor according to the label type.
         const iconImagePaths = util.misc.getIconImagePaths();
-        const labelType = ribbon.getStatus('mode');
+        const labelType = this.#ribbon.getStatus('mode');
         if (labelType) {
             // Need to reset the cursor first, otherwise Safari strangely doesn't update the cursor.
-            $(this).css('cursor', '');
-            $(this).css('cursor', `url(${iconImagePaths[labelType].iconImagePath}) 19 19, auto`);
+            $(e.currentTarget).css('cursor', '');
+            $(e.currentTarget).css('cursor', `url(${iconImagePaths[labelType].iconImagePath}) 19 19, auto`);
         }
     }
 
     /**
      * Delete a label. Called when a user clicks a label's delete icon.
-     * @private
      */
-    function _labelDeleteIconClick() {
-        if (!status.disableLabelDelete) {
-            const currLabel = self.getCurrentLabel();
+    #labelDeleteIconClick() {
+        if (!this.#status.disableLabelDelete) {
+            const currLabel = this.getCurrentLabel();
             // If in tutorial, only delete if it's the last label that the user added to the canvas.
             if (currLabel && (!svl.onboarding || svl.onboarding.getCurrentLabelId() === currLabel.getProperty('temporaryLabelId'))) {
                 svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
@@ -321,82 +328,89 @@ function Canvas(ribbon) {
 
     /**
      * Clear what's on the canvas.
+     * @returns {Canvas} this.
      */
-    function clear() {
-        ctx.clearRect(0, 0, canvasProperties.width, canvasProperties.height);
+    clear() {
+        this.#ctx.clearRect(0, 0, this.#canvasProperties.width, this.#canvasProperties.height);
         return this;
     }
 
     /**
      * Disables the use of delete buttons for labels. Used primarily in the tutorial.
+     * @returns {Canvas|boolean} this, or false if delete is locked.
      */
-    function disableLabelDelete() {
-        if (!status.lockDisableLabelDelete) {
-            status.disableLabelDelete = true;
+    disableLabelDelete() {
+        if (!this.#status.lockDisableLabelDelete) {
+            this.#status.disableLabelDelete = true;
             return this;
         }
         return false;
     }
 
-    function disableLabeling() {
-        status.disableLabeling = true;
+    /** @returns {Canvas} this. */
+    disableLabeling() {
+        this.#status.disableLabeling = true;
         return this;
     }
 
-    function enableLabelDelete() {
-        if (!status.lockDisableLabelDelete) {
-            status.disableLabelDelete = false;
+    /** @returns {Canvas|boolean} this, or false if delete is locked. */
+    enableLabelDelete() {
+        if (!this.#status.lockDisableLabelDelete) {
+            this.#status.disableLabelDelete = false;
             return this;
         }
         return false;
     }
 
-    function enableLabeling() {
-        status.disableLabeling = false;
+    /** @returns {Canvas} this. */
+    enableLabeling() {
+        this.#status.disableLabeling = false;
         return this;
     }
 
     /**
      * Returns the label that the mouse is over.
+     * @returns {?Object}
      */
-    function getCurrentLabel() {
-        return status.currentLabel;
+    getCurrentLabel() {
+        return this.#status.currentLabel;
     }
 
-    function getStatus(key) {
-        return status[key];
+    getStatus(key) {
+        return this.#status[key];
     }
 
     /**
-     * This function takes cursor coordinates x and y on the canvas. Then returns an object right below the cursor.
-     * If a cursor is not on anything, return false.
+     * Takes cursor coordinates x and y on the canvas and returns the label right below the cursor, or false if none.
+     * @param {number} x
+     * @param {number} y
+     * @returns {Object|boolean}
      */
-    function onLabel(x, y) {
+    onLabel(x, y) {
         const labels = svl.labelContainer.getCanvasLabels();
-        let onLabel = false;
 
         // Check labels to see if they are under the mouse cursor.
         for (let i = 0; i < labels.length; i += 1) {
-            onLabel = labels[i].isOn(x, y);
-            if (onLabel) {
-                status.currentLabel = labels[i];
+            if (labels[i].isOn(x, y)) {
+                this.#status.currentLabel = labels[i];
                 return labels[i];
             }
         }
         return false;
     }
 
-    function lockDisableLabelDelete() {
-        status.lockDisableLabelDelete = true;
+    /** @returns {Canvas} this. */
+    lockDisableLabelDelete() {
+        this.#status.lockDisableLabelDelete = true;
         return this;
     }
 
-
     /**
      * Renders labels on the canvas.
+     * @returns {Canvas} this.
      */
-    function render() {
-        if (!ctx) {
+    render() {
+        if (!this.#ctx) {
             return this;
         }
         const labels = svl.labelContainer.getCanvasLabels();
@@ -404,7 +418,7 @@ function Canvas(ribbon) {
 
         // Render labels.
         for (let i = 0; i < labels.length; i += 1) {
-            labels[i].render(ctx, pov);
+            labels[i].render(this.#ctx, pov);
         }
 
         // Update the opacity of Zoom In and Zoom Out buttons.
@@ -416,30 +430,30 @@ function Canvas(ribbon) {
      * Re-rasterizes the label canvas to the current displayed pano size and redraws all labels.
      * Call this after the UI scale changes (e.g. on window resize) so the canvas stays crisp and correctly placed.
      */
-    function resize() {
+    resize() {
         const el = document.getElementById('label-canvas');
-        if (!el || !ctx) return;
-        _sizeCanvasToDisplay(el);
-        self.clear().render();
+        if (!el || !this.#ctx) return;
+        this.#sizeCanvasToDisplay(el);
+        this.clear().render();
     }
 
-    function setCurrentLabel(label) {
-        status.currentLabel = label;
+    setCurrentLabel(label) {
+        this.#status.currentLabel = label;
     }
 
-    function setStatus(key, value) {
-        if (key in status) {
-            status[key] = value;
+    setStatus(key, value) {
+        if (key in this.#status) {
+            this.#status[key] = value;
         } else {
-            throw self.className + ': Illegal status name.';
+            throw 'Canvas: Illegal status name.';
         }
     }
 
     /**
-     * This function sets the passed label's hoverInfoVisibility to 'visible' and all the others to 'hidden'.
-     * @param label
+     * Sets the passed label's hoverInfoVisibility to 'visible' and all the others to 'hidden'.
+     * @param {Object} label
      */
-    function showLabelHoverInfo(label) {
+    showLabelHoverInfo(label) {
         let needToRerender = false;
 
         // Hide the hover info on all the labels.
@@ -455,7 +469,7 @@ function Canvas(ribbon) {
                     labels[i].setHoverInfoVisibility('visible');
                 }
             } else {
-                // If not hovered but was previously being hovered, hide it and rerender.
+                // If not hovered but was being hovered, hide it and rerender.
                 if (hoverVisibility === 'visible') {
                     needToRerender = true;
                     labels[i].setHoverInfoVisibility('hidden');
@@ -469,11 +483,12 @@ function Canvas(ribbon) {
 
         // Show delete icon on label.
         if (needToRerender) {
-            self.clear().render();
+            this.clear().render();
         }
     }
 
-    function setVisibility(visibility) {
+    /** @returns {Canvas} this. */
+    setVisibility(visibility) {
         const labels = svl.labelContainer.getCanvasLabels();
         for (let i = 0; i < labels.length; i += 1) {
             labels[i].setVisibility(visibility);
@@ -483,8 +498,9 @@ function Canvas(ribbon) {
 
     /**
      * Sets labels on the given pano as visible, all others as hidden.
+     * @param {string} panoId
      */
-    function setOnlyLabelsOnPanoAsVisible(panoId) {
+    setOnlyLabelsOnPanoAsVisible(panoId) {
         const labels = svl.labelContainer.getCanvasLabels();
         for (let i = 0; i < labels.length; i += 1) {
             if (labels[i].getPanoId() === panoId && !labels[i].isDeleted()) {
@@ -495,13 +511,17 @@ function Canvas(ribbon) {
         }
     }
 
-    function unlockDisableLabelDelete() {
-        status.lockDisableLabelDelete = false;
+    /** @returns {Canvas} this. */
+    unlockDisableLabelDelete() {
+        this.#status.lockDisableLabelDelete = false;
         return this;
     }
 
-    // Saves a screenshot of the canvas when the label was placed, to be uploaded to the server later.
-    function saveCanvasScreenshot(label) {
+    /**
+     * Saves a screenshot of the canvas when the label was placed, to be uploaded to the server later.
+     * @param {Object} label
+     */
+    saveCanvasScreenshot(label) {
         // If there is no label to associate this crop with, don't save the crop.
         if (!label) {
             console.log('No label found when making a crop.');
@@ -512,28 +532,4 @@ function Canvas(ribbon) {
         const newCrop = $(`.${svl.panoViewer.getCanvasClass()}`)[0].toDataURL('image/jpeg', 1);
         label.setProperty('crop', newCrop);
     }
-
-    _init();
-
-    // Put public methods to self and return them.
-    self.clear = clear;
-    self.disableLabelDelete = disableLabelDelete;
-    self.disableLabeling = disableLabeling;
-    self.enableLabelDelete = enableLabelDelete;
-    self.enableLabeling = enableLabeling;
-    self.getCurrentLabel = getCurrentLabel;
-    self.getStatus = getStatus;
-    self.onLabel = onLabel;
-    self.lockDisableLabelDelete = lockDisableLabelDelete;
-    self.render = render;
-    self.resize = resize;
-    self.setCurrentLabel = setCurrentLabel;
-    self.setStatus = setStatus;
-    self.showLabelHoverInfo = showLabelHoverInfo;
-    self.setVisibility = setVisibility;
-    self.setOnlyLabelsOnPanoAsVisible = setOnlyLabelsOnPanoAsVisible;
-    self.unlockDisableLabelDelete = unlockDisableLabelDelete;
-    self.saveCanvasScreenshot = saveCanvasScreenshot;
-
-    return self;
 }

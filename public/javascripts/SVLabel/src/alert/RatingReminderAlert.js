@@ -1,30 +1,31 @@
-function RatingReminderAlert(alertHandler) {
-    var self = {
-        'ratingCount': {}
-    };
-    var MINIMUM_NO_RATING_BEFORE_ALERT = 4; //consecutive
+/**
+ * Reminds the user to rate severity after they've labeled several times in a row without picking a severity.
+ */
+class RatingReminderAlert extends Alert {
+    #ratingCount = 0;
 
-    function ratingClicked(severity) {
+    // Number of consecutive labels without a severity before the reminder fires.
+    static #MINIMUM_NO_RATING_BEFORE_ALERT = 4;
+
+    /**
+     * Tracks whether the user rated severity, and shows the reminder after enough consecutive unrated labels.
+     * @param {?number} severity - The chosen severity, or null/undefined if the user labeled without rating.
+     */
+    ratingClicked(severity) {
         if (severity == null) {
-            if (self['ratingCount'] > 0) {
-                self['ratingCount']++;
+            if (this.#ratingCount > 0) {
+                this.#ratingCount++;
             } else {
-                self['ratingCount'] = 1;
+                this.#ratingCount = 1;
             }
-        }//check if user picked a severity
-        else {
-            self['ratingCount'] = 0;
-        }//reset counter if user labels once
-        if (self['ratingCount'] >= MINIMUM_NO_RATING_BEFORE_ALERT && !svl.isOnboarding()) {
+        } else {
+            // Picking a severity resets the streak.
+            this.#ratingCount = 0;
+        }
 
-            alertHandler.showAlert(i18next.t('popup.severity-shortcuts'), 'reminderMessage', true);
-            self['ratingCount'] = 0;
-
-        }//not in tutorial screen
-
-        //Remember to rate the passableness for each area you label!
+        if (this.#ratingCount >= RatingReminderAlert.#MINIMUM_NO_RATING_BEFORE_ALERT && !svl.isOnboarding()) {
+            this._showAlert('popup.severity-shortcuts', 'reminderMessage');
+            this.#ratingCount = 0;
+        }
     }
-
-    self.ratingClicked = ratingClicked;
-    return self;
 }

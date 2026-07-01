@@ -1,27 +1,25 @@
 /**
  * Displays modal popup if user is on mobile and in landscape mode.
- * @param uiModal
- * @returns {Modal Info}
- * @constructor
  */
+class ModalLandscape {
+    #uiModal;
 
-function ModalLandscape (uiModal) {
-    const self = this;
-
-    function hide () {
-        uiModal.background.css('visibility', 'hidden');
-        uiModal.holder.css('visibility', 'hidden');
-        uiModal.foreground.css('visibility', 'hidden');
+    /**
+     * @param {object} uiModal Modal UI elements.
+     */
+    constructor(uiModal) {
+        this.#uiModal = uiModal;
     }
 
-    function show () {
-        uiModal.background.css('visibility', 'visible');
-        uiModal.holder.css('visibility', 'visible');
-        uiModal.foreground.css('visibility', 'visible');
+    hide() {
+        this.#uiModal.background.css('visibility', 'hidden');
+        this.#uiModal.holder.css('visibility', 'hidden');
+        this.#uiModal.foreground.css('visibility', 'hidden');
     }
 
-    self.hide = hide;
-    self.show = show;
-
-    return this;
+    show() {
+        this.#uiModal.background.css('visibility', 'visible');
+        this.#uiModal.holder.css('visibility', 'visible');
+        this.#uiModal.foreground.css('visibility', 'visible');
+    }
 }

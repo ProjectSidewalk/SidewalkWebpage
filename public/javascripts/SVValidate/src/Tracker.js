@@ -1,42 +1,37 @@
 /**
- * Logs information from the Validation interface
- * @returns {Tracker}
- * @constructor
+ * Logs information from the Validation interface.
  */
-function Tracker() {
-    const self = this;
-    let actions = [];
+class Tracker {
+    #actions = [];
 
-    function _init() {
-        _trackWindowEvents();
+    constructor() {
+        this.#trackWindowEvents();
     }
 
-    function _trackWindowEvents() {
+    #trackWindowEvents() {
         const prefix = 'LowLevelEvent_';
 
         // track all mouse related events
-        $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e) {
-            self.push(prefix + e.type, {
+        $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', (e) => {
+            this.push(prefix + e.type, {
                 cursorX: 'pageX' in e ? e.pageX : null,
                 cursorY: 'pageY' in e ? e.pageY : null
             });
         });
 
         // keyboard related events
-        $(document).on('keydown keyup', function(e) {
-            self.push(prefix + e.type, {
+        $(document).on('keydown keyup', (e) => {
+            this.push(prefix + e.type, {
                 keyCode: 'keyCode' in e ? e.keyCode : null
             });
         });
     }
 
     /**
-     *
      * @param {string} action
-     * @param notes
-     * @private
+     * @param {object} notes
      */
-    function _createAction(action, notes) {
+    #createAction(action, notes) {
         const panoViewer = svv.panoManager && svv.panoViewer ? svv.panoViewer : null;
         const position = panoViewer ? panoViewer.getPosition() : { lat: null, lng: null };
         const pov = panoViewer ? panoViewer.getPov() : { heading: null, pitch: null, zoom: null };
@@ -53,21 +48,21 @@ function Tracker() {
             pitch: pov ? pov.pitch : null,
             zoom: pov ? pov.zoom : null,
             mission_id: currentMission ? currentMission.getProperty('missionId') : null,
-            note: _notesToString(notes || {}),
+            note: this.#notesToString(notes || {}),
             timestamp: new Date(),
         };
     }
 
-    function getActions() {
-        return actions;
+    getActions() {
+        return this.#actions;
     }
 
-    function _notesToString(notes) {
+    #notesToString(notes) {
         if (!notes)
             return '';
 
         let noteString = '';
-        for (let key in notes) {
+        for (const key in notes) {
             if (noteString.length > 0)
                 noteString += ',';
             noteString += key + ':' + notes[key];
@@ -77,15 +72,15 @@ function Tracker() {
     }
 
     /**
-     * Pushes information to action list (to be submitted to the database)
+     * Pushes information to action list (to be submitted to the database).
      * @param {string} action
-     * @param [notes] Notes to be logged into the notes field database
+     * @param {object} [notes] Notes to be logged into the notes field database.
      */
-    function push(action, notes) {
-        const item = _createAction(action, notes);
-        const prevItem = actions.slice(-1)[0];
-        actions.push(item);
-        if (actions.length > 200) {
+    push(action, notes) {
+        const item = this.#createAction(action, notes);
+        const prevItem = this.#actions.slice(-1)[0];
+        this.#actions.push(item);
+        if (this.#actions.length > 200) {
             const data = svv.form.compileSubmissionData(false);
             svv.form.submit(data, true); // Note that this happens async
         }
@@ -97,16 +92,8 @@ function Tracker() {
     /**
      * Empties actions stored in the Tracker.
      */
-    function refresh() {
-        actions = [];
-        self.push('RefreshTracker');
+    refresh() {
+        this.#actions = [];
+        this.push('RefreshTracker');
     }
-
-    _init();
-
-    self.getActions = getActions;
-    self.push = push;
-    self.refresh = refresh;
-
-    return this;
 }

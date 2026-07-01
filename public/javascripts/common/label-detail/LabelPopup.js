@@ -24,7 +24,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername) {
     // viewer), then close. Future showLabel() calls just toggle the dialog open without re-init.
     dialog.classList.add('label-detail--initializing');
     dialog.showModal();
-    const labelDetail = await LabelDetail(dialog, {
+    const labelDetail = await LabelDetail.create(dialog, {
         admin,
         viewerType,
         viewerAccessToken,

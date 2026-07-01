@@ -1,52 +1,64 @@
-function Keyboard(validationMenuUi) {
-    const self = this;
-    let status = {
-        disableKeyboard: false,
-        addingComment: false
-    };
+/**
+ * Handles keyboard shortcuts for the validation interface.
+ */
+class Keyboard {
+    #validationMenuUi;
+    #disableKeyboard = false;
+    #addingComment = false;
 
-    // Add keydown listeners to the text boxes because esc key press is not being recognized when selected input text.
-    function handleEscapeKey(e) {
+    /**
+     * @param {object} validationMenuUi Validation menu UI elements.
+     */
+    constructor(validationMenuUi) {
+        this.#validationMenuUi = validationMenuUi;
+
+        // Add keydown listeners to the text boxes because esc key press is not being recognized when selected input text.
+        validationMenuUi.optionalCommentTextBox.on('keydown', this.#handleEscapeKey);
+        validationMenuUi.disagreeReasonTextBox.on('keydown', this.#handleEscapeKey);
+        validationMenuUi.unsureReasonTextBox.on('keydown', this.#handleEscapeKey);
+
+        // Add the keyboard event listeners. We need { capture: true } for keydown to overwrite pano's shortcuts.
+        window.addEventListener('keydown', this.#documentKeyDown, { capture: true });
+    }
+
+    #handleEscapeKey = (e) => {
         if (e.keyCode === 27) {
             e.preventDefault();
             e.stopImmediatePropagation();
-            this.blur();
+            e.currentTarget.blur();
             svv.tracker.push('KeyboardShortcut_UnfocusComment', { keyCode: e.keyCode });
         }
+    };
+
+    disableKeyboard() {
+        this.#disableKeyboard = true;
     }
 
-    // Attach the same function to all three text boxes.
-    validationMenuUi.optionalCommentTextBox.on('keydown', handleEscapeKey);
-    validationMenuUi.disagreeReasonTextBox.on('keydown', handleEscapeKey);
-    validationMenuUi.unsureReasonTextBox.on('keydown', handleEscapeKey);
-
-    function disableKeyboard () {
-        status.disableKeyboard = true;
-    }
-
-    function enableKeyboard () {
-        status.disableKeyboard = false;
+    enableKeyboard() {
+        this.#disableKeyboard = false;
     }
 
     // Set the addingComment status based on whether the user is currently typing in a validation comment text field.
-    function checkIfTextAreaSelected() {
+    #checkIfTextAreaSelected() {
+        const validationMenuUi = this.#validationMenuUi;
         // Check if expertValidate text boxes are focused.
         if (document.activeElement === validationMenuUi.optionalCommentTextBox[0] ||
             document.activeElement === validationMenuUi.disagreeReasonTextBox[0] ||
             document.activeElement === validationMenuUi.unsureReasonTextBox[0] ||
             document.activeElement === document.getElementById('select-tag-selectized')) {
-            status.addingComment = true;
+            this.#addingComment = true;
         } else {
-            status.addingComment = false;
+            this.#addingComment = false;
         }
     }
 
     /**
      * Handles the logic for the 1, 2, and 3 key shortcuts.
-     * @param {number} n The keyboard shortcut number that was hit (1, 2, or 3)
-     * @param {Event} e The keypress event
+     * @param {number} n The keyboard shortcut number that was hit (1, 2, or 3).
+     * @param {Event} e The keypress event.
      */
-    function handleNumberKeyShortcut(n, e) {
+    #handleNumberKeyShortcut(n, e) {
+        const validationMenuUi = this.#validationMenuUi;
         if (validationMenuUi.yesButton.hasClass('chosen')) {
             if (svv.adminVersion) $(`#severity-button-${n}`).click();
         } else if (validationMenuUi.noButton.hasClass('chosen')) {
@@ -73,9 +85,10 @@ function Keyboard(validationMenuUi) {
     /**
      * Sets focus to the appropriate comment box, depending on which validation option has been selected.
      *
-     * @param {Event} e The keypress event
+     * @param {Event} e The keypress event.
      */
-    function handleCommentBoxShortcut(e) {
+    #handleCommentBoxShortcut(e) {
+        const validationMenuUi = this.#validationMenuUi;
         e.preventDefault();
         if (validationMenuUi.yesButton.hasClass('chosen')) {
             validationMenuUi.optionalCommentTextBox.click();
@@ -90,20 +103,20 @@ function Keyboard(validationMenuUi) {
      * Handles keyboard shortcuts by listening to the keydown event.
      *
      * @param {Event} e
-     * @private
      */
-    this._documentKeyDown = function (e) {
-        // When the user is typing in a comment box, disable keyboard shortcuts that can be used to validate a label.
-        checkIfTextAreaSelected();
+    #documentKeyDown = (e) => {
+        const validationMenuUi = this.#validationMenuUi;
+        // When the user is typing in a comment box, disable keyboard shortcuts that validate a label.
+        this.#checkIfTextAreaSelected();
 
         // Handle the various keyboard shortcuts.
         // Enter submits validation regardless of whether a text box is focused.
-        if (!status.disableKeyboard && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
+        if (!this.#disableKeyboard && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
             e.preventDefault();
             validationMenuUi.submitButton.click();
         }
 
-        if (!status.disableKeyboard && !status.addingComment && !e.ctrlKey) {
+        if (!this.#disableKeyboard && !this.#addingComment && !e.ctrlKey) {
             svv.labelVisibilityControl.hideTagsAndDeleteButton();
             switch (e.code) {
                 // Validate yes/agree.
@@ -158,23 +171,15 @@ function Keyboard(validationMenuUi) {
                 case 'Numpad1':
                 case 'Numpad2':
                 case 'Numpad3':
-                    handleNumberKeyShortcut(parseInt(e.key), e);
+                    this.#handleNumberKeyShortcut(parseInt(e.key), e);
                     break;
                 // '4' or 'c' key (Focus comment box)
                 case 'Digit4':
                 case 'Numpad4':
                 case 'KeyC':
-                    handleCommentBoxShortcut(e);
+                    this.#handleCommentBoxShortcut(e);
                     break;
             }
         }
     };
-
-    // Add the keyboard event listeners. We need { capture: true } for keydown to overwrite pano's shortcuts.
-    window.addEventListener('keydown', this._documentKeyDown, { capture: true });
-
-    self.disableKeyboard = disableKeyboard;
-    self.enableKeyboard = enableKeyboard;
-
-    return this;
 }
