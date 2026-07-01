@@ -800,14 +800,16 @@
 }
 
 /* Stat icons: the same line-art PNGs the classic dashboard uses. The emoji placeholder matches their height. */
-.ud-community-icon { height: 44px; width: auto; object-fit: contain; }
-.ud-community-emoji { font-size: 38px; line-height: 44px; }
+.ud-community-icon { height: 56px; width: auto; object-fit: contain; }
+.ud-community-emoji { font-size: 48px; line-height: 56px; }
 
+/* Loud, celebratory community totals — a hero display size (no token goes this big). */
 .ud-community-value {
     display: block;
     font-family: var(--font-accent, 'Raleway', sans-serif);
-    font-size: var(--font-size-xxl, 1.5rem);
+    font-size: clamp(2rem, 3.5vw, 2.75rem);
     font-weight: 700;
+    line-height: 1.1;
 }
 
 .ud-community-label {
@@ -832,8 +834,8 @@
     width: 150px;
 }
 
-.ud-podium-name { font-weight: 700; font-size: var(--font-size-xl, 1.25rem); color: var(--color-text-heading, #263238); }
-.ud-podium-score { font-size: var(--font-size-lg, 1.125rem); color: var(--color-text-secondary, #5a7785); }
+.ud-podium-name { font-weight: 700; font-size: 1.6rem; color: var(--color-text-heading, #263238); }
+.ud-podium-score { font-size: var(--font-size-xl, 1.25rem); color: var(--color-text-secondary, #5a7785); }
 
 .ud-podium-block {
     display: flex;
@@ -842,13 +844,13 @@
     width: 100%;
     padding-top: var(--space-sm, 12px);
     border-radius: var(--border-radius) var(--border-radius) 0 0;
-    font-size: 2.4rem;
+    font-size: 3.4rem;
     color: var(--color-neutral-white, #fff);
 }
 
-.ud-podium-1 .ud-podium-block { height: 104px; background: var(--color-banana-500, #f3c220); }
-.ud-podium-2 .ud-podium-block { height: 76px; background: var(--color-neutral-400, #a8b0b5); }
-.ud-podium-3 .ud-podium-block { height: 54px; background: var(--color-orange-500, #e07b2f); }
+.ud-podium-1 .ud-podium-block { height: 128px; background: var(--color-banana-500, #f3c220); }
+.ud-podium-2 .ud-podium-block { height: 98px; background: var(--color-neutral-400, #a8b0b5); }
+.ud-podium-3 .ud-podium-block { height: 74px; background: var(--color-orange-500, #e07b2f); }
 .ud-podium-1 { order: 2; }
 .ud-podium-2 { order: 1; }
 .ud-podium-3 { order: 3; }

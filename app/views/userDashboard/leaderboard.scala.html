@@ -1,7 +1,7 @@
 @import service.{AggregateStats, CommonPageData}
 @import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStanding}
 @import play.api.Configuration
-@(commonData: CommonPageData, user: SidewalkUserWithRole, isSignedIn: Boolean, isMetric: Boolean,
+@(commonData: CommonPageData, user: SidewalkUserWithRole, isSignedIn: Boolean, isMetric: Boolean, cityName: String,
         aggregate: AggregateStats, overall: Seq[LeaderboardStat], weekly: Seq[LeaderboardStat],
         teams: Seq[LeaderboardStat], standing: Option[UserStanding]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
@@ -113,7 +113,7 @@
     @* ---- Podium (real: top 3 all-time) -------------------------------------------------------------------- *@
     <div class="api-section" id="lb-podium-section">
         <h2 class="api-heading" id="podium">Top of the board <a href="#podium" class="permalink">#</a></h2>
-        <p>This city's all-time leaders. 🏆</p>
+        <p>@{cityName}'s all-time leaders. 🏆</p>
         @if(overall.length >= 3) {
             <div class="ud-podium">
                 @podiumSpot(overall(1), 2, "🥈")

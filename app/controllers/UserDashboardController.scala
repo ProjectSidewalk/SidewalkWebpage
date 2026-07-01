@@ -74,6 +74,7 @@ class UserDashboardController @Inject() (
     val user                = request.identity
     val isSignedIn: Boolean = user.role != "Anonymous"
     val isMetric: Boolean   = Messages("measurement.system") == "metric"
+    val cityName            = configService.getCityName(request2Messages.lang)
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
       aggregate  <- configService.getAggregateStats()
@@ -85,7 +86,7 @@ class UserDashboardController @Inject() (
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_LeaderboardPreview")
       Ok(
         views.html.userDashboard
-          .leaderboard(commonData, user, isSignedIn, isMetric, aggregate, overall, weekly, teams, standing)
+          .leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, overall, weekly, teams, standing)
       )
     }
   }
