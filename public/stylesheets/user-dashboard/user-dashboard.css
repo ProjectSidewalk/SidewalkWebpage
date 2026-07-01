@@ -25,6 +25,9 @@
 .api-content .ud-lb-alltime th:nth-child(3) { text-align: left; }
 .api-content .coverage-table tbody tr { cursor: default; }
 
+/* Medal (or number) in the leaderboard rank column — bump the medals so they read clearly. */
+.api-content .coverage-table td.ud-lb-rank { font-size: 1.15rem; }
+
 .ud-lb-user,
 .ud-lb-city {
     color: var(--color-accent-link, #0566f5);

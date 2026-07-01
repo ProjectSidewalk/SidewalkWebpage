@@ -22,10 +22,19 @@
 @* Accuracy as a whole percent, or "N/A" when there aren't enough validated labels to be meaningful. *@
 @fmtAcc(a: Option[Double]) = @{ a.map(x => f"${x * 100}%.0f%%").getOrElse("N/A") }
 
+@rankCell(rank: Int) = @{
+    rank match {
+        case 1 => "🥇"
+        case 2 => "🥈"
+        case 3 => "🥉"
+        case _ => rank.toString
+    }
+}
+
 @statRow(rank: Int, stat: LeaderboardStat, linkUser: Boolean) = {
     @defining(linkUser && isSignedIn && stat.username == user.username) { you =>
         <tr @if(you){class="highlighted"}>
-            <td>@rank</td>
+            <td class="ud-lb-rank">@rankCell(rank)</td>
             <td>@if(you){<strong>You</strong>}else{
                 @if(linkUser){<a href="@routes.UserDashboardController.publicProfilePreview(stat.username)" class="ud-lb-user">@stat.username</a>}else{@stat.username}
             }</td>
