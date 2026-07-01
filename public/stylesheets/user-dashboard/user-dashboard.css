@@ -471,6 +471,9 @@
 .ud-card-img {
     position: relative;
     height: 130px;
+    background: linear-gradient(135deg, var(--color-neutral-200, #d7dbde), var(--color-neutral-400, #a8b0b5));
+    background-size: cover;
+    background-position: center;
 }
 
 .ud-card-type-icon {
@@ -486,6 +489,8 @@
     border-radius: 50%;
     background: var(--color-neutral-white, #fff);
 }
+
+.ud-card-type-icon img { width: 18px; height: 18px; display: block; }
 
 .ud-card-verdict {
     position: absolute;
