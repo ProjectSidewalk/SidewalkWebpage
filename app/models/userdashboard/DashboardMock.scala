@@ -28,10 +28,25 @@ object DashboardMock {
   }
 
   /**
-   * A leaderboard trophy the user has earned: a podium placement (weekly or all-time), or a region "champion" trophy
-   * (Strava KOM-style — top labeler in a specific neighborhood). `region` flags the latter for distinct styling.
+   * A trophy the user has earned. `variant` selects the flavor + styling: "podium" (weekly/all-time top 3, colored by
+   * `rank` 1-3), "region" (Strava KOM-style top labeler in a neighborhood), or "pioneer" (first-ever labeler in a
+   * region or city). `cssClass`/`tagLabel` derive the visual treatment.
    */
-  case class Trophy(rank: Int, medal: String, title: String, sub: String, region: Boolean = false)
+  case class Trophy(medal: String, title: String, sub: String, variant: String = "podium", rank: Int = 0) {
+    def cssClass: String = variant match {
+      case "region"  => "ud-trophy-region"
+      case "pioneer" => "ud-trophy-pioneer"
+      case _         => s"ud-trophy-$rank"
+    }
+    def tagLabel: Option[String] = variant match {
+      case "region"  => Some("Region")
+      case "pioneer" => Some("Pioneer")
+      case _         => None
+    }
+  }
+
+  /** An earnable trophy type shown on the "Trophies to earn" board so users can set goals (Apple Fitness style). */
+  case class TrophyGoal(medal: String, name: String, howTo: String, earned: Boolean)
 
   /** Per-label-type accuracy, with the user's weakest type flagged for emphasis. */
   case class AccuracyRow(name: String, cssKey: String, pct: Int, weakest: Boolean)
@@ -78,10 +93,21 @@ object DashboardMock {
   )
 
   val trophies: Seq[Trophy] = Seq(
-    Trophy(1, "👑", "Capitol Hill champion", "Most labels in this neighborhood", region = true),
-    Trophy(1, "🥇", "Top labeler", "Week of Jun 16 · this city"),
-    Trophy(2, "🥈", "Top validator", "Week of Jun 9 · this city"),
-    Trophy(3, "🥉", "Top labeler", "Week of May 26 · this city")
+    Trophy("🌱", "City pioneer", "First-ever labeler in Seattle", variant = "pioneer"),
+    Trophy("🧭", "Region pioneer", "First-ever labeler in Capitol Hill", variant = "pioneer"),
+    Trophy("👑", "Capitol Hill champion", "Most labels in this neighborhood", variant = "region"),
+    Trophy("🥇", "Top labeler", "Week of Jun 16 · this city", variant = "podium", rank = 1),
+    Trophy("🥈", "Top validator", "Week of Jun 9 · this city", variant = "podium", rank = 2),
+    Trophy("🥉", "Top labeler", "Week of May 26 · this city", variant = "podium", rank = 3)
+  )
+
+  /** The full trophy catalog — what's earnable and how — so users can see goals even before earning them. */
+  val trophyCatalog: Seq[TrophyGoal] = Seq(
+    TrophyGoal("🥇", "Weekly champion", "Finish in the top 3 for labels or validations in a week.", earned = true),
+    TrophyGoal("🏆", "All-time leader", "Reach the top 3 all-time in your city.", earned = false),
+    TrophyGoal("👑", "Region champion", "Be the top labeler in a neighborhood.", earned = true),
+    TrophyGoal("🌱", "City pioneer", "Be the first person ever to place a label in a city.", earned = true),
+    TrophyGoal("🧭", "Region pioneer", "Be the first person ever to place a label in a neighborhood.", earned = true)
   )
 
   val accuracyByType: Seq[AccuracyRow] = Seq(

@@ -141,14 +141,28 @@
         </div>
 
         <h3 class="api-heading" id="trophy-case">Trophy case <a href="#trophy-case" class="permalink">#</a></h3>
-        <p class="ud-section-note">Trophies are awarded for finishing in the top 3 each week or all-time, and for being the top labeler in a neighborhood (👑). They only show once you've earned one — so your shelf grows as you climb.</p>
+        <p class="ud-section-note">Trophies you've earned. Your shelf grows as you climb.</p>
         <div class="ud-trophy-case">
             @for(t <- DashboardMock.trophies) {
-                <div class="ud-trophy @if(t.region){ud-trophy-region}else{ud-trophy-@t.rank}">
-                    @if(t.region){<span class="ud-trophy-tag">Region</span>}
+                <div class="ud-trophy @t.cssClass">
+                    @t.tagLabel.map { l => <span class="ud-trophy-tag">@l</span> }
                     <span class="ud-trophy-medal" aria-hidden="true">@t.medal</span>
                     <span class="ud-trophy-title">@t.title</span>
                     <span class="ud-trophy-sub">@t.sub</span>
+                </div>
+            }
+        </div>
+
+        <h3 class="api-heading" id="trophies-to-earn">Trophies to earn <a href="#trophies-to-earn" class="permalink">#</a></h3>
+        <p class="ud-section-note">Every trophy you can chase — set your sights on the next one. 🎯</p>
+        <div class="ud-goals">
+            @for(g <- DashboardMock.trophyCatalog) {
+                <div class="ud-goal @if(g.earned){ud-goal-earned}">
+                    <span class="ud-goal-medal" aria-hidden="true">@g.medal</span>
+                    <div class="ud-goal-text">
+                        <span class="ud-goal-name">@g.name @if(g.earned){<span class="ud-goal-check">✓ Earned</span>}</span>
+                        <span class="ud-goal-how">@g.howTo</span>
+                    </div>
                 </div>
             }
         </div>

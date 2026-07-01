@@ -293,6 +293,11 @@
     background: linear-gradient(160deg, var(--color-pine-100, #eaf3ec), var(--color-neutral-white, #fff));
 }
 
+.ud-trophy-pioneer {
+    border-top-color: var(--color-banana-600, #d9a916);
+    background: linear-gradient(160deg, var(--color-banana-100, #fdf6e3), var(--color-neutral-white, #fff));
+}
+
 .ud-trophy-tag {
     position: absolute;
     top: 8px;
@@ -318,6 +323,49 @@
 .ud-trophy-sub {
     font-size: var(--font-size-xs, 0.8125rem);
     color: var(--color-text-tertiary, #88a1ad);
+}
+
+/* "Trophies to earn" goal board — shows every earnable trophy (Apple Fitness style) so users can set goals. */
+.ud-goals {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-sm, 12px);
+    margin: var(--space-md, 16px) 0;
+}
+
+.ud-goal {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm, 12px);
+    padding: var(--space-sm, 12px) var(--space-md, 16px);
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: var(--border-radius-lg, 8px);
+    background: var(--color-neutral-white, #fff);
+}
+
+/* Unearned goals stay visible but muted, so the goal is clear without looking already-won. */
+.ud-goal:not(.ud-goal-earned) { opacity: 0.72; }
+.ud-goal:not(.ud-goal-earned) .ud-goal-medal { filter: grayscale(1); }
+
+.ud-goal-earned { border-color: var(--color-pine-400, #8fc09b); background: var(--color-pine-100, #eaf3ec); }
+
+.ud-goal-medal { font-size: 1.8rem; line-height: 1; flex: 0 0 auto; }
+
+.ud-goal-text { display: flex; flex-direction: column; gap: 2px; }
+
+.ud-goal-name { font-weight: 700; color: var(--color-text-heading, #263238); }
+
+.ud-goal-check {
+    margin-left: var(--space-xs, 8px);
+    font-size: var(--font-size-xs, 0.8125rem);
+    font-weight: 700;
+    color: var(--color-pine-700, #3a6347);
+}
+
+.ud-goal-how {
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+    line-height: 1.4;
 }
 
 /* ---- Your standing --------------------------------------------------------------------------------------------- */
