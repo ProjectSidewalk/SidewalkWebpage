@@ -781,15 +781,27 @@
 .ud-community-band {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: var(--space-md, 16px);
+    gap: var(--space-lg, 24px);
     padding: var(--space-lg, 24px);
     margin: var(--space-md, 16px) 0;
+    border: 1px solid var(--color-pine-200, #cfe3d4);
     border-radius: var(--border-radius-lg, 8px);
-    background: linear-gradient(120deg, var(--color-asphalt-700, #2d2a3f), var(--color-asphalt-500, #4a4660));
-    color: var(--color-neutral-white, #fff);
+    /* Light, on-brand card so the black line-art stat icons read clearly (they were invisible on the old dark band). */
+    background: linear-gradient(120deg, var(--color-pine-100, #eaf3ec), var(--color-banana-100, #fdf6e3));
+    color: var(--color-text-heading, #263238);
 }
 
-.ud-community-stat { text-align: center; }
+.ud-community-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+}
+
+/* Stat icons: the same line-art PNGs the classic dashboard uses. The emoji placeholder matches their height. */
+.ud-community-icon { height: 44px; width: auto; object-fit: contain; }
+.ud-community-emoji { font-size: 38px; line-height: 44px; }
 
 .ud-community-value {
     display: block;
@@ -800,9 +812,8 @@
 
 .ud-community-label {
     display: block;
-    margin-top: 4px;
     font-size: var(--font-size-md, 1rem);
-    opacity: 0.9;
+    color: var(--color-text-secondary, #5a7785);
 }
 
 .ud-podium {
