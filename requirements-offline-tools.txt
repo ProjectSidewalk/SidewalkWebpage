@@ -6,4 +6,4 @@
 shapely==2.0.2
 geopy==2.4.1
 tenacity==8.2.3
-tqdm==4.66.1
+tqdm==4.68.3

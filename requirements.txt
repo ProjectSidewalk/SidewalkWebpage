@@ -4,4 +4,4 @@
 pandas==2.0.3
 haversine==2.8.1
 scipy==1.10.1
-requests==2.31.0
+requests==2.32.4
