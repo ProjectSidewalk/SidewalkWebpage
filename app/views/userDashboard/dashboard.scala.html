@@ -152,20 +152,6 @@
                 </div>
             }
         </div>
-
-        <h3 class="api-heading" id="trophies-to-earn">Trophies to earn <a href="#trophies-to-earn" class="permalink">#</a></h3>
-        <p class="ud-section-note">Every trophy you can chase — set your sights on the next one. 🎯</p>
-        <div class="ud-goals">
-            @for(g <- DashboardMock.trophyCatalog) {
-                <div class="ud-goal @if(g.earned){ud-goal-earned}">
-                    <span class="ud-goal-medal" aria-hidden="true">@g.medal</span>
-                    <div class="ud-goal-text">
-                        <span class="ud-goal-name">@g.name @if(g.earned){<span class="ud-goal-check">✓ Earned</span>}</span>
-                        <span class="ud-goal-how">@g.howTo</span>
-                    </div>
-                </div>
-            }
-        </div>
     </div>
 
     @* ---- Your standing — compact teaser into the full /leaderboard (Option 2) ----------------------------- *@

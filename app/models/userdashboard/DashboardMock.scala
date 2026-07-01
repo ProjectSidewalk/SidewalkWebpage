@@ -45,9 +45,6 @@ object DashboardMock {
     }
   }
 
-  /** An earnable trophy type shown on the "Trophies to earn" board so users can set goals (Apple Fitness style). */
-  case class TrophyGoal(medal: String, name: String, howTo: String, earned: Boolean)
-
   /** Per-label-type accuracy, with the user's weakest type flagged for emphasis. */
   case class AccuracyRow(name: String, cssKey: String, pct: Int, weakest: Boolean)
 
@@ -99,15 +96,6 @@ object DashboardMock {
     Trophy("🥇", "Top labeler", "Week of Jun 16 · this city", variant = "podium", rank = 1),
     Trophy("🥈", "Top validator", "Week of Jun 9 · this city", variant = "podium", rank = 2),
     Trophy("🥉", "Top labeler", "Week of May 26 · this city", variant = "podium", rank = 3)
-  )
-
-  /** The full trophy catalog — what's earnable and how — so users can see goals even before earning them. */
-  val trophyCatalog: Seq[TrophyGoal] = Seq(
-    TrophyGoal("🥇", "Weekly champion", "Finish in the top 3 for labels or validations in a week.", earned = true),
-    TrophyGoal("🏆", "All-time leader", "Reach the top 3 all-time in your city.", earned = false),
-    TrophyGoal("👑", "Region champion", "Be the top labeler in a neighborhood.", earned = true),
-    TrophyGoal("🌱", "City pioneer", "Be the first person ever to place a label in a city.", earned = true),
-    TrophyGoal("🧭", "Region pioneer", "Be the first person ever to place a label in a neighborhood.", earned = true)
   )
 
   val accuracyByType: Seq[AccuracyRow] = Seq(
