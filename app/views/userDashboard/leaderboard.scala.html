@@ -1,9 +1,9 @@
 @import service.CommonPageData
-@import models.user.{LeaderboardStat, SidewalkUserWithRole}
-@import models.userdashboard.DashboardMock
+@import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStanding}
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, isSignedIn: Boolean, isMetric: Boolean,
-        overall: Seq[LeaderboardStat], weekly: Seq[LeaderboardStat], teams: Seq[LeaderboardStat]
+        overall: Seq[LeaderboardStat], weekly: Seq[LeaderboardStat], teams: Seq[LeaderboardStat],
+        standing: Option[UserStanding]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
@@ -156,23 +156,12 @@
         }
     </div>
 
-    @* ---- You vs community (signed-in only) — MOCK until the rank/percentile query (Phase 3) --------------- *@
+    @* ---- You vs community (signed-in only) ---------------------------------------------------------------- *@
     @if(isSignedIn) {
         <div class="api-section" id="lb-you-section">
             <h2 class="api-heading" id="you">You vs the community <a href="#you" class="permalink">#</a></h2>
             <p>Where you sit this week, and who's just ahead and behind.</p>
-            <div class="ud-standing-card ud-standing-card-wide">
-                <div class="ud-standing-tag">This week · 290 mappers</div>
-                <div class="ud-standing-rank">Top <strong>12%</strong></div>
-                <div class="ud-standing-detail">#34 of 290 by labels this week — up 6 spots from last week. 📈</div>
-                <ul class="ud-standing-slice">
-                    @for(r <- DashboardMock.standingSlice) {
-                        <li @if(r.you){class="ud-rank-you"}><span class="ud-rank">@r.rank</span><span class="ud-rank-user">@if(r.you){You}else{@r.user}</span><span class="ud-rank-val">@r.labels</span></li>
-                    }
-                </ul>
-                <div class="ud-nudge">💪 Just <strong>14 labels</strong> from cracking the top 30 this week — you've got this!</div>
-            </div>
-            <p class="ud-section-note">Your exact rank/percentile is mock for now — it wires up with the rank query (Phase 3).</p>
+            @userDashboard._standing(standing, seeAllLink = false)
         </div>
     }
 }

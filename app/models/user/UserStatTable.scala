@@ -82,6 +82,27 @@ case class LeaderboardStat(
     score: Double
 )
 
+/**
+ * One row in a user's "standing" slice — their neighbors on the board, ranked by label count for the period.
+ *
+ * @param rank       1-based rank among eligible users for the period.
+ * @param username   Display name (email domain stripped).
+ * @param labelCount Labels placed in the period.
+ * @param isYou      True for the viewing user's own row.
+ */
+case class StandingRow(rank: Int, username: String, labelCount: Int, isYou: Boolean)
+
+/**
+ * A user's standing among eligible contributors for a period (ranked by labels), plus a small slice of neighbors.
+ *
+ * @param rank       The user's 1-based rank.
+ * @param cohortSize Number of eligible ranked contributors (the "of N" denominator).
+ * @param labelCount The user's label count for the period.
+ * @param slice      The user's row ± a couple of neighbors, ordered by rank.
+ * @param delta      Spots moved since the previous week (positive = climbed), or None if not comparable.
+ */
+case class UserStanding(rank: Int, cohortSize: Int, labelCount: Int, slice: Seq[StandingRow], delta: Option[Int] = None)
+
 class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
   def userStatId: Rep[Int]                    = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]                     = column[String]("user_id")
@@ -556,6 +577,64 @@ class UserStatTable @Inject() (
           LeaderboardStat(stat._1.slice(0, stat._1.lastIndexOf('@')), stat._2, stat._3, stat._4, stat._5, stat._6)
         else LeaderboardStat.tupled(stat)
       })
+  }
+
+  /**
+   * Computes a user's standing (rank by label count) among eligible contributors for a period, plus a slice of
+   * neighbors around them.
+   *
+   * Reuses the leaderboard's eligibility filters — role IN (Registered, Administrator, Researcher), non-excluded,
+   * non-deleted/non-tutorial labels — so Owners are excluded and the "of N" denominator reconciles with the board.
+   * Ranks by label count (the intuitive "your standing" metric), not the leaderboard's composite score.
+   *
+   * @param userId The user whose standing to compute.
+   * @param mode   "weekly" (since this US/Pacific week's start), "lastWeek" (the prior week), or "overall" (all time).
+   * @param n      How many neighbors to include on each side of the user in the returned slice.
+   * @return       The user's standing, or `None` if they have no qualifying labels in the period (so aren't ranked).
+   */
+  def getUserStanding(userId: String, mode: String, n: Int): DBIO[Option[UserStanding]] = {
+    val weekStart =
+      "((now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7))"
+    val timeFilter = mode.toLowerCase match {
+      case "weekly"   => s"AND (label.time_created AT TIME ZONE 'US/Pacific') >= $weekStart"
+      case "lastweek" =>
+        s"AND (label.time_created AT TIME ZONE 'US/Pacific') >= ($weekStart - INTERVAL '7 days') " +
+          s"AND (label.time_created AT TIME ZONE 'US/Pacific') < $weekStart"
+      case _ => ""
+    }
+    sql"""
+      WITH ranked AS (
+          SELECT sidewalk_user.user_id AS uid,
+                 sidewalk_user.username AS uname,
+                 COUNT(label.label_id)::int AS lc,
+                 RANK() OVER (ORDER BY COUNT(label.label_id) DESC)::int AS rnk,
+                 COUNT(*) OVER ()::int AS cohort
+          FROM sidewalk_user
+          INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
+          INNER JOIN role ON user_role.role_id = role.role_id
+          INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
+          INNER JOIN label ON sidewalk_user.user_id = label.user_id
+          WHERE label.deleted = FALSE
+              AND label.tutorial = FALSE
+              AND role.role IN ('Registered', 'Administrator', 'Researcher')
+              AND user_stat.excluded = FALSE
+              #$timeFilter
+          GROUP BY sidewalk_user.user_id, sidewalk_user.username
+      ),
+      me AS (SELECT rnk, cohort, lc FROM ranked WHERE uid = $userId)
+      SELECT ranked.rnk, ranked.uname, ranked.lc, (ranked.uid = $userId) AS is_you, me.cohort, me.rnk, me.lc
+      FROM ranked CROSS JOIN me
+      WHERE ranked.rnk BETWEEN me.rnk - $n AND me.rnk + $n
+      ORDER BY ranked.rnk, ranked.uname;
+    """.as[(Int, String, Int, Boolean, Int, Int, Int)].map { rows =>
+      rows.headOption.map { head =>
+        val slice = rows.map { r =>
+          val name = if (isValidEmail(r._2)) r._2.slice(0, r._2.lastIndexOf('@')) else r._2
+          StandingRow(r._1, name, r._3, r._4)
+        }
+        UserStanding(rank = head._6, cohortSize = head._5, labelCount = head._7, slice = slice)
+      }
+    }
   }
 
   /**

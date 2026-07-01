@@ -1,10 +1,10 @@
 @import service.{CommonPageData, UserProfileData}
-@import models.user.SidewalkUserWithRole
+@import models.user.{SidewalkUserWithRole, UserStanding}
 @import models.label.Tag
 @import models.userdashboard.DashboardMock
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, profileData: UserProfileData, isMetric: Boolean,
-        tags: Seq[Tag]
+        tags: Seq[Tag], standing: Option[UserStanding]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Formats the already-unit-converted audited distance (km when metric, else miles) with one decimal + unit. *@
@@ -167,19 +167,7 @@
     <div class="api-section" id="ud-standing-section">
         <h2 class="api-heading" id="standing">Your standing <a href="#standing" class="permalink">#</a></h2>
         <p>A peek at where you sit this week. The full board lives on the leaderboard.</p>
-
-        <div class="ud-standing-card ud-standing-card-wide">
-            <div class="ud-standing-tag">This week · 290 mappers</div>
-            <div class="ud-standing-rank">Top <strong>12%</strong> · #34</div>
-            <div class="ud-standing-detail">Up 6 spots from last week — keep it going! 📈</div>
-            <ul class="ud-standing-slice">
-                @for(r <- DashboardMock.standingSlice) {
-                    <li @if(r.you){class="ud-rank-you"}><span class="ud-rank">@r.rank</span><span class="ud-rank-user">@if(r.you){You}else{@r.user}</span><span class="ud-rank-val">@r.labels</span></li>
-                }
-            </ul>
-            <a class="ud-see-all" href="@routes.UserDashboardController.leaderboardPreview">See the full leaderboard →</a>
-        </div>
-        <p class="ud-section-note">When a city or class is small, this reframes to a shared-goal celebration instead of a numeric rank — so it never reads as "ranked 3 of 4".</p>
+        @userDashboard._standing(standing, seeAllLink = true)
     </div>
 
     @* ---- Learning — Recent mistakes gallery ------------------------------------------------------------- *@

@@ -370,6 +370,12 @@
     color: var(--color-text-secondary, #5a7785);
 }
 
+.ud-standing-of { font-weight: 400; color: var(--color-text-secondary, #5a7785); }
+
+/* Week-over-week rank movement: climbed (green) / dropped (red). */
+.ud-delta-up { color: #1f7a44; font-weight: 700; }
+.ud-delta-down { color: #c0392b; font-weight: 700; }
+
 .ud-standing-slice {
     list-style: none;
     margin: var(--space-md, 16px) 0 0;

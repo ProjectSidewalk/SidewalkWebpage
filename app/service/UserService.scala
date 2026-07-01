@@ -36,6 +36,15 @@ case class AdminUserProfileData(
     exploreComments: Seq[AuditTaskComment]
 )
 
+object UserService {
+
+  /**
+   * Minimum cohort size for showing a numeric rank/percentile in "your standing". Below this, the UI reframes to a
+   * shared-goal celebration so a small city/class never reads as e.g. "ranked 3 of 4". Source of truth for the UI.
+   */
+  val StandingCohortThreshold: Int = 8
+}
+
 @ImplementedBy(classOf[UserServiceImpl])
 trait UserService {
   def getUserProfileData(userId: String, metricSystem: Boolean): Future[UserProfileData]
@@ -63,6 +72,7 @@ trait UserService {
       byTeam: Boolean = false,
       userIdForTeam: Option[String] = None
   ): Future[Seq[LeaderboardStat]]
+  def getUserStanding(userId: String): Future[Option[UserStanding]]
   def getHoursAuditingAndValidating(userId: String): Future[Double]
   def getAuditedStreets(userId: String): Future[Seq[StreetEdge]]
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]]
@@ -189,6 +199,19 @@ class UserServiceImpl @Inject() (
       streetDist: Double          <- streetService.getTotalStreetDistanceDBIO
       stats: Seq[LeaderboardStat] <- userStatTable.getLeaderboardStats(n, timePeriod, byTeam, teamId, streetDist)
     } yield stats)
+  }
+
+  /**
+   * Gets the user's weekly standing (rank by labels) plus how many spots they've moved since last week.
+   *
+   * Computes this week's standing (with a neighbor slice) and last week's rank in one round trip, then sets `delta`
+   * to `lastWeekRank - thisWeekRank` (positive = climbed). `delta` is `None` if the user wasn't ranked last week.
+   */
+  def getUserStanding(userId: String): Future[Option[UserStanding]] = {
+    db.run(for {
+      thisWeek <- userStatTable.getUserStanding(userId, "weekly", n = 2)
+      lastWeek <- userStatTable.getUserStanding(userId, "lastWeek", n = 0)
+    } yield thisWeek.map(tw => tw.copy(delta = lastWeek.map(lw => lw.rank - tw.rank))))
   }
 
   def getHoursAuditingAndValidating(userId: String): Future[Double] =

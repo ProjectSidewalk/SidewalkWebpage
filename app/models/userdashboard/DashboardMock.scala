@@ -48,9 +48,6 @@ object DashboardMock {
   /** Per-label-type accuracy, with the user's weakest type flagged for emphasis. */
   case class AccuracyRow(name: String, cssKey: String, pct: Int, weakest: Boolean)
 
-  /** A row in a leaderboard/standing table. */
-  case class RankRow(rank: Int, user: String, labels: Int, you: Boolean = false)
-
   val badgeTracks: Seq[BadgeTrack] = Seq(
     BadgeTrack(
       "Labeler",
@@ -102,13 +99,6 @@ object DashboardMock {
     AccuracyRow("Surface Problem", "surface-problem", 77, weakest = false),
     AccuracyRow("Obstacle", "obstacle", 61, weakest = true),
     AccuracyRow("No Sidewalk", "no-sidewalk", 83, weakest = false)
-  )
-
-  /** Mock standing slice (the user ± neighbors) for a large-cohort framing. */
-  val standingSlice: Seq[RankRow] = Seq(
-    RankRow(33, "curb_crusader", 312),
-    RankRow(34, "you", 298, you = true),
-    RankRow(35, "ramp_ranger", 291)
   )
 
   /**

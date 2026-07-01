@@ -7,7 +7,7 @@ import play.api.i18n.Messages
 import service.{ConfigService, UserService}
 
 import javax.inject._
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Controller for the redesigned User Dashboard + Leaderboard (issue #4323 and the User Dashboard redesign).
@@ -46,9 +46,10 @@ class UserDashboardController @Inject() (
       profileData <- userService.getUserProfileData(user.userId, isMetric)
       commonData  <- configService.getCommonPageData(request2Messages.lang)
       tags        <- labelService.getTagsForCurrentCity
+      standing    <- userService.getUserStanding(user.userId)
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboardPreview")
-      Ok(views.html.userDashboard.dashboard(commonData, user, profileData, isMetric, tags))
+      Ok(views.html.userDashboard.dashboard(commonData, user, profileData, isMetric, tags, standing))
     }
   }
 
@@ -70,9 +71,10 @@ class UserDashboardController @Inject() (
       overall    <- userService.getLeaderboardStats(10)
       weekly     <- userService.getLeaderboardStats(10, "weekly")
       teams      <- userService.getLeaderboardStats(10, "overall", byTeam = true)
+      standing   <- if (isSignedIn) userService.getUserStanding(user.userId) else Future.successful(None)
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_LeaderboardPreview")
-      Ok(views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, overall, weekly, teams))
+      Ok(views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, overall, weekly, teams, standing))
     }
   }
 
