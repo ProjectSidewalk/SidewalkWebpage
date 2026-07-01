@@ -13,9 +13,9 @@
  */
 
 /* Primary-content tables on the user surface read larger than the admin default (which stays --font-size-sm). */
-.api-content .coverage-table { font-size: var(--font-size-md, 1rem); }
-.api-content .coverage-table thead th { font-size: var(--font-size-sm, 0.875rem); }
-.api-content .coverage-table tbody td { padding: 9px 12px; }
+.api-content .coverage-table { font-size: var(--font-size-lg, 1.125rem); }
+.api-content .coverage-table thead th { font-size: var(--font-size-md, 1rem); }
+.api-content .coverage-table tbody td { padding: 11px 14px; }
 
 /* The admin tables right-align every non-first column (numeric); on the leaderboard the name column — and the
    all-time "Most active in" city column — are text, so left-align them. */
