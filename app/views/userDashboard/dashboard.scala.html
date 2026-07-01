@@ -66,6 +66,13 @@
                 <span class="coverage-kpi-label">Label accuracy</span>
             </div>
         </div>
+
+        @* Contribution map is part of the hero (no h2, so it doesn't get its own on-this-page entry). *@
+        <p class="ud-map-caption">Where you've explored — your audited streets and labels. Open the legend to filter.</p>
+        <div id="user-dashboard-choropleth-holder" class="choropleth-holder">
+            <div id="user-dashboard-choropleth" class="choropleth"></div>
+            @common.mapSidebar(tags = tags, streetsShownByDefault = true)
+        </div>
     </div>
 
     @* ---- Streak / activity rhythm -------------------------------------------------------------------------- *@
@@ -200,16 +207,6 @@
         <p class="ud-section-note">Cards use the Gallery card look (#4388). The agree / "it was correct" buttons will let you contest a validation (#2996, #1680); that interaction wires up with the contest backend. The accuracy bars above are still mock pending per-label-type stats.</p>
     </div>
 
-    @* ---- Map — where you've explored ------------------------------------------------------------------- *@
-    <div class="api-section" id="ud-map-section">
-        <h2 class="api-heading" id="map">Where you've explored <a href="#map" class="permalink">#</a></h2>
-        <p>The neighborhoods you've helped map, with your labels colored by type. Open the legend to filter.</p>
-        <div id="user-dashboard-choropleth-holder" class="choropleth-holder">
-            <div id="user-dashboard-choropleth" class="choropleth"></div>
-            @common.mapSidebar(tags = tags, streetsShownByDefault = true)
-        </div>
-    </div>
-
     @* ---- Team / class --------------------------------------------------------------------------------- *@
     <div class="api-section" id="ud-team-section">
         <h2 class="api-heading" id="team">Your team <a href="#team" class="permalink">#</a></h2>
@@ -272,7 +269,7 @@
                 streetsURL: '/contribution/streets?userId=@user.userId',
                 labelsURL: '/userapi/labels?userId=@user.userId',
                 neighborhoodFillMode: 'singleColor',
-                neighborhoodTooltip: 'completionRate',
+                neighborhoodTooltip: 'none',
                 neighborhoodFillColor: '#5d6d6b',
                 neighborhoodFillOpacity: 0.1,
                 uiSource: 'UserMap',
