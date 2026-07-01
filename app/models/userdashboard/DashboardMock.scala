@@ -9,8 +9,16 @@ package models.userdashboard
  */
 object DashboardMock {
 
-  /** One labeling/exploring/validating badge track: which levels are earned and progress toward the next. */
-  case class BadgeTrack(name: String, icon: String, earned: Int, pct: Int, nextLabel: String)
+  /**
+   * One labeling/exploring/validating badge track: which levels are earned, progress toward the next, and the five
+   * themed level names (progressively cooler). `earned` is the highest level reached (0-5); `nextCount` is the
+   * human-readable remaining amount to the next level. The canonical home for these names when real data is wired is
+   * BadgeAchievements.js (LEVEL_NAMES, with i18n keys) — this mock mirrors that shape.
+   */
+  case class BadgeTrack(name: String, icon: String, earned: Int, pct: Int, nextCount: String, levelNames: Seq[String]) {
+    def currentName: String      = if (earned >= 1) levelNames(earned - 1) else "Not started"
+    def nextName: Option[String] = if (earned < 5) Some(levelNames(earned)) else None
+  }
 
   /**
    * A leaderboard trophy the user has earned: a podium placement (weekly or all-time), or a region "champion" trophy
@@ -28,10 +36,38 @@ object DashboardMock {
   case class RankRow(rank: Int, user: String, labels: Int, you: Boolean = false)
 
   val badgeTracks: Seq[BadgeTrack] = Seq(
-    BadgeTrack("Labeler", "labels", earned = 4, pct = 64, nextLabel = "716 more to Labeler V"),
-    BadgeTrack("Explorer", "distance", earned = 3, pct = 42, nextLabel = "1.6 km more to Explorer IV"),
-    BadgeTrack("Adventurer", "missions", earned = 3, pct = 23, nextLabel = "33 more missions to Adventurer IV"),
-    BadgeTrack("Validator", "validation", earned = 4, pct = 78, nextLabel = "1,090 more to Validator V")
+    BadgeTrack(
+      "Labeler",
+      "labels",
+      earned = 4,
+      pct = 64,
+      nextCount = "716 more labels",
+      levelNames = Seq("Curb Spotter", "Sidewalk Scout", "Access Ace", "Barrier Buster", "Sidewalk Sage")
+    ),
+    BadgeTrack(
+      "Explorer",
+      "distance",
+      earned = 3,
+      pct = 42,
+      nextCount = "1.6 km more",
+      levelNames = Seq("Block Walker", "Neighborhood Nomad", "District Rambler", "City Trekker", "Metro Voyager")
+    ),
+    BadgeTrack(
+      "Adventurer",
+      "missions",
+      earned = 3,
+      pct = 23,
+      nextCount = "33 more missions",
+      levelNames = Seq("First Steps", "Trailblazer", "Pathfinder", "Quest Master", "Grand Wayfarer")
+    ),
+    BadgeTrack(
+      "Validator",
+      "validation",
+      earned = 4,
+      pct = 78,
+      nextCount = "1,090 more validations",
+      levelNames = Seq("Fact Checker", "Peer Reviewer", "Quality Guardian", "Truth Keeper", "Validation Virtuoso")
+    )
   )
 
   val trophies: Seq[Trophy] = Seq(

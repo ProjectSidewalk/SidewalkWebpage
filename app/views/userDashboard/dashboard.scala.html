@@ -50,12 +50,14 @@
                 <span class="coverage-kpi-label">Label accuracy</span>
             </div>
         </div>
+
+        <div class="ud-nudge">🎯 You're just <strong>84 labels</strong> from your next badge — <strong>Sidewalk Sage</strong>. So close!</div>
     </div>
 
     @* ---- Streak / activity rhythm -------------------------------------------------------------------------- *@
     <div class="api-section" id="ud-streak-section">
         <h2 class="api-heading" id="streak">Your streak <a href="#streak" class="permalink">#</a></h2>
-        <p>Keep your momentum going — every day you map, validate, or explore counts.</p>
+        <p>Keep your momentum going — every day you map, validate, or explore counts. <strong>Map today to keep your 6-day streak alive!</strong> 🔥</p>
 
         <div class="ud-streak">
             <div class="ud-streak-stats">
@@ -103,18 +105,24 @@
                 <div class="ud-badge-track">
                     <div class="ud-badge-track-head">
                         <span class="ud-badge-track-name">@track.name</span>
-                        <span class="ud-badge-track-next">@track.nextLabel</span>
+                        <span class="ud-badge-track-current">@track.currentName</span>
                     </div>
                     <div class="ud-badge-levels">
                         @for(level <- 1 to 5) {
                             <img class="ud-badge @if(level > track.earned){ud-badge-locked}"
                                  src="@assets.path(s"images/badges/badge_${track.icon}_badge${level}.png")"
-                                 alt="@track.name level @level @if(level <= track.earned){(earned)}else{(locked)}">
+                                 alt="@track.name level @level — @track.levelNames(level - 1) @if(level <= track.earned){(earned)}else{(locked)}"
+                                 title="@track.levelNames(level - 1)">
                         }
                     </div>
-                    <div class="ud-progress" role="img" aria-label="@track.pct% to next badge">
+                    <div class="ud-progress" role="img" aria-label="@track.pct% to next level">
                         <div class="ud-progress-fill" style="width: @track.pct%"></div>
                     </div>
+                    @track.nextName.map { next =>
+                        <span class="ud-badge-track-next">@track.nextCount → <strong>@next</strong></span>
+                    }.getOrElse {
+                        <span class="ud-badge-track-next">Maxed out — you're a legend! 🎉</span>
+                    }
                 </div>
             }
         </div>
@@ -133,36 +141,23 @@
         </div>
     </div>
 
-    @* ---- Your standing (graceful social) ---------------------------------------------------------------- *@
+    @* ---- Your standing — compact teaser into the full /leaderboard (Option 2) ----------------------------- *@
     <div class="api-section" id="ud-standing-section">
         <h2 class="api-heading" id="standing">Your standing <a href="#standing" class="permalink">#</a></h2>
-        <p>How you compare this week. We only show a numeric rank when there are enough people to make it meaningful — otherwise we celebrate the shared effort.</p>
+        <p>A peek at where you sit this week. The full board lives on the leaderboard.</p>
 
-        <div class="ud-standing-grid">
-            @* Framing A: large cohort -> numeric rank/percentile. *@
-            <div class="ud-standing-card">
-                <div class="ud-standing-tag">Big city · 290 mappers this week</div>
-                <div class="ud-standing-rank">Top <strong>12%</strong></div>
-                <div class="ud-standing-detail">#34 of 290 by labels this week</div>
-                <ul class="ud-standing-slice">
-                    <li><span class="ud-rank">33</span><span class="ud-rank-user">curb_crusader</span><span class="ud-rank-val">312</span></li>
-                    <li class="ud-rank-you"><span class="ud-rank">34</span><span class="ud-rank-user">you</span><span class="ud-rank-val">298</span></li>
-                    <li><span class="ud-rank">35</span><span class="ud-rank-user">ramp_ranger</span><span class="ud-rank-val">291</span></li>
-                </ul>
-            </div>
-
-            @* Framing B: small cohort -> reframe to shared-goal + top contributor (NEVER "ranked 3 of 4"). *@
-            <div class="ud-standing-card ud-standing-community">
-                <div class="ud-standing-tag">Small deployment · shared goal</div>
-                <div class="ud-standing-rank">🏅 Top contributor this week</div>
-                <div class="ud-standing-detail">Your class has labeled <strong>1,240</strong> of a <strong>1,500</strong> weekly goal.</div>
-                <div class="ud-progress ud-progress-lg" role="img" aria-label="83% of weekly community goal">
-                    <div class="ud-progress-fill" style="width: 83%"></div>
-                </div>
-                <div class="ud-standing-detail">You added <strong>298</strong> of those labels. Almost there together! 🎉</div>
-            </div>
+        <div class="ud-standing-card ud-standing-card-wide">
+            <div class="ud-standing-tag">This week · 290 mappers</div>
+            <div class="ud-standing-rank">Top <strong>12%</strong> · #34</div>
+            <div class="ud-standing-detail">Up 6 spots from last week — keep it going! 📈</div>
+            <ul class="ud-standing-slice">
+                @for(r <- DashboardMock.standingSlice) {
+                    <li @if(r.you){class="ud-rank-you"}><span class="ud-rank">@r.rank</span><span class="ud-rank-user">@if(r.you){You}else{@r.user}</span><span class="ud-rank-val">@r.labels</span></li>
+                }
+            </ul>
+            <a class="ud-see-all" href="@routes.UserDashboardController.leaderboardPreview">See the full leaderboard →</a>
         </div>
-        <p class="ud-section-note">Both cards above are illustrative — the live dashboard picks one framing based on how many people are in your community.</p>
+        <p class="ud-section-note">When a city or class is small, this reframes to a shared-goal celebration instead of a numeric rank — so it never reads as "ranked 3 of 4".</p>
     </div>
 
     @* ---- Learning — Recent mistakes gallery ------------------------------------------------------------- *@
@@ -240,6 +235,8 @@
                 </ul>
             </div>
         </div>
+
+        <div class="ud-nudge">👋 Invite classmates or friends to your team — mapping together is more fun, and you'll climb the team board faster!</div>
     </div>
 }
 

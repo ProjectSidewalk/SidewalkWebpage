@@ -90,6 +90,17 @@
     font-style: italic;
 }
 
+/* Friendly, supportive nudge/encouragement callout — sprinkled through both surfaces. */
+.ud-nudge {
+    margin: var(--space-md, 16px) 0 0;
+    padding: var(--space-sm, 12px) var(--space-md, 16px);
+    border-left: 4px solid var(--color-banana-500, #f3c220);
+    border-radius: var(--border-radius, 4px);
+    background: var(--color-banana-100, #fdf6e3);
+    font-size: var(--font-size-md, 1rem);
+    color: var(--color-text-heading, #263238);
+}
+
 /* ---- Streak / activity heatmap --------------------------------------------------------------------------------- */
 .ud-streak {
     display: flex;
@@ -184,9 +195,21 @@
     color: var(--color-text-heading, #263238);
 }
 
-.ud-badge-track-next {
+/* The user's current tier name in this track (e.g. "Access Ace") — a small colored pill. */
+.ud-badge-track-current {
+    padding: 2px 10px;
+    border-radius: 12px;
+    background: var(--color-pine-600, #4a7c59);
+    color: var(--color-neutral-white, #fff);
     font-size: var(--font-size-sm, 0.875rem);
-    color: var(--color-text-tertiary, #88a1ad);
+    font-weight: 600;
+}
+
+.ud-badge-track-next {
+    display: block;
+    margin-top: var(--space-sm, 12px);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
 }
 
 .ud-badge-levels {
