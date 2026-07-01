@@ -195,15 +195,21 @@
     color: var(--color-text-heading, #263238);
 }
 
-/* The user's current tier name in this track (e.g. "Access Ace") — a small colored pill. */
+/* The user's current tier name in this track (e.g. "IV: Barrier Buster") — a small pill whose color echoes the badge
+   level's color ramp (white -> green -> yellow -> orange -> legendary), set via a .ud-tier-N modifier. */
 .ud-badge-track-current {
     padding: 2px 10px;
     border-radius: 12px;
-    background: var(--color-pine-600, #4a7c59);
-    color: var(--color-neutral-white, #fff);
     font-size: var(--font-size-sm, 0.875rem);
     font-weight: 600;
 }
+
+.ud-tier-0,
+.ud-tier-1 { background: var(--color-neutral-200, #e6e6e6); color: var(--color-text-heading, #263238); }
+.ud-tier-2 { background: var(--color-pine-600, #4a7c59); color: var(--color-neutral-white, #fff); }
+.ud-tier-3 { background: var(--color-banana-500, #f3c220); color: var(--color-asphalt-900, #2d2a3f); }
+.ud-tier-4 { background: var(--color-orange-500, #e07b2f); color: var(--color-neutral-white, #fff); }
+.ud-tier-5 { background: var(--color-asphalt-600, #4a4660); color: var(--color-neutral-white, #fff); }
 
 .ud-badge-track-next {
     display: block;
@@ -814,6 +820,51 @@
     .ud-cta-actions .ud-btn-secondary { flex: 1 1 auto; text-align: center; }
     .ud-field-inline { flex-direction: column; align-items: stretch; }
     .ud-field-inline .ud-input { flex: 1 1 auto; }
+
+    /* Mobile nav: the shared shell floats a fixed hamburger that overlaps our heading and uses an off-brand blue.
+       Our section nav is only a few links and the sidebar is the first child of the container, so instead we show it
+       inline above the content as a tidy chip row and hide that floating toggle entirely. */
+    .api-sidebar-toggle { display: none !important; }
+
+    .api-container .api-sidebar {
+        display: block;
+        position: static;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+        border-right: none;
+        border-bottom: 1px solid var(--color-neutral-200, #e1e1e1);
+        background: var(--color-neutral-white, #fff);
+    }
+
+    .api-container .api-sidebar .api-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-xs, 8px);
+        padding: var(--space-sm, 12px) var(--space-md, 16px);
+    }
+
+    .api-container .api-sidebar .api-nav-header { display: none; }
+
+    .api-container .api-sidebar .api-nav-item {
+        padding: 6px 14px;
+        border: 1px solid var(--color-neutral-200, #e1e1e1);
+        border-radius: 16px;
+        background: var(--color-neutral-white, #fff);
+        font-size: var(--font-size-md, 1rem);
+        color: var(--color-text-heading, #263238);
+    }
+
+    .api-container .api-sidebar .api-nav-item.active {
+        background: var(--color-pine-600, #4a7c59);
+        border-color: var(--color-pine-600, #4a7c59);
+        color: var(--color-neutral-white, #fff);
+    }
+
+    .api-container .api-sidebar .api-nav-item.disabled {
+        background: var(--color-neutral-100, #f5f6f7);
+        color: var(--color-text-tertiary, #88a1ad);
+    }
 }
 
 @media (max-width: 480px) {
