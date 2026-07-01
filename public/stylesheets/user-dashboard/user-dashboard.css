@@ -16,11 +16,13 @@
 /* Primary-content tables on the user surface read much larger than the admin default (which stays --font-size-sm):
    body cells at xxl so the data is loud, headers at lg. */
 .api-content .coverage-table { font-size: var(--font-size-xxl, 1.5rem); }
-.api-content .coverage-table thead th { font-size: var(--font-size-lg, 1.125rem); }
+/* Header cells must share the body cells' horizontal padding, or every header sits left of its column. */
+.api-content .coverage-table thead th { font-size: var(--font-size-lg, 1.125rem); padding: 10px 16px; }
 .api-content .coverage-table tbody td { padding: 14px 16px; }
 
-/* Leaderboard tables are capped at ~10 rows, so show them in full — no inner scroll (admin tables keep theirs). */
-.api-content .coverage-table-wrap { max-height: none; }
+/* Leaderboard tables are capped at ~10 rows, so show them in full — no inner scroll (admin tables keep theirs), and
+   overflow visible so the Accuracy header tooltip can escape the wrap. The responsive rule restores mobile scroll. */
+.api-content .coverage-table-wrap { max-height: none; overflow: visible; }
 
 /* The admin tables right-align every non-first column (numeric); on the leaderboard the name column — and the
    all-time "Most active in" city column — are text, so left-align them. */
@@ -33,10 +35,37 @@
 /* Medal (or number) in the leaderboard rank column — bump the medals so they read clearly. */
 .api-content .coverage-table td.ud-lb-rank { font-size: 2rem; line-height: 1; }
 
-/* Header tooltip trigger (e.g. Accuracy). The native title attribute supplies the hover/focus tooltip text. */
-.ud-th-tip { cursor: help; }
+/* Header tooltip (e.g. Accuracy): a CSS popover shown on hover/focus — more reliable and instant than a native title. */
+.ud-th-tip { position: relative; cursor: help; }
 .ud-th-tip:focus-visible { outline: 2px solid var(--color-accent-link, #0566f5); outline-offset: 2px; }
 .ud-th-info { margin-left: 4px; color: var(--color-text-tertiary, #88a1ad); font-size: 0.8em; vertical-align: middle; }
+
+.ud-th-tip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 5;
+    width: max-content;
+    max-width: 260px;
+    padding: 8px 11px;
+    border-radius: var(--border-radius, 4px);
+    background: var(--color-asphalt-700, #2d2a3f);
+    color: var(--color-neutral-white, #fff);
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 400;
+    line-height: 1.35;
+    text-align: left;
+    white-space: normal;
+    text-transform: none;
+    box-shadow: var(--box-shadow-md, 0 2px 8px rgba(0, 0, 0, 0.2));
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--transition-fast, 0.15s ease);
+    pointer-events: none;
+}
+.ud-th-tip:hover::after,
+.ud-th-tip:focus-visible::after { opacity: 1; visibility: visible; }
 
 .ud-lb-user,
 .ud-lb-city {
