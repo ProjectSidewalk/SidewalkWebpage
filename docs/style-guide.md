@@ -9,7 +9,7 @@ ones it can.
 [`.eslintrc.json`](../.eslintrc.json), [`.stylelintrc.json`](../.stylelintrc.json), and
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
 config disagree, the config wins — fix the config and this doc together. (Frontend linting isn't wired into CI yet —
-it's sequenced with the ES5→ES6 migration, [#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487) —
+it's sequenced with the ES5→ES2022 migration, [#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487) —
 but the rules already describe the standard we write to. `scalafmtCheckAll` *does* run in CI, as advisory.)
 
 ## General
@@ -40,10 +40,10 @@ The frontend is vanilla ES, organized as independent apps that Grunt concatenate
 Edit files under `src/`; never edit the generated `build/` bundles. Most rules below are enforced by
 [`.eslintrc.json`](../.eslintrc.json).
 
-- **Write ES6+ for new and modernized code:** `const`/`let` (`no-var`), arrow functions, template literals
+- **Write ES2022 for new and modernized code:** `const`/`let` (`no-var`), arrow functions, template literals
   (`prefer-template`), object shorthand, and `===`/`!==` (`eqeqeq`). When you're editing a file that is *entirely*
   ES5, you may match its style for consistency — but prefer modernizing it. See the migration guidance in
-  [`CLAUDE.md`](../CLAUDE.md) (constructor-functions → ES6 `class` with `#private` fields; jQuery → native `fetch`;
+  [`CLAUDE.md`](../CLAUDE.md) (constructor-functions → `class` with `#private` fields; jQuery → native `fetch`;
   Bootstrap → native JS/CSS as you touch that code).
 - **One declaration per statement** (`one-var: never`) — the opposite of the old comma-chained `var` style:
 
@@ -68,7 +68,7 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
   }
   ```
 
-- **Document with JSDoc** (`/** ... */`) on every ES6 class and non-trivial method, including `#private` ones — type
+- **Document with JSDoc** (`/** ... */`) on every `class` and non-trivial method, including `#private` ones — type
   annotations matter because there's no static checker. Full template and rules in [`CLAUDE.md`](../CLAUDE.md).
 
 ## HTML / CSS
