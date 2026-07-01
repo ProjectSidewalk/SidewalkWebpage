@@ -1,10 +1,10 @@
 @import service.{CommonPageData, UserProfileData}
-@import models.user.{SidewalkUserWithRole, UserStanding}
+@import models.user.{SidewalkUserWithRole, StreakStats, UserStanding}
 @import models.label.Tag
 @import models.userdashboard.DashboardMock
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, profileData: UserProfileData, isMetric: Boolean,
-        tags: Seq[Tag], standing: Option[UserStanding]
+        tags: Seq[Tag], standing: Option[UserStanding], streak: StreakStats
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Formats the already-unit-converted audited distance (km when metric, else miles) with one decimal + unit. *@
@@ -78,29 +78,32 @@
     @* ---- Streak / activity rhythm -------------------------------------------------------------------------- *@
     <div class="api-section" id="ud-streak-section">
         <h2 class="api-heading" id="streak">Your streak <a href="#streak" class="permalink">#</a></h2>
-        <p>Keep your momentum going — every day you map, validate, or explore counts. <strong>Map today to keep your 6-day streak alive!</strong> 🔥</p>
+        <p>Keep your momentum going — every day you map, validate, or explore counts.
+            @if(streak.currentStreak > 0){<strong>Map today to keep your @streak.currentStreak-day streak alive!</strong>}else{<strong>Map, validate, or explore today to start a streak!</strong>} 🔥</p>
 
         <div class="ud-streak">
             <div class="ud-streak-stats">
                 <div class="coverage-kpi ud-streak-kpi ud-streak-current">
-                    <span class="coverage-kpi-value">🔥 6 days</span>
+                    <span class="coverage-kpi-value">🔥 @streak.currentStreak day@if(streak.currentStreak != 1){s}</span>
                     <span class="coverage-kpi-label">Current streak</span>
                 </div>
                 <div class="coverage-kpi ud-streak-kpi">
-                    <span class="coverage-kpi-value">14 days</span>
+                    <span class="coverage-kpi-value">@streak.longestStreak day@if(streak.longestStreak != 1){s}</span>
                     <span class="coverage-kpi-label">Longest streak</span>
                 </div>
                 <div class="coverage-kpi ud-streak-kpi">
-                    <span class="coverage-kpi-value">73</span>
+                    <span class="coverage-kpi-value">@streak.totalActiveDays</span>
                     <span class="coverage-kpi-label">Total active days</span>
                 </div>
             </div>
 
-            <figure class="ud-heatmap" aria-label="Activity over the last 16 weeks (mock data)">
+            <figure class="ud-heatmap" aria-label="Your activity over the last @service.UserService.HeatmapWeeks weeks">
                 <div class="ud-heatmap-grid">
-                    @* 16 weeks x 7 days of mock activity, intensity 0-4. *@
-                    @for(cell <- DashboardMock.heatmap) {
-                        <span class="ud-heat ud-heat-@cell" title="mock"></span>
+                    @for(cell <- streak.cells) {
+                        @cell match {
+                            case Some(c) => { <span class="ud-heat ud-heat-@c.intensity" title="@c.tooltip" tabindex="0"></span> }
+                            case None    => { <span class="ud-heat ud-heat-empty" aria-hidden="true"></span> }
+                        }
                     }
                 </div>
                 <figcaption class="ud-heatmap-legend">
@@ -166,7 +169,7 @@
     @* ---- Your standing — compact teaser into the full /leaderboard (Option 2) ----------------------------- *@
     <div class="api-section" id="ud-standing-section">
         <h2 class="api-heading" id="standing">Your standing <a href="#standing" class="permalink">#</a></h2>
-        <p>A peek at where you sit this week. The full board lives on the leaderboard.</p>
+        <p>A peek at where you sit this week. The full board lives <a href="@routes.UserDashboardController.leaderboardPreview">on the leaderboard</a>.</p>
         @userDashboard._standing(standing, seeAllLink = true)
     </div>
 

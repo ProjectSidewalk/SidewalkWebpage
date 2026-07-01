@@ -47,9 +47,10 @@ class UserDashboardController @Inject() (
       commonData  <- configService.getCommonPageData(request2Messages.lang)
       tags        <- labelService.getTagsForCurrentCity
       standing    <- userService.getUserStanding(user.userId)
+      streak      <- userService.getActivityStreak(user.userId)
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboardPreview")
-      Ok(views.html.userDashboard.dashboard(commonData, user, profileData, isMetric, tags, standing))
+      Ok(views.html.userDashboard.dashboard(commonData, user, profileData, isMetric, tags, standing, streak))
     }
   }
 

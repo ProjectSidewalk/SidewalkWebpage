@@ -153,6 +153,9 @@
 .ud-heat-2 { background: var(--color-pine-400, #8fc09b); }
 .ud-heat-3 { background: var(--color-pine-600, #4a7c59); }
 .ud-heat-4 { background: var(--color-pine-800, #2f5239); }
+/* Out-of-window padding cells (before the start / after today): keep the grid shape but invisible. */
+.ud-heat-empty { background: transparent; }
+.ud-heat[tabindex]:focus-visible { outline: 2px solid var(--color-accent-link, #0566f5); outline-offset: 1px; }
 
 .ud-heatmap-legend {
     display: flex;
@@ -464,7 +467,7 @@
 /* ---- Mistake gallery cards (#4388) ----------------------------------------------------------------------------- */
 .ud-mistake-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--space-md, 16px);
     margin: var(--space-md, 16px) 0;
 }
@@ -479,7 +482,7 @@
 
 .ud-card-img {
     position: relative;
-    height: 130px;
+    height: 190px;
     background: linear-gradient(135deg, var(--color-neutral-200, #d7dbde), var(--color-neutral-400, #a8b0b5));
     background-size: cover;
     background-position: center;

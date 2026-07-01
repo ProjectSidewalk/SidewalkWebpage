@@ -103,6 +103,24 @@ case class StandingRow(rank: Int, username: String, labelCount: Int, isYou: Bool
  */
 case class UserStanding(rank: Int, cohortSize: Int, labelCount: Int, slice: Seq[StandingRow], delta: Option[Int] = None)
 
+/**
+ * One cell of the activity heatmap.
+ *
+ * @param intensity 0 (no activity) … 4 (most), bucketed from the day's contribution count.
+ * @param tooltip   Human-readable hover text, e.g. "7 contributions on Mon, Jun 23".
+ */
+case class StreakCell(intensity: Int, tooltip: String)
+
+/**
+ * A user's activity streak summary plus the heatmap grid.
+ *
+ * @param currentStreak   Consecutive active days ending today (or yesterday if today isn't active yet).
+ * @param longestStreak   Longest run of consecutive active days ever.
+ * @param totalActiveDays Distinct days with any activity.
+ * @param cells           Heatmap cells in column-major order (7 rows × N weeks); `None` = out-of-window padding.
+ */
+case class StreakStats(currentStreak: Int, longestStreak: Int, totalActiveDays: Int, cells: Seq[Option[StreakCell]])
+
 class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
   def userStatId: Rep[Int]                    = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]                     = column[String]("user_id")
@@ -635,6 +653,37 @@ class UserStatTable @Inject() (
         UserStanding(rank = head._6, cohortSize = head._5, labelCount = head._7, slice = slice)
       }
     }
+  }
+
+  /**
+   * Per-day activity counts for a user (US/Pacific calendar days), across labeling, exploring, and validating.
+   *
+   * A day counts if the user placed a (non-deleted, non-tutorial) label, completed an audit task, or made a
+   * validation on it. Returned as (ISO date string, count) so the streak/heatmap math is done in Scala.
+   *
+   * @param userId The user whose activity to summarize.
+   * @return       One row per active day, ascending by date.
+   */
+  def getActivityDayCounts(userId: String): DBIO[Seq[(String, Int)]] = {
+    sql"""
+      WITH activity AS (
+          SELECT (label.time_created AT TIME ZONE 'US/Pacific')::date AS d
+          FROM label
+          WHERE label.user_id = $userId AND label.deleted = FALSE AND label.tutorial = FALSE
+          UNION ALL
+          SELECT (audit_task.task_end AT TIME ZONE 'US/Pacific')::date
+          FROM audit_task
+          WHERE audit_task.user_id = $userId AND audit_task.completed AND audit_task.task_end IS NOT NULL
+          UNION ALL
+          SELECT (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
+          FROM label_validation
+          WHERE label_validation.user_id = $userId AND label_validation.end_timestamp IS NOT NULL
+      )
+      SELECT to_char(d, 'YYYY-MM-DD') AS day, COUNT(*)::int AS c
+      FROM activity
+      GROUP BY d
+      ORDER BY d;
+    """.as[(String, Int)]
   }
 
   /**

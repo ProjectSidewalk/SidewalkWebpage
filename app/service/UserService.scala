@@ -13,7 +13,9 @@ import models.validation.LabelValidationTable
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
 
-import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, OffsetDateTime, ZoneId}
+import java.util.Locale
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,6 +45,63 @@ object UserService {
    * shared-goal celebration so a small city/class never reads as e.g. "ranked 3 of 4". Source of truth for the UI.
    */
   val StandingCohortThreshold: Int = 8
+
+  /** Number of weeks shown in the activity heatmap (~4 months — enough to read a rhythm without lots of empty cells). */
+  val HeatmapWeeks: Int = 18
+
+  /**
+   * Computes streak stats and the heatmap grid from a user's per-day activity counts. Pure (no I/O) so it's easy to
+   * test and reason about.
+   *
+   * @param counts Map of active calendar day (US/Pacific) to that day's contribution count.
+   * @param today  Today's date in US/Pacific (passed in so the logic is deterministic/testable).
+   * @return       Current/longest/total streak plus heatmap cells in column-major order.
+   */
+  def computeStreakStats(counts: Map[LocalDate, Int], today: LocalDate): StreakStats = {
+    val dates: Set[LocalDate] = counts.keySet
+
+    // Current streak: consecutive active days ending today, or ending yesterday if today isn't active yet.
+    var current = 0
+    var cursor  = if (dates.contains(today)) today else today.minusDays(1)
+    while (dates.contains(cursor)) { current += 1; cursor = cursor.minusDays(1) }
+
+    // Longest streak: the longest run of consecutive days across all activity.
+    var longest         = 0
+    var run             = 0
+    var prev: LocalDate = null
+    for (d <- dates.toSeq.sorted) {
+      run = if (prev != null && prev.plusDays(1) == d) run + 1 else 1
+      if (run > longest) longest = run
+      prev = d
+    }
+
+    // Heatmap: 7 rows (Sun–Sat) × HeatmapWeeks columns, aligned so the last column is the current week.
+    val daysFromSunday                 = today.getDayOfWeek.getValue % 7 // Mon=1..Sat=6, Sun=0
+    val currentWeekSunday              = today.minusDays(daysFromSunday.toLong)
+    val startSunday                    = currentWeekSunday.minusWeeks((HeatmapWeeks - 1).toLong)
+    val fmt                            = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.ENGLISH)
+    val cells: Seq[Option[StreakCell]] = for {
+      w <- 0 until HeatmapWeeks
+      d <- 0 until 7
+    } yield {
+      val cellDate = startSunday.plusWeeks(w.toLong).plusDays(d.toLong)
+      if (cellDate.isAfter(today)) None
+      else {
+        val c         = counts.getOrElse(cellDate, 0)
+        val intensity = c match {
+          case 0           => 0
+          case n if n <= 2 => 1
+          case n if n <= 5 => 2
+          case n if n <= 9 => 3
+          case _           => 4
+        }
+        val word = if (c == 1) "contribution" else "contributions"
+        Some(StreakCell(intensity, s"$c $word on ${cellDate.format(fmt)}"))
+      }
+    }
+
+    StreakStats(current, longest, dates.size, cells)
+  }
 }
 
 @ImplementedBy(classOf[UserServiceImpl])
@@ -73,6 +132,7 @@ trait UserService {
       userIdForTeam: Option[String] = None
   ): Future[Seq[LeaderboardStat]]
   def getUserStanding(userId: String): Future[Option[UserStanding]]
+  def getActivityStreak(userId: String): Future[StreakStats]
   def getHoursAuditingAndValidating(userId: String): Future[Double]
   def getAuditedStreets(userId: String): Future[Seq[StreetEdge]]
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]]
@@ -212,6 +272,13 @@ class UserServiceImpl @Inject() (
       thisWeek <- userStatTable.getUserStanding(userId, "weekly", n = 2)
       lastWeek <- userStatTable.getUserStanding(userId, "lastWeek", n = 0)
     } yield thisWeek.map(tw => tw.copy(delta = lastWeek.map(lw => lw.rank - tw.rank))))
+  }
+
+  def getActivityStreak(userId: String): Future[StreakStats] = {
+    db.run(userStatTable.getActivityDayCounts(userId)).map { rows =>
+      val counts = rows.map { case (day, count) => LocalDate.parse(day) -> count }.toMap
+      UserService.computeStreakStats(counts, LocalDate.now(ZoneId.of("US/Pacific")))
+    }
   }
 
   def getHoursAuditingAndValidating(userId: String): Future[Double] =

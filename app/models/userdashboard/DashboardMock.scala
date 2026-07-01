@@ -101,17 +101,4 @@ object DashboardMock {
     AccuracyRow("No Sidewalk", "no-sidewalk", 83, weakest = false)
   )
 
-  /**
-   * Deterministic mock activity heatmap: 16 weeks x 7 days of intensity 0-4. Computed (not random) so the prototype
-   * renders identically every load and so the script has no Math.random/Date dependency.
-   */
-  val heatmap: Seq[Int] = (0 until 16 * 7).map { i =>
-    val day  = i % 7
-    val week = i / 7
-    // Weekends quieter; recent weeks busier; a couple of gaps so it reads like a real, imperfect streak.
-    val base    = if (day == 0 || day == 6) 0 else 1
-    val recency = week / 4
-    val pulse   = (i * 7) % 5
-    if (week == 5 || week == 11) 0 else math.min(4, base + recency + (if (pulse > 2) 1 else 0))
-  }
 }
