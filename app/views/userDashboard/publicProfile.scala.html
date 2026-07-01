@@ -17,6 +17,17 @@
 
 @monogram = @{ profileName.take(2).toUpperCase }
 
+@* One-line description of what each badge track counts (shown under the track name). *@
+@trackDesc(name: String) = @{
+    name match {
+        case "Labeler"    => "Accessibility labels placed"
+        case "Explorer"   => "Distance explored"
+        case "Adventurer" => "Missions completed"
+        case "Validator"  => "Labels validated"
+        case _            => ""
+    }
+}
+
 @content = {
     <div class="api-section" id="pp-hero-section">
         <h1 class="api-heading" id="overview">@profileName <a href="#overview" class="permalink">#</a></h1>
@@ -48,6 +59,7 @@
                         <span class="ud-badge-track-name">@track.name</span>
                         <span class="ud-badge-track-current ud-tier-@track.earned">@track.currentLabel</span>
                     </div>
+                    <p class="ud-badge-track-desc">@trackDesc(track.name)</p>
                     <div class="ud-badge-levels">
                         @for(level <- 1 to 5) {
                             <img class="ud-badge @if(level > track.earned){ud-badge-locked}"

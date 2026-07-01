@@ -9,6 +9,16 @@
 @distanceLabel = @{ f"${profileData.auditedDistance}%.1f ${if(isMetric) "km" else "mi"}" }
 @accuracyLabel = @{ profileData.accuracy.map(a => f"${a * 100}%.0f%%").getOrElse("—") }
 
+@* Raw value for a badge track's data attribute. Distance is canonical miles (BadgeAchievements thresholds are miles). *@
+@badgeValue(t: String) = @{
+    t match {
+        case "distance"    => (if (isMetric) profileData.auditedDistance / 1.60934d else profileData.auditedDistance).toString
+        case "missions"    => profileData.missionCount.toString
+        case "validations" => profileData.validationCount.toString
+        case _             => profileData.labelCount.toString
+    }
+}
+
 @*
  * Redesigned User Dashboard — Phase 1 comps prototype (mock data, no backend).
  *
@@ -102,29 +112,30 @@
         <h2 class="api-heading" id="achievements">Badges &amp; trophies <a href="#achievements" class="permalink">#</a></h2>
         <p>Badges you've earned by labeling, exploring, and validating — plus trophies for leaderboard placements.</p>
 
-        <div class="ud-badge-tracks">
-            @for(track <- DashboardMock.badgeTracks) {
-                <div class="ud-badge-track">
+        @* Skeleton is server-rendered from real counts (data-value); DashboardBadges.js fills in the earned level,
+           tier pill, locked icons, progress, and next-tier nudge using BadgeAchievements (the source of truth). *@
+        <div class="ud-badge-tracks" id="ud-badges" data-metric="@isMetric">
+            @for((name, badgeType, baseStem, desc) <- Seq(
+                ("Labeler", "labels", "labels", "Accessibility labels placed"),
+                ("Explorer", "distance", "distance", "Distance explored"),
+                ("Adventurer", "missions", "missions", "Missions completed"),
+                ("Validator", "validations", "validation", "Labels validated")
+            )) {
+                <div class="ud-badge-track" data-badge-type="@badgeType" data-value="@badgeValue(badgeType)">
                     <div class="ud-badge-track-head">
-                        <span class="ud-badge-track-name">@track.name</span>
-                        <span class="ud-badge-track-current ud-tier-@track.earned">@track.currentLabel</span>
+                        <span class="ud-badge-track-name">@name</span>
+                        <span class="ud-badge-track-current ud-tier-0" data-tier>—</span>
                     </div>
+                    <p class="ud-badge-track-desc">@desc</p>
                     <div class="ud-badge-levels">
                         @for(level <- 1 to 5) {
-                            <img class="ud-badge @if(level > track.earned){ud-badge-locked}"
-                                 src="@assets.path(s"images/badges/badge_${track.icon}_badge${level}.png")"
-                                 alt="@track.name @DashboardMock.roman(level - 1): @track.levelNames(level - 1) @if(level <= track.earned){(earned)}else{(locked)}"
-                                 title="@track.name @DashboardMock.roman(level - 1): @track.levelNames(level - 1)">
+                            <img class="ud-badge" data-level="@level"
+                                 src="@assets.path(s"images/badges/badge_${if(badgeType == "distance" && isMetric) "distance_km" else baseStem}_badge${level}.png")"
+                                 alt="@name badge level @level">
                         }
                     </div>
-                    <div class="ud-progress" role="img" aria-label="@track.pct% to next level">
-                        <div class="ud-progress-fill" style="width: @track.pct%"></div>
-                    </div>
-                    @track.nextLabel.map { next =>
-                        <span class="ud-badge-track-next">@track.nextCount → <strong>@track.name @next</strong></span>
-                    }.getOrElse {
-                        <span class="ud-badge-track-next">Maxed out — you're a legend! 🎉</span>
-                    }
+                    <div class="ud-progress"><div class="ud-progress-fill" data-fill style="width: 0%"></div></div>
+                    <span class="ud-badge-track-next" data-next></span>
                 </div>
             }
         </div>
@@ -254,6 +265,18 @@
 
         <div class="ud-nudge">👋 Invite classmates or friends to your team — mapping together is more fun, and you'll climb the team board faster!</div>
     </div>
+
+    @* Badge rendering from real counts (BadgeAchievements is the source of truth for thresholds + level names). *@
+    <script src="@assets.path("javascripts/common/BadgeAchievements.js")"></script>
+    <script src="@assets.path("javascripts/UserDashboard/src/DashboardBadges.js")"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var el = document.getElementById('ud-badges');
+            if (el && typeof DashboardBadges !== 'undefined') {
+                try { new DashboardBadges(el).render(); } catch (e) { console.error('Badge render failed', e); }
+            }
+        });
+    </script>
 }
 
 @common.main(commonData, "Sidewalk - Dashboard") {

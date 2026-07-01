@@ -195,6 +195,13 @@
     color: var(--color-text-heading, #263238);
 }
 
+/* One-line explanation of what the track counts — especially useful on another mapper's public profile. */
+.ud-badge-track-desc {
+    margin: 0 0 var(--space-sm, 12px);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+
 /* The user's current tier name in this track (e.g. "IV: Barrier Buster") — a small pill whose color echoes the badge
    level's color ramp (white -> green -> yellow -> orange -> legendary), set via a .ud-tier-N modifier. */
 .ud-badge-track-current {
