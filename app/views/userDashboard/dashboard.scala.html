@@ -1,8 +1,10 @@
 @import service.{CommonPageData, UserProfileData}
 @import models.user.SidewalkUserWithRole
+@import models.label.Tag
 @import models.userdashboard.DashboardMock
 @import play.api.Configuration
-@(commonData: CommonPageData, user: SidewalkUserWithRole, profileData: UserProfileData, isMetric: Boolean
+@(commonData: CommonPageData, user: SidewalkUserWithRole, profileData: UserProfileData, isMetric: Boolean,
+        tags: Seq[Tag]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Formats the already-unit-converted audited distance (km when metric, else miles) with one decimal + unit. *@
@@ -201,10 +203,10 @@
     @* ---- Map — where you've explored ------------------------------------------------------------------- *@
     <div class="api-section" id="ud-map-section">
         <h2 class="api-heading" id="map">Where you've explored <a href="#map" class="permalink">#</a></h2>
-        <p>The neighborhoods you've helped map, with your labels colored by type.</p>
-        <div class="ud-map-placeholder" role="img" aria-label="Map placeholder — the live dashboard renders your audited streets and labels here">
-            <span>🗺️ Your contribution map</span>
-            <small>(live choropleth + your labels render here)</small>
+        <p>The neighborhoods you've helped map, with your labels colored by type. Open the legend to filter.</p>
+        <div id="user-dashboard-choropleth-holder" class="choropleth-holder">
+            <div id="user-dashboard-choropleth" class="choropleth"></div>
+            @common.mapSidebar(tags = tags, streetsShownByDefault = true)
         </div>
     </div>
 
@@ -246,6 +248,47 @@
 
         <div class="ud-nudge">👋 Invite classmates or friends to your team — mapping together is more fun, and you'll climb the team board faster!</div>
     </div>
+
+    @* Contribution map: the existing PSMap choropleth (streets + your labels). No pano popup in this pass, so the
+       heavy pano/label-popup deps are skipped. jQuery, appManager, i18next, and util.* come from common.main. *@
+    <link href="@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")" rel="stylesheet"/>
+    <link href="@assets.path("stylesheets/choropleth.css")" rel="stylesheet"/>
+    <link href="@assets.path("stylesheets/mapSidebar.css")" rel="stylesheet"/>
+    <link href="@assets.path("stylesheets/tag-pills.css")" rel="stylesheet"/>
+    <script src="@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")"></script>
+    <script src="@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")"></script>
+    <script src="@assets.path("javascripts/lib/turf-7.3.4.min.js")"></script>
+    <script src="@assets.path("javascripts/PSMap/build/PSMap.js")"></script>
+    <script>
+        window.appManager.ready(async function () {
+            const params = {
+                mapName: 'user-dashboard-choropleth',
+                mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+                mapboxApiKey: '@commonData.mapboxApiKey',
+                zoomCorrection: -0.5,
+                mapboxLogoLocation: 'bottom-right',
+                neighborhoodsURL: '/neighborhoods',
+                completionRatesURL: '/adminapi/neighborhoodCompletionRate',
+                streetsURL: '/contribution/streets?userId=@user.userId',
+                labelsURL: '/userapi/labels?userId=@user.userId',
+                neighborhoodFillMode: 'singleColor',
+                neighborhoodTooltip: 'completionRate',
+                neighborhoodFillColor: '#5d6d6b',
+                neighborhoodFillOpacity: 0.1,
+                uiSource: 'UserMap',
+                navigationControlPosition: 'top-right'
+            };
+            try {
+                const m = await CreatePSMap($, params);
+                new MapSidebarFilter(m[0], m[4], { highQualityFilter: false });
+                // Start with the legend drawer closed (re-centers the map via the real close handler).
+                const closeBtn = document.getElementById('map-sidebar-close');
+                if (closeBtn) closeBtn.click();
+            } catch (e) {
+                console.error('User contribution map failed to load', e);
+            }
+        });
+    </script>
 
     @* Badge rendering from real counts (BadgeAchievements is the source of truth for thresholds + level names). *@
     <script src="@assets.path("javascripts/common/BadgeAchievements.js")"></script>

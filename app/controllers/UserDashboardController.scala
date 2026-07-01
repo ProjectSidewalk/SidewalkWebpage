@@ -26,7 +26,8 @@ class UserDashboardController @Inject() (
     val config: Configuration,
     implicit val assets: AssetsFinder,
     configService: ConfigService,
-    userService: UserService
+    userService: UserService,
+    labelService: service.LabelService
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -44,9 +45,10 @@ class UserDashboardController @Inject() (
     for {
       profileData <- userService.getUserProfileData(user.userId, isMetric)
       commonData  <- configService.getCommonPageData(request2Messages.lang)
+      tags        <- labelService.getTagsForCurrentCity
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboardPreview")
-      Ok(views.html.userDashboard.dashboard(commonData, user, profileData, isMetric))
+      Ok(views.html.userDashboard.dashboard(commonData, user, profileData, isMetric, tags))
     }
   }
 
