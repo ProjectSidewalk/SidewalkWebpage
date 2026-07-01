@@ -51,7 +51,7 @@ class ExpandedView {
         this.pendingCardIndex = undefined; // Set by nextLabel/previousLabel for cross-page navigation.
 
         // Initialize the shared LabelDetail controller inside our inline host.
-        this.labelDetail = await LabelDetail(root, {
+        this.labelDetail = await LabelDetail.create(root, {
             admin: false,
             viewerType: this.#panoViewerType,
             viewerAccessToken: this.#viewerAccessToken,

@@ -1,49 +1,46 @@
 /**
- * Storage module. This is a wrapper around web browser's Local Storage. It allows you to store data on the user's
- * browser using a set method, and you can retrieve the data using the get method.
+ * Wrapper around the browser's Local Storage: store data with set(), retrieve it with get().
  *
  * References:
  * https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
  *
- * @param JSON
- * @returns {{className: string}}
- * @constructor
  * @memberof svl
  */
-function TemporaryStorage(JSON) {
-    var self = {'className': 'Storage'};
-    self.storage = window.localStorage;
+class TemporaryStorage {
+    #json;
+    #storage;
 
-    function _init() {
-        if (!get("completedFirstMission")){
-            set("completedFirstMission", null);
+    /**
+     * @param {JSON} json - JSON object for (de)serializing stored values.
+     */
+    constructor(json) {
+        this.#json = json;
+        this.#storage = window.localStorage;
+
+        // Seed the defaults the rest of the app assumes are always present.
+        if (!this.get('completedFirstMission')) {
+            this.set('completedFirstMission', null);
         }
-
-        if (!get("muted")) {
-            set("muted", false);
+        if (!this.get('muted')) {
+            this.set('muted', false);
         }
     }
 
     /**
      * Returns the item specified by the key.
-     * @param key
+     * @param {string} key
+     * @returns {*} The parsed value, or null if absent.
      */
-    function get(key) {
-        return JSON.parse(self.storage.getItem(key));
+    get(key) {
+        return this.#json.parse(this.#storage.getItem(key));
     }
 
     /**
-     * Stores a key value pair.
-     * @param key
-     * @param value
+     * Stores a key/value pair.
+     * @param {string} key
+     * @param {*} value
      */
-    function set(key, value) {
-        self.storage.setItem(key, JSON.stringify(value));
+    set(key, value) {
+        this.#storage.setItem(key, this.#json.stringify(value));
     }
-
-    self.get = get;
-    self.set = set;
-
-    _init();
-    return self;
 }

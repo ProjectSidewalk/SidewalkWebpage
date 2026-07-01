@@ -1,21 +1,54 @@
-function AdminUser(username, userId, serviceHoursUser, infra3dAccess) {
-    // Initialize datepicker calendars for setting flags.
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    $(".datepicker").datepicker({
-        autoclose: true,
-        todayHighlight: true,
-    }).datepicker('update', d);
+/**
+ * Admin controls on a user's profile page: quality/volunteer/infra3D toggles and the task-flag datepickers.
+ */
+class AdminUser {
+    #userId;
 
     /**
-     * Used to send a request to update a user's high_quality_manual column in the database through a dropdown click.
-     * @param {Event} e
+     * @param {string} username - The profile user's username.
+     * @param {string} userId - The profile user's id.
+     * @param {boolean} serviceHoursUser - Whether the user is currently marked as a volunteer.
+     * @param {boolean} infra3dAccess - Whether the user currently has infra3D access.
+     */
+    constructor(username, userId, serviceHoursUser, infra3dAccess) {
+        this.#userId = userId;
+
+        // Initialize datepicker calendars for setting flags. Bootstrap datepicker is a jQuery plugin.
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        $('.datepicker').datepicker({ autoclose: true, todayHighlight: true }).datepicker('update', tomorrow);
+
+        document.getElementById('user-quality-dropdown').addEventListener('click', (e) => {
+            const anchor = e.target.closest('a');
+            if (anchor) this.#updateUserQuality(anchor);
+        });
+
+        document.getElementById('low-quality-set-flags').addEventListener('click', () => this.#setLowQualityDate(true));
+        document.getElementById('low-quality-remove-flags').addEventListener('click', () => this.#setLowQualityDate(false));
+        document.getElementById('incomplete-set-flags').addEventListener('click', () => this.#setIncompleteDate(true));
+        document.getElementById('incomplete-remove-flags').addEventListener('click', () => this.#setIncompleteDate(false));
+
+        // The infra3D checkbox is only rendered on cities that use infra3D imagery, so it may be absent.
+        const infra3dCheckbox = document.getElementById('check-infra3d-access');
+        if (infra3dCheckbox) {
+            infra3dCheckbox.checked = Boolean(infra3dAccess);
+            infra3dCheckbox.addEventListener('click', () => this.#setInfra3dAccess(infra3dCheckbox.checked));
+        }
+
+        const volunteerCheckbox = document.getElementById('check-volunteer');
+        volunteerCheckbox.checked = Boolean(serviceHoursUser);
+        volunteerCheckbox.addEventListener('click', () => this.#updateVolunteerStatus(volunteerCheckbox.checked));
+    }
+
+    /**
+     * Sends a request to update a user's high_quality_manual column via a dropdown click.
+     * @param {HTMLElement} anchor - The clicked dropdown option; its text is the chosen value.
      * @returns {Promise<void>}
      */
-    async function updateUserQuality(e) {
-        const choice = e.target.innerText;
+    #updateUserQuality(anchor) {
+        const choice = anchor.innerText;
         const data = {
-            'user_id': userId,
+            'user_id': this.#userId,
             'quality': choice === 'true' ? true : (choice === 'false' ? false : null)
         };
         return fetch('/adminapi/setUserQualityManual', {
@@ -29,11 +62,10 @@ function AdminUser(username, userId, serviceHoursUser, infra3dAccess) {
                 if (result.status === 'Error') throw(result.message);
 
                 // Change the adjacent 'High quality' column to the correct value.
-                $('#stat-high-quality').text(result.new_user_quality);
+                document.getElementById('stat-high-quality').textContent = result.new_user_quality;
 
                 // Change dropdown button to reflect new quality selection.
-                const button = $('#user-quality-button')[0];
-                button.childNodes[0].nodeValue = ` ${choice} `;
+                document.getElementById('user-quality-button').childNodes[0].nodeValue = ` ${choice} `;
             })
             .catch(error => {
                 console.error(error);
@@ -41,27 +73,14 @@ function AdminUser(username, userId, serviceHoursUser, infra3dAccess) {
                 return undefined;
             });
     }
-    $('#user-quality-dropdown').on('click', 'a', updateUserQuality);
 
-    // Displays checkbox for user infra3D access.
-    if (infra3dAccess) {
-        $("#check-infra3d-access").prop("checked", true);
-    } else {
-        $("#check-infra3d-access").prop("checked", false);
-    }
-
-    // Updates user's infra3D access when the checkbox is clicked.
-    $("#check-infra3d-access").click(function() {
-        const isChecked = $(this).is(":checked");
-        setInfra3dAccess(isChecked);
-    });
-
-    // PUT request to update user's infra3D access.
-    function setInfra3dAccess(isChecked) {
-        const data = {
-            'user_id': userId,
-            'access': isChecked
-        };
+    /**
+     * PUT request to update the user's infra3D access.
+     * @param {boolean} isChecked
+     * @returns {Promise<void>}
+     */
+    #setInfra3dAccess(isChecked) {
+        const data = { 'user_id': this.#userId, 'access': isChecked };
         return fetch('/adminapi/setInfra3dAccess', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -71,7 +90,7 @@ function AdminUser(username, userId, serviceHoursUser, infra3dAccess) {
             .then(result => {
                 // Only someone with infra3D access can grant it, so an error may be returned.
                 if (result.status === 'Error') throw(result.message);
-                alert("infra3D access updated successfully.");
+                alert('infra3D access updated successfully.');
             })
             .catch(error => {
                 console.error(error);
@@ -81,99 +100,75 @@ function AdminUser(username, userId, serviceHoursUser, infra3dAccess) {
     }
 
     /**
-     * Perform an AJAX call (PUT request) to modify all of a specified flag for the user before a specified date.
-     * @param date
-     * @param flag One of "low_quality", "incomplete", or "stale".
-     * @param state
+     * PUT request to modify all of a specified flag for the user before a specified date.
+     * @param {Date} date
+     * @param {string} flag - One of "low_quality", "incomplete", or "stale".
+     * @param {boolean} state
      */
-    function setTaskFlagByDate(date, flag, state) {
-        const data = {
-            'userId': userId,
-            'date': date,
-            'flag': flag,
-            'state': state
-        };
-        $.ajax({
-            async: true,
-            contentType: 'application/json; charset=utf-8',
-            url: '/adminapi/setTaskFlagsBeforeDate',
+    #setTaskFlagByDate(date, flag, state) {
+        const data = { 'userId': this.#userId, 'date': date, 'flag': flag, 'state': state };
+        fetch('/adminapi/setTaskFlagsBeforeDate', {
             method: 'PUT',
-            data: JSON.stringify(data),
-            dataType: 'json',
-            success: function (result) {
-                self.datePickedAlert(flag, true, date, state);
-            },
-            error: function (result) {
-                console.error(result);
-            }
-        });
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify(data),
+        })
+            .then((response) => response.json())
+            .then(() => this.#datePickedAlert(flag, true, date, state))
+            .catch(result => console.error(result));
     }
 
     /**
      * Set all tasks' low quality flag before the datepicker calendar's date.
+     * @param {boolean} state
      */
-    self.setLowQualityDate = function(state) {
-        setTaskFlagByDate(new Date($("#low-quality-date").val()), "low_quality", state);
+    #setLowQualityDate(state) {
+        this.#setTaskFlagByDate(new Date(document.getElementById('low-quality-date').value), 'low_quality', state);
     }
 
     /**
      * Set all tasks' incomplete flag before the datepicker calendar's date.
+     * @param {boolean} state
      */
-    self.setIncompleteDate = function(state) {
-        setTaskFlagByDate(new Date($("#incomplete-date").val()), "incomplete", state);
+    #setIncompleteDate(state) {
+        this.#setTaskFlagByDate(new Date(document.getElementById('incomplete-date').value), 'incomplete', state);
     }
 
     /**
      * Creates an alert when the flag datepicker is used.
-     * @param flag One of "low_quality", "incomplete", or "stale".
-     * @param success
-     * @param date
-     * @param state
+     * @param {string} flag - One of "low_quality", "incomplete", or "stale".
+     * @param {boolean} success
+     * @param {Date} date
+     * @param {boolean} state
      */
-    self.datePickedAlert = function(flag, success, date, state) {
-        var alert = flag === "low_quality" ? $("#low-quality-alert") : $("#incomplete-alert");
+    #datePickedAlert(flag, success, date, state) {
+        const alertEl = flag === 'low_quality'
+            ? document.getElementById('low-quality-alert')
+            : document.getElementById('incomplete-alert');
+        let alertText;
         if (success) {
-            var alertText = state ? `Flags before ${new Date(date)} set to "${flag}".` : `"${flag}" flags before ${new Date(date)} cleared.`;
+            alertText = state
+                ? `Flags before ${new Date(date)} set to "${flag}".`
+                : `"${flag}" flags before ${new Date(date)} cleared.`;
         } else {
-            alertText = "Flags failed to change.";
+            alertText = 'Flags failed to change.';
         }
-        alert.text(alertText);
-
-        alert.removeClass();
-        alert.addClass(success ? "alert alert-success" : "alert alert-danger");
-
-        alert.css('visibility','visible');
+        alertEl.textContent = alertText;
+        alertEl.className = success ? 'alert alert-success' : 'alert alert-danger';
+        alertEl.style.visibility = 'visible';
     }
 
-    // Displays checkbox for user volunteer status.
-    if (serviceHoursUser) {
-        $("#check-volunteer").prop("checked", true);
-    } else {
-        $("#check-volunteer").prop("checked", false);
-    }
-
-    // Updates user's volunteer status when the checkbox is clicked.
-    $("#check-volunteer").click(function() {
-        const isChecked = $(this).is(":checked");
-        updateVolunteerStatus(isChecked);
-    });
-
-    // Post request to update user's volunteer status.
-    function updateVolunteerStatus(isChecked) {
-        $.ajax({
-            async: true,
-            contentType: 'application/json; charset=utf-8',
-            url: `/updateVolunteerStatus?userId=${userId}&communityService=${isChecked}`,
+    /**
+     * PUT request to update the user's volunteer status.
+     * @param {boolean} isChecked
+     */
+    #updateVolunteerStatus(isChecked) {
+        const url = `/updateVolunteerStatus?userId=${this.#userId}&communityService=${isChecked}`;
+        fetch(url, {
             method: 'PUT',
-            dataType: 'json',
-            success: function(result) {
-                console.log("Volunteer status updated successfully.");
-            },
-            error: function(result) {
-                console.error(result);
-            }
-        });
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        })
+            .then((response) => response.json())
+            .then(() => console.log('Volunteer status updated successfully.'))
+            .catch(result => console.error(result));
     }
-
-    return self;
 }

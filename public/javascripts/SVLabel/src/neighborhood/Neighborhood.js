@@ -1,91 +1,93 @@
 /**
- * Neighborhood module.
- * @param parameters
- * @returns {{className: string}}
- * @constructor
+ * Represents a single neighborhood (region) the user is auditing.
+ *
  * @memberof svl
  */
-function Neighborhood (parameters) {
-    var self = { className: "Neighborhood"};
-    var properties = {
+class Neighborhood {
+    #properties = {
         geoJSON: null,
         name: null,
         regionId: null
     };
 
     /**
-     * Initialize
+     * @param {Object} parameters - May contain regionId, geoJSON, and name.
      */
-    function _init (parameters) {
+    constructor(parameters) {
         if ('regionId' in parameters) {
-            setProperty("regionId", parameters.regionId);
-            self.regionId = parameters.regionId;  // for debugging
+            this.setProperty('regionId', parameters.regionId);
+            this.regionId = parameters.regionId; // Exposed publicly for debugging in the console.
         }
-        if ("geoJSON" in parameters) setProperty("geoJSON", parameters.geoJSON);
-        if ("name" in parameters) {
-            setProperty("name", parameters.name);
-        }
+        if ('geoJSON' in parameters) this.setProperty('geoJSON', parameters.geoJSON);
+        if ('name' in parameters) this.setProperty('name', parameters.name);
     }
-    
-    function completedLineDistance(unit) {
-        if (!unit) unit = {units: 'kilometers'};
-        if ("taskContainer" in svl && svl.taskContainer) {
+
+    /**
+     * @param {Object} [unit] - Turf-style units object; defaults to kilometers.
+     * @returns {?number} Distance the user has completed in this neighborhood, or null if unavailable.
+     */
+    completedLineDistance(unit) {
+        if (!unit) unit = { units: 'kilometers' };
+        if ('taskContainer' in svl && svl.taskContainer) {
             return svl.taskContainer.getCompletedTaskDistance(unit);
         } else {
             return null;
         }
     }
 
-    function completedLineDistanceAcrossAllUsersUsingPriority() {
-        if ("taskContainer" in svl && svl.taskContainer) {
+    /**
+     * @returns {?number} Completed distance across all users (using priority), or null if unavailable.
+     */
+    completedLineDistanceAcrossAllUsersUsingPriority() {
+        if ('taskContainer' in svl && svl.taskContainer) {
             return svl.taskContainer.getCompletedTaskDistanceAcrossAllUsersUsingPriority();
         } else {
             return null;
         }
     }
 
-    /** Get property */
-    function getProperty (key) {
-        return key in properties ? properties[key] : null;
+    /**
+     * @param {string} key
+     * @returns {*} The property value, or null if not present.
+     */
+    getProperty(key) {
+        return key in this.#properties ? this.#properties[key] : null;
     }
 
-    /** Set property */
-    function setProperty (key, value) {
-        properties[key] = value;
+    /**
+     * @param {string} key
+     * @param {*} value
+     * @returns {Neighborhood} this, for chaining.
+     */
+    setProperty(key, value) {
+        this.#properties[key] = value;
         return this;
     }
 
     /**
-     * @returns region id of this neighborhood
+     * @returns {*} Region id of this neighborhood.
      */
-    function getRegionId() {
-        return getProperty('regionId');
+    getRegionId() {
+        return this.getProperty('regionId');
     }
 
-    function totalLineDistanceInNeighborhood (unit) {
-        if (!unit) unit = {units: 'kilometers'};
-        if ("taskContainer" in svl && svl.taskContainer) {
+    /**
+     * @param {Object} [unit] - Turf-style units object; defaults to kilometers.
+     * @returns {?number} Total street distance in this neighborhood, or null if unavailable.
+     */
+    totalLineDistanceInNeighborhood(unit) {
+        if (!unit) unit = { units: 'kilometers' };
+        if ('taskContainer' in svl && svl.taskContainer) {
             return svl.taskContainer.totalLineDistanceInNeighborhood(unit);
         } else {
             return null;
         }
     }
 
-    function getGeoJSON(){
-        if (properties.geoJSON){
-            return properties.geoJSON;
-        } else {
-            return null;
-        }
+    /**
+     * @returns {?Object} The neighborhood's GeoJSON, or null if not set.
+     */
+    getGeoJSON() {
+        return this.#properties.geoJSON ? this.#properties.geoJSON : null;
     }
-    _init(parameters);
-
-    self.completedLineDistance = completedLineDistance;
-    self.completedLineDistanceAcrossAllUsersUsingPriority = completedLineDistanceAcrossAllUsersUsingPriority;
-    self.getProperty = getProperty;
-    self.setProperty = setProperty;
-    self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
-    self.getGeoJSON = getGeoJSON;
-    self.getRegionId = getRegionId;
-    return self;
 }
