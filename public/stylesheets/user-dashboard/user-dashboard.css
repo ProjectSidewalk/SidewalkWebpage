@@ -710,6 +710,8 @@
     gap: var(--space-xs, 8px);
     margin-top: var(--space-xs, 8px);
 }
+/* The `hidden` attribute must win over display:flex, or the note stays open before "Add a note" is clicked. */
+.ud-card-note-wrap[hidden] { display: none; }
 
 .ud-card-note-submit {
     align-self: flex-start;
