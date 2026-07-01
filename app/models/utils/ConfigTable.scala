@@ -394,27 +394,27 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
              audit_windows.audits_30d   AS audits_30d,
              last_activity.ts           AS last_activity
       FROM (
-          SELECT COUNT(*) AS cnt FROM "#$schema".street_edge WHERE deleted = FALSE
+          SELECT COUNT(*) AS cnt FROM "#$schema".street_edge WHERE status = 'open'
       ) AS total_streets, (
-          -- Filter audited streets to non-deleted so the numerator can't exceed total_streets (deleted streets can
+          -- Filter audited streets to open-only so the numerator can't exceed total_streets (non-open streets can
           -- still have audit_task rows, which would push coverage above 100% and make "streets left" negative). #4329
           SELECT COUNT(DISTINCT street_edge.street_edge_id) AS cnt
           FROM "#$schema".street_edge
           INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
-          WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.deleted = FALSE
+          WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open'
       ) AS audited_streets, (
           SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km
-          FROM "#$schema".street_edge WHERE deleted = FALSE
+          FROM "#$schema".street_edge WHERE status = 'open'
       ) AS street_km, (
-          -- Distinct audited length (no double-counting overlapping audits), non-deleted only (see audited_streets).
+          -- Distinct audited length (no double-counting overlapping audits), open-only (see audited_streets).
           SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km
           FROM (
               SELECT DISTINCT street_edge.street_edge_id, geom
               FROM "#$schema".street_edge
               INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
               INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
-              WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.deleted = FALSE
+              WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open'
           ) AS distinct_audited
       ) AS audited_km, (
           SELECT COUNT(DISTINCT label.label_id) AS label_count,
@@ -703,7 +703,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           FROM "#$schema".street_edge
           INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
-          WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.deleted = FALSE
+          WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open'
       ) AS audited;
     """.as[(Double, Double)].head)
   }
