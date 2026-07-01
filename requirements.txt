@@ -1,7 +1,7 @@
 # Runtime Python dependencies the app itself needs. label_clustering.py is invoked in-band (ClusterController shells out
 # to it during admin-triggered clustering), so its libraries must ship in the web image. Libraries used *only* by the
 # offline check_streets_for_imagery.py utility live in requirements-offline-tools.txt instead.
-pandas==2.0.3
-haversine==2.8.1
-scipy==1.10.1
-requests==2.32.4
+pandas==3.0.3
+haversine==2.9.0
+scipy==1.18.0
+requests==2.34.2

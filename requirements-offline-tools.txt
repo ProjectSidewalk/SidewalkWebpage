@@ -3,7 +3,7 @@
 # requirements.txt. Layered on top of requirements.txt (which provides the shared pandas/requests):
 #
 #   pip install -r requirements.txt -r requirements-offline-tools.txt
-shapely==2.0.2
+shapely==2.1.2
 geopy==2.4.1
-tenacity==8.2.3
+tenacity==9.1.4
 tqdm==4.68.3
