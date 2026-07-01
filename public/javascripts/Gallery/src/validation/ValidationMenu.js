@@ -1,61 +1,69 @@
 /**
  * A Validation Menu appended to a small Gallery Card for validation purposes.
- *
- * @param {Card} referenceCard The Card this menu belongs to.
- * @param {jQuery} gsvImage The HTML element to append the validation menu to.
- * @returns {ValidationMenu}
- * @constructor
  */
-function ValidationMenu(referenceCard, gsvImage) {
-    const self = this;
-    const refCard = referenceCard;
-    let currSelected = null;
-
-    const classToValidationOption = {
+class ValidationMenu {
+    static #classToValidationOption = {
         'validate-agree': 'Agree',
         'validate-disagree': 'Disagree',
         'validate-unsure': 'Unsure'
     };
-    const validationOptionToClass = {
+    static #validationOptionToClass = {
         'Agree': 'validate-agree',
         'Disagree': 'validate-disagree',
         'Unsure': 'validate-unsure'
     };
 
-    const cardOverlayHTML = `
-        <div id="gallery-validation-button-holder">
-            <button id="gallery-card-agree-button" class="validation-button">${i18next.t('common:agree')}</button>
-            <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('common:disagree')}</button>
-            <button id="gallery-card-unsure-button" class="validation-button">${i18next.t('common:unsure')}</button>
-        </div>`;
-    const overlay = $(cardOverlayHTML);
+    #refCard;
+    #gsvImage;
+    #currSelected = null;
+    #overlay;
+    #validationButtons = undefined;
+    #galleryCard;
 
-    let validationButtons = undefined;
-    const galleryCard = gsvImage.parent();
+    /**
+     * @param {Card} referenceCard The Card this menu belongs to.
+     * @param {jQuery} gsvImage The HTML element to append the validation menu to.
+     */
+    constructor(referenceCard, gsvImage) {
+        this.#refCard = referenceCard;
+        this.#gsvImage = gsvImage;
+
+        const cardOverlayHTML = `
+            <div id="gallery-validation-button-holder">
+                <button id="gallery-card-agree-button" class="validation-button">${i18next.t('common:agree')}</button>
+                <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('common:disagree')}</button>
+                <button id="gallery-card-unsure-button" class="validation-button">${i18next.t('common:unsure')}</button>
+            </div>`;
+        this.#overlay = $(cardOverlayHTML);
+        this.#galleryCard = gsvImage.parent();
+
+        this.#init();
+    }
 
     /**
      * Adds onClick functions for the validation buttons. Read-only for labels contributed by the current user.
      */
-    function _init() {
-        validationButtons = {
-            'validate-agree': overlay.find('#gallery-card-agree-button'),
-            'validate-disagree': overlay.find('#gallery-card-disagree-button'),
-            'validate-unsure': overlay.find('#gallery-card-unsure-button')
+    #init() {
+        const refCard = this.#refCard;
+        this.#validationButtons = {
+            'validate-agree': this.#overlay.find('#gallery-card-agree-button'),
+            'validate-disagree': this.#overlay.find('#gallery-card-disagree-button'),
+            'validate-unsure': this.#overlay.find('#gallery-card-unsure-button')
         };
 
         // If the signed-in user had already validated this label before loading the page, style the card.
         const userValidation = refCard ? refCard.getProperty('user_validation') : null;
         if (userValidation) {
-            showValidationOnCard(userValidation);
+            this.showValidationOnCard(userValidation);
         }
 
         const readonly = !!refCard.getProperty('from_current_user');
         if (readonly) {
             const tip = i18next.t('labelmap:own-label-disabled');
-            galleryCard.addClass('gallery-card--readonly');
+            this.#galleryCard.addClass('gallery-card--readonly');
 
             // Disable validation buttons + add tooltip; skip attaching click handlers.
-            for (const button of Object.values(validationButtons)) {
+            for (const button of Object.values(this.#validationButtons)) {
                 button.prop('disabled', true).attr('title', tip);
             }
 
@@ -67,29 +75,29 @@ function ValidationMenu(referenceCard, gsvImage) {
             $(valInfo.validationContainer).find('img[data-toggle="tooltip"]').tooltip('destroy');
         } else {
             // Add onClick functions for the validation buttons.
-            for (const [valKey, button] of Object.entries(validationButtons)) {
-                button.click(validateOnClickOrKeyPress(valKey, false, false));
+            for (const [valKey, button] of Object.entries(this.#validationButtons)) {
+                button.click(this.validateOnClickOrKeyPress(valKey, false, false));
             }
 
-            addValidationInfoOnClicks(refCard.validationInfoDisplay);
+            this.#addValidationInfoOnClicks(refCard.validationInfoDisplay);
         }
-        gsvImage.append(overlay);
+        this.#gsvImage.append(this.#overlay);
     }
 
     /**
      * Add onClick functions for the thumbs up/down buttons.
      * @param valInfoDisplay
      */
-    function addValidationInfoOnClicks(valInfoDisplay) {
-        valInfoDisplay.agreeContainer.onclick = validateOnClickOrKeyPress('validate-agree', true, false);
-        valInfoDisplay.disagreeContainer.onclick = validateOnClickOrKeyPress('validate-disagree', true, false);
+    #addValidationInfoOnClicks(valInfoDisplay) {
+        valInfoDisplay.agreeContainer.onclick = this.validateOnClickOrKeyPress('validate-agree', true, false);
+        valInfoDisplay.disagreeContainer.onclick = this.validateOnClickOrKeyPress('validate-disagree', true, false);
 
         // Hover preview: swap the thumb icon to its filled variant to hint that it's clickable.
         const addHoverSwap = (container, valKey) => {
             const img = container.querySelector('.validation-info-image');
             if (!img) return;
             container.addEventListener('mouseenter', () => {
-                if (currSelected === valKey) return;
+                if (this.#currSelected === valKey) return;
                 img.src = img.src.replace('-outline', '-filled');
             });
             container.addEventListener('mouseleave', () => {
@@ -105,18 +113,18 @@ function ValidationMenu(referenceCard, gsvImage) {
      * @param newValKey
      * @param {boolean} thumbsClick Whether the validation came from clicking the thumb icons.
      * @param {boolean} keyboardShortcut Whether the validation came from a keyboard shortcut.
-     * @returns {(function(*): Promise)|*} A function returning a Promise that resolves after validation.
+     * @returns {function(): Promise} A function returning a Promise that resolves after validation.
      */
-    function validateOnClickOrKeyPress(newValKey, thumbsClick, keyboardShortcut) {
-        return async function(e) {
-            if (currSelected !== newValKey) {
-                const validationOption = classToValidationOption[newValKey];
+    validateOnClickOrKeyPress(newValKey, thumbsClick, keyboardShortcut) {
+        return async () => {
+            if (this.#currSelected !== newValKey) {
+                const validationOption = ValidationMenu.#classToValidationOption[newValKey];
 
-                const labelValidatedPromise = _validateLabel(validationOption, thumbsClick, keyboardShortcut);
+                const labelValidatedPromise = this.#validateLabel(validationOption, thumbsClick, keyboardShortcut);
 
                 // Change the look of the card to match the new validation.
                 // NOTE: done after calling _validateLabel() because it uses info that changes below.
-                refCard.updateUserValidation(validationOption);
+                this.#refCard.updateUserValidation(validationOption);
 
                 return labelValidatedPromise;
             }
@@ -127,24 +135,24 @@ function ValidationMenu(referenceCard, gsvImage) {
      * Adds the visual effects of validation to the small card (opaque button and fill color below image).
      * @param validationOption
      */
-    function showValidationOnCard(validationOption) {
-        const validationClass = validationOptionToClass[validationOption];
+    showValidationOnCard(validationOption) {
+        const validationClass = ValidationMenu.#validationOptionToClass[validationOption];
 
         // Remove the visual effects from the older validation.
-        if (currSelected && currSelected !== validationClass) {
-            validationButtons[currSelected].attr('class', 'validation-button');
-            if (galleryCard.hasClass(currSelected)) {
-                galleryCard.removeClass(currSelected);
+        if (this.#currSelected && this.#currSelected !== validationClass) {
+            this.#validationButtons[this.#currSelected].attr('class', 'validation-button');
+            if (this.#galleryCard.hasClass(this.#currSelected)) {
+                this.#galleryCard.removeClass(this.#currSelected);
             }
         }
-        currSelected = validationClass;
+        this.#currSelected = validationClass;
 
         // Add the visual effects from the new validation.
-        galleryCard.addClass(validationClass);
-        validationButtons[validationClass].attr('class', 'validation-button-selected');
+        this.#galleryCard.addClass(validationClass);
+        this.#validationButtons[validationClass].attr('class', 'validation-button-selected');
 
         // Reset thumb icons to outline state so that they don't blend into the background after validation.
-        const valInfo = refCard.validationInfoDisplay;
+        const valInfo = this.#refCard.validationInfoDisplay;
         if (valInfo) {
             for (const c of [valInfo.agreeContainer, valInfo.disagreeContainer]) {
                 const img = c.querySelector('.validation-info-image');
@@ -159,9 +167,9 @@ function ValidationMenu(referenceCard, gsvImage) {
      * @param {boolean} thumbsClick Whether the validation came from clicking the thumb icons.
      * @param {boolean} keyboardShortcut Whether the validation came from a keyboard shortcut.
      * @return {Promise} A promise that resolves once the validation has been submitted.
-     * @private
      */
-    async function _validateLabel(action, thumbsClick, keyboardShortcut) {
+    async #validateLabel(action, thumbsClick, keyboardShortcut) {
+        const refCard = this.#refCard;
         let actionStr;
         let sourceStr;
         if (thumbsClick) actionStr = 'Validate_ThumbsMenuClick', sourceStr = 'GalleryThumbs';
@@ -182,8 +190,8 @@ function ValidationMenu(referenceCard, gsvImage) {
             new_severity: refCard.getProperty('severity'),
             old_tags: refCard.getProperty('tags'),
             new_tags: refCard.getProperty('tags'),
-            canvas_height: Math.round(gsvImage.height()),
-            canvas_width: Math.round(gsvImage.width()),
+            canvas_height: Math.round(this.#gsvImage.height()),
+            canvas_width: Math.round(this.#gsvImage.width()),
             heading: refCard.getProperty('heading'),
             pitch: refCard.getProperty('pitch'),
             zoom: refCard.getProperty('zoom'),
@@ -207,10 +215,4 @@ function ValidationMenu(referenceCard, gsvImage) {
             return res;
         });
     }
-
-    self.showValidationOnCard = showValidationOnCard;
-    self.validateOnClickOrKeyPress = validateOnClickOrKeyPress;
-
-    _init();
-    return self;
 }

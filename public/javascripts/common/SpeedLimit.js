@@ -1,16 +1,11 @@
 /**
  * An indicator that displays the speed limit of the current position's nearest road.
  *
- * @param {PanoViewer} panoViewer PanoramaViewer object.
- * @param {function} coords Function that returns current longitude and latitude coordinates.
- * @param {function} isOnboarding Function that returns a boolean on whether the current mission is the tutorial task.
- * @param {LabelContainer} labelContainer Label container that is used to pre-fetch validation labels. Can be left null.
- * @param labelType
- * @returns {SpeedLimit} SpeedLimit object with updateSpeedLimit function, container, speedLimit object with
- * number and sub (units, e.g. 'mph'), speedLimitVisible boolean.
+ * Exposes `container` (the sign element), `speedLimit` (`{ number, sub }` where `sub` is the units, e.g. 'mph'),
+ * `speedLimitVisible` (boolean), and `updateSpeedLimit()`.
  */
-function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType) {
-    const ROAD_HIGHWAY_TYPES = [
+class SpeedLimit {
+    static #ROAD_HIGHWAY_TYPES = [
         'motorway',
         'trunk',
         'primary',
@@ -28,44 +23,61 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
     ];
 
     // Labels in which speed limit is necessary context for validation. Speed limit will not display for other labels.
-    const speedLimitRelevantLabels = ['NoCurbRamp'];
+    static #SPEED_LIMIT_RELEVANT_LABELS = ['NoCurbRamp'];
 
-    const self = this;
+    #panoViewer;
+    #coords;
+    #isOnboarding;
+    #labelContainer;
+    #labelType;
 
-    let cache = {};
+    #cache = {};
 
     // Country info (ISO 3166-1 code) for the current session. Country doesn't change while a user is auditing, so we
     // fetch it once and reuse it to cut Overpass request volume roughly in half. Null until first successful fetch; on
     // failure we reset to null so the next pano change can retry.
-    let countryCodePromise = null;
+    #countryCodePromise = null;
 
-    function _init() {
+    /**
+     * @param {PanoViewer} panoViewer PanoramaViewer object.
+     * @param {function} coords Function that returns current longitude and latitude coordinates.
+     * @param {function} isOnboarding Function that returns a boolean on whether the current mission is the tutorial task.
+     * @param {LabelContainer} [labelContainer] Label container for pre-fetching validation labels. Can be null.
+     * @param {string} [labelType] Label type being validated; null/undefined shows the speed limit by default.
+     */
+    constructor(panoViewer, coords, isOnboarding, labelContainer, labelType) {
+        this.#panoViewer = panoViewer;
+        this.#coords = coords;
+        this.#isOnboarding = isOnboarding;
+        this.#labelContainer = labelContainer;
+        this.#labelType = labelType;
+
         // If labelType is null/undefined (not provided), the speed limit will be displayed by default.
-        const speedLimitRelevant = !labelType || speedLimitRelevantLabels.includes(labelType);
+        const speedLimitRelevant = !labelType || SpeedLimit.#SPEED_LIMIT_RELEVANT_LABELS.includes(labelType);
         if (typeof(labelContainer) !== "undefined" && labelContainer !== null && speedLimitRelevant) {
-            prefetchLabels(); // Note that this happens async.
-            labelContainer.resetLabelListUpdateCallback(prefetchLabels);
+            this.#prefetchLabels(); // Note that this happens async.
+            labelContainer.resetLabelListUpdateCallback(this.#prefetchLabels);
         }
 
-        self.container = document.getElementById('speed-limit-sign');
-        self.speedLimit = {
+        this.container = document.getElementById('speed-limit-sign');
+        this.speedLimit = {
             number: '',
             sub: ''
         };
-        self.speedLimitVisible = false;
-        updateSpeedLimit();
+        this.speedLimitVisible = false;
+        this.updateSpeedLimit();
 
         // Listen for pano changes.
-        panoViewer.addListener('pano_changed', panoChangeListener);
+        panoViewer.addListener('pano_changed', this.#panoChangeListener);
     }
 
     /**
      * Render/update the speed limit using the current info in speedLimit.
      */
-    function updateSpeedLimit() {
-        self.container.querySelector('#speed-limit').innerText = self.speedLimit.number;
-        self.container.querySelector('#speed-limit-sub').innerText = self.speedLimit.sub;
-        self.container.style.display = self.speedLimitVisible ? 'flex' : 'none';
+    updateSpeedLimit() {
+        this.container.querySelector('#speed-limit').innerText = this.speedLimit.number;
+        this.container.querySelector('#speed-limit-sub').innerText = this.speedLimit.sub;
+        this.container.style.display = this.speedLimitVisible ? 'flex' : 'none';
     }
 
     /**
@@ -75,10 +87,10 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
      * @param {number} lat The latitude of the current position.
      * @param {number} lon The longitude of the current position.
      */
-    function findClosestRoad(data, lat, lon) {
+    #findClosestRoad(data, lat, lon) {
         // Filter to only be roads, and not footpaths/walkways.
         const roads = data.elements.filter(el =>
-            el.type === 'way' && el.tags && el.tags.highway && ROAD_HIGHWAY_TYPES.includes(el.tags.highway)
+            el.type === 'way' && el.tags && el.tags.highway && SpeedLimit.#ROAD_HIGHWAY_TYPES.includes(el.tags.highway)
         );
 
         const point = turf.point([lat, lon]);
@@ -102,20 +114,20 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
     /**
      * Function called specifically on validation page to prefetch the upcoming speed limits.
      */
-    async function prefetchLabels() {
+    #prefetchLabels = async () => {
         // Clear the cache.
-        cache = {};
+        this.#cache = {};
 
         // Get the labels from the pano container and prefetch them.
-        const labelsToPrefetch = labelContainer.getLabels();
+        const labelsToPrefetch = this.#labelContainer.getLabels();
         for (const label of labelsToPrefetch) {
             const cameraLat = label.getAuditProperty("cameraLat");
             const cameraLng = label.getAuditProperty("cameraLng");
             if (cameraLat && cameraLng) {
-                await queryClosestRoadForCoords(cameraLat, cameraLng, true, label);
+                await this.#queryClosestRoadForCoords(cameraLat, cameraLng, true, label);
             }
         }
-    }
+    };
 
     /**
      * Fetches the closest nearby road for a given set of coordinates from the Overpass API.
@@ -126,10 +138,10 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
      * @param {Label} label The label that is being validated. Can be null.
      * @returns {Promise<{closestRoad: object|null}>} Object with the calculated closest road, or null on failure.
      */
-    async function queryClosestRoadForCoords(lat, lng, shouldCache, label) {
-        const cacheKey = label === null ? (labelContainer === null ? "" : labelContainer.getCurrentLabel().getAuditProperty("panoId")) : label.getAuditProperty("panoId");
-        if (cacheKey in cache) {
-            return await cache[cacheKey];
+    async #queryClosestRoadForCoords(lat, lng, shouldCache, label) {
+        const cacheKey = label === null ? (this.#labelContainer === null ? "" : this.#labelContainer.getCurrentLabel().getAuditProperty("panoId")) : label.getAuditProperty("panoId");
+        if (cacheKey in this.#cache) {
+            return await this.#cache[cacheKey];
         }
 
         // Get nearby roads and their respective information from the overpass API.
@@ -150,14 +162,14 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
                     return { closestRoad: null };
                 }
                 const overpassRespJson = await overpassResp.json();
-                return { closestRoad: findClosestRoad(overpassRespJson, lat, lng) };
+                return { closestRoad: this.#findClosestRoad(overpassRespJson, lat, lng) };
             } catch (e) {
                 return { closestRoad: null };
             }
         })();
 
         if (shouldCache) {
-            cache[cacheKey] = promise;
+            this.#cache[cacheKey] = promise;
         }
 
         return await promise;
@@ -171,9 +183,9 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
      * @param {number} lng The longitude of the current position.
      * @returns {Promise<string|null>} ISO 3166-1 country code, or null if the lookup failed.
      */
-    async function queryCountryCode(lat, lng) {
-        if (countryCodePromise !== null) {
-            return await countryCodePromise;
+    async #queryCountryCode(lat, lng) {
+        if (this.#countryCodePromise !== null) {
+            return await this.#countryCodePromise;
         }
 
         const overpassQuery = `
@@ -185,58 +197,58 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
             code = t['ISO3166-1'];
         out tags;
         `;
-        countryCodePromise = (async () => {
+        this.#countryCodePromise = (async () => {
             try {
                 const resp = await fetch(
                     `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
                 );
                 if (!resp.ok) {
-                    countryCodePromise = null;
+                    this.#countryCodePromise = null;
                     return null;
                 }
                 const json = await resp.json();
                 const countryElements = json.elements.filter(el => el.type === 'country');
                 return countryElements.length > 0 ? countryElements[0].tags.code : null;
             } catch (e) {
-                countryCodePromise = null;
+                this.#countryCodePromise = null;
                 return null;
             }
         })();
 
-        return await countryCodePromise;
+        return await this.#countryCodePromise;
     }
 
     /**
      * Function to be called on a position change/movement in the google street view.
      */
-    async function panoChangeListener() {
+    #panoChangeListener = async () => {
         // If user is in the onboarding/tutorial mission, we can skip getting the speed limit and hide the sign.
-        if (isOnboarding()) {
-            self.speedLimitVisible = false;
-            updateSpeedLimit();
+        if (this.#isOnboarding()) {
+            this.speedLimitVisible = false;
+            this.updateSpeedLimit();
             return;
         }
 
         // If labelType is null/undefined (not provided), the speed limit will be displayed by default.
-        const speedLimitRelevant = !labelType || speedLimitRelevantLabels.includes(labelType);
+        const speedLimitRelevant = !this.#labelType || SpeedLimit.#SPEED_LIMIT_RELEVANT_LABELS.includes(this.#labelType);
 
         // If user is validating a label that doesn't require speed limit context, hide the speed limit.
         if (!speedLimitRelevant) {
-            self.speedLimitVisible = false;
-            updateSpeedLimit();
+            this.speedLimitVisible = false;
+            this.updateSpeedLimit();
             return;
         }
 
         // Get the current position.
-        const { lat, lng } = coords();
+        const { lat, lng } = this.#coords();
         // Test coords here if someone finds them useful.
         // const lat = 47.6271486;
         // const lng = -122.3423263;
 
         // Fetch roads (per-pano) and country code (session-cached) in parallel.
         const [queryResp, countryCode] = await Promise.all([
-            queryClosestRoadForCoords(lat, lng, false, null),
-            queryCountryCode(lat, lng)
+            this.#queryClosestRoadForCoords(lat, lng, false, null),
+            this.#queryCountryCode(lat, lng)
         ]);
         const closestRoad = queryResp.closestRoad;
 
@@ -247,9 +259,9 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
         if (countryCode) {
             // Set proper design.
             if (countryCode === 'US' || countryCode === 'CA') {
-                self.container.setAttribute('data-design-style', 'us-canada');
+                this.container.setAttribute('data-design-style', 'us-canada');
             } else {
-                self.container.setAttribute('data-design-style', 'non-us-canada');
+                this.container.setAttribute('data-design-style', 'non-us-canada');
             }
 
             // Set mph for fallback units if US or UK.
@@ -266,20 +278,14 @@ function SpeedLimit(panoViewer, coords, isOnboarding, labelContainer, labelType)
             if (sub.trim().length === 0) {
                 sub = fallbackUnits;
             }
-            self.speedLimit = {
+            this.speedLimit = {
                 number,
                 sub
             };
-            self.speedLimitVisible = true;
+            this.speedLimitVisible = true;
         } else {
-            self.speedLimitVisible = false;
+            this.speedLimitVisible = false;
         }
-        updateSpeedLimit();
-    }
-
-    _init();
-
-    self.updateSpeedLimit = updateSpeedLimit;
-
-    return self;
+        this.updateSpeedLimit();
+    };
 }

@@ -1,11 +1,12 @@
 /**
  * A Keyboard module.
- *
- * @returns {{className: string}}
- * @constructor
  */
-function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomControl) {
-    var self = this;
+class Keyboard {
+    #svl;
+    #contextMenu;
+    #navigationService;
+    #ribbon;
+    #zoomControl;
 
     /**
      * fix for the shift-getting-stuck bug.
@@ -20,31 +21,45 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
      * also, we added a buffer to the z key to fix inconsistent behavior when shift and z were pressed at the same time.
      * sometimes, the shift up was detected before the z up. Adding the 100ms buffer fixed this issue.
      */
-    var status = {
+    #status = {
         focusOnTextField: false,
         isOnboarding: false,
         disableKeyboard: false
     };
 
-    this.disableKeyboard = function (){
-        status.disableKeyboard = true;
-    };
-    this.enableKeyboard = function (){
-        status.disableKeyboard = false;
-    };
+    constructor(svl, canvas, contextMenu, navigationService, ribbon, zoomControl) {
+        this.#svl = svl;
+        this.#contextMenu = contextMenu;
+        this.#navigationService = navigationService;
+        this.#ribbon = ribbon;
+        this.#zoomControl = zoomControl;
+
+        // Add the keyboard event listeners. We need { capture: true } for keydown to overwrite pano's shortcuts.
+        window.addEventListener('keydown', this.#documentKeyDown, { capture: true });
+        window.addEventListener('keyup', this.#documentKeyUp);
+    }
+
+    disableKeyboard() {
+        this.#status.disableKeyboard = true;
+    }
+
+    enableKeyboard() {
+        this.#status.disableKeyboard = false;
+    }
 
     /**
      * Change the heading of the current panorama point of view by a particular degree value.
      *
      * @param degree
      */
-    this._rotatePovByDegree = function(degree) {
+    #rotatePovByDegree(degree) {
+        const svl = this.#svl;
         if (!svl.panoManager.getStatus("disablePanning")) {
             svl.contextMenu.hide();
             // Panning hide label tag and delete icon.
-            var labels = svl.labelContainer.getCanvasLabels(),
-                labelLen = labels.length;
-            for (var i=0; i<labelLen; i++){
+            const labels = svl.labelContainer.getCanvasLabels();
+            const labelLen = labels.length;
+            for (let i = 0; i < labelLen; i++) {
                 labels[i].setHoverInfoVisibility('hidden');
             }
             svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
@@ -53,7 +68,7 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
             const heading = (svl.panoViewer.getPov().heading + degree + 360) % 360;
             svl.panoManager.setPov({ heading: heading, pitch: pitch, zoom: zoom });
         }
-    };
+    }
 
     /**
      * Advance one step forward along the user's assigned route, keeping their current POV (heading/pitch/zoom).
@@ -63,54 +78,54 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
      * moveForward() engine that probes along the assigned street geometry for the next available imagery. This is
      * the spacebar shortcut for the "routed where there's no forward arrow" case from #619/#1041.
      */
-    this._advanceForwardAlongRoute = async function() {
+    async #advanceForwardAlongRoute() {
+        const svl = this.#svl;
         // No-op while walking is disabled (e.g. mid-load), matching the arrow keys — otherwise moveToLinkedPano()
         // resolves false and we'd both fall through to a no-op moveForward() and log a move that never happened.
-        if (navigationService.getStatus('disableWalking')) return;
+        if (this.#navigationService.getStatus('disableWalking')) return;
 
         try {
             // Bias the forward step toward the route direction rather than wherever the camera is currently pointed.
             // moveToLinkedPano() takes a heading offset relative to the current heading, so subtract the current one.
             const routeHeading = svl.compass.getTargetAngle();
             const currHeading = svl.panoViewer.getPov().heading;
-            const moved = await navigationService.moveToLinkedPano(routeHeading - currHeading);
+            const moved = await this.#navigationService.moveToLinkedPano(routeHeading - currHeading);
             if (!moved) {
-                await navigationService.moveForward();
+                await this.#navigationService.moveForward();
             }
             svl.tracker.push('KeyboardShortcut_MoveForwardAlongRoute', { usedRoute: !moved });
         } catch (e) {
             // Keep a failed forward step from surfacing as an unhandled promise rejection out of a key event.
             console.error('Spacebar route-advance failed:', e);
         }
-    };
+    }
 
     /**
      * This is a callback for a key down event
      * @param {object} e An event object
-     * @private
      */
-    this._documentKeyDown = function (e) {
-        if (!status.disableKeyboard && !status.focusOnTextField) {
+    #documentKeyDown = (e) => {
+        if (!this.#status.disableKeyboard && !this.#status.focusOnTextField) {
             // Shortcuts that only apply when the context menu is closed (moving/panning).
-            if (!contextMenu.isOpen()) {
+            if (!this.#contextMenu.isOpen()) {
                 switch (e.key) {
                     case "ArrowLeft":
-                        self._rotatePovByDegree(-2);
+                        this.#rotatePovByDegree(-2);
                         break;
                     case "ArrowRight":
-                        self._rotatePovByDegree(2);
+                        this.#rotatePovByDegree(2);
                         break;
                     case "ArrowUp":
-                        navigationService.moveToLinkedPano(0);
+                        this.#navigationService.moveToLinkedPano(0);
                         break;
                     case "ArrowDown":
-                        navigationService.moveToLinkedPano(180);
+                        this.#navigationService.moveToLinkedPano(180);
                         break;
                     case " ":
                         // preventDefault stops the page from scrolling and stops space from re-activating a
                         // focused button (e.g. the Stuck/ribbon button right after a mouse click).
                         e.preventDefault();
-                        self._advanceForwardAlongRoute();
+                        this.#advanceForwardAlongRoute();
                         break;
                 }
             }
@@ -120,77 +135,77 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
     /**
      * This is a callback for a key up event when focus is not on ContextMenu's textbox.
      * @param {object} e An event object
-     * @private
      */
-    this._documentKeyUp = function (e) {
+    #documentKeyUp = (e) => {
+        const svl = this.#svl;
         // Ways to close context menu. Separated from later code because we want these to work in description textbox.
-        if (!status.disableKeyboard && contextMenu.isOpen()) {
+        if (!this.#status.disableKeyboard && this.#contextMenu.isOpen()) {
             switch (e.key) {
                 case "Enter":
                     svl.tracker.push("KeyboardShortcut_CloseContextMenu");
-                    contextMenu.handleSeverityPopup();
+                    this.#contextMenu.handleSeverityPopup();
                     svl.tracker.push("ContextMenu_ClosePressEnter");
-                    contextMenu.hide();
+                    this.#contextMenu.hide();
                     break;
                 case "Escape":
-                    _closeContextMenu(e.keyCode);
-                    ribbon.backToWalk();
+                    this.#closeContextMenu(e.keyCode);
+                    this.#ribbon.backToWalk();
                     break;
             }
         }
 
-        if (!status.disableKeyboard && !status.focusOnTextField && !e.ctrlKey) {
+        if (!this.#status.disableKeyboard && !this.#status.focusOnTextField && !e.ctrlKey) {
             // Switch labeling mode. e: Walk, c: CurbRamp, m: NoCurbRamp, o: Obstacle, s: SurfaceProblem: n: NoSidewalk,
             // w: Crosswalk, p: Signal, b: Occlusion.
             for (const mode of ['Walk'].concat(util.misc.VALID_LABEL_TYPES_WITHOUT_OTHER)) {
                 if (e.key.toUpperCase() === util.misc.getLabelDescriptions(mode)['keyChar']) {
-                    if (mode !== 'Walk') _closeContextMenu(e.keyCode);
-                    ribbon.modeSwitch(mode);
+                    if (mode !== 'Walk') this.#closeContextMenu(e.keyCode);
+                    this.#ribbon.modeSwitch(mode);
                     svl.tracker.push('KeyboardShortcut_ModeSwitch_' + mode, { keyCode: e.keyCode });
                 }
             }
 
             // Escape exits Labeling Mode back to Explore Mode (context menu open case is handled above).
-            if (e.key === 'Escape' && !contextMenu.isOpen()) {
-                ribbon.backToWalk();
+            if (e.key === 'Escape' && !this.#contextMenu.isOpen()) {
+                this.#ribbon.backToWalk();
                 svl.tracker.push('KeyboardShortcut_ModeSwitch_Walk', { keyCode: e.keyCode });
             }
 
             // Zooming in/out.
             if (e.code === 'KeyZ') {
                 // Close the context menu whenever we zoom.
-                if (contextMenu.isOpen()) {
+                if (this.#contextMenu.isOpen()) {
                     svl.tracker.push('KeyboardShortcut_CloseContextMenu');
-                    contextMenu.hide();
+                    this.#contextMenu.hide();
                 }
 
                 // Zoom in or out depending on whether shift is down.
                 if (e.shiftKey) {
-                    zoomControl.zoomOut();
+                    this.#zoomControl.zoomOut();
                     svl.tracker.push('KeyboardShortcut_ZoomOut', { keyCode: e.keyCode });
                 } else {
-                    zoomControl.zoomIn();
+                    this.#zoomControl.zoomIn();
                     svl.tracker.push('KeyboardShortcut_ZoomIn', { keyCode: e.keyCode });
                 }
             }
 
             // Shortcuts that only apply when the context menu is open (like rating severity and adding/removing tags).
-            if (contextMenu.isOpen()) {
-                let targetLabel = contextMenu.getTargetLabel();
+            if (this.#contextMenu.isOpen()) {
+                const targetLabel = this.#contextMenu.getTargetLabel();
 
                 // Rating severity. Can use either number keys or numpad keys.
-                if (['1', '2', '3'].includes(e.key) && targetLabel && !contextMenu.isRatingSeverityDisabled()) {
+                if (['1', '2', '3'].includes(e.key) && targetLabel && !this.#contextMenu.isRatingSeverityDisabled()) {
                     const severity = Number(e.key); // '1' - '3'
-                    contextMenu.checkRadioButton(severity);
+                    this.#contextMenu.checkRadioButton(severity);
                     targetLabel.setProperty('severity', severity);
                     svl.tracker.push('KeyboardShortcut_Severity_' + severity, { keyCode: e.keyCode });
                     svl.canvas.clear().render();
                 }
 
                 // Adding/removing tags.
-                if (targetLabel && !contextMenu.isTaggingDisabled()) {
+                if (targetLabel && !this.#contextMenu.isTaggingDisabled()) {
                     const labelType = targetLabel.getProperty('labelType');
-                    const tags = contextMenu.labelTags.filter(tag => tag.label_type === labelType);
+                    const tags = this.#contextMenu.labelTags.filter(tag => tag.label_type === labelType);
                     for (const tag of tags) {
                         if (e.key.toUpperCase() === util.misc.getLabelDescriptions(labelType)['tagInfo'][tag.tag]['keyChar']) {
                             $('.tag-id-' + tag.tag_id).first().trigger('click', { lowLevelLogging: false });
@@ -201,43 +216,36 @@ function Keyboard (svl, canvas, contextMenu, navigationService, ribbon, zoomCont
         }
     };
 
-    function _closeContextMenu(key) {
-        if (contextMenu.isOpen()) {
-            svl.tracker.push("KeyboardShortcut_CloseContextMenu");
-            svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
+    #closeContextMenu(key) {
+        if (this.#contextMenu.isOpen()) {
+            this.#svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+            this.#svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
                 keyCode: key
             });
-            contextMenu.hide();
+            this.#contextMenu.hide();
         }
     }
-
 
     /**
      * Get status
      * @param {string} key Field name
      * @returns {*}
      */
-    this.getStatus = function  (key) {
-        if (!(key in status)) {
-            console.warn("You have passed an invalid key for status.")
+    getStatus(key) {
+        if (!(key in this.#status)) {
+            console.warn("You have passed an invalid key for status.");
         }
-        return status[key];
-    };
+        return this.#status[key];
+    }
 
     /**
      * Set status
      * @param key Field name
      * @param value Field value
-     * @returns {setStatus}
      */
-    this.setStatus = function (key, value) {
-        if (key in status) {
-            status[key] = value;
+    setStatus(key, value) {
+        if (key in this.#status) {
+            this.#status[key] = value;
         }
-    };
-
-
-    // Add the keyboard event listeners. We need { capture: true } for keydown to overwrite pano's shortcuts.
-    window.addEventListener('keydown', this._documentKeyDown, { capture: true });
-    window.addEventListener('keyup', this._documentKeyUp);
+    }
 }

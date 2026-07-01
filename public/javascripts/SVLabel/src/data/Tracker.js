@@ -1,125 +1,125 @@
 /**
+ * Logs interaction data from the Explore/Audit interface.
  *
- * @returns {{className: string}}
- * @constructor
  * @memberof svl
  */
-function Tracker() {
-    var self = this;
-    var actions = [];
-    var prevActions = [];
+class Tracker {
+    #actions = [];
+    #prevActions = [];
+    #waitingOnSubmit = false;
+    #currentLabel = null;
+    #updatedLabels = [];
+    #currentAuditTask = null;
 
-    let waitingOnSubmit = false;
+    constructor() {
+        this.init();
+    }
 
-    var currentLabel = null;
-    var updatedLabels = [];
-    var currentAuditTask = null;
-
-    this.init = function() {
+    init() {
         this.trackWindowEvents();
-    };
+    }
 
-    this.getCurrentLabel = function() {
-        return currentLabel;
-    };
+    getCurrentLabel() {
+        return this.#currentLabel;
+    }
 
-    this.setAuditTaskID = function(taskID) {
-        currentAuditTask = taskID;
-    };
+    setAuditTaskID(taskID) {
+        this.#currentAuditTask = taskID;
+    }
 
-    this.trackWindowEvents = function() {
-        var prefix = "LowLevelEvent_";
+    trackWindowEvents() {
+        const prefix = "LowLevelEvent_";
 
         // track all mouse related events
-        $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e, extra) {
+        $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', (e, extra) => {
             if (extra) {
                 if (typeof extra.lowLevelLogging !== "undefined" && !extra.lowLevelLogging) { // {lowLevelLogging: false}
                     return;
                 }
             }
 
-            self.push(prefix + e.type, {
+            this.push(prefix + e.type, {
                 cursorX: 'pageX' in e ? e.pageX : null,
                 cursorY: 'pageY' in e ? e.pageY : null
             });
         });
 
         // keyboard related events
-        $(document).on('keydown keyup', function(e) {
-            self.push(prefix + e.type, {
+        $(document).on('keydown keyup', (e) => {
+            this.push(prefix + e.type, {
                 keyCode: 'keyCode' in e ? e.keyCode : null
             });
         });
-    };
+    }
 
-    this._isCanvasInteraction = function(action) {
+    #isCanvasInteraction(action) {
         return action.indexOf("LabelingCanvas") >= 0;
-    };
+    }
 
-    this._isContextMenuAction = function(action) {
+    #isContextMenuAction(action) {
         return action.indexOf("ContextMenu") >= 0;
-    };
+    }
 
-    this._isContextMenuClose = function(action) {
+    #isContextMenuClose(action) {
         return action === "ContextMenu_Close";
-    };
+    }
 
-    this._isDeleteLabelAction = function(action) {
+    #isDeleteLabelAction(action) {
         return action.indexOf("RemoveLabel") >= 0;
-    };
+    }
 
-    this._isClickLabelDeleteAction = function(action) {
+    #isClickLabelDeleteAction(action) {
         return action.indexOf("Click_LabelDelete") >= 0;
-    };
+    }
 
-    this._isTaskStartAction = function(action) {
+    #isTaskStartAction(action) {
         return action.indexOf("TaskStart") >= 0;
-    };
+    }
 
-    this._isSeverityShortcutAction = function(action) {
+    #isSeverityShortcutAction(action) {
         return action.indexOf("KeyboardShortcut_Severity") >= 0;
-    };
+    }
 
-    this._isFinishLabelingAction = function(action) {
+    #isFinishLabelingAction(action) {
         return action.indexOf("LabelingCanvas_FinishLabeling") >= 0;
-    };
+    }
 
     /** Returns actions */
-    this.getActions = function () {
-        return actions;
-    };
+    getActions() {
+        return this.#actions;
+    }
 
-    this._notesToString = function(param) {
+    #notesToString(param) {
         if (!param) return "";
 
-        var note = "";
-        for (var key in param) {
+        let note = "";
+        for (const key in param) {
             if (note.length > 0)
                 note += ",";
             note += key + ':' + param[key];
         }
         return note;
-    };
+    }
 
     /**
      * This function pushes action type, time stamp, current pov, and current panoId into actions list.
      */
-    this.create = function(action, notes, extraData) {
+    create(action, notes, extraData) {
         extraData = extraData || {};
 
         let auditTaskId;
         if ('canvas' in svl && svl.canvas.getCurrentLabel()) {
             auditTaskId = svl.canvas.getCurrentLabel().getProperties().auditTaskId;
         } else {
-            auditTaskId = currentAuditTask;
+            auditTaskId = this.#currentAuditTask;
         }
 
         if ('temporaryLabelId' in extraData) {
-            if (currentLabel !== null) {
-                updatedLabels.push(currentLabel);
-                svl.labelContainer.addToLabelsToLog(currentLabel);
+            if (this.#currentLabel !== null) {
+                this.#updatedLabels.push(this.#currentLabel);
+                svl.labelContainer.addToLabelsToLog(this.#currentLabel);
             }
-            currentLabel = extraData['temporaryLabelId'];
+            this.#currentLabel = extraData['temporaryLabelId'];
         }
 
         // Initialize variables. Note you cannot get pov, pano_id, or latLng before the map and pano load.
@@ -135,23 +135,23 @@ function Tracker() {
             heading: pov.heading,
             pitch: pov.pitch,
             zoom: pov.zoom,
-            note: this._notesToString(notes || {}),
-            temporary_label_id: currentLabel,
+            note: this.#notesToString(notes || {}),
+            temporary_label_id: this.#currentLabel,
             audit_task_id: auditTaskId,
             timestamp: new Date()
         };
-    };
+    }
 
     /**
      * @param {string} action the action to be stored in the database
      * @param [notes] the notes field in the database
      * @param [extraData] extra data that should not be stored in the notes field in db
      */
-    this.push = function (action, notes, extraData) {
-        var labelProperties;
-        if (self._isContextMenuAction(action) || self._isSeverityShortcutAction(action)) {
+    push(action, notes, extraData) {
+        let labelProperties;
+        if (this.#isContextMenuAction(action) || this.#isSeverityShortcutAction(action)) {
             labelProperties = svl.contextMenu.getTargetLabel().getProperties();
-            currentLabel = labelProperties.temporaryLabelId;
+            this.#currentLabel = labelProperties.temporaryLabelId;
 
             if (notes === null || typeof (notes) === 'undefined') {
                 notes = {'auditTaskId': labelProperties.auditTaskId};
@@ -161,17 +161,17 @@ function Tracker() {
 
             // Reset currentLabel to null if this is a context menu event that fired after the menu already closed.
             if (svl.contextMenu.isOpen()) {
-                updatedLabels.push(currentLabel);
-                svl.labelContainer.addToLabelsToLog(currentLabel);
+                this.#updatedLabels.push(this.#currentLabel);
+                svl.labelContainer.addToLabelsToLog(this.#currentLabel);
             } else {
-                currentLabel = null;
+                this.#currentLabel = null;
             }
 
-        } else if (self._isClickLabelDeleteAction(action)) {
+        } else if (this.#isClickLabelDeleteAction(action)) {
             labelProperties = svl.canvas.getCurrentLabel().getProperties();
-            currentLabel = labelProperties.temporaryLabelId;
-            updatedLabels.push(currentLabel);
-            svl.labelContainer.addToLabelsToLog(currentLabel);
+            this.#currentLabel = labelProperties.temporaryLabelId;
+            this.#updatedLabels.push(this.#currentLabel);
+            svl.labelContainer.addToLabelsToLog(this.#currentLabel);
 
             if (notes === null || typeof(notes) === 'undefined') {
                 notes = {'auditTaskId' : labelProperties.auditTaskId};
@@ -180,25 +180,25 @@ function Tracker() {
             }
         }
 
-        var item = self.create(action, notes, extraData);
-        var prevItem = actions.slice(-1)[0];
-        actions.push(item);
-        var contextMenuLabel = true;
+        const item = this.create(action, notes, extraData);
+        const prevItem = this.#actions.slice(-1)[0];
+        this.#actions.push(item);
+        let contextMenuLabel = true;
 
-        if (self._isFinishLabelingAction(action) && (notes['labelType'] === 'Occlusion')) {
+        if (this.#isFinishLabelingAction(action) && (notes['labelType'] === 'Occlusion')) {
             contextMenuLabel = false;
         }
 
-        // We are no longer interacting with a label, set currentLabel to null.
-        if (self._isContextMenuClose(action) || self._isDeleteLabelAction(action) || !contextMenuLabel) {
-            currentLabel = null;
+        // We are done interacting with a label, so set currentLabel to null.
+        if (this.#isContextMenuClose(action) || this.#isDeleteLabelAction(action) || !contextMenuLabel) {
+            this.#currentLabel = null;
         }
 
         // Submit the data collected thus far if actions is too long.
-        if (!waitingOnSubmit && actions.length > 200 && !self._isCanvasInteraction(action) && !self._isContextMenuAction(action)) {
+        if (!this.#waitingOnSubmit && this.#actions.length > 200 && !this.#isCanvasInteraction(action) && !this.#isContextMenuAction(action)) {
             if (svl.hasOwnProperty('form') && svl.hasOwnProperty('taskContainer')) {
-                waitingOnSubmit = true;
-                svl.form.submitData().then(() => waitingOnSubmit = false);
+                this.#waitingOnSubmit = true;
+                svl.form.submitData().then(() => this.#waitingOnSubmit = false);
             }
         }
 
@@ -206,24 +206,22 @@ function Tracker() {
         if (prevItem && item.timestamp - prevItem.timestamp > 3600000) window.location.reload();
 
         return this;
-    };
+    }
 
     /**
      * Put the previous labeling actions into prevActions. Then refresh the current actions.
      */
-    this.refresh = function() {
+    refresh() {
         // Commented out to save memory since we aren't using prevActions right now.
-        // prevActions = prevActions.concat(actions);
-        actions = [];
+        // this.#prevActions = this.#prevActions.concat(this.#actions);
+        this.#actions = [];
 
-        updatedLabels = [];
-        if (currentLabel !== null) {
-            updatedLabels.push(currentLabel);
-            svl.labelContainer.addToLabelsToLog(currentLabel);
+        this.#updatedLabels = [];
+        if (this.#currentLabel !== null) {
+            this.#updatedLabels.push(this.#currentLabel);
+            svl.labelContainer.addToLabelsToLog(this.#currentLabel);
         }
 
-        self.push("RefreshTracker");
-    };
-
-    this.init();
+        this.push("RefreshTracker");
+    }
 }

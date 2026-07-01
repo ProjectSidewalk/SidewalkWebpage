@@ -1,20 +1,23 @@
 /**
  * A Card Bucket to store Cards of a certain label type.
- *
- * @param bucket List of Cards in order received from database.
- * @returns {CardBucket}
- * @constructor
  */
-function CardBucket(inputCards) {
-    const self = this;
-    let bucket = inputCards || [];
+class CardBucket {
+    #bucket;
+
+    /**
+     * @param {Array} inputCards List of Cards in order received from database.
+     */
+    constructor(inputCards) {
+        this.#bucket = inputCards || [];
+    }
+
     /**
      * Add a Card to bucket.
      *
      * @param {Card} card Card to add.
      */
-    function push(card) {
-        bucket.push(card);
+    push(card) {
+        this.#bucket.push(card);
     }
 
     /**
@@ -22,10 +25,10 @@ function CardBucket(inputCards) {
      *
      * @param {*} tags Tags to filter upon.
      */
-    function filterOnTags(tags) {
+    filterOnTags(tags) {
         if (tags !== undefined && tags.length > 0) {
-            let tagSet = new Set(tags);
-            bucket = bucket.filter(card => card.getProperty("tags").some(tag => tagSet.has(tag)));
+            const tagSet = new Set(tags);
+            this.#bucket = this.#bucket.filter(card => card.getProperty("tags").some(tag => tagSet.has(tag)));
         }
     }
 
@@ -34,10 +37,10 @@ function CardBucket(inputCards) {
      *
      * @param {*} severities Severities to filter upon.
      */
-    function filterOnSeverities(severities) {
+    filterOnSeverities(severities) {
         if (severities !== undefined && severities.length > 0) {
-            let severitySet = new Set(severities);
-            bucket = bucket.filter(card => {
+            const severitySet = new Set(severities);
+            this.#bucket = this.#bucket.filter(card => {
                 const sev = card.getProperty("severity");
                 return severitySet.has(sev == null ? 'null' : String(sev));
             });
@@ -49,70 +52,57 @@ function CardBucket(inputCards) {
      *
      * @param {*} validationOptions Validation Options to filter upon.
      */
-    function filterOnValidationOptions(validationOptions) {
-        let validationOptionsSet = new Set(validationOptions);
-        bucket = bucket.filter(card => validationOptionsSet.has(card.getProperty("correctness")));
+    filterOnValidationOptions(validationOptions) {
+        const validationOptionsSet = new Set(validationOptions);
+        this.#bucket = this.#bucket.filter(card => validationOptionsSet.has(card.getProperty("correctness")));
     }
 
     /**
      * Return all Cards in bucket.
      */
-    function getCards() {
-        return bucket;
+    getCards() {
+        return this.#bucket;
     }
 
     /**
      * Return how many Cards are in bucket.
      */
-    function getSize() {
-        return bucket.length;
+    getSize() {
+        return this.#bucket.length;
     }
 
     /**
      * Return a copy of this CardBucket. This is not a deepcopy (the cards themselves are not copied).
      */
-    function copy() {
-        return new CardBucket([...bucket]);
+    copy() {
+        return new CardBucket([...this.#bucket]);
     }
 
     /**
      * Gets the card that has the matching imageId.
      *
-     * @param {string} imageId the id to search for.
+     * @param {string} imageId The id to search for.
      * @returns {Card} The card in the card bucket that contains the imageId.
      */
-    function findCardByImageId(imageId) {
-        let index = findCardIndexByImageId(imageId);
+    findCardByImageId(imageId) {
+        const index = this.findCardIndexByImageId(imageId);
         if (index === -1) {
             return undefined;
         }
-        return bucket[index];
+        return this.#bucket[index];
     }
 
-    function getCardByIndex(index) {
-        return bucket[index];
+    getCardByIndex(index) {
+        return this.#bucket[index];
     }
 
-    function findCardIndexByImageId(imageId) {
-        for (let i = 0; i < bucket.length; i++) {
-            if (bucket[i].getImageId() === imageId) {
+    findCardIndexByImageId(imageId) {
+        for (let i = 0; i < this.#bucket.length; i++) {
+            if (this.#bucket[i].getImageId() === imageId) {
                 return i;
             }
         }
 
         return -1;
     }
-
-    self.push = push;
-    self.filterOnTags = filterOnTags;
-    self.filterOnSeverities = filterOnSeverities;
-    self.filterOnValidationOptions = filterOnValidationOptions;
-    self.getCards = getCards;
-    self.getSize = getSize;
-    self.copy = copy;
-    self.findCardByImageId = findCardByImageId;
-    self.findCardIndexByImageId = findCardIndexByImageId;
-    self.getCardByIndex = getCardByIndex;
-
-    return this;
 }

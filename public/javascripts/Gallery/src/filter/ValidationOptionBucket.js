@@ -1,24 +1,18 @@
 /**
  * A Validation Option Bucket to store ValidationOptions.
- *
- * @param initialValidationOptions array containing validation options to set on page load.
- * @returns {ValidationOptionBucket}
- * @constructor
  */
-function ValidationOptionBucket(initialValidationOptions) {
-    const self = this;
-
+class ValidationOptionBucket {
     // List of validationOptions.
-    let bucket = [];
+    #bucket = [];
 
     /**
-     * Initialize ValidationOptionBucket.
+     * @param {Array} initialValidationOptions Array containing validation options to set on page load.
      */
-    function _init() {
-        push(new ValidationOption({ validationOption: 'correct'}, initialValidationOptions.includes('correct')));
-        push(new ValidationOption({ validationOption: 'incorrect'}, initialValidationOptions.includes('incorrect')));
-        push(new ValidationOption({ validationOption: 'unsure'}, initialValidationOptions.includes('unsure')));
-        push(new ValidationOption({ validationOption: 'unvalidated'}, initialValidationOptions.includes('unvalidated')));
+    constructor(initialValidationOptions) {
+        this.push(new ValidationOption({ validationOption: 'correct'}, initialValidationOptions.includes('correct')));
+        this.push(new ValidationOption({ validationOption: 'incorrect'}, initialValidationOptions.includes('incorrect')));
+        this.push(new ValidationOption({ validationOption: 'unsure'}, initialValidationOptions.includes('unsure')));
+        this.push(new ValidationOption({ validationOption: 'unvalidated'}, initialValidationOptions.includes('unvalidated')));
     }
 
     /**
@@ -26,64 +20,52 @@ function ValidationOptionBucket(initialValidationOptions) {
      *
      * @param {*} validationOption
      */
-    function push(validationOption) {
-        bucket.push(validationOption);
+    push(validationOption) {
+        this.#bucket.push(validationOption);
     }
 
     /**
      * Render ValidationOptions in ValidationOptionBucket.
      * @param {*} uiValidationOptionHolder UI element to render ValidationOptions in.
      */
-    function render(uiValidationOptionHolder) {
-        bucket.forEach(validationOption => validationOption.render(uiValidationOptionHolder));
+    render(uiValidationOptionHolder) {
+        this.#bucket.forEach(validationOption => validationOption.render(uiValidationOptionHolder));
     }
 
     /**
      * Unapply all ValidationOptions.
      */
-    function unapplyValidationOptions() {
-        bucket.forEach(validationOption => validationOption.unapply());
+    unapplyValidationOptions() {
+        this.#bucket.forEach(validationOption => validationOption.unapply());
     }
 
     /**
      * Return list of ValidationOptions.
      */
-    function getValidationOptions() {
-        return bucket;
+    getValidationOptions() {
+        return this.#bucket;
     }
 
     /**
      * Return number of ValidationOptions.
      */
-    function getSize() {
-        return bucket.length;
+    getSize() {
+        return this.#bucket.length;
     }
 
     /**
      * Return list of applied ValidationOptions.
      */
-    function getAppliedValidationOptions() {
-        return bucket.filter(valOption => valOption.getActive()).map(valOption => valOption.getValidationOption());
+    getAppliedValidationOptions() {
+        return this.#bucket.filter(valOption => valOption.getActive()).map(valOption => valOption.getValidationOption());
     }
 
     /**
      * Resets the validation options to the default/initial values.
      */
-    function setToDefault() {
-        unapplyValidationOptions();
-        bucket[0].apply();
-        bucket[3].apply();
+    setToDefault() {
+        this.unapplyValidationOptions();
+        this.#bucket[0].apply();
+        this.#bucket[3].apply();
     }
-
-    self.push = push;
-    self.render = render;
-    self.unapplyValidationOptions = unapplyValidationOptions;
-    self.getValidationOptions = getValidationOptions;
-    self.getSize = getSize;
-    self.getAppliedValidationOptions = getAppliedValidationOptions;
-    self.setToDefault = setToDefault;
-
-    _init();
-
-    return this;
 }

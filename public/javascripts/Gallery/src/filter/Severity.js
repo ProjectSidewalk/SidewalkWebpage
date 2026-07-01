@@ -1,114 +1,117 @@
 /**
  * A Severity module.
- *
- * @param {*} params Severity value: the string "null" for the N/A bucket, or "1"/"2"/"3" for rated.
- * @param active A boolean to see if the current severity filter is active.
- * @param labelType Current gallery label type (drives which smiley set to use).
- * @returns {Severity}
- * @constructor
  */
-function Severity (params, active, labelType) {
-    const self = this;
-
+class Severity {
     // UI elements of the severity container, image, and label.
-    let severityElement = null;
-    let $severityImage = null;
-    let $severityLabel = null;
-    let interactionEnabled = false;
-    let currentLabelType = labelType;
+    #severityElement = null;
+    #severityImage = null;
+    #severityLabel = null;
+    #interactionEnabled = false;
+    #currentLabelType;
 
-    let properties = {
+    #properties = {
         severity: undefined
     };
 
     // A boolean to see if the current severity filter is active.
-    let filterActive = active;
+    #filterActive;
+
+    /**
+     * @param {*} params Severity value: the string "null" for the N/A bucket, or "1"/"2"/"3" for rated.
+     * @param {boolean} active A boolean to see if the current severity filter is active.
+     * @param {string} labelType Current gallery label type (drives which smiley set to use).
+     */
+    constructor(params, active, labelType) {
+        this.#currentLabelType = labelType;
+        this.#filterActive = active;
+        this.#init(params);
+    }
 
     /**
      * Initialize Severity.
      *
      * @param {string} param Severity ("null" for N/A, "1"/"2"/"3" for rated).
      */
-    function _init(param) {
-        properties.severity = param;
+    #init(param) {
+        this.#properties.severity = param;
 
-        severityElement = document.createElement('div');
-        severityElement.className = 'severity-button gallery-filter';
+        this.#severityElement = document.createElement('div');
+        this.#severityElement.className = 'severity-button gallery-filter';
 
-        $severityImage = $('<img class="severity-button__icon" alt="">')
-            .attr('id', 'severity-' + properties.severity);
-        _updateIconSrc();
+        this.#severityImage = $('<img class="severity-button__icon" alt="">')
+            .attr('id', 'severity-' + this.#properties.severity);
+        this.#updateIconSrc();
 
-        $severityLabel = $('<span class="severity-button__label"></span>').text(_getLabelText());
+        this.#severityLabel = $('<span class="severity-button__label"></span>').text(this.#getLabelText());
 
-        $(severityElement).append($severityImage).append($severityLabel);
+        $(this.#severityElement).append(this.#severityImage).append(this.#severityLabel);
 
         // Toggle filter on click.
-        severityElement.onclick = handleOnClickCallback;
+        this.#severityElement.onclick = this.handleOnClickCallback;
     }
 
     /**
      * Handles when severity is selected/deselected.
      */
-    function handleOnClickCallback() {
-        if (filterActive) {
-            sg.tracker.push("SeverityUnapply", null, { Severity: properties.severity });
-            unapply();
+    handleOnClickCallback = () => {
+        if (this.#filterActive) {
+            sg.tracker.push("SeverityUnapply", null, { Severity: this.#properties.severity });
+            this.unapply();
         } else {
-            sg.tracker.push("SeverityApply", null, { Severity: properties.severity });
-            apply();
+            sg.tracker.push("SeverityApply", null, { Severity: this.#properties.severity });
+            this.apply();
         }
 
         sg.cardFilter.update();
-    }
+    };
 
     /**
      * Icon filenames are keyed by a numeric severity (0..3). The "null" bucket reuses the sev-0 asset.
      */
-    function _severityNum() {
-        return properties.severity === 'null' ? 0 : Number(properties.severity);
+    #severityNum() {
+        return this.#properties.severity === 'null' ? 0 : Number(this.#properties.severity);
     }
 
     /**
      * Returns the i18n-resolved text for this severity's label shown under the icon.
      */
-    function _getLabelText() {
-        if (properties.severity === 'null') return i18next.t('labelmap:not-applicable-abbr');
-        const key = util.misc.getRatingLevelKeys(currentLabelType)[Number(properties.severity)];
+    #getLabelText() {
+        if (this.#properties.severity === 'null') return i18next.t('labelmap:not-applicable-abbr');
+        const key = util.misc.getRatingLevelKeys(this.#currentLabelType)[Number(this.#properties.severity)];
         return i18next.t('common:' + key);
     }
 
-    function _updateIconSrc() {
-        $severityImage.attr('src', util.misc.getSmileyIconPath(_severityNum(), currentLabelType, filterActive));
+    #updateIconSrc() {
+        this.#severityImage.attr('src', util.misc.getSmileyIconPath(this.#severityNum(), this.#currentLabelType, this.#filterActive));
     }
 
     /**
-     * Update the label type used to pick the smiley icon set (positive vs negative) and refresh the text label.
+     * Update the label type that selects the smiley icon set (positive vs negative) and refresh the text label.
      * @param {string} newLabelType
      */
-    function setLabelType(newLabelType) {
-        currentLabelType = newLabelType;
-        _updateIconSrc();
-        if ($severityLabel) $severityLabel.text(_getLabelText());
+    setLabelType(newLabelType) {
+        this.#currentLabelType = newLabelType;
+        this.#updateIconSrc();
+        if (this.#severityLabel) this.#severityLabel.text(this.#getLabelText());
     }
 
     /**
      * Applies a severity filter.
      */
-    function apply() {
-        if (interactionEnabled) {
-            filterActive = true;
-            _updateIconSrc();
+    apply() {
+        if (this.#interactionEnabled) {
+            this.#filterActive = true;
+            this.#updateIconSrc();
         }
     }
 
     /**
      * Unapplies a severity filter.
      */
-    function unapply() {
-        if (interactionEnabled) {
-            filterActive = false;
-            _updateIconSrc();
+    unapply() {
+        if (this.#interactionEnabled) {
+            this.#filterActive = false;
+            this.#updateIconSrc();
         }
     }
 
@@ -117,49 +120,35 @@ function Severity (params, active, labelType) {
      *
      * @param {*} filterContainer UI element to render Severity in.
      */
-    function render(filterContainer) {
-        filterContainer.append(severityElement);
+    render(filterContainer) {
+        filterContainer.append(this.#severityElement);
     }
 
     /**
      * Returns whether Severity is applied or not.
      */
-    function getActive(){
-        return filterActive;
+    getActive() {
+        return this.#filterActive;
     }
 
     /**
      * Returns severity value of Severity.
      */
-    function getSeverity() {
-        return properties.severity;
+    getSeverity() {
+        return this.#properties.severity;
     }
 
     /**
      * Disables interaction with Severity.
      */
-    function disable() {
-        interactionEnabled = false;
+    disable() {
+        this.#interactionEnabled = false;
     }
 
     /**
      * Enables interaction with Severity.
      */
-    function enable() {
-        interactionEnabled = true;
+    enable() {
+        this.#interactionEnabled = true;
     }
-
-    self.handleOnClickCallback = handleOnClickCallback;
-    self.apply = apply;
-    self.unapply = unapply;
-    self.getActive = getActive;
-    self.getSeverity = getSeverity;
-    self.render = render;
-    self.disable = disable;
-    self.enable = enable;
-    self.setLabelType = setLabelType;
-
-    _init(params);
-
-    return this;
 }

@@ -1,52 +1,82 @@
 /**
- * Initializes a full screen carousel for the mission start tutorial.
- * @param missionType mission type. Currently only VALIDATE mission is supported.
- * @param labelType one of the seven label types for which the tutorial needs to be initialized.
- * @param nLabels the number of labels to validate in the current mission (VALIDATE mission only).
- * @param svvOrsvl the svvOrsvl SVValidate or SVLabel object to log interactions and perform other actions upon closing the tutorial.
- * @param language Fdfadfda
+ * A full-screen carousel for the mission start tutorial.
  */
-function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language = 'en') {
-    const self = this;
-
-    const EXAMPLE_TYPES = {
+class MissionStartTutorial {
+    static #EXAMPLE_TYPES = {
         CORRECT: 'correct',
         INCORRECT: 'incorrect'
     };
 
-    const MISSION_TYPES = {
+    static #MISSION_TYPES = {
         VALIDATE: 'validate',
         EXPLORE: 'audit'
     };
 
     // Map of exampleType to ID of the smiley icon to be used.
-    const SMILEYS = {};
-    SMILEYS[EXAMPLE_TYPES.CORRECT] = '#smile-positive';
-    SMILEYS[EXAMPLE_TYPES.INCORRECT] = '#smile-negative';
+    static #SMILEYS = {
+        [MissionStartTutorial.#EXAMPLE_TYPES.CORRECT]: '#smile-positive',
+        [MissionStartTutorial.#EXAMPLE_TYPES.INCORRECT]: '#smile-negative'
+    };
+
+    #missionType;
+    #labelType;
+    #data;
+    #svvOrsvl;
+    #language;
+
+    #currentSlideIdx = 0;
+    #nSlides = 0;
+    #labelTypeModule = {};
+
+    // Messages prefix, essentially missionType but declared as a field to accommodate future changes. Selects the
+    // 'audit' or 'validate' message namespace for mission screens.
+    #messagesPrefix;
 
     /**
-     * Provides structure for a slide based tutorial framework.
+     * @param {string} missionType Mission type ('validate' or 'audit').
+     * @param {string} labelType One of the seven label types for which the tutorial is initialized.
+     * @param {object} data Mission data: `nLabels` (VALIDATE) or `neighborhood` (EXPLORE).
+     * @param {object} svvOrsvl SVValidate or SVLabel object that logs interactions and acts on tutorial close.
+     * @param {string} [language] Language code that tweaks spacing for verbose translations.
+     */
+    constructor(missionType, labelType, data, svvOrsvl, language = 'en') {
+        this.#missionType = missionType;
+        this.#labelType = labelType;
+        this.#data = data;
+        this.#svvOrsvl = svvOrsvl;
+        this.#language = language;
+        this.#messagesPrefix = missionType;
+
+        this.#initModule(missionType);
+        this.#initUI();
+        this.#attachEventHandlers();
+    }
+
+    /**
+     * Initializes the variables needed for this module by selecting the descriptor for the current label type.
      *
-     * This object contains the following:
+     * Each descriptor provides structure for a slide-based tutorial framework:
      *     - missionInstruction1: Text to be shown at the very top, above the slides area.
      *     - missionInstruction2: Text to be shown below missionInstruction1, above the slides area.
      *     - slides: An array of 'slides'.
      *
-     *     Each 'slide' contains the following:
-     *         - isExampleCorrect: boolean, indicating whether the example type is correct or incorrect.
-     *         - slideTitle: string, title for the slide.
-     *         - slideSubtitle: string, subtitle for the slide.
-     *         - slideDescription: string, long form text description for the slide.
-     *         - imageURL: string, URL to the image to be shown.
-     *         - labelOnImage: object, containing the following:
-     *             - position: object, containing 'top' and 'left' attributes for the on-image label. The 'top' and
-     *                         'left' must be defined with respect to the top and left of the 'image element.'
+     * Each 'slide' contains the following:
+     *     - isExampleCorrect: boolean, indicating whether the example type is correct or incorrect.
+     *     - slideTitle: string, title for the slide.
+     *     - slideSubtitle: string, subtitle for the slide.
+     *     - slideDescription: string, long form text description for the slide.
+     *     - imageURL: string, URL to the image to be shown.
+     *     - labelOnImage: object, containing the following:
+     *         - position: object, containing 'top' and 'left' attributes (wrt image elem) for the on-image label.
+     *
+     * @param {string} missionType Mission type ('validate' or 'audit').
      */
-    const validateMSTDescriptor = {
+    #initModule(missionType) {
+        const validateMSTDescriptor = {
         'CurbRamp': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': data.nLabels, 'labelType': i18next.t('common:curb-ramp')}),
+                {'nLabels': this.#data.nLabels, 'labelType': i18next.t('common:curb-ramp')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -93,7 +123,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         'NoCurbRamp': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': data.nLabels, 'labelType': i18next.t('common:no-curb-ramp')}),
+                {'nLabels': this.#data.nLabels, 'labelType': i18next.t('common:no-curb-ramp')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -153,7 +183,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         'Obstacle': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': data.nLabels, 'labelType': i18next.t('common:obstacle')}),
+                {'nLabels': this.#data.nLabels, 'labelType': i18next.t('common:obstacle')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -213,7 +243,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         'SurfaceProblem': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': data.nLabels, 'labelType': i18next.t('common:surface-problem')}),
+                {'nLabels': this.#data.nLabels, 'labelType': i18next.t('common:surface-problem')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -260,7 +290,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         'NoSidewalk': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': data.nLabels, 'labelType': i18next.t('common:no-sidewalk')}),
+                {'nLabels': this.#data.nLabels, 'labelType': i18next.t('common:no-sidewalk')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -307,7 +337,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         'Crosswalk': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': data.nLabels, 'labelType': i18next.t('common:crosswalk')}),
+                {'nLabels': this.#data.nLabels, 'labelType': i18next.t('common:crosswalk')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -367,7 +397,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         'Signal': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': data.nLabels, 'labelType': i18next.t('common:signal')}),
+                {'nLabels': this.#data.nLabels, 'labelType': i18next.t('common:signal')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -431,7 +461,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         'CurbRamp': {
             'missionInstruction1': i18next.t('audit:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('audit:mission-start-tutorial.mst-instruction-2',
-                {'neighborhood': data.neighborhood}),
+                {'neighborhood': this.#data.neighborhood}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -478,7 +508,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         'NoCurbRamp': {
             'missionInstruction1': i18next.t('audit:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('audit:mission-start-tutorial.mst-instruction-2',
-                {'neighborhood': data.neighborhood}),
+                {'neighborhood': this.#data.neighborhood}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -538,7 +568,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         'Obstacle': {
             'missionInstruction1': i18next.t('audit:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('audit:mission-start-tutorial.mst-instruction-2',
-                {'neighborhood': data.neighborhood}),
+                {'neighborhood': this.#data.neighborhood}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -598,7 +628,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         'SurfaceProblem': {
             'missionInstruction1': i18next.t('audit:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('audit:mission-start-tutorial.mst-instruction-2',
-                {'neighborhood': data.neighborhood}),
+                {'neighborhood': this.#data.neighborhood}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -645,7 +675,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         'NoSidewalk': {
             'missionInstruction1': i18next.t('audit:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('audit:mission-start-tutorial.mst-instruction-2',
-                {'neighborhood': data.neighborhood}),
+                {'neighborhood': this.#data.neighborhood}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -692,7 +722,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         'Crosswalk': {
             'missionInstruction1': i18next.t('audit:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('audit:mission-start-tutorial.mst-instruction-2',
-                {'neighborhood': data.neighborhood}),
+                {'neighborhood': this.#data.neighborhood}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -752,7 +782,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         'Signal': {
             'missionInstruction1': i18next.t('audit:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('audit:mission-start-tutorial.mst-instruction-2',
-                {'neighborhood': data.neighborhood}),
+                {'neighborhood': this.#data.neighborhood}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -811,56 +841,42 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         }
     };
 
-    // Initialize variables.
-    let currentSlideIdx = 0;
-    let nSlides = 0;
-    let labelTypeModule = {};
-
-    // Messages prefix, essentially missionType but declaring as variable to accommodate for future changes.
-    // Used to select messages for 'audit' or 'validate' mission screens.
-    const messagesPrefix = missionType;
-
-    // Initializes the variables needed for this module.
-    function initModule(missionType) {
-        if (missionType === MISSION_TYPES.VALIDATE) {
-            labelTypeModule = validateMSTDescriptor[labelType];
-            nSlides = labelTypeModule.slides.length;
-        } else if (missionType === MISSION_TYPES.EXPLORE) {
-            labelTypeModule = exploreMSTDescriptor[labelType];
-            nSlides = labelTypeModule.slides.length;
+        if (missionType === MissionStartTutorial.#MISSION_TYPES.VALIDATE) {
+            this.#labelTypeModule = validateMSTDescriptor[this.#labelType];
+            this.#nSlides = this.#labelTypeModule.slides.length;
+        } else if (missionType === MissionStartTutorial.#MISSION_TYPES.EXPLORE) {
+            this.#labelTypeModule = exploreMSTDescriptor[this.#labelType];
+            this.#nSlides = this.#labelTypeModule.slides.length;
         }
     }
-
 
     /**
      * Initializes the UI for the mission screens.
      * Renders the top level messages and slide location indicators.
      * Also renders the first slide.
      */
-    function initUI() {
-
-        function renderLocationIndicators() {
-
+    #initUI() {
+        const renderLocationIndicators = () => {
             // We should clear existing indicators before rendering.
             // Explore mission screens allow re-rendering of the slides for different labels.
             $('.mst-carousel-location-indicator:not(.template)').remove();
 
             const $missionCarouselIndicatorArea = $('.mst-carousel-location-indicator-area');
-            for (let i = 0; i < nSlides; i++) {
+            for (let i = 0; i < this.#nSlides; i++) {
                 const $indicator = $('.mst-carousel-location-indicator.template').clone().removeClass('template');
                 $indicator.attr('data-idx', i);
                 $missionCarouselIndicatorArea.append($indicator);
             }
-        }
+        };
 
-        $('.mst-instruction-1').html(labelTypeModule.missionInstruction1); // Explore mission screens have HTML in strings.
-        $('.mst-instruction-2').html(labelTypeModule.missionInstruction2);
+        $('.mst-instruction-1').html(this.#labelTypeModule.missionInstruction1); // Explore mission screens have HTML in strings.
+        $('.mst-instruction-2').html(this.#labelTypeModule.missionInstruction2);
 
         $('.mission-start-tutorial-done-btn').text(i18next.t('common:mission-start-tutorial.start-mission'));
 
         // Show the tab bar to allow selection of different labels in explore mission screens.
         // And set up other UI.
-        if (missionType === MISSION_TYPES.EXPLORE) {
+        if (this.#missionType === MissionStartTutorial.#MISSION_TYPES.EXPLORE) {
 
             $('.explore-mission-start-tab.label[data-label-type="CurbRamp"]').find('.explore-mission-start-tab-text').html(i18next.t('common:curb-ramp'));
             $('.explore-mission-start-tab.label[data-label-type="NoCurbRamp"]').find('.explore-mission-start-tab-text').html(i18next.t('common:no-curb-ramp'));
@@ -873,11 +889,11 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
             $('.explore-mission-start-tab-bar').show();
 
             $('.explore-mission-start-tab.label').removeClass('active');
-            $(`.explore-mission-start-tab.label[data-label-type="${labelType}"]`).addClass('active');
+            $(`.explore-mission-start-tab.label[data-label-type="${this.#labelType}"]`).addClass('active');
         }
 
         renderLocationIndicators();
-        renderSlide(currentSlideIdx);
+        this.#renderSlide(this.#currentSlideIdx);
 
         $('.mission-start-tutorial-overlay').css('display', 'flex');
     }
@@ -886,19 +902,24 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
      * Renders the slide for the given idx. Includes setting title, subtitle, description, image, and on-image label.
      * - Updates the current slide indicator.
      * - Disables/enables the next/previous buttons based on the idx of the rendered slide.
-     * @param idx Index of the slide to be rendered.
+     * @param {number} idx Index of the slide to be rendered.
      */
-    function renderSlide(idx) {
+    #renderSlide(idx) {
+        const $mstSlide = $('.mst-slide');
+        const $labelTypeSubtitle = $('.label-type-subtitle');
+        const $mstSlideImage = $('.msts-image');
+        const $labelOnImage = $('.label-on-image');
+        const $mstDoneButton = $('.mission-start-tutorial-done-btn');
+        const $labelOnImageDescription = $('.label-on-image-description');
 
         /**
          * Renders the 'on-image label' and positions it.
-         * @param position info about the position of the on-image label as top and left attributes in px.
-         * @param iconID ID of the SVG icon to be shown on the label.
-         * @param labelOnImageTitle title to be shown on the label
-         * @param labelOnImageDescription description to be shown on the label
+         * @param {object} position Position of the on-image label as top and left attributes in px.
+         * @param {string} iconID ID of the SVG icon to be shown on the label.
+         * @param {string} labelOnImageTitle Title to be shown on the label.
+         * @param {string} labelOnImageDescription Description to be shown on the label.
          */
-        function renderLabelOnImage(position, iconID, labelOnImageTitle, labelOnImageDescription) {
-
+        const renderLabelOnImage = (position, iconID, labelOnImageTitle, labelOnImageDescription) => {
             $labelOnImage.css({
                 'top': `calc(${position.top} * var(--ui-scale))`,
                 'left': `calc(${position.left} * var(--ui-scale))`
@@ -909,32 +930,25 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
             $('.label-on-image-type-icon').find('use').attr('xlink:href', iconID);
 
             $labelOnImage.show();
-        }
-
-        const $mstSlide = $('.mst-slide');
-        const $labelTypeSubtitle = $('.label-type-subtitle');
-        const $mstSlideImage = $('.msts-image');
-        const $labelOnImage = $('.label-on-image');
-        const $mstDoneButton = $('.mission-start-tutorial-done-btn');
-        const $labelOnImageDescription = $('.label-on-image-description');
+        };
 
         // Change spacing for the descriptions for different languages based on how verbose they are.
-        if (language === 'de') {
+        if (this.#language === 'de') {
             $labelOnImageDescription[0].style.transform = 'translateY(' + -16 + '%)';
-        } else if (language === 'nl') {
+        } else if (this.#language === 'nl') {
             $labelOnImage[0].style.maxWidth = 'calc(230px * var(--ui-scale))';
         }
 
         // Reset the UI first.
         $('.mst-carousel-location-indicator').removeClass('current-location');
-        $mstSlide.removeClass(EXAMPLE_TYPES.CORRECT).removeClass(EXAMPLE_TYPES.INCORRECT);
+        $mstSlide.removeClass(MissionStartTutorial.#EXAMPLE_TYPES.CORRECT).removeClass(MissionStartTutorial.#EXAMPLE_TYPES.INCORRECT);
         $mstSlideImage.attr('src', '');
         $labelTypeSubtitle.text('');
         $('.previous-slide-button, .next-slide-button').removeClass('disabled');
         $labelOnImage.hide();
         $mstDoneButton.removeClass('focus');
 
-        const slide = labelTypeModule.slides[idx];
+        const slide = this.#labelTypeModule.slides[idx];
 
         if (slide.isExampleCorrect) {
             $mstSlide.addClass('correct');
@@ -948,17 +962,17 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         let labelOnImageTitle = '';
         let labelOnImageDescription = '';
         if (slide.isExampleCorrect) {
-            iconID = SMILEYS[EXAMPLE_TYPES.CORRECT];
+            iconID = MissionStartTutorial.#SMILEYS[MissionStartTutorial.#EXAMPLE_TYPES.CORRECT];
             exampleTypeLabel = i18next.t('common:mission-start-tutorial.example-type-label-correct');
 
             labelOnImageTitle = i18next.t('common:mission-start-tutorial.label-on-image-title-correct');
-            labelOnImageDescription = i18next.t(messagesPrefix + ':mission-start-tutorial.label-on-image-description-correct');
+            labelOnImageDescription = i18next.t(this.#messagesPrefix + ':mission-start-tutorial.label-on-image-description-correct');
         } else {
-            iconID = SMILEYS[EXAMPLE_TYPES.INCORRECT];
-            exampleTypeLabel = i18next.t(messagesPrefix + ':mission-start-tutorial.example-type-label-incorrect');
+            iconID = MissionStartTutorial.#SMILEYS[MissionStartTutorial.#EXAMPLE_TYPES.INCORRECT];
+            exampleTypeLabel = i18next.t(this.#messagesPrefix + ':mission-start-tutorial.example-type-label-incorrect');
 
-            labelOnImageTitle = i18next.t(messagesPrefix + ':mission-start-tutorial.label-on-image-title-incorrect');
-            labelOnImageDescription = i18next.t(messagesPrefix + ':mission-start-tutorial.label-on-image-description-incorrect');
+            labelOnImageTitle = i18next.t(this.#messagesPrefix + ':mission-start-tutorial.label-on-image-title-incorrect');
+            labelOnImageDescription = i18next.t(this.#messagesPrefix + ':mission-start-tutorial.label-on-image-description-incorrect');
         }
 
 
@@ -987,11 +1001,11 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
         // Disable the previous/next buttons based on the current slide idx
         if (idx === 0) {
             $('.previous-slide-button').addClass('disabled');
-        } else if (idx === nSlides - 1) {
+        } else if (idx === this.#nSlides - 1) {
 
             // We want users to explore other label types after they finish one in 'Explore Mission Screens'.
             // So we don't want to draw attention to the start button.
-            if (missionType === MISSION_TYPES.VALIDATE) {
+            if (this.#missionType === MissionStartTutorial.#MISSION_TYPES.VALIDATE) {
                 $mstDoneButton.addClass('focus');
             }
 
@@ -1003,25 +1017,25 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
      * Attaches the event handlers required for the mission screen labelTypeModule.
      * Note: we need to remove existing handlers first as this function may be called multiple times (explore mission screens).
      */
-    function attachEventHandlers() {
+    #attachEventHandlers() {
 
         // Hides the mission start tutorial, initializes the relevant svvOrsvl variables, and logs the interaction.
-        function hideMST() {
-            if (svvOrsvl.zoomControl && svvOrsvl.zoomControl.updateZoomAvailability) svvOrsvl.zoomControl.updateZoomAvailability();
-            if (svvOrsvl.keyboard && svvOrsvl.keyboard.enableKeyboard) svvOrsvl.keyboard.enableKeyboard();
+        const hideMST = () => {
+            if (this.#svvOrsvl.zoomControl && this.#svvOrsvl.zoomControl.updateZoomAvailability) this.#svvOrsvl.zoomControl.updateZoomAvailability();
+            if (this.#svvOrsvl.keyboard && this.#svvOrsvl.keyboard.enableKeyboard) this.#svvOrsvl.keyboard.enableKeyboard();
 
             $('.mission-start-tutorial-overlay').fadeOut(100);
             $('.explore-mission-start-tab-bar').fadeOut(100);
 
-            svvOrsvl.tracker.push('MSTDoneButton_Click', { 'currentSlideIdx': currentSlideIdx }, null);
+            this.#svvOrsvl.tracker.push('MSTDoneButton_Click', { 'currentSlideIdx': this.#currentSlideIdx }, null);
 
             // Log 'MissionStart' on Explore missions.
-            if (missionType === MISSION_TYPES.EXPLORE) {
-                let mission = svvOrsvl.missionContainer.getCurrentMission();
+            if (this.#missionType === MissionStartTutorial.#MISSION_TYPES.EXPLORE) {
+                const mission = this.#svvOrsvl.missionContainer.getCurrentMission();
                 // Check added so that if a user begins a mission, leaves partway through, and then resumes the mission
                 // later, another MissionStart will not be triggered.
                 if (mission.getProperty('distanceProgress') < 0.0001) {
-                    svvOrsvl.tracker.push(
+                    this.#svvOrsvl.tracker.push(
                         "MissionStart",
                         {
                             missionId: mission.getProperty("missionId"),
@@ -1032,34 +1046,26 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language =
                     );
                 }
             }
-        }
+        };
 
-        $('.previous-slide-button').off().click(function() {
-            currentSlideIdx = Math.max(currentSlideIdx - 1, 0);
-            renderSlide(currentSlideIdx);
-            svvOrsvl.tracker.push('PreviousSlideButton_Click', {'currentSlideIdx': currentSlideIdx}, null);
+        $('.previous-slide-button').off().click(() => {
+            this.#currentSlideIdx = Math.max(this.#currentSlideIdx - 1, 0);
+            this.#renderSlide(this.#currentSlideIdx);
+            this.#svvOrsvl.tracker.push('PreviousSlideButton_Click', {'currentSlideIdx': this.#currentSlideIdx}, null);
         });
 
-        $('.next-slide-button').off().click(function() {
-            currentSlideIdx = Math.min(currentSlideIdx + 1, nSlides - 1);
-            renderSlide(currentSlideIdx);
-            svvOrsvl.tracker.push('NextSlideButton_Click', {'currentSlideIdx': currentSlideIdx}, null);
+        $('.next-slide-button').off().click(() => {
+            this.#currentSlideIdx = Math.min(this.#currentSlideIdx + 1, this.#nSlides - 1);
+            this.#renderSlide(this.#currentSlideIdx);
+            this.#svvOrsvl.tracker.push('NextSlideButton_Click', {'currentSlideIdx': this.#currentSlideIdx}, null);
         });
 
         // Event handler to allow selecting between different label types
-        $('.explore-mission-start-tab.label').off().click(function() {
-            const labelType = $(this).attr('data-label-type');
-            const missionStartTutorial = new MissionStartTutorial('audit', labelType,
-                { neighborhood: data.neighborhood },
-                svl);
+        $('.explore-mission-start-tab.label').off().click((e) => {
+            const labelType = $(e.currentTarget).attr('data-label-type');
+            new MissionStartTutorial('audit', labelType, { neighborhood: this.#data.neighborhood }, svl);
         });
 
         $('.mission-start-tutorial-done-btn').off().click(hideMST);
     }
-
-    initModule(missionType);
-    initUI();
-    attachEventHandlers();
-
-    return this;
 }

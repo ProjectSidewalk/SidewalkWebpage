@@ -1,43 +1,39 @@
 /**
- * MissionModel constructor.
-  * @constructor
+ * Holds and triggers mission-related pub/sub events. The `EventMixin` emitter is mixed onto the prototype below,
+ * providing `trigger`/`on`/etc. shared across the model modules.
  */
-function MissionModel () {
-    var self = this;
-
-    this.fetchCompletedMissionsInNeighborhood = function (callback) {
-        function _onFetch (missions) {
-            for (var i = 0, len = missions.length; i < len; i++) {
-                self.createAMission(missions[0]);
+class MissionModel {
+    fetchCompletedMissionsInNeighborhood(callback) {
+        const _onFetch = (missions) => {
+            for (let i = 0, len = missions.length; i < len; i++) {
+                this.createAMission(missions[0]);
             }
-        }
+        };
 
         if (callback) {
             $.when($.ajax(`/neighborhoodMissions?regionId=${svl.regionId}`)).done(_onFetch).done(callback);
         } else {
             $.when($.ajax(`/neighborhoodMissions?regionId=${svl.regionId}`)).done(_onFetch);
         }
-    };
+    }
 
+    addAMission(mission) {
+        this.trigger("MissionContainer:addAMission", mission);
+    }
 
+    completeMission(mission) {
+        this.trigger("MissionProgress:complete", { mission: mission });
+    }
+
+    createAMission(parameters) {
+        this.trigger("MissionFactory:create", parameters);
+    }
+
+    /**
+     * Notify the mission modules with MissionProgress:update
+     */
+    updateMissionProgress(mission, neighborhood) {
+        this.trigger("MissionProgress:update", { mission: mission, neighborhood: neighborhood });
+    }
 }
 Object.assign(MissionModel.prototype, EventMixin);
-
-MissionModel.prototype.addAMission = function (mission) {
-    this.trigger("MissionContainer:addAMission", mission);
-};
-
-MissionModel.prototype.completeMission = function (mission) {
-    this.trigger("MissionProgress:complete", { mission: mission });
-};
-
-MissionModel.prototype.createAMission = function (parameters) {
-    this.trigger("MissionFactory:create", parameters);
-};
-
-/**
- * Notify the mission modules with MissionProgress:update
- */
-MissionModel.prototype.updateMissionProgress = function (mission, neighborhood) {
-    this.trigger("MissionProgress:update", { mission: mission, neighborhood: neighborhood });
-};

@@ -1,60 +1,67 @@
 /**
- * MissionContainer module
- * @param missionPanel. Renders the current mission's header and description in the sidebar.
- * @param missionModel. Mission model object.
- * @returns {{className: string}}
- * @constructor
+ * MissionContainer module.
+ *
+ * The `EventMixin` emitter is mixed onto the prototype below, providing `trigger`/`on`/etc.
+ *
  * @memberof svl
  */
-function MissionContainer (missionPanel, missionModel) {
-    var self = this;
-    this._completedMissions = [];
-    this._currentMission = null;
+class MissionContainer {
+    #missionPanel;
+    #missionModel;
+    #completedMissions = [];
+    #currentMission = null;
 
     /*
     This variable keeps the distance of completed missions minus completed audits to fix the problem that
     is discussed here: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/297#issuecomment-259697107
      */
-    var tasksMissionsOffset = null;
+    #tasksMissionsOffset = null;
 
-    var _missionModel = missionModel;
+    /**
+     * @param missionPanel Renders the current mission's header and description in the sidebar.
+     * @param missionModel Mission model object.
+     */
+    constructor(missionPanel, missionModel) {
+        this.#missionPanel = missionPanel;
+        this.#missionModel = missionModel;
 
-    _missionModel.on("MissionProgress:complete", function (parameters) {
-        var mission = parameters.mission;
-        self.addToCompletedMissions(mission);
-    });
+        missionModel.on("MissionProgress:complete", (parameters) => {
+            const mission = parameters.mission;
+            this.addToCompletedMissions(mission);
+        });
 
-    _missionModel.on("MissionContainer:addAMission", function (mission) {
-        if (mission.getProperty("isComplete")) {
-            self._completedMissions.push(mission);
-        } else {
-            self.setCurrentMission(mission);
-            self.notifyMissionLoaded(mission);
-        }
-    });
+        missionModel.on("MissionContainer:addAMission", (mission) => {
+            if (mission.getProperty("isComplete")) {
+                this.#completedMissions.push(mission);
+            } else {
+                this.setCurrentMission(mission);
+                this.notifyMissionLoaded(mission);
+            }
+        });
+    }
 
     /** Push the completed mission */
-    this.addToCompletedMissions = function (mission) {
-        var existingMissionIds = self._completedMissions.map(function (m) { return m.getProperty("missionId")});
-        var currentMissionId = mission.getProperty("missionId");
+    addToCompletedMissions(mission) {
+        const existingMissionIds = this.#completedMissions.map(m => m.getProperty("missionId"));
+        const currentMissionId = mission.getProperty("missionId");
         if (existingMissionIds.indexOf(currentMissionId) < 0) {
             mission.setProperty("distanceProgress", mission.getDistance());
-            self._completedMissions.push(mission);
+            this.#completedMissions.push(mission);
         } else {
-            console.log("Oops, we are trying to add to completed missions array multiple times. Plz fix.")
+            console.log("Oops, we are trying to add to completed missions array multiple times. Plz fix.");
         }
-    };
+    }
 
     /** Get current mission */
-    function getCurrentMission() {
-        return self._currentMission;
+    getCurrentMission() {
+        return this.#currentMission;
     }
 
     /**
      * Get all the completed missions
      */
-    function getCompletedMissions() {
-        return self._completedMissions;
+    getCompletedMissions() {
+        return this.#completedMissions;
     }
 
     /**
@@ -62,11 +69,11 @@ function MissionContainer (missionPanel, missionModel) {
      * @param unit
      * @returns {number}
      */
-    function getCompletedMissionDistance(unit) {
+    getCompletedMissionDistance(unit) {
         if (!unit) unit = "meters";
-        var completedDistance = 0;
-        for (var missionIndex = 0; missionIndex < self._completedMissions.length; missionIndex++)
-            completedDistance += self._completedMissions[missionIndex].getDistance(unit);
+        let completedDistance = 0;
+        for (let missionIndex = 0; missionIndex < this.#completedMissions.length; missionIndex++)
+            completedDistance += this.#completedMissions[missionIndex].getDistance(unit);
         return completedDistance;
     }
 
@@ -74,49 +81,42 @@ function MissionContainer (missionPanel, missionModel) {
      * Checks if this is the first mission or not.
      * @returns {boolean}
      */
-    function isTheFirstMission () {
-        return getCompletedMissions().length === 0 && !svl.storage.get("completedFirstMission");
+    isTheFirstMission() {
+        return this.getCompletedMissions().length === 0 && !svl.storage.get("completedFirstMission");
     }
 
     /**
      * This method sets the current mission
      * @param mission {object} A Mission object
-     * @returns {setCurrentMission}
+     * @returns {MissionContainer}
      */
-    this.setCurrentMission = function (mission) {
-        self._currentMission = mission;
-        missionPanel.setMessage(mission);
-        var currTask = svl.taskContainer.getCurrentTask();
-        var missionId = mission.getProperty('missionId');
+    setCurrentMission(mission) {
+        this.#currentMission = mission;
+        this.#missionPanel.setMessage(mission);
+        const currTask = svl.taskContainer.getCurrentTask();
+        const missionId = mission.getProperty('missionId');
         currTask.setProperty('currentMissionId', missionId);
 
         // If this is the start of a new mission, mark the location along the street that the user is at when the
         // mission starts. This will be used later to draw their route on the mission complete map.
         if (mission.getProperty('distanceProgress') < 1.0 && !currTask.getProperty('tutorialTask')) {
             // Snap the current location to the nearest point on the street, and use that as the mission start.
-            var currPos = turf.point([svl.panoViewer.getPosition().lng, svl.panoViewer.getPosition().lat]);
-            var missionStart = turf.nearestPointOnLine(currTask.getFeature(), currPos).geometry.coordinates;
+            const currPos = turf.point([svl.panoViewer.getPosition().lng, svl.panoViewer.getPosition().lat]);
+            const missionStart = turf.nearestPointOnLine(currTask.getFeature(), currPos).geometry.coordinates;
             currTask.setMissionStart(missionId, { lat: missionStart[1], lng: missionStart[0]});
         }
         return this;
-    };
-
-    function setTasksMissionsOffset(value) {
-        tasksMissionsOffset = value;
     }
 
-    function getTasksMissionsOffset() {
+    setTasksMissionsOffset(value) {
+        this.#tasksMissionsOffset = value;
+    }
+
+    getTasksMissionsOffset() {
         // See issue https://github.com/ProjectSidewalk/SidewalkWebpage/issues/297
         // Check pull request for more details
-        return tasksMissionsOffset;
+        return this.#tasksMissionsOffset;
     }
-
-    self.getCompletedMissions = getCompletedMissions;
-    self.getCompletedMissionDistance = getCompletedMissionDistance;
-    self.getCurrentMission = getCurrentMission;
-    self.isTheFirstMission = isTheFirstMission;
-    self.setTasksMissionsOffset = setTasksMissionsOffset;
-    self.getTasksMissionsOffset = getTasksMissionsOffset;
 }
 Object.assign(MissionContainer.prototype, EventMixin);
 

@@ -1,12 +1,8 @@
 /**
- * Represents a single validation mission
- * @param params  Mission metadata passed in from MissionContainer.js
- * @returns {Mission} object.
- * @constructor
+ * Represents a single validation mission.
  */
-function Mission(params) {
-    const self = this;
-    let properties = {
+class Mission {
+    #properties = {
         agreeCount: 0,
         disagreeCount: 0,
         missionId: undefined,
@@ -20,69 +16,77 @@ function Mission(params) {
     };
 
     /**
-     * Initializes a front-end mission object from metadata.
+     * @param {object} params Mission metadata passed in from MissionContainer.js.
      */
-    function _init() {
-        if ("agreeCount" in params) setProperty("agreeCount", params.agreeCount);
-        if ("disagreeCount" in params) setProperty("disagreeCount", params.disagreeCount);
-        if ("missionId" in params) setProperty("missionId", params.missionId);
-        if ("missionType" in params) setProperty("missionType", params.missionType);
-        if ("regionId" in params) setProperty("regionId", params.regionId);
-        if ("completed" in params) setProperty("completed", params.completed);
-        if ("labelsProgress" in params) setProperty("labelsProgress", params.labelsProgress);
-        if ("labelsValidated" in params) setProperty("labelsValidated", params.labelsValidated);
-        if ("labelTypeId" in params) setProperty("labelTypeId", params.labelTypeId);
-        if ("unsureCount" in params) setProperty("unsureCount", params.unsureCount);
-        if ("skipped" in params) setProperty("skipped", params.skipped);
+    constructor(params) {
+        this.#init(params);
+    }
+
+    /**
+     * Initializes a front-end mission object from metadata.
+     * @param {object} params Mission metadata.
+     */
+    #init(params) {
+        if ("agreeCount" in params) this.setProperty("agreeCount", params.agreeCount);
+        if ("disagreeCount" in params) this.setProperty("disagreeCount", params.disagreeCount);
+        if ("missionId" in params) this.setProperty("missionId", params.missionId);
+        if ("missionType" in params) this.setProperty("missionType", params.missionType);
+        if ("regionId" in params) this.setProperty("regionId", params.regionId);
+        if ("completed" in params) this.setProperty("completed", params.completed);
+        if ("labelsProgress" in params) this.setProperty("labelsProgress", params.labelsProgress);
+        if ("labelsValidated" in params) this.setProperty("labelsValidated", params.labelsValidated);
+        if ("labelTypeId" in params) this.setProperty("labelTypeId", params.labelTypeId);
+        if ("unsureCount" in params) this.setProperty("unsureCount", params.unsureCount);
+        if ("skipped" in params) this.setProperty("skipped", params.skipped);
     }
 
     /**
      * Gets a single property for this mission object.
-     * @param key   String representation of property.
-     * @returns     Property if it exists, null otherwise.
+     * @param {string} key String representation of property.
+     * @returns Property if it exists, null otherwise.
      */
-    function getProperty (key) {
-        return key in properties ? properties[key] : null;
+    getProperty(key) {
+        return key in this.#properties ? this.#properties[key] : null;
     }
 
     /**
      * Returns all properties associated with this mission.
      * @returns Object for properties.
      */
-    function getProperties() {
-        return properties;
+    getProperties() {
+        return this.#properties;
     }
 
     /**
      * Function that checks if the current mission is complete.
-     * @returns {property} True if this mission is complete, false if in progress.
+     * @returns True if this mission is complete, false if in progress.
      */
-    function isComplete() {
-        return getProperty("completed");
+    isComplete() {
+        return this.getProperty("completed");
     }
 
     /**
      * Sets a property of this mission.
-     * @param key       Name of property.
-     * @param value     Value.
-     * @returns {setProperty}
+     * @param {string} key Name of property.
+     * @param value Value.
+     * @returns {Mission}
      */
-    function setProperty (key, value) {
-        properties[key] = value;
+    setProperty(key, value) {
+        this.#properties[key] = value;
         return this;
     }
 
     /**
      * Updates status bar (UI) and current mission properties.
-     * @param undo (bool) - If true, the user clicked the undo button, so we are progressing backwards.
+     * @param {boolean} undo If true, the user clicked the undo button, so we are progressing backwards.
      */
-    function updateMissionProgress(undo) {
-        let labelsProgress = getProperty("labelsProgress");
-        if (labelsProgress < getProperty("labelsValidated")) {
+    updateMissionProgress(undo) {
+        let labelsProgress = this.getProperty("labelsProgress");
+        if (labelsProgress < this.getProperty("labelsValidated")) {
             if (undo) {
                 labelsProgress -= 1;
                 const priorLabelFormData = svv.labelContainer.getPriorLabelFormData();
-                updateValidationResult(priorLabelFormData.validation_result, true);
+                this.updateValidationResult(priorLabelFormData.validation_result, true);
                 svv.statusField.decrementLabelCounts();
                 // We either have or have not submitted the last label to the backend.
                 if (svv.labelContainer.getLabelsToSubmit().length > 0) {
@@ -95,17 +99,17 @@ function Mission(params) {
                 svv.statusField.incrementLabelCounts();
             }
 
-            setProperty("labelsProgress", labelsProgress);
+            this.setProperty("labelsProgress", labelsProgress);
             // Submit mission if mission is complete.
-            if (labelsProgress >= getProperty("labelsValidated")) {
-                setProperty("completed", true);
+            if (labelsProgress >= this.getProperty("labelsValidated")) {
+                this.setProperty("completed", true);
                 svv.missionContainer.completeAMission();
                 svv.undoValidation.disableUndo();
             }
         }
 
         // Update progress bar.
-        let labelsInMission = getProperty("labelsValidated");
+        const labelsInMission = this.getProperty("labelsValidated");
         svv.statusField.setProgressBar(labelsProgress, labelsInMission);
         svv.statusField.setProgressText(labelsProgress, labelsInMission);
     }
@@ -113,31 +117,21 @@ function Mission(params) {
     /**
      * Updates the validation result for this mission by incrementing agree, disagree and unsure
      * counts collected in this mission. (Only persists for current session)
-     * @param result Validation result - Can either be 'Agree', 'Disagree', or 'Unsure'.
-     * @param removeValidation (bool)  - Whether user clicked "undo", meaning we would decrement the count.
+     * @param {string} result Validation result - Can either be 'Agree', 'Disagree', or 'Unsure'.
+     * @param {boolean} removeValidation Whether user clicked "undo", meaning we would decrement the count.
      */
-    function updateValidationResult(result, removeValidation) {
+    updateValidationResult(result, removeValidation) {
         const change = removeValidation ? -1 : 1;
         switch (result) {
             case 'Agree':
-                setProperty("agreeCount", getProperty("agreeCount") + change);
+                this.setProperty("agreeCount", this.getProperty("agreeCount") + change);
                 break;
             case 'Disagree':
-                setProperty("disagreeCount", getProperty("disagreeCount") + change);
+                this.setProperty("disagreeCount", this.getProperty("disagreeCount") + change);
                 break;
             case 'Unsure':
-                setProperty("unsureCount", getProperty("unsureCount") + change);
+                this.setProperty("unsureCount", this.getProperty("unsureCount") + change);
                 break;
         }
     }
-
-    self.isComplete = isComplete;
-    self.getProperties = getProperties;
-    self.getProperty = getProperty;
-    self.setProperty = setProperty;
-    self.updateMissionProgress = updateMissionProgress;
-    self.updateValidationResult = updateValidationResult;
-
-    _init();
-    return self;
 }

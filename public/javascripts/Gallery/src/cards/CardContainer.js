@@ -1,30 +1,19 @@
 /**
  * Card Container module. This is responsible for managing the Card objects that are to be rendered.
  *
- * @param {*} uiCardContainer UI element tied with this CardContainer.
- * @param {object} initialFilters Object containing initial set of filters in sidebar.
- * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
- * @param {string} viewerAccessToken An access token used to request images for the pano viewer
- * @returns {CardContainer}
- * @constructor
+ * Construct instances via the `static async create()` factory, which fetches the first batch of labels and builds
+ * the ExpandedView before resolving.
  */
-async function CardContainer(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken) {
-    const self = this;
-
+class CardContainer {
     // The number of labels to grab from database on initial page load.
-    const initialLoad = 30;
+    static #initialLoad = 30;
 
-    const cardsPerPage = 9;
-    const cardsPerLine = 3;
-    const cardPadding = 25;
-
-    // TODO: Possibly remove if any type of sorting is no longer wanted.
-    let status = {
-        order: 0
-    };
+    static #cardsPerPage = 9;
+    static #cardsPerLine = 3;
+    static #cardPadding = 25;
 
     // Map label type to id.
-    let labelTypeIds = {
+    static #labelTypeIds = {
         CurbRamp: 1,
         NoCurbRamp: 2,
         Obstacle: 3,
@@ -37,16 +26,24 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
         Assorted: null
     };
 
-    // Current label type of cards being shown.
-    let currentLabelType = initialFilters.labelType;
-    sg.neighborhoodIds = initialFilters.neighborhoods; // TODO remove when we add a UI for filtering neighborhoods.
-    sg.aiValidationOptions = initialFilters.aiValidationOptions; // TODO remove when we add UI for filtering on AI vals.
-    let currentPage = 1;
-    let lastPage = false;
-    let pageNumberDisplay = null;
-    let expandedView;
+    #uiCardContainer;
+    #initialFilters;
+    #panoViewerType;
+    #viewerAccessToken;
+
+    // TODO: Possibly remove if we drop support for sorting.
+    #status = {
+        order: 0
+    };
+
+    #currentLabelType;
+    #currentPage = 1;
+    #lastPage = false;
+    #pageNumberDisplay = null;
+    #expandedView;
+
     // Map Cards to a CardBucket containing Cards of their label type.
-    let cardsByType = {
+    #cardsByType = {
         Assorted: new CardBucket(),
         CurbRamp: new CardBucket(),
         NoCurbRamp: new CardBucket(),
@@ -60,39 +57,73 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
     };
 
     // Keep track of labels we have loaded already as to not grab the same label from the backend.
-    let loadedLabelIds = new Set();
+    #loadedLabelIds = new Set();
 
     // Current labels being displayed of current type based off filters.
-    let currentCards = new CardBucket();
+    #currentCards = new CardBucket();
 
-    async function _init() {
+    /**
+     * @param {*} uiCardContainer UI element tied with this CardContainer.
+     * @param {object} initialFilters Object containing initial set of filters in sidebar.
+     * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
+     * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
+     */
+    constructor(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken) {
+        this.#uiCardContainer = uiCardContainer;
+        this.#initialFilters = initialFilters;
+        this.#panoViewerType = panoViewerType;
+        this.#viewerAccessToken = viewerAccessToken;
+
+        this.#currentLabelType = initialFilters.labelType;
+        sg.neighborhoodIds = initialFilters.neighborhoods; // TODO remove when we add a UI for filtering neighborhoods.
+        sg.aiValidationOptions = initialFilters.aiValidationOptions; // TODO remove when we add UI for filtering on AI vals.
+    }
+
+    /**
+     * Creates a CardContainer, fetches the first batch of labels, and builds the ExpandedView.
+     * @param {*} uiCardContainer UI element tied with this CardContainer.
+     * @param {object} initialFilters Object containing initial set of filters in sidebar.
+     * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
+     * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
+     * @returns {Promise<CardContainer>}
+     */
+    static async create(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken) {
+        const cardContainer = new CardContainer(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken);
+        await cardContainer.#init();
+        return cardContainer;
+    }
+
+    async #init() {
+        const uiCardContainer = this.#uiCardContainer;
+        const initialFilters = this.#initialFilters;
+
         // Bind click actions to the forward/backward paging buttons.
         if (uiCardContainer) {
             uiCardContainer.nextPage.bind({
-                click: handleNextPageClick
+                click: this.#handleNextPageClick
             });
             uiCardContainer.prevPage.bind({
-                click: handlePrevPageClick
+                click: this.#handlePrevPageClick
             });
         }
 
-        pageNumberDisplay = document.createElement('h2');
-        pageNumberDisplay.innerText = "1";
-        uiCardContainer.pageNumber.append(pageNumberDisplay);
+        this.#pageNumberDisplay = document.createElement('h2');
+        this.#pageNumberDisplay.innerText = "1";
+        uiCardContainer.pageNumber.append(this.#pageNumberDisplay);
         sg.ui.pageControl.hide();
         sg.cardFilter.disable();
         sg.ui.cardContainer.prevPage.prop("disabled", true);
-        cardsByType[currentLabelType] = new CardBucket();
+        this.#cardsByType[this.#currentLabelType] = new CardBucket();
 
         // Grab first batch of labels to show.
-        fetchLabels(labelTypeIds[currentLabelType], initialLoad, initialFilters.validationOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, initialFilters.severities, initialFilters.tags, initialFilters.aiValidationOptions, function() {
-            currentCards = cardsByType[currentLabelType].copy();
-            lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
-            render();
+        this.fetchLabels(CardContainer.#labelTypeIds[this.#currentLabelType], CardContainer.#initialLoad, initialFilters.validationOptions, Array.from(this.#loadedLabelIds), initialFilters.neighborhoods, initialFilters.severities, initialFilters.tags, initialFilters.aiValidationOptions, () => {
+            this.#currentCards = this.#cardsByType[this.#currentLabelType].copy();
+            this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * CardContainer.#cardsPerPage;
+            this.render();
         });
         // Creates the ExpandedView object in the DOM element currently present.
         sg.panoStore = new PanoStore();
-        expandedView = await ExpandedView(sg.ui.expandedView.container, panoViewerType, viewerAccessToken);
+        this.#expandedView = await ExpandedView.create(sg.ui.expandedView.container, this.#panoViewerType, this.#viewerAccessToken);
         // Add the click event for opening the ExpandedView when a card is clicked.
         sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count, .ai-icon-marker-card', (event) => {
             sg.ui.expandedView.container.css('position', 'relative');
@@ -103,11 +134,11 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
             // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
             // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
             // the correct form).
-            let clickedImage = event.target.classList.contains("static-gallery-image");
+            const clickedImage = event.target.classList.contains("static-gallery-image");
             let cardId;
             if (event.target.classList.contains("ai-icon-marker-card")) {
-                let imageHolder = event.target.closest(".image-holder");
-                let parentImage = imageHolder ? imageHolder.querySelector(".static-gallery-image") : null;
+                const imageHolder = event.target.closest(".image-holder");
+                const parentImage = imageHolder ? imageHolder.querySelector(".static-gallery-image") : null;
                 cardId = parentImage ? parentImage.id : null;
             } else if (clickedImage) {
                 cardId = event.target.id;
@@ -116,66 +147,66 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
             }
             if (!cardId) return;
             // Sets/Updates the label being displayed in the expanded view.
-            expandedView.updateCardIndex(findCardIndex(cardId));
+            this.#expandedView.updateCardIndex(this.#findCardIndex(cardId));
         });
     }
 
     /**
      * Find the card which contains the image with the same imageID as supplied.
      *
-     * @param {string} id The id of the image Id to find
-     * @returns {Card} finds the matching card and returns it
+     * @param {string} id The id of the image Id to find.
+     * @returns {Card} Finds the matching card and returns it.
      */
-    function findCard(id) {
-        return currentCards.findCardByImageId(id);
+    #findCard(id) {
+        return this.#currentCards.findCardByImageId(id);
     }
 
     /**
      * Returns the index of a card in the current CardBucket in use.
      *
-     * @param {string} id The id of the image Id to find
-     * @returns {number} the index of the matching card in the current CardBucket
+     * @param {string} id The id of the image Id to find.
+     * @returns {number} The index of the matching card in the current CardBucket.
      */
-    function findCardIndex(id) {
-        return currentCards.findCardIndexByImageId(id);
+    #findCardIndex(id) {
+        return this.#currentCards.findCardIndexByImageId(id);
     }
 
     /**
      * Gets a card from the current CardBucket given an index.
      *
-     * @param {number} index the index of the card to find
-     * @returns {Card} the Card that has the matching index in the current CardBucket
+     * @param {number} index The index of the card to find.
+     * @returns {Card} The Card that has the matching index in the current CardBucket.
      */
-    function getCardByIndex(index) {
-        return currentCards.getCardByIndex(index);
+    getCardByIndex(index) {
+        return this.#currentCards.getCardByIndex(index);
     }
 
-    function handleNextPageClick(e) {
+    #handleNextPageClick = (e) => {
         // This variable will be true if this is a "real" click. Otherwise, it will be false for .click() js code.
-        const fromUser = typeof (e['clientX']) !== "undefined"
+        const fromUser = typeof (e['clientX']) !== "undefined";
 
         sg.tracker.push("NextPage", null, {
-            from: currentPage,
-            to: currentPage + 1
+            from: this.#currentPage,
+            to: this.#currentPage + 1
         });
 
         if (fromUser) {
             sg.tracker.push("NextPageClick", null, null);
         }
 
-        setPage(currentPage + 1);
+        this.#setPage(this.#currentPage + 1);
         sg.ui.cardContainer.prevPage.prop("disabled", false);
-        updateCardsNewPage();
-    }
+        this.updateCardsNewPage();
+    };
 
-    function handlePrevPageClick(e) {
-        if (currentPage > 1) {
+    #handlePrevPageClick = (e) => {
+        if (this.#currentPage > 1) {
             // This variable will be true if this is a "real" click. Otherwise, it will be false for .click() js code.
-            const fromUser = typeof (e['clientX']) !== "undefined"
+            const fromUser = typeof (e['clientX']) !== "undefined";
 
             sg.tracker.push("PrevPage", null, {
-                from: currentPage,
-                to: currentPage - 1
+                from: this.#currentPage,
+                to: this.#currentPage - 1
             });
 
             if (fromUser) {
@@ -183,17 +214,17 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
             }
 
             $("#next-page").prop("disabled", false);
-            setPage(currentPage - 1);
-            updateCardsNewPage();
+            this.#setPage(this.#currentPage - 1);
+            this.updateCardsNewPage();
         }
-    }
+    };
 
-    function setPage(pageNumber) {
+    #setPage(pageNumber) {
         if (pageNumber <= 1) {
             sg.ui.cardContainer.prevPage.prop("disabled", true);
         }
-        currentPage = pageNumber;
-        pageNumberDisplay.innerText = pageNumber;
+        this.#currentPage = pageNumber;
+        this.#pageNumberDisplay.innerText = pageNumber;
     }
 
     /**
@@ -209,9 +240,9 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
      * @param aiValidationOptions List of AI validation options for labels: correct, incorrect, and/or unvalidated.
      * @param {*} callback Function to be called when labels arrive.
      */
-    function fetchLabels(labelTypeId, n, validationOptions, loadedLabels, neighborhoods, severities, tags, aiValidationOptions, callback) {
+    fetchLabels(labelTypeId, n, validationOptions, loadedLabels, neighborhoods, severities, tags, aiValidationOptions, callback) {
         const url = "/label/labels";
-        let data = {
+        const data = {
             label_type_id: labelTypeId,
             n: n,
             validation_options: validationOptions,
@@ -220,7 +251,7 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
             ...(tags !== undefined && { tags: tags }),
             ...(aiValidationOptions !== undefined && { ai_validation_options: aiValidationOptions }),
             loaded_labels: loadedLabels
-        }
+        };
         $.ajax({
             async: true,
             contentType: "application/json; charset=utf-8",
@@ -228,14 +259,14 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
             method: 'POST',
             data: JSON.stringify(data),
             dataType: "json",
-            success: function(data) {
+            success: (data) => {
                 if ("labelsOfType" in data) {
                     const labels = data.labelsOfType;
                     for (let i = 0; i < labels.length; i++) {
                         const labelProp = labels[i];
                         const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl);
-                        self.push(card);
-                        loadedLabelIds.add(card.getLabelId());
+                        this.push(card);
+                        this.#loadedLabelIds.add(card.getLabelId());
                     }
                     if (callback) callback();
                 }
@@ -246,77 +277,77 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
     /**
      * Returns cards of current type.
      */
-    function getCards() {
-        return cardsByType;
+    getCards() {
+        return this.#cardsByType;
     }
 
     /**
      * Returns cards of current type that are being rendered.
      */
-    function getCurrentCards() {
-        return currentCards;
+    getCurrentCards() {
+        return this.#currentCards;
     }
 
     /**
      * Push a card into corresponding CardBucket in cardsOfType as well as the "Assorted" bucket.
      * @param card Card to add.
      */
-    function push(card) {
-        cardsByType.Assorted.push(card);
-        cardsByType[card.getLabelType()].push(card);
+    push(card) {
+        this.#cardsByType.Assorted.push(card);
+        this.#cardsByType[card.getLabelType()].push(card);
     }
 
     /**
      * Updates Cards being shown when user moves to next/previous page.
      */
-    function updateCardsNewPage() {
-        refreshUI();
+    updateCardsNewPage() {
+        this.#refreshUI();
 
         let appliedTags = sg.cardFilter.getAppliedTagNames();
         let appliedSeverities = sg.cardFilter.getAppliedSeverities();
-        let appliedValOptions = sg.cardFilter.getAppliedValidationOptions();
+        const appliedValOptions = sg.cardFilter.getAppliedValidationOptions();
 
         // NoSidewalk, Occlusion, and Signal don't have severity, Occlusion does not have tags.
-        if (!util.misc.labelTypeHasSeverity(currentLabelType)) appliedSeverities = undefined;
-        if ('Occlusion' === currentLabelType) appliedTags = undefined;
+        if (!util.misc.labelTypeHasSeverity(this.#currentLabelType)) appliedSeverities = undefined;
+        if ('Occlusion' === this.#currentLabelType) appliedTags = undefined;
 
-        currentCards = cardsByType[currentLabelType].copy();
-        currentCards.filterOnTags(appliedTags);
-        currentCards.filterOnSeverities(appliedSeverities);
-        currentCards.filterOnValidationOptions(appliedValOptions);
+        this.#currentCards = this.#cardsByType[this.#currentLabelType].copy();
+        this.#currentCards.filterOnTags(appliedTags);
+        this.#currentCards.filterOnSeverities(appliedSeverities);
+        this.#currentCards.filterOnValidationOptions(appliedValOptions);
 
-        if (currentCards.getSize() < cardsPerPage * currentPage + 1) {
+        if (this.#currentCards.getSize() < CardContainer.#cardsPerPage * this.#currentPage + 1) {
             // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
-            fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, appliedValOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, appliedSeverities, appliedTags, initialFilters.aiValidationOptions, function() {
-                currentCards = cardsByType[currentLabelType].copy();
-                currentCards.filterOnTags(appliedTags);
-                currentCards.filterOnSeverities(appliedSeverities);
-                currentCards.filterOnValidationOptions(appliedValOptions);
-                lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
-                render();
+            this.fetchLabels(CardContainer.#labelTypeIds[this.#currentLabelType], CardContainer.#cardsPerPage * 2, appliedValOptions, Array.from(this.#loadedLabelIds), this.#initialFilters.neighborhoods, appliedSeverities, appliedTags, this.#initialFilters.aiValidationOptions, () => {
+                this.#currentCards = this.#cardsByType[this.#currentLabelType].copy();
+                this.#currentCards.filterOnTags(appliedTags);
+                this.#currentCards.filterOnSeverities(appliedSeverities);
+                this.#currentCards.filterOnValidationOptions(appliedValOptions);
+                this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * CardContainer.#cardsPerPage;
+                this.render();
             });
         } else {
-            lastPage = false;
-            render();
+            this.#lastPage = false;
+            this.render();
         }
     }
 
     /**
      * When a filter is updated; update which Cards are shown.
      */
-    function updateCardsByFilter() {
+    updateCardsByFilter() {
         // Only need to refresh UI if label type changed, since the tags are swapped out.
-        let newLabelType = sg.cardFilter.getStatus().currentLabelType;
-        if (currentLabelType !== newLabelType) {
-            currentLabelType = newLabelType;
-            refreshUI();
+        const newLabelType = sg.cardFilter.getStatus().currentLabelType;
+        if (this.#currentLabelType !== newLabelType) {
+            this.#currentLabelType = newLabelType;
+            this.#refreshUI();
         }
 
-        setPage(1);
-        updateCardsNewPage();
+        this.#setPage(1);
+        this.updateCardsNewPage();
     }
 
-    function sortCards(order) {
+    sortCards(order) {
         // uiCardContainer.holder.empty();
         // currentCards.sort((card1, card2) => sg.cardSortMenu.getStatus().severity * card1.getProperty("severity") - card2.getProperty("severity"));
         //
@@ -330,15 +361,16 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
     /**
      * Renders current cards.
      */
-    function render() {
+    render() {
+        const uiCardContainer = this.#uiCardContainer;
         // TODO: should we try to just empty in render method? Or assume it's was emptied in a method utilizing render?
-        clearCardContainer(uiCardContainer.holder);
+        this.#clearCardContainer(uiCardContainer.holder);
 
-        let imagesToLoad = getCurrentPageCards();
-        let imagePromises = imagesToLoad.map(img => img.loadImage());
+        const imagesToLoad = this.getCurrentPageCards();
+        const imagePromises = imagesToLoad.map(img => img.loadImage());
 
         if (imagesToLoad.length > 0) {
-            if (lastPage) {
+            if (this.#lastPage) {
                 sg.ui.cardContainer.nextPage.prop("disabled", true);
             } else {
                 sg.ui.cardContainer.nextPage.prop("disabled", false);
@@ -346,7 +378,7 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
 
             // We wait for all the promises from grabbing pano images to resolve before showing cards.
             Promise.all(imagePromises).then(() => {
-                imagesToLoad.forEach((card) => { card.render(uiCardContainer.holder) });
+                imagesToLoad.forEach((card) => { card.render(uiCardContainer.holder); });
                 sg.ui.pageControl.show();
                 sg.pageLoading.hide();
                 sg.ui.cardFilter.wrapper.css('position', 'fixed');
@@ -354,7 +386,7 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
                 uiCardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
                 sg.scrollStatus.stickySidebar = true;
                 sg.cardFilter.enable();
-                expandedView && expandedView.onPageCardsRendered();
+                this.#expandedView && this.#expandedView.onPageCardsRendered();
             });
         } else {
             // TODO: figure out how to better do the toggling of this element.
@@ -367,13 +399,13 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
     /**
      * Refreshes the UI after each query made by user.
      */
-    function refreshUI() {
+    #refreshUI() {
         // TODO: To help the loading icon show, we make the sidebar positioned relatively while we are loading on the page.
         // Otherwise, keep it fixed. This is hacky and needs a better fix.
 
         // Close expanded views (if open) and empty cards from current page.
-        expandedView.closeExpandedView();
-        clearCardContainer(uiCardContainer.holder);
+        this.#expandedView.closeExpandedView();
+        this.#clearCardContainer(this.#uiCardContainer.holder);
 
         // Place user back at top of page.
         window.scrollTo(0, 0);
@@ -396,27 +428,27 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
      * @param {string} key Status name.
      * @param {*} value Status value.
      */
-    function setStatus(key, value) {
-        if (key in status) {
-            status[key] = value;
+    #setStatus(key, value) {
+        if (key in this.#status) {
+            this.#status[key] = value;
         } else {
-            throw self.className + ": Illegal status name.";
+            throw `${this.constructor.name}: Illegal status name.`;
         }
     }
 
     /**
      * Flush all Cards currently being rendered.
      */
-    function clearCurrentCards() {
-        currentCards = new CardBucket();
+    clearCurrentCards() {
+        this.#currentCards = new CardBucket();
     }
 
     /**
      * Flush all Cards from cardsOfType.
      */
-    function clearCards() {
-        for (const labelType of cardsByType) {
-            cardsByType[labelType] = null;
+    clearCards() {
+        for (const labelType of this.#cardsByType) {
+            this.#cardsByType[labelType] = null;
         }
     }
 
@@ -424,26 +456,26 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
      * Clear Cards from UI.
      * @param {*} cardContainer UI element to clear Cards from.
      */
-    function clearCardContainer(cardContainer) {
-        cardContainer.children().each(function() {
-            $(this).detach();
+    #clearCardContainer(cardContainer) {
+        cardContainer.children().each((i, el) => {
+            $(el).detach();
         });
     }
 
-    function getCurrentPage() {
-        return currentPage;
+    getCurrentPage() {
+        return this.#currentPage;
     }
 
     /**
      * Get the cards that form the current page.
      * @returns Array of cards from the current page.
      */
-    function getCurrentPageCards() {
-        let idx = (currentPage - 1) * cardsPerPage;
-        let cardBucket = currentCards.getCards();
+    getCurrentPageCards() {
+        let idx = (this.#currentPage - 1) * CardContainer.#cardsPerPage;
+        const cardBucket = this.#currentCards.getCards();
 
-        let currentPageCards = [];
-        while (idx < currentPage * cardsPerPage && idx < cardBucket.length) {
+        const currentPageCards = [];
+        while (idx < this.#currentPage * CardContainer.#cardsPerPage && idx < cardBucket.length) {
             currentPageCards.push(cardBucket[idx]);
             idx++;
         }
@@ -455,30 +487,11 @@ async function CardContainer(uiCardContainer, initialFilters, panoViewerType, vi
      * Returns whether the current page is the last page of queried cards.
      * @returns True if current page is last page of cards that satisfies applied query, false otherwise.
      */
-    function isLastPage() {
-        return lastPage;
+    isLastPage() {
+        return this.#lastPage;
     }
 
-    function getExpandedView() {
-        return expandedView;
+    getExpandedView() {
+        return this.#expandedView;
     }
-
-    self.fetchLabels = fetchLabels;
-    self.getCards = getCards;
-    self.getCurrentCards = getCurrentCards;
-    self.isLastPage = isLastPage;
-    self.push = push;
-    self.updateCardsByFilter = updateCardsByFilter;
-    self.updateCardsNewPage = updateCardsNewPage;
-    self.sortCards = sortCards;
-    self.render = render;
-    self.clearCurrentCards = clearCurrentCards;
-    self.clearCards = clearCards;
-    self.getCardByIndex = getCardByIndex;
-    self.getCurrentPage = getCurrentPage;
-    self.getCurrentPageCards = getCurrentPageCards;
-    self.getExpandedView = getExpandedView;
-
-    await _init();
-    return this;
 }

@@ -151,7 +151,7 @@ function Main (params) {
             svl.keyboardShortcutAlert);
 
         svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, svl.panoViewer, svl.panoViewer.getPosition,
-            svl.panoViewer.getPanoId, svl.taskContainer.getCurrentTaskStreetEdgeId,
+            svl.panoViewer.getPanoId, () => svl.taskContainer.getCurrentTaskStreetEdgeId(),
             svl.neighborhoodModel.currentNeighborhood().getRegionId,
             function() { return svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('captureDate'); },
             function() { return svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('address'); },

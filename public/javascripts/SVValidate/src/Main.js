@@ -126,7 +126,7 @@ function Main (param) {
         svv.panoStore = new PanoStore();
         const firstLabel = param.labelList[0];
         svv.panoManager = await PanoManager.create(svv.viewerType, param.viewerAccessToken, firstLabel.pano_id, buildBackupImageData(firstLabel));
-        svv.labelContainer = await LabelContainer(param.labelList);
+        svv.labelContainer = await LabelContainer.create(param.labelList);
 
         // There are certain features that will only make sense on desktop vs mobile.
         if (isMobile()) {
