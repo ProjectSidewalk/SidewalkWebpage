@@ -147,7 +147,7 @@
                                  alt="@name badge level @level">
                         }
                     </div>
-                    <div class="ud-progress"><div class="ud-progress-fill" data-fill style="width: 0%"></div></div>
+                    <div class="ud-progress"><div class="ud-progress-fill" data-fill></div></div>
                     <span class="ud-badge-track-next" data-next></span>
                 </div>
             }
@@ -183,11 +183,11 @@
         @if(accuracyByType.nonEmpty) {
             <div class="ud-accuracy-bars">
                 @for(a <- accuracyByType) {
-                    <div class="ud-acc-row @if(a.weakest){ud-acc-weakest}">
+                    <div class="ud-acc-row ud-lt-@a.cssKey @if(a.weakest){ud-acc-weakest}">
                         <span class="ud-acc-label">
-                            <span class="ud-acc-swatch" style="background: var(--color-label-@a.cssKey)"></span>@a.displayName
+                            <span class="ud-acc-swatch"></span>@a.displayName
                         </span>
-                        <span class="ud-acc-bar"><span class="ud-acc-fill" style="width: @a.pct%; background: var(--color-label-@a.cssKey)"></span></span>
+                        <span class="ud-acc-bar"><span class="ud-acc-fill" style="width: @a.pct%"></span></span>
                         <span class="ud-acc-pct" title="@a.validated validated">@a.pct%</span>
                     </div>
                 }
@@ -200,7 +200,7 @@
         <p>Disagree with a validation? Tell us — you can stand by your label and leave a note for context.</p>
         @* Cards are rendered from /userapi/mistakes by MistakeGallery.js (empty -> encouraging state). *@
         <div class="ud-mistake-cards" id="ud-mistakes" data-user-id="@user.userId" data-limit="6"></div>
-        <a class="ud-see-all" id="ud-mistakes-seeall" href="#" style="display: none;">See all your labels →</a>
+        <a class="ud-see-all" id="ud-mistakes-seeall" href="#" hidden>See all your labels →</a>
         <p class="ud-section-note">Cards use the Gallery card look (#4388); the agree / "my label was correct" buttons record your response (#2996, #1680) and remove the card.</p>
     </div>
 

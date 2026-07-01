@@ -47,11 +47,11 @@ class MistakeGallery {
         this.root.innerHTML = '';
         if (mistakes.length === 0) {
             this.#renderEmpty();
-            if (this.seeAllEl) this.seeAllEl.style.display = 'none';
+            if (this.seeAllEl) this.seeAllEl.hidden = true;
             return;
         }
         mistakes.forEach(m => this.root.appendChild(this.#renderCard(m)));
-        if (this.seeAllEl) this.seeAllEl.style.display = '';
+        if (this.seeAllEl) this.seeAllEl.hidden = false;
     }
 
     /** Encouraging state when the user has no incorrectly-validated labels. */
@@ -110,7 +110,7 @@ class MistakeGallery {
             note.textContent = `“${m.validator_comment}”`;
         } else {
             note.textContent = 'No comment left by validators.';
-            note.style.fontStyle = 'italic';
+            note.classList.add('ud-card-note-muted');
         }
         body.appendChild(note);
 
