@@ -7,10 +7,10 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
- * Redesigned Leaderboard — Phase 2a (real per-city data for the podium + this-week + teams + all-time tables via the
- * existing getLeaderboardStats; community band and "you vs community" remain mock pending cross-city (#3719) and the
- * rank/percentile query). PUBLIC page: anyone incl. anonymous can view; personal "you" pieces render only when signed
- * in, with a sign-up CTA otherwise.
+ * Redesigned Leaderboard. REAL per-city data for the podium + this-week + teams + all-time tables (getLeaderboardStats)
+ * and "you vs community" (getUserStanding). STILL MOCK: the cross-city community band (pending #3719 — labeled inline).
+ * PUBLIC page: anyone incl. anonymous can view; personal "you" pieces render only when signed in, with a sign-up CTA
+ * otherwise.
  *@
 
 @* Unit-aware distance, matching the live leaderboard's formatting (km/m for metric, miles/feet otherwise). *@

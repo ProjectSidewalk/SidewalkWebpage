@@ -588,6 +588,19 @@
     outline-offset: 1px;
 }
 
+.ud-card-note-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs, 8px);
+    margin-top: var(--space-xs, 8px);
+}
+
+.ud-card-note-submit {
+    align-self: flex-start;
+    padding: 6px 14px;
+    font-size: var(--font-size-sm, 0.875rem);
+}
+
 /* Brief confirmation shown in place of a card after the user responds. */
 .ud-card-done { min-height: 150px; display: flex; align-items: center; justify-content: center; }
 

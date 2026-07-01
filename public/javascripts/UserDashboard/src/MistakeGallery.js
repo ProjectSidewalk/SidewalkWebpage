@@ -136,20 +136,30 @@ class MistakeGallery {
         commentLink.textContent = '💬 Add a note';
         body.appendChild(commentLink);
 
+        // Expands on "Add a note": a textarea + its own explicit "Submit note" button. Submitting a note records a
+        // contest (you're standing by your label) with your explanation.
+        const noteWrap = document.createElement('div');
+        noteWrap.className = 'ud-card-note-wrap';
+        noteWrap.hidden = true;
         const textarea = document.createElement('textarea');
         textarea.className = 'ud-card-comment-input';
         textarea.rows = 2;
-        textarea.placeholder = 'Optional note — sent with your choice above.';
-        textarea.hidden = true;
-        body.appendChild(textarea);
+        textarea.placeholder = 'Explain why you think your label was correct…';
+        const submitNoteBtn = document.createElement('button');
+        submitNoteBtn.type = 'button';
+        submitNoteBtn.className = 'ud-btn-primary ud-card-note-submit';
+        submitNoteBtn.textContent = 'Submit note';
+        noteWrap.append(textarea, submitNoteBtn);
+        body.appendChild(noteWrap);
 
         commentLink.addEventListener('click', e => {
             e.preventDefault();
-            textarea.hidden = !textarea.hidden;
-            if (!textarea.hidden) textarea.focus();
+            noteWrap.hidden = !noteWrap.hidden;
+            if (!noteWrap.hidden) textarea.focus();
         });
-        agreeBtn.addEventListener('click', () => this.#submit(card, m.label_id, true, textarea.value));
-        contestBtn.addEventListener('click', () => this.#submit(card, m.label_id, false, textarea.value));
+        agreeBtn.addEventListener('click', () => this.#submit(card, m.label_id, true, ''));
+        contestBtn.addEventListener('click', () => this.#submit(card, m.label_id, false, ''));
+        submitNoteBtn.addEventListener('click', () => this.#submit(card, m.label_id, false, textarea.value));
 
         card.appendChild(body);
         return card;

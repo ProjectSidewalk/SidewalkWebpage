@@ -22,12 +22,13 @@
 }
 
 @*
- * Redesigned User Dashboard — Phase 1 comps prototype (mock data, no backend).
- *
- * Single page of "your impact" sections on the shared API-docs/admin shell. Every section is an `.api-section` with an
- * `h2.api-heading[id]` so admin-shell.js auto-builds the right-hand TOC. All numbers below are hardcoded placeholders
- * to lock the visual language and information architecture before any data is wired in. Sections are ordered to lead
+ * Redesigned User Dashboard. Single page of "your impact" sections on the shared API-docs/admin shell. Every section
+ * is an `.api-section` with an `h2.api-heading[id]` so admin-shell.js auto-builds the right-hand TOC. Ordered to lead
  * with personal accomplishment (works at N=1) and treat social comparison as a graceful, never-empty extra.
+ *
+ * REAL DATA: hero/KPIs, badges (BadgeAchievements from real counts), streak + heatmap, standing/rank, accuracy bars,
+ * the contribution map, and the recent-mistakes gallery + contest flow.
+ * STILL MOCK (from DashboardMock): the trophy case — pending the trophy backend (Phase 6). Labeled inline.
  *@
 
 @content = {
@@ -153,7 +154,8 @@
         </div>
 
         <h3 class="api-heading" id="trophy-case">Trophy case <a href="#trophy-case" class="permalink">#</a></h3>
-        <p class="ud-section-note">Trophies you've earned. Your shelf grows as you climb.</p>
+        <p class="ud-section-note">Trophies you've earned. Your shelf grows as you climb. <strong>(Sample data — the
+            trophy backend isn't built yet.)</strong></p>
         <div class="ud-trophy-case">
             @for(t <- DashboardMock.trophies) {
                 <div class="ud-trophy @t.cssClass">
@@ -199,7 +201,7 @@
         @* Cards are rendered from /userapi/mistakes by MistakeGallery.js (empty -> encouraging state). *@
         <div class="ud-mistake-cards" id="ud-mistakes" data-user-id="@user.userId" data-limit="6"></div>
         <a class="ud-see-all" id="ud-mistakes-seeall" href="#" style="display: none;">See all your labels →</a>
-        <p class="ud-section-note">Cards use the Gallery card look (#4388). The agree / "it was correct" buttons will let you contest a validation (#2996, #1680); that interaction wires up with the contest backend. The accuracy bars above are still mock pending per-label-type stats.</p>
+        <p class="ud-section-note">Cards use the Gallery card look (#4388); the agree / "my label was correct" buttons record your response (#2996, #1680) and remove the card.</p>
     </div>
 
     @* ---- Team / class --------------------------------------------------------------------------------- *@
