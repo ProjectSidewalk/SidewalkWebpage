@@ -127,7 +127,7 @@
     @* ---- Teams (real) ------------------------------------------------------------------------------------- *@
     <div class="api-section" id="lb-teams-section">
         <h2 class="api-heading" id="teams">Teams <a href="#teams" class="permalink">#</a></h2>
-        <p>Map together. Great for classes and community groups.</p>
+        <p>Map together — great for classes and community groups.</p>
         @if(teams.nonEmpty) {
             <div class="coverage-table-wrap">
                 <table class="coverage-table">
@@ -140,14 +140,24 @@
                 </table>
             </div>
         } else {
-            <div class="ud-nudge">👥 No teams yet — create one from your dashboard and invite friends or classmates!</div>
+            <div class="ud-nudge">👥 No teams yet — be the first! Create one and invite friends or classmates.</div>
+        }
+        @if(isSignedIn) {
+            <button type="button" class="ud-btn-primary ud-create-team-btn">➕ Create a team</button>
         }
     </div>
 
     @* ---- All-time (real) ---------------------------------------------------------------------------------- *@
     <div class="api-section" id="lb-alltime-section">
         <h2 class="api-heading" id="all-time">All-time <a href="#all-time" class="permalink">#</a></h2>
-        <p>The most prolific mappers in this city, ever.</p>
+        <p>The top mappers in this city, ever, ranked by an overall score.</p>
+        <details class="ud-explainer">
+            <summary>How is the ranking computed?</summary>
+            <div>Rank is an overall <strong>score</strong> that rewards a balance of <strong>labels placed</strong>,
+                <strong>distance explored</strong>, and <strong>label accuracy</strong> — so steady, high-quality
+                mapping counts for more than sheer volume. That's why the label counts below aren't in strict order.
+                (The weekly and team boards use the same score.)</div>
+        </details>
         @if(overall.nonEmpty) {
             <div class="coverage-table-wrap">
                 <table class="coverage-table">
@@ -172,6 +182,11 @@
             <p>Where you sit this week, and who's just ahead and behind.</p>
             @userDashboard._standing(standing, seeAllLink = false)
         </div>
+    }
+
+    @if(isSignedIn) {
+        @userDashboard._createTeamDialog()
+        <script src="@assets.path("javascripts/UserDashboard/src/TeamCreate.js")"></script>
     }
 }
 

@@ -873,6 +873,75 @@
 .ud-check input { margin-top: 3px; }
 .ud-check-text { display: flex; flex-direction: column; gap: 2px; }
 
+/* ---- "How is this ranked?" explainer --------------------------------------------------------------------------- */
+.ud-explainer {
+    margin: 0 0 var(--space-md, 16px);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-explainer > summary {
+    cursor: pointer;
+    color: var(--color-accent-link, #0566f5);
+    width: fit-content;
+}
+
+.ud-explainer > div {
+    margin-top: var(--space-xs, 8px);
+    line-height: 1.5;
+    max-width: 720px;
+}
+
+/* ---- Create-team dialog ---------------------------------------------------------------------------------------- */
+.ud-dialog {
+    width: min(460px, calc(100vw - 32px));
+    padding: 0;
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: var(--border-radius-lg, 8px);
+    box-shadow: var(--box-shadow-lg, 0 4px 12px rgba(0, 0, 0, 0.15));
+}
+
+.ud-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
+
+.ud-dialog-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: var(--space-lg, 24px);
+}
+
+.ud-dialog-title {
+    margin: 0;
+    font-family: var(--font-accent, 'Raleway', sans-serif);
+    font-size: var(--font-size-xl, 1.25rem);
+    color: var(--color-text-heading, #263238);
+}
+
+.ud-dialog-sub {
+    margin: 0 0 var(--space-sm, 12px);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-dialog-form .ud-label { margin-top: var(--space-sm, 12px); }
+.ud-optional { font-weight: 400; color: var(--color-text-tertiary, #88a1ad); }
+
+.ud-dialog-error {
+    margin-top: var(--space-sm, 12px);
+    padding: 8px 12px;
+    border-radius: var(--border-radius, 4px);
+    background: var(--color-error-light, #ffebee);
+    color: var(--color-error, #d32f2f);
+    font-size: var(--font-size-sm, 0.875rem);
+}
+
+.ud-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm, 12px);
+    margin-top: var(--space-lg, 24px);
+}
+
 /* ---- Responsive ------------------------------------------------------------------------------------------------ */
 /* 768px matches the shell breakpoint (api-docs.css), where the left nav goes off-canvas behind a hamburger and the
    right TOC is already hidden — so here we just make the content itself stack and stay reachable on a phone. */

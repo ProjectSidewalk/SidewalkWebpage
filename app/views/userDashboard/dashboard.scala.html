@@ -225,6 +225,7 @@
                     </select>
                     <button type="button" class="ud-btn-secondary">Update</button>
                 </div>
+                <button type="button" class="ud-btn-primary ud-create-team-btn">➕ Create a team</button>
             </div>
             <div class="ud-team-board">
                 <div class="ud-team-board-head">Your team this week</div>
@@ -283,6 +284,8 @@
     </script>
 
     @* Badge rendering from real counts (BadgeAchievements is the source of truth for thresholds + level names). *@
+    @userDashboard._createTeamDialog()
+    <script src="@assets.path("javascripts/UserDashboard/src/TeamCreate.js")"></script>
     <script src="@assets.path("javascripts/common/BadgeAchievements.js")"></script>
     <script src="@assets.path("javascripts/UserDashboard/src/DashboardBadges.js")"></script>
     <script src="@assets.path("javascripts/UserDashboard/src/MistakeGallery.js")"></script>

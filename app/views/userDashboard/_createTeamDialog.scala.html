@@ -1,0 +1,26 @@
+@*
+ * Native <dialog> for creating a team, shared by the dashboard and leaderboard. Opened by any `.ud-create-team-btn`
+ * and driven by TeamCreate.js: it POSTs to /userapi/createTeam, shows the server's validation/moderation error inline,
+ * and on success reloads (the user is auto-joined to the new team).
+ *@
+<dialog id="ud-create-team-dialog" class="ud-dialog" aria-labelledby="ud-team-dialog-title">
+    <form class="ud-dialog-form" id="ud-create-team-form">
+        <h3 class="ud-dialog-title" id="ud-team-dialog-title">Create a team</h3>
+        <p class="ud-dialog-sub">Start a team for your class, club, or friends — you'll join it automatically.</p>
+
+        <label class="ud-label" for="ud-team-name">Team name</label>
+        <input class="ud-input" id="ud-team-name" type="text" maxlength="50" required
+               placeholder="e.g. Ms. Rivera's 7th Grade">
+
+        <label class="ud-label" for="ud-team-desc">Description <span class="ud-optional">(optional)</span></label>
+        <textarea class="ud-input" id="ud-team-desc" rows="2" maxlength="300"
+                  placeholder="What's your team about?"></textarea>
+
+        <div class="ud-dialog-error" id="ud-team-error" role="alert" hidden></div>
+
+        <div class="ud-dialog-actions">
+            <button type="button" class="ud-btn-secondary" id="ud-team-cancel">Cancel</button>
+            <button type="submit" class="ud-btn-primary" id="ud-team-submit">Create &amp; join</button>
+        </div>
+    </form>
+</dialog>

@@ -9,6 +9,7 @@ import models.auth._
 import models.label.LabelTypeEnum
 import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.METERS_TO_MILES
+import models.utils.ProfanityGuard
 import models.utils.MyPostgresProfile.api._
 import play.api.i18n.Messages
 import play.api.libs.json.{JsObject, Json}
@@ -199,17 +200,30 @@ class UserProfileController @Inject() (
    * Creates a team and puts it in the team table.
    */
   def createTeam() = cc.securityService.SecuredAction(parse.json) { request =>
-    val name: String        = (request.body \ "name").as[String]
-    val description: String = (request.body \ "description").as[String]
+    val user                = request.identity
+    val name: String        = (request.body \ "name").as[String].trim
+    val description: String = (request.body \ "description").asOpt[String].getOrElse("").trim
 
-    // Inserting into the database and capturing the generated teamId.
-    userService.createTeam(name, description).map { teamId =>
-      Ok(
-        Json.obj(
-          "message" -> "Team created successfully!",
-          "team_id" -> teamId
-        )
-      )
+    def bad(msg: String) = Future.successful(BadRequest(Json.obj("success" -> false, "error" -> msg)))
+
+    // Validate before inserting: signed-in only, sane lengths, and no abusive language in the public-facing name or
+    // description (moderation; consolidate with the sign-up guard in #4375).
+    if (user.role == "Anonymous")
+      Future.successful(Forbidden(Json.obj("success" -> false, "error" -> "Please sign in to create a team.")))
+    else if (name.length < 2 || name.length > 50)
+      bad("Team name must be 2–50 characters.")
+    else if (description.length > 300)
+      bad("Description is too long (max 300 characters).")
+    else if (!ProfanityGuard.isClean(name) || !ProfanityGuard.isClean(description))
+      bad("That name isn't allowed — please choose another.")
+    else {
+      // Create the team and immediately join it, so creating a team is one seamless step.
+      userService.createTeam(name, description).flatMap { teamId =>
+        userService.setUserTeam(user.userId, teamId).map { _ =>
+          cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=CreateTeam")
+          Ok(Json.obj("success" -> true, "team_id" -> teamId))
+        }
+      }
     }
   }
 
