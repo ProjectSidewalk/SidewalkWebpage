@@ -71,13 +71,17 @@ class UserDashboardController @Inject() (
     val isMetric: Boolean   = Messages("measurement.system") == "metric"
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
+      aggregate  <- configService.getAggregateStats()
       overall    <- userService.getLeaderboardStats(10)
       weekly     <- userService.getLeaderboardStats(10, "weekly")
       teams      <- userService.getLeaderboardStats(10, "overall", byTeam = true)
       standing   <- if (isSignedIn) userService.getUserStanding(user.userId) else Future.successful(None)
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_LeaderboardPreview")
-      Ok(views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, overall, weekly, teams, standing))
+      Ok(
+        views.html.userDashboard
+          .leaderboard(commonData, user, isSignedIn, isMetric, aggregate, overall, weekly, teams, standing)
+      )
     }
   }
 
