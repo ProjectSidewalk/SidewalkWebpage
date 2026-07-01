@@ -655,11 +655,14 @@
 
 .ud-card-actions {
     display: flex;
-    flex-wrap: nowrap; /* keep the two vote buttons side-by-side; long labels wrap inside each button instead */
     gap: var(--space-xs, 8px);
     margin-top: var(--space-xs, 8px);
 }
-.ud-card-actions .ud-chip { flex: 1 1 0; text-align: center; white-space: nowrap; padding: 6px 8px; }
+.ud-card-actions .ud-chip { text-align: center; white-space: nowrap; padding: 6px 10px; }
+/* Narrow cards: stack the two buttons full-width so the descriptive labels fit one line each. */
+.ud-mistake-cards .ud-card-actions { flex-direction: column; }
+/* Wide popup: keep them side-by-side, sharing the row (still one line each). */
+.ud-mistake-response .ud-card-actions .ud-chip { flex: 1 1 0; }
 
 .ud-chip {
     padding: 4px 10px;

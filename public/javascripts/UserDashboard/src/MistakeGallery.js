@@ -217,10 +217,10 @@ class MistakeGallery {
             prompt.textContent = 'Do you agree this was a mistake?';
             const actions = document.createElement('div');
             actions.className = 'ud-card-actions';
-            const agreeBtn = MistakeGallery.#chip('ud-chip-agree', '👍 Yes, agree',
-                'Yes — you agree this label was a mistake');
-            const contestBtn = MistakeGallery.#chip('ud-chip-disagree', '✋ No, disagree',
-                'No — you stand by your label, it was correct');
+            const agreeBtn = MistakeGallery.#chip('ud-chip-agree', '👍 Yes, I made a mistake.',
+                'You agree this label was a mistake');
+            const contestBtn = MistakeGallery.#chip('ud-chip-disagree', '✋ No, my label is correct.',
+                'You stand by your label — it was correct');
             agreeBtn.addEventListener('click', () => this.#vote(m, sec, true));
             contestBtn.addEventListener('click', () => this.#vote(m, sec, false));
             actions.append(agreeBtn, contestBtn);
