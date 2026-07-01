@@ -48,7 +48,6 @@
 
 @podiumSpot(stat: LeaderboardStat, place: Int, medal: String) = {
     <div class="ud-podium-spot ud-podium-@place">
-        <div class="ud-podium-avatar" aria-hidden="true">@stat.username.take(2).toUpperCase</div>
         <div class="ud-podium-name"><a href="@routes.UserDashboardController.publicProfilePreview(stat.username)" class="ud-lb-user">@stat.username</a></div>
         <div class="ud-podium-score">@{"%,d".format(stat.labelCount)} labels</div>
         <div class="ud-podium-block" aria-hidden="true">@medal</div>
@@ -143,7 +142,7 @@
             <div class="ud-nudge">👥 No teams yet — be the first! Create one and invite friends or classmates.</div>
         }
         @if(isSignedIn) {
-            <button type="button" class="ud-btn-primary ud-create-team-btn">➕ Create a team</button>
+            <button type="button" class="ud-btn-primary ud-create-team-btn"><span class="ud-btn-plus" aria-hidden="true">+</span> Create a team</button>
         }
     </div>
 

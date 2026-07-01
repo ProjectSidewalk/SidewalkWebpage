@@ -230,7 +230,7 @@
                         </div>
                     }
                 }
-                <button type="button" class="ud-btn-primary ud-create-team-btn">➕ Create a team</button>
+                <button type="button" class="ud-btn-primary ud-create-team-btn"><span class="ud-btn-plus" aria-hidden="true">+</span> Create a team</button>
                 @profileData.userTeam.map { _ =>
                     <a class="ud-see-all" href="@routes.UserDashboardController.leaderboardPreview#teams">See the team leaderboard →</a>
                 }

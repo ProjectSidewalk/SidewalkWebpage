@@ -17,6 +17,9 @@
 .api-content .coverage-table thead th { font-size: var(--font-size-md, 1rem); }
 .api-content .coverage-table tbody td { padding: 11px 14px; }
 
+/* Leaderboard tables are capped at ~10 rows, so show them in full — no inner scroll (admin tables keep theirs). */
+.api-content .coverage-table-wrap { max-height: none; }
+
 /* The admin tables right-align every non-first column (numeric); on the leaderboard the name column — and the
    all-time "Most active in" city column — are text, so left-align them. */
 .api-content .coverage-table td:nth-child(2),
@@ -26,7 +29,7 @@
 .api-content .coverage-table tbody tr { cursor: default; }
 
 /* Medal (or number) in the leaderboard rank column — bump the medals so they read clearly. */
-.api-content .coverage-table td.ud-lb-rank { font-size: 1.15rem; }
+.api-content .coverage-table td.ud-lb-rank { font-size: 1.7rem; line-height: 1; }
 
 .ud-lb-user,
 .ud-lb-city {
@@ -727,6 +730,12 @@
 
 .ud-btn-primary:hover { background: var(--color-pine-700, #3a6347); text-decoration: none; }
 
+/* "Create a team" sits below the teams table / empty-state banner, so give it breathing room. */
+.ud-btn-primary.ud-create-team-btn { margin-top: var(--space-md, 16px); }
+
+/* Plain "+" affordance that inherits the button's white text (a "➕" emoji renders blue and clashes with green). */
+.ud-btn-plus { font-weight: 700; }
+
 /* Public sign-up call-to-action shown to anonymous leaderboard visitors. */
 .ud-cta {
     display: flex;
@@ -788,19 +797,6 @@
     align-items: center;
     gap: var(--space-xs, 8px);
     width: 150px;
-}
-
-.ud-podium-avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 68px;
-    height: 68px;
-    border-radius: 50%;
-    background: var(--color-pine-600, #4a7c59);
-    color: var(--color-neutral-white, #fff);
-    font-size: var(--font-size-lg, 1.125rem);
-    font-weight: 700;
 }
 
 .ud-podium-name { font-weight: 700; font-size: var(--font-size-md, 1rem); color: var(--color-text-heading, #263238); }
@@ -1026,7 +1022,6 @@
     /* Podium shrinks to fit a phone: equal-width columns instead of fixed 150px spots. */
     .ud-podium { gap: var(--space-xs, 8px); }
     .ud-podium-spot { width: auto; flex: 1 1 0; min-width: 92px; }
-    .ud-podium-avatar { width: 52px; height: 52px; font-size: var(--font-size-md, 1rem); }
 
     /* CTA and inline form controls stack full width and stay tappable. */
     .ud-cta { flex-direction: column; align-items: stretch; }
