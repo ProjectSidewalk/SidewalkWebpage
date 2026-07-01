@@ -659,7 +659,7 @@
     gap: var(--space-xs, 8px);
     margin-top: var(--space-xs, 8px);
 }
-.ud-card-actions .ud-chip { flex: 1 1 0; text-align: center; }
+.ud-card-actions .ud-chip { flex: 1 1 0; text-align: center; white-space: nowrap; padding: 6px 8px; }
 
 .ud-chip {
     padding: 4px 10px;
