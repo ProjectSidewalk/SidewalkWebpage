@@ -166,6 +166,25 @@ class UserProfileController @Inject() (
   }
 
   /**
+   * Records the signed-in user's response to one of their labels validated as incorrect (#2996): agree it was a
+   * mistake, or contest it (claim it was correct), with an optional comment. Only affects the user's own labels (the
+   * service verifies ownership); once answered, the label drops off the dashboard's "recent mistakes".
+   *
+   * Expects a JSON body: `{ "label_id": Int, "agrees": Boolean, "comment": String? }`.
+   */
+  def contestMistake() = cc.securityService.SecuredAction(parse.json) { request =>
+    val userId: String          = request.identity.userId
+    val labelId: Int            = (request.body \ "label_id").as[Int]
+    val agrees: Boolean         = (request.body \ "agrees").as[Boolean]
+    val comment: Option[String] = (request.body \ "comment").asOpt[String].map(_.trim).filter(_.nonEmpty)
+    cc.loggingService.insert(userId, request.ipAddress, s"Click_module=ContestMistake_agrees=$agrees")
+    labelService.recordMistakeResponse(labelId, userId, agrees, comment).map { recorded =>
+      if (recorded) Ok(Json.obj("success" -> true))
+      else Forbidden(Json.obj("success" -> false))
+    }
+  }
+
+  /**
    * Sets the team of the given user.
    */
   def setUserTeam(userId: String, teamId: Int) =

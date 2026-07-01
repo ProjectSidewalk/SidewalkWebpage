@@ -114,22 +114,64 @@ class MistakeGallery {
         }
         body.appendChild(note);
 
-        // Contest affordance (non-functional in this phase — wires up with the contest backend, #2996/#1680).
+        // Contest affordance (#2996/#1680): agree it was a mistake, or contest it, optionally with a comment.
         const actions = document.createElement('div');
         actions.className = 'ud-card-actions';
-        actions.appendChild(MistakeGallery.#chip('ud-chip-agree', '👍 I agree', 'I agree this label was incorrect'));
-        actions.appendChild(MistakeGallery.#chip('ud-chip-disagree', '✋ It was correct',
-            'I disagree — my label was correct (contest the validation)'));
+        const agreeBtn = MistakeGallery.#chip('ud-chip-agree', '👍 I agree', 'I agree this label was incorrect');
+        const contestBtn = MistakeGallery.#chip('ud-chip-disagree', '✋ It was correct',
+            'I disagree — my label was correct (contest the validation)');
+        actions.append(agreeBtn, contestBtn);
         body.appendChild(actions);
 
-        const comment = document.createElement('a');
-        comment.className = 'ud-card-comment-link';
-        comment.href = '#';
-        comment.textContent = '💬 Add a comment';
-        body.appendChild(comment);
+        const commentLink = document.createElement('a');
+        commentLink.className = 'ud-card-comment-link';
+        commentLink.href = '#';
+        commentLink.textContent = '💬 Add a comment';
+        body.appendChild(commentLink);
+
+        const textarea = document.createElement('textarea');
+        textarea.className = 'ud-card-comment-input';
+        textarea.rows = 2;
+        textarea.placeholder = 'Optional: add a note for context…';
+        textarea.hidden = true;
+        body.appendChild(textarea);
+
+        commentLink.addEventListener('click', e => {
+            e.preventDefault();
+            textarea.hidden = !textarea.hidden;
+            if (!textarea.hidden) textarea.focus();
+        });
+        agreeBtn.addEventListener('click', () => this.#submit(card, m.label_id, true, textarea.value));
+        contestBtn.addEventListener('click', () => this.#submit(card, m.label_id, false, textarea.value));
 
         card.appendChild(body);
         return card;
+    }
+
+    /**
+     * Records the user's response to a mistake and, on success, replaces the card with a brief thank-you then removes it.
+     * @param {HTMLElement} card - The card element.
+     * @param {number} labelId - The label being responded to.
+     * @param {boolean} agrees - True = agrees it was incorrect; false = contests it.
+     * @param {string} comment - Optional note.
+     */
+    async #submit(card, labelId, agrees, comment) {
+        card.querySelectorAll('button, textarea, a').forEach(el => el.setAttribute('disabled', 'disabled'));
+        try {
+            const res = await fetch('/userapi/contestMistake', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify({ label_id: labelId, agrees: agrees, comment: (comment || '').trim() })
+            });
+            if (!res.ok) throw new Error(`contest failed: ${res.status}`);
+            card.classList.add('ud-card-done');
+            const msg = agrees ? "👍 Thanks — noted." : "✋ Got it — we'll take another look.";
+            card.innerHTML = `<div class="ud-card-thanks">${msg}</div>`;
+            setTimeout(() => card.remove(), 1400);
+        } catch (e) {
+            console.error('Failed to record mistake response', e);
+            card.querySelectorAll('button, textarea, a').forEach(el => el.removeAttribute('disabled'));
+        }
     }
 
     /**

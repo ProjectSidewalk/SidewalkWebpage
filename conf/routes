@@ -163,6 +163,7 @@ GET     /dashboard/preview/settings                     controllers.UserDashboar
 GET     /dashboard/preview/u/:username                  controllers.UserDashboardController.publicProfilePreview(username: String)
 GET     /leaderboard/preview                            controllers.UserDashboardController.leaderboardPreview
 GET     /userapi/mistakes                               controllers.UserProfileController.getRecentMistakes(userId: String, n: Int ?= 5)
+POST    /userapi/contestMistake                         controllers.UserProfileController.contestMistake()
 
 GET     /userapi/basicStats                             controllers.UserProfileController.getBasicUserStats
 GET     /userapi/labels                                 controllers.UserProfileController.getSubmittedLabels(userId: String, regionId: Option[Int] ?= None)

@@ -565,6 +565,32 @@
 
 .ud-card-comment-link:hover { text-decoration: underline; }
 
+.ud-card-comment-input {
+    width: 100%;
+    margin-top: var(--space-xs, 8px);
+    padding: 8px 10px;
+    border: 1px solid var(--color-neutral-300, #c5cdd2);
+    border-radius: var(--border-radius, 4px);
+    font-size: var(--font-size-sm, 0.875rem);
+    font-family: inherit;
+    resize: vertical;
+}
+
+.ud-card-comment-input:focus-visible {
+    outline: 2px solid var(--color-accent-link, #0566f5);
+    outline-offset: 1px;
+}
+
+/* Brief confirmation shown in place of a card after the user responds. */
+.ud-card-done { min-height: 150px; display: flex; align-items: center; justify-content: center; }
+
+.ud-card-thanks {
+    padding: var(--space-lg, 24px);
+    text-align: center;
+    font-weight: 600;
+    color: var(--color-pine-700, #3a6347);
+}
+
 .ud-see-all {
     display: inline-block;
     margin-top: var(--space-xs, 8px);

@@ -592,6 +592,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val streetEdgeRegions      = TableQuery[StreetEdgeRegionTableDef]
   val routeStreets           = TableQuery[RouteStreetTableDef]
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
+  val mistakeResponses       = TableQuery[MistakeResponseTableDef]
 
   // Note that we are assuming only a single AI assessment and validation per label.
   val aiData        = labelAiAssessments.joinLeft(labelValidations).on(_.labelValidationId === _.labelValidationId)
@@ -1459,6 +1460,28 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param labelType Label types where we are looking for mistakes.
    * @return          Query object to get the labels.
    */
+  /**
+   * Records (or updates) a user's response to their own incorrectly-validated label (#2996).
+   *
+   * @param labelId The label being responded to.
+   * @param userId  The responding user; must own the label or this is a no-op.
+   * @param agrees  True = agrees it was a mistake; false = contests it (claims it was correct).
+   * @param comment Optional context note.
+   * @return        True if a response was recorded; false if the label isn't the user's.
+   */
+  def upsertMistakeResponse(labelId: Int, userId: String, agrees: Boolean, comment: Option[String]): DBIO[Boolean] = {
+    labelsUnfiltered.filter(l => l.labelId === labelId && l.userId === userId).exists.result.flatMap { owns =>
+      if (!owns) DBIO.successful(false)
+      else
+        sqlu"""
+          INSERT INTO user_mistake_response (label_id, user_id, agrees, comment)
+          VALUES ($labelId, $userId, $agrees, $comment)
+          ON CONFLICT (label_id, user_id)
+          DO UPDATE SET agrees = EXCLUDED.agrees, comment = EXCLUDED.comment, created_at = now()
+        """.map(_ => true)
+    }
+  }
+
   def getValidatedLabelsForUserQuery(
       userId: String,
       labelType: LabelTypeEnum.Base
@@ -1486,7 +1509,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         _us.highQuality === true &&             // For now, we only include validations from high quality users.
         _pd.expired === false &&                // Only include those with non-expired imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
-        _lt.labelType === labelType.name                  // Only include given label types.
+        _lt.labelType === labelType.name &&               // Only include given label types.
+        // Drop labels the user has already agreed/disagreed on, so answered mistakes don't reappear (#2996).
+        !mistakeResponses.filter(r => r.labelId === _lb.labelId && r.userId === userId).exists
     } yield (
       _lb.labelId,
       _lb.panoId,
