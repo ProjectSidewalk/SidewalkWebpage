@@ -56,4 +56,27 @@ class PublicProfileServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
       await(userService.getTrophies(ghostId, "Testville")) mustBe empty
     }
   }
+
+  // The dashboard's other hand-written SQL (standing/streak/accuracy) has no compile-time column checking, so smoke
+  // it against the ghost user: each query must execute and return the no-activity result rather than throw.
+  "UserService.getUserStanding" should {
+    "run the ranking SQL and return None for a user with no qualifying labels" in {
+      await(userService.getUserStanding(ghostId)) mustBe None
+    }
+  }
+
+  "UserService.getActivityStreak" should {
+    "run the activity-day SQL and return an all-zero streak for a user with no activity" in {
+      val streak = await(userService.getActivityStreak(ghostId))
+      streak.currentStreak mustBe 0
+      streak.longestStreak mustBe 0
+      streak.totalActiveDays mustBe 0
+    }
+  }
+
+  "UserService.getAccuracyByType" should {
+    "run the per-type accuracy SQL and return an empty list for a user with no labels" in {
+      await(userService.getAccuracyByType(ghostId)) mustBe empty
+    }
+  }
 }

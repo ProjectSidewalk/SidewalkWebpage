@@ -36,9 +36,10 @@ class UserDashboardRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
     }
 
-    "exist and redirect an unauthenticated POST /dashboard/preview/settings to sign-in (3xx, not 404)" in {
-      val resp = route(app, FakeRequest(POST, "/dashboard/preview/settings").withJsonBody(Json.obj())).get
-      redirectsToSignIn(status(resp)) mustBe true
+    Seq("/dashboard/preview/settings", "/userapi/mistakeVote", "/userapi/mistakeNote").foreach { path =>
+      s"exist and redirect an unauthenticated POST $path to sign-in (3xx, not 404)" in {
+        redirectsToSignIn(status(route(app, FakeRequest(POST, path).withJsonBody(Json.obj())).get)) mustBe true
+      }
     }
   }
 }

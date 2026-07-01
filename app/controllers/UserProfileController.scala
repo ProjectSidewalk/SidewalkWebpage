@@ -190,15 +190,12 @@ class UserProfileController @Inject() (
   }
 
   /**
-   * Records the signed-in user's response to one of their labels validated as incorrect (#2996): agree it was a
-   * mistake, or contest it (claim it was correct), with an optional comment. Only affects the user's own labels (the
-   * service verifies ownership); once answered, the label drops off the dashboard's "recent mistakes".
+   * Records the signed-in user's agree/contest vote on one of their own labels validated as incorrect (#2996): agree
+   * it was a mistake, or contest it (claim it was correct). Only affects the user's own labels (the service verifies
+   * ownership); once answered, the label drops off the dashboard's "recent mistakes". Instant — the dashboard card
+   * commits on click, and the vote preserves any note already on the row.
    *
-   * Expects a JSON body: `{ "label_id": Int, "agrees": Boolean, "comment": String? }`.
-   */
-  /**
-   * Records the user's agree/contest vote on one of their own labels validated as incorrect (#2996). Instant — the
-   * dashboard card commits on click. Preserves any note already on the row.
+   * Expects a JSON body: `{ "label_id": Int, "agrees": Boolean }`.
    */
   def mistakeVote() = cc.securityService.SecuredAction(parse.json) { request =>
     val userId: String  = request.identity.userId

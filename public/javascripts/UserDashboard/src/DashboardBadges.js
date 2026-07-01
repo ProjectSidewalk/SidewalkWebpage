@@ -33,7 +33,7 @@ class DashboardBadges {
         if (!thresholds || !names) return;
 
         const level = BadgeAchievements.getLevelForValue(type, value);
-        const trackName = track.querySelector('.ud-badge-track-name').textContent.trim();
+        const trackName = track.querySelector('.ud-badge-track-name')?.textContent.trim() ?? '';
 
         // Tier pill: "IV: Barrier Buster", colored by the level's ramp color (.ud-tier-N).
         const pill = track.querySelector('[data-tier]');
@@ -77,7 +77,7 @@ class DashboardBadges {
      */
     #formatRemaining(type, remaining) {
         if (type === 'distance') {
-            if (this.isMetric) return `${(remaining * 1.60934).toFixed(1)} km more`;
+            if (this.isMetric) return `${util.math.milesToKms(remaining).toFixed(1)} km more`;
             return `${remaining.toFixed(1)} mi more`;
         }
         const unit = type === 'missions' ? 'missions' : type === 'validations' ? 'validations' : 'labels';
