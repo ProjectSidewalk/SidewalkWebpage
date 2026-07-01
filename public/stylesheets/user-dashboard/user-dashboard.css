@@ -746,19 +746,22 @@
 .ud-card-img-clickable:focus-visible .ud-card-expand-hint { opacity: 1; }
 
 /* The mistake vote/note panel injected into the label popup dialog so you can respond from the expanded view. It sits
-   outside .api-content, so set a readable base font here (children inherit it) and size the heading up. */
+   outside .api-content, so set a readable base font here (children inherit it) and size the heading up. Full-width
+   (no side margins), a small gap from the content above, and tight internal spacing. */
 .ud-mistake-response {
     display: flex;
     flex-direction: column;
     gap: var(--space-xs, 8px);
-    margin: var(--space-md, 16px);
+    margin: var(--space-xs, 8px) 0 0;
     padding: var(--space-md, 16px);
     border: 1px solid var(--color-pine-200, #cfe3d4);
     border-radius: var(--border-radius-lg, 8px);
     background: var(--color-neutral-white, #fff);
     font-size: var(--font-size-lg, 1.125rem);
 }
-.ud-mistake-response .ud-card-prompt { font-size: var(--font-size-lg, 1.125rem); }
+.ud-mistake-response .ud-card-prompt { margin: 0; font-size: var(--font-size-lg, 1.125rem); }
+.ud-mistake-response .ud-card-vote,
+.ud-mistake-response .ud-card-note-section { margin-top: 0; }
 .ud-mistake-response .ud-card-voted-msg,
 .ud-mistake-response .ud-card-your-note,
 .ud-mistake-response .ud-chip,
@@ -767,9 +770,15 @@
 .ud-mistake-response .ud-card-change { font-size: var(--font-size-md, 1rem); }
 
 /* On the dashboard the label popup only ever shows the viewer's OWN labels (their recent mistakes), so the
-   validate-on-hover overlay (Agree/Disagree/Unsure) is never applicable — hide it. The mistake-response panel below
-   carries the user's own agree/contest response instead. */
-#label-modal .label-detail__pano-overlay { display: none; }
+   validate-on-hover overlay (Agree/Disagree/Unsure) and the add-a-comment row are never applicable and clash with the
+   mistake-response panel below — hide both there. */
+#label-modal .label-detail__pano-overlay,
+#label-modal .label-detail__comment-row { display: none; }
+
+/* Tighten the Comments heading so its empty "None" doesn't tower over the Description row, and give it a colon so it
+   reads like "Description :". */
+#label-modal .label-detail__comments-section .label-detail__col-title { margin: 0 0 2px; }
+#label-modal .label-detail__comments-section .label-detail__col-title::after { content: ":"; }
 
 .ud-card-voted-msg {
     margin: 0;

@@ -318,9 +318,9 @@ async function LabelDetail(root, opts) {
             _renderFlagButtons();
         }
 
-        // Title: "Label Type : Curb Ramp"
+        // Title is just the label-type name (e.g. "Curb Ramp") — the popup is self-evidently about a label.
         const labelTypeName = i18next.t(`common:${camelToKebab(meta.label_type)}`);
-        els.title.textContent = `${i18next.t('labelmap:label-type')} : ${labelTypeName}`;
+        els.title.textContent = labelTypeName;
 
         // Severity faces.
         _renderSeverity(meta.severity, meta.label_type);
