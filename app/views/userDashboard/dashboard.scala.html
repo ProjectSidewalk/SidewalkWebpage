@@ -183,8 +183,9 @@
         </div>
 
         <h3 class="api-heading" id="recent-mistakes">Recent mistakes <a href="#recent-mistakes" class="permalink">#</a></h3>
+        <p>Disagree with a validation? Tell us — you can stand by your label and leave a note for context.</p>
         <div class="ud-mistake-cards">
-            @for(m <- DashboardMock.mistakes) {
+            @for(m <- DashboardMock.mistakes.take(DashboardMock.recentMistakesShown)) {
                 <figure class="ud-card">
                     <div class="ud-card-img" style="background: linear-gradient(135deg, #cfd8dc, #90a4ae)">
                         <span class="ud-card-type-icon" style="border-color: var(--color-label-@m.cssKey)">
@@ -195,11 +196,17 @@
                     <figcaption class="ud-card-body">
                         <span class="ud-card-title">@m.name</span>
                         <span class="ud-card-note">@m.note</span>
+                        <div class="ud-card-actions">
+                            <button type="button" class="ud-chip ud-chip-agree" title="I agree this label was incorrect">👍 I agree</button>
+                            <button type="button" class="ud-chip ud-chip-disagree" title="I disagree — my label was correct (contest the validation)">✋ It was correct</button>
+                        </div>
+                        <a class="ud-card-comment-link" href="#">💬 Add a comment</a>
                     </figcaption>
                 </figure>
             }
         </div>
-        <p class="ud-section-note">Cards reuse the Gallery card look (#4388). If you have no mistakes, this becomes an encouraging "great accuracy!" state instead of an empty rail.</p>
+        <a class="ud-see-all" href="#">See all @DashboardMock.totalMistakes →</a>
+        <p class="ud-section-note">Cards reuse the Gallery card look (#4388). The agree / "it was correct" buttons let you contest a validation (#2996, #1680) — once you respond, that label drops off this list. If you have no mistakes, this becomes an encouraging "great accuracy!" state instead of an empty rail.</p>
     </div>
 
     @* ---- Map — where you've explored ------------------------------------------------------------------- *@

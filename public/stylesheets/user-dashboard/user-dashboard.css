@@ -473,6 +473,48 @@
     line-height: 1.4;
 }
 
+.ud-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs, 8px);
+    margin-top: var(--space-xs, 8px);
+}
+
+.ud-chip {
+    padding: 4px 10px;
+    border: 1px solid var(--color-neutral-300, #c5cdd2);
+    border-radius: 14px;
+    background: var(--color-neutral-white, #fff);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-heading, #263238);
+    cursor: pointer;
+    transition: background var(--transition-fast, 0.15s ease), border-color var(--transition-fast, 0.15s ease);
+}
+
+.ud-chip-agree:hover { background: var(--color-pine-100, #eaf3ec); border-color: var(--color-pine-400, #8fc09b); }
+.ud-chip-disagree:hover { background: var(--color-orange-100, #fdeede); border-color: var(--color-orange-300, #f4b277); }
+
+.ud-card-comment-link {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-accent-link, #0566f5);
+    text-decoration: none;
+}
+
+.ud-card-comment-link:hover { text-decoration: underline; }
+
+.ud-see-all {
+    display: inline-block;
+    margin-top: var(--space-xs, 8px);
+    font-size: var(--font-size-md, 1rem);
+    font-weight: 600;
+    color: var(--color-accent-link, #0566f5);
+    text-decoration: none;
+}
+
+.ud-see-all:hover { text-decoration: underline; }
+
 /* ---- Map placeholder ------------------------------------------------------------------------------------------- */
 .ud-map-placeholder {
     display: flex;

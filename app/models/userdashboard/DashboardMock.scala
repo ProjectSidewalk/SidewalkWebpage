@@ -54,8 +54,16 @@ object DashboardMock {
     Mistake("Obstacle", "obstacle", "Validators said this was clear — the pole was outside the path of travel."),
     Mistake("Surface Problem", "surface-problem", "Minor cracking; most validators marked it passable."),
     Mistake("Obstacle", "obstacle", "This looked like a temporary trash bin, not a fixed obstacle."),
-    Mistake("No Sidewalk", "no-sidewalk", "A sidewalk was present just out of frame to the right.")
+    Mistake("No Sidewalk", "no-sidewalk", "A sidewalk was present just out of frame to the right."),
+    Mistake("Curb Ramp", "curb-ramp", "Validators saw a driveway apron here rather than a curb ramp."),
+    Mistake("Crosswalk", "crosswalk", "Faded markings — most validators couldn't confirm a crosswalk.")
   )
+
+  /** How many recent mistakes to surface on the dashboard before the "See all" link. */
+  val recentMistakesShown: Int = 6
+
+  /** Total mistakes available behind "See all" (mock count). */
+  val totalMistakes: Int = 23
 
   /** Mock standing slice (the user ± neighbors) for a large-cohort framing. */
   val standingSlice: Seq[RankRow] = Seq(
