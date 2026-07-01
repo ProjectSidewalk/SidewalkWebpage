@@ -2,20 +2,31 @@
 @import models.user.SidewalkUserWithRole
 @import models.userdashboard.DashboardMock
 @import play.api.Configuration
-@(commonData: CommonPageData, user: SidewalkUserWithRole, profileName: String
+@(commonData: CommonPageData, user: SidewalkUserWithRole, profileName: String, isPublic: Boolean
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
- * Public version of a mapper's dashboard (Phase 1 comps prototype, mock data), reached by clicking a name on the
+ * Public version of a mapper's dashboard (comps prototype, mock stats), reached by clicking a name on the
  * leaderboard. Viewable by anyone, including anonymous accounts.
  *
  * Shows only celebratory, non-PII stats: their impact, streak, badges, and trophies — deliberately NOT their email,
- * their "recent mistakes"/contest tools, or their settings (those are private to the owner). The real version honors
- * the target user's `public_profile` flag; a private profile renders the "kept private" state instead. All numbers
- * are placeholders here and reuse the dashboard mock for illustration.
+ * their "recent mistakes"/contest tools, or their settings (those are private to the owner). Honors the target user's
+ * `public_profile` flag (passed as `isPublic`, already OR'd with owner-viewing): a private profile renders the "kept
+ * private" state instead. The stats are still placeholders that reuse the dashboard mock; the flag gating is real.
  *@
 
 @monogram = @{ profileName.take(2).toUpperCase }
+
+@privateState = {
+    <div class="api-section" id="pp-private-section">
+        <h1 class="api-heading" id="overview">@profileName <a href="#overview" class="permalink">#</a></h1>
+        <div class="ud-empty-state">
+            <span class="ud-empty-emoji" aria-hidden="true">🔒</span>
+            <p><strong>@profileName has kept their profile private.</strong></p>
+            <p class="ud-hero-sub">They're still out there making sidewalks more accessible — they've just chosen not to share a public profile.</p>
+        </div>
+    </div>
+}
 
 @* One-line description of what each badge track counts (shown under the track name). *@
 @trackDesc(name: String) = @{
@@ -112,5 +123,5 @@
 
 @common.main(commonData, s"Sidewalk - ${profileName}") {
     @common.navbar(commonData, Some(user))
-    @userDashboard.layout("")(content)
+    @userDashboard.layout("")(if(isPublic){content}else{privateState})
 }

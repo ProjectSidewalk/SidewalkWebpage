@@ -893,6 +893,36 @@
 .ud-check input { margin-top: 3px; }
 .ud-check-text { display: flex; flex-direction: column; gap: 2px; }
 
+/* Read-only setting value (e.g. measurement units, which follow the site language). */
+.ud-static-value {
+    margin: 0;
+    font-size: var(--font-size-lg, 1.125rem);
+    color: var(--color-text-heading, #263238);
+}
+
+.ud-input[readonly] { background: var(--color-neutral-100, #f2f5f6); color: var(--color-text-secondary, #5a7785); }
+
+/* Inline "Saved ✓" / error message next to the Save button. */
+.ud-save-status {
+    margin-left: var(--space-sm, 12px);
+    font-size: var(--font-size-md, 1rem);
+    color: var(--color-text-secondary, #5a7785);
+}
+.ud-save-status.ud-save-ok { color: var(--color-success, #2e7d32); }
+.ud-save-status.ud-save-err { color: var(--color-error, #d32f2f); }
+
+/* "Kept private" state on a public profile whose owner turned off public_profile. */
+.ud-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs, 8px);
+    text-align: center;
+    padding: var(--space-xl, 32px) var(--space-md, 16px);
+    color: var(--color-text-heading, #263238);
+}
+.ud-empty-emoji { font-size: 2.5rem; }
+
 /* ---- "How is this ranked?" explainer --------------------------------------------------------------------------- */
 .ud-explainer {
     margin: 0 0 var(--space-md, 16px);

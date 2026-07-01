@@ -4,6 +4,7 @@ import controllers.base.{CustomBaseController, CustomControllerComponents}
 import models.auth.WithSignedIn
 import play.api.Configuration
 import play.api.i18n.Messages
+import play.api.libs.json.Json
 import service.{ConfigService, UserService}
 
 import javax.inject._
@@ -81,14 +82,58 @@ class UserDashboardController @Inject() (
   }
 
   /**
-   * Renders the Settings page prototype: username, email, team membership, measurement units, and the two privacy
-   * toggles ("Show me on the leaderboard" and "Make my dashboard public", both default on). Secured to a registered
-   * user (settings are personal). Phase 1 is a static form with mock values.
+   * Renders the Settings page: editable username, read-only email + measurement units (units follow the site
+   * language), team membership, and the two privacy toggles ("Show me on the leaderboard" and "Make my dashboard
+   * public"). Secured to a signed-in user (settings are personal). The toggles reflect the user's real flags;
+   * `privateByDefault` tells the view whether this deployment starts users private (school/minor cities) so it can
+   * explain the default.
    */
   def settingsPreview = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_SettingsPreview")
-      Ok(views.html.userDashboard.settings(commonData, request.identity))
+    val user     = request.identity
+    val isMetric = Messages("measurement.system") == "metric"
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      openTeams  <- userService.getAllOpenTeams
+      currTeam   <- userService.getUserTeam(user.userId)
+      privacy    <- userService.getPrivacySettings(user.userId)
+    } yield {
+      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_SettingsPreview")
+      val (onLeaderboard, publicProfile) = privacy.getOrElse((true, true))
+      Ok(
+        views.html.userDashboard.settings(commonData, user, openTeams, currTeam, onLeaderboard, publicProfile, isMetric,
+          configService.getPrivateProfilesByDefault)
+      )
+    }
+  }
+
+  /**
+   * Persists the Settings form in one save: an optional username change (validated) plus the two privacy flags and
+   * the user's team. `teamId` is a positive id to join/switch or absent/non-positive to leave any current team. A
+   * username that fails validation (length, allowed characters, profanity, or already taken) aborts the whole save
+   * with a 400 and a user-facing message, so nothing is partially applied.
+   */
+  def saveSettings = cc.securityService.SecuredAction(WithSignedIn(), parse.json) { implicit request =>
+    val user          = request.identity
+    val onLeaderboard = (request.body \ "onLeaderboard").asOpt[Boolean].getOrElse(true)
+    val publicProfile = (request.body \ "publicProfile").asOpt[Boolean].getOrElse(true)
+    val teamId        = (request.body \ "teamId").asOpt[Int].filter(_ > 0)
+    val usernameEdit  = (request.body \ "username").asOpt[String].map(_.trim).filter(_.nonEmpty)
+
+    // Only a username change can be rejected, so resolve it first and touch nothing else unless it succeeds.
+    val usernameResult: Future[Either[String, Unit]] = usernameEdit match {
+      case Some(name) if name != user.username => userService.changeUsername(user.userId, name).map(_.map(_ => ()))
+      case _                                   => Future.successful(Right(()))
+    }
+    usernameResult.flatMap {
+      case Left(error) => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> error)))
+      case Right(_)    =>
+        for {
+          _ <- userService.updatePrivacySettings(user.userId, onLeaderboard, publicProfile)
+          _ <- teamId.map(id => userService.setUserTeam(user.userId, id)).getOrElse(userService.leaveTeam(user.userId))
+        } yield {
+          cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=SaveSettings")
+          Ok(Json.obj("success" -> true))
+        }
     }
   }
 
@@ -96,15 +141,21 @@ class UserDashboardController @Inject() (
    * Renders a public version of a mapper's dashboard (their accomplishments only — no email, mistakes, or settings).
    *
    * Bare `SecuredAction` so anyone, including anonymous accounts, can view it after clicking a name on the leaderboard.
-   * The real version will honor the target user's `public_profile` flag (private profiles render a "kept private"
-   * state) and show only non-PII public stats. Phase 1 shows mock data for the given username.
+   * Honors the target user's `public_profile` flag: if the profile is private and the viewer isn't its owner, the
+   * view renders a "kept private" state instead of the stats. (Stats are still mock pending the public-profile data
+   * phase; the flag gating is real.)
    *
    * @param username The mapper whose public profile to show.
    */
   def publicProfilePreview(username: String) = cc.securityService.SecuredAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_PublicProfilePreview")
-      Ok(views.html.userDashboard.publicProfile(commonData, request.identity, username))
+    val viewer = request.identity
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      isPublic   <- userService.isProfilePublic(username)
+    } yield {
+      cc.loggingService.insert(viewer.userId, request.ipAddress, "Visit_PublicProfilePreview")
+      val isOwner = viewer.username == username
+      Ok(views.html.userDashboard.publicProfile(commonData, viewer, username, isPublic || isOwner))
     }
   }
 }

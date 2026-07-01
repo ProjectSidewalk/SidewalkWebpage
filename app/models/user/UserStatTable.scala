@@ -30,7 +30,9 @@ case class UserStat(
     highQualityManual: Option[Boolean],
     ownLabelsValidated: Int,
     accuracy: Option[Double],
-    excluded: Boolean
+    excluded: Boolean,
+    onLeaderboard: Boolean,
+    publicProfile: Boolean
 )
 
 case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int)
@@ -131,9 +133,12 @@ class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
   def ownLabelsValidated: Rep[Int]            = column[Int]("own_labels_validated")
   def accuracy: Rep[Option[Double]]           = column[Option[Double]]("accuracy")
   def excluded: Rep[Boolean]                  = column[Boolean]("excluded")
+  def onLeaderboard: Rep[Boolean]             = column[Boolean]("on_leaderboard")
+  def publicProfile: Rep[Boolean]             = column[Boolean]("public_profile")
 
-  override def * = (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual,
-    ownLabelsValidated, accuracy, excluded) <> ((UserStat.apply _).tupled, UserStat.unapply)
+  override def * =
+    (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy,
+      excluded, onLeaderboard, publicProfile) <> ((UserStat.apply _).tupled, UserStat.unapply)
 }
 
 @ImplementedBy(classOf[UserStatTable])
@@ -519,6 +524,9 @@ class UserStatTable @Inject() (
         if (byTeam) "AND team.visible = TRUE"
         else ""
     }
+    // on_leaderboard hides a user by name from the individual rankings; team totals still include their contribution,
+    // so this filter is applied only to the per-user board (#4323).
+    val leaderboardVisibilityFilter: String = if (byTeam) "" else "AND user_stat.on_leaderboard = TRUE"
     // There are quite a few changes to make to the query when grouping by team instead of user. All of those below.
     val groupingCol: String        = if (byTeam) "user_team.team_id" else "sidewalk_user.user_id"
     val groupingColName: String    = if (byTeam) "team_id" else "user_id"
@@ -552,6 +560,7 @@ class UserStatTable @Inject() (
               AND label.tutorial = FALSE
               AND role.role IN ('Registered', 'Administrator', 'Researcher')
               AND user_stat.excluded = FALSE
+              #$leaderboardVisibilityFilter
               AND (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
               #$teamFilter
           GROUP BY #$groupingCol
@@ -602,7 +611,8 @@ class UserStatTable @Inject() (
    * neighbors around them.
    *
    * Reuses the leaderboard's eligibility filters — role IN (Registered, Administrator, Researcher), non-excluded,
-   * non-deleted/non-tutorial labels — so Owners are excluded and the "of N" denominator reconciles with the board.
+   * on_leaderboard = TRUE, non-deleted/non-tutorial labels — so Owners and users who opted out are excluded and the
+   * "of N" denominator reconciles with the board.
    * Ranks by label count (the intuitive "your standing" metric), not the leaderboard's composite score.
    *
    * @param userId The user whose standing to compute.
@@ -636,6 +646,7 @@ class UserStatTable @Inject() (
               AND label.tutorial = FALSE
               AND role.role IN ('Registered', 'Administrator', 'Researcher')
               AND user_stat.excluded = FALSE
+              AND user_stat.on_leaderboard = TRUE
               #$timeFilter
           GROUP BY sidewalk_user.user_id, sidewalk_user.username
       ),
@@ -1101,10 +1112,40 @@ class UserStatTable @Inject() (
 
   /**
    * Insert a new user_stat entry for the given userId.
-   * @param userId The userId to insert a user_stat entry for
-   * @return DBIO action that returns the number of rows inserted (should be 1)
+   *
+   * @param userId        The userId to insert a user_stat entry for.
+   * @param onLeaderboard Whether the user appears in leaderboard rankings. Defaults true (public); the sign-up path
+   *                      passes false for private-by-default (school/minor) deployments.
+   * @param publicProfile Whether the user's dashboard is publicly viewable. Defaults true; same private-by-default rule.
+   * @return DBIO action that returns the number of rows inserted (should be 1).
    */
-  def insert(userId: String): DBIO[Int] = {
-    userStats += UserStat(0, userId, 0d, None, highQuality = true, None, 0, None, excluded = false)
+  def insert(userId: String, onLeaderboard: Boolean = true, publicProfile: Boolean = true): DBIO[Int] = {
+    userStats += UserStat(0, userId, 0d, None, highQuality = true, None, 0, None, excluded = false, onLeaderboard,
+      publicProfile)
+  }
+
+  /**
+   * Reads a user's two privacy flags.
+   *
+   * @param userId The user to look up.
+   * @return (onLeaderboard, publicProfile), or None if the user has no user_stat row.
+   */
+  def getPrivacySettings(userId: String): DBIO[Option[(Boolean, Boolean)]] = {
+    userStats.filter(_.userId === userId).map(u => (u.onLeaderboard, u.publicProfile)).result.headOption
+  }
+
+  /**
+   * Updates a user's two privacy flags.
+   *
+   * @param userId        The user to update.
+   * @param onLeaderboard New leaderboard-visibility flag.
+   * @param publicProfile New public-profile flag.
+   * @return Number of rows updated (1, or 0 if the user has no user_stat row).
+   */
+  def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): DBIO[Int] = {
+    userStats
+      .filter(_.userId === userId)
+      .map(u => (u.onLeaderboard, u.publicProfile))
+      .update((onLeaderboard, publicProfile))
   }
 }

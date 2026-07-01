@@ -1,16 +1,16 @@
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
+@import models.user.Team
 @import play.api.Configuration
-@(commonData: CommonPageData, user: SidewalkUserWithRole
+@(commonData: CommonPageData, user: SidewalkUserWithRole, openTeams: Seq[Team], currTeam: Option[Team],
+        onLeaderboard: Boolean, publicProfile: Boolean, isMetric: Boolean, privateByDefault: Boolean
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
- * Redesigned User Dashboard — Settings page (Phase 1 comps prototype, mock values, non-functional form).
- *
- * Account + profile settings the user has asked for: username (#4373), email, team membership, measurement units
- * (#2285), and the two privacy toggles from #4323 — "Show me on the leaderboard" and "Make my dashboard public",
- * both default ON. Shown on the shared shell as its own nav item (single-page dashboard + a separate Settings page,
- * per #2545). All values are placeholders; wiring comes with the data phase.
+ * User Dashboard — Settings page. Editable username (#4373), read-only email and measurement units (units follow the
+ * site language), team membership, and the two privacy toggles from #4323 — "Show me on the leaderboard"
+ * (on_leaderboard) and "Make my dashboard public" (public_profile). The whole form saves in one POST to
+ * /dashboard/preview/settings via Settings.js. Shown on the shared shell as its own nav item (#2545).
  *@
 
 @content = {
@@ -24,20 +24,19 @@
         <div class="ud-form">
             <div class="ud-field">
                 <label class="ud-label" for="set-username">Username</label>
-                <input class="ud-input" id="set-username" type="text" value="accessibility_champ">
-                <span class="ud-field-help">Letters, numbers, hyphens, and underscores. This is what other mappers see on the leaderboard.</span>
+                <input class="ud-input" id="set-username" type="text" value="@user.username"
+                       maxlength="30" autocomplete="off" spellcheck="false">
+                <span class="ud-field-help">3–30 characters: letters, numbers, hyphens, and underscores. This is what other mappers see on the leaderboard.</span>
             </div>
             <div class="ud-field">
                 <label class="ud-label" for="set-email">Email</label>
-                <input class="ud-input" id="set-email" type="email" value="champ@@example.com">
-                <span class="ud-field-help">Used for sign-in and password resets. Changing it will ask you to confirm the new address.</span>
+                <input class="ud-input" id="set-email" type="email" value="@user.email" readonly disabled>
+                <span class="ud-field-help">Used for sign-in and password resets. To change your email, contact <a href="mailto:sidewalk@@cs.uw.edu">sidewalk@@cs.uw.edu</a>.</span>
             </div>
             <div class="ud-field">
                 <span class="ud-label">Measurement units</span>
-                <div class="ud-radio-row">
-                    <label class="ud-radio"><input type="radio" name="units" checked> Miles &amp; feet</label>
-                    <label class="ud-radio"><input type="radio" name="units"> Kilometers &amp; meters</label>
-                </div>
+                <p class="ud-static-value">@if(isMetric){Kilometers &amp; meters}else{Miles &amp; feet}</p>
+                <span class="ud-field-help">Units follow the site language, which you can change from the language menu in the top bar.</span>
             </div>
         </div>
     </div>
@@ -49,42 +48,58 @@
                 <label class="ud-label" for="set-team">Your team</label>
                 <div class="ud-field-inline">
                     <select class="ud-input" id="set-team">
-                        <option selected>Ms. Rivera's 7th Grade</option>
-                        <option>UW Mapping Club</option>
-                        <option>Beacon Hill Walks</option>
+                        @currTeam.map { t =>
+                            <option value="@t.teamId" selected>@t.name</option>
+                        }
+                        @for(t <- openTeams if !currTeam.exists(_.teamId == t.teamId)) {
+                            <option value="@t.teamId">@t.name</option>
+                        }
                         <option value="">No team</option>
                     </select>
-                    <button type="button" class="ud-btn-secondary">Create a team</button>
+                    <button type="button" class="ud-btn-secondary ud-create-team-btn">Create a team</button>
                 </div>
-                <span class="ud-field-help">Join a team or class to map together and appear on the team leaderboard. Leave by choosing "No team".</span>
+                <span class="ud-field-help">Join a team or class to map together and appear on the team leaderboard. Choose "No team" to leave your current team.</span>
             </div>
         </div>
     </div>
 
     <div class="api-section" id="settings-privacy-section">
         <h2 class="api-heading" id="privacy">Privacy <a href="#privacy" class="permalink">#</a></h2>
+        @if(privateByDefault){
+            <p class="ud-nudge">This deployment keeps profiles private by default. Turn these on if you'd like to share your name and progress with the community.</p>
+        }
         <div class="ud-form">
             <label class="ud-check">
-                <input type="checkbox" checked>
+                <input type="checkbox" id="set-on-leaderboard" @if(onLeaderboard){checked}>
                 <span class="ud-check-text">
                     <strong>Show me on the leaderboard</strong>
                     <span class="ud-field-help">When off, your name won't appear in any leaderboard rankings.</span>
                 </span>
             </label>
             <label class="ud-check">
-                <input type="checkbox" checked>
+                <input type="checkbox" id="set-public-profile" @if(publicProfile){checked}>
                 <span class="ud-check-text">
                     <strong>Make my dashboard public</strong>
-                    <span class="ud-field-help">When on, anyone can click your name on the leaderboard to see a public version of your dashboard (your stats, badges, and trophies — never your email). When off, your name shows as plain text with no link.</span>
+                    <span class="ud-field-help">When on, anyone can click your name on the leaderboard to see a public version of your dashboard (your stats, badges, and trophies — never your email). When off, your profile shows as "kept private".</span>
                 </span>
             </label>
         </div>
     </div>
 
     <div class="api-section" id="settings-save-section">
-        <button type="button" class="ud-btn-primary">Save changes</button>
-        <p class="ud-section-note">This is a static prototype — the form doesn't submit yet. The two privacy toggles map to per-user flags (on_leaderboard, public_profile), both defaulting on. For school deployments we can flip those defaults per city (see the note in your review).</p>
+        <button type="button" class="ud-btn-primary" id="set-save-btn">Save changes</button>
+        <span class="ud-save-status" id="set-save-status" role="status" aria-live="polite"></span>
     </div>
+
+    <script src="@assets.path("javascripts/UserDashboard/src/Settings.js")"></script>
+    <script>
+        window.addEventListener('DOMContentLoaded', function () {
+            new Settings({
+                saveUrl: '@routes.UserDashboardController.saveSettings',
+                currentUsername: '@user.username'
+            });
+        });
+    </script>
 }
 
 @common.main(commonData, "Sidewalk - Settings") {

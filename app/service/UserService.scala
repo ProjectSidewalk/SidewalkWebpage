@@ -9,6 +9,7 @@ import models.street.StreetEdge
 import models.user._
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile
+import models.utils.ProfanityGuard
 import models.validation.LabelValidationTable
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
@@ -171,8 +172,13 @@ trait UserService {
    * @return The user's new value in the high_quality column; None if user marked excluded or no user found
    */
   def setManualUserQuality(userId: String, highQualityManual: Option[Boolean]): Future[Option[Boolean]]
+  def getPrivacySettings(userId: String): Future[Option[(Boolean, Boolean)]]
+  def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): Future[Int]
+  def isProfilePublic(username: String): Future[Boolean]
+  def changeUsername(userId: String, newUsername: String): Future[Either[String, String]]
   def getUserTeam(userId: String): Future[Option[Team]]
   def setUserTeam(userId: String, newTeamId: Int): Future[Int]
+  def leaveTeam(userId: String): Future[Int]
   def getAllTeams: Future[Seq[Team]]
   def getAllOpenTeams: Future[Seq[Team]]
   def createTeam(name: String, description: String): Future[Int]
@@ -197,6 +203,7 @@ trait UserService {
 class UserServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     userStatTable: UserStatTable,
+    sidewalkUserTable: SidewalkUserTable,
     missionTable: MissionTable,
     labelTable: LabelTable,
     labelValidationTable: LabelValidationTable,
@@ -276,6 +283,44 @@ class UserServiceImpl @Inject() (
 
   def getUserAccuracy(userId: String): Future[Option[Double]] = db.run(labelValidationTable.getUserAccuracy(userId))
 
+  def getPrivacySettings(userId: String): Future[Option[(Boolean, Boolean)]] =
+    db.run(userStatTable.getPrivacySettings(userId))
+
+  def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): Future[Int] =
+    db.run(userStatTable.updatePrivacySettings(userId, onLeaderboard, publicProfile))
+
+  def isProfilePublic(username: String): Future[Boolean] = {
+    sidewalkUserTable.findByUsername(username).flatMap {
+      case Some(u) => db.run(userStatTable.getPrivacySettings(u.userId)).map(_.exists(_._2))
+      case None    => Future.successful(false)
+    }
+  }
+
+  /**
+   * Validates and applies a username change (#4373), enforcing the same rules the Settings UI advertises.
+   *
+   * Rejects (returns `Left(message)`) empty/too-short/too-long names, disallowed characters, profanity, and names
+   * already taken by another user. A no-op change to the user's current name is allowed. Usernames are display-only
+   * (everything keys on user_id), so no downstream references need updating.
+   *
+   * @param userId      The user changing their name.
+   * @param newUsername The requested new username (leading/trailing whitespace is trimmed).
+   * @return `Right(trimmedUsername)` on success, or `Left(userFacingError)` if rejected.
+   */
+  def changeUsername(userId: String, newUsername: String): Future[Either[String, String]] = {
+    val name = newUsername.trim
+    if (name.length < 3 || name.length > 30) Future.successful(Left("Username must be 3–30 characters."))
+    else if (!name.matches("^[A-Za-z0-9_-]+$"))
+      Future.successful(Left("Use only letters, numbers, hyphens, and underscores."))
+    else if (!ProfanityGuard.isClean(name))
+      Future.successful(Left("That username isn't allowed — please choose another."))
+    else
+      sidewalkUserTable.findByUsername(name).flatMap {
+        case Some(existing) if existing.userId != userId => Future.successful(Left("That username is already taken."))
+        case _ => db.run(sidewalkUserTable.updateUsername(userId, name)).map(_ => Right(name))
+      }
+  }
+
   def getUserTeam(userId: String): Future[Option[Team]] = db.run(userTeamTable.getTeam(userId))
 
   def setUserTeam(userId: String, newTeamId: Int): Future[Int] = {
@@ -288,6 +333,14 @@ class UserServiceImpl @Inject() (
       case _    => DBIO.successful(0)
     }
     db.run(updateTeamAction)
+  }
+
+  def leaveTeam(userId: String): Future[Int] = {
+    val action: DBIO[Int] = userTeamTable.getTeam(userId).flatMap {
+      case Some(team) => userTeamTable.remove(userId, team.teamId)
+      case None       => DBIO.successful(0)
+    }
+    db.run(action)
   }
 
   def getAllTeams: Future[Seq[Team]] = db.run(teamTable.getAllTeams)

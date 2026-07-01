@@ -160,6 +160,7 @@ GET     /dashboard                                      controllers.UserProfileC
 # Redesigned dashboard + leaderboard prototype (behind /preview; prod routes above/at /leaderboard stay live until parity).
 GET     /dashboard/preview                              controllers.UserDashboardController.dashboardPreview
 GET     /dashboard/preview/settings                     controllers.UserDashboardController.settingsPreview
+POST    /dashboard/preview/settings                     controllers.UserDashboardController.saveSettings
 GET     /dashboard/preview/u/:username                  controllers.UserDashboardController.publicProfilePreview(username: String)
 GET     /leaderboard/preview                            controllers.UserDashboardController.leaderboardPreview
 GET     /userapi/mistakes                               controllers.UserProfileController.getRecentMistakes(userId: String, n: Int ?= 5)
