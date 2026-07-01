@@ -1,41 +1,49 @@
 @import service.CommonPageData
-@import models.user.SidewalkUserWithRole
+@import models.user.{LeaderboardStat, SidewalkUserWithRole}
 @import models.userdashboard.DashboardMock
 @import play.api.Configuration
-@(commonData: CommonPageData, user: SidewalkUserWithRole, isSignedIn: Boolean
+@(commonData: CommonPageData, user: SidewalkUserWithRole, isSignedIn: Boolean, isMetric: Boolean,
+        overall: Seq[LeaderboardStat], weekly: Seq[LeaderboardStat], teams: Seq[LeaderboardStat]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
- * Redesigned Leaderboard — Phase 1 comps prototype (mock data, no backend) (#4323).
- *
- * PUBLIC page: like the live /leaderboard, anyone (including anonymous accounts) can view it. The community band,
- * podium, and tables show for everyone; the personal "you" pieces (your highlighted row, "you vs community") render
- * only when `isSignedIn`, with a sign-up CTA shown to anonymous visitors instead. Shares the User Dashboard shell and
- * leads with the cross-city community band + lively weekly slice so even a tiny, brand-new deployment feels alive. All
- * numbers are placeholders.
+ * Redesigned Leaderboard — Phase 2a (real per-city data for the podium + this-week + teams + all-time tables via the
+ * existing getLeaderboardStats; community band and "you vs community" remain mock pending cross-city (#3719) and the
+ * rank/percentile query). PUBLIC page: anyone incl. anonymous can view; personal "you" pieces render only when signed
+ * in, with a sign-up CTA otherwise.
  *@
 
-@row(rank: Int, name: String, labels: String, missions: String, distance: String, accuracy: String, you: Boolean) = {
-    <tr @if(you){class="highlighted"}>
-        <td>@rank</td>
-        <td>@if(you){<strong>You</strong>}else{<a href="@routes.UserDashboardController.publicProfilePreview(name)" class="ud-lb-user">@name</a>}</td>
-        <td>@labels</td>
-        <td>@missions</td>
-        <td>@distance</td>
-        <td>@accuracy</td>
-    </tr>
+@* Unit-aware distance, matching the live leaderboard's formatting (km/m for metric, miles/feet otherwise). *@
+@fmtDist(m: Double) = @{
+    if (isMetric) { if (m > 2000) f"${m / 1000}%.1f km" else f"$m%.0f m" }
+    else { val ft = m * 3.28084; if (ft > 2500) f"${ft / 5280}%.1f mi" else f"$ft%.0f ft" }
 }
 
-@allTimeRow(rank: Int, name: String, city: String, labels: String, missions: String, distance: String, accuracy: String, you: Boolean) = {
-    <tr @if(you){class="highlighted"}>
-        <td>@rank</td>
-        <td>@if(you){<strong>You</strong>}else{<a href="@routes.UserDashboardController.publicProfilePreview(name)" class="ud-lb-user">@name</a>}</td>
-        <td><a href="#" class="ud-lb-city">@city</a></td>
-        <td>@labels</td>
-        <td>@missions</td>
-        <td>@distance</td>
-        <td>@accuracy</td>
-    </tr>
+@* Accuracy as a whole percent, or "N/A" when there aren't enough validated labels to be meaningful. *@
+@fmtAcc(a: Option[Double]) = @{ a.map(x => f"${x * 100}%.0f%%").getOrElse("N/A") }
+
+@statRow(rank: Int, stat: LeaderboardStat, linkUser: Boolean) = {
+    @defining(linkUser && isSignedIn && stat.username == user.username) { you =>
+        <tr @if(you){class="highlighted"}>
+            <td>@rank</td>
+            <td>@if(you){<strong>You</strong>}else{
+                @if(linkUser){<a href="@routes.UserDashboardController.publicProfilePreview(stat.username)" class="ud-lb-user">@stat.username</a>}else{@stat.username}
+            }</td>
+            <td>@{"%,d".format(stat.labelCount)}</td>
+            <td>@stat.missionCount</td>
+            <td>@fmtDist(stat.distanceMeters)</td>
+            <td>@fmtAcc(stat.accuracy)</td>
+        </tr>
+    }
+}
+
+@podiumSpot(stat: LeaderboardStat, place: Int, medal: String) = {
+    <div class="ud-podium-spot ud-podium-@place">
+        <div class="ud-podium-avatar" aria-hidden="true">@stat.username.take(2).toUpperCase</div>
+        <div class="ud-podium-name"><a href="@routes.UserDashboardController.publicProfilePreview(stat.username)" class="ud-lb-user">@stat.username</a></div>
+        <div class="ud-podium-score">@{"%,d".format(stat.labelCount)} labels</div>
+        <div class="ud-podium-block" aria-hidden="true">@medal</div>
+    </div>
 }
 
 @content = {
@@ -57,7 +65,7 @@
         }
     </div>
 
-    @* ---- Community impact band (cross-city) ----------------------------------------------------------------- *@
+    @* ---- Community impact band (cross-city) — MOCK until #3719 ---------------------------------------------- *@
     <div class="api-section" id="lb-global-section">
         <h2 class="api-heading" id="global">Community impact <a href="#global" class="permalink">#</a></h2>
         <p>The whole Project Sidewalk community, across every city.</p>
@@ -68,93 +76,87 @@
             <div class="ud-community-stat"><span class="ud-community-value">19,848 mi</span><span class="ud-community-label">Streets explored</span></div>
             <div class="ud-community-stat"><span class="ud-community-value">50</span><span class="ud-community-label">Cities</span></div>
         </div>
+        <p class="ud-section-note">Cross-city totals are mock for now — they wire up with the cross-city aggregation (#3719).</p>
     </div>
 
-    @* ---- Podium -------------------------------------------------------------------------------------------- *@
+    @* ---- Podium (real: top 3 all-time) -------------------------------------------------------------------- *@
     <div class="api-section" id="lb-podium-section">
         <h2 class="api-heading" id="podium">Top of the board <a href="#podium" class="permalink">#</a></h2>
         <p>This city's all-time leaders. 🏆</p>
-        <div class="ud-podium">
-            <div class="ud-podium-spot ud-podium-2">
-                <div class="ud-podium-avatar" aria-hidden="true">RR</div>
-                <div class="ud-podium-name"><a href="@routes.UserDashboardController.publicProfilePreview("ramp_ranger")" class="ud-lb-user">ramp_ranger</a></div>
-                <div class="ud-podium-score">8,902 pts</div>
-                <div class="ud-podium-block" aria-hidden="true">🥈</div>
+        @if(overall.length >= 3) {
+            <div class="ud-podium">
+                @podiumSpot(overall(1), 2, "🥈")
+                @podiumSpot(overall(0), 1, "🥇")
+                @podiumSpot(overall(2), 3, "🥉")
             </div>
-            <div class="ud-podium-spot ud-podium-1">
-                <div class="ud-podium-avatar" aria-hidden="true">CC</div>
-                <div class="ud-podium-name"><a href="@routes.UserDashboardController.publicProfilePreview("curb_crusader")" class="ud-lb-user">curb_crusader</a></div>
-                <div class="ud-podium-score">11,540 pts</div>
-                <div class="ud-podium-block" aria-hidden="true">🥇</div>
-            </div>
-            <div class="ud-podium-spot ud-podium-3">
-                <div class="ud-podium-avatar" aria-hidden="true">SW</div>
-                <div class="ud-podium-name"><a href="@routes.UserDashboardController.publicProfilePreview("sidewalk_sam")" class="ud-lb-user">sidewalk_sam</a></div>
-                <div class="ud-podium-score">7,418 pts</div>
-                <div class="ud-podium-block" aria-hidden="true">🥉</div>
-            </div>
-        </div>
+        } else {
+            <div class="ud-nudge">🌱 The board is just getting started — be one of the first to top it. Start mapping!</div>
+        }
         <p class="ud-section-note">Click a name to see their public profile. Mappers can keep their profile private — private accounts show as a plain name and never link out (#4323).</p>
     </div>
 
-    @* ---- This week ----------------------------------------------------------------------------------------- *@
+    @* ---- This week (real) --------------------------------------------------------------------------------- *@
     <div class="api-section" id="lb-weekly-section">
         <h2 class="api-heading" id="weekly">This week <a href="#weekly" class="permalink">#</a></h2>
         <p>Fresh every Monday — the best place to climb fast.</p>
-        <div class="coverage-table-wrap">
-            <table class="coverage-table">
-                <thead>
-                    <tr><th>#</th><th>Mapper</th><th>Labels</th><th>Missions</th><th>Distance</th><th>Accuracy</th></tr>
-                </thead>
-                <tbody>
-                    @row(1, "jordan_m", "412", "9", "3.1 km", "92%", you = false)
-                    @row(2, "priya_k", "355", "8", "2.7 km", "90%", you = false)
-                    @if(isSignedIn){@row(3, "you", "298", "7", "2.2 km", "88%", you = true)}else{@row(3, "taylor_b", "298", "7", "2.2 km", "88%", you = false)}
-                    @row(4, "sam_l", "240", "6", "1.9 km", "85%", you = false)
-                    @row(5, "ada_w", "198", "5", "1.6 km", "94%", you = false)
-                </tbody>
-            </table>
-        </div>
+        @if(weekly.nonEmpty) {
+            <div class="coverage-table-wrap">
+                <table class="coverage-table">
+                    <thead>
+                        <tr><th>#</th><th>Mapper</th><th>Labels</th><th>Missions</th><th>Distance</th><th>Accuracy</th></tr>
+                    </thead>
+                    <tbody>
+                        @for((stat, i) <- weekly.zipWithIndex) { @statRow(i + 1, stat, linkUser = true) }
+                    </tbody>
+                </table>
+            </div>
+        } else {
+            <div class="ud-nudge">✨ No labels yet this week — be the first on the board!</div>
+        }
     </div>
 
-    @* ---- Teams / classes ---------------------------------------------------------------------------------- *@
+    @* ---- Teams (real) ------------------------------------------------------------------------------------- *@
     <div class="api-section" id="lb-teams-section">
         <h2 class="api-heading" id="teams">Teams <a href="#teams" class="permalink">#</a></h2>
         <p>Map together. Great for classes and community groups.</p>
-        <div class="coverage-table-wrap">
-            <table class="coverage-table">
-                <thead>
-                    <tr><th>#</th><th>Team</th><th>Labels</th><th>Missions</th><th>Distance</th><th>Accuracy</th></tr>
-                </thead>
-                <tbody>
-                    @row(1, "Ms. Rivera's 7th Grade", "6,420", "142", "38 km", "89%", you = true)
-                    @row(2, "UW Mapping Club", "5,980", "131", "34 km", "91%", you = false)
-                    @row(3, "Beacon Hill Walks", "3,210", "77", "19 km", "87%", you = false)
-                </tbody>
-            </table>
-        </div>
+        @if(teams.nonEmpty) {
+            <div class="coverage-table-wrap">
+                <table class="coverage-table">
+                    <thead>
+                        <tr><th>#</th><th>Team</th><th>Labels</th><th>Missions</th><th>Distance</th><th>Accuracy</th></tr>
+                    </thead>
+                    <tbody>
+                        @for((stat, i) <- teams.zipWithIndex) { @statRow(i + 1, stat, linkUser = false) }
+                    </tbody>
+                </table>
+            </div>
+        } else {
+            <div class="ud-nudge">👥 No teams yet — create one from your dashboard and invite friends or classmates!</div>
+        }
     </div>
 
-    @* ---- All-time ----------------------------------------------------------------------------------------- *@
+    @* ---- All-time (real) ---------------------------------------------------------------------------------- *@
     <div class="api-section" id="lb-alltime-section">
         <h2 class="api-heading" id="all-time">All-time <a href="#all-time" class="permalink">#</a></h2>
-        <p>The most prolific mappers in this city, ever — and the city where each is most active.</p>
-        <div class="coverage-table-wrap">
-            <table class="coverage-table ud-lb-alltime">
-                <thead>
-                    <tr><th>#</th><th>Mapper</th><th>Most active in</th><th>Labels</th><th>Missions</th><th>Distance</th><th>Accuracy</th></tr>
-                </thead>
-                <tbody>
-                    @allTimeRow(1, "curb_crusader", "Seattle, WA", "11,540", "312", "142 km", "90%", you = false)
-                    @allTimeRow(2, "ramp_ranger", "Chicago, IL", "8,902", "256", "118 km", "92%", you = false)
-                    @allTimeRow(3, "sidewalk_sam", "Seattle, WA", "7,418", "201", "96 km", "88%", you = false)
-                    @if(isSignedIn){@allTimeRow(28, "you", "Seattle, WA", "1,284", "42", "18.4 km", "88%", you = true)}
-                </tbody>
-            </table>
-        </div>
+        <p>The most prolific mappers in this city, ever.</p>
+        @if(overall.nonEmpty) {
+            <div class="coverage-table-wrap">
+                <table class="coverage-table">
+                    <thead>
+                        <tr><th>#</th><th>Mapper</th><th>Labels</th><th>Missions</th><th>Distance</th><th>Accuracy</th></tr>
+                    </thead>
+                    <tbody>
+                        @for((stat, i) <- overall.zipWithIndex) { @statRow(i + 1, stat, linkUser = true) }
+                    </tbody>
+                </table>
+            </div>
+            <p class="ud-section-note">A "Most active in" city column returns with cross-city stats (#3719).</p>
+        } else {
+            <div class="ud-nudge">🌱 No labels yet — you could be the very first name here.</div>
+        }
     </div>
 
-    @* ---- You vs community (signed-in only) ---------------------------------------------------------------- *@
+    @* ---- You vs community (signed-in only) — MOCK until the rank/percentile query (Phase 3) --------------- *@
     @if(isSignedIn) {
         <div class="api-section" id="lb-you-section">
             <h2 class="api-heading" id="you">You vs the community <a href="#you" class="permalink">#</a></h2>
@@ -170,6 +172,7 @@
                 </ul>
                 <div class="ud-nudge">💪 Just <strong>14 labels</strong> from cracking the top 30 this week — you've got this!</div>
             </div>
+            <p class="ud-section-note">Your exact rank/percentile is mock for now — it wires up with the rank query (Phase 3).</p>
         </div>
     }
 }

@@ -1,9 +1,13 @@
-@import service.CommonPageData
+@import service.{CommonPageData, UserProfileData}
 @import models.user.SidewalkUserWithRole
 @import models.userdashboard.DashboardMock
 @import play.api.Configuration
-@(commonData: CommonPageData, user: SidewalkUserWithRole
+@(commonData: CommonPageData, user: SidewalkUserWithRole, profileData: UserProfileData, isMetric: Boolean
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@* Formats the already-unit-converted audited distance (km when metric, else miles) with one decimal + unit. *@
+@distanceLabel = @{ f"${profileData.auditedDistance}%.1f ${if(isMetric) "km" else "mi"}" }
+@accuracyLabel = @{ profileData.accuracy.map(a => f"${a * 100}%.0f%%").getOrElse("—") }
 
 @*
  * Redesigned User Dashboard — Phase 1 comps prototype (mock data, no backend).
@@ -20,38 +24,36 @@
         <h1 class="api-heading" id="overview">Your dashboard <a href="#overview" class="permalink">#</a></h1>
 
         <div class="ud-hero">
-            <div class="ud-hero-avatar" aria-hidden="true">AC</div>
+            <div class="ud-hero-avatar" aria-hidden="true">@user.username.take(2).toUpperCase</div>
             <div class="ud-hero-text">
-                <p class="ud-hero-greeting">Welcome back, <strong>accessibility_champ</strong> 👋</p>
-                <p class="ud-hero-headline">You've placed <strong>1,284 labels</strong> making sidewalks more accessible.</p>
-                <p class="ud-hero-sub">That's part of <strong>1.6M labels</strong> from the Project Sidewalk community across 50 cities.</p>
+                <p class="ud-hero-greeting">Welcome back, <strong>@user.username</strong> 👋</p>
+                <p class="ud-hero-headline">You've placed <strong>@{"%,d".format(profileData.labelCount)} labels</strong> making sidewalks more accessible.</p>
+                <p class="ud-hero-sub">Every one helps map the world for people with disabilities.</p>
             </div>
         </div>
 
         <div class="coverage-kpis ud-kpis">
             <div class="coverage-kpi">
-                <span class="coverage-kpi-value">42</span>
+                <span class="coverage-kpi-value">@profileData.missionCount</span>
                 <span class="coverage-kpi-label">Missions completed</span>
             </div>
             <div class="coverage-kpi">
-                <span class="coverage-kpi-value">18.4 km</span>
+                <span class="coverage-kpi-value">@distanceLabel</span>
                 <span class="coverage-kpi-label">Distance explored</span>
             </div>
             <div class="coverage-kpi">
-                <span class="coverage-kpi-value">1,284</span>
+                <span class="coverage-kpi-value">@{"%,d".format(profileData.labelCount)}</span>
                 <span class="coverage-kpi-label">Labels placed</span>
             </div>
             <div class="coverage-kpi">
-                <span class="coverage-kpi-value">3,910</span>
+                <span class="coverage-kpi-value">@{"%,d".format(profileData.validationCount)}</span>
                 <span class="coverage-kpi-label">Validations given</span>
             </div>
             <div class="coverage-kpi">
-                <span class="coverage-kpi-value">88%</span>
+                <span class="coverage-kpi-value">@accuracyLabel</span>
                 <span class="coverage-kpi-label">Label accuracy</span>
             </div>
         </div>
-
-        <div class="ud-nudge">🎯 You're just <strong>84 labels</strong> from your next badge — <strong>Labeler V: Sidewalk Sage</strong>. So close!</div>
     </div>
 
     @* ---- Streak / activity rhythm -------------------------------------------------------------------------- *@
@@ -221,18 +223,32 @@
 
         <div class="ud-team">
             <div class="ud-team-card">
-                <span class="ud-team-name">Ms. Rivera's 7th Grade 🧭</span>
-                <span class="ud-team-meta">24 members · 6,420 labels this term</span>
-                <button type="button" class="ud-btn-secondary">Leave team</button>
+                @profileData.userTeam.map { t =>
+                    <span class="ud-team-name">@t.name</span>
+                    @if(t.description.nonEmpty){<span class="ud-team-meta">@t.description</span>}
+                }.getOrElse {
+                    <span class="ud-team-name">You're not on a team yet</span>
+                    <span class="ud-team-meta">Join a team or class to map together and climb the team leaderboard.</span>
+                }
+                <div class="ud-field-inline">
+                    <select class="ud-input" aria-label="Choose a team">
+                        <option>@profileData.userTeam.map(_.name).getOrElse("Choose a team…")</option>
+                        @for(t <- profileData.allTeams.filter(t => t.open && !profileData.userTeam.contains(t))) {
+                            <option>@t.name</option>
+                        }
+                    </select>
+                    <button type="button" class="ud-btn-secondary">Update</button>
+                </div>
             </div>
             <div class="ud-team-board">
-                <div class="ud-team-board-head">Your class this week</div>
+                <div class="ud-team-board-head">Your team this week</div>
                 <ul class="ud-standing-slice">
                     <li><span class="ud-rank">1</span><span class="ud-rank-user">🥇 jordan_m</span><span class="ud-rank-val">412</span></li>
                     <li><span class="ud-rank">2</span><span class="ud-rank-user">🥈 priya_k</span><span class="ud-rank-val">355</span></li>
                     <li class="ud-rank-you"><span class="ud-rank">3</span><span class="ud-rank-user">🥉 you</span><span class="ud-rank-val">298</span></li>
                     <li><span class="ud-rank">4</span><span class="ud-rank-user">sam_l</span><span class="ud-rank-val">240</span></li>
                 </ul>
+                <p class="ud-section-note">Team leaderboard is mock for now — wires up with the team-standing data.</p>
             </div>
         </div>
 

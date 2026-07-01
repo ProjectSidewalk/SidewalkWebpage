@@ -740,16 +740,16 @@
 .ud-field { display: flex; flex-direction: column; gap: 6px; }
 
 .ud-label {
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--font-size-lg, 1.125rem);
     font-weight: 600;
     color: var(--color-text-heading, #263238);
 }
 
 .ud-input {
-    padding: 9px 12px;
+    padding: 10px 13px;
     border: 1px solid var(--color-neutral-300, #c5cdd2);
     border-radius: var(--border-radius, 4px);
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--font-size-lg, 1.125rem);
     color: var(--color-text-heading, #263238);
     background: var(--color-neutral-white, #fff);
 }
@@ -764,7 +764,7 @@
 .ud-field-inline .ud-input { flex: 1 1 240px; }
 
 .ud-field-help {
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--font-size-md, 1rem);
     color: var(--color-text-secondary, #5a7785);
 }
 
@@ -774,7 +774,7 @@
 .ud-check {
     display: flex;
     gap: var(--space-xs, 8px);
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--font-size-lg, 1.125rem);
     color: var(--color-text-heading, #263238);
     cursor: pointer;
 }

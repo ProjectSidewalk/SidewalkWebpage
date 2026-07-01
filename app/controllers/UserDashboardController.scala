@@ -3,7 +3,8 @@ package controllers
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import models.auth.WithSignedIn
 import play.api.Configuration
-import service.ConfigService
+import play.api.i18n.Messages
+import service.{ConfigService, UserService}
 
 import javax.inject._
 import scala.concurrent.ExecutionContext
@@ -24,7 +25,8 @@ class UserDashboardController @Inject() (
     cc: CustomControllerComponents,
     val config: Configuration,
     implicit val assets: AssetsFinder,
-    configService: ConfigService
+    configService: ConfigService,
+    userService: UserService
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -37,9 +39,14 @@ class UserDashboardController @Inject() (
    * signed-in user, matching the real `/dashboard`.
    */
   def dashboardPreview = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_UserDashboardPreview")
-      Ok(views.html.userDashboard.dashboard(commonData, request.identity))
+    val user     = request.identity
+    val isMetric = Messages("measurement.system") == "metric"
+    for {
+      profileData <- userService.getUserProfileData(user.userId, isMetric)
+      commonData  <- configService.getCommonPageData(request2Messages.lang)
+    } yield {
+      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboardPreview")
+      Ok(views.html.userDashboard.dashboard(commonData, user, profileData, isMetric))
     }
   }
 
@@ -53,10 +60,17 @@ class UserDashboardController @Inject() (
    * hardcoded mock data.
    */
   def leaderboardPreview = cc.securityService.SecuredAction { implicit request =>
-    val isSignedIn: Boolean = request.identity.role != "Anonymous"
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_LeaderboardPreview")
-      Ok(views.html.userDashboard.leaderboard(commonData, request.identity, isSignedIn))
+    val user                = request.identity
+    val isSignedIn: Boolean = user.role != "Anonymous"
+    val isMetric: Boolean   = Messages("measurement.system") == "metric"
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      overall    <- userService.getLeaderboardStats(10)
+      weekly     <- userService.getLeaderboardStats(10, "weekly")
+      teams      <- userService.getLeaderboardStats(10, "overall", byTeam = true)
+    } yield {
+      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_LeaderboardPreview")
+      Ok(views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, overall, weekly, teams))
     }
   }
 
