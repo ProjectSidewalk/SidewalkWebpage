@@ -131,6 +131,22 @@ object ControllerUtils {
   }
 
   /**
+   * Restricts a post-auth redirect target to a same-origin path, guarding against open redirects.
+   *
+   * Only a single-slash-prefixed relative path is accepted (e.g. `/explore?foo=bar`). Absolute URLs, protocol-relative
+   * `//host` URLs, and backslash variants that browsers normalize to `//` fall back to `default`, so a caller-supplied
+   * `returnUrl` cannot bounce a freshly-authenticated user to an attacker-controlled site.
+   *
+   * @param url     The candidate redirect target (typically a `returnUrl` form field).
+   * @param default Where to send the user when `url` is not a safe same-origin path.
+   * @return        `url` (trimmed) if it is a same-origin relative path, otherwise `default`.
+   */
+  def safeLocalPath(url: String, default: String = "/"): String = {
+    val trimmed = url.trim
+    if (trimmed.startsWith("/") && !trimmed.startsWith("//") && !trimmed.startsWith("/\\")) trimmed else default
+  }
+
+  /**
    * Sets up a redirect to /anonSignUp while keeping track of the current URL and query string.
    */
   def anonSignupRedirect(request: RequestHeader): Result = {

@@ -1022,22 +1022,27 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       validatorId: Option[String] = None,
       labelId: Option[Int] = None
   ): DBIO[Seq[LabelMetadata]] = {
-    // Optional filter to only get labels placed by the given user.
-    val labelerFilter: String = if (labelerId.isDefined) s"""u.user_id = '${labelerId.get}'""" else "TRUE"
+    // These user_ids are spliced into raw SQL below, so escape single quotes to keep the query injection-safe if a
+    // caller ever passes a request-derived id (today they are server-generated UUIDs).
+    val escapedLabelerId: Option[String]   = labelerId.map(_.replace("'", "''"))
+    val escapedValidatorId: Option[String] = validatorId.map(_.replace("'", "''"))
 
-    // Whether the label was placed by the current user (used to prevent self-validation).
-    val fromCurrentUserExpr: String = if (validatorId.isDefined) s"""u.user_id = '${validatorId.get}'""" else "FALSE"
+    // Optional filter to only get labels placed by the given user.
+    val labelerFilter: String = escapedLabelerId.map(id => s"""u.user_id = '$id'""").getOrElse("TRUE")
+
+    // Whether the label was placed by the current user (prevents self-validation).
+    val fromCurrentUserExpr: String = escapedValidatorId.map(id => s"""u.user_id = '$id'""").getOrElse("FALSE")
 
     // Optionally include the given user's validation info for each label in the userValidation field.
     val validatorJoin: String =
-      if (validatorId.isDefined) {
-        s"""LEFT JOIN (
-           |    SELECT label_id, validation_result
-           |    FROM label_validation WHERE user_id = '${validatorId.get}'
-           |) AS user_validation ON lb.label_id = user_validation.label_id""".stripMargin
-      } else {
-        "LEFT JOIN ( SELECT NULL AS validation_result ) AS user_validation ON lb.label_id = NULL"
-      }
+      escapedValidatorId
+        .map { id =>
+          s"""LEFT JOIN (
+             |    SELECT label_id, validation_result
+             |    FROM label_validation WHERE user_id = '$id'
+             |) AS user_validation ON lb.label_id = user_validation.label_id""".stripMargin
+        }
+        .getOrElse("LEFT JOIN ( SELECT NULL AS validation_result ) AS user_validation ON lb.label_id = NULL")
 
     // Either filter for the given labelId or filter out deleted and tutorial labels.
     val labelFilter: String = if (labelId.isDefined) {

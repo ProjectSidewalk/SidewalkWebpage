@@ -2,7 +2,7 @@ package controllers
 
 import controllers.base._
 import controllers.helper.ControllerUtils
-import controllers.helper.ControllerUtils.parseURL
+import controllers.helper.ControllerUtils.{parseURL, safeLocalPath}
 import forms._
 import models.auth.{DefaultEnv, WithAdminOrIsUser}
 import models.user.{SidewalkUserWithRole, UserUtm}
@@ -181,7 +181,8 @@ class UserController @Inject() (
             .flatMap(_.headOption)
             .getOrElse("/") // Default redirect path if no returnUrl.
           val (returnUrlPath, returnUrlQuery) = parseURL(returnUrl)
-          val result                          = Redirect(returnUrl)
+          // Constrain to a same-origin path so a crafted returnUrl can't open-redirect a signed-in user off-site.
+          val result = Redirect(safeLocalPath(returnUrl))
 
           // Try to authenticate the user.
           authenticationService
@@ -270,7 +271,8 @@ class UserController @Inject() (
           val serviceHoursUser: Boolean = data.serviceHours == "YES"
 
           // Either redirect to the service hours instructions page or the returnUrl from the query params.
-          val redirectUrl: String = if (serviceHoursUser) "/serviceHoursInstructions" else returnUrl
+          // safeLocalPath constrains returnUrl to a same-origin path (open-redirect guard).
+          val redirectUrl: String = if (serviceHoursUser) "/serviceHoursInstructions" else safeLocalPath(returnUrl)
           val result              = Redirect(redirectUrl)
 
           (for {
