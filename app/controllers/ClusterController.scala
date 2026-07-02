@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base._
+import controllers.helper.ControllerUtils.internalKeyValid
 import formats.json.ClusterFormats._
 import models.auth.{DefaultEnv, WithAdmin}
 import org.apache.pekko.stream.scaladsl.Source
@@ -8,7 +9,6 @@ import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
-import play.silhouette.api.exceptions.NotAuthorizedException
 import service.{ClusterService, ConfigService}
 
 import java.util.concurrent.atomic.AtomicReference
@@ -37,14 +37,6 @@ class ClusterController @Inject() (
     configService
       .getCommonPageData(request2Messages.lang)
       .map(commonData => Ok(views.html.clustering(commonData, "Sidewalk - Clustering", request.identity)))
-  }
-
-  /**
-   * Reads a key from env variable and compares against the input key, returning true if they match.
-   * @return Boolean indicating whether the input key matches the true key.
-   */
-  def authenticate(key: String): Boolean = {
-    key == config.get[String]("internal-api-key")
   }
 
   /**
@@ -93,15 +85,17 @@ class ClusterController @Inject() (
 
   /**
    * Returns the set of labels in this region that should be clustered as JSON.
-   * @param key A key used for authentication.
+   *
+   * Authenticated with the internal API key sent as an `Authorization: Bearer` header.
    * @param regionId The region whose labels should be retrieved.
    */
-  def getLabelsToClusterInRegion(key: String, regionId: Int): Action[AnyContent] = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    if (authenticate(key)) {
+  def getLabelsToClusterInRegion(regionId: Int): Action[AnyContent] = Action.async { implicit request =>
+    if (internalKeyValid(request, config.getOptional[String]("internal-api-key").getOrElse(""))) {
       apiService.getLabelsToClusterInRegion(regionId).map { labels => Ok(Json.toJson(labels)) }
     } else {
-      Future.failed(new NotAuthorizedException("Could not authenticate with provided key."))
+      Future.successful(
+        Unauthorized(Json.obj("status" -> "Error", "message" -> "Invalid or missing internal API key."))
+      )
     }
   }
 
@@ -110,12 +104,13 @@ class ClusterController @Inject() (
    *
    * NOTE The maxLength argument allows a 100MB max load size for the POST request.
    * TODO haven't tested that parse.json(maxLength = 1024 * 1024 * 100L) actually works.
-   * @param key A key used for authentication.
+   *
+   * Authenticated with the internal API key sent as an `Authorization: Bearer` header.
    * @param regionId The region whose labels were clustered.
    */
-  def postClusteringResults(key: String, regionId: Int): Action[JsValue] =
+  def postClusteringResults(regionId: Int): Action[JsValue] =
     Action.async(parse.json(maxLength = 1024 * 1024 * 100)) { implicit request =>
-      if (authenticate(key)) {
+      if (internalKeyValid(request, config.getOptional[String]("internal-api-key").getOrElse(""))) {
         val submission = request.body.validate[ClusteringSubmission]
         submission.fold(
           errors => {
@@ -131,7 +126,9 @@ class ClusterController @Inject() (
           }
         )
       } else {
-        Future.failed(new NotAuthorizedException("Could not authenticate with provided key."))
+        Future.successful(
+          Unauthorized(Json.obj("status" -> "Error", "message" -> "Invalid or missing internal API key."))
+        )
       }
     }
 }

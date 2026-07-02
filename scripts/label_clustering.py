@@ -13,9 +13,11 @@ This script is invoked in-band, once per region, by ``ClusterService.runMultiUse
 
 Run directly (matching the Scala invocation, from the repo root):
 
-    python3 scripts/label_clustering.py --key <internal-api-key> --region_id <id> [--debug]
+    INTERNAL_API_KEY=<key> python3 scripts/label_clustering.py --region_id <id> [--debug]
 
-The HTTP port defaults to 9000 and can be overridden with the ``SIDEWALK_HTTP_PORT`` environment variable.
+The internal API key is read from the ``INTERNAL_API_KEY`` environment variable and sent as an ``Authorization: Bearer``
+header (never on the command line or in the URL, so it can't leak into ``ps``/access logs). The HTTP port defaults to
+9000 and can be overridden with the ``SIDEWALK_HTTP_PORT`` environment variable.
 
 The pure functions here (``custom_dist``, ``clean_label_data``, ``cluster``, ``cluster_label_type``,
 ``offset_and_combine``, ``build_output_json``) are import-safe and unit-tested in
@@ -246,17 +248,29 @@ def build_output_json(thresholds, label_output, cluster_output):
                        'clusters': json.loads(cluster_json)})
 
 
+def _auth_headers():
+    """
+    Builds the internal-API auth header from the ``INTERNAL_API_KEY`` environment variable.
+
+    Returns:
+        ``{'Authorization': 'Bearer <key>'}`` when the env var is set, otherwise ``{}`` (the app will reject the
+        unauthenticated request, failing safe).
+    """
+    key = os.environ.get('INTERNAL_API_KEY', '')
+    return {'Authorization': f'Bearer {key}'} if key else {}
+
+
 def fetch_labels(url):
     """
     GETs the labels to cluster and normalizes them into a DataFrame.
 
     Args:
-        url: The ``/labelsToClusterInRegion`` URL (including key and regionId query params).
+        url: The ``/labelsToClusterInRegion`` URL (with the regionId query param).
 
     Returns:
         A DataFrame of the region's labels (possibly empty).
     """
-    response = requests.get(url, timeout=REQUEST_TIMEOUT)
+    response = requests.get(url, headers=_auth_headers(), timeout=REQUEST_TIMEOUT)
     return pd.json_normalize(response.json())
 
 
@@ -265,13 +279,13 @@ def post_results(url, payload):
     POSTs a JSON payload to ``/clusteringResults``.
 
     Args:
-        url:     The ``/clusteringResults`` URL (including key and regionId query params).
+        url:     The ``/clusteringResults`` URL (with the regionId query param).
         payload: The JSON string body to post.
 
     Returns:
         The ``requests.Response``.
     """
-    return requests.post(url, data=payload, headers=POST_HEADER, timeout=REQUEST_TIMEOUT)
+    return requests.post(url, data=payload, headers={**POST_HEADER, **_auth_headers()}, timeout=REQUEST_TIMEOUT)
 
 
 def main(argv=None):
@@ -285,14 +299,13 @@ def main(argv=None):
         Process exit code: 0 on success, 1 if the labels could not be fetched.
     """
     parser = argparse.ArgumentParser(description='Gets a set of labels, posts the labels grouped into clusters.')
-    parser.add_argument('--key', type=str, help='Key string used to authenticate with the API.')
     parser.add_argument('--region_id', type=int, help="Region id whose labels should be clustered.")
     parser.add_argument('--debug', action='store_true', help='Print per-type cluster counts and cleaning stats.')
     args = parser.parse_args(argv)
 
     port = os.environ.get('SIDEWALK_HTTP_PORT', '9000')
-    get_url = f'http://localhost:{port}/labelsToClusterInRegion?key={args.key}&regionId={args.region_id}'
-    post_url = f'http://localhost:{port}/clusteringResults?key={args.key}&regionId={args.region_id}'
+    get_url = f'http://localhost:{port}/labelsToClusterInRegion?regionId={args.region_id}'
+    post_url = f'http://localhost:{port}/clusteringResults?regionId={args.region_id}'
 
     try:
         label_data = fetch_labels(get_url)
