@@ -177,8 +177,8 @@ GET     /assets/*file                                   controllers.Assets.versi
 # Clustering
 GET     /clustering                                     controllers.ClusterController.index
 GET     /runClustering                                  controllers.ClusterController.runClustering()
-GET     /labelsToClusterInRegion                        controllers.ClusterController.getLabelsToClusterInRegion(key: String, regionId: Int)
-POST    /clusteringResults                              controllers.ClusterController.postClusteringResults(key: String, regionId: Int)
+GET     /labelsToClusterInRegion                        controllers.ClusterController.getLabelsToClusterInRegion(regionId: Int)
+POST    /clusteringResults                              controllers.ClusterController.postClusteringResults(regionId: Int)
 
 # RouteBuilder
 POST    /saveRoute                                      controllers.RouteBuilderController.saveRoute

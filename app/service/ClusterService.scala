@@ -7,7 +7,7 @@ import play.api.{Configuration, Logger}
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.sys.process.stringSeqToProcess
+import scala.sys.process.Process
 
 /**
  * Final counts from a clustering run: how many labels were grouped into how many clusters.
@@ -65,9 +65,14 @@ class ClusterServiceImpl @Inject() (
         statusRef.foreach(_.set(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions"))
         logger.info(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions, next: $regionId.")
 
-        // Run the clustering script for this region.
+        // Run the clustering script for this region. Pass the internal key via the subprocess environment rather than
+        // an argv flag so it can't leak into the process table / `ps` output.
         val clusteringOutput =
-          Seq("/usr/bin/python3", "scripts/label_clustering.py", "--key", key, "--region_id", regionId.toString).!!
+          Process(
+            Seq("/usr/bin/python3", "scripts/label_clustering.py", "--region_id", regionId.toString),
+            None,
+            "INTERNAL_API_KEY" -> key
+          ).!!
         logger.debug(clusteringOutput)
       }
       logger.info("Finished 100% of regions!!\n\n")
