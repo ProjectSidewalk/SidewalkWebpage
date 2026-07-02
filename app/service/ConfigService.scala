@@ -663,6 +663,7 @@ trait ConfigService {
   def getCurrentCountryId: String
   def getCityName(lang: Lang): String
   def getAiTagSuggestionsEnabled: Boolean
+  def getAiLabelSubmissionEnabled: Boolean
   def getPrivateProfilesByDefault: Boolean
   def getPanoSource: PanoSource
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Double): Future[Int]
@@ -1683,6 +1684,8 @@ class ConfigServiceImpl @Inject() (
   def getCityName(lang: Lang): String = messagesApi(s"city.name.$getCityId")(lang)
 
   def getAiTagSuggestionsEnabled: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$getCityId")
+
+  def getAiLabelSubmissionEnabled: Boolean = cityFlag("ai-label-submission-enabled", getCityId)
 
   def getPrivateProfilesByDefault: Boolean = cityFlag("private-profiles-by-default", getCityId)
 
