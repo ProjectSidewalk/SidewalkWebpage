@@ -97,6 +97,42 @@ describe('util.throttle', () => {
         expect(fn).toHaveBeenNthCalledWith(2, 'third');
     });
 
+    test('a trailing run starts a new window (a call right after it does not fire on the leading edge)', () => {
+        const fn = jest.fn();
+        const throttled = throttle(fn, 500);
+
+        throttled();                       // t=0: leading
+        jest.advanceTimersByTime(100);
+        throttled();                       // t=100: schedules trailing at t=500
+        jest.advanceTimersByTime(400);     // t=500: trailing fires
+        expect(fn).toHaveBeenCalledTimes(2);
+
+        // Only 100ms into the window opened by the trailing run — must coalesce, not fire immediately.
+        jest.advanceTimersByTime(100);
+        throttled();                       // t=600
+        expect(fn).toHaveBeenCalledTimes(2);
+
+        jest.advanceTimersByTime(400);     // t=1000: its trailing call fires
+        expect(fn).toHaveBeenCalledTimes(3);
+    });
+
+    test('independently created throttled functions do not share state', () => {
+        const fnA = jest.fn();
+        const fnB = jest.fn();
+        const throttledA = throttle(fnA, 500);
+        const throttledB = throttle(fnB, 500);
+
+        throttledA();
+        throttledB(); // must fire on its own leading edge, unaffected by A's window
+        expect(fnA).toHaveBeenCalledTimes(1);
+        expect(fnB).toHaveBeenCalledTimes(1);
+
+        throttledA(); // within A's window: schedules A's trailing only
+        jest.advanceTimersByTime(500);
+        expect(fnA).toHaveBeenCalledTimes(2);
+        expect(fnB).toHaveBeenCalledTimes(1); // B had no burst, so no trailing call
+    });
+
     test('sustained calls fire at roughly one per window, not once per call', () => {
         const fn = jest.fn();
         const throttled = throttle(fn, 500);
