@@ -8,7 +8,7 @@ resolvers += "Typesafe repository" at "https://repo.typesafe.com/typesafe/releas
 //resolvers += "Sonatype snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
 
 // Use the Play sbt plugin for Play projects
-addSbtPlugin("org.playframework" % "sbt-plugin" % "3.0.10")
+addSbtPlugin("org.playframework" % "sbt-plugin" % "3.0.11")
 
 // Code formatting check (scalafmtCheckAll). The scalafmt version itself is pinned in .scalafmt.conf (3.9.10); this
 // plugin fetches it dynamically. Wired into CI as advisory-only for now (no repo-wide reformat pass yet).
