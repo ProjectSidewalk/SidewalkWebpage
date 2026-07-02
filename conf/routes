@@ -178,6 +178,8 @@ GET     /assets/*file                                   controllers.Assets.versi
 GET     /clustering                                     controllers.ClusterController.index
 GET     /runClustering                                  controllers.ClusterController.runClustering()
 GET     /labelsToClusterInRegion                        controllers.ClusterController.getLabelsToClusterInRegion(regionId: Int)
+# Authenticated by the internal key (ControllerUtils.internalKeyValid), not a browser session.
++ nocsrf
 POST    /clusteringResults                              controllers.ClusterController.postClusteringResults(regionId: Int)
 
 # RouteBuilder
