@@ -2,8 +2,9 @@ package service
 
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Environment, Logger}
 
+import java.io.File
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -33,6 +34,7 @@ trait ClusterService {
 @Singleton
 class ClusterServiceImpl @Inject() (
     config: Configuration,
+    environment: Environment,
     apiService: ApiService,
     cpuEc: CpuIntensiveExecutionContext
 )(implicit ec: ExecutionContext)
@@ -53,6 +55,17 @@ class ClusterServiceImpl @Inject() (
   private def runMultiUserClustering(statusRef: Option[AtomicReference[String]]): Future[Unit] = {
     val key: String = config.get[String]("internal-api-key")
 
+    // Resolve the script against the app's root path (where scripts/ is packaged via Universal / mappings in build.sbt)
+    // rather than a working-directory-relative path, so a staged/prod app finds it regardless of its launch directory.
+    val script: File = environment
+      .getExistingFile("scripts/label_clustering.py")
+      .getOrElse(
+        throw new RuntimeException(
+          s"Clustering script not found at " +
+            s"${environment.getFile("scripts/label_clustering.py").getAbsolutePath}; is scripts/ packaged into the build?"
+        )
+      )
+
     // Each shell-out blocks until that region's clustering script finishes, so the loop runs on the cpu-intensive
     // pool to keep these potentially minutes-long waits off Play's default dispatcher.
     apiService.getRegionsToCluster.map { regionIds =>
@@ -68,7 +81,7 @@ class ClusterServiceImpl @Inject() (
         // Run the clustering script for this region. Pass the internal key via the subprocess environment rather than
         // an argv flag so it can't leak into the process table / `ps` output.
         val process = Process(
-          Seq("/usr/bin/python3", "scripts/label_clustering.py", "--region_id", regionId.toString),
+          Seq("/usr/bin/python3", script.getAbsolutePath, "--region_id", regionId.toString),
           None,
           "INTERNAL_API_KEY" -> key
         )

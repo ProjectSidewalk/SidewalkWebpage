@@ -19,13 +19,19 @@ haversine distance, with per-type distance thresholds; labels from the same user
 makes the cluster ids globally unique, and POSTs the labels, clusters, and thresholds back to `/clusteringResults`.
 
 ```bash
-python3 scripts/label_clustering.py --key <internal-api-key> --region_id <id> [--debug]
+INTERNAL_API_KEY=<internal-api-key> python3 scripts/label_clustering.py --region_id <id> [--debug]
 ```
 
-- `--key` — the internal API key (the app passes `config.get[String]("internal-api-key")`).
+- `INTERNAL_API_KEY` (env) — the internal API key, sent as an `Authorization: Bearer` header (kept off the command
+  line so it can't leak into `ps`/access logs). The app passes `config.get[String]("internal-api-key")`.
 - `--region_id` — the region whose labels to cluster.
 - `--debug` — print per-type cluster counts and coordinate-cleaning stats.
 - `SIDEWALK_HTTP_PORT` (env) — app port, defaults to `9000`.
+
+Because this one runs in-band, the deployed app has to be able to both **find** and **run** it: `scripts/` is bundled
+into the staged package via `Universal / mappings` in [`build.sbt`](../build.sbt) and `ClusterService` resolves it
+against the app root (not the process working directory), and its [`requirements.txt`](../requirements.txt)
+dependencies must be installed in the `python3` interpreter the app shells out to.
 
 ## `check_streets_for_imagery.py`
 

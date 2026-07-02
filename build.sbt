@@ -1,3 +1,5 @@
+import com.typesafe.sbt.packager.MappingsHelper.directory
+
 name := """sidewalk-webpage"""
 
 version := "11.5.0"
@@ -63,6 +65,11 @@ libraryDependencies ++= Seq(
 )
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
+
+// Package the scripts/ directory into the staged/dist build. ClusterService shells out to scripts/label_clustering.py
+// at runtime via a working-directory-relative path, so a prod/staged app (whose working dir is the stage dir, not the
+// repo root) can only find it if it's copied into the distribution alongside the app.
+Universal / mappings ++= directory(baseDirectory.value / "scripts")
 
 scalacOptions ++= Seq(
   "-deprecation", // Emit warning and location for usages of deprecated APIs.
