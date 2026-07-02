@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
+import controllers.helper.ControllerUtils.internalKeyValid
 import formats.json.ExploreFormats.AiLabelsSubmission
 import play.api.libs.json._
 import play.api.libs.ws._
@@ -36,19 +37,27 @@ class AiController @Inject() (
    * Parse and process the submitted AI-generated label.
    */
   def submitAiLabel = Action.async(parse.json) { implicit request =>
-    val submission = request.body.validate[AiLabelsSubmission]
-    submission.fold(
-      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => {
-        if (configService.getCityId == "vancouver-wa") {
-          exploreService.savePanoInfo(Seq(submission.pano)).flatMap { _ =>
-            exploreService.submitAiLabelData(submission).map(_ => Ok("success!"))
+    // Server-to-server write: authenticate the trusted caller (the auto-labeler) with the internal API key before
+    // persisting anything. Without this, anyone could POST labels into the dataset (the city check below is not auth).
+    if (!internalKeyValid(request, config.getOptional[String]("internal-api-key").getOrElse(""))) {
+      Future.successful(
+        Unauthorized(Json.obj("status" -> "Error", "message" -> "Invalid or missing internal API key."))
+      )
+    } else {
+      val submission = request.body.validate[AiLabelsSubmission]
+      submission.fold(
+        errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+        submission => {
+          if (configService.getCityId == "vancouver-wa") {
+            exploreService.savePanoInfo(Seq(submission.pano)).flatMap { _ =>
+              exploreService.submitAiLabelData(submission).map(_ => Ok("success!"))
+            }
+          } else {
+            Future.successful(BadRequest("AI label submission beta is only supported in Vancouver, WA at the moment."))
           }
-        } else {
-          Future.successful(BadRequest("AI label submission beta is only supported in Vancouver, WA at the moment."))
         }
-      }
-    )
+      )
+    }
   }
 
   private def generatePrompt(wayType: String, cityName: String): String = {
@@ -84,8 +93,8 @@ class AiController @Inject() (
 
     for {
       gsvImageUrls   <- panoDataService.getGsvImageUrlsForStreet(streetEdgeId) // Get image URLs for the street
-      imageObjects   <- fetchAndEncodeImages(gsvImageUrls) // Fetch and encode images
-      geminiResponse <- sendToGeminiApi(prompt, imageObjects)               // Send to Gemini API
+      imageObjects   <- fetchAndEncodeImages(gsvImageUrls)                     // Fetch and encode images
+      geminiResponse <- sendToGeminiApi(prompt, imageObjects)                  // Send to Gemini API
     } yield {
       val activity = s"Analyzing street $streetEdgeId with URLs: ${gsvImageUrls.mkString(", ")}"
       cc.loggingService.insert(request.identity.userId, request.ipAddress, activity)
