@@ -31,6 +31,13 @@ class PanoManager {
     /** @type {{showPrimaryLogo: Function, showSourceLogo: Function}} */
     #logo;
 
+    // Throttle POV-change logging. Dragging the pano (especially via touch on mobile) fires `pov_changed`
+    // continuously; logging every one floods the interaction buffer and forces the Tracker's 200-action mid-mission
+    // flush every few validations (#2745). Log at most once per interval (with a trailing call so the final POV is
+    // still recorded). The throttled logger is created in #init so it has one closure per PanoManager.
+    static #POV_LOG_INTERVAL_MS = 500;
+    #logPovChange;
+
     /**
      * Initializes panoViewer on the validate page and loads the first pano.
      *
@@ -78,7 +85,8 @@ class PanoManager {
             }
         }
 
-        svv.panoViewer.addListener('pov_changed', () => svv.tracker.push('POV_Changed'));
+        this.#logPovChange = util.throttle(() => svv.tracker.push('POV_Changed'), PanoManager.#POV_LOG_INTERVAL_MS);
+        svv.panoViewer.addListener('pov_changed', () => this.#logPovChange());
         if (isMobile()) {
             this.#sizePano();
             svv.panoViewer.resize(); // Necessary for PannellumViewer for correct vertical position of the label.
@@ -323,10 +331,14 @@ class PanoManager {
                 existingIndicator = AiLabelIndicator(['ai-icon-marker-validate']);
                 markerEl.appendChild(existingIndicator);
                 const $indicator = ensureAiTooltip(existingIndicator);
-                $(markerEl).on('mouseenter', () => $indicator.tooltip('show'));
-                $(markerEl).on('mouseleave', () => $indicator.tooltip('hide'));
+                // Namespace and clear first: markerEl is reused across labels, so without removing the previous
+                // indicator's handlers they'd accumulate (each closing over a now-detached indicator) and leak (#2745).
+                $(markerEl).off('mouseenter.aiIndicator mouseleave.aiIndicator')
+                    .on('mouseenter.aiIndicator', () => $indicator.tooltip('show'))
+                    .on('mouseleave.aiIndicator', () => $indicator.tooltip('hide'));
             }
         } else if (existingIndicator) {
+            $(markerEl).off('mouseenter.aiIndicator mouseleave.aiIndicator');
             $(existingIndicator).tooltip('destroy');
             existingIndicator.remove();
         }

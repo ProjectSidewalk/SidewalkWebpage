@@ -4,6 +4,12 @@
 class Form {
     #dataStoreUrl;
 
+    // Resubmit a failed POST a bounded number of times before giving up, so a transient mobile-network blip doesn't
+    // lose data — and, crucially, never reload the page (a reload mid-mission resets the user to the first label and,
+    // when it loops, triggers the browser's "A problem repeatedly occurred" crash page — issue #2745).
+    static #MAX_SUBMIT_RETRIES = 5;
+    static #RETRY_BACKOFF_MS = 2000;
+
     /**
      * @param {string} url - URL to send validation/interaction data to.
      */
@@ -127,33 +133,62 @@ class Form {
     /**
      * Submits all front-end data to the back end.
      *
-     * @param {Object} data - Data object (containing interactions, missions, etc.).
+     * Network/parse failures and response-handling errors are handled separately and deliberately: a failed POST is
+     * retried (with the same snapshot, so nothing is lost) and never reloads the page, while an error thrown while
+     * applying the response is logged but never retried (the data already reached the server, so resubmitting would
+     * duplicate it). See #2745 — the previous blanket `catch -> location.reload()` reset users to the first label and
+     * caused a reload/crash loop on mobile.
+     *
+     * @param {Object}  data               - Data object (containing interactions, missions, etc.).
+     * @param {boolean} [isIntermediateSubmit=false] - True for the Tracker's mid-mission buffer flush, which only
+     *                                       persists logs/validations and must NOT process a mission transition.
+     * @param {number}  [retryCount=0]      - Internal: current retry attempt (callers leave this at the default).
      * @returns {Promise<void>}
      */
-    submit(data) {
-        return fetch(this.#dataStoreUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(data)
-        })
-            .then((response) => response.json())
-            .then(async (result) => {
-                // If a mission was returned after posting data, create a new mission.
-                if (result.has_mission_available) {
-                    if (result.mission) {
-                        svv.missionContainer.createAMission(result.mission, result.progress);
-                        svv.labelContainer.resetLabelList(result.labels);
-                        await svv.labelContainer.renderCurrentLabel();
-                        svv.modalMissionComplete.nextMissionLoaded();
-                    }
-                } else {
-                    // Otherwise, display popup that says there are no more labels left.
-                    svv.modalMissionComplete.hide();
-                    svv.modalNoNewMission.show();
-                }
-            })
-            .catch(error => {
-                window.location.reload(); // Refresh the page in case the server has gone down.
+    async submit(data, isIntermediateSubmit = false, retryCount = 0) {
+        let result;
+        try {
+            const response = await fetch(this.#dataStoreUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify(data)
             });
+            if (!response.ok) throw new Error(`Validation submit failed with HTTP ${response.status}`);
+            result = await response.json();
+        } catch (networkError) {
+            // Transient failure (offline, timeout, aborted request, non-OK status). Do not reload — retry the same
+            // snapshot with backoff so the validations eventually reach the server when connectivity returns.
+            if (svv.tracker) svv.tracker.push('SubmitFailed', { attempt: retryCount, error: networkError.message });
+            if (retryCount < Form.#MAX_SUBMIT_RETRIES) {
+                setTimeout(() => {
+                    this.submit(data, isIntermediateSubmit, retryCount + 1);
+                }, Form.#RETRY_BACKOFF_MS * (retryCount + 1));
+            } else if (svv.tracker) {
+                svv.tracker.push('SubmitFailedGaveUp', { attempts: retryCount });
+            }
+            return;
+        }
+
+        // An intermediate flush only persists data; it never expects (and must not act on) a mission transition.
+        if (isIntermediateSubmit) return;
+
+        // The data is already saved server-side, so a failure here must not trigger a retry or reload — just log it.
+        try {
+            // If a mission was returned after posting data, create a new mission.
+            if (result.has_mission_available) {
+                if (result.mission) {
+                    svv.missionContainer.createAMission(result.mission, result.progress);
+                    svv.labelContainer.resetLabelList(result.labels);
+                    await svv.labelContainer.renderCurrentLabel();
+                    svv.modalMissionComplete.nextMissionLoaded();
+                }
+            } else {
+                // Otherwise, display popup that says there are no more labels left.
+                svv.modalMissionComplete.hide();
+                svv.modalNoNewMission.show();
+            }
+        } catch (handlerError) {
+            console.error('Error applying validation submit response:', handlerError);
+        }
     }
 }
