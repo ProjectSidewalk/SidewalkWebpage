@@ -22,7 +22,8 @@ class AiController @Inject() (
     config: Configuration,
     configService: service.ConfigService,
     exploreService: service.ExploreService,
-    panoDataService: service.PanoDataService
+    panoDataService: service.PanoDataService,
+    rateLimiter: service.RateLimiter
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
@@ -37,9 +38,17 @@ class AiController @Inject() (
    * Parse and process the submitted AI-generated label.
    */
   def submitAiLabel = Action.async(parse.json) { implicit request =>
+    // Defense-in-depth cap on the write volume from any single source, independent of the auth check below.
+    val aiLimit = rateLimiter.limit("ai-ingest")
+    if (!rateLimiter.allow(s"ai-ingest:${request.ipAddress}", aiLimit.maxAttempts, aiLimit.window)) {
+      Future.successful(
+        TooManyRequests(Json.obj("status" -> "Error", "message" -> "Rate limit exceeded."))
+          .withHeaders("Retry-After" -> aiLimit.window.toSeconds.toString)
+      )
+    }
     // Server-to-server write: authenticate the trusted caller (the auto-labeler) with the internal API key before
     // persisting anything. Without this, anyone could POST labels into the dataset (the city check below is not auth).
-    if (!internalKeyValid(request, config.getOptional[String]("internal-api-key").getOrElse(""))) {
+    else if (!internalKeyValid(request, config.getOptional[String]("internal-api-key").getOrElse(""))) {
       Future.successful(
         Unauthorized(Json.obj("status" -> "Error", "message" -> "Invalid or missing internal API key."))
       )
