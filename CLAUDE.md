@@ -378,6 +378,8 @@ docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "SELECT * FR
 
 Each city has its own schema (`sidewalk_<city>`), and they are essentially identical — `sidewalk_seattle` is a safe default for schema questions; authentication lives in `sidewalk_login`. If you need to query *actual data* (not just structure), **ask which city we're working in first**. Evolutions in `conf/evolutions/default/` are auto-applied when a page loads, so you don't run them manually.
 
+**The dev DB is not representative of production size, and some tables may be absent.** The two largest production tables by a wide margin are **`audit_task_interaction`** and **`validation_task_interaction`** (raw per-action interaction logs — pans, zooms, clicks). The dev DB dumps that seed local development **omit** these tables to stay manageable, so locally they are typically empty or missing. Never infer a table's production size or existence from the local DB. When reasoning about query cost or indexes, treat these two interaction tables — not `webpage_activity` — as the heavyweight logs.
+
 ### Linting (do not run these now, future refactor will set this up)
 
 ```bash
