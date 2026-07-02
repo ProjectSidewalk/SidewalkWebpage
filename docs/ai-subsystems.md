@@ -84,9 +84,10 @@ validation.
    for improving the model (continual-improvement roadmap:
    `sidewalk-auto-labeler/docs/design-review-2026-07.md`).
 
-**⚠ City gate:** `submitAiLabel` currently hard-rejects every city except `vancouver-wa`
-(added Sept 2025 for the pilot). Onboarding another city to AI labeling (e.g. Bend) requires
-changing this — ideally to a per-city `cityparams.conf` flag.
+**City gate:** `submitAiLabel` is gated by the per-city
+`ai-label-submission-enabled` flag in `cityparams.conf` (default **false**; unlisted cities
+reject submissions). Onboarding another city to AI labeling (e.g. Bend) means setting the
+flag to `true` for that city.
 
 **Model** (from [`RampNet`](https://github.com/ProjectSidewalk/RampNet), ICCV'25 workshop
 paper): ConvNeXtV2-Base + heatmap head, input 2048×4096, trained on ~214k panoramas
@@ -169,7 +170,6 @@ sidewalk-tagger-ai ────┤ (HF: sidewalk-tagger-ai-models)          Ramp
   endpoints in June 2026 and broke consumers independently (see
   `sidewalk-auto-labeler/docs/design-review-2026-07.md` §3) — worth consolidating on one
   maintained fetch path.
-- The `vancouver-wa` hard gate on `/ai/submitLabelsOnPano` (above).
 - Model provenance (`model_id`, training date) is hardcoded in the auto-labeler rather than
   read from the HF model config.
 - RampNet must get a tagged ICCV'25-state release before any code changes land

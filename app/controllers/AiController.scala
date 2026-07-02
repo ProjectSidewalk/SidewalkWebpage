@@ -48,12 +48,12 @@ class AiController @Inject() (
       submission.fold(
         errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
         submission => {
-          if (configService.getCityId == "vancouver-wa") {
+          if (configService.getAiLabelSubmissionEnabled) {
             exploreService.savePanoInfo(Seq(submission.pano)).flatMap { _ =>
               exploreService.submitAiLabelData(submission).map(_ => Ok("success!"))
             }
           } else {
-            Future.successful(BadRequest("AI label submission beta is only supported in Vancouver, WA at the moment."))
+            Future.successful(BadRequest("AI label submission is not enabled for this city."))
           }
         }
       )

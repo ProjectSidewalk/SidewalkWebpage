@@ -526,6 +526,7 @@ trait ConfigService {
   def getCurrentCountryId: String
   def getCityName(lang: Lang): String
   def getAiTagSuggestionsEnabled: Boolean
+  def getAiLabelSubmissionEnabled: Boolean
   def getPanoSource: PanoSource
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Double): Future[Int]
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T]
@@ -1303,6 +1304,9 @@ class ConfigServiceImpl @Inject() (
   def getCityName(lang: Lang): String = messagesApi(s"city.name.$getCityId")(lang)
 
   def getAiTagSuggestionsEnabled: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$getCityId")
+
+  def getAiLabelSubmissionEnabled: Boolean =
+    config.getOptional[Boolean](s"city-params.ai-label-submission-enabled.$getCityId").getOrElse(false)
 
   def getPanoSource: PanoSource = PanoSource.withName(config.get[String](s"city-params.pano-viewer-type.$getCityId"))
 
