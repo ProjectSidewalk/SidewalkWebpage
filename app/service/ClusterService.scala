@@ -7,7 +7,7 @@ import play.api.{Configuration, Logger}
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.sys.process.Process
+import scala.sys.process.{Process, ProcessLogger}
 
 /**
  * Final counts from a clustering run: how many labels were grouped into how many clusters.
@@ -67,13 +67,27 @@ class ClusterServiceImpl @Inject() (
 
         // Run the clustering script for this region. Pass the internal key via the subprocess environment rather than
         // an argv flag so it can't leak into the process table / `ps` output.
-        val clusteringOutput =
-          Process(
-            Seq("/usr/bin/python3", "scripts/label_clustering.py", "--region_id", regionId.toString),
-            None,
-            "INTERNAL_API_KEY" -> key
-          ).!!
-        logger.debug(clusteringOutput)
+        val process = Process(
+          Seq("/usr/bin/python3", "scripts/label_clustering.py", "--region_id", regionId.toString),
+          None,
+          "INTERNAL_API_KEY" -> key
+        )
+
+        // Capture stdout/stderr separately so a subprocess failure surfaces the Python error to Play's logger.
+        val stdout   = new StringBuilder
+        val stderr   = new StringBuilder
+        val exitCode = process.!(
+          ProcessLogger(
+            line => { stdout.append(line).append('\n'); () },
+            line => { stderr.append(line).append('\n'); () }
+          )
+        )
+
+        if (exitCode != 0) {
+          logger.error(s"Clustering script failed for region $regionId (exit $exitCode):\n${stderr.toString.trim}")
+          throw new RuntimeException(s"Clustering failed for region $regionId (exit $exitCode)")
+        }
+        logger.debug(stdout.toString)
       }
       logger.info("Finished 100% of regions!!\n\n")
     }(cpuEc)
