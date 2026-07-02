@@ -275,10 +275,14 @@ class PanoDataServiceImpl @Inject() (
           Future.successful(None)
         }
       }
-      .recover { // If there was an exception, don't assume it means a lack of imagery.
+      .recover {
+        // Transient network errors don't mean the imagery is gone; treat as inconclusive.
         case _: SocketTimeoutException => None
         case _: IOException            => None
-        case _: Exception              => None
+        // Anything else is unexpected: still inconclusive, but log it so the swallow is visible.
+        case e: Exception =>
+          logger.warn(s"Unexpected error checking GSV imagery for $panoId; treating as inconclusive.", e)
+          None
       }
   }
 
@@ -315,10 +319,14 @@ class PanoDataServiceImpl @Inject() (
                 Future.successful(None)
             }
           }
-          .recover { // A network error doesn't mean the image is gone.
+          .recover {
+            // A transient network error doesn't mean the image is gone; treat as inconclusive.
             case _: SocketTimeoutException => None
             case _: IOException            => None
-            case _: Exception              => None
+            // Anything else is unexpected: still inconclusive, but log it so the swallow is visible.
+            case e: Exception =>
+              logger.warn(s"Unexpected error checking Mapillary imagery for $panoId; treating as inconclusive.", e)
+              None
           }
     }
   }
