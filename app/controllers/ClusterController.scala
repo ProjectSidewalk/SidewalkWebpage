@@ -9,13 +9,12 @@ import play.api.mvc.{Action, AnyContent}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.api.exceptions.NotAuthorizedException
-import service.ConfigService
+import service.{ClusterService, ConfigService}
 
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
-import scala.sys.process.stringSeqToProcess
 
 @Singleton
 class ClusterController @Inject() (
@@ -23,6 +22,7 @@ class ClusterController @Inject() (
     val silhouette: Silhouette[DefaultEnv],
     val config: Configuration,
     configService: ConfigService,
+    clusterService: ClusterService,
     apiService: service.ApiService
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
@@ -57,7 +57,9 @@ class ClusterController @Inject() (
     val statusRef = new AtomicReference[String]("Starting")
 
     // Run the clustering.
-    val resultFuture: Future[JsObject] = runClusteringHelper(Some(statusRef))
+    val resultFuture: Future[JsObject] = clusterService.runClustering(Some(statusRef)).map { results =>
+      Json.obj("labels" -> results.labelCount, "clusters" -> results.clusterCount)
+    }
 
     // Create a source that emits status updates.
     val statusSource = Source
@@ -87,49 +89,6 @@ class ClusterController @Inject() (
           "Connection"    -> "keep-alive"
         )
     )
-  }
-
-  /**
-   * Runs clustering, updating the attached reference with progress.
-   * @param statusRef Reference to a string that will be updated with the clustering progress.
-   * @return Final counts of labels, and clusters in JSON.
-   */
-  def runClusteringHelper(statusRef: Option[AtomicReference[String]] = None): Future[JsObject] = {
-    for {
-      _                 <- runMultiUserClustering(statusRef)
-      clusteringResults <- apiService.getClusteringInfo // Gets the counts to show how many labels were clustered.
-    } yield {
-      Json.obj(
-        "labels"   -> clusteringResults._1,
-        "clusters" -> clusteringResults._2
-      )
-    }
-  }
-
-  /**
-   * Runs clustering for the labels in each region.
-   * @param statusRef Reference to a string that will be updated with the clustering progress.
-   */
-  private def runMultiUserClustering(statusRef: Option[AtomicReference[String]]): Future[Unit] = {
-    val key: String = config.get[String]("internal-api-key")
-
-    apiService.getRegionsToCluster.map { regionIds =>
-      val nRegions: Int = regionIds.length
-      logger.info("N regions = " + nRegions)
-
-      // Runs clustering within each region.
-      for ((regionId, i) <- regionIds.view.zipWithIndex) {
-        // Update the status in event stream and send a log message.
-        statusRef.foreach(_.set(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions"))
-        logger.info(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions, next: $regionId.")
-
-        // Run the clustering script for this region.
-        val clusteringOutput =
-          Seq("/usr/bin/python3", "scripts/label_clustering.py", "--key", key, "--region_id", regionId.toString).!!
-        logger.debug(clusteringOutput)
-      }
-      logger.info("Finished 100% of regions!!\n\n")
-    }
   }
 
   /**
