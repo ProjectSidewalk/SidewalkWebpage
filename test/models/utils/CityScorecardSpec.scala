@@ -6,7 +6,7 @@ import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import models.utils.MyPostgresProfile.api._
-import service.CityScorecard
+import service.{AggregateStats, CityScorecard}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -58,6 +58,43 @@ class CityScorecardSpec extends PlaySpec with GuiceOneAppPerSuite {
       sc.auditedKm must be <= (sc.totalKm + 0.001) // Float tolerance; audited length can't exceed total length.
       sc.coverage must be >= 0.0
       sc.coverage must be <= 100.0
+    }
+  }
+
+  // The rest of the cross-city surface runs raw SQL against "#$schema".* and was otherwise untested — the same gap
+  // that let the dropped-column bug ship. Smoke-test each against the live current-city schema so a dropped/renamed
+  // column or enum-type mismatch fails the build here instead of silently blanking a city on the Across Cities page.
+  "ConfigTable cross-city BySchema queries" should {
+    "execute getCityMapParamsBySchema" in {
+      run(configTable.getCityMapParamsBySchema(schema)) mustBe a[MapParams]
+    }
+    "execute getCityAggregateDataBySchema" in {
+      run(configTable.getCityAggregateDataBySchema(schema)) mustBe a[AggregateStats]
+    }
+    "execute getContributorUserIdsBySchema" in {
+      run(configTable.getContributorUserIdsBySchema(schema)) mustBe a[Seq[_]]
+    }
+    "execute getLabelTypeStatsBySchema" in {
+      run(configTable.getLabelTypeStatsBySchema(schema)) mustBe a[Map[_, _]]
+    }
+    "execute getCityWeeklyTrendBySchema (all-time and windowed)" in {
+      run(configTable.getCityWeeklyTrendBySchema(schema, None)) mustBe a[Seq[_]]
+      run(configTable.getCityWeeklyTrendBySchema(schema, Some(4))) mustBe a[Seq[_]]
+    }
+    "execute getCityContributorOutputBySchema" in {
+      run(configTable.getCityContributorOutputBySchema(schema)) mustBe a[Product] // 7-tuple
+    }
+    "execute getCityLabelingSpeedBySchema" in {
+      run(configTable.getCityLabelingSpeedBySchema(schema)) mustBe a[Product] // (Double, Double)
+    }
+    "execute getCityDailyLabelStatsBySchema (both quality filters)" in {
+      run(configTable.getCityDailyLabelStatsBySchema(schema, None, None, filterLowQuality = false)) mustBe a[Seq[_]]
+      run(configTable.getCityDailyLabelStatsBySchema(schema, None, None, filterLowQuality = true)) mustBe a[Seq[_]]
+    }
+    "execute getCityDailyValidationStatsBySchema" in {
+      run(configTable.getCityDailyValidationStatsBySchema(schema, None, None, filterLowQuality = false)) mustBe a[Seq[
+        _
+      ]]
     }
   }
 }
