@@ -69,9 +69,13 @@ Data isolation matches the per-city model described in [`docs/architecture.md`](
 
 A deploy builds the app essentially the same way you do locally, in this order:
 
-1. Install Python deps (`requirements.txt`) — for the out-of-band Python utilities.
+1. Install Python deps (`requirements.txt`) — needed both by the out-of-band utilities and by `label_clustering.py`,
+   which the running app invokes **in-band** during clustering. These must land in the `python3` interpreter the app
+   shells out to, or clustering fails at import time (e.g. `ModuleNotFoundError: No module named 'haversine'`).
 2. `npm install`, then **Grunt** to concatenate/build the frontend bundles.
-3. **sbt** `clean stage` to compile the Scala/Play backend into a runnable package.
+3. **sbt** `clean stage` to compile the Scala/Play backend into a runnable package. This also bundles the `scripts/`
+   directory into the staged app (via `Universal / mappings` in `build.sbt`) so the in-band `label_clustering.py` is
+   present at runtime — the staged app runs from the stage dir, not the repo root, so an unbundled script can't be found.
 
 Because the build is identical in spirit to local dev, **a change that fails to compile or bundle locally will fail
 the deploy.** The backend is built with `-Xfatal-warnings`, so warnings block the build too. See
