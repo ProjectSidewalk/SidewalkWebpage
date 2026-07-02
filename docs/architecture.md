@@ -59,7 +59,11 @@ The backend follows a consistent layering: **routes → Controller → Service �
 - **Per-city schemas** — each city is its own schema (`sidewalk_<city>`); they're essentially identical.
   Authentication lives in `sidewalk_login`.
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
-  `# --- !Ups` / `# --- !Downs`. The dev DB is seeded from a dump rather than built up from evolutions.
+  `# --- !Ups` / `# --- !Downs`. The dev DB is seeded from a dump rather than built up from evolutions; the scripts that
+  do that seeding (and other DB lifecycle/maintenance tasks) live in [`db/scripts/`](../db/scripts/README.md). Every new
+  table must be followed by `ALTER TABLE <name> OWNER TO sidewalk;` (see 309.sql) — on prod, evolutions run as an admin
+  role, so without it the `sidewalk` app role lacks permissions on the table. This applies to tables only; SERIAL
+  sequences follow the table owner automatically, and enum types/views don't need it.
 
 ### Dependency injection & runtime
 
@@ -125,11 +129,14 @@ Supported languages: en, es, de, nl, zh-TW, pt-BR, plus regional English variant
 - Secrets/keys (Mapbox, Google Maps, Gemini, Mapillary, Infra3d, Silhouette signer/crypter, DB credentials) come
   from environment variables; local values live in a `docker-compose.override.yml`.
 
+For how these configs map to hosted **stages** (test / staging / prod), how a branch or tag deploys to each, and the
+production runtime shape, see [`docs/deployment-and-stages.md`](deployment-and-stages.md).
+
 ## Python utilities
 
 Two standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
 
-- `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterController` /
+- `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterService` /
   `app/models/cluster/`).
 - `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery.
 
@@ -146,6 +153,7 @@ canonical color table and icon locations.
 ## Where to go next
 
 - [`docs/dev-environment.md`](dev-environment.md) — get it running locally.
+- [`docs/deployment-and-stages.md`](deployment-and-stages.md) — hosted stages, branch/tag → stage deploys, prod runtime shape.
 - [`CONTRIBUTING.md`](../CONTRIBUTING.md) — workflow, coding standards, i18n, testing.
 - [`docs/testing-and-ci.md`](testing-and-ci.md) — testing strategy and CI.
 - [`CLAUDE.md`](../CLAUDE.md) — the same architecture plus conventions and operational notes, used as AI-assistant

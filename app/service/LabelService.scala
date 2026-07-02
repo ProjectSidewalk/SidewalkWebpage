@@ -36,7 +36,7 @@ trait LabelService {
   def countLabelsInRegion(regionId: Int): Future[Int]
   def selectAllTags: DBIO[Seq[models.label.Tag]]
   def selectAllTagsFuture: Future[Seq[models.label.Tag]]
-  def selectTagsByLabelType(labelType: String): DBIO[Seq[models.label.Tag]]
+  def selectTagsByLabelType(labelType: String): Future[Seq[models.label.Tag]]
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]]
   def cleanTagList(tags: Seq[String], labelTypeId: Int): DBIO[Seq[String]]
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]]
@@ -130,8 +130,8 @@ class LabelServiceImpl @Inject() (
     selectAllTags.map(_.filter(_.labelTypeId == labelTypeId))
   }
 
-  def selectTagsByLabelType(labelType: String): DBIO[Seq[models.label.Tag]] =
-    selectTagsByLabelTypeId(LabelTypeEnum.labelTypeToId(labelType))
+  def selectTagsByLabelType(labelType: String): Future[Seq[models.label.Tag]] =
+    db.run(selectTagsByLabelTypeId(LabelTypeEnum.labelTypeToId(labelType)))
 
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]] = {
     db.run(for {

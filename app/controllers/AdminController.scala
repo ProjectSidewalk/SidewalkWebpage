@@ -24,7 +24,6 @@ import java.time.temporal.ChronoUnit
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.concurrent.ThreadPoolExecutor
 import javax.inject.{Inject, Singleton}
-import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
@@ -128,7 +127,7 @@ class AdminController @Inject() (
     labelService
       .getLabelsForLabelMap(Seq(), Seq(), Seq())
       .map { labels =>
-        val features: Seq[JsObject] = labels.par.map { label =>
+        val features: Seq[JsObject] = labels.map { label =>
           Json.obj(
             "type"     -> "Feature",
             "geometry" -> Json.obj(
@@ -151,7 +150,7 @@ class AdminController @Inject() (
               "tags"                 -> label.tags
             )
           )
-        }.seq
+        }
         val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
         Ok(featureCollection)
       }(cpuEc)
@@ -198,7 +197,7 @@ class AdminController @Inject() (
       labelService
         .getLabelsForLabelMap(regionIds, routeIds, aiValOpts)
         .map { labels =>
-          val features: Seq[JsObject] = labels.par.map { label =>
+          val features: Seq[JsObject] = labels.map { label =>
             Json.obj(
               "type"     -> "Feature",
               "geometry" -> Json.obj(
@@ -219,7 +218,7 @@ class AdminController @Inject() (
                 "tags"              -> label.tags
               )
             )
-          }.seq
+          }
           val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
           Ok(featureCollection)
         }(cpuEc)
@@ -1040,6 +1039,16 @@ class AdminController @Inject() (
    *
    * @param window "30d", "90d", or "all"; anything else (or absent) falls back to "30d".
    */
+  /**
+   * Serializes one funnel segment to snake_case JSON (#288): its raw step counts plus the derived step-over-step and
+   * overall conversion ratios. Shared by the cross-city and single-city funnel endpoints so both emit the same shape.
+   */
+  private def funnelSegJson(seg: FunnelSegment): JsObject = Json.obj(
+    "steps"              -> seg.steps,
+    "step_conversion"    -> ConfigService.stepConversion(seg.steps),
+    "overall_conversion" -> ConfigService.overallConversion(seg.steps)
+  )
+
   def getCityFunnels(window: Option[String]) = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
     // Only these three windows are precomputed in funnel_stat; reject anything else rather than 500 on a cache miss.
@@ -1048,11 +1057,6 @@ class AdminController @Inject() (
       configService.getAllCityInfo(request2Messages.lang).map(ci => ci.cityId -> ci).toMap
 
     configService.getCityFunnels(windowKey).map { funnelsByType =>
-      def segJson(seg: FunnelSegment): JsObject = Json.obj(
-        "steps"              -> seg.steps,
-        "step_conversion"    -> ConfigService.stepConversion(seg.steps),
-        "overall_conversion" -> ConfigService.overallConversion(seg.steps)
-      )
       def cityJson(f: CityFunnel): JsObject = {
         val info = cityInfoById.get(f.cityId)
         Json.obj(
@@ -1061,12 +1065,12 @@ class AdminController @Inject() (
           "city_name_formatted" -> info.map(_.cityNameFormatted),
           "url"                 -> info.map(_.URL),
           "visibility"          -> info.map(_.visibility),
-          "all"                 -> segJson(f.all),
-          "registered"          -> segJson(f.registered),
-          "anonymous"           -> segJson(f.anonymous),
-          "desktop"             -> segJson(f.desktop),
-          "mobile"              -> segJson(f.mobile),
-          "device_unknown"      -> segJson(f.deviceUnknown)
+          "all"                 -> funnelSegJson(f.all),
+          "registered"          -> funnelSegJson(f.registered),
+          "anonymous"           -> funnelSegJson(f.anonymous),
+          "desktop"             -> funnelSegJson(f.desktop),
+          "mobile"              -> funnelSegJson(f.mobile),
+          "device_unknown"      -> funnelSegJson(f.deviceUnknown)
         )
       }
       // One entry per funnel type ("mapping", "contribution"), each with its own step list and per-city rows. `steps`
@@ -1079,6 +1083,39 @@ class AdminController @Inject() (
       })
       Ok(Json.obj("window" -> windowKey, "funnels" -> funnels))
     }
+  }
+
+  /**
+   * Returns THIS deployment's own precomputed engagement funnels for one time window (#4379), for the per-city
+   * Contributors page. Admin-gated (per-city Administrators see their own city), unlike the Owner-gated cross-city
+   * [[getCityFunnels]]. Output is snake_case per the v3 convention; each funnel's `steps` array names its steps in
+   * order so the client never hardcodes them, and segments are keyed (not a `cities` array) since there is one city.
+   *
+   * @param window "30d", "90d", or "all"; anything else (or absent) falls back to "30d".
+   */
+  def getCurrentCityFunnels(window: Option[String]) = cc.securityService.SecuredAction(WithAdmin()) {
+    implicit request =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+      // Only these three windows are precomputed in funnel_stat; reject anything else rather than 500 on a cache miss.
+      val windowKey = window.filter(Set("30d", "90d", "all")).getOrElse("30d")
+
+      configService.getCurrentCityFunnels(windowKey).map { result =>
+        def segmentsJson(f: CityFunnel): JsObject = Json.obj(
+          "all"            -> funnelSegJson(f.all),
+          "registered"     -> funnelSegJson(f.registered),
+          "anonymous"      -> funnelSegJson(f.anonymous),
+          "desktop"        -> funnelSegJson(f.desktop),
+          "mobile"         -> funnelSegJson(f.mobile),
+          "device_unknown" -> funnelSegJson(f.deviceUnknown)
+        )
+        // One entry per funnel type the city has data for, each with its ordered step keys and this city's segments.
+        val funnels = JsObject(ConfigService.FunnelDefs.collect {
+          case (funnelType, stepKeys) if result.byType.contains(funnelType) =>
+            funnelType -> Json.obj("steps" -> stepKeys, "segments" -> segmentsJson(result.byType(funnelType)))
+        })
+        // ISO-8601 string (OffsetDateTime.toString) so the page can show a "data as of" label; null until precomputed.
+        Ok(Json.obj("window" -> windowKey, "computed_at" -> result.computedAt.map(_.toString), "funnels" -> funnels))
+      }
   }
 
   def getUserStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>

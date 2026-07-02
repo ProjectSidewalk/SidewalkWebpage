@@ -1,13 +1,11 @@
 /**
  * Represents a validation label.
- * @returns {Label}
- * @constructor
  */
-function Label(params) {
+class Label {
     // Original properties of the label collected through the audit interface. These properties are initialized from
-    // metadata from the backend. These properties are used to help place the label on the validation interface and
+    // metadata from the backend. These properties help place the label on the validation interface and
     // should not be changed.
-    let auditProperties = {
+    #auditProperties = {
         lat: undefined,
         lng: undefined,
         cameraLat: undefined,
@@ -36,7 +34,7 @@ function Label(params) {
 
     // These properties are set through validating labels. In this object, canvas properties and
     // heading/pitch/zoom are from the perspective of the user that is validating the labels.
-    let properties = {
+    #properties = {
         canvasX: undefined,
         canvasY: undefined,
         endTimestamp: undefined,
@@ -58,175 +56,179 @@ function Label(params) {
         isMobile: undefined
     };
 
-    let adminProperties = {
+    #adminProperties = {
         username: null,
         previousValidations: null
-    }
-
-    let icons = {
-        CurbRamp : '/assets/images/icons/AdminTool_CurbRamp.png',
-        NoCurbRamp : '/assets/images/icons/AdminTool_NoCurbRamp.png',
-        Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
-        SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem.png',
-        Other : '/assets/images/icons/AdminTool_Other.png',
-        Occlusion : '/assets/images/icons/AdminTool_Occlusion.png',
-        NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png',
-        Crosswalk : '/assets/images/icons/AdminTool_Crosswalk.png',
-        Signal : '/assets/images/icons/AdminTool_Signal.png'
     };
 
-    if (isMobile()) {
-        icons = {
-            CurbRamp : '/assets/images/icons/AdminTool_CurbRamp_Mobile.png',
-            NoCurbRamp : '/assets/images/icons/AdminTool_NoCurbRamp_Mobile.png',
-            Obstacle : '/assets/images/icons/AdminTool_Obstacle_Mobile.png',
-            SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem_Mobile.png',
-            Other : '/assets/images/icons/AdminTool_Other_Mobile.png',
-            Occlusion : '/assets/images/icons/AdminTool_Other_Mobile.png',
-            NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk_Mobile.png',
-            Crosswalk : '/assets/images/icons/AdminTool_Crosswalk_Mobile.png',
-            Signal : '/assets/images/icons/AdminTool_Signal_Mobile.png'
-        };
-    }
+    #icons;
 
-    const self = this;
+    constructor(params) {
+        this.#icons = {
+            CurbRamp : '/assets/images/icons/AdminTool_CurbRamp.png',
+            NoCurbRamp : '/assets/images/icons/AdminTool_NoCurbRamp.png',
+            Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
+            SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem.png',
+            Other : '/assets/images/icons/AdminTool_Other.png',
+            Occlusion : '/assets/images/icons/AdminTool_Occlusion.png',
+            NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png',
+            Crosswalk : '/assets/images/icons/AdminTool_Crosswalk.png',
+            Signal : '/assets/images/icons/AdminTool_Signal.png'
+        };
+
+        if (isMobile()) {
+            this.#icons = {
+                CurbRamp : '/assets/images/icons/AdminTool_CurbRamp_Mobile.png',
+                NoCurbRamp : '/assets/images/icons/AdminTool_NoCurbRamp_Mobile.png',
+                Obstacle : '/assets/images/icons/AdminTool_Obstacle_Mobile.png',
+                SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem_Mobile.png',
+                Other : '/assets/images/icons/AdminTool_Other_Mobile.png',
+                Occlusion : '/assets/images/icons/AdminTool_Other_Mobile.png',
+                NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk_Mobile.png',
+                Crosswalk : '/assets/images/icons/AdminTool_Crosswalk_Mobile.png',
+                Signal : '/assets/images/icons/AdminTool_Signal_Mobile.png'
+            };
+        }
+
+        this.#init(params);
+    }
 
     /**
      * Initializes a label from metadata (if parameters are passed in).
-     * @private
+     * @param {object} params Label metadata from the backend.
      */
-    function _init() {
+    #init(params) {
         if (params) {
-            if ('lat' in params) setAuditProperty('lat', params.lat);
-            if ('lng' in params) setAuditProperty('lng', params.lng);
-            if ('camera_lat' in params) setAuditProperty('cameraLat', params.camera_lat);
-            if ('camera_lng' in params) setAuditProperty('cameraLng', params.camera_lng);
-            if ('canvas_x' in params) setAuditProperty('canvasX', params.canvas_x);
-            if ('canvas_y' in params) setAuditProperty('canvasY', params.canvas_y);
-            if ('pano_id' in params) setAuditProperty('panoId', params.pano_id);
-            if ('image_capture_date' in params) setAuditProperty('imageCaptureDate', moment(params.image_capture_date));
-            if ('label_timestamp' in params) setAuditProperty('labelTimestamp', moment(params.label_timestamp));
-            if ('heading' in params) setAuditProperty('heading', params.heading);
-            if ('label_id' in params) setAuditProperty('labelId', params.label_id);
-            if ('label_type' in params) setAuditProperty('labelType', params.label_type);
-            if ('pitch' in params) setAuditProperty('pitch', params.pitch);
-            if ('zoom' in params) setAuditProperty('zoom', params.zoom);
+            if ('lat' in params) this.setAuditProperty('lat', params.lat);
+            if ('lng' in params) this.setAuditProperty('lng', params.lng);
+            if ('camera_lat' in params) this.setAuditProperty('cameraLat', params.camera_lat);
+            if ('camera_lng' in params) this.setAuditProperty('cameraLng', params.camera_lng);
+            if ('canvas_x' in params) this.setAuditProperty('canvasX', params.canvas_x);
+            if ('canvas_y' in params) this.setAuditProperty('canvasY', params.canvas_y);
+            if ('pano_id' in params) this.setAuditProperty('panoId', params.pano_id);
+            if ('image_capture_date' in params) this.setAuditProperty('imageCaptureDate', moment(params.image_capture_date));
+            if ('label_timestamp' in params) this.setAuditProperty('labelTimestamp', moment(params.label_timestamp));
+            if ('heading' in params) this.setAuditProperty('heading', params.heading);
+            if ('label_id' in params) this.setAuditProperty('labelId', params.label_id);
+            if ('label_type' in params) this.setAuditProperty('labelType', params.label_type);
+            if ('pitch' in params) this.setAuditProperty('pitch', params.pitch);
+            if ('zoom' in params) this.setAuditProperty('zoom', params.zoom);
             if ('severity' in params) {
-                setAuditProperty('severity', params.severity);
-                setProperty('oldSeverity', params.severity);
-                setProperty('newSeverity', params.severity);
+                this.setAuditProperty('severity', params.severity);
+                this.setProperty('oldSeverity', params.severity);
+                this.setProperty('newSeverity', params.severity);
             }
-            if ('description' in params) setAuditProperty('description', params.description);
-            if ('street_edge_id' in params) setAuditProperty('streetEdgeId', params.street_edge_id);
-            if ('region_id' in params) setAuditProperty('regionId', params.region_id);
+            if ('description' in params) this.setAuditProperty('description', params.description);
+            if ('street_edge_id' in params) this.setAuditProperty('streetEdgeId', params.street_edge_id);
+            if ('region_id' in params) this.setAuditProperty('regionId', params.region_id);
             if ('tags' in params) {
-                setAuditProperty('tags', params.tags);
-                setProperty('oldTags', params.tags);
-                setProperty('newTags', [...params.tags]); // Copy tags to newTags.
+                this.setAuditProperty('tags', params.tags);
+                this.setProperty('oldTags', params.tags);
+                this.setProperty('newTags', [...params.tags]); // Copy tags to newTags.
             }
-            if ('ai_tags' in params) setAuditProperty('aiTags', params.ai_tags);
-            if ('ai_tags_not_present' in params) setAuditProperty('aiTagsNotPresent', params.ai_tags_not_present);
-            if ('ai_generated' in params) setAuditProperty('aiGenerated', params.ai_generated);
-            setAuditProperty('backupImage', buildBackupImageData(params));
+            if ('ai_tags' in params) this.setAuditProperty('aiTags', params.ai_tags);
+            if ('ai_tags_not_present' in params) this.setAuditProperty('aiTagsNotPresent', params.ai_tags_not_present);
+            if ('ai_generated' in params) this.setAuditProperty('aiGenerated', params.ai_generated);
+            this.setAuditProperty('backupImage', buildBackupImageData(params));
             // Properties only used on the Admin version of Validate.
             if ('admin_data' in params && params.admin_data !== null) {
-                if ('username' in params.admin_data) adminProperties.username = params.admin_data.username;
+                if ('username' in params.admin_data) this.#adminProperties.username = params.admin_data.username;
                 if ('previous_validations' in params.admin_data) {
-                    adminProperties.previousValidations = []
-                    for (let prevVal of params.admin_data.previous_validations) {
-                        adminProperties.previousValidations.push(prevVal);
+                    this.#adminProperties.previousValidations = [];
+                    for (const prevVal of params.admin_data.previous_validations) {
+                        this.#adminProperties.previousValidations.push(prevVal);
                     }
                 }
             }
-            setAuditProperty('isMobile', isMobile());
+            this.setAuditProperty('isMobile', isMobile());
         }
     }
 
     /**
      * Gets the file path associated with the labels' icon type.
-     * @returns {*} String - Path of image in the directory.
+     * @returns {string} Path of image in the directory.
      */
-    function getIconUrl() {
-        return icons[auditProperties.labelType];
+    getIconUrl() {
+        return this.#icons[this.#auditProperties.labelType];
     }
 
     /**
      * Returns a specific originalProperty of this label.
-     * @param key   Name of property.
-     * @returns     Value associated with this key.
+     * @param {string} key Name of property.
+     * @returns Value associated with this key.
      */
-    function getAuditProperty(key) {
-        return key in auditProperties ? auditProperties[key] : null;
+    getAuditProperty(key) {
+        return key in this.#auditProperties ? this.#auditProperties[key] : null;
     }
 
     /**
      * Returns a specific adminProperty of this label.
-     * @param key        Name of property.
+     * @param {string} key Name of property.
      * @returns {*|null} Value associated with this key.
      */
-    function getAdminProperty(key) {
-        return key in adminProperties ? adminProperties[key] : null;
+    getAdminProperty(key) {
+        return key in this.#adminProperties ? this.#adminProperties[key] : null;
     }
 
     /**
      * Calculate heading/pitch for drawing this Label on the pano from the POV of the user when placing the label.
-     * @returns {heading: number, pitch: number, zoom: number}
+     * @returns {{heading: number, pitch: number, zoom: number}}
      */
-    function getOriginalPov() {
+    getOriginalPov() {
         const origPov = {
-            heading: getAuditProperty('heading'),
-            pitch: getAuditProperty('pitch'),
-            zoom: getAuditProperty('zoom')
-        }
-        return util.pano.canvasCoordToCenteredPov(origPov, getAuditProperty('canvasX'),
-            getAuditProperty('canvasY'), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT);
+            heading: this.getAuditProperty('heading'),
+            pitch: this.getAuditProperty('pitch'),
+            zoom: this.getAuditProperty('zoom')
+        };
+        return util.pano.canvasCoordToCenteredPov(origPov, this.getAuditProperty('canvasX'),
+            this.getAuditProperty('canvasY'), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT);
     }
 
     /**
      * Returns the entire properties object for this label.
      * @returns Object for properties.
      */
-    function getProperties () {
-        return properties;
+    getProperties() {
+        return this.#properties;
     }
 
     /**
      * Gets a specific validation property of this label.
-     * @param key   Name of property.
-     * @returns     Value associated with this key.
+     * @param {string} key Name of property.
+     * @returns Value associated with this key.
      */
-    function getProperty (key) {
-        return key in properties ? properties[key] : null;
+    getProperty(key) {
+        return key in this.#properties ? this.#properties[key] : null;
     }
 
     /**
      * Sets the value of a single property in properties.
-     * @param key   Name of property
+     * @param {string} key Name of property.
      * @param value Value to set property to.
      */
-    function setProperty(key, value) {
-        properties[key] = value;
+    setProperty(key, value) {
+        this.#properties[key] = value;
         return this;
     }
 
-    function setAuditProperty(key, value) {
-        auditProperties[key] = value;
+    setAuditProperty(key, value) {
+        this.#auditProperties[key] = value;
         return this;
     }
 
-    function prepareCommentData() {
-        let comment = getProperty('comment');
+    #prepareCommentData() {
+        const comment = this.getProperty('comment');
         if (comment) {
             return {
                 comment: comment,
-                label_id: getAuditProperty('labelId'),
-                pano_id: getAuditProperty('panoId'),
-                heading: getProperty('heading'),
-                lat: getAuditProperty('lat'),
-                lng: getAuditProperty('lng'),
-                pitch: getProperty('pitch'),
+                label_id: this.getAuditProperty('labelId'),
+                pano_id: this.getAuditProperty('panoId'),
+                heading: this.getProperty('heading'),
+                lat: this.getAuditProperty('lat'),
+                lng: this.getAuditProperty('lng'),
+                pitch: this.getProperty('pitch'),
                 mission_id: svv.missionContainer.getCurrentMission().getProperty('missionId'),
-                zoom: getProperty('zoom'),
+                zoom: this.getProperty('zoom'),
             };
         } else {
             return null;
@@ -236,37 +238,37 @@ function Label(params) {
     /**
      * When a validation button is clicked, updates validation status for Label, StatusField, and logs interactions.
      *
-     * @param validationResult  Must be one of the following: {Agree, Disagree, Unsure}.
-     * @param comment An optional comment submitted with the validation.
+     * @param {string} validationResult Must be one of the following: {Agree, Disagree, Unsure}.
+     * @param {string} comment An optional comment submitted with the validation.
      */
-    function validate(validationResult, comment) {
+    validate(validationResult, comment) {
         // This is the POV if the label were in the center of the viewport.
-        let centeredPov = getOriginalPov();
+        const centeredPov = this.getOriginalPov();
 
         // This is the POV of the viewport center - this is where the user is looking.
-        let userPov = svv.panoViewer.getPov();
+        const userPov = svv.panoViewer.getPov();
 
         // Calculates the center xy coordinates of the Label on the current viewport.
-        let pixelCoordinates = util.pano.centeredPovToCanvasCoord(
+        const pixelCoordinates = util.pano.centeredPovToCanvasCoord(
             centeredPov, userPov, svv.canvasWidth(), svv.canvasHeight(), svv.labelRadius * util.uiScale());
 
-        setProperty('endTimestamp', new Date());
-        setProperty('canvasX', pixelCoordinates ? Math.round(pixelCoordinates.x) : null);
-        setProperty('canvasY', pixelCoordinates ? Math.round(pixelCoordinates.y) : null);
-        setProperty('heading', userPov.heading);
-        setProperty('pitch', userPov.pitch);
-        setProperty('zoom', userPov.zoom);
-        setProperty('isMobile', isMobile());
-        setProperty('comment', comment);
+        this.setProperty('endTimestamp', new Date());
+        this.setProperty('canvasX', pixelCoordinates ? Math.round(pixelCoordinates.x) : null);
+        this.setProperty('canvasY', pixelCoordinates ? Math.round(pixelCoordinates.y) : null);
+        this.setProperty('heading', userPov.heading);
+        this.setProperty('pitch', userPov.pitch);
+        this.setProperty('zoom', userPov.zoom);
+        this.setProperty('isMobile', isMobile());
+        this.setProperty('comment', comment);
 
-        if (getProperty('comment')) {
+        if (this.getProperty('comment')) {
             svv.tracker.push('ValidationTextField_DataEntered', { validation: validationResult, text: comment });
         }
 
         if (['Agree', 'Disagree', 'Unsure'].includes(validationResult)) {
-            setProperty('validationResult', validationResult);
+            this.setProperty('validationResult', validationResult);
             svv.missionContainer.getCurrentMission().updateValidationResult(validationResult, false);
-            svv.labelContainer.pushToLabelsToSubmit(getAuditProperty('labelId'), getProperties(), prepareCommentData());
+            svv.labelContainer.pushToLabelsToSubmit(this.getAuditProperty('labelId'), this.getProperties(), this.#prepareCommentData());
             svv.missionContainer.updateAMission();
         }
 
@@ -276,17 +278,4 @@ function Label(params) {
             svv.labelContainer.moveToNextLabel(); // NOTE That this returns a Promise that we're ignoring right now.
         }
     }
-
-    _init();
-
-    self.getAuditProperty = getAuditProperty;
-    self.getAdminProperty = getAdminProperty;
-    self.getIconUrl = getIconUrl;
-    self.getProperty = getProperty;
-    self.getProperties = getProperties;
-    self.setProperty = setProperty;
-    self.getOriginalPov = getOriginalPov;
-    self.validate = validate;
-
-    return this;
 }

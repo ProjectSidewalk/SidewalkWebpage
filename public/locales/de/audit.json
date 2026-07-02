@@ -95,7 +95,7 @@
     },
     "controls": {
         "stuck": "Verlaufen",
-        "stuck-tooltip": "Wir werden versuchen, Sie zurück zu Ihrer Mission zu bringen",
+        "stuck-tooltip": "Wir werden versuchen, Sie zurück zu Ihrer Mission zu bringen – oder drücken Sie die Leertaste",
         "sound": "Ton",
         "feedback": "Rück­meldung",
         "feedback-tooltip": "Teilen Sie uns Ihre Gedanken mit",
@@ -250,6 +250,7 @@
         "signup-body": "Möchten Sie einen Account erstellen, um Ihren Fortschritt zu verfolgen?",
         "severity-shortcuts": "Bitte geben Sie einen Schweregrad für jede Beschriftung an, indem Sie <kbd>1</kbd> bis <kbd>3</kbd> drücken.",
         "zoom-shortcuts": "Sie können auch die Taste <kbd>Z</kbd> drücken um hineinzuzoomen und die Tasten <kbd>Shift</kbd> + <kbd>Z</kbd> um hinauszuzoomen.",
+        "move-forward-shortcut": "Sie können auch die <kbd>Leertaste</kbd> drücken, um sich entlang Ihrer Route vorwärtszubewegen.",
         "label-shortcuts-curb-ramp": "Sie können auch die Taste <kbd>{{key}}</kbd> drücken, um die Beschriftung für eine Trottoirabsenkung zu wählen.",
         "label-shortcuts-no-curb-ramp": "Sie können auch die Taste the <kbd>{{key}}</kbd> drücken, um die Beschriftung für eine fehlende Trottoirabsenkung zu wählen.",
         "label-shortcuts-obstacle": "Sie können auch die Taste <kbd>{{key}}</kbd> drücken, um die Beschriftung für ein Hindernis zu wählen.",

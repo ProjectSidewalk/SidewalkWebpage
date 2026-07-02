@@ -1,106 +1,106 @@
 /**
  * A Tag module.
- *
- * @param {*} params Properties of tag.
- * @param applied A boolean to see if the tag filter is active.
- * @returns {Tag}
- * @constructor
  */
-function Tag (params, applied) {
-    const self = this;
-
+class Tag {
     // UI element of Tag.
-    let tagElement = null;
+    #tagElement = null;
 
     // Properties of this Tag.
-    let properties = {
+    #properties = {
         tag_id: undefined,
         label_type: undefined,
         tag: undefined
     };
 
     // Status of the tag.
-    let status = {
-        applied: applied
-    };
+    #status;
+
+    /**
+     * @param {*} params Properties of tag.
+     * @param {boolean} applied A boolean to see if the tag filter is active.
+     */
+    constructor(params, applied) {
+        this.#status = { applied: applied };
+        this.#init(params);
+    }
 
     /**
      * Initialize Tag.
      *
      * @param {*} param Tag properties.
      */
-    function _init (param) {
-        Object.keys(param).forEach( attrName => properties[attrName] = param[attrName]);
+    #init(param) {
+        Object.keys(param).forEach(attrName => this.#properties[attrName] = param[attrName]);
 
-        tagElement = document.createElement('button');
-        tagElement.className = "gallery-tag gallery-filter-button gallery-filter";
-        tagElement.id = properties.tag;
-        tagElement.innerText = i18next.t('tag.' + properties.tag.replace(/:/g, '-'));
-        tagElement.disabled = true; // Will be enabled once images load.
+        this.#tagElement = document.createElement('button');
+        this.#tagElement.className = "gallery-tag gallery-filter-button gallery-filter";
+        this.#tagElement.id = this.#properties.tag;
+        this.#tagElement.innerText = i18next.t('tag.' + this.#properties.tag.replace(/:/g, '-'));
+        this.#tagElement.disabled = true; // Will be enabled once images load.
 
-        if (status.applied) {
-            apply()
+        if (this.#status.applied) {
+            this.apply();
         }
 
-        tagElement.onclick = tagClickCallback;
+        this.#tagElement.onclick = this.#tagClickCallback;
     }
 
     /**
      * Handles what happens when Tag is clicked.
      */
-    function tagClickCallback() {
-        if (status.applied) {
+    #tagClickCallback = () => {
+        if (this.#status.applied) {
             sg.tracker.push("TagUnapply", null, {
-                Tag: properties.tag,
-                Label_Type: properties.label_type
+                Tag: this.#properties.tag,
+                Label_Type: this.#properties.label_type
             });
-            unapply();
+            this.unapply();
         } else {
             sg.tracker.push("TagApply", null, {
-                Tag: properties.tag,
-                Label_Type: properties.label_type
+                Tag: this.#properties.tag,
+                Label_Type: this.#properties.label_type
             });
-            apply();
+            this.apply();
         }
 
         sg.cardFilter.update();
-    }
+    };
 
     /**
      * Applies Tag.
      */
-    function apply() {
-        setStatus("applied", true);
-        tagElement.classList.add("gallery-filter-button-selected");
+    apply() {
+        this.setStatus("applied", true);
+        this.#tagElement.classList.add("gallery-filter-button-selected");
     }
 
     /**
      * Unapplies Tag.
      */
-    function unapply() {
-        setStatus("applied", false);
-        tagElement.classList.remove("gallery-filter-button-selected");
+    unapply() {
+        this.setStatus("applied", false);
+        this.#tagElement.classList.remove("gallery-filter-button-selected");
     }
 
     /**
      * Returns Tag name.
      */
-    function getTag() {
-        return properties.tag;
+    getTag() {
+        return this.#properties.tag;
     }
 
     /**
      * Returns the tagId of this Tag.
      */
-    function getTagId() {
-        return properties.tag_id;
+    getTagId() {
+        return this.#properties.tag_id;
     }
 
     /**
      * Returns label type of Tag.
      */
-    function getLabelType() {
-        return properties.label_type;
+    getLabelType() {
+        return this.#properties.label_type;
     }
 
     /**
@@ -109,7 +109,7 @@ function Tag (params, applied) {
      * JavaScript Deepcopy:
      * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
      */
-    function getProperties() { return $.extend(true, {}, properties); }
+    getProperties() { return $.extend(true, {}, this.#properties); }
 
     /**
      * Gets property of Tag.
@@ -117,13 +117,13 @@ function Tag (params, applied) {
      * @param propName Property name.
      * @returns {*} Property value if property name is valid. Otherwise false.
      */
-    function getProperty(propName) { return (propName in properties) ? properties[propName] : false; }
+    getProperty(propName) { return (propName in this.#properties) ? this.#properties[propName] : false; }
 
     /**
      * Get status of tag.
      */
-    function getStatus() {
-        return status;
+    getStatus() {
+        return this.#status;
     }
 
     /**
@@ -131,10 +131,10 @@ function Tag (params, applied) {
      *
      * @param key Property name.
      * @param value Property value.
-     * @returns {setProperty}
+     * @returns {Tag}
      */
-    function setProperty (key, value) {
-        properties[key] = value;
+    setProperty(key, value) {
+        this.#properties[key] = value;
         return this;
     }
 
@@ -144,11 +144,11 @@ function Tag (params, applied) {
      * @param {string} key Status name.
      * @param {*} value Status value.
      */
-    function setStatus(key, value) {
-        if (key in status) {
-            status[key] = value;
+    setStatus(key, value) {
+        if (key in this.#status) {
+            this.#status[key] = value;
         } else {
-            throw self.className + ": Illegal status name.";
+            throw `${this.constructor.name}: Illegal status name.`;
         }
     }
 
@@ -156,24 +156,8 @@ function Tag (params, applied) {
      * Renders the Tag.
      *
      * @param filterContainer UI element to render Tag in.
-     * @returns {self}
      */
-    function render(filterContainer) {
-        filterContainer.append(tagElement);
+    render(filterContainer) {
+        filterContainer.append(this.#tagElement);
     }
-
-    self.apply = apply;
-    self.unapply = unapply;
-    self.getTag = getTag;
-    self.getTagId = getTagId;
-    self.getLabelType = getLabelType;
-    self.getProperties = getProperties;
-    self.getProperty = getProperty;
-    self.getStatus = getStatus;
-    self.setProperty = setProperty;
-    self.setStatus = setStatus;
-    self.render = render;
-
-    _init(params);
-    return this;
 }

@@ -1,111 +1,125 @@
 /**
  * Context Menu module. Responsible for displaying the context menu when clicking on a label on the canvas.
- * @param uiContextMenu
- * @returns {{className: string}}
- * @constructor
+ *
  * @memberof svl
  */
-function ContextMenu (uiContextMenu) {
-    var self = { className: "ContextMenu" },
-        status = {
-            targetLabel: null,
-            visibility: 'hidden',
-            ratingSeverityEnabledForTutorialLabel: undefined, // During tutorial, disabled except for specific steps
-            taggingEnabledForTutorialLabel: undefined, // During tutorial, disabled except for specific steps
-        };
-    var $menuWindow = uiContextMenu.holder;
-    var $severityMenu = uiContextMenu.severityMenu;
-    const $severityRadioHolder = uiContextMenu.severityRadioHolder;
-    var $severityRadios = uiContextMenu.radioButtons;
-    let $descriptionHeaderNumber = $('#description-header-num');
-    var $descriptionTextBox = uiContextMenu.textBox;
-    var $OKButton = $menuWindow.find("#context-menu-ok-button");
-    var $tagHolder = uiContextMenu.tagHolder;
-    var $tags = uiContextMenu.tags;
+class ContextMenu {
+    static #LABEL_TO_MENU_GAP = 8; // Amount of space between the label and context menu.
 
-    const LABEL_TO_MENU_GAP = 8; // Amount of space between the label and context menu.
+    labelTags; // Public: read by Keyboard.js. Populated by fetchLabelTags().
 
-    document.addEventListener('mousedown', _handleMouseDown);
-    $menuWindow.on('mousedown', _handleMenuWindowMouseDown);
-    $severityRadios.on('change', _handleSeverityChange);
-    $descriptionTextBox.on('change', _handleDescriptionTextBoxChange);
-    $descriptionTextBox.on('focus', _handleDescriptionTextBoxFocus);
-    $descriptionTextBox.on('blur', _handleDescriptionTextBoxBlur);
-    uiContextMenu.closeButton.on('click', _handleCloseButtonClick);
-    $OKButton.on('click', _handleOKButtonClick);
-    $tags.on('click', _handleTagClick);
+    #status = {
+        targetLabel: null,
+        visibility: 'hidden',
+        ratingSeverityEnabledForTutorialLabel: undefined, // During tutorial, disabled except for specific steps
+        taggingEnabledForTutorialLabel: undefined, // During tutorial, disabled except for specific steps
+    };
+    #menuWindow;
+    #severityMenu;
+    #severityRadioHolder;
+    #severityRadios;
+    #descriptionHeaderNumber;
+    #descriptionTextBox;
+    #OKButton;
+    #tagHolder;
+    #tags;
 
-    function checkRadioButton(value) {
+    /**
+     * @param {Object} uiContextMenu - jQuery-wrapped context menu UI elements.
+     */
+    constructor(uiContextMenu) {
+        this.#menuWindow = uiContextMenu.holder;
+        this.#severityMenu = uiContextMenu.severityMenu;
+        this.#severityRadioHolder = uiContextMenu.severityRadioHolder;
+        this.#severityRadios = uiContextMenu.radioButtons;
+        this.#descriptionHeaderNumber = $('#description-header-num');
+        this.#descriptionTextBox = uiContextMenu.textBox;
+        this.#OKButton = this.#menuWindow.find('#context-menu-ok-button');
+        this.#tagHolder = uiContextMenu.tagHolder;
+        this.#tags = uiContextMenu.tags;
+
+        document.addEventListener('mousedown', (e) => this.#handleMouseDown(e));
+        this.#menuWindow.on('mousedown', (e) => this.#handleMenuWindowMouseDown(e));
+        this.#severityRadios.on('change', (e) => this.#handleSeverityChange(e));
+        this.#descriptionTextBox.on('change', (e) => this.#handleDescriptionTextBoxChange(e));
+        this.#descriptionTextBox.on('focus', () => this.#handleDescriptionTextBoxFocus());
+        this.#descriptionTextBox.on('blur', () => this.#handleDescriptionTextBoxBlur());
+        uiContextMenu.closeButton.on('click', () => this.#handleCloseButtonClick());
+        this.#OKButton.on('click', () => this.#handleOKButtonClick());
+        this.#tags.on('click', (e) => this.#handleTagClick(e));
+    }
+
+    checkRadioButton(value) {
         // Trigger `change` explicitly — `.prop('checked', true)` alone does not fire it.
-        uiContextMenu.radioButtons
-            .filter(function() { return parseInt(this.value) === value })
+        this.#severityRadios
+            .filter(function() { return parseInt(this.value) === value; })
             .prop('checked', true)
             .trigger('change', { lowLevelLogging: false });
     }
 
-    function getStatus(key) { return status[key]; }
-    function setStatus(key, value) { status[key] = value; }
+    #getStatus(key) { return this.#status[key]; }
+    #setStatus(key, value) { this.#status[key] = value; }
 
-    function getTargetLabel() { return status.targetLabel; }
+    getTargetLabel() { return this.#status.targetLabel; }
 
     /**
-     * Combined with document.addEventListener("mousedown", _handleMouseDown), this method will close the context menu
-     * window when user clicks somewhere on the window except for the area on the context menu window.
-     * @param e
+     * Combined with the document mousedown listener, closes the context menu window when the user clicks somewhere
+     * outside the context menu window.
+     * @param {Event} e
      */
-    function _handleMenuWindowMouseDown(e) {
+    #handleMenuWindowMouseDown(e) {
         e.stopPropagation();
     }
 
     /**
      * Handles clicking outside of context menu holder. If so, close the context menu and note if user rated severity.
-     * @param e
+     * @param {Event} e
      */
-    function _handleMouseDown(e) {
-        var clickedOut = !($menuWindow[0].contains(e.target));
-        if (isOpen()) {
+    #handleMouseDown(e) {
+        const clickedOut = !(this.#menuWindow[0].contains(e.target));
+        if (this.isOpen()) {
             if (clickedOut) {
                 svl.tracker.push('ContextMenu_CloseClickOut');
-                handleSeverityPopup();
+                this.handleSeverityPopup();
             }
-            hide();
+            this.hide();
             svl.navigationService.setStatus('contextMenuWasOpen', true);
         }
     }
 
-    function _handleDescriptionTextBoxChange(e) {
-        var description = $(this).val();
+    #handleDescriptionTextBoxChange(e) {
+        const description = $(e.currentTarget).val();
         svl.tracker.push('ContextMenu_TextBoxChange', { Description: description });
-        if (status.targetLabel) {
-            status.targetLabel.setProperty('description', description);
+        if (this.#status.targetLabel) {
+            this.#status.targetLabel.setProperty('description', description);
         }
     }
 
-    function _handleDescriptionTextBoxBlur() {
+    #handleDescriptionTextBoxBlur() {
         svl.tracker.push('ContextMenu_TextBoxBlur');
         svl.ribbon.enableModeSwitch();
         svl.keyboard.setStatus('focusOnTextField', false);
     }
 
-    function _handleDescriptionTextBoxFocus() {
+    #handleDescriptionTextBoxFocus() {
         svl.tracker.push('ContextMenu_TextBoxFocus');
         svl.ribbon.disableModeSwitch();
         svl.keyboard.setStatus('focusOnTextField', true);
     }
 
-    function _handleCloseButtonClick() {
+    #handleCloseButtonClick() {
         svl.tracker.push('ContextMenu_CloseButtonClick');
-        handleSeverityPopup();
-        hide();
+        this.handleSeverityPopup();
+        this.hide();
     }
 
-    function _handleOKButtonClick() {
+    #handleOKButtonClick() {
         svl.tracker.push('ContextMenu_OKButtonClick');
-        handleSeverityPopup();
-        hide(false);
+        this.handleSeverityPopup();
+        this.hide(false);
     }
 
-    function handleSeverityPopup() {
+    handleSeverityPopup() {
         const labels = svl.labelContainer.getAllLabels();
         if (labels.length > 0) {
             const lastLabelProps = labels[labels.length - 1].getProperties();
@@ -116,41 +130,41 @@ function ContextMenu (uiContextMenu) {
         }
     }
 
-    function _handleSeverityChange(e) {
-        const severity = parseInt($(this).val(), 10);
-        const label = status.targetLabel;
+    #handleSeverityChange(e) {
+        const severity = parseInt($(e.currentTarget).val(), 10);
+        const label = this.#status.targetLabel;
         svl.tracker.push('ContextMenu_RadioChange', { LabelType: label.getLabelType(), RadioValue: severity });
 
-        self.updateRadioButtonImages();
+        this.updateRadioButtonImages();
         if (label) {
             label.setProperty('severity', severity);
             svl.canvas.clear().render();
         }
     }
 
-    function fetchLabelTags(callback) {
-        $.when($.ajax({
-            contentType: 'application/json; charset=utf-8',
-            url: "/label/tags",
-            method: 'GET',
-            success: function(json) {
-                self.labelTags = json;
-            },
-            error: function(result) {
-                throw result;
-            }
-        })).done(callback);
+    /**
+     * Fetches the label tags from the server, stores them, then invokes the callback.
+     * @param {Function} callback
+     */
+    fetchLabelTags(callback) {
+        fetch('/label/tags', { method: 'GET', headers: { 'Content-Type': 'application/json; charset=utf-8' } })
+            .then((res) => { if (!res.ok) throw res; return res.json(); })
+            .then((json) => {
+                this.labelTags = json;
+                callback();
+            })
+            .catch((result) => { throw result; });
     }
 
     /**
      * Update the severity smiley icons to reflect the current label type (positive vs negative icon set) and which
      * severity level is currently selected (filled vs outline variant).
      */
-    function updateRadioButtonImages() {
-        if (!$severityRadioHolder[0]) return;
-        const checkedSev = Number($severityRadios.filter(':checked').val());
-        const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
-        $severityRadioHolder[0].querySelectorAll('.severity-button').forEach((button) => {
+    updateRadioButtonImages() {
+        if (!this.#severityRadioHolder[0]) return;
+        const checkedSev = Number(this.#severityRadios.filter(':checked').val());
+        const labelType = this.#status.targetLabel ? this.#status.targetLabel.getLabelType() : null;
+        this.#severityRadioHolder[0].querySelectorAll('.severity-button').forEach((button) => {
             const sev = Number(button.dataset.severity);
             const img = button.querySelector('.severity-button__icon');
             if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === checkedSev);
@@ -160,8 +174,8 @@ function ContextMenu (uiContextMenu) {
     /**
      * Swap the context menu's rating section text based on whether the current label type is a positive type.
      */
-    function _updateRatingText() {
-        const labelType = status.targetLabel ? status.targetLabel.getLabelType() : null;
+    #updateRatingText() {
+        const labelType = this.#status.targetLabel ? this.#status.targetLabel.getLabelType() : null;
         const positive = util.misc.isPositiveLabelType(labelType);
         const headerKey = positive ? 'rate-quality' : 'rate-severity';
         const infoKey = positive ? 'rate-quality-info' : 'rate-severity-info';
@@ -182,28 +196,29 @@ function ContextMenu (uiContextMenu) {
 
     /**
      * Records tag ID when clicked and updates tag color.
+     * @param {Event} e
      */
-    function _handleTagClick(e) {
-        let labelTags = status.targetLabel.getProperty('tagIds');
+    #handleTagClick(e) {
+        let labelTags = this.#status.targetLabel.getProperty('tagIds');
 
         // Use position of cursor to determine whether the click came from the mouse or from a keyboard shortcut.
-        const wasClickedByMouse = e.hasOwnProperty("originalEvent") &&
+        const wasClickedByMouse = e.hasOwnProperty('originalEvent') &&
             e.originalEvent.clientX !== 0
             && e.originalEvent.clientY !== 0;
 
-        $("body").unbind('click').on('click', 'button', function(e) {
+        $('body').off('click').on('click', 'button', (e) => {
             if (e.target.name === 'tag') {
                 // Get the tag_id from the clicked tag's class name (e.g., "tag-id-9").
-                const currTagId = parseInt($(e.target).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
-                const tag = self.labelTags.filter(tag => tag.tag_id === currTagId)[0];
+                const currTagId = parseInt($(e.target).attr('class').split(' ').filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
+                const tag = this.labelTags.filter(tag => tag.tag_id === currTagId)[0];
 
                 // Adds or removes tag from the label's current list of tags.
                 if (!labelTags.includes(tag.tag_id)) {
                     // If the tag is mutually exclusive with another tag, automatically remove the other tag.
                     if (tag.mutually_exclusive_with) {
-                        const mutuallyExclusiveTag = self.labelTags.filter(t => t.tag === tag.mutually_exclusive_with)[0];
+                        const mutuallyExclusiveTag = this.labelTags.filter(t => t.tag === tag.mutually_exclusive_with)[0];
                         if (mutuallyExclusiveTag) {
-                            labelTags = _autoRemoveAlternateTagAndUpdateUI(mutuallyExclusiveTag.tag_id, labelTags);
+                            labelTags = this.#autoRemoveAlternateTagAndUpdateUI(mutuallyExclusiveTag.tag_id, labelTags);
                         }
                     }
 
@@ -222,29 +237,30 @@ function ContextMenu (uiContextMenu) {
                         svl.tracker.push('KeyboardShortcut_TagRemoved', { tagId: tag.tag_id, tagName: tag.tag });
                     }
                 }
-                e.target.classList.toggle('tag-pill--active')
-                status.targetLabel.setProperty('tagIds', labelTags);
+                e.target.classList.toggle('tag-pill--active');
+                this.#status.targetLabel.setProperty('tagIds', labelTags);
                 e.target.blur();
-                $tagHolder.trigger('tagIds-updated'); // For events that depend on up-to-date tagIds.
+                this.#tagHolder.trigger('tagIds-updated'); // For events that depend on up-to-date tagIds.
             }
         });
     }
 
     /**
      * Remove the alternate tag, update UI, and add the selected tag.
-     * @param {*} tagId      The name of the tag to be removed.
-     * @param {*} labelTags  List of tags that the current label has.
+     * @param {*} tagId - The id of the tag to be removed.
+     * @param {*} labelTags - List of tags that the current label has.
+     * @returns {*} The updated labelTags list.
      */
-    function _autoRemoveAlternateTagAndUpdateUI(tagId, labelTags) {
-        $tags.each((index, tag) => {
-            var classWithTagId = tag.className.split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0];
+    #autoRemoveAlternateTagAndUpdateUI(tagId, labelTags) {
+        this.#tags.each((index, tag) => {
+            const classWithTagId = tag.className.split(' ').filter(c => c.search(/tag-id-\d+/) > -1)[0];
             if (classWithTagId !== undefined && parseInt(classWithTagId.match(/\d+/)[0], 10) === tagId) {
                 $(`.${classWithTagId}`).removeClass('tag-pill--active');
             }
         });
 
         // Remove tag from list of tags and log the automated removal.
-        self.labelTags.forEach(tag => {
+        this.labelTags.forEach(tag => {
             if (tag.tag_id === tagId && labelTags.includes(tagId)) {
                 labelTags.splice(labelTags.indexOf(tag.tag_id), 1);
                 svl.tracker.push('ContextMenu_TagAutoRemoved', { tagId: tag.tag_id, tagName: tag.tag });
@@ -255,15 +271,16 @@ function ContextMenu (uiContextMenu) {
 
     /**
      * Hide the context menu.
+     * @returns {ContextMenu} this.
      */
-    function hide() {
-        if (isOpen()) {
-            $descriptionTextBox.blur(); // Force the blur event before the ContextMenu close event.
+    hide() {
+        if (this.isOpen()) {
+            this.#descriptionTextBox.blur(); // Force the blur event before the ContextMenu close event.
             svl.tracker.push('ContextMenu_Close');
         }
 
-        $menuWindow.css('visibility', 'hidden');
-        setStatus('visibility', 'hidden');
+        this.#menuWindow.css('visibility', 'hidden');
+        this.#setStatus('visibility', 'hidden');
 
         return this;
     }
@@ -272,80 +289,82 @@ function ContextMenu (uiContextMenu) {
      * Checks if the menu is open or not.
      * @returns {boolean}
      */
-    function isOpen() {
-        return getStatus('visibility') === 'visible';
+    isOpen() {
+        return this.#getStatus('visibility') === 'visible';
     }
 
     // Disable rating severity.
-    function disableRatingSeverity() {
-        setStatus('ratingSeverityEnabledForTutorialLabel', null);
-        _showRatingSeverityDisabled();
+    disableRatingSeverity() {
+        this.#setStatus('ratingSeverityEnabledForTutorialLabel', null);
+        this.#showRatingSeverityDisabled();
     }
 
     // Disable tagging.
-    function disableTagging() {
-        setStatus('taggingEnabledForTutorialLabel', null);
-        _showTaggingDisabled();
+    disableTagging() {
+        this.#setStatus('taggingEnabledForTutorialLabel', null);
+        this.#showTaggingDisabled();
     }
 
     // Enable rating severity for a given tutorial label.
-    function enableRatingSeverityForTutorialLabel(tutorialLabelNumber) {
-        setStatus('ratingSeverityEnabledForTutorialLabel', tutorialLabelNumber);
-        if (svl.isOnboarding() && !isRatingSeverityDisabled()) _showRatingSeverityEnabled();
+    enableRatingSeverityForTutorialLabel(tutorialLabelNumber) {
+        this.#setStatus('ratingSeverityEnabledForTutorialLabel', tutorialLabelNumber);
+        if (svl.isOnboarding() && !this.isRatingSeverityDisabled()) this.#showRatingSeverityEnabled();
     }
 
     // Enable tagging for a given tutorial label.
-    function enableTaggingForTutorialLabel(tutorialLabelNumber) {
-        setStatus('taggingEnabledForTutorialLabel', tutorialLabelNumber);
-        if (svl.isOnboarding() && !isTaggingDisabled()) _showTaggingEnabled();
+    enableTaggingForTutorialLabel(tutorialLabelNumber) {
+        this.#setStatus('taggingEnabledForTutorialLabel', tutorialLabelNumber);
+        if (svl.isOnboarding() && !this.isTaggingDisabled()) this.#showTaggingEnabled();
+    }
+
+    // Removes the disabled visual effects from the severity buttons on current context menu.
+    #showRatingSeverityEnabled() {
+        this.#severityRadioHolder.removeClass('disabled');
     }
 
     // Adds the disabled visual effects to the severity buttons on current context menu.
-    function _showRatingSeverityEnabled() {
-        $severityRadioHolder.removeClass('disabled');
+    #showRatingSeverityDisabled() {
+        this.#severityRadioHolder.addClass('disabled');
     }
 
-    // Adds the disabled visual effects to the tags on current context menu.
-    function _showRatingSeverityDisabled() {
-        $severityRadioHolder.addClass('disabled');
-    }
-
-    function _showTaggingEnabled() {
-        $("body").find("button[name=tag]").each(function(t) {
+    #showTaggingEnabled() {
+        $('body').find('button[name=tag]').each(function() {
             $(this).removeClass('disabled');
         });
     }
 
-    function _showTaggingDisabled() {
-        $("body").find("button[name=tag]").each(function(t) {
+    #showTaggingDisabled() {
+        $('body').find('button[name=tag]').each(function() {
             $(this).addClass('disabled');
         });
     }
 
     /**
      * Returns true if rating severity is currently disabled.
+     * @returns {boolean}
      */
-    function isRatingSeverityDisabled() {
-        return status.ratingSeverityEnabledForTutorialLabel !== status.targetLabel.getProperty('tutorialLabelNumber');
+    isRatingSeverityDisabled() {
+        return this.#status.ratingSeverityEnabledForTutorialLabel !== this.#status.targetLabel.getProperty('tutorialLabelNumber');
     }
 
     /**
      * Returns true if tagging is currently disabled.
+     * @returns {boolean}
      */
-    function isTaggingDisabled() {
-        return status.taggingEnabledForTutorialLabel !== status.targetLabel.getProperty('tutorialLabelNumber');
+    isTaggingDisabled() {
+        return this.#status.taggingEnabledForTutorialLabel !== this.#status.targetLabel.getProperty('tutorialLabelNumber');
     }
 
     /**
-     * Sets the color of a label's tags based off of tags that were previously chosen.
-     * @param label     Current label being modified.
+     * Sets the color of a label's tags based off of tags that were chosen.
+     * @param {Object} label - Current label being modified.
      */
-    function _setTagColor(label) {
+    #setTagColor(label) {
         const labelTags = label.getProperty('tagIds');
-        $("body").find("button[name=tag]").each(function(t) {
+        $('body').find('button[name=tag]').each(function() {
             const buttonText = $(this).text();
             if (buttonText) {
-                const tagId = parseInt($(this).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
+                const tagId = parseInt($(this).attr('class').split(' ').filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
 
                 // Sets color based on whether the tag is now selected.
                 if (labelTags.includes(tagId)) {
@@ -359,44 +378,44 @@ function ContextMenu (uiContextMenu) {
 
     /**
      * Sets the description and value of the tag based on the label type.
-     * @param label Current label being modified.
+     * @param {Object} label - Current label being modified.
      */
-    function _setTags(label) {
+    #setTags(label) {
         const maxTags = 17;
         if (label) {
-            const labelTags = self.labelTags;
+            const labelTags = this.labelTags;
             if (labelTags) {
                 let count = 0;
 
                 // Go through each label tag, modify each button to display tag.
-                labelTags.forEach(function(tag) {
+                labelTags.forEach((tag) => {
                     if (tag.label_type === label.getProperty('labelType')) {
                         const buttonIdx = count; // Save index in a separate var b/c tooltips are added asynchronously.
 
                         // Remove all leftover tags from last labeling.
                         // Warning to future devs: will remove any other classes you add to the tags.
-                        $tagHolder.find("button[id=" + buttonIdx + "]")
+                        this.#tagHolder.find('button[id=' + buttonIdx + ']')
                             .attr('class', 'context-menu-tag tag-pill tag-pill--interactive');
 
                         // Add tag id as a class so that finding the element is easier later.
-                        $tagHolder.find("button[id=" + buttonIdx + "]").addClass("tag-id-" + tag.tag_id);
+                        this.#tagHolder.find('button[id=' + buttonIdx + ']').addClass('tag-id-' + tag.tag_id);
 
                         // Set tag texts to new underlined version as defined in the util label description map.
                         const tagText = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['text'];
-                        $tagHolder.find("button[id=" + buttonIdx + "]")
+                        this.#tagHolder.find('button[id=' + buttonIdx + ']')
                             .html(`<span class="tag-pill__label">${tagText}</span>`);
 
-                        $tagHolder.find("button[id=" + buttonIdx + "]").css({
+                        this.#tagHolder.find('button[id=' + buttonIdx + ']').css({
                             visibility: 'inherit', position: 'inherit'
                         });
 
                         // Remove old tooltip for that button.
-                        $tagHolder.find("button[id=" + buttonIdx + "]").tooltip("destroy");
+                        this.#tagHolder.find('button[id=' + buttonIdx + ']').tooltip('destroy');
 
                         // Add tooltip with tag example if we have an example image to show.
                         // If there's a server-specific image, try that first. Get default image as a backup.
                         let exampleImage;
-                        let imageUrl = `/assets/images/examples/tags/${tag.tag_id}.png`;
+                        const imageUrl = `/assets/images/examples/tags/${tag.tag_id}.png`;
                         let citySpecificImageUrl;
                         if (window.cityId === 'chandigarh-india') {
                             citySpecificImageUrl = `/assets/images/examples/tags/india/${tag.tag_id}.png`;
@@ -421,19 +440,19 @@ function ContextMenu (uiContextMenu) {
                             // If first letter is used for shortcut, the string will start with "<tag-underline".
                             if (tagText[0] === '<') {
                                 keyChar = tagText[underlineClassOffset];
-                                tooltipHeader = tagText.substring(0,underlineClassOffset) +
+                                tooltipHeader = tagText.substring(0, underlineClassOffset) +
                                     tagText[underlineClassOffset].toUpperCase() +
                                     tagText.substring(underlineClassOffset + 1);
                             } else {
-                                let underlineIndex = tagText.indexOf('<');
+                                const underlineIndex = tagText.indexOf('<');
                                 keyChar = tagText[underlineIndex + underlineClassOffset];
                                 tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
                             }
                             const tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keyChar});
-                            const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${img}"/>`
+                            const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${img}"/>`;
 
                             // Create the tooltip. 'auto top' flips it below the tag if it would clip the viewport top.
-                            $tagHolder.find("button[id=" + buttonIdx + "]").tooltip(({
+                            this.#tagHolder.find('button[id=' + buttonIdx + ']').tooltip(({
                                 placement: 'auto top',
                                 html: true,
                                 delay: { 'show': 300, 'hide': 10 },
@@ -450,9 +469,8 @@ function ContextMenu (uiContextMenu) {
                 });
 
                 // If number of tags is less than the max number of tags, hide button.
-                let i = count;
-                for (i; i < maxTags; i++) {
-                    $("body").find("button[id=" + i + "]").css({
+                for (let i = count; i < maxTags; i++) {
+                    $('body').find('button[id=' + i + ']').css({
                         visibility: 'hidden',
                         position: 'absolute',
                         top: '0px',
@@ -465,16 +483,15 @@ function ContextMenu (uiContextMenu) {
 
     /**
      * Set context menu severity tooltips to the correct text/images for the given label type.
-     * @param labelType
-     * @private
+     * @param {string} labelType
      */
-    function _setSeverityTooltips(labelType) {
+    #setSeverityTooltips(labelType) {
         const tooltipKey = util.misc.isPositiveLabelType(labelType) ? 'quality-example-tooltip' : 'severity-example-tooltip';
         for (let sev = 1; sev < 4; sev++) {
             // Add severity tooltips for the current label type if we have images for them.
             util.getImage(`/assets/images/examples/severity/${labelType}_Severity${sev}.png`).then(img => {
                 const tooltipHeader = i18next.t(`common:${tooltipKey}-${sev}`);
-                const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
+                const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`;
                 // 'auto top' flips the tooltip below the button if it would clip the viewport top.
                 $(`.severity-button[data-severity="${sev}"]`).tooltip({
                     placement: 'auto top', html: true, delay: { 'show': 300, 'hide': 10 },
@@ -490,9 +507,8 @@ function ContextMenu (uiContextMenu) {
 
     /**
      * Remove severity tooltips from the context menu, preparing to replace them for a new label type.
-     * @private
      */
-    function _removePrevSeverityTooltips() {
+    #removePrevSeverityTooltips() {
         for (let severity = 1; severity < 4; severity++) {
             $(`.severity-button[data-severity="${severity}"]`).tooltip('destroy');
         }
@@ -500,36 +516,36 @@ function ContextMenu (uiContextMenu) {
 
     /**
      * Show the context menu.
-     * @param targetLabel the label whose context menu should be shown.
+     * @param {Object} targetLabel - The label whose context menu should be shown.
      */
-    function show(targetLabel) {
-        setStatus('targetLabel', null);
-        $severityRadios.prop('checked', false);
-        $descriptionTextBox.val(null);
+    show(targetLabel) {
+        this.#setStatus('targetLabel', null);
+        this.#severityRadios.prop('checked', false);
+        this.#descriptionTextBox.val(null);
 
         const labelType = targetLabel.getLabelType();
         const labelCoord = targetLabel.getCanvasXY();
 
         if (labelType !== 'Occlusion') {
-            setStatus('targetLabel', targetLabel);
-            _setTags(targetLabel);
-            _setTagColor(targetLabel);
-            if (getStatus('disableTagging')) { disableTagging(); }
+            this.#setStatus('targetLabel', targetLabel);
+            this.#setTags(targetLabel);
+            this.#setTagColor(targetLabel);
+            if (this.#getStatus('disableTagging')) { this.disableTagging(); }
 
             // Hide the severity menu for label types that don't have a severity rating.
             if (util.misc.labelTypeHasSeverity(labelType)) {
-                $severityMenu.removeClass('hidden');
+                this.#severityMenu.removeClass('hidden');
             } else {
-                $severityMenu.addClass('hidden');
+                this.#severityMenu.addClass('hidden');
             }
             // labelCoord is in the logical 720x480 frame; the menu is a DOM element sized in on-screen pixels.
             // Do the placement math in the logical frame (so the constants below stay valid), converting the
             // menu's measured height into that frame, then scale the final position to pixels when positioning.
             const scale = util.exploreDisplayScale();
-            const menuHeight = $menuWindow.outerHeight() / scale;
+            const menuHeight = this.#menuWindow.outerHeight() / scale;
 
             // Determine coordinates for context menu to display below the label.
-            let topCoordinate = labelCoord.y + svl.LABEL_ICON_RADIUS + LABEL_TO_MENU_GAP;
+            let topCoordinate = labelCoord.y + svl.LABEL_ICON_RADIUS + ContextMenu.#LABEL_TO_MENU_GAP;
 
             // The menu may hang below the pano edge, but not past the bottom of the viewport, where it would be cut
             // off. Measure the space from the pano's top down to the viewport bottom, in the logical frame.
@@ -539,70 +555,54 @@ function ContextMenu (uiContextMenu) {
             // If there isn't enough room to show the context menu below the label, show it above the label instead.
             // labelCoord.y is top-left of label but is center of rendered label, so we must add the icon radius.
             if (topCoordinate + menuHeight > spaceBelow) {
-                topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - menuHeight - LABEL_TO_MENU_GAP;
+                topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - menuHeight - ContextMenu.#LABEL_TO_MENU_GAP;
             }
 
-            // Set the menu value if label has it's value set.
+            // Set the menu value if label has its value set.
             const severity = targetLabel.getProperty('severity');
             const description = targetLabel.getProperty('description');
             if (severity) {
-                $severityRadios.each(function(i, v) {
-                    if (severity === i + 1) { $(this).prop("checked", true); }
+                this.#severityRadios.each(function(i) {
+                    if (severity === i + 1) { $(this).prop('checked', true); }
                 });
             }
 
             // Enable rating severity and tagging on tutorial labels if appropriate.
             if (svl.isOnboarding()) {
-                if (!isRatingSeverityDisabled()) _showRatingSeverityEnabled();
-                else _showRatingSeverityDisabled();
-                if (!isTaggingDisabled()) _showTaggingEnabled();
-                else _showTaggingDisabled();
+                if (!this.isRatingSeverityDisabled()) this.#showRatingSeverityEnabled();
+                else this.#showRatingSeverityDisabled();
+                if (!this.isTaggingDisabled()) this.#showTaggingEnabled();
+                else this.#showTaggingDisabled();
             }
 
             // Read the width fresh (it scales with --ui-scale) so the menu stays centered under the label at any UI scale.
-            const windowWidth = $menuWindow.outerWidth();
-            $menuWindow.css({
+            const windowWidth = this.#menuWindow.outerWidth();
+            this.#menuWindow.css({
                 visibility: 'visible',
                 left: labelCoord.x * scale - windowWidth / 2,
                 top: topCoordinate * scale
             });
 
-            setStatus('visibility', 'visible');
+            this.#setStatus('visibility', 'visible');
 
             if (description) {
-                $descriptionTextBox.val(description);
+                this.#descriptionTextBox.val(description);
             }
-            const labelProps = status.targetLabel.getProperties();
+            const labelProps = this.#status.targetLabel.getProperties();
 
             // Don't push event on Occlusion labels; they don't open ContextMenus.
             svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProps.auditTaskId}, {'temporaryLabelId': labelProps.temporaryLabelId});
         }
         if (util.misc.labelTypeHasSeverity(labelType)) {
-            self.updateRadioButtonImages();
-            _updateRatingText();
-            _removePrevSeverityTooltips();
+            this.updateRadioButtonImages();
+            this.#updateRatingText();
+            this.#removePrevSeverityTooltips();
             if (labelType !== 'Other') {
-                _setSeverityTooltips(labelType);
+                this.#setSeverityTooltips(labelType);
             }
-            $descriptionHeaderNumber.text('3.');
+            this.#descriptionHeaderNumber.text('3.');
         } else {
-            $descriptionHeaderNumber.text('2.');
+            this.#descriptionHeaderNumber.text('2.');
         }
     }
-
-    self.checkRadioButton = checkRadioButton;
-    self.getTargetLabel = getTargetLabel;
-    self.handleSeverityPopup = handleSeverityPopup;
-    self.fetchLabelTags = fetchLabelTags;
-    self.updateRadioButtonImages = updateRadioButtonImages;
-    self.hide = hide;
-    self.isOpen = isOpen;
-    self.show = show;
-    self.disableRatingSeverity = disableRatingSeverity;
-    self.disableTagging = disableTagging;
-    self.enableRatingSeverityForTutorialLabel = enableRatingSeverityForTutorialLabel;
-    self.enableTaggingForTutorialLabel = enableTaggingForTutorialLabel;
-    self.isRatingSeverityDisabled = isRatingSeverityDisabled;
-    self.isTaggingDisabled = isTaggingDisabled;
-    return self;
 }

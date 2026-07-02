@@ -95,7 +95,7 @@
     },
     "controls": {
         "stuck": "Atorado",
-        "stuck-tooltip": "Intentaremos llevarte de regreso a tu misión",
+        "stuck-tooltip": "Intentaremos llevarte de regreso a tu misión, o presiona la barra espaciadora",
         "sound": "Sonido",
         "feedback": "Retroalimentación",
         "feedback-tooltip": "Comparte tus pensamientos con nosotros",
@@ -250,6 +250,7 @@
         "signup-body": "¿Deseas crear una cuenta para tener un seguimiento de tu progreso?",
         "severity-shortcuts": "Por favor proporciona clasificaciones de gravedad para cada etiqueta presionando las teclas <kbd>1</kbd> a <kbd>3</kbd>",
         "zoom-shortcuts": "También puedes presionar la tecla <kbd>Z</kbd> para acercar y las teclas <kbd>Shift</kbd> + <kbd>Z</kbd> para alejar.",
+        "move-forward-shortcut": "También puedes presionar la <kbd>barra espaciadora</kbd> para avanzar a lo largo de tu ruta.",
         "label-shortcuts-curb-ramp": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de la Rampa Peatonal.",
         "label-shortcuts-no-curb-ramp": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de la Rampa Peatonal Ausente.",
         "label-shortcuts-obstacle": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta del Obstáculo.",

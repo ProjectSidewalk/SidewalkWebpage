@@ -175,7 +175,7 @@ jobs:
       # Match the web container's interpreter (Dockerfile base eclipse-temurin:17-jdk-focal ships Python 3.8). 3.8 is
       # EOL; bumping the container's Python is tracked separately and intentionally out of scope here.
       - name: Set up Python 3.8
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.8'
 

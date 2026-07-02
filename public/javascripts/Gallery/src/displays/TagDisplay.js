@@ -1,30 +1,41 @@
 /**
  * An object that can display the tags of a label.
- *
- * @param {HTMLElement} container The DOM element to contain the label information
- * @param {String[]} tags The tags to display
- * @returns {TagDisplay} The created object
  */
-function TagDisplay(container, tags) {
-    const self = this;
-    const popoverTemplate = '<div class="popover additional-tag-popover" role="tooltip">' +
-                                '<div class="arrow"></div>' +
-                                '<h3 class="popover-title"></h3>' +
-                                '<div class="popover-content additional-tag-popover-content"></div>' +
-                            '</div>';
+class TagDisplay {
+    #container;
+    #tags;
+    #popoverTemplate = '<div class="popover additional-tag-popover" role="tooltip">' +
+                            '<div class="arrow"></div>' +
+                            '<h3 class="popover-title"></h3>' +
+                            '<div class="popover-content additional-tag-popover-content"></div>' +
+                        '</div>';
 
-    function _init() {
+    /**
+     * @param {HTMLElement} container The DOM element to contain the label information.
+     * @param {String[]} tags The tags to display.
+     */
+    constructor(container, tags) {
+        this.#container = container;
+        this.#tags = tags;
+
+        this.#init();
+    }
+
+    #init() {
+        const container = this.#container;
+        const tags = this.#tags;
+
         // Test to see if there are any tags left.
         if (tags.length > 0) {
             // Print the header of the Tags div.
             $(container).empty();
-            let tagHeader = document.createElement('div');
+            const tagHeader = document.createElement('div');
             tagHeader.className = 'label-tags-header';
 
             tagHeader.innerText = `${i18next.t("tags")}`;
             $(container).append(tagHeader);
 
-            let tagContainer = document.createElement('div');
+            const tagContainer = document.createElement('div');
             tagContainer.className = 'label-tags-holder';
             $(container).append(tagContainer);
 
@@ -38,11 +49,11 @@ function TagDisplay(container, tags) {
             const WIDTH_FOR_PLUS_N = 30;
             const MIN_TAG_WIDTH = 75;
 
-            let orderedTags = orderTags(tags);
-            let tagsText = orderedTags.map(t => i18next.t('tag.' + t));
-            let hiddenTags = [];
+            const orderedTags = this.#orderTags(tags);
+            const tagsText = orderedTags.map(t => i18next.t('tag.' + t));
+            const hiddenTags = [];
             for (let i = 0; i < tagsText.length; i++) {
-                let tagEl = document.createElement('div');
+                const tagEl = document.createElement('div');
                 tagEl.className = 'gallery-tag thumbnail-tag';
                 tagEl.innerText = tagsText[i];
                 $(tagContainer).append(tagEl);
@@ -51,14 +62,14 @@ function TagDisplay(container, tags) {
                 // there is still a decent amount of space (75 px if this is the last tag or 105 px if we also need to
                 // add the '+n' text), add the tag with a max-width so that it gets cut off with an ellipsis. If we
                 // can't fit the tag at all, will need to add to the hidden tags in the '+n' popover.
-                let isLastTag = i === tagsText.length - 1;
+                const isLastTag = i === tagsText.length - 1;
                 let tagWidth = parseFloat($(tagEl).css('width'));
 
                 // If this is the last tag and there are hidden tags, then we need to account for the PLUS_N indicator
                 // in addition to the margin between tags in the extra space needed. Otherwise, we just need to account
                 // for the margin between tags.
-                let extraSpaceNeeded = (isLastTag && hiddenTags.length === 0) ? MARGIN_BW_TAGS : MARGIN_BW_TAGS + WIDTH_FOR_PLUS_N;
-                let spaceForShortenedTag = (isLastTag && hiddenTags.length === 0) ? MIN_TAG_WIDTH : MIN_TAG_WIDTH + WIDTH_FOR_PLUS_N;
+                const extraSpaceNeeded = (isLastTag && hiddenTags.length === 0) ? MARGIN_BW_TAGS : MARGIN_BW_TAGS + WIDTH_FOR_PLUS_N;
+                const spaceForShortenedTag = (isLastTag && hiddenTags.length === 0) ? MIN_TAG_WIDTH : MIN_TAG_WIDTH + WIDTH_FOR_PLUS_N;
 
                 if ((remainingWidth > tagWidth + extraSpaceNeeded)) {
                     // Show the entire tag if there is enough space.
@@ -80,7 +91,7 @@ function TagDisplay(container, tags) {
 
             // If there was not enough space to display all the tags, show the rest in a popover on the '+n' text.
             if (hiddenTags.length > 0) {
-                let additional = document.createElement('div');
+                const additional = document.createElement('div');
                 additional.className = "gallery-tag additional-count";
                 additional.innerText = " + " + hiddenTags.length;
                 $(additional).popover("destroy").popover({
@@ -89,7 +100,7 @@ function TagDisplay(container, tags) {
                     delay: { "show": 300, "hide": 10 },
                     content: hiddenTags.map(tag => tag.outerHTML).join(""),
                     trigger: 'hover',
-                    template: popoverTemplate
+                    template: this.#popoverTemplate
                 }).popover("show").popover("hide");
                 $(tagContainer).append(additional);
             }
@@ -101,10 +112,10 @@ function TagDisplay(container, tags) {
      * @param {*} tags Tags to order.
      * @returns Ordered tag list.
      */
-    function orderTags(tags) {
+    #orderTags(tags) {
         let orderedTags = [];
-        let appliedTags = sg.cardFilter.getAppliedTagNames();
-        for (let tag of tags) {
+        const appliedTags = sg.cardFilter.getAppliedTagNames();
+        for (const tag of tags) {
             if (orderedTags.length === 0) {
                 orderedTags.push(tag);
             } else {
@@ -118,7 +129,4 @@ function TagDisplay(container, tags) {
         }
         return orderedTags;
     }
-
-    _init();
-    return self;
 }

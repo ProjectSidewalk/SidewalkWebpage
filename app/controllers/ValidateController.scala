@@ -1,21 +1,14 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.{isAdmin, isMobile}
+import controllers.helper.ControllerUtils.isMobile
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.LabelMapValidationCommentSubmission
 import formats.json.LabelFormats
-import formats.json.LabelFormats.validationLabelMetadataToJson
 import formats.json.MissionFormats._
-import formats.json.ValidateFormats.{
-  EnvironmentSubmission,
-  LabelMapValidationSubmission,
-  SkipLabelSubmission,
-  ValidationTaskSubmission
-}
+import formats.json.ValidateFormats.{EnvironmentSubmission, LabelMapValidationSubmission, ValidationTaskSubmission}
 import models.auth.WithAdmin
 import models.label.{LabelTypeEnum, Tag}
-import models.pano.PanoSource.PanoSource
 import models.user._
 import models.validation.{LabelValidation, ValidationTaskComment, ValidationTaskEnvironment, ValidationTaskInteraction}
 import play.api.Configuration
@@ -428,47 +421,4 @@ class ValidateController @Inject() (
     )
   }
 
-  /**
-   * Gets the metadata for a single random label in the database. Excludes labels that were originally placed by the
-   * user, labels that have already appeared on the interface, and the label that was just skipped.
-   *
-   * @param labelTypeId    Label Type ID this label should have
-   * @param skippedLabelId Label ID of the label that was just skipped
-   * @return Label metadata containing pano metadata and label type
-   */
-  def getRandomLabelData(labelTypeId: Int, skippedLabelId: Int) =
-    cc.securityService.SecuredAction(parse.json) { implicit request =>
-      val submission = request.body.validate[SkipLabelSubmission]
-      submission.fold(
-        errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-        submission => {
-          val validateParams: ValidateParams =
-            if (submission.validateParams.adminVersion && isAdmin(request.identity)) submission.validateParams
-            else ValidateParams(adminVersion = false)
-          val userId: String         = request.identity.userId
-          val viewerType: PanoSource = configService.getPanoSource
-
-          // Get metadata for one new label to replace the skipped one.
-          // TODO should really exclude all remaining labels in the mission, not just the skipped one. Not bothering now
-          //      because it isn't a heavily used feature, and it's a rare edge case.
-          labelService
-            .retrieveLabelListForValidation(userId, n = 1, viewerType, labelTypeId, validateParams.userIds.map(_.toSet),
-              validateParams.neighborhoodIds.map(_.toSet), validateParams.unvalidatedOnly,
-              skippedLabelId = Some(skippedLabelId))
-            .flatMap { labelMetadata =>
-              val label          = labelMetadata.head
-              val backupImageUrl = panoDataService.backupImageUrl(label.panoId)
-              if (validateParams.adminVersion) {
-                labelService.getExtraAdminValidateData(Seq(label.labelId)).map { adminData =>
-                  Ok(Json.obj("label" -> validationLabelMetadataToJson(label, backupImageUrl, Some(adminData.head))))
-                }
-              } else {
-                Future.successful(
-                  Ok(Json.obj("label" -> validationLabelMetadataToJson(label, backupImageUrl)))
-                )
-              }
-            }
-        }
-      )
-    }
 }

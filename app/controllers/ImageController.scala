@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base._
+import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats
 import models.label.LabelTypeEnum
 import play.api.libs.json._
@@ -22,7 +23,8 @@ class ImageController @Inject() (
     cc: CustomControllerComponents,
     panoDataService: service.PanoDataService,
     signingService: ImageSigningService,
-    config: Configuration
+    config: Configuration,
+    cpuEc: CpuIntensiveExecutionContext
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
@@ -232,14 +234,14 @@ class ImageController @Inject() (
           initializeDirIfNeeded(labelType)
           val b64String: String = (json \ "b64").as[String].split(",")(1)
           val filename: String  = panoDataService.cropFile(labelId, labelType).getPath
-          try {
-            writeImageFile(filename, b64String)
-            Future.successful(Ok("Got: crop_" + labelId))
-          } catch {
-            case e: Exception =>
+          // Base64 decode + ImageIO read/resize/write is CPU-bound; run it off the request EC so concurrent crop
+          // uploads can't starve the HTTP dispatcher (#4415).
+          Future(writeImageFile(filename, b64String))(cpuEc)
+            .map(_ => Ok("Got: crop_" + labelId))
+            .recover { case e: Exception =>
               logger.error("Exception when writing image file: " + filename + "\n\t" + e)
-              Future.successful(InternalServerError("Exception when writing image file: " + filename + "\n\t" + e))
-          }
+              InternalServerError("Exception when writing image file: " + filename + "\n\t" + e)
+            }
         }
       }
       .getOrElse {

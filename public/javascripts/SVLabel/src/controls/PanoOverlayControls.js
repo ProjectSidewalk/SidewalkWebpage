@@ -15,11 +15,13 @@ class PanoOverlayControls {
      * @param {Tracker} tracker
      * @param {NavigationService} navigationService
      * @param {StuckAlert} stuckAlert
+     * @param {KeyboardShortcutAlert} keyboardShortcutAlert
      */
-    constructor(tracker, navigationService, stuckAlert) {
+    constructor(tracker, navigationService, stuckAlert, keyboardShortcutAlert) {
         this.tracker = tracker;
         this.navigationService = navigationService;
         this.stuckAlert = stuckAlert;
+        this.keyboardShortcutAlert = keyboardShortcutAlert;
 
         this.#stuck = document.getElementById('explore-control-stuck');
         this.#controlButtonsHolder = document.getElementById('explore-control-buttons-holder');
@@ -55,6 +57,7 @@ class PanoOverlayControls {
         e.preventDefault();
         if (!this.#stuckEnabled) return;
         this.stuckAlert.compassOrStuckClicked();
+        this.keyboardShortcutAlert.stuckButtonClicked();
         this.tracker.push('ModalStuck_ClickStuck');
         this.navigationService.moveForward()
             .then(() => {

@@ -1093,8 +1093,10 @@ class AdminServiceImpl @Inject() (
       }
     }
     // Compute all windows, then atomically replace the table. replaceAll is itself transactional, so the reads plus the
-    // wholesale swap are all the consistency this precompute needs.
+    // wholesale swap are all the consistency this precompute needs. Then drop the cached funnel reads so the fresh rows
+    // show on the next page load rather than after the 10-minute TTL.
     db.run(DBIO.sequence(perWindow).flatMap(rows => funnelStatTable.replaceAll(rows.flatten)))
+      .flatMap(rowsWritten => configService.invalidateFunnelCaches().map(_ => rowsWritten))
   }
 
   /**

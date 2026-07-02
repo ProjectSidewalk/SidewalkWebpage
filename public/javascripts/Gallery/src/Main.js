@@ -3,22 +3,31 @@ var sg = sg || {};
 
 /**
  * Main module for Gallery.
- * @param params Object passed from gallery.scala.html containing initial values pulled from the database on page
- *              load.
- * @returns {Main}
- * @constructor
+ *
+ * Construct instances via the `static async create()` factory, which initializes the gallery before resolving.
  */
-async function Main (params) {
-    const self = this;
+class Main {
+    #headerSidebarOffset = undefined;
 
-    sg.scrollStatus = {
-        stickySidebar: true,
-        stickyExpandedView: true
-    };
+    /**
+     * Creates and initializes the Gallery Main module.
+     * @param {object} params Object passed from gallery.scala.html containing initial values pulled from the database
+     *              on page load.
+     * @returns {Promise<Main>}
+     */
+    static async create(params) {
+        const main = new Main();
+        main.#initUI();
+        await main.#init(params);
+        return main;
+    }
 
-    let headerSidebarOffset = undefined;
+    #initUI() {
+        sg.scrollStatus = {
+            stickySidebar: true,
+            stickyExpandedView: true
+        };
 
-    function _initUI() {
         sg.ui = {};
 
         // Initializes filter components in sidebar.
@@ -49,7 +58,7 @@ async function Main (params) {
         sg.ui.cardContainer = {};
         sg.ui.cardContainer.holder = $("#image-card-container");
         sg.ui.cardContainer.prevPage = $("#prev-page");
-        sg.ui.cardContainer.pageNumber = $("#page-number")
+        sg.ui.cardContainer.pageNumber = $("#page-number");
         sg.ui.cardContainer.nextPage = $("#next-page");
 
         // Initialize expanded view component.
@@ -66,11 +75,11 @@ async function Main (params) {
         sg.ui.expandedView.container.css('visibility', 'hidden');
 
         // Calculate offset between bottom of navbar and sidebar.
-        headerSidebarOffset =
+        this.#headerSidebarOffset =
             sg.ui.cardFilter.wrapper.offset().top - (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight());
     }
 
-    async function _init() {
+    async #init(params) {
         sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
         // Seed the all-time counts so validating a card can celebrate a newly unlocked validation badge.
@@ -82,8 +91,8 @@ async function Main (params) {
 
         // sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
         sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu, params.initialFilters);
-        sg.cardContainer = await CardContainer(sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken);
-        sg.expandedView = sg.cardContainer.getExpandedView;
+        sg.cardContainer = await CardContainer.create(sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken);
+        sg.expandedView = () => sg.cardContainer.getExpandedView();
 
         // Initialize Keyboard to activate keyboard shortcuts.
         sg.keyboard = new Keyboard(sg.expandedView());
@@ -92,31 +101,31 @@ async function Main (params) {
         sg.form = new Form(params.dataStoreUrl);
         sg.tracker = new Tracker();
 
-        let sidebarWrapper = sg.ui.cardFilter.wrapper;
-        let sidebarWidth = sidebarWrapper.css('width');
+        const sidebarWrapper = sg.ui.cardFilter.wrapper;
+        const sidebarWidth = sidebarWrapper.css('width');
 
         sg.ui.labelTypeMenu.select.change();
 
         // Handle sidebar and expanded view stickiness while scrolling.
-        $(window).scroll(function () {
+        $(window).scroll(() => {
             // Make sure the page isn't loading.
             if (!sg.pageLoading.is(":visible") && !sg.labelsNotFound.is(':visible')) {
-                let sidebarBottomOffset = sidebarWrapper.offset().top + sidebarWrapper.outerHeight(true);
-                let cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top +
+                const sidebarBottomOffset = sidebarWrapper.offset().top + sidebarWrapper.outerHeight(true);
+                const cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top +
                                                 sg.ui.cardContainer.holder.outerHeight(true) - 5;
-                let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height();
+                const visibleWindowBottomOffset = $(window).scrollTop() + $(window).height();
 
                 // Handle sidebar stickiness.
                 if (sg.scrollStatus.stickySidebar) {
                     if (cardContainerBottomOffset < sidebarBottomOffset) {
-                        let sidebarHeightBeforeRelative = sidebarWrapper.outerHeight(true);
+                        const sidebarHeightBeforeRelative = sidebarWrapper.outerHeight(true);
 
                         // Adjust sidebar positioning.
                         sidebarWrapper.css('position', 'relative');
 
                         // Compute the new location for the top of the sidebar, just above the paging arrows.
-                        let navbarHeight = sg.ui.navbar.outerHeight(false);
-                        let newTop = cardContainerBottomOffset - sidebarHeightBeforeRelative - navbarHeight;
+                        const navbarHeight = sg.ui.navbar.outerHeight(false);
+                        const newTop = cardContainerBottomOffset - sidebarHeightBeforeRelative - navbarHeight;
                         sidebarWrapper.css('top', newTop);
 
                         // Adjust card container margin.
@@ -124,9 +133,9 @@ async function Main (params) {
                         sg.scrollStatus.stickySidebar = false;
                     }
                 } else {
-                    let currHeaderSidebarOffset =
+                    const currHeaderSidebarOffset =
                         sidebarWrapper.offset().top - (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight(false));
-                    if (currHeaderSidebarOffset > headerSidebarOffset) {
+                    if (currHeaderSidebarOffset > this.#headerSidebarOffset) {
                         // Adjust sidebar positioning.
                         sidebarWrapper.css('position', 'fixed');
                         sidebarWrapper.css('top', '');
@@ -153,9 +162,4 @@ async function Main (params) {
             }
         });
     }
-
-    _initUI();
-    await _init();
-
-    return self;
 }

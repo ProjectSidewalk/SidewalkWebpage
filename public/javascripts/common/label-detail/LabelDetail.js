@@ -7,45 +7,86 @@
  *
  * The controller scopes all DOM queries to `root` and never touches the document outside of it. Multiple instances on
  * different pages cannot collide. The host is responsible for ensuring that `root` is laid out (visible in the DOM with
- * non-zero dimensions) before LabelDetail() is called, because the pano viewer needs to measure its container at init.
- *
- * @param {HTMLElement} root The host element containing the labelDetail markup (see labelDetail.scala.html).
- * @param {object} opts
- * @param {boolean} opts.admin If true, this is an admin UI, so additional info can be shown.
- * @param {typeof PanoViewer} opts.viewerType The type of pano viewer to initialize.
- * @param {string} opts.viewerAccessToken An access token used to request images for the pano viewer.
- * @param {string} [opts.currUsername] Username of the current viewer. Used to identify comments from this user.
- * @param {(action: 'Agree'|'Disagree'|'Unsure', meta: object) => void} [opts.onVote] Optional callback fired after a
- *      vote is successfully submitted. Hosts use this to sync upstream UI (e.g. recolor a Gallery card after the user
- *      vote from inside the expanded view).
- * @param {string} [opts.panoOverlaySource] Source string recorded when the user votes via the pano overlay buttons.
- *      Overrides the source passed to showLabel(). Defaults to that source if omitted.
- * @param {string} [opts.voteColumnSource] Source string recorded when the user votes via the column vote
- *     buttons. Overrides the source passed to showLabel(). Defaults to that source if omitted.
- * @returns {Promise<object>} Resolves once the pano viewer has been initialized.
+ * non-zero dimensions) before create() is called, because the pano viewer needs to measure its container at init.
  */
-async function LabelDetail(root, opts) {
-    const self = {};
-    const {
-        admin, viewerType, viewerAccessToken, currUsername, onVote, panoOverlaySource, voteColumnSource
-    } = opts;
-    self.admin = admin;
-    self.source = undefined; // Set in showLabel().
-    self.readonly = false;   // Set per-label in _handleData() based on meta.from_current_user.
+class LabelDetail {
+    panoManager; // Public: hosts (ExpandedView, LabelPopup callsites) reach in for the pano manager.
+
+    #root;
+    #admin;
+    #viewerType;
+    #viewerAccessToken;
+    #currUsername;
+    #onVote;
+    #panoOverlaySource;
+    #voteColumnSource;
 
     // Updated in each showLabel() call so PanoInfoPopover's accessor closures see the current label.
-    let currentLabelMeta = null;
+    #currentLabelMeta = null;
 
-    const FLAG_NAMES = ['low_quality', 'incomplete', 'stale'];
+    #FLAG_NAMES = ['low_quality', 'incomplete', 'stale'];
 
-    // Field references — populated in _init().
-    const $ = (sel) => root.querySelector(sel);
-    const els = {};
+    // Field references — populated in #cacheElements().
+    #els = {};
 
-    self.validationCounts = { Agree: null, Disagree: null, Unsure: null };
-    self.flags = { low_quality: null, incomplete: null, stale: null };
-    self.prevAction = null;
-    self.taskId = null;
+    #source = undefined; // Set in showLabel().
+    #readonly = false;   // Set per-label in #handleData() based on meta.from_current_user.
+    #validationCounts = { Agree: null, Disagree: null, Unsure: null };
+    #flags = { low_quality: null, incomplete: null, stale: null };
+    #prevAction = null;
+    #taskId = null;
+    #iconBase = '';
+    #aiValidation;
+    #comments;
+    #myCommentIdx;
+    #infoPopover;
+
+    /**
+     * @param {HTMLElement} root - The host element containing the labelDetail markup (see labelDetail.scala.html).
+     * @param {Object} opts
+     * @param {boolean} opts.admin - If true, this is an admin UI, so additional info can be shown.
+     * @param {typeof PanoViewer} opts.viewerType - The type of pano viewer to initialize.
+     * @param {string} opts.viewerAccessToken - An access token for requesting pano viewer images.
+     * @param {string} [opts.currUsername] - Username of the current viewer; identifies comments from this user.
+     * @param {(action: 'Agree'|'Disagree'|'Unsure', meta: Object) => void} [opts.onVote] - Fired after a vote is
+     *      successfully submitted. Hosts use this to sync upstream UI (e.g. recolor a Gallery card).
+     * @param {string} [opts.panoOverlaySource] - Source recorded when voting via the pano overlay buttons.
+     * @param {string} [opts.voteColumnSource] - Source recorded when voting via the column vote buttons.
+     */
+    constructor(root, opts) {
+        this.#root = root;
+        this.#admin = opts.admin;
+        this.#viewerType = opts.viewerType;
+        this.#viewerAccessToken = opts.viewerAccessToken;
+        this.#currUsername = opts.currUsername;
+        this.#onVote = opts.onVote;
+        this.#panoOverlaySource = opts.panoOverlaySource;
+        this.#voteColumnSource = opts.voteColumnSource;
+    }
+
+    /**
+     * Builds a LabelDetail and initializes its pano viewer.
+     *
+     * Async because the pano viewer must be created before the controller is usable; a constructor cannot be async.
+     *
+     * @param {HTMLElement} root
+     * @param {Object} opts - See the constructor.
+     * @returns {Promise<LabelDetail>} Resolves once the pano viewer has been initialized.
+     */
+    static async create(root, opts) {
+        const detail = new LabelDetail(root, opts);
+        await detail.#init();
+        return detail;
+    }
+
+    /**
+     * Scoped querySelector: finds a single element within the host root.
+     * @param {string} sel
+     * @returns {?Element}
+     */
+    #q(sel) {
+        return this.#root.querySelector(sel);
+    }
 
     // ───────────────────────────────────────────────────────────────────
     // Init
@@ -53,23 +94,22 @@ async function LabelDetail(root, opts) {
 
     /**
      * One-time setup: caches element references, wires event handlers, and initializes the pano viewer.
-     * @private
      */
-    async function _init() {
-        _cacheElements();
-        _wireHandlers();
+    async #init() {
+        this.#cacheElements();
+        this.#wireHandlers();
 
         // Pano viewer needs a visible host element on init. The wrapping host (LabelPopup or Gallery) is responsible
         // for ensuring this is the case before constructing LabelDetail.
-        self.panoManager = await PopupPanoManager(
-            els.svHolder,
-            els.panoOverlay,
-            admin,
-            viewerType,
-            viewerAccessToken
+        this.panoManager = await PopupPanoManager.create(
+            this.#els.svHolder,
+            this.#els.panoOverlay,
+            this.#admin,
+            this.#viewerType,
+            this.#viewerAccessToken
         );
 
-        _initInfoPopover();
+        this.#initInfoPopover();
 
         // Seed the all-time counts so a validation here can celebrate a newly unlocked validation badge.
         BadgeAchievements.seedCounts();
@@ -77,68 +117,68 @@ async function LabelDetail(root, opts) {
 
     /**
      * Mounts a PanoInfoPopover into the .label-detail__info-button-host span. Accessor closures read from
-     * `currentLabelMeta`, which is updated on every showLabel() call.
+     * #currentLabelMeta, which is updated on every showLabel() call.
      */
-    function _initInfoPopover() {
-        const host = $('.label-detail__info-button-host');
+    #initInfoPopover() {
+        const host = this.#q('.label-detail__info-button-host');
         if (!host) return;
 
         const noopLog = () => {};
-        const panoViewer = self.panoManager.panoViewer;
-        self.infoPopover = new PanoInfoPopover(
+        const panoViewer = this.panoManager.panoViewer;
+        this.#infoPopover = new PanoInfoPopover(
             host,
-            self.panoManager.panoViewer,
-            () => currentLabelMeta && { lat: currentLabelMeta.camera_lat, lng: currentLabelMeta.camera_lng },
-            () => currentLabelMeta && currentLabelMeta.pano_id,
-            () => currentLabelMeta && currentLabelMeta.street_edge_id,
-            () => currentLabelMeta && currentLabelMeta.region_id,
-            () => currentLabelMeta && moment(new Date(currentLabelMeta.image_capture_date)),
+            this.panoManager.panoViewer,
+            () => this.#currentLabelMeta && { lat: this.#currentLabelMeta.camera_lat, lng: this.#currentLabelMeta.camera_lng },
+            () => this.#currentLabelMeta && this.#currentLabelMeta.pano_id,
+            () => this.#currentLabelMeta && this.#currentLabelMeta.street_edge_id,
+            () => this.#currentLabelMeta && this.#currentLabelMeta.region_id,
+            () => this.#currentLabelMeta && moment(new Date(this.#currentLabelMeta.image_capture_date)),
             () => panoViewer.currPanoData ? panoViewer.currPanoData.getProperty('address') : null,
-            () => currentLabelMeta && { heading: currentLabelMeta.heading, pitch: currentLabelMeta.pitch, zoom: currentLabelMeta.zoom },
+            () => this.#currentLabelMeta && { heading: this.#currentLabelMeta.heading, pitch: this.#currentLabelMeta.pitch, zoom: this.#currentLabelMeta.zoom },
             false,    // whiteIcon
             noopLog,  // infoLogging
             noopLog,  // clipboardLogging
             noopLog,  // viewPanoLogging
-            () => currentLabelMeta && currentLabelMeta.label_id
+            () => this.#currentLabelMeta && this.#currentLabelMeta.label_id
         );
     }
 
     /**
      * Caches element references inside the host root. We use these to update content when showing labels.
-     * @private
      */
-    function _cacheElements() {
-        els.svHolder           = $('.label-detail__pano');
-        els.panoWrap           = $('.label-detail__pano-wrap');
-        els.panoOverlay        = $('.label-detail__pano-overlay');
-        els.title              = $('.label-detail__title');
-        els.timestamp          = $('.label-detail__timestamp');
-        els.imageDate          = $('.label-detail__image-capture-date');
-        els.severitySection    = $('.label-detail__col--severity');
-        els.severity           = $('.label-detail__severity-faces');
-        els.severityTitle      = $('.label-detail__severity-title');
-        els.tags               = $('.label-detail__tags');
-        els.description        = $('.label-detail__description');
-        els.validatorComments  = $('.label-detail__validator-comments');
-        els.commentInput       = $('.label-detail__comment-input');
-        els.commentButton      = $('.label-detail__comment-submit');
-        els.commentConfirm     = $('.label-detail__comment-confirmation');
+    #cacheElements() {
+        const els = this.#els;
+        els.svHolder           = this.#q('.label-detail__pano');
+        els.panoWrap           = this.#q('.label-detail__pano-wrap');
+        els.panoOverlay        = this.#q('.label-detail__pano-overlay');
+        els.title              = this.#q('.label-detail__title');
+        els.timestamp          = this.#q('.label-detail__timestamp');
+        els.imageDate          = this.#q('.label-detail__image-capture-date');
+        els.severitySection    = this.#q('.label-detail__col--severity');
+        els.severity           = this.#q('.label-detail__severity-faces');
+        els.severityTitle      = this.#q('.label-detail__severity-title');
+        els.tags               = this.#q('.label-detail__tags');
+        els.description        = this.#q('.label-detail__description');
+        els.validatorComments  = this.#q('.label-detail__validator-comments');
+        els.commentInput       = this.#q('.label-detail__comment-input');
+        els.commentButton      = this.#q('.label-detail__comment-submit');
+        els.commentConfirm     = this.#q('.label-detail__comment-confirmation');
 
         // Validation count display: <img> elements whose `src` is swapped between the four icon variants
         // (outline / filled / outline-ai / filled-ai). The base URL for the icon files is read from a data
         // attribute on the container so JS doesn't need to know the assets' path.
-        const voteDisplay = root.querySelector('.label-detail__vote-display');
-        self.iconBase = voteDisplay ? voteDisplay.dataset.iconBase : '';
-        const voteEl = (variant, child) => root.querySelector(`.label-detail__vote--${variant} ${child}`);
+        const voteDisplay = this.#root.querySelector('.label-detail__vote-display');
+        this.#iconBase = voteDisplay ? voteDisplay.dataset.iconBase : '';
+        const voteEl = (variant, child) => this.#root.querySelector(`.label-detail__vote--${variant} ${child}`);
         els.voteIcons = {
             Agree:    voteEl('agree',    '.label-detail__vote-icon'),
             Disagree: voteEl('disagree', '.label-detail__vote-icon'),
             Unsure:   voteEl('unsure',   '.label-detail__vote-icon')
         };
         els.voteButtons = {
-            Agree:    root.querySelector('.label-detail__vote--agree'),
-            Disagree: root.querySelector('.label-detail__vote--disagree'),
-            Unsure:   root.querySelector('.label-detail__vote--unsure')
+            Agree:    this.#root.querySelector('.label-detail__vote--agree'),
+            Disagree: this.#root.querySelector('.label-detail__vote--disagree'),
+            Unsure:   this.#root.querySelector('.label-detail__vote--unsure')
         };
         els.voteCounts = {
             Agree:    voteEl('agree',    '.label-detail__vote-count'),
@@ -147,19 +187,19 @@ async function LabelDetail(root, opts) {
         };
         // Hover-reveal overlay buttons on the pano. Both these and the column buttons fire a vote.
         els.panoOverlayButtons = {
-            Agree:    root.querySelector('.label-detail__pano-overlay-button--agree'),
-            Disagree: root.querySelector('.label-detail__pano-overlay-button--disagree'),
-            Unsure:   root.querySelector('.label-detail__pano-overlay-button--unsure')
+            Agree:    this.#root.querySelector('.label-detail__pano-overlay-button--agree'),
+            Disagree: this.#root.querySelector('.label-detail__pano-overlay-button--disagree'),
+            Unsure:   this.#root.querySelector('.label-detail__pano-overlay-button--unsure')
         };
 
-        if (admin) {
-            els.adminUsername = $('.label-detail__admin-username');
-            els.adminTask     = $('.label-detail__admin-task');
-            els.adminPrevVals = $('.label-detail__admin-prev-validations');
+        if (this.#admin) {
+            els.adminUsername = this.#q('.label-detail__admin-username');
+            els.adminTask     = this.#q('.label-detail__admin-task');
+            els.adminPrevVals = this.#q('.label-detail__admin-prev-validations');
             els.flagButtons = {
-                low_quality: $('.label-detail__flag-button[data-flag="low_quality"]'),
-                incomplete:  $('.label-detail__flag-button[data-flag="incomplete"]'),
-                stale:       $('.label-detail__flag-button[data-flag="stale"]')
+                low_quality: this.#q('.label-detail__flag-button[data-flag="low_quality"]'),
+                incomplete:  this.#q('.label-detail__flag-button[data-flag="incomplete"]'),
+                stale:       this.#q('.label-detail__flag-button[data-flag="stale"]')
             };
         }
     }
@@ -168,32 +208,32 @@ async function LabelDetail(root, opts) {
      * Adds event listeners to buttons inside the host root. The host wrapper is responsible for the
      * close button (popup closes the dialog; gallery hides the inline panel) and for prev/next paging
      * (gallery only). LabelDetail just emits the close event via the data-action attribute.
-     * @private
      */
-    function _wireHandlers() {
-        // buttonSource overrides self.source for this specific button group; falls back to self.source if null.
+    #wireHandlers() {
+        const els = this.#els;
+        // buttonSource overrides #source for this specific button group; falls back to #source if null.
         const voteHandler = (action, buttonSource) => () => {
-            if (self.readonly) return;
-            if (self.prevAction !== action) {
-                _setVoteButtonsDisabled(true);
-                _validateLabel(action, buttonSource || self.source);
+            if (this.#readonly) return;
+            if (this.#prevAction !== action) {
+                this.#setVoteButtonsDisabled(true);
+                this.#validateLabel(action, buttonSource || this.#source);
             }
         };
         for (const action of Object.keys(els.panoOverlayButtons)) {
-            els.panoOverlayButtons[action].addEventListener('click', voteHandler(action, panoOverlaySource));
-            els.voteButtons[action].addEventListener('click', voteHandler(action, voteColumnSource));
+            els.panoOverlayButtons[action].addEventListener('click', voteHandler(action, this.#panoOverlaySource));
+            els.voteButtons[action].addEventListener('click', voteHandler(action, this.#voteColumnSource));
 
             // Hover preview: show the filled icon variant while the pointer is over the vote button.
             const btn = els.voteButtons[action];
             const img = els.voteIcons[action];
             btn.addEventListener('mouseenter', () => {
-                if (self.readonly) return;
-                const ai = self.aiValidation === action ? '-ai' : '';
-                img.src = `${self.iconBase}${action.toLowerCase()}-filled${ai}.svg`;
+                if (this.#readonly) return;
+                const ai = this.#aiValidation === action ? '-ai' : '';
+                img.src = `${this.#iconBase}${action.toLowerCase()}-filled${ai}.svg`;
             });
             btn.addEventListener('mouseleave', () => {
-                if (self.readonly) return;
-                _renderVoteIcons();
+                if (this.#readonly) return;
+                this.#renderVoteIcons();
             });
         }
 
@@ -203,9 +243,9 @@ async function LabelDetail(root, opts) {
         els.commentInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                if (self.readonly) return;
+                if (this.#readonly) return;
                 const comment = els.commentInput.value.trim();
-                if (comment) _submitComment(comment);
+                if (comment) this.#submitComment(comment);
             } else if (e.key === 'Escape') {
                 // Swallow the first Escape so it only blurs the input. Second esc will close the dialog.
                 e.preventDefault();
@@ -220,14 +260,14 @@ async function LabelDetail(root, opts) {
             }
         });
         els.commentButton.addEventListener('click', () => {
-            if (self.readonly) return;
+            if (this.#readonly) return;
             const comment = els.commentInput.value.trim();
-            if (comment) _submitComment(comment);
+            if (comment) this.#submitComment(comment);
         });
 
-        if (admin) {
-            for (const flag of FLAG_NAMES) {
-                els.flagButtons[flag].addEventListener('click', () => _setFlag(flag, !self.flags[flag]));
+        if (this.#admin) {
+            for (const flag of this.#FLAG_NAMES) {
+                els.flagButtons[flag].addEventListener('click', () => this.#setFlag(flag, !this.#flags[flag]));
             }
         }
     }
@@ -241,41 +281,43 @@ async function LabelDetail(root, opts) {
      * pre-built meta object (in which case it's rendered directly — used by Gallery, which already has the data in
      * memory from its initial fetch).
      *
-     * @param {number|object} idOrMeta Either a label id (number) to fetch, or a pre-built meta object.
-     * @param {string} source The UI that created the popup (recorded with validations).
+     * An arrow instance field (not a prototype method) because LabelPopup detaches and re-invokes it.
+     *
+     * @param {number|Object} idOrMeta - Either a label id (number) to fetch, or a pre-built meta object.
+     * @param {string} source - The UI that created the popup (recorded with validations).
      */
-    async function showLabel(idOrMeta, source) {
-        self.source = source;
-        _resetVoteButtonStyles();
-        self.panoManager.clearLabels();
+    showLabel = async (idOrMeta, source) => {
+        this.#source = source;
+        this.#resetVoteButtonStyles();
+        this.panoManager.clearLabels();
 
         if (typeof idOrMeta === 'object' && idOrMeta !== null) {
-            _handleData(idOrMeta);
+            this.#handleData(idOrMeta);
             return;
         }
 
         const labelId = idOrMeta;
-        const url = admin ? `/adminapi/label/id/${labelId}` : `/label/id/${labelId}`;
+        const url = this.#admin ? `/adminapi/label/id/${labelId}` : `/label/id/${labelId}`;
         const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
         if (!response.ok) {
             alert('Server error. Most likely a label with this ID did not exist.');
             throw new Error(`HTTP error ${response.status}`);
         }
-        _handleData(await response.json());
-    }
+        this.#handleData(await response.json());
+    };
 
     /**
      * Populates the view with the label metadata fetched (or passed in directly) by showLabel().
-     * @param {object} meta The label metadata payload.
-     * @private
+     * @param {Object} meta - The label metadata payload.
      */
-    function _handleData(meta) {
-        currentLabelMeta = meta;
+    #handleData(meta) {
+        const els = this.#els;
+        this.#currentLabelMeta = meta;
 
         // Read-only mode for the user's own labels — no validating/commenting.
-        self.readonly = !!meta.from_current_user;
-        root.classList.toggle('label-detail--readonly', self.readonly);
-        _setReadonlyState(self.readonly);
+        this.#readonly = !!meta.from_current_user;
+        this.#root.classList.toggle('label-detail--readonly', this.#readonly);
+        this.#setReadonlyState(this.#readonly);
 
         const labelPov = { heading: meta.heading, pitch: meta.pitch, zoom: meta.zoom };
 
@@ -296,26 +338,26 @@ async function LabelDetail(root, opts) {
             newTags: meta.tags,
             aiGenerated: meta.ai_generated
         };
-        self.panoManager.setLabel(popupLabel);
+        this.panoManager.setLabel(popupLabel);
         // Accept a pre-constructed backup_image object (Gallery path) or build from server fields (API path).
         const backupImage = meta.backup_image || buildBackupImageData(meta);
-        self.panoManager.setPano(meta.pano_id, labelPov, meta.crop_url, meta.expired, backupImage);
+        this.panoManager.setPano(meta.pano_id, labelPov, meta.crop_url, meta.expired, backupImage);
 
         // Validation counts + AI validation.
-        self.validationCounts.Agree    = meta.num_agree;
-        self.validationCounts.Disagree = meta.num_disagree;
-        self.validationCounts.Unsure   = meta.num_unsure;
-        self.prevAction                = meta.user_validation;
-        self.aiValidation              = meta.ai_validation;
-        _renderVoteCounts();
-        _renderVoteIcons();
+        this.#validationCounts.Agree    = meta.num_agree;
+        this.#validationCounts.Disagree = meta.num_disagree;
+        this.#validationCounts.Unsure   = meta.num_unsure;
+        this.#prevAction                = meta.user_validation;
+        this.#aiValidation              = meta.ai_validation;
+        this.#renderVoteCounts();
+        this.#renderVoteIcons();
 
         // Admin flags.
-        if (admin) {
-            self.flags.low_quality = meta.low_quality;
-            self.flags.incomplete  = meta.incomplete;
-            self.flags.stale       = meta.stale;
-            _renderFlagButtons();
+        if (this.#admin) {
+            this.#flags.low_quality = meta.low_quality;
+            this.#flags.incomplete  = meta.incomplete;
+            this.#flags.stale       = meta.stale;
+            this.#renderFlagButtons();
         }
 
         // Title is just the label-type name (e.g. "Curb Ramp") — the popup is self-evidently about a label.
@@ -323,7 +365,7 @@ async function LabelDetail(root, opts) {
         els.title.textContent = labelTypeName;
 
         // Severity faces.
-        _renderSeverity(meta.severity, meta.label_type);
+        this.#renderSeverity(meta.severity, meta.label_type);
 
         // Tag pills.
         els.tags.replaceChildren();
@@ -357,19 +399,19 @@ async function LabelDetail(root, opts) {
         els.imageDate.textContent = moment(new Date(meta.image_capture_date)).format('MMMM YYYY');
 
         // Validator comments. Admin endpoint returns objects {username, comment}; non-admin returns bare
-        // strings. Stash on `self` so _submitComment() can append after a successful POST.
-        self.comments = meta.comments || [];
-        // Index of the current user's comment in self.comments, if any. The backend replaces comments rather than just
+        // strings. Stash them so #submitComment() can append after a successful POST.
+        this.#comments = meta.comments || [];
+        // Index of the current user's comment in #comments, if any. The backend replaces comments rather than just
         // adding new ones, so we mirror that here (but in non-admin, who added comments, so we just always append).
-        self.myCommentIdx = -1;
-        if (admin && currUsername) {
-            self.myCommentIdx = self.comments.findIndex(c => c && c.username === currUsername);
+        this.#myCommentIdx = -1;
+        if (this.#admin && this.#currUsername) {
+            this.#myCommentIdx = this.#comments.findIndex(c => c && c.username === this.#currUsername);
         }
-        _renderComments();
+        this.#renderComments();
 
         // Fill in some admin-only fields at the bottom if applicable.
-        if (admin) {
-            self.taskId = meta.audit_task_id;
+        if (this.#admin) {
+            this.#taskId = meta.audit_task_id;
 
             const taskLink = document.createElement('a');
             taskLink.href = `/admin/task/${meta.audit_task_id}`;
@@ -399,9 +441,9 @@ async function LabelDetail(root, opts) {
             }
         }
 
-        // If the user previously validated this label, mark the chosen vote on the pano overlay.
-        if (meta.user_validation && !self.readonly) _highlightVote(meta.user_validation);
-        else _highlightVote(null);
+        // If the user has already validated this label, mark the chosen vote on the pano overlay.
+        if (meta.user_validation && !this.#readonly) this.#highlightVote(meta.user_validation);
+        else this.#highlightVote(null);
     }
 
     // ───────────────────────────────────────────────────────────────────
@@ -412,29 +454,28 @@ async function LabelDetail(root, opts) {
      * POSTs a validation for the current label to /labelmap/validate, then updates the count and validation
      * display. Fires opts.onVote after a successful submission so hosts can sync upstream UI.
      * @param {'Agree'|'Disagree'|'Unsure'} action
-     * @param {string} source The UI source string to record with this validation.
-     * @private
+     * @param {string} source - The UI source string to record with this validation.
      */
-    function _validateLabel(action, source) {
-        const isNewValidation = !self.prevAction;
+    #validateLabel(action, source) {
+        const isNewValidation = !this.#prevAction;
         const validationTimestamp = new Date();
-        const canvasWidth  = self.panoManager.svHolder.width();
-        const canvasHeight = self.panoManager.svHolder.height();
-        const panoMarkerPov = self.panoManager.getOriginalPosition();
-        const userPov = self.panoManager.getPov();
+        const canvasWidth  = this.panoManager.svHolder.width();
+        const canvasHeight = this.panoManager.svHolder.height();
+        const panoMarkerPov = this.panoManager.getOriginalPosition();
+        const userPov = this.panoManager.getPov();
 
         const labelRadius = 10;
         const pixelCoordinates =
             util.pano.centeredPovToCanvasCoord(panoMarkerPov, userPov, canvasWidth, canvasHeight, labelRadius);
 
         const data = {
-            label_id: self.panoManager.label.labelId,
-            label_type: self.panoManager.label.label_type,
+            label_id: this.panoManager.label.labelId,
+            label_type: this.panoManager.label.label_type,
             validation_result: action,
-            old_severity: self.panoManager.label.oldSeverity,
-            new_severity: self.panoManager.label.newSeverity,
-            old_tags: self.panoManager.label.oldTags,
-            new_tags: self.panoManager.label.newTags,
+            old_severity: this.panoManager.label.oldSeverity,
+            new_severity: this.panoManager.label.newSeverity,
+            old_tags: this.panoManager.label.oldTags,
+            new_tags: this.panoManager.label.newTags,
             canvas_x: pixelCoordinates ? Math.round(pixelCoordinates.x) : null,
             canvas_y: pixelCoordinates ? Math.round(pixelCoordinates.y) : null,
             heading: userPov.heading,
@@ -446,8 +487,8 @@ async function LabelDetail(root, opts) {
             end_timestamp: validationTimestamp,
             source: source,
             undone: false,
-            redone: action !== self.prevAction,
-            viewer_type: self.panoManager.activeViewerName
+            redone: action !== this.#prevAction,
+            viewer_type: this.panoManager.activeViewerName
         };
 
         fetch('/labelmap/validate', {
@@ -456,76 +497,80 @@ async function LabelDetail(root, opts) {
             body: JSON.stringify(data)
         }).then((res) => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            _updateVoteCount(action);
-            _highlightVote(action);
-            _setVoteButtonsDisabled(false);
-            if (isNewValidation) BadgeAchievements.recordValidation(self.panoManager.svHolder[0]);
-            if (typeof onVote === 'function') onVote(action, currentLabelMeta);
+            this.#updateVoteCount(action);
+            this.#highlightVote(action);
+            this.#setVoteButtonsDisabled(false);
+            if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder[0]);
+            if (typeof this.#onVote === 'function') this.#onVote(action, this.#currentLabelMeta);
         }).catch((err) => {
             console.error(err);
-            _setVoteButtonsDisabled(false);
+            this.#setVoteButtonsDisabled(false);
         });
     }
 
-    function _setVoteButtonsDisabled(disabled) {
-        for (const btn of Object.values(els.panoOverlayButtons)) {
+    /**
+     * @param {boolean} disabled
+     */
+    #setVoteButtonsDisabled(disabled) {
+        for (const btn of Object.values(this.#els.panoOverlayButtons)) {
             btn.disabled = disabled;
         }
-        for (const btn of Object.values(els.voteButtons)) {
+        for (const btn of Object.values(this.#els.voteButtons)) {
             btn.disabled = disabled;
         }
     }
 
-    function _renderVoteCounts() {
-        for (const action of Object.keys(els.voteCounts)) {
-            els.voteCounts[action].textContent = self.validationCounts[action] ?? 0;
+    #renderVoteCounts() {
+        for (const action of Object.keys(this.#els.voteCounts)) {
+            this.#els.voteCounts[action].textContent = this.#validationCounts[action] ?? 0;
         }
     }
 
     /**
      * Adjusts the in-memory validation counts after a successful vote.
-     * @private
+     * @param {'Agree'|'Disagree'|'Unsure'} action
      */
-    function _updateVoteCount(action) {
-        if (self.prevAction) {
-            self.validationCounts[self.prevAction] = Math.max(0, self.validationCounts[self.prevAction] - 1);
+    #updateVoteCount(action) {
+        if (this.#prevAction) {
+            this.#validationCounts[this.#prevAction] = Math.max(0, this.#validationCounts[this.#prevAction] - 1);
         }
-        self.prevAction = action;
-        self.validationCounts[action] += 1;
-        _renderVoteCounts();
+        this.#prevAction = action;
+        this.#validationCounts[action] += 1;
+        this.#renderVoteCounts();
     }
 
     /**
      * Reflects the current vote on the pano overlay (selected button + border color around the pano).
+     * @param {?string} action
      */
-    function _highlightVote(action) {
-        for (const [key, btn] of Object.entries(els.panoOverlayButtons)) {
+    #highlightVote(action) {
+        for (const [key, btn] of Object.entries(this.#els.panoOverlayButtons)) {
             btn.classList.toggle('is-selected', key === action);
         }
         // Border on the pano wrap reflects the current validation.
-        if (els.panoWrap) {
-            els.panoWrap.classList.remove('is-agree', 'is-disagree', 'is-unsure');
-            if (action) els.panoWrap.classList.add(`is-${action.toLowerCase()}`);
+        if (this.#els.panoWrap) {
+            this.#els.panoWrap.classList.remove('is-agree', 'is-disagree', 'is-unsure');
+            if (action) this.#els.panoWrap.classList.add(`is-${action.toLowerCase()}`);
         }
-        _renderVoteIcons();
+        this.#renderVoteIcons();
     }
 
-    function _resetVoteButtonStyles() {
-        for (const btn of Object.values(els.panoOverlayButtons)) {
+    #resetVoteButtonStyles() {
+        for (const btn of Object.values(this.#els.panoOverlayButtons)) {
             btn.classList.remove('is-selected');
-            if (!self.readonly) btn.disabled = false;
+            if (!this.#readonly) btn.disabled = false;
         }
-        if (els.panoWrap) {
-            els.panoWrap.classList.remove('is-agree', 'is-disagree', 'is-unsure');
+        if (this.#els.panoWrap) {
+            this.#els.panoWrap.classList.remove('is-agree', 'is-disagree', 'is-unsure');
         }
     }
 
     /**
      * Toggles the disabled state + tooltip on interactive elements when viewing your own label.
      * @param {boolean} readonly
-     * @private
      */
-    function _setReadonlyState(readonly) {
+    #setReadonlyState(readonly) {
+        const els = this.#els;
         const tip = readonly ? i18next.t('labelmap:own-label-disabled') : '';
 
         // Pano overlay buttons.
@@ -549,16 +594,16 @@ async function LabelDetail(root, opts) {
 
     /**
      * Updates the three column icons to the right variant based on the user's current vote
-     * (`self.prevAction`) and the AI validation (`self.aiValidation`):
+     * (#prevAction) and the AI validation (#aiValidation):
      *   - filled when the user voted this option, otherwise outline
      *   - `-ai` suffix when the AI validated this option
      */
-    function _renderVoteIcons() {
-        for (const [action, img] of Object.entries(els.voteIcons)) {
-            const state = self.prevAction === action ? 'filled' : 'outline';
-            const ai    = self.aiValidation === action ? '-ai' : '';
-            img.src = `${self.iconBase}${action.toLowerCase()}-${state}${ai}.svg`;
-            if (self.aiValidation === action) {
+    #renderVoteIcons() {
+        for (const [action, img] of Object.entries(this.#els.voteIcons)) {
+            const state = this.#prevAction === action ? 'filled' : 'outline';
+            const ai    = this.#aiValidation === action ? '-ai' : '';
+            img.src = `${this.#iconBase}${action.toLowerCase()}-${state}${ai}.svg`;
+            if (this.#aiValidation === action) {
                 img.title = i18next.t('labelmap:ai-val-included', { aiVal: action.toLowerCase() });
             } else {
                 img.removeAttribute('title');
@@ -568,11 +613,11 @@ async function LabelDetail(root, opts) {
 
     /**
      * Highlights one of the three severity faces based on the label's numeric severity.
-     * @param {number} [severity] The label's 1–3 severity, or null for unrated.
-     * @param {string} labelType The label type (drives positive/negative icon set).
-     * @private
+     * @param {number} [severity] - The label's 1–3 severity, or null for unrated.
+     * @param {string} labelType - The label type (drives positive/negative icon set).
      */
-    function _renderSeverity(severity, labelType) {
+    #renderSeverity(severity, labelType) {
+        const els = this.#els;
         // Hide entire section if the label type doesn't support severity ratings.
         if (els.severitySection) els.severitySection.hidden = !util.misc.labelTypeHasSeverity(labelType);
         if (!util.misc.labelTypeHasSeverity(labelType)) return;
@@ -602,19 +647,20 @@ async function LabelDetail(root, opts) {
      * Renders the validator comments list. In admin mode each entry is an object {username, comment} and the username
      * is hyperlinked to /admin/user/<username>. Non-admin mode receives bare strings, so we just render the text.
      */
-    function _renderComments() {
+    #renderComments() {
+        const els = this.#els;
         els.validatorComments.replaceChildren();
         els.validatorComments.classList.remove('label-detail__empty');
-        if (!self.comments || self.comments.length === 0) {
+        if (!this.#comments || this.#comments.length === 0) {
             els.validatorComments.classList.add('label-detail__empty');
             els.validatorComments.textContent = i18next.t('common:none');
             return;
         }
-        self.comments.forEach((c, i) => {
+        this.#comments.forEach((c, i) => {
             if (i > 0) els.validatorComments.appendChild(document.createElement('hr'));
             const p = document.createElement('p');
             p.style.margin = '0';
-            if (admin && typeof c === 'object' && c !== null) {
+            if (this.#admin && typeof c === 'object' && c !== null) {
                 const a = document.createElement('a');
                 a.href = `/admin/user/${encodeURI(c.username)}`;
                 a.textContent = c.username;
@@ -631,20 +677,20 @@ async function LabelDetail(root, opts) {
     /**
      * POSTs a comment for the current label to /labelmap/comment. On success, clears the input, briefly shows the
      * confirmation message, and updates the visible comments list — replacing the user's previous entry if one exists.
-     * @param {string} comment Trimmed, non-empty comment text.
-     * @private
+     * @param {string} comment - Trimmed, non-empty comment text.
      */
-    function _submitComment(comment) {
-        const userPov = self.panoManager.getPov();
-        const pos = self.panoManager.panoViewer.getPosition();
+    #submitComment(comment) {
+        const els = this.#els;
+        const userPov = this.panoManager.getPov();
+        const pos = this.panoManager.panoViewer.getPosition();
 
         els.commentButton.disabled = true;
 
         const data = {
-            label_id: self.panoManager.label.labelId,
-            label_type: self.panoManager.label.label_type,
+            label_id: this.panoManager.label.labelId,
+            label_type: this.panoManager.label.label_type,
             comment,
-            pano_id: self.panoManager.panoViewer.getPanoId(),
+            pano_id: this.panoManager.panoViewer.getPanoId(),
             heading: userPov.heading,
             pitch: userPov.pitch,
             zoom: userPov.zoom,
@@ -667,15 +713,15 @@ async function LabelDetail(root, opts) {
             // Update the visible list. Admin views render objects with a username; non-admin views render bare comment
             // strings. Replace the user's existing comment (if any) rather than appending — the backend deletes prior
             // comments from the same user before inserting, so the visible list should match.
-            if (!self.comments) self.comments = [];
-            const newEntry = admin ? { username: body.username, comment } : comment;
-            if (self.myCommentIdx >= 0 && self.myCommentIdx < self.comments.length) {
-                self.comments[self.myCommentIdx] = newEntry;
+            if (!this.#comments) this.#comments = [];
+            const newEntry = this.#admin ? { username: body.username, comment } : comment;
+            if (this.#myCommentIdx >= 0 && this.#myCommentIdx < this.#comments.length) {
+                this.#comments[this.#myCommentIdx] = newEntry;
             } else {
-                self.comments.push(newEntry);
-                self.myCommentIdx = self.comments.length - 1;
+                this.#comments.push(newEntry);
+                this.#myCommentIdx = this.#comments.length - 1;
             }
-            _renderComments();
+            this.#renderComments();
         }).catch((err) => {
             console.error(err);
         }).finally(() => {
@@ -692,28 +738,22 @@ async function LabelDetail(root, opts) {
      * audit task via /adminapi/setTaskFlag, then re-renders the flag buttons to reflect the new state.
      * @param {'low_quality'|'incomplete'|'stale'} flag
      * @param {boolean} state
-     * @private
      */
-    function _setFlag(flag, state) {
+    #setFlag(flag, state) {
         fetch('/adminapi/setTaskFlag', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({ auditTaskId: self.taskId, flag, state })
+            body: JSON.stringify({ auditTaskId: this.#taskId, flag, state })
         }).then((res) => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            self.flags[flag] = state;
-            _renderFlagButtons();
+            this.#flags[flag] = state;
+            this.#renderFlagButtons();
         }).catch((err) => console.error(err));
     }
 
-    function _renderFlagButtons() {
-        for (const flag of FLAG_NAMES) {
-            els.flagButtons[flag].classList.toggle('is-active', !!self.flags[flag]);
+    #renderFlagButtons() {
+        for (const flag of this.#FLAG_NAMES) {
+            this.#els.flagButtons[flag].classList.toggle('is-active', !!this.#flags[flag]);
         }
     }
-
-    await _init();
-
-    self.showLabel = showLabel;
-    return self;
 }

@@ -273,8 +273,8 @@
                         </div>
                     </div>
                     <div class="row date-submit-row">
-                        <button type="button" class="btn btn-primary date-submit" onclick=setLowQualityDate(true)>Set Flags</button>
-                        <button type="button" class="btn btn-primary date-submit" onclick=setLowQualityDate(false)>Remove Flags</button>
+                        <button type="button" id="low-quality-set-flags" class="btn btn-primary date-submit">Set Flags</button>
+                        <button type="button" id="low-quality-remove-flags" class="btn btn-primary date-submit">Remove Flags</button>
                     </div>
                     <div class="row">
                         <div id="low-quality-alert" class="alert alert-success" role="alert" style="visibility: hidden">Alert TEST</div>
@@ -291,8 +291,8 @@
                         </div>
                     </div>
                     <div class="row date-submit-row">
-                        <button type="button" class="btn btn-primary date-submit" onclick=setIncompleteDate(true)>Set Flags</button>
-                        <button type="button" class="btn btn-primary date-submit" onclick=setIncompleteDate(false)>Remove Flags</button>
+                        <button type="button" id="incomplete-set-flags" class="btn btn-primary date-submit">Set Flags</button>
+                        <button type="button" id="incomplete-remove-flags" class="btn btn-primary date-submit">Remove Flags</button>
                     </div>
                     <div class="row">
                         <div id="incomplete-alert" class="alert alert-success" role="alert" style="visibility: hidden">Alert TEST</div>
@@ -394,9 +394,9 @@
             const imagerySrc = "@commonData.imagerySource.toString";
             const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
             const accessToken = "@commonData.imageryAccessToken";
-            await Progress($, '@commonData.mapboxApiKey', viewerType, accessToken, '@profileUser.userId', @admin, "@user.username");
+            await Progress.create($, '@commonData.mapboxApiKey', viewerType, accessToken, '@profileUser.userId', @admin, "@user.username");
             @if(admin) {
-                AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService, @profileUser.infra3dAccess);
+                new AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService, @profileUser.infra3dAccess);
                 $('#label-table').dataTable();
             }
 
