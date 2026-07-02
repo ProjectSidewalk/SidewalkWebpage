@@ -358,3 +358,6 @@ cities.dashboard.cta.title = Breng Project Sidewalk naar uw stad!
 cities.dashboard.cta.content = Wilt u de toegankelijkheid in uw omgeving in kaart brengen? <br/> We zijn altijd op zoek naar nieuwe partners die ons kunnen helpen de toekomst van stedelijke toegankelijkheid te transformeren.
 cities.dashboard.cta.button = Leer hoe u kunt implementeren
 cities.dashboard.cta.logo.alt = Het logo van Project Sidewalk met de tekst projectsidewalk.org
+
+share.meta.title = Ik heb een {0}-toegankelijkheidsprobleem gevonden op Project Sidewalk
+share.meta.description = Gespot in {0}. Verken de kaart en help stoepen toegankelijk te maken voor iedereen.

@@ -116,6 +116,11 @@ GET     /adminapi/threadPoolStats                       controllers.AdminControl
 GET     /labels/all                                     controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
 GET     /label/id/:labelId                              controllers.AdminController.getLabelData(labelId: Int)
 
+# Public share permalink for a single label (#456). Renders LabelMap focused on the label with rich OG/Twitter preview
+# meta; /label/:labelId/image serves the unsigned, marker-composited preview image that crawlers embed in the card.
+GET     /label/:labelId                                 controllers.ShareController.label(labelId: Int)
+GET     /label/:labelId/image                           controllers.ShareController.shareImage(labelId: Int)
+
 # Auditing tasks
 GET     /explore                                        controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
 GET     /explore/recalculateStreetPriority              controllers.AdminController.recalculateStreetPriority

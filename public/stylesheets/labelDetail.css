@@ -486,3 +486,102 @@ dialog.label-detail[open]::backdrop {
     min-width: 0;
     margin-bottom: 0;
 }
+
+/* ─── Share control (#456) ────────────────────────────────────────────────
+   Subtle, YouTube-style share button anchored bottom-right, with an accessible popover. */
+.label-detail__footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+/* Anchor for the absolutely-positioned popover. */
+.label-detail__share {
+    position: relative;
+}
+
+.label-detail__share-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: var(--color-neutral-100);
+    color: var(--color-neutral-800);
+    border: 1px solid var(--color-neutral-300);
+    border-radius: 18px;
+    font: var(--text-small-medium);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.label-detail__share-trigger:hover {
+    background: var(--color-neutral-200);
+    border-color: var(--color-neutral-400);
+}
+.label-detail__share-trigger:focus-visible {
+    outline: 2px solid var(--color-link-100);
+    outline-offset: 2px;
+}
+.label-detail__share-trigger svg {
+    display: block;
+    flex-shrink: 0;
+}
+
+/* Popover: opens above the trigger, right-aligned. */
+.label-detail__share-popover {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 8px);
+    z-index: 10;
+    min-width: 200px;
+    padding: 6px;
+    background: var(--color-neutral-white);
+    border: 1px solid var(--color-neutral-300);
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+.label-detail__share-popover[hidden] {
+    display: none;
+}
+
+.label-detail__share-heading {
+    margin: 4px 8px 6px;
+    font: var(--text-caption-semibold);
+    color: var(--color-neutral-700);
+}
+
+.label-detail__share-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    font: var(--text-small-medium);
+    color: var(--color-neutral-900);
+    text-align: left;
+    cursor: pointer;
+}
+.label-detail__share-item:hover {
+    background: var(--color-neutral-100);
+}
+.label-detail__share-item:focus-visible {
+    outline: 2px solid var(--color-link-100);
+    outline-offset: -2px;
+}
+.label-detail__share-item.is-copied {
+    color: var(--color-success-200);
+}
+
+.label-detail__share-item-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--color-neutral-700);
+}
+.label-detail__share-item.is-copied .label-detail__share-item-icon {
+    color: var(--color-success-200);
+}
+.label-detail__share-item-icon svg {
+    display: block;
+}

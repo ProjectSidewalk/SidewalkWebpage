@@ -27,6 +27,8 @@ module.exports = function(grunt) {
                     // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
                     'public/javascripts/common/label-detail/PopupPanoManager.js',
                     'public/javascripts/common/label-detail/LabelDetail.js',
+
+                    'public/javascripts/common/share/ShareWidget.js',
                     'public/javascripts/common/label-detail/LabelPopup.js',
                     'public/javascripts/SVValidate/src/util/*.js',
                     'public/javascripts/common/PanoMarker.js',
@@ -48,6 +50,8 @@ module.exports = function(grunt) {
                     // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
                     'public/javascripts/common/label-detail/PopupPanoManager.js',
                     'public/javascripts/common/label-detail/LabelDetail.js',
+
+                    'public/javascripts/common/share/ShareWidget.js',
                     'public/javascripts/common/label-detail/LabelPopup.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/PanoMarker.js',
@@ -95,6 +99,8 @@ module.exports = function(grunt) {
                     // PopupPanoManager and LabelDetail must be concatenated before ExpandedView.
                     'public/javascripts/common/label-detail/PopupPanoManager.js',
                     'public/javascripts/common/label-detail/LabelDetail.js',
+
+                    'public/javascripts/common/share/ShareWidget.js',
                     'public/javascripts/Gallery/src/cards/*.js',
                     'public/javascripts/Gallery/src/data/*.js',
                     'public/javascripts/Gallery/src/filter/*.js',

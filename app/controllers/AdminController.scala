@@ -324,8 +324,10 @@ class AdminController @Inject() (
   /**
    * Get metadata for a given label ID (excludes personal identifiers like username).
    */
-  def getLabelData(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
-    val userId: String = request.identity.userId
+  def getLabelData(labelId: Int) = silhouette.UserAwareAction.async { implicit request =>
+    // Public read (#456): the share landing (/label/:id) opens a label popup anonymously. Per-user fields
+    // (userValidation, fromCurrentUser) fall back to "no user" when there's no signed-in identity.
+    val userId: String = request.identity.map(_.userId).getOrElse("")
     labelService.getSingleLabelMetadata(labelId, userId).map {
       case Some(metadata) =>
         Ok(

@@ -99,8 +99,38 @@ function CreatePSMap($, params) {
                 window.citiesMap.resize();
             }
         });
+
+        // Deep-link support (#456): when arriving via a shared /label/:id permalink, fly to the label and auto-open
+        // its popup. data[4] is the mapData returned by AddLabelsToMap (undefined if no labels layer). Best-effort:
+        // center only if the label is in the loaded set; showLabel() fetches by id regardless.
+        focusSharedLabel(map, data[4]);
     });
     return allLoaded;
+
+    /**
+     * If params.focusLabelId is set, centers the map on that label (when its coordinates are in the loaded data) and
+     * opens its popup via the popupLabelViewer. Runs exactly once after load.
+     * @param {object} map - The Mapbox map object.
+     * @param {object} [mapData] - The label tracker returned by AddLabelsToMap (has sortedLabels by type).
+     */
+    function focusSharedLabel(map, mapData) {
+        if (params.focusLabelId == null || !params.popupLabelViewer) return;
+
+        // Find the label's coordinates in the loaded GeoJSON so we can recenter before opening the popup.
+        let coords = null;
+        if (mapData && mapData.sortedLabels) {
+            for (const features of Object.values(mapData.sortedLabels)) {
+                const match = features.find(f => f.properties.label_id === params.focusLabelId);
+                if (match) {
+                    coords = match.geometry.coordinates;
+                    break;
+                }
+            }
+        }
+        if (coords) map.flyTo({ center: coords, zoom: Math.max(map.getZoom(), 17) });
+
+        params.popupLabelViewer.showLabel(params.focusLabelId, params.uiSource);
+    }
 
     /**
      * Create the Mapbox map object and attach a custom logging function to it.

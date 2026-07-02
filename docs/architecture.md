@@ -88,6 +88,16 @@ The response/filter data structures (DTOs) live in **`app/models/api/`** (`packa
 `*FiltersForApi`. Response DTOs extend `StreamingApiType` and implement `toJson`/`toCsvRow` inline so the
 `BaseApiController` helpers can serialize a stream of them uniformly.
 
+### Public label-share surface (`/label/:id`)
+
+A public, account-free share surface (issue #456, `ShareController`) lets a single label be linked externally.
+`GET /label/:id` renders LabelMap focused on that label with server-rendered Open Graph / Twitter Card meta so a
+pasted link produces a rich preview. `GET /label/:id/image` serves the preview image — self-hosted, with the
+label-type marker composited onto the crop (or a branded fallback) — cached under `share.image.directory`
+(`SIDEWALK_SHARE_IMAGES_DIR`), the same mounted volume as label crops so share links persist across container
+recreation. To support the anonymous landing, LabelMap's `RegionController.listNeighborhoods` and
+`AdminController.getLabelData` reads were opened to anonymous access.
+
 ## Frontend
 
 Each major UI is a self-contained app under `public/javascripts/`, bundled separately by Grunt and loaded by the

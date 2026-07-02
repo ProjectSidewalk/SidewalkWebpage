@@ -1,1 +1,12 @@
-{ }
+{
+    "share": {
+        "button": "分享",
+        "heading": "分享此标注",
+        "text": "来看看 Project Sidewalk 上的这个{{labelType}}",
+        "copy-link": "复制链接",
+        "copied": "已复制！",
+        "on-x": "分享到 X",
+        "on-facebook": "分享到 Facebook",
+        "via-email": "通过电子邮件分享"
+    }
+}

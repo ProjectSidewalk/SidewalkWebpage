@@ -310,5 +310,15 @@
                 "description": "此交通號誌僅供車輛駕駛人指示，並非為行人設置的行人號誌。"
             }
         }
+    },
+    "share": {
+        "button": "分享",
+        "heading": "分享此標註",
+        "text": "來看看 Project Sidewalk 上的這個{{labelType}}",
+        "copy-link": "複製連結",
+        "copied": "已複製！",
+        "on-x": "分享到 X",
+        "on-facebook": "分享到 Facebook",
+        "via-email": "透過電子郵件分享"
     }
 }

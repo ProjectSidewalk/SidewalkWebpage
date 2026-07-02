@@ -70,9 +70,22 @@ async function LabelDetail(root, opts) {
         );
 
         _initInfoPopover();
+        _initShareWidget();
 
         // Seed the all-time counts so a validation here can celebrate a newly unlocked validation badge.
         BadgeAchievements.seedCounts();
+    }
+
+    /**
+     * Instantiates the ShareWidget on the footer share button. The widget is built once and re-pointed at the current
+     * label in each _handleData() call via self.shareWidget.setTarget().
+     * @private
+     */
+    function _initShareWidget() {
+        const trigger = $('.label-detail__share-trigger');
+        if (trigger && typeof ShareWidget !== 'undefined') {
+            self.shareWidget = new ShareWidget(trigger);
+        }
     }
 
     /**
@@ -321,6 +334,16 @@ async function LabelDetail(root, opts) {
         // Title: "Label Type : Curb Ramp"
         const labelTypeName = i18next.t(`common:${camelToKebab(meta.label_type)}`);
         els.title.textContent = `${i18next.t('labelmap:label-type')} : ${labelTypeName}`;
+
+        // Point the share widget at this label's public permalink (#456). The /label/:id route renders the LabelMap
+        // focused on this label and serves the og:image crawlers embed in the share card.
+        if (self.shareWidget) {
+            self.shareWidget.setTarget({
+                url: `${window.location.origin}/label/${meta.label_id}`,
+                title: i18next.t('common:share.button'),
+                text: i18next.t('common:share.text', { labelType: labelTypeName })
+            });
+        }
 
         // Severity faces.
         _renderSeverity(meta.severity, meta.label_type);

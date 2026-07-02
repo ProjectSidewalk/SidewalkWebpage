@@ -310,5 +310,15 @@
                 "description": "Este semáforo é apenas para veículos, não para pedestres."
             }
         }
+    },
+    "share": {
+        "button": "Compartilhar",
+        "heading": "Compartilhar este rótulo",
+        "text": "Veja este(a) {{labelType}} no Project Sidewalk",
+        "copy-link": "Copiar link",
+        "copied": "Copiado!",
+        "on-x": "Compartilhar no X",
+        "on-facebook": "Compartilhar no Facebook",
+        "via-email": "Compartilhar por e-mail"
     }
 }

@@ -29,3 +29,6 @@ audit.ribbon.no.sidewalk = <u>N</u>o Footpath
 audit.ribbon.crosswalk = Marked Pedestrian Crossing (<u>W</u>)
 audit.ribbon.occlusion = Can''t See the Footpath (<u>B</u>)
 reset.pw.email.hello = Kia ora {0},
+
+share.meta.title = I found a {0} accessibility issue on Project Sidewalk
+share.meta.description = Spotted in {0}. Explore the map and help make footpaths accessible for everyone.

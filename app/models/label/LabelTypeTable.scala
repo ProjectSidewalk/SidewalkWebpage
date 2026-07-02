@@ -27,6 +27,10 @@ object LabelTypeEnum {
   sealed abstract class Base(val id: Int, val name: String, val descriptionKey: String, val color: String) {
     override def toString: String = name
 
+    // Messages key for this label type's short human-readable name (e.g. "curb.ramp"), derived from descriptionKey so
+    // the two can't drift. Note: the internal-only "Problem" type has no name message key.
+    val nameKey: String = descriptionKey.stripSuffix(".description")
+
     // Paths to the icon images for this label type.
     val iconPath: String      = s"$iconBasePath/${name}.png"
     val smallIconPath: String = s"$iconBasePath/${name}_small.png"

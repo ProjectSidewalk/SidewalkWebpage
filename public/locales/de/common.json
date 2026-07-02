@@ -310,5 +310,15 @@
                 "description": "Dieses Lichtsignal ist nur für Fahrzeuge vorgesehen und sollte nicht als “Fussgänger:innensignal” markiert werden."
             }
         }
+    },
+    "share": {
+        "button": "Teilen",
+        "heading": "Diese Markierung teilen",
+        "text": "Sieh dir diese {{labelType}} auf Project Sidewalk an",
+        "copy-link": "Link kopieren",
+        "copied": "Kopiert!",
+        "on-x": "Auf X teilen",
+        "on-facebook": "Auf Facebook teilen",
+        "via-email": "Per E-Mail teilen"
     }
 }

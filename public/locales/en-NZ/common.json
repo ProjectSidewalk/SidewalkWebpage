@@ -91,5 +91,15 @@
                 "description": "Speed bumps should not be labeled as Marked Pedestrian Crossings."
             }
         }
+    },
+    "share": {
+        "button": "Share",
+        "heading": "Share this label",
+        "text": "Check out this {{labelType}} on Project Sidewalk",
+        "copy-link": "Copy link",
+        "copied": "Copied!",
+        "on-x": "Share on X",
+        "on-facebook": "Share on Facebook",
+        "via-email": "Share via email"
     }
 }

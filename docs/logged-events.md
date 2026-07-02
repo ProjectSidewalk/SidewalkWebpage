@@ -71,6 +71,8 @@ ones whose meaning, parameters, or history aren't obvious:
 | `KeyboardShortcut_DisagreeReason_Option` / `KeyboardShortcut_UnsureReason_Option` | Validate: a reason chosen for a disagree/unsure verdict. |
 | `KeyboardShortcut_MoveForwardAlongRoute` | Explore: the spacebar route-advance shortcut. The `usedRoute` note is `false` when it stepped to a GSV-linked pano and `true` when it fell back to the same route-aware engine as the Stuck button (so heavy `usedRoute:true` volume overlaps with `ModalStuck_*`). |
 | `ValidationOptionApply` / `ValidationOptionUnapply` (Gallery) | A validation-status **filter** in the Gallery — *not* a validation of a label. |
+| `Visit_SharedLabel=<labelId>` | Server-logged (not via a `Tracker.js`) in `ShareController.label` when the public `/label/:id` share page is loaded; the suffix is the shared label id. |
+| `Share_Click` / `Share_Native` / `Share_CopyLink` / `Share_Platform=<Twitter\|Facebook\|Email>` | Emitted by the frontend share widget: opening the share UI, invoking the native OS share sheet, copying the permalink, and sharing to a named platform (the `Share_Platform` suffix is the target). |
 
 ## Finding the current list
 

@@ -130,6 +130,25 @@
     </section>
 </div>
 
+@* Subtle, YouTube-style share control. ShareWidget (share/ShareWidget.js) wires this up and builds its popover into
+   the wrapping .label-detail__share div, which is positioned so the popover anchors to the trigger. *@
+<div class="label-detail__footer">
+    <div class="label-detail__share">
+        <button type="button" class="label-detail__share-trigger"
+                data-i18n-aria-label="common:share.button" aria-label="Share">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="18" cy="5" r="3"/>
+                <circle cx="6" cy="12" r="3"/>
+                <circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+            <span class="label-detail__share-trigger-label" data-i18n="common:share.button">Share</span>
+        </button>
+    </div>
+</div>
+
 @if(admin) {
     <details class="label-detail__details label-detail__details--admin" open>
         <summary class="label-detail__details-summary">Admin info</summary>

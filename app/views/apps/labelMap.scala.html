@@ -4,12 +4,12 @@
 @import service.CommonPageData
 @import models.pano.PanoSource
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, tags: Seq[Tag] = Seq.empty, regionIds: Seq[Int],
-    routeIds: Seq[Int], aiValidationOptions: Seq[String]
+    routeIds: Seq[Int], aiValidationOptions: Seq[String], focusLabelId: Option[Int] = None, shareMeta: Html = Html("")
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap")) {
+@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap"), extraHead = shareMeta) {
     @common.navbar(commonData, Some(user))
     <div id="page-loading">
         <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'/>
@@ -101,6 +101,11 @@
             let aiValidationOptionsParam = '@{aiValidationOptions.mkString(",")}';
             if (aiValidationOptionsParam) {
                 params.labelsURL.searchParams.append('aiValidationOptions', aiValidationOptionsParam);
+            }
+
+            @* When arriving via a shared /label/:id permalink (#456), tell PSMap which label to fly to and auto-open. *@
+            @focusLabelId.map { id =>
+                params.focusLabelId = @id;
             }
 
             const self = {};
