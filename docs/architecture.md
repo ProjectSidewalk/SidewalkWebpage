@@ -133,7 +133,7 @@ production runtime shape, see [`docs/deployment-and-stages.md`](deployment-and-s
 
 Two standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
 
-- `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterController` /
+- `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterService` /
   `app/models/cluster/`).
 - `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery.
 

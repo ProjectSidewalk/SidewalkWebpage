@@ -1,8 +1,8 @@
 """
 Clusters a region's accessibility labels by type and posts the results back to the app.
 
-This script is invoked in-band, once per region, by ``ClusterController.runMultiUserClustering`` (see
-``app/controllers/ClusterController.scala``) when an admin triggers ``/runClustering``. It:
+This script is invoked in-band, once per region, by ``ClusterService.runMultiUserClustering`` (see
+``app/service/ClusterService.scala``) when an admin triggers ``/runClustering``. It:
 
   1. GETs the region's labels from ``/labelsToClusterInRegion``.
   2. Drops labels with invalid/missing coordinates.

@@ -11,9 +11,9 @@ data files relative to the repo root, so it can be launched from any working dir
 
 Clusters a region's accessibility labels by type and posts the results back to the app.
 
-This one **is** invoked in-band: `ClusterController.runMultiUserClustering`
-([`app/controllers/ClusterController.scala`](../app/controllers/ClusterController.scala)) shells out to it once per
-region when an admin triggers clustering at `/runClustering`. The script GETs the region's labels from
+This one **is** invoked in-band: `ClusterService.runMultiUserClustering`
+([`app/service/ClusterService.scala`](../app/service/ClusterService.scala)) shells out to it once per
+region when an admin triggers clustering at `/runClustering` (and on the nightly `ClusteringActor` schedule). The script GETs the region's labels from
 `/labelsToClusterInRegion`, clusters each label type independently (complete-linkage hierarchical clustering over
 haversine distance, with per-type distance thresholds; labels from the same user+pano are never clustered together),
 makes the cluster ids globally unique, and POSTs the labels, clusters, and thresholds back to `/clusteringResults`.

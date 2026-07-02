@@ -85,8 +85,6 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
 
 ### Other Scala
 
-- **scala-parallel-collections: 1.2.0** — parallel collections, separated out of the stdlib as of Scala 2.13.
-  [Releases](https://mvnrepository.com/artifact/org.scala-lang.modules/scala-parallel-collections)
 - **play-bootstrap: 1.6.1-P28-B3** — Twirl helpers for the sign-in/up views. **Note:** the `P28-B3` suffix means
   "Play 2.8, Bootstrap 3"; 1.6.1 is the newest and there have been no releases since April 2020. It still works, only
   a few pages use it (mostly auth), and we don't expect further updates — we'd rather move off Bootstrap entirely.

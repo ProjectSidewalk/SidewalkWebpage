@@ -1,10 +1,9 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
-import controllers.ClusterController
 import org.apache.pekko.actor.{Actor, Cancellable, Props}
 import play.api.Logger
-import service.ConfigService
+import service.{ClusterService, ConfigService}
 
 import java.time.Instant
 import javax.inject._
@@ -19,7 +18,7 @@ object ClusteringActor {
 }
 
 @Singleton
-class ClusteringActor @Inject() (clusterController: ClusterController)(implicit
+class ClusteringActor @Inject() (clusterService: ClusterService)(implicit
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {
@@ -53,7 +52,7 @@ class ClusteringActor @Inject() (clusterController: ClusterController)(implicit
   def receive: Receive = { case ClusteringActor.Tick =>
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled clustering of labels starting at: $currentTimeStart")
-    clusterController.runClusteringHelper().onComplete {
+    clusterService.runClustering().onComplete {
       case Success(results) =>
         val currentEndTime: String = dateFormatter.format(Instant.now())
         logger.info(s"Label clustering completed at: $currentEndTime")

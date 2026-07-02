@@ -24,7 +24,6 @@ import java.time.temporal.ChronoUnit
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.concurrent.ThreadPoolExecutor
 import javax.inject.{Inject, Singleton}
-import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
@@ -128,7 +127,7 @@ class AdminController @Inject() (
     labelService
       .getLabelsForLabelMap(Seq(), Seq(), Seq())
       .map { labels =>
-        val features: Seq[JsObject] = labels.par.map { label =>
+        val features: Seq[JsObject] = labels.map { label =>
           Json.obj(
             "type"     -> "Feature",
             "geometry" -> Json.obj(
@@ -151,7 +150,7 @@ class AdminController @Inject() (
               "tags"                 -> label.tags
             )
           )
-        }.seq
+        }
         val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
         Ok(featureCollection)
       }(cpuEc)
@@ -198,7 +197,7 @@ class AdminController @Inject() (
       labelService
         .getLabelsForLabelMap(regionIds, routeIds, aiValOpts)
         .map { labels =>
-          val features: Seq[JsObject] = labels.par.map { label =>
+          val features: Seq[JsObject] = labels.map { label =>
             Json.obj(
               "type"     -> "Feature",
               "geometry" -> Json.obj(
@@ -219,7 +218,7 @@ class AdminController @Inject() (
                 "tags"              -> label.tags
               )
             )
-          }.seq
+          }
           val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
           Ok(featureCollection)
         }(cpuEc)
