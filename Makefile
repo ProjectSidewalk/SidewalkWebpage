@@ -24,17 +24,17 @@ lint-fix:
 	@make lint-fix-eslint; make lint-fix-stylelint
 
 docker-up:
-	@docker-compose up -d
+	@docker compose up -d
 
 docker-up-db:
-	@docker-compose up -d db
+	@docker compose up -d db
 
 docker-stop:
-	@docker-compose stop
-	@docker-compose rm -f
+	@docker compose stop
+	@docker compose rm -f
 
 docker-run:
-	@docker-compose run --rm --service-ports --name projectsidewalk-web web /bin/bash
+	@docker compose run --rm --service-ports --name projectsidewalk-web web /bin/bash
 
 ssh:
 	@docker exec -it projectsidewalk-$${target} /bin/bash

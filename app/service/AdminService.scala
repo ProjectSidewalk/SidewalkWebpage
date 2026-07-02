@@ -18,6 +18,8 @@ import models.utils.{
   ApiFormatCount,
   ApiFormatSourceCount,
   ApiSourceIpCount,
+  FunnelStat,
+  FunnelStatTable,
   MyPostgresProfile,
   WebpageActivityTable
 }
@@ -316,6 +318,16 @@ trait AdminService {
   def getUserStatsForAdminPage: Future[Seq[UserStatsForAdminPage]]
   def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Double)]]
   def updateUserStatTable(cutoffTime: OffsetDateTime): Future[Int]
+
+  /**
+   * Recomputes this deployment's engagement funnels (#288) for all three windows and replaces the local `funnel_stat`.
+   *
+   * Each deployment precomputes only its own city's funnels; the cross-city Across Cities page reads every schema's
+   * `funnel_stat`. Runs nightly via `FunnelStatActor` and on demand via `/adminapi/updateFunnelStats`.
+   *
+   * @return The number of rows written to `funnel_stat`.
+   */
+  def updateFunnelStatTable(): Future[Int]
   def getApiAnalytics(
       excludeApiDocs: Boolean,
       days: Int
@@ -342,6 +354,8 @@ class AdminServiceImpl @Inject() (
     userTeamTable: UserTeamTable,
     webpageActivityTable: WebpageActivityTable,
     teamTable: TeamTable,
+    funnelStatTable: FunnelStatTable,
+    configService: ConfigService,
     implicit val ec: ExecutionContext,
     cpuEc: CpuIntensiveExecutionContext
 ) extends AdminService
@@ -1059,6 +1073,30 @@ class AdminServiceImpl @Inject() (
         rowsUpdated <- userStatTable.updateHighQuality(cutoffTime)
       } yield rowsUpdated
     )
+  }
+
+  // The three funnel windows the page offers, as (stored key, trailing days); None days = all-time. Kept here next to
+  // the recompute so the precomputed set and the read path (ConfigService.getCityFunnels) agree on the window keys.
+  private val funnelWindows: Seq[(String, Option[Int])] = Seq("30d" -> Some(30), "90d" -> Some(90), "all" -> None)
+
+  def updateFunnelStatTable(): Future[Int] = {
+    val schema     = configService.getCitySchema(configService.getCityId)
+    val computedAt = OffsetDateTime.now()
+    // For each window, compute both the mapping and contribution funnels, tagging each row with its funnel type.
+    val perWindow: Seq[DBIO[Seq[FunnelStat]]] = funnelWindows.map { case (windowKey, windowDays) =>
+      for {
+        mapping <- funnelStatTable.computeMappingFunnelBySchema(schema, windowDays)
+        contrib <- funnelStatTable.computeContributionFunnelBySchema(schema, windowDays)
+      } yield {
+        mapping.map(seg => FunnelStat("mapping", windowKey, seg.segment, seg.steps, computedAt)) ++
+          contrib.map(seg => FunnelStat("contribution", windowKey, seg.segment, seg.steps, computedAt))
+      }
+    }
+    // Compute all windows, then atomically replace the table. replaceAll is itself transactional, so the reads plus the
+    // wholesale swap are all the consistency this precompute needs. Then drop the cached funnel reads so the fresh rows
+    // show on the next page load rather than after the 10-minute TTL.
+    db.run(DBIO.sequence(perWindow).flatMap(rows => funnelStatTable.replaceAll(rows.flatten)))
+      .flatMap(rowsWritten => configService.invalidateFunnelCaches().map(_ => rowsWritten))
   }
 
   /**

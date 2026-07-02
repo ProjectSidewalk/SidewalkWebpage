@@ -1,53 +1,65 @@
 /**
- * Compass module
- * @param svl SVL name space. Need this for rootDirectory.
- * @param navigationService NavigationService module
- * @param taskContainer TaskContainer module
- * @constructor
+ * Compass module. Shows the user which way to turn/move to follow the assigned route.
+ *
+ * @memberof svl
  */
-function Compass (svl, navigationService, taskContainer) {
-    let self = {className: 'Compass'};
-    let blinkInterval;
-    let blinkTimer;
-
-    const uiCompass = {
-        messageHolder: $("#compass-message-holder"),
-        message: $("#compass-message")
-    };
-
-    const imageDirectories = {
-        leftTurn: svl.rootDirectory + 'img/icons/ArrowLeftTurn.png',
-        rightTurn: svl.rootDirectory + 'img/icons/ArrowRightTurn.png',
-        slightLeft: svl.rootDirectory + 'img/icons/ArrowSlightLeft.png',
-        slightRight: svl.rootDirectory + 'img/icons/ArrowSlightRight.png',
-        straight: svl.rootDirectory + 'img/icons/ArrowStraight.png',
-        uTurn: svl.rootDirectory + 'img/icons/ArrowUTurn.png'
-    };
-
-    let status = {
+class Compass {
+    #navigationService;
+    #taskContainer;
+    #blinkInterval;
+    #blinkTimer;
+    #uiCompass;
+    #imageDirectories;
+    #status = {
         lockDisableCompassClick: false
     };
 
     /**
-     * Blink the compass message
+     * @param {Object} svl - SVL namespace (used for rootDirectory). Same object as the global `svl`.
+     * @param {Object} navigationService - NavigationService module.
+     * @param {Object} taskContainer - TaskContainer module.
      */
-    function blink() {
-        self.stopBlinking();
-        blinkInterval = window.setInterval(function() {
-            uiCompass.messageHolder.toggleClass('highlight-100');
+    constructor(svl, navigationService, taskContainer) {
+        this.#navigationService = navigationService;
+        this.#taskContainer = taskContainer;
+
+        this.#uiCompass = {
+            messageHolder: $('#compass-message-holder'),
+            message: $('#compass-message')
+        };
+
+        this.#imageDirectories = {
+            leftTurn: svl.rootDirectory + 'img/icons/ArrowLeftTurn.png',
+            rightTurn: svl.rootDirectory + 'img/icons/ArrowRightTurn.png',
+            slightLeft: svl.rootDirectory + 'img/icons/ArrowSlightLeft.png',
+            slightRight: svl.rootDirectory + 'img/icons/ArrowSlightRight.png',
+            straight: svl.rootDirectory + 'img/icons/ArrowStraight.png',
+            uTurn: svl.rootDirectory + 'img/icons/ArrowUTurn.png'
+        };
+
+        this.enableCompassClick();
+    }
+
+    /**
+     * Blink the compass message.
+     */
+    blink() {
+        this.stopBlinking();
+        this.#blinkInterval = window.setInterval(() => {
+            this.#uiCompass.messageHolder.toggleClass('highlight-100');
         }, 500);
     }
 
-    function getCompassMessageHolder() {
-        return uiCompass;
+    getCompassMessageHolder() {
+        return this.#uiCompass;
     }
 
     /**
      * Get the angle necessary to move further down the street (using 15 meters further along street as target point).
      * @returns {number}
      */
-    function getTargetAngle() {
-        const task = taskContainer.getCurrentTask();
+    getTargetAngle() {
+        const task = this.#taskContainer.getCurrentTask();
         const geometry = task.getFeature();
         const latlng = svl.panoViewer.getPosition();
         const startLatLng = turf.point(task.getFurthestPointReached().geometry.coordinates);
@@ -66,8 +78,8 @@ function Compass (svl, navigationService, taskContainer) {
      * Check if the user is following the route that we specified.
      * @returns {boolean}
      */
-    function _checkEnRoute() {
-        const task = taskContainer.getCurrentTask();
+    #checkEnRoute() {
+        const task = this.#taskContainer.getCurrentTask();
         if (task) {
             const line = task.getGeoJSON();
             const latlng = svl.panoViewer.getPosition();
@@ -77,190 +89,190 @@ function Compass (svl, navigationService, taskContainer) {
         return true;
     }
 
-    function enableCompassClick() {
-        if (!status.lockDisableCompassClick) {
-            uiCompass.messageHolder.off('click', _handleCompassClick).on('click', _handleCompassClick);
-            uiCompass.messageHolder.css('cursor', 'pointer');
+    enableCompassClick() {
+        if (!this.#status.lockDisableCompassClick) {
+            this.#uiCompass.messageHolder.off('click', this.#handleCompassClick).on('click', this.#handleCompassClick);
+            this.#uiCompass.messageHolder.css('cursor', 'pointer');
         }
     }
 
-    function disableCompassClick() {
-        if (!status.lockDisableCompassClick) {
-            uiCompass.messageHolder.off('click', _handleCompassClick);
-            uiCompass.messageHolder.css('cursor', 'default');
+    disableCompassClick() {
+        if (!this.#status.lockDisableCompassClick) {
+            this.#uiCompass.messageHolder.off('click', this.#handleCompassClick);
+            this.#uiCompass.messageHolder.css('cursor', 'default');
         }
     }
 
-    function lockDisableCompassClick() {
-        status.lockDisableCompassClick = true;
+    lockDisableCompassClick() {
+        this.#status.lockDisableCompassClick = true;
     }
 
-    function unlockDisableCompassClick() {
-        status.lockDisableCompassClick = false;
+    unlockDisableCompassClick() {
+        this.#status.lockDisableCompassClick = false;
     }
 
     /*
-     * Part of the new jump mechanism
+     * Part of the new jump mechanism.
      */
     //  ** start **
 
-    function cancelTimer() {
-        window.clearTimeout(blinkTimer);
+    #cancelTimer() {
+        window.clearTimeout(this.#blinkTimer);
     }
 
-    function resetBeforeJump() {
-        cancelTimer();
-        removeLabelBeforeJumpMessage();
+    resetBeforeJump() {
+        this.#cancelTimer();
+        this.removeLabelBeforeJumpMessage();
     }
 
-    async function _jumpToTheNewTask() {
+    // Arrow field so the reference stays stable for jQuery .off()/.on() matching in the message-box handlers.
+    #jumpToTheNewTask = async () => {
         svl.tracker.push('LabelBeforeJump_Jump');
-        await navigationService.jumpToANewTask();
-    }
+        await this.#navigationService.jumpToANewTask();
+    };
 
-    function _makeTheLabelBeforeJumpMessageBoxClickable() {
+    #makeTheLabelBeforeJumpMessageBoxClickable() {
         let jumpMessageOnclick;
         if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
-            jumpMessageOnclick = function() { svl.missionController.wrapUpRouteOrNeighborhood(); }
+            jumpMessageOnclick = () => { svl.missionController.wrapUpRouteOrNeighborhood(); };
         } else {
-            jumpMessageOnclick = _jumpToTheNewTask
+            jumpMessageOnclick = this.#jumpToTheNewTask;
         }
-        uiCompass.messageHolder.off('click', _jumpToTheNewTask).on('click', jumpMessageOnclick);
-        uiCompass.messageHolder.css('cursor', 'pointer');
+        this.#uiCompass.messageHolder.off('click', this.#jumpToTheNewTask).on('click', jumpMessageOnclick);
+        this.#uiCompass.messageHolder.css('cursor', 'pointer');
     }
 
-    function _makeTheLabelBeforeJumpMessageBoxUnclickable() {
-        uiCompass.messageHolder.off('click', _jumpToTheNewTask);
-        uiCompass.messageHolder.css('cursor', 'default');
+    #makeTheLabelBeforeJumpMessageBoxUnclickable() {
+        this.#uiCompass.messageHolder.off('click', this.#jumpToTheNewTask);
+        this.#uiCompass.messageHolder.css('cursor', 'default');
     }
 
-    function showLabelBeforeJumpMessage() {
+    showLabelBeforeJumpMessage() {
         // Start blinking after 15 seconds.
-        blinkTimer = window.setTimeout(function() {
+        this.#blinkTimer = window.setTimeout(() => {
             svl.tracker.push('LabelBeforeJump_Blink');
-            self.blink();
+            this.blink();
         }, 15000);
-        self.disableCompassClick();
-        _makeTheLabelBeforeJumpMessageBoxClickable();
-        _setLabelBeforeJumpMessage();
+        this.disableCompassClick();
+        this.#makeTheLabelBeforeJumpMessageBoxClickable();
+        this.#setLabelBeforeJumpMessage();
     }
 
-    function removeLabelBeforeJumpMessage() {
-        self.stopBlinking();
-        _makeTheLabelBeforeJumpMessageBoxUnclickable();
-        self.enableCompassClick();
+    removeLabelBeforeJumpMessage() {
+        this.stopBlinking();
+        this.#makeTheLabelBeforeJumpMessageBoxUnclickable();
+        this.enableCompassClick();
     }
     // ** end **
 
     /**
-     * Get the compass angle
+     * Get the compass angle.
      * @returns {number}
      */
-    function _getCompassAngle() {
+    #getCompassAngle() {
         const heading = svl.panoViewer.getPov().heading;
-        const targetAngle = getTargetAngle();
+        const targetAngle = this.getTargetAngle();
         return ((heading - targetAngle + 360) % 360);
     }
 
     /**
      * Mapping from a direction to an image path of direction icons.
-     * @param direction
-     * @returns {string|*}
+     * @param {string} direction
+     * @returns {string|undefined}
      */
-    function directionToImagePath (direction) {
+    directionToImagePath(direction) {
         switch (direction) {
             case 'straight':
-                return imageDirectories.straight;
+                return this.#imageDirectories.straight;
             case 'slight-right':
-                return imageDirectories.slightRight;
+                return this.#imageDirectories.slightRight;
             case 'slight-left':
-                return imageDirectories.slightLeft;
+                return this.#imageDirectories.slightLeft;
             case 'right':
-                return imageDirectories.rightTurn;
+                return this.#imageDirectories.rightTurn;
             case 'left':
-                return imageDirectories.leftTurn;
+                return this.#imageDirectories.leftTurn;
             case 'u-turn':
-                return imageDirectories.uTurn;
+                return this.#imageDirectories.uTurn;
             default:
         }
     }
 
     /**
-     * Hide a message
+     * Hide a message.
      */
-    function hideMessage() {
-        uiCompass.messageHolder.removeClass('fadeInUp').addClass('fadeOutDown');
-        uiCompass.messageHolder.css('pointer-events', 'none');
+    hideMessage() {
+        this.#uiCompass.messageHolder.removeClass('fadeInUp').addClass('fadeOutDown');
+        this.#uiCompass.messageHolder.css('pointer-events', 'none');
     }
 
     /**
      * Set the compass message.
      */
-    function setTurnMessage() {
-        const angle = _getCompassAngle();
-        const direction = _angleToDirection(angle);
+    setTurnMessage() {
+        const angle = this.#getCompassAngle();
+        const direction = this.#angleToDirection(angle);
 
-        const image = `<img src="${directionToImagePath(direction)}" class="compass-turn-images" alt="Turn icon"/>`;
+        const image = `<img src="${this.directionToImagePath(direction)}" class="compass-turn-images" alt="Turn icon"/>`;
         const message =
             `<div class="compass-message-small">${i18next.t('center-ui.compass.unlabeled-problems')}</div>` +
-            `${image}<span class="compass-message-large">${_directionToDirectionMessage(direction)}</span>`;
-        uiCompass.message.html(message);
+            `${image}<span class="compass-message-large">${this.#directionToDirectionMessage(direction)}</span>`;
+        this.#uiCompass.message.html(message);
     }
 
-    function _setLabelBeforeJumpMessage() {
+    #setLabelBeforeJumpMessage() {
         if (svl.neighborhoodModel.isRouteComplete) {
-            uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-route')}</div>`);
+            this.#uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-route')}</div>`);
         } else if (svl.neighborhoodModel.isNeighborhoodComplete) {
-            uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-neighborhood')}</div>`);
+            this.#uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-neighborhood')}</div>`);
         } else {
-            uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-street')}</div>`);
+            this.#uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-street')}</div>`);
         }
     }
 
-    function _setBackToRouteMessage() {
-        uiCompass.message.html(i18next.t('center-ui.compass.far-away'));
+    #setBackToRouteMessage() {
+        this.#uiCompass.message.html(i18next.t('center-ui.compass.far-away'));
     }
 
     /**
-     * Show a message
+     * Show a message.
      */
-    function showMessage() {
-        uiCompass.messageHolder.removeClass('fadeOutDown').addClass('fadeInUp');
-        uiCompass.messageHolder.css('pointer-events', 'auto');
+    showMessage() {
+        this.#uiCompass.messageHolder.removeClass('fadeOutDown').addClass('fadeInUp');
+        this.#uiCompass.messageHolder.css('pointer-events', 'auto');
     }
 
     /**
      * Stop blinking the compass message.
      */
-    function stopBlinking() {
-        window.clearInterval(blinkInterval);
-        blinkInterval = null;
-        uiCompass.messageHolder.removeClass('highlight-100');
+    stopBlinking() {
+        window.clearInterval(this.#blinkInterval);
+        this.#blinkInterval = null;
+        this.#uiCompass.messageHolder.removeClass('highlight-100');
     }
 
     /**
      * Update the compass message.
      */
-    function update() {
-        if (!navigationService.getLabelBeforeJumpState() && !svl.isOnboarding()) {
-            if (_checkEnRoute()) {
-                self.stopBlinking();
-                self.setTurnMessage();
-            } else if (!navigationService.getStatus('movingToNewLocation')) {
+    update() {
+        if (!this.#navigationService.getLabelBeforeJumpState() && !svl.isOnboarding()) {
+            if (this.#checkEnRoute()) {
+                this.stopBlinking();
+                this.setTurnMessage();
+            } else if (!this.#navigationService.getStatus('movingToNewLocation')) {
                 // Only warn that the user is off-route if they're not mid-move. (#4174)
-                self.blink();
-                _setBackToRouteMessage();
+                this.blink();
+                this.#setBackToRouteMessage();
             }
         }
-
     }
 
     /**
-     * Mapping from an angle to a direction
-     * @param angle
-     * @returns {*}
+     * Mapping from an angle to a direction.
+     * @param {number} angle
+     * @returns {string|undefined}
      */
-    function _angleToDirection (angle) {
+    #angleToDirection(angle) {
         if (angle < 20 || angle > 340)
             return 'straight';
         else if (angle >= 20 && angle < 45)
@@ -280,11 +292,11 @@ function Compass (svl, navigationService, taskContainer) {
     }
 
     /**
-     * Mapping from direction to a description of the direction
-     * @param direction
-     * @returns {*}
+     * Mapping from direction to a description of the direction.
+     * @param {string} direction
+     * @returns {string|undefined}
      */
-    function _directionToDirectionMessage (direction) {
+    #directionToDirectionMessage(direction) {
         switch (direction) {
             case 'straight':
                 return i18next.t('center-ui.compass.straight');
@@ -303,16 +315,17 @@ function Compass (svl, navigationService, taskContainer) {
     }
 
     // Performs the action written in the compass message for the user (turning, moving ahead, jumping).
-    async function _handleCompassClick() {
-        if (_checkEnRoute()) {
+    // Arrow field so the reference stays stable for jQuery .off()/.on() matching in enable/disableCompassClick.
+    #handleCompassClick = async () => {
+        if (this.#checkEnRoute()) {
             svl.stuckAlert.compassOrStuckClicked();
 
-            const angle = _getCompassAngle();
-            const direction = _angleToDirection(angle);
+            const angle = this.#getCompassAngle();
+            const direction = this.#angleToDirection(angle);
             svl.tracker.push(`Click_Compass_Direction=${direction}`);
 
             if (direction === 'straight') {
-                await navigationService.moveForward()
+                await this.#navigationService.moveForward()
                     .then(() => svl.tracker.push('CompassMove_Success'))
                     .catch(() => svl.tracker.push('CompassMove_PanoNotAvailable'));
             } else {
@@ -320,44 +333,27 @@ function Compass (svl, navigationService, taskContainer) {
             }
         } else {
             svl.tracker.push('Click_Compass_FarFromRoute');
-            await navigationService.moveForward();
+            await this.#navigationService.moveForward();
             svl.panoManager.setPovToRouteDirection();
         }
+    };
+
+    /**
+     * Attaches an external click handler to the compass message and shows the pointer cursor. Onboarding uses this to
+     * override the default compass behavior so that a click advances to the next pano.
+     * @param {Function} handler
+     */
+    attachMessageClickHandler(handler) {
+        this.#uiCompass.messageHolder.off('click', handler).on('click', handler);
+        this.#uiCompass.messageHolder.css('cursor', 'pointer');
     }
 
-    // Attaches an external click handler to the compass message and shows the pointer cursor. Used by onboarding to
-    // override the default compass behavior so that a click advances to the next pano.
-    function attachMessageClickHandler(handler) {
-        uiCompass.messageHolder.off('click', handler).on('click', handler);
-        uiCompass.messageHolder.css('cursor', 'pointer');
+    /**
+     * Detaches an attached external click handler from the compass message and restores the default cursor.
+     * @param {Function} handler
+     */
+    detachMessageClickHandler(handler) {
+        this.#uiCompass.messageHolder.off('click', handler);
+        this.#uiCompass.messageHolder.css('cursor', 'default');
     }
-
-    // Detaches a previously attached external click handler from the compass message and restores the default cursor.
-    function detachMessageClickHandler(handler) {
-        uiCompass.messageHolder.off('click', handler);
-        uiCompass.messageHolder.css('cursor', 'default');
-    }
-
-    enableCompassClick();
-
-    self.attachMessageClickHandler = attachMessageClickHandler;
-    self.detachMessageClickHandler = detachMessageClickHandler;
-    self.blink = blink;
-    self.directionToImagePath = directionToImagePath;
-    self.resetBeforeJump = resetBeforeJump;
-    self.getCompassMessageHolder = getCompassMessageHolder;
-    self.getTargetAngle = getTargetAngle;
-    self.hideMessage = hideMessage;
-    self.setTurnMessage = setTurnMessage;
-    self.enableCompassClick = enableCompassClick;
-    self.disableCompassClick = disableCompassClick;
-    self.lockDisableCompassClick = lockDisableCompassClick;
-    self.unlockDisableCompassClick = unlockDisableCompassClick;
-    self.stopBlinking = stopBlinking;
-    self.showMessage = showMessage;
-    self.showLabelBeforeJumpMessage = showLabelBeforeJumpMessage;
-    self.removeLabelBeforeJumpMessage = removeLabelBeforeJumpMessage;
-    self.update = update;
-
-    return self;
 }

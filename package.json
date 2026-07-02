@@ -1,7 +1,9 @@
 {
     "devDependencies": {
-        "eslint": "^7.26.0",
-        "grunt": "^1.4.0",
+        "@stylistic/eslint-plugin": "^2.0.0",
+        "eslint": "^9.0.0",
+        "globals": "^15.0.0",
+        "grunt": "^1.6.2",
         "grunt-concat-css": "*",
         "grunt-contrib-concat": "*",
         "grunt-contrib-watch": "*",

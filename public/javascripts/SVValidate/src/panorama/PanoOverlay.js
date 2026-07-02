@@ -1,13 +1,12 @@
 /*
  * An additional layer on top of the panorama object on validation interface. This layer handles panning.
  */
-function PanoOverlay () {
-    const self = this;
-    const viewControlLayer = svv.ui.viewer.controlLayer;
-    let panningDisabled = false;
+class PanoOverlay {
+    #viewControlLayer;
+    #panningDisabled = false;
 
     // Mouse status and mouse event callback functions.
-    let mouseStatus = {
+    #mouseStatus = {
         currX: 0,
         currY: 0,
         prevX: 0,
@@ -15,97 +14,97 @@ function PanoOverlay () {
         isLeftDown: false
     };
 
+    constructor() {
+        this.#viewControlLayer = svv.ui.viewer.controlLayer;
+
+        this.#viewControlLayer.bind('mousemove', this.#handlerViewControlLayerMouseMove);
+        this.#viewControlLayer.bind('mousedown', this.#handlerViewControlLayerMouseDown);
+        this.#viewControlLayer.bind('mouseup', this.#handlerViewControlLayerMouseUp);
+        this.#viewControlLayer.bind('mouseleave', this.#handlerViewControlLayerMouseLeave);
+    }
+
     /**
      * Disables panning on the pano canvas.
      */
-    function disablePanning() {
-        panningDisabled = true;
+    disablePanning() {
+        this.#panningDisabled = true;
     }
 
     /**
      * Enables panning on the pano canvas.
      */
-    function enablePanning() {
-        panningDisabled = false;
+    enablePanning() {
+        this.#panningDisabled = false;
     }
 
     /**
      * A callback function that is fired with the mouse down event on the view control layer (when panning).
-     * @param e
+     * @param {Event} e
      */
-    function handlerViewControlLayerMouseDown(e) {
-        mouseStatus.isLeftDown = true;
-        viewControlLayer.css("cursor", "url(/assets/images/icons/closedhand.cur) 4 4, move");
+    #handlerViewControlLayerMouseDown = (e) => {
+        this.#mouseStatus.isLeftDown = true;
+        this.#viewControlLayer.css("cursor", "url(/assets/images/icons/closedhand.cur) 4 4, move");
 
         // Hide the label's hover info as soon as panning starts so it doesn't linger over the moving pano.
         if (svv.labelVisibilityControl) svv.labelVisibilityControl.hideTagsAndDeleteButton();
 
         // This is necessary for supporting touch devices, because there is no mouse hover.
-        mouseStatus.prevX = mousePosition(e, this).x;
-        mouseStatus.prevY = mousePosition(e, this).y;
-    }
+        this.#mouseStatus.prevX = mousePosition(e, e.currentTarget).x;
+        this.#mouseStatus.prevY = mousePosition(e, e.currentTarget).y;
+    };
 
     /**
      * This is a callback function that is called with mouse up event on the view control layer (when panning).
-     * @param e
+     * @param {Event} e
      */
-    function handlerViewControlLayerMouseUp(e) {
-        viewControlLayer.css("cursor", "url(/assets/images/icons/openhand.cur) 4 4, move");
-        mouseStatus.isLeftDown = false;
-    }
+    #handlerViewControlLayerMouseUp = (e) => {
+        this.#viewControlLayer.css("cursor", "url(/assets/images/icons/openhand.cur) 4 4, move");
+        this.#mouseStatus.isLeftDown = false;
+    };
 
     /**
      * Handles mouse leaving control view.
-     * @param e
+     * @param {Event} e
      */
-    function handlerViewControlLayerMouseLeave(e) {
-        viewControlLayer.css("cursor", "url(/assets/images/icons/openhand.cur) 4 4, move");
-        mouseStatus.isLeftDown = false;
-    }
+    #handlerViewControlLayerMouseLeave = (e) => {
+        this.#viewControlLayer.css("cursor", "url(/assets/images/icons/openhand.cur) 4 4, move");
+        this.#mouseStatus.isLeftDown = false;
+    };
 
     /**
      * Callback function that is fired when a user moves a mouse on the view control layer where you change the pov.
+     * @param {Event} e
      */
-    function handlerViewControlLayerMouseMove(e) {
-        mouseStatus.currX = mousePosition(e, this).x;
-        mouseStatus.currY = mousePosition(e, this).y;
+    #handlerViewControlLayerMouseMove = (e) => {
+        this.#mouseStatus.currX = mousePosition(e, e.currentTarget).x;
+        this.#mouseStatus.currY = mousePosition(e, e.currentTarget).y;
 
-        if ((svv.panoManager.getProperty('panoLoaded')) && mouseStatus.isLeftDown && panningDisabled === false) {
+        if ((svv.panoManager.getProperty('panoLoaded')) && this.#mouseStatus.isLeftDown && this.#panningDisabled === false) {
             // If a mouse is being dragged on the control layer, move the pano.
-            let dx = mouseStatus.currX - mouseStatus.prevX;
-            let dy = mouseStatus.currY - mouseStatus.prevY;
-            let pov = svv.panoViewer.getPov();
-            let zoomLevel = pov.zoom;
+            let dx = this.#mouseStatus.currX - this.#mouseStatus.prevX;
+            let dy = this.#mouseStatus.currY - this.#mouseStatus.prevY;
+            const pov = svv.panoViewer.getPov();
+            const zoomLevel = pov.zoom;
             dx = dx / (2 * zoomLevel);
             dy = dy / (2 * zoomLevel);
             dx *= 0.375;
             dy *= 0.375;
-            updatePov(dx, dy);
+            this.#updatePov(dx, dy);
         }
-        mouseStatus.prevX = mousePosition(e, this).x;
-        mouseStatus.prevY = mousePosition(e, this).y;
-    }
+        this.#mouseStatus.prevX = mousePosition(e, e.currentTarget).x;
+        this.#mouseStatus.prevY = mousePosition(e, e.currentTarget).y;
+    };
 
     /**
      * Update POV of the image as a user drags their mouse cursor.
-     * @param dx
-     * @param dy
+     * @param {number} dx
+     * @param {number} dy
      */
-    function updatePov(dx, dy) {
-        let pov = svv.panoViewer.getPov();
+    #updatePov(dx, dy) {
+        const pov = svv.panoViewer.getPov();
         const viewerScaling = 0.5;
         pov.heading -= dx * viewerScaling;
         pov.pitch += dy * viewerScaling;
         svv.panoViewer.setPov(pov);
     }
-
-    viewControlLayer.bind('mousemove', handlerViewControlLayerMouseMove);
-    viewControlLayer.bind('mousedown', handlerViewControlLayerMouseDown);
-    viewControlLayer.bind('mouseup', handlerViewControlLayerMouseUp);
-    viewControlLayer.bind('mouseleave', handlerViewControlLayerMouseLeave);
-
-    self.disablePanning = disablePanning;
-    self.enablePanning = enablePanning;
-
-    return self;
 }

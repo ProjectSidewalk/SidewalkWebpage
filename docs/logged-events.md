@@ -32,6 +32,13 @@ Each pushed event is buffered with a timestamp and context (pano, task, lat/lng,
 periodically — on mission complete or after enough interactions accumulate — which is itself recorded as a
 `RefreshTracker` event.
 
+**Environment metadata (separate from events).** Alongside interaction events, each tool's `Form.js` submits
+per-session environment fields — including `browser`, `browser_version`, and `operating_system` — stored with the task
+rather than as `push(...)` events. These values come from the **Bowser** library (`util.getBrowser` /
+`getBrowserVersion` / `getOperatingSystem` in `common/Utilities.js`). Historical rows, produced by jQuery user-agent
+sniffing, use a different vocabulary (`mozilla` for Firefox, `MacOS`, `UNIX`); newer rows use Bowser's (`Firefox`,
+`macOS`, `Linux`, …). When analyzing browser/OS across time ranges, expect both.
+
 ## Event naming
 
 Most events are fixed, transparently-named strings (`ContextMenu_Open`, `Onboarding_Start`, `Click_ZoomIn`). The ones
@@ -71,6 +78,7 @@ ones whose meaning, parameters, or history aren't obvious:
 | `NeighborhoodComplete_ByUser` vs `NeighborhoodComplete_AcrossAllUsers` | One user finishing their work vs. a neighborhood hitting 100% across *all* users. |
 | `Viewer_Primary` / `Viewer_Pannellum` | Which imagery viewer is active — the primary provider vs. the Pannellum fallback. |
 | `KeyboardShortcut_DisagreeReason_Option` / `KeyboardShortcut_UnsureReason_Option` | Validate: a reason chosen for a disagree/unsure verdict. |
+| `KeyboardShortcut_MoveForwardAlongRoute` | Explore: the spacebar route-advance shortcut. The `usedRoute` note is `false` when it stepped to a GSV-linked pano and `true` when it fell back to the same route-aware engine as the Stuck button (so heavy `usedRoute:true` volume overlaps with `ModalStuck_*`). |
 | `ValidationOptionApply` / `ValidationOptionUnapply` (Gallery) | A validation-status **filter** in the Gallery — *not* a validation of a label. |
 
 ## Finding the current list

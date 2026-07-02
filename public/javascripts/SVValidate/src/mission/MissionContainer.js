@@ -1,23 +1,19 @@
 /**
- *
- * @returns {MissionContainer}
- * @constructor
+ * Keeps track of the current and completed validation missions.
  */
-function MissionContainer () {
-    const self = this;
-    let currentMission = undefined;
-    let _completedMissions = [];
+class MissionContainer {
+    #currentMission = undefined;
+    #completedMissions = [];
 
     /**
      * Adds a mission to in progress or list of completed missions.
-     * @param mission
-     * @private
+     * @param {Mission} mission
      */
-    function addAMission(mission) {
+    addAMission(mission) {
         if (mission.getProperty('completed')) {
-            _addToCompletedMissions(mission);
+            this.#addToCompletedMissions(mission);
         } else {
-            currentMission = mission;
+            this.#currentMission = mission;
             svv.statusField.reset(mission);
         }
         return this;
@@ -25,40 +21,36 @@ function MissionContainer () {
 
     /**
      * This function adds the current mission to a list of completed missions.
-     * @param mission  Mission object of the current mission.
-     * @private
+     * @param {Mission} mission Mission object of the current mission.
      */
-    function _addToCompletedMissions(mission) {
-        let existingMissionIds = _completedMissions.map(function (m) {
-            return m.getProperty('missionId')
-        });
-        let currentMissionId = mission.getProperty('missionId');
+    #addToCompletedMissions(mission) {
+        const existingMissionIds = this.#completedMissions.map(m => m.getProperty('missionId'));
+        const currentMissionId = mission.getProperty('missionId');
         if (existingMissionIds.indexOf(currentMissionId) < 0) {
-            _completedMissions.push(mission);
+            this.#completedMissions.push(mission);
         }
     }
 
     /**
      * Submits this mission to the backend.
      */
-    function completeAMission () {
+    completeAMission() {
         svv.missionsCompleted += 1;
-        svv.modalMissionComplete.show(currentMission);
-        let data = svv.form.compileSubmissionData(true);
+        svv.modalMissionComplete.show(this.#currentMission);
+        const data = svv.form.compileSubmissionData(true);
         svv.form.submit(data); // Note that this happens async. Once finished, it enables start next mission button.
-        _addToCompletedMissions(currentMission);
+        this.#addToCompletedMissions(this.#currentMission);
     }
 
     /**
-     * Creates a mission by parsing a JSON file
-     * @param missionMetadata   JSON metadata for mission (from backend)
-     * @param progressMetadata  JSON metadata about mission progress
-     *                          (counts of agree/disagree/unsure labels for this mission)
-     * @private
+     * Creates a mission by parsing a JSON file.
+     * @param {object} missionMetadata JSON metadata for mission (from backend).
+     * @param {object} progressMetadata JSON metadata about mission progress
+     *                                  (counts of agree/disagree/unsure labels for this mission).
      */
-    function createAMission(missionMetadata, progressMetadata) {
+    createAMission(missionMetadata, progressMetadata) {
         svv.undoValidation.disableUndo();
-        let metadata = {
+        const metadata = {
             agreeCount: progressMetadata.agree_count,
             completed : missionMetadata.completed,
             disagreeCount: progressMetadata.disagree_count,
@@ -70,8 +62,8 @@ function MissionContainer () {
             unsureCount: progressMetadata.unsure_count,
             skipped : missionMetadata.skipped
         };
-        let mission = new Mission(metadata);
-        addAMission(mission);
+        const mission = new Mission(metadata);
+        this.addAMission(mission);
         svv.modalMission.setMissionMessage(mission);
         svv.statusField.updateLabelText(svv.labelTypes[mission.getProperty('labelTypeId')]);
     }
@@ -80,30 +72,21 @@ function MissionContainer () {
      * Returns the current mission in progress.
      * @returns Mission object for the current mission.
      */
-    function getCurrentMission() {
-        return currentMission;
+    getCurrentMission() {
+        return this.#currentMission;
     }
 
     /**
      * Updates the status of the current mission.
      */
-    function updateAMission() {
-        currentMission.updateMissionProgress(false);
+    updateAMission() {
+        this.#currentMission.updateMissionProgress(false);
     }
 
     /**
      * Updates the status of the current mission if client clicked the undo button.
      */
-    function updateAMissionUndoValidation() {
-        currentMission.updateMissionProgress(true);
+    updateAMissionUndoValidation() {
+        this.#currentMission.updateMissionProgress(true);
     }
-
-    self.addAMission = addAMission;
-    self.completeAMission = completeAMission;
-    self.createAMission = createAMission;
-    self.getCurrentMission = getCurrentMission;
-    self.updateAMission = updateAMission;
-    self.updateAMissionUndoValidation = updateAMissionUndoValidation;
-
-    return this;
 }

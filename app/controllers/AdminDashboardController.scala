@@ -56,6 +56,20 @@ class AdminDashboardController @Inject() (
   }
 
   /**
+   * Renders the Street Status page: a per-segment map colored by street availability plus a per-region breakdown.
+   *
+   * Answers "which streets are auditable, and where is imagery missing or are streets disabled?" — the operational
+   * counterpart to Coverage's "how much is audited". Driven client-side from `/v3/api/streets`, which returns every
+   * street (regardless of status) tagged with its `street_edge_status` (#3888).
+   */
+  def streetStatus = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_StreetStatus")
+      Ok(views.html.admin.dashboard.streetStatus(commonData, request.identity))
+    }
+  }
+
+  /**
    * Renders the Data Quality page: per-label-type label counts, severity, validation agreement, and tag usage.
    *
    * Answers "how good is the data?" for the current deployment. Driven client-side from the per-city v3 overallStats

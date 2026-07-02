@@ -190,7 +190,7 @@ object ClusteringThreshold {
     )(ClusteringThreshold.apply _)
 
     val writes: Writes[ClusteringThreshold] = (
-      (__ \ "label_type_id").write[String] and
+      (__ \ "label_type").write[String] and
         (__ \ "threshold").write[Double]
     )(unlift(ClusteringThreshold.unapply))
 

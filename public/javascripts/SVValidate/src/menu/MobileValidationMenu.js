@@ -1,111 +1,123 @@
 /**
  * Initializes the primary validation UI at the bottom of the mobile screen.
- * @constructor
  */
-function MobileValidationMenu(menuUI) {
-    const self = this;
+class MobileValidationMenu {
+    #menuUI;
+    #disagreeReasonButtons;
+    #unsureReasonButtons;
 
-    const $disagreeReasonButtons = menuUI.disagreeReasonOptions.children('.validation-reason-button');
-    const $unsureReasonButtons = menuUI.unsureReasonOptions.children('.validation-reason-button');
+    /**
+     * @param {object} menuUI Validation menu UI elements.
+     */
+    constructor(menuUI) {
+        this.#menuUI = menuUI;
+        this.#disagreeReasonButtons = menuUI.disagreeReasonOptions.children('.validation-reason-button');
+        this.#unsureReasonButtons = menuUI.unsureReasonOptions.children('.validation-reason-button');
 
-    function _init() {
+        this.#init();
+    }
+
+    #init() {
+        const menuUI = this.#menuUI;
+
         // Add onclick for each validation button.
-        menuUI.yesButton.click(function(e) {
+        menuUI.yesButton.click((e) => {
             const action = e.isTrigger ? 'ValidationKeyboardShortcut_Agree' : 'ValidationButtonClick_Agree';
             svv.tracker.push(action);
-            _setYesView();
+            this.#setYesView();
             svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Agree');
 
             // Not adding comments on mobile when voting yes, just submit the validation.
-            _validateLabel(svv.labelContainer.getCurrentLabel().getProperty('validationResult'), e.isTrigger);
+            this.#validateLabel(svv.labelContainer.getCurrentLabel().getProperty('validationResult'), e.isTrigger);
         });
-        menuUI.noButton.click(function(e) {
+        menuUI.noButton.click((e) => {
             const action = e.isTrigger ? 'ValidationKeyboardShortcut_Disagree' : 'ValidationButtonClick_Disagree';
             svv.tracker.push(action);
-            _setNoView();
+            this.#setNoView();
             svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Disagree');
         });
-        menuUI.unsureButton.click(function(e) {
+        menuUI.unsureButton.click((e) => {
             const action = e.isTrigger ? 'ValidationKeyboardShortcut_Unsure' : 'ValidationButtonClick_Unsure';
             svv.tracker.push(action);
-            _setUnsureView();
+            this.#setUnsureView();
             svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Unsure');
         });
 
         // Add onclick for disagree and unsure reason buttons.
-        for (const reasonButton of $disagreeReasonButtons) {
-            reasonButton.onclick = function(e) {
+        for (const reasonButton of this.#disagreeReasonButtons) {
+            reasonButton.onclick = (e) => {
                 if (e.isTrigger) {
-                    svv.tracker.push('KeyboardShortcut_DisagreeReason_Option=' + $(this).attr('id'));
+                    svv.tracker.push('KeyboardShortcut_DisagreeReason_Option=' + $(reasonButton).attr('id'));
                 } else {
-                    svv.tracker.push('Click=DisagreeReason_Option=' + $(this).attr('id'));
+                    svv.tracker.push('Click=DisagreeReason_Option=' + $(reasonButton).attr('id'));
                 }
-                _setDisagreeReason($(this).attr('id'));
+                this.#setDisagreeReason($(reasonButton).attr('id'));
             };
         }
-        for (const reasonButton of $unsureReasonButtons) {
-            reasonButton.onclick = function(e) {
+        for (const reasonButton of this.#unsureReasonButtons) {
+            reasonButton.onclick = (e) => {
                 if (e.isTrigger) {
-                    svv.tracker.push('KeyboardShortcut_UnsureReason_Option=' + $(this).attr('id'));
+                    svv.tracker.push('KeyboardShortcut_UnsureReason_Option=' + $(reasonButton).attr('id'));
                 } else {
-                    svv.tracker.push('Click=UnsureReason_Option=' + $(this).attr('id'));
+                    svv.tracker.push('Click=UnsureReason_Option=' + $(reasonButton).attr('id'));
                 }
-                _setUnsureReason($(this).attr('id'));
+                this.#setUnsureReason($(reasonButton).attr('id'));
             };
         }
 
         // Log clicks to the two text boxes.
-        menuUI.disagreeReasonTextBox.click(function(e) {
+        menuUI.disagreeReasonTextBox.click((e) => {
             menuUI.disagreeReasonTextBox.focus();
             const action = e.isTrigger ? 'KeyboardShortcut=DisagreeReasonTextbox': 'Click=DisagreeReasonTextbox';
             svv.tracker.push(action);
         });
-        menuUI.unsureReasonTextBox.click(function(e) {
+        menuUI.unsureReasonTextBox.click((e) => {
             menuUI.unsureReasonTextBox.focus();
             const action = e.isTrigger ? 'KeyboardShortcut=UnsureReasonTextbox': 'Click=UnsureReasonTextbox';
             svv.tracker.push(action);
         });
 
         // Add oninput for disagree and unsure other reason text boxes.
-        menuUI.disagreeReasonTextBox.on('input', function() {
+        menuUI.disagreeReasonTextBox.on('input', () => {
             if (menuUI.disagreeReasonTextBox.val() === '') {
                 menuUI.disagreeReasonTextBox.removeClass('chosen');
                 svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
             } else {
-                _setDisagreeReason('other');
+                this.#setDisagreeReason('other');
             }
         });
-        menuUI.unsureReasonTextBox.on('input', function() {
+        menuUI.unsureReasonTextBox.on('input', () => {
             if (menuUI.unsureReasonTextBox.val() === '') {
                 menuUI.unsureReasonTextBox.removeClass('chosen');
                 svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
             } else {
-                _setUnsureReason('other');
+                this.#setUnsureReason('other');
             }
         });
 
         // Add onclick for the submit buttons in the no and unsure menus.
-        $('#no-menu-submit-button').click(function(e) {
-            _validateLabel('Disagree', e.isTrigger);
+        $('#no-menu-submit-button').click((e) => {
+            this.#validateLabel('Disagree', e.isTrigger);
         });
-        $('#unsure-menu-submit-button').click(function(e) {
-            _validateLabel('Unsure', e.isTrigger);
+        $('#unsure-menu-submit-button').click((e) => {
+            this.#validateLabel('Unsure', e.isTrigger);
         });
 
         // Add onclick for the skip-reason buttons, which submit the validation without an associated reason.
-        $('#no-menu-skip-reason-button').click(function(e) {
+        $('#no-menu-skip-reason-button').click((e) => {
             svv.tracker.push('Click=DisagreeReason_Skip');
             svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
-            _validateLabel('Disagree', e.isTrigger);
+            this.#validateLabel('Disagree', e.isTrigger);
         });
-        $('#unsure-menu-skip-reason-button').click(function(e) {
+        $('#unsure-menu-skip-reason-button').click((e) => {
             svv.tracker.push('Click=UnsureReason_Skip');
             svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
-            _validateLabel('Unsure', e.isTrigger);
+            this.#validateLabel('Unsure', e.isTrigger);
         });
     }
 
-    function resetMenu(label) {
+    resetMenu(label) {
+        const menuUI = this.#menuUI;
         const prevValResult = label.getProperty('validationResult');
         if (prevValResult === undefined) {
             // This is a new label (not returning from an undo), so reset everything.
@@ -115,8 +127,8 @@ function MobileValidationMenu(menuUI) {
             menuUI.noMenu.css('display', 'none');
             menuUI.unsureMenu.css('display', 'none');
             menuUI.mobilePopupNotch.removeClass('mobile-popup-notch-no mobile-popup-notch-unsure');
-            $disagreeReasonButtons.removeClass('chosen');
-            $unsureReasonButtons.removeClass('chosen');
+            this.#disagreeReasonButtons.removeClass('chosen');
+            this.#unsureReasonButtons.removeClass('chosen');
             menuUI.disagreeReasonTextBox.removeClass('chosen');
             menuUI.unsureReasonTextBox.removeClass('chosen');
             menuUI.disagreeReasonTextBox.val('');
@@ -124,7 +136,7 @@ function MobileValidationMenu(menuUI) {
 
             // Update the text and tooltips on each disagree and unsure reason buttons.
             const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
-            for (const reasonButton of $disagreeReasonButtons.add($unsureReasonButtons)) {
+            for (const reasonButton of this.#disagreeReasonButtons.add(this.#unsureReasonButtons)) {
                 const $reasonButton = $(reasonButton);
                 const buttonInfo = svv.reasonButtonInfo[labelType][$reasonButton.attr('id')];
                 if (buttonInfo) {
@@ -134,10 +146,10 @@ function MobileValidationMenu(menuUI) {
                     $reasonButton.tooltip('destroy');
                     if (buttonInfo.tooltipImage) {
                         util.getImage(buttonInfo.tooltipImage).then(img => {
-                            _addTooltip($reasonButton, buttonInfo.tooltipText, img);
+                            this.#addTooltip($reasonButton, buttonInfo.tooltipText, img);
                         });
                     } else {
-                        _addTooltip($reasonButton, buttonInfo.tooltipText);
+                        this.#addTooltip($reasonButton, buttonInfo.tooltipText);
                     }
 
                     // Adds a class as a way to show that this button has associated text.
@@ -153,8 +165,8 @@ function MobileValidationMenu(menuUI) {
             menuUI.submitButton.prop('disabled', true);
         } else {
             // This is a validation that they are going back to, so update all the views to match what they had before.
-            let disagreeOption = label.getProperty('disagreeOption');
-            $disagreeReasonButtons.removeClass('chosen');
+            const disagreeOption = label.getProperty('disagreeOption');
+            this.#disagreeReasonButtons.removeClass('chosen');
             if (disagreeOption === 'other') {
                 menuUI.disagreeReasonTextBox.addClass('chosen');
                 menuUI.disagreeReasonTextBox.val(label.getProperty('disagreeReasonTextBox'));
@@ -164,8 +176,8 @@ function MobileValidationMenu(menuUI) {
                 menuUI.disagreeReasonOptions.find(`#${disagreeOption}`).addClass('chosen');
             }
 
-            let unsureOption = label.getProperty('unsureOption');
-            $unsureReasonButtons.removeClass('chosen');
+            const unsureOption = label.getProperty('unsureOption');
+            this.#unsureReasonButtons.removeClass('chosen');
             if (unsureOption === 'other') {
                 menuUI.unsureReasonTextBox.addClass('chosen');
                 menuUI.unsureReasonTextBox.val(label.getProperty('unsureReasonTextBox'));
@@ -175,13 +187,14 @@ function MobileValidationMenu(menuUI) {
                 menuUI.unsureReasonOptions.find(`#${unsureOption}`).addClass('chosen');
             }
 
-            if (prevValResult === 'Agree')         _setYesView();
-            else if (prevValResult === 'Disagree') _setNoView();
-            else if (prevValResult === 'Unsure')   _setUnsureView();
+            if (prevValResult === 'Agree')         this.#setYesView();
+            else if (prevValResult === 'Disagree') this.#setNoView();
+            else if (prevValResult === 'Unsure')   this.#setUnsureView();
         }
     }
 
-    function _setYesView() {
+    #setYesView() {
+        const menuUI = this.#menuUI;
         menuUI.yesButton.addClass('chosen');
         menuUI.noButton.removeClass('chosen');
         menuUI.unsureButton.removeClass('chosen');
@@ -192,7 +205,8 @@ function MobileValidationMenu(menuUI) {
         menuUI.submitButton.prop('disabled', false); // TODO probably won't do this, just submit automatically.
     }
 
-    function _setNoView() {
+    #setNoView() {
+        const menuUI = this.#menuUI;
         menuUI.yesButton.removeClass('chosen');
         menuUI.noButton.addClass('chosen');
         menuUI.unsureButton.removeClass('chosen');
@@ -202,7 +216,8 @@ function MobileValidationMenu(menuUI) {
         menuUI.submitButton.prop('disabled', false);
     }
 
-    function _setUnsureView() {
+    #setUnsureView() {
+        const menuUI = this.#menuUI;
         menuUI.yesButton.removeClass('chosen');
         menuUI.noButton.removeClass('chosen');
         menuUI.unsureButton.addClass('chosen');
@@ -216,10 +231,9 @@ function MobileValidationMenu(menuUI) {
      * Adds a jquery tooltip to the given element with the given text and image (if given).
      * @param {jQuery} $elem Element to add the tooltip to, as jquery wrapped object.
      * @param {string} tooltipText Text to display in the tooltip.
-     * @param {string} img Optional image to display in the tooltip.
-     * @private
+     * @param {string} [img] Optional image to display in the tooltip.
      */
-    function _addTooltip($elem, tooltipText, img) {
+    #addTooltip($elem, tooltipText, img) {
         // Add the tooltip only on non-touch devices.
         if (window.matchMedia('(hover: hover)').matches) {
             const tooltipHtml = img ? `${tooltipText}<br/><img src="${img}" height="140"/>` : tooltipText;
@@ -234,8 +248,9 @@ function MobileValidationMenu(menuUI) {
     }
 
     // VALIDATING 'NO' SECTION.
-    function _setDisagreeReason(id) {
-        $disagreeReasonButtons.removeClass('chosen');
+    #setDisagreeReason(id) {
+        const menuUI = this.#menuUI;
+        this.#disagreeReasonButtons.removeClass('chosen');
         if (id === 'other') {
             menuUI.disagreeReasonTextBox.addClass('chosen');
             svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', 'other');
@@ -248,8 +263,9 @@ function MobileValidationMenu(menuUI) {
     }
 
     // VALIDATING 'UNSURE' SECTION.
-    function _setUnsureReason(id) {
-        $unsureReasonButtons.removeClass('chosen');
+    #setUnsureReason(id) {
+        const menuUI = this.#menuUI;
+        this.#unsureReasonButtons.removeClass('chosen');
         if (id === 'other') {
             menuUI.unsureReasonTextBox.addClass('chosen');
             svv.labelContainer.getCurrentLabel().setProperty('unsureOption', 'other');
@@ -261,8 +277,9 @@ function MobileValidationMenu(menuUI) {
         }
     }
 
-    function saveValidationState() {
-        let currLabel = svv.labelContainer.getCurrentLabel();
+    saveValidationState() {
+        const menuUI = this.#menuUI;
+        const currLabel = svv.labelContainer.getCurrentLabel();
         currLabel.setProperty('disagreeReasonTextBox', menuUI.disagreeReasonTextBox.val());
         currLabel.setProperty('unsureReasonTextBox', menuUI.unsureReasonTextBox.val());
     }
@@ -272,11 +289,12 @@ function MobileValidationMenu(menuUI) {
      * @param {string} action Validation action - must be one of Agree, Disagree, or Unsure.
      * @param {boolean} keyboardShortcut Whether or not the validation was triggered by a keyboard shortcut.
      */
-    function _validateLabel(action, keyboardShortcut) {
+    #validateLabel(action, keyboardShortcut) {
+        const menuUI = this.#menuUI;
         const actionStr = keyboardShortcut ? 'ValidationKeyboardShortcut_Submit_Validation=' : 'Click=Submit_Validation=';
-        let timestamp = new Date();
+        const timestamp = new Date();
         svv.tracker.push(actionStr + action);
-        let currLabel = svv.labelContainer.getCurrentLabel();
+        const currLabel = svv.labelContainer.getCurrentLabel();
 
         // Resets CSS elements for all buttons to their default states.
         menuUI.yesButton.removeClass('validate');
@@ -284,12 +302,12 @@ function MobileValidationMenu(menuUI) {
         menuUI.unsureButton.removeClass('validate');
 
         // Save anything they typed in either text box so that it's there again if they undo their validation.
-        saveValidationState();
+        this.saveValidationState();
 
         // Fill in the comment based on the disagree options they picked or one of the free form text boxes.
         let comment = '';
         if (action === 'Disagree') {
-            let disagreeReason = currLabel.getProperty('disagreeOption');
+            const disagreeReason = currLabel.getProperty('disagreeOption');
             if (disagreeReason === 'other') {
                 comment = currLabel.getProperty('disagreeReasonTextBox');
             } else if (disagreeReason) {
@@ -298,7 +316,7 @@ function MobileValidationMenu(menuUI) {
                 comment = '';
             }
         } else if (action === 'Unsure') {
-            let unsureReason = currLabel.getProperty('unsureOption');
+            const unsureReason = currLabel.getProperty('unsureOption');
             if (unsureReason === 'other') {
                 comment = currLabel.getProperty('unsureReasonTextBox');
             } else if (unsureReason) {
@@ -314,10 +332,4 @@ function MobileValidationMenu(menuUI) {
             svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
         }
     }
-
-    self.resetMenu = resetMenu;
-    self.saveValidationState = saveValidationState;
-
-    _init();
-    return self;
 }

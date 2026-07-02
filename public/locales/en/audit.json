@@ -95,7 +95,7 @@
     },
     "controls": {
         "stuck": "Stuck",
-        "stuck-tooltip": "We'll try to move you back to your mission",
+        "stuck-tooltip": "We'll try to move you back to your mission — or press the spacebar",
         "sound": "Sound",
         "feedback": "Feedback",
         "feedback-tooltip": "Share your thoughts with us",
@@ -250,6 +250,7 @@
         "signup-body": "Do you want to create an account to keep track of your progress?",
         "severity-shortcuts": "Please provide severity ratings for each label by pressing keys <kbd>1</kbd> through <kbd>3</kbd>",
         "zoom-shortcuts": "You can also press the <kbd>Z</kbd> key to zoom in and the <kbd>Shift</kbd> + <kbd>Z</kbd> keys to zoom out.",
+        "move-forward-shortcut": "You can also press the <kbd>Space</kbd> bar to move forward along your route.",
         "label-shortcuts-curb-ramp": "You can also press the <kbd>{{key}}</kbd> key for selecting the Curb Ramp label.",
         "label-shortcuts-no-curb-ramp": "You can also press the <kbd>{{key}}</kbd> key for selecting the Missing Curb Ramp label.",
         "label-shortcuts-obstacle": "You can also press the <kbd>{{key}}</kbd> key for selecting the Obstacle label.",

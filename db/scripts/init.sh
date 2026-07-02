@@ -1,4 +1,27 @@
 #!/bin/sh -e
+# =====================================================================================================================
+# init.sh — first-boot initializer for the dev/CI Postgres+PostGIS database.
+#
+# WHY THIS EXISTS: a fresh `projectsidewalk-db` container starts with an empty data directory. Postgres' official image
+# runs every executable script in /docker-entrypoint-initdb.d/ exactly once, on that first boot, before the server
+# accepts normal connections. docker-compose mounts this file there (see docker-compose.yml), so this is where we
+# create the `sidewalk` database/role, enable PostGIS, and load the small committed *template* dumps that every later
+# step builds on. It does NOT load full city data — that's `import-dump.sh` (run by hand afterward).
+#
+# WHAT IT DOES:
+#   1. (Re)create the `sidewalk` database + roles (sidewalk, saugstad, sidewalk_init).
+#   2. Enable the plpgsql + postgis extensions.
+#   3. Restore the committed template dumps: the login schema (sidewalk_init_users-dump) and the empty-but-structured
+#      city template (sidewalk_init-dump). CI clones the latter into a test city (see .github/workflows/ci.yml).
+#   4. Seed the SidewalkAI user and a read-only `readonly_user` role for safe DB exploration (used by Claude Code).
+#   5. Switch local password auth to `trust` in pg_hba.conf (DEV ONLY — never do this on a real server).
+#
+# POSIX sh on purpose: the Postgres entrypoint invokes this with `#!/bin/sh`, so keep it dash-compatible (no bashisms).
+# Shebang sets `-e` (abort on first error); there are no shell variables here (all logic is SQL), so `-u` buys nothing.
+#
+# GOTCHA: this only runs on a *fresh* data volume. If you change it, existing dev DBs won't pick it up until the volume
+# is recreated (`make docker-stop` + remove the db volume, or `docker compose down -v`).
+# =====================================================================================================================
 
 psql -v ON_ERROR_STOP=1 -U postgres -d postgres <<-EOSQL
     SELECT pg_terminate_backend(pg_stat_activity.pid)
@@ -30,8 +53,8 @@ psql -v ON_ERROR_STOP=1 -U sidewalk -d sidewalk <<-EOSQL
     COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial types and functions';
 EOSQL
 
-pg_restore -U sidewalk -Fc -d sidewalk /opt/sidewalk_init_users_dump
-pg_restore -U sidewalk -Fc -d sidewalk /opt/sidewalk_init_dump
+pg_restore -U sidewalk -Fc -d sidewalk /opt/sidewalk_init_users-dump
+pg_restore -U sidewalk -Fc -d sidewalk /opt/sidewalk_init-dump
 
 # Add the AI user and create a read-only user for safe database exploration (e.g., by Claude Code).
 psql -v ON_ERROR_STOP=1 -U sidewalk -d sidewalk <<-'EOSQL'

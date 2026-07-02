@@ -1,12 +1,47 @@
-async function AdminCommentPopup(admin, viewerType, viewerAccessToken) {
-    const self = {};
-    self.admin = admin;
+/**
+ * Modal popup that shows the GSV location where a user left a comment, along with the label if there is one.
+ */
+class AdminCommentPopup {
+    #admin;
+    #viewerType;
+    #viewerAccessToken;
+    #modal;
+    #svHolder;
+    #validateSection;
+    #panoManager;
 
-    const _init = async function() {
-        await _resetModal();
-    };
+    /**
+     * @param {boolean} admin - Whether the viewer is an admin (selects the admin label endpoint).
+     * @param {Function} viewerType - Pano viewer constructor; only GsvViewer is currently supported.
+     * @param {string} viewerAccessToken
+     */
+    constructor(admin, viewerType, viewerAccessToken) {
+        this.#admin = admin;
+        this.#viewerType = viewerType;
+        this.#viewerAccessToken = viewerAccessToken;
+    }
 
-    async function _resetModal() {
+    /**
+     * Builds the modal and (for GSV) pre-initializes its pano viewer.
+     *
+     * Async because the pano viewer must be created before the popup is usable; a constructor cannot be async.
+     *
+     * @param {boolean} admin
+     * @param {Function} viewerType
+     * @param {string} viewerAccessToken
+     * @returns {Promise<AdminCommentPopup>}
+     */
+    static async create(admin, viewerType, viewerAccessToken) {
+        const popup = new AdminCommentPopup(admin, viewerType, viewerAccessToken);
+        await popup.#resetModal();
+        return popup;
+    }
+
+    /**
+     * Builds the modal DOM and, for GSV, initializes the pano viewer while the modal is briefly shown hidden.
+     * @returns {Promise<void>} Resolves once the pano viewer has loaded and the modal has been closed again.
+     */
+    #resetModal() {
         const modalText =
             '<div class="modal fade" id="comment-modal" tabindex="-1" role="dialog" aria-labelledby="modal-comment">' +
                 '<div class="modal-dialog" role="document" style="width: 840px">' +
@@ -24,10 +59,10 @@ async function AdminCommentPopup(admin, viewerType, viewerAccessToken) {
                 '</div>' +
             '</div>';
 
-        self.modal = $(modalText);
+        this.#modal = $(modalText);
 
-        self.svHolder = self.modal.find('#sv-holder-comment');
-        self.validateSection = self.modal.find('#button-holder');
+        this.#svHolder = this.#modal.find('#sv-holder-comment');
+        this.#validateSection = this.#modal.find('#button-holder');
 
         // For the both Mapillary and infra3D, the associated DOM element has to exist upon initialization. For
         // Mapillary, it can't be set to display: none. So we show the modal (with visibility: hidden) during init. Once
@@ -36,21 +71,21 @@ async function AdminCommentPopup(admin, viewerType, viewerAccessToken) {
         return new Promise((resolve) => {
             // TODO not supported w/ infra3D, as it can't have multiple viewers per page, a conflict with label viewer.
             // TODO my guess is that this is the same reason the Mapillary didn't work, though I didn't test fully.
-            if (viewerType !== GsvViewer) {
+            if (this.#viewerType !== GsvViewer) {
                 resolve();
             } else {
-                self.modal.one('shown.bs.modal', async () => {
-                    self.panoManager =
-                        await PopupPanoManager(self.svHolder[0], self.validateSection, admin, viewerType, viewerAccessToken);
+                this.#modal.one('shown.bs.modal', async () => {
+                    this.#panoManager = await PopupPanoManager.create(
+                        this.#svHolder[0], this.#validateSection, this.#admin, this.#viewerType, this.#viewerAccessToken);
 
                     // Once the modal has finished closing, we can set it as visible and resolve the Promise.
-                    self.modal.one('hidden.bs.modal', async () => {
-                        self.modal.css('visibility', 'visible');
+                    this.#modal.one('hidden.bs.modal', async () => {
+                        this.#modal.css('visibility', 'visible');
                         resolve();
                     });
-                    self.modal.modal('hide');
+                    this.#modal.modal('hide');
                 });
-                self.modal.css('visibility', 'hidden').modal('show');
+                this.#modal.css('visibility', 'hidden').modal('show');
                 $('.modal-backdrop').css('visibility', 'hidden'); // Prevents backdrop from appearing briefly.
             }
         });
@@ -63,16 +98,16 @@ async function AdminCommentPopup(admin, viewerType, viewerAccessToken) {
      * @param {number} [labelId]
      * @returns {Promise<void>}
      */
-    async function showCommentGSV(panoId, pov, labelId) {
+    async showCommentGSV(panoId, pov, labelId) {
         // Open the modal. Listening to an event to know when it's fully open.
         const modalOpened = new Promise((resolve) => {
-            self.modal.one('shown.bs.modal', () => resolve());
+            this.#modal.one('shown.bs.modal', () => resolve());
         });
-        self.modal.modal('show');
+        this.#modal.modal('show');
         await modalOpened;
 
-        if (viewerType !== GsvViewer) {
-            self.svHolder.text('Only supported with Google imagery at this time, sorry!');
+        if (this.#viewerType !== GsvViewer) {
+            this.#svHolder.text('Only supported with Google imagery at this time, sorry!');
             return;
         }
 
@@ -80,21 +115,25 @@ async function AdminCommentPopup(admin, viewerType, viewerAccessToken) {
         // setPano() from the start, instead of arriving only after the popup has already given up on live imagery.
         let labelMetadata = null;
         if (labelId) {
-            const adminLabelUrl = admin ? '/adminapi/label/id/' + labelId : '/label/id/' + labelId;
+            const adminLabelUrl = this.#admin ? '/adminapi/label/id/' + labelId : '/label/id/' + labelId;
             const response = await fetch(adminLabelUrl);
             if (response.ok) labelMetadata = await response.json();
         }
 
         if (labelMetadata) {
             const backupImage = buildBackupImageData(labelMetadata);
-            await self.panoManager.setPano(panoId, pov, labelMetadata.crop_url, labelMetadata.expired, backupImage);
-            setLabel(labelMetadata);
+            await this.#panoManager.setPano(panoId, pov, labelMetadata.crop_url, labelMetadata.expired, backupImage);
+            this.#setLabel(labelMetadata);
         } else {
-            await self.panoManager.setPano(panoId, pov);
+            await this.#panoManager.setPano(panoId, pov);
         }
     }
 
-    function setLabel(labelMetadata) {
+    /**
+     * Renders the given label inside the popup's pano viewer.
+     * @param {Object} labelMetadata - Label metadata from the admin/label API.
+     */
+    #setLabel(labelMetadata) {
         const labelPov = {
             heading: labelMetadata.heading,
             pitch: labelMetadata.pitch,
@@ -116,11 +155,7 @@ async function AdminCommentPopup(admin, viewerType, viewerAccessToken) {
             newTags: labelMetadata.tags,
             aiGenerated: labelMetadata['ai_generated'] === true
         };
-        self.panoManager.setLabel(popupLabel);
-        self.panoManager.renderLabel(popupLabel);
+        this.#panoManager.setLabel(popupLabel);
+        this.#panoManager.renderLabel(popupLabel);
     }
-
-    await _init();
-    self.showCommentGSV = showCommentGSV;
-    return self;
 }

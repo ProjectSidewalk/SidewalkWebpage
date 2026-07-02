@@ -79,6 +79,21 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
 
   val config = TableQuery[ConfigTableDef]
 
+  /**
+   * Runs `action` in a transaction with JIT disabled for the duration of that transaction.
+   *
+   * Interim workaround for #4376: the projectsidewalk/db image ships a broken Postgres JIT (PostGIS bitcode built with
+   * LLVM 16, runtime llvmjit linked against LLVM 11). An expensive query that JIT-inlines PostGIS function bitcode
+   * (ST_TRANSFORM/ST_LENGTH) segfaults the backend, surfacing as a dropped connection (SQLSTATE 08006). The cross-city
+   * scorecard and labeling-speed queries cross the JIT cost thresholds and call those functions, so they trip it.
+   * `SET LOCAL` scopes the setting to this one transaction. Remove once #4376 disables JIT at the DB config level.
+   *
+   * @param action The DBIO to run with JIT off.
+   * @return       The same action, wrapped so JIT is disabled for its transaction.
+   */
+  private def withJitOff[T](action: DBIO[T]): DBIO[T] =
+    (sqlu"SET LOCAL jit = off" >> action).transactionally
+
   def getCityMapParams: DBIO[MapParams] = {
     config.result.head.map(_.cityMapParams)
   }
@@ -379,27 +394,27 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
              audit_windows.audits_30d   AS audits_30d,
              last_activity.ts           AS last_activity
       FROM (
-          SELECT COUNT(*) AS cnt FROM "#$schema".street_edge WHERE deleted = FALSE
+          SELECT COUNT(*) AS cnt FROM "#$schema".street_edge WHERE status = 'open'
       ) AS total_streets, (
-          -- Filter audited streets to non-deleted so the numerator can't exceed total_streets (deleted streets can
+          -- Filter audited streets to open-only so the numerator can't exceed total_streets (non-open streets can
           -- still have audit_task rows, which would push coverage above 100% and make "streets left" negative). #4329
           SELECT COUNT(DISTINCT street_edge.street_edge_id) AS cnt
           FROM "#$schema".street_edge
           INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
-          WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.deleted = FALSE
+          WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open'
       ) AS audited_streets, (
           SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km
-          FROM "#$schema".street_edge WHERE deleted = FALSE
+          FROM "#$schema".street_edge WHERE status = 'open'
       ) AS street_km, (
-          -- Distinct audited length (no double-counting overlapping audits), non-deleted only (see audited_streets).
+          -- Distinct audited length (no double-counting overlapping audits), open-only (see audited_streets).
           SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km
           FROM (
               SELECT DISTINCT street_edge.street_edge_id, geom
               FROM "#$schema".street_edge
               INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
               INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
-              WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.deleted = FALSE
+              WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open'
           ) AS distinct_audited
       ) AS audited_km, (
           SELECT COUNT(DISTINCT label.label_id) AS label_count,
@@ -499,8 +514,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
 
     // Fold in the per-label-type breakdown, the weekly trend, and the (cheap) per-user output/speed stats (same
     // connection), then assemble the full scorecard. The expensive labeling-speed query is NOT here — it is computed on
-    // a separate long-cached path (getCrossCityLabelingSpeed).
-    for {
+    // a separate long-cached path (getCrossCityLabelingSpeed). Wrapped in withJitOff because coreQuery's km calc uses
+    // PostGIS (#4376).
+    withJitOff(for {
       core        <- coreQuery
       byLabelType <- getLabelTypeStatsBySchema(schema)
       weeklyTrend <- getCityWeeklyTrendBySchema(schema, Some(ScorecardTrendWeeks))
@@ -544,7 +560,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         numValidators = nValidators,
         validationSecondsMedian = valSecMedian
       )
-    }
+    })
   }
 
   /**
@@ -670,7 +686,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   def getCityLabelingSpeedBySchema(schema: String): DBIO[(Double, Double)] = {
     implicit val getResult: GetResult[(Double, Double)] = GetResult(r => (r.nextDouble(), r.nextDouble()))
 
-    sql"""
+    // Wrapped in withJitOff because the audited-km subquery uses PostGIS (#4376).
+    withJitOff(sql"""
       SELECT COALESCE(audit_time.hours, 0) AS hours,
              COALESCE(audited.km, 0)       AS km
       FROM (
@@ -686,9 +703,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           FROM "#$schema".street_edge
           INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
-          WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.deleted = FALSE
+          WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open'
       ) AS audited;
-    """.as[(Double, Double)].head
+    """.as[(Double, Double)].head)
   }
 
   def getTutorialStreetId: DBIO[Int] = {

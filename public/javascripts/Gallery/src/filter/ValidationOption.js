@@ -1,76 +1,76 @@
 /**
  * A Validation Option module.
- *
- * @param {*} params Properties of validation option.
- * @param applied A boolean to see if the current validation option filter is active.
- * @returns {ValidationOption}
- * @constructor
  */
-function ValidationOption (params, applied) {
-    const self = this;
-
+class ValidationOption {
     // UI element of the validation option container and image.
-    let validationOptionElement = null;
+    #validationOptionElement = null;
 
-    let properties = {
+    #properties = {
         validationOption: undefined
     };
 
     // A boolean to see if the current validation option filter is active.
-    let status = {
-        applied: applied
-    };
+    #status;
+
+    /**
+     * @param {*} params Properties of validation option.
+     * @param {boolean} applied A boolean to see if the current validation option filter is active.
+     */
+    constructor(params, applied) {
+        this.#status = { applied: applied };
+        this.#init(params);
+    }
 
     /**
      * Initialize ValidationOption.
      *
      * @param {int} param ValidationOption.
      */
-    function _init(param) {
-        Object.keys(param).forEach( attrName => properties[attrName] = param[attrName]);
+    #init(param) {
+        Object.keys(param).forEach(attrName => this.#properties[attrName] = param[attrName]);
 
-        validationOptionElement = document.createElement('button');
-        validationOptionElement.className = "gallery-filter-validation-button gallery-filter-button gallery-filter";
-        validationOptionElement.id = properties.validationOption;
-        validationOptionElement.innerText = i18next.t('common:' + properties.validationOption);
-        validationOptionElement.disabled = true; // Will be enabled once images load.
+        this.#validationOptionElement = document.createElement('button');
+        this.#validationOptionElement.className = "gallery-filter-validation-button gallery-filter-button gallery-filter";
+        this.#validationOptionElement.id = this.#properties.validationOption;
+        this.#validationOptionElement.innerText = i18next.t('common:' + this.#properties.validationOption);
+        this.#validationOptionElement.disabled = true; // Will be enabled once images load.
 
-        if (status.applied) {
-            apply();
+        if (this.#status.applied) {
+            this.apply();
         }
 
-        validationOptionElement.onclick = handleOnClickCallback;
+        this.#validationOptionElement.onclick = this.handleOnClickCallback;
     }
 
     /**
      * Handles when validation option is selected/deselected.
      */
-    function handleOnClickCallback() {
-        if (status.applied) {
-            sg.tracker.push("ValidationOptionUnapply", null, { ValidationOption: properties.validationOption });
-            unapply();
+    handleOnClickCallback = () => {
+        if (this.#status.applied) {
+            sg.tracker.push("ValidationOptionUnapply", null, { ValidationOption: this.#properties.validationOption });
+            this.unapply();
         } else {
-            sg.tracker.push("ValidationOptionApply", null, { ValidationOption: properties.validationOption });
-            apply();
+            sg.tracker.push("ValidationOptionApply", null, { ValidationOption: this.#properties.validationOption });
+            this.apply();
         }
 
         sg.cardFilter.update();
-    }
+    };
 
     /**
      * Applies a validation option filter.
      */
-    function apply() {
-        status.applied = true;
-        validationOptionElement.classList.add("gallery-filter-button-selected");
+    apply() {
+        this.#status.applied = true;
+        this.#validationOptionElement.classList.add("gallery-filter-button-selected");
     }
 
     /**
      * Unapplies a validation option filter.
      */
-    function unapply() {
-        status.applied = false;
-        validationOptionElement.classList.remove("gallery-filter-button-selected");
+    unapply() {
+        this.#status.applied = false;
+        this.#validationOptionElement.classList.remove("gallery-filter-button-selected");
     }
 
     /**
@@ -78,32 +78,21 @@ function ValidationOption (params, applied) {
      *
      * @param {*} filterContainer UI element to render ValidationOption in.
      */
-    function render(filterContainer) {
-        filterContainer.append(validationOptionElement);
+    render(filterContainer) {
+        filterContainer.append(this.#validationOptionElement);
     }
 
     /**
      * Returns whether ValidationOption is applied or not.
      */
-    function getActive(){
-        return status.applied;
+    getActive() {
+        return this.#status.applied;
     }
 
     /**
      * Returns validation option value of ValidationOption.
      */
-    function getValidationOption() {
-        return properties.validationOption;
+    getValidationOption() {
+        return this.#properties.validationOption;
     }
-
-    self.handleOnClickCallback = handleOnClickCallback;
-    self.apply = apply;
-    self.unapply = unapply;
-    self.getActive = getActive;
-    self.getValidationOption = getValidationOption;
-    self.render = render;
-
-    _init(params);
-
-    return this;
 }

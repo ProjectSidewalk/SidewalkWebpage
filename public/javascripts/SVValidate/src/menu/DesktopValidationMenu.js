@@ -1,33 +1,44 @@
 /**
  * Initializes the primary validation UI on the right side, including validation of tags/severity.
- * @constructor
  */
-function DesktopValidationMenu(menuUI) {
-    const self = this;
-    const $disagreeReasonButtons = menuUI.disagreeReasonOptions.children('.validation-reason-button');
-    const $unsureReasonButtons = menuUI.unsureReasonOptions.children('.validation-reason-button');
-    let $tagSelect;
+class DesktopValidationMenu {
+    #menuUI;
+    #disagreeReasonButtons;
+    #unsureReasonButtons;
+    #tagSelect;
+    #tagsAddedByUser = [];
 
-    let tagsAddedByUser = []
+    /**
+     * @param {object} menuUI Validation menu UI elements.
+     */
+    constructor(menuUI) {
+        this.#menuUI = menuUI;
+        this.#disagreeReasonButtons = menuUI.disagreeReasonOptions.children('.validation-reason-button');
+        this.#unsureReasonButtons = menuUI.unsureReasonOptions.children('.validation-reason-button');
 
-    function _init() {
+        this.#init();
+    }
+
+    #init() {
+        const menuUI = this.#menuUI;
+
         // Add onclick for each validation button.
-        menuUI.yesButton.click(function(e) {
+        menuUI.yesButton.click((e) => {
             const action = e.isTrigger ? 'ValidationKeyboardShortcut_Agree' : 'ValidationButtonClick_Agree';
             svv.tracker.push(action);
-            _setYesView();
+            this.#setYesView();
             svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Agree');
         });
-        menuUI.noButton.click(function(e) {
+        menuUI.noButton.click((e) => {
             const action = e.isTrigger ? 'ValidationKeyboardShortcut_Disagree' : 'ValidationButtonClick_Disagree';
             svv.tracker.push(action);
-            _setNoView();
+            this.#setNoView();
             svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Disagree');
         });
-        menuUI.unsureButton.click(function(e) {
+        menuUI.unsureButton.click((e) => {
             const action = e.isTrigger ? 'ValidationKeyboardShortcut_Unsure' : 'ValidationButtonClick_Unsure';
             svv.tracker.push(action);
-            _setUnsureView();
+            this.#setUnsureView();
             svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Unsure');
         });
 
@@ -35,40 +46,40 @@ function DesktopValidationMenu(menuUI) {
         if (svv.adminVersion) {
             // Add onclick for each severity button.
             const $severityButtons = menuUI.severityMenu.find('.severity-button');
-            $severityButtons.click(function (e) {
-                let currLabel = svv.labelContainer.getCurrentLabel();
+            $severityButtons.click((e) => {
+                const currLabel = svv.labelContainer.getCurrentLabel();
                 const oldSeverity = currLabel.getProperty('newSeverity');
                 const newSeverity = $(e.target).closest('.severity-button').data('severity');
-                const labelType = currLabel.getAuditProperty('labelType')
+                const labelType = currLabel.getAuditProperty('labelType');
                 if (oldSeverity !== newSeverity && util.misc.labelTypeHasSeverity(labelType)) {
                     svv.tracker.push(`Click=Severity_Old=${oldSeverity}_New=${newSeverity}`);
                     currLabel.setProperty('newSeverity', newSeverity);
-                    _renderSeverity();
+                    this.#renderSeverity();
                 }
             });
 
             // Initialize the selectize object for tags (this is the auto-completing tag picker).
-            $tagSelect = $('#select-tag').selectize({
+            this.#tagSelect = $('#select-tag').selectize({
                 maxItems: 1,
                 placeholder: 'Add more tags here',
                 labelField: 'tag_name',
                 valueField: 'tag_name',
                 searchField: 'tag_name',
                 sortField: 'popularity', // TODO include data abt frequency of use on this server.
-                onFocus: function () {
+                onFocus: () => {
                     svv.tracker.push('Click=TagSearch');
                 },
-                onItemAdd: function (tagName, $item) {
-                    tagsAddedByUser.push(tagName);
-                    _addTag(tagName, false);
+                onItemAdd: (tagName) => {
+                    this.#tagsAddedByUser.push(tagName);
+                    this.#addTag(tagName, false);
                 },
                 render: {
-                    option: function (item, escape) {
+                    option: (item, escape) => {
                         // Add an example image tooltip to the tag.
                         const translatedTagName = i18next.t('common:tag.' + item.tag_name.replace(/:/g, '-'));
-                        let $tagDiv = $(`<div class="option tag-pill tag-pill--interactive">${escape(translatedTagName)}</div>`);
-                        const tooltipText = `"${translatedTagName}" example`
-                        _addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${item.tag_id}.png`);
+                        const $tagDiv = $(`<div class="option tag-pill tag-pill--interactive">${escape(translatedTagName)}</div>`);
+                        const tooltipText = `"${translatedTagName}" example`;
+                        this.#addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${item.tag_id}.png`);
                         return $tagDiv[0];
                     }
                 }
@@ -76,72 +87,73 @@ function DesktopValidationMenu(menuUI) {
         }
 
         // Add onclick for disagree and unsure reason buttons.
-        for (const reasonButton of $disagreeReasonButtons) {
-            reasonButton.onclick = function(e) {
+        for (const reasonButton of this.#disagreeReasonButtons) {
+            reasonButton.onclick = (e) => {
                 if (e.isTrigger) {
-                    svv.tracker.push('KeyboardShortcut_DisagreeReason_Option=' + $(this).attr('id'));
+                    svv.tracker.push('KeyboardShortcut_DisagreeReason_Option=' + $(reasonButton).attr('id'));
                 } else {
-                    svv.tracker.push('Click=DisagreeReason_Option=' + $(this).attr('id'));
+                    svv.tracker.push('Click=DisagreeReason_Option=' + $(reasonButton).attr('id'));
                 }
-                _setDisagreeReason($(this).attr('id'));
+                this.#setDisagreeReason($(reasonButton).attr('id'));
             };
         }
-        for (const reasonButton of $unsureReasonButtons) {
-            reasonButton.onclick = function(e) {
+        for (const reasonButton of this.#unsureReasonButtons) {
+            reasonButton.onclick = (e) => {
                 if (e.isTrigger) {
-                    svv.tracker.push('KeyboardShortcut_UnsureReason_Option=' + $(this).attr('id'));
+                    svv.tracker.push('KeyboardShortcut_UnsureReason_Option=' + $(reasonButton).attr('id'));
                 } else {
-                    svv.tracker.push('Click=UnsureReason_Option=' + $(this).attr('id'));
+                    svv.tracker.push('Click=UnsureReason_Option=' + $(reasonButton).attr('id'));
                 }
-                _setUnsureReason($(this).attr('id'));
+                this.#setUnsureReason($(reasonButton).attr('id'));
             };
         }
 
         // Log clicks to the three text boxes.
-        menuUI.optionalCommentTextBox.click(function(e) {
+        menuUI.optionalCommentTextBox.click((e) => {
             menuUI.optionalCommentTextBox.focus();
             const action = e.isTrigger ? 'KeyboardShortcut=AgreeCommentTextbox': 'Click=AgreeCommentTextbox';
             svv.tracker.push(action);
         });
-        menuUI.disagreeReasonTextBox.click(function(e) {
+        menuUI.disagreeReasonTextBox.click((e) => {
             menuUI.disagreeReasonTextBox.focus();
             const action = e.isTrigger ? 'KeyboardShortcut=DisagreeReasonTextbox': 'Click=DisagreeReasonTextbox';
             svv.tracker.push(action);
         });
-        menuUI.unsureReasonTextBox.click(function(e) {
+        menuUI.unsureReasonTextBox.click((e) => {
             menuUI.unsureReasonTextBox.focus();
             const action = e.isTrigger ? 'KeyboardShortcut=UnsureReasonTextbox': 'Click=UnsureReasonTextbox';
             svv.tracker.push(action);
         });
 
         // Add oninput for disagree and unsure other reason text boxes.
-        menuUI.disagreeReasonTextBox.on('input', function() {
+        menuUI.disagreeReasonTextBox.on('input', () => {
             if (menuUI.disagreeReasonTextBox.val() === '') {
                 menuUI.disagreeReasonTextBox.removeClass('chosen');
                 svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
             } else {
-                _setDisagreeReason('other');
+                this.#setDisagreeReason('other');
             }
         });
-        menuUI.unsureReasonTextBox.on('input', function() {
+        menuUI.unsureReasonTextBox.on('input', () => {
             if (menuUI.unsureReasonTextBox.val() === '') {
                 menuUI.unsureReasonTextBox.removeClass('chosen');
                 svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
             } else {
-                _setUnsureReason('other');
+                this.#setUnsureReason('other');
             }
         });
 
         // Add onclick for submit button.
-        menuUI.submitButton.click(function(e) {
+        menuUI.submitButton.click((e) => {
             if (!e.target.disabled) {
-                _validateLabel(svv.labelContainer.getCurrentLabel().getProperty('validationResult'), e.isTrigger);
+                this.#validateLabel(svv.labelContainer.getCurrentLabel().getProperty('validationResult'), e.isTrigger);
             }
         });
     }
 
-    function resetMenu(label) {
-        tagsAddedByUser = [];
+    resetMenu(label) {
+        const menuUI = this.#menuUI;
+        this.#tagsAddedByUser = [];
         const prevValResult = label.getProperty('validationResult');
         if (prevValResult === undefined) {
             // This is a new label (not returning from an undo), so reset everything.
@@ -154,8 +166,8 @@ function DesktopValidationMenu(menuUI) {
             menuUI.optionalCommentTextBox.val('');
             menuUI.noMenu.css('display', 'none');
             menuUI.unsureMenu.css('display', 'none');
-            $disagreeReasonButtons.removeClass('chosen');
-            $unsureReasonButtons.removeClass('chosen');
+            this.#disagreeReasonButtons.removeClass('chosen');
+            this.#unsureReasonButtons.removeClass('chosen');
             menuUI.disagreeReasonTextBox.removeClass('chosen');
             menuUI.unsureReasonTextBox.removeClass('chosen');
             menuUI.disagreeReasonTextBox.val('');
@@ -163,7 +175,7 @@ function DesktopValidationMenu(menuUI) {
 
             // Update the text and tooltips on each disagree and unsure reason buttons.
             const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
-            for (const reasonButton of $disagreeReasonButtons.add($unsureReasonButtons)) {
+            for (const reasonButton of this.#disagreeReasonButtons.add(this.#unsureReasonButtons)) {
                 const $reasonButton = $(reasonButton);
                 const buttonInfo = svv.reasonButtonInfo[labelType][$reasonButton.attr('id')];
                 if (buttonInfo) {
@@ -173,10 +185,10 @@ function DesktopValidationMenu(menuUI) {
                     $reasonButton.tooltip('destroy');
                     if (buttonInfo.tooltipImage) {
                         util.getImage(buttonInfo.tooltipImage).then(img => {
-                            _addTooltip($reasonButton, buttonInfo.tooltipText, img);
+                            this.#addTooltip($reasonButton, buttonInfo.tooltipText, img);
                         });
                     } else {
-                        _addTooltip($reasonButton, buttonInfo.tooltipText);
+                        this.#addTooltip($reasonButton, buttonInfo.tooltipText);
                     }
 
                     // Adds a class as a way to show that this button has associated text.
@@ -194,8 +206,8 @@ function DesktopValidationMenu(menuUI) {
             // This is a validation that they are going back to, so update all the views to match what they had before.
             menuUI.optionalCommentTextBox.val(label.getProperty('agreeComment'));
 
-            let disagreeOption = label.getProperty('disagreeOption');
-            $disagreeReasonButtons.removeClass('chosen');
+            const disagreeOption = label.getProperty('disagreeOption');
+            this.#disagreeReasonButtons.removeClass('chosen');
             if (disagreeOption === 'other') {
                 menuUI.disagreeReasonTextBox.addClass('chosen');
                 menuUI.disagreeReasonTextBox.val(label.getProperty('disagreeReasonTextBox'));
@@ -205,8 +217,8 @@ function DesktopValidationMenu(menuUI) {
                 menuUI.disagreeReasonOptions.find(`#${disagreeOption}`).addClass('chosen');
             }
 
-            let unsureOption = label.getProperty('unsureOption');
-            $unsureReasonButtons.removeClass('chosen');
+            const unsureOption = label.getProperty('unsureOption');
+            this.#unsureReasonButtons.removeClass('chosen');
             if (unsureOption === 'other') {
                 menuUI.unsureReasonTextBox.addClass('chosen');
                 menuUI.unsureReasonTextBox.val(label.getProperty('unsureReasonTextBox'));
@@ -216,26 +228,27 @@ function DesktopValidationMenu(menuUI) {
                 menuUI.unsureReasonOptions.find(`#${unsureOption}`).addClass('chosen');
             }
 
-            if (prevValResult === 'Agree')         _setYesView();
-            else if (prevValResult === 'Disagree') _setNoView();
-            else if (prevValResult === 'Unsure')   _setUnsureView();
+            if (prevValResult === 'Agree')         this.#setYesView();
+            else if (prevValResult === 'Disagree') this.#setNoView();
+            else if (prevValResult === 'Unsure')   this.#setUnsureView();
         }
     }
 
-    function _setYesView() {
+    #setYesView() {
+        const menuUI = this.#menuUI;
         menuUI.yesButton.addClass('chosen');
         menuUI.noButton.removeClass('chosen');
         menuUI.unsureButton.removeClass('chosen');
 
         // Only show the tags and severity sections on Expert Validate.
         if (svv.adminVersion) {
-            _renderTags();
+            this.#renderTags();
             menuUI.tagsMenu.css('display', 'block');
 
             // Some label types (Pedestrian Signal, No Sidewalk) don't have severity ratings.
-            let currLabelType = svv.labelContainer.getCurrentLabel().getAuditProperty('labelType');
+            const currLabelType = svv.labelContainer.getCurrentLabel().getAuditProperty('labelType');
             if (util.misc.labelTypeHasSeverity(currLabelType)) {
-                _renderSeverity();
+                this.#renderSeverity();
                 menuUI.severityMenu.css('display', 'block');
             }
         }
@@ -246,7 +259,8 @@ function DesktopValidationMenu(menuUI) {
         menuUI.submitButton.prop('disabled', false);
     }
 
-    function _setNoView() {
+    #setNoView() {
+        const menuUI = this.#menuUI;
         menuUI.yesButton.removeClass('chosen');
         menuUI.noButton.addClass('chosen');
         menuUI.unsureButton.removeClass('chosen');
@@ -258,7 +272,8 @@ function DesktopValidationMenu(menuUI) {
         menuUI.submitButton.prop('disabled', false);
     }
 
-    function _setUnsureView() {
+    #setUnsureView() {
+        const menuUI = this.#menuUI;
         menuUI.yesButton.removeClass('chosen');
         menuUI.noButton.removeClass('chosen');
         menuUI.unsureButton.addClass('chosen');
@@ -274,10 +289,9 @@ function DesktopValidationMenu(menuUI) {
      * Adds a jquery tooltip to the given element with the given text and image (if given).
      * @param {jQuery} $elem Element to add the tooltip to, as jquery wrapped object.
      * @param {string} tooltipText Text to display in the tooltip.
-     * @param {string} img Optional image to display in the tooltip.
-     * @private
+     * @param {string} [img] Optional image to display in the tooltip.
      */
-    function _addTooltip($elem, tooltipText, img) {
+    #addTooltip($elem, tooltipText, img) {
         const tooltipHtml = img ? `${tooltipText}<br/><img src="${img}" class="validate-tooltip-img"/>` : tooltipText;
         $elem.tooltip(({
             placement: 'auto top', // Prefer above the element, but flip below when it doesn't fit in the viewport.
@@ -290,8 +304,8 @@ function DesktopValidationMenu(menuUI) {
 
 
     // TAG SECTION.
-    function _addTag(tagName, fromAiSuggestion = false) {
-        let currLabel = svv.labelContainer.getCurrentLabel();
+    #addTag(tagName, fromAiSuggestion = false) {
+        const currLabel = svv.labelContainer.getCurrentLabel();
 
         // If the tag is mutually exclusive with another tag that's been added, remove the other tag.
         const allTags = svv.tagsByLabelType[currLabel.getAuditProperty('labelType')];
@@ -304,27 +318,28 @@ function DesktopValidationMenu(menuUI) {
         // New tag added, add to list and rerender.
         svv.tracker.push(`Click=TagAdd_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
         currLabel.getProperty('newTags').push(tagName);
-        $tagSelect[0].selectize.clear();
-        $tagSelect[0].selectize.removeOption(tagName);
-        _renderTags();
+        this.#tagSelect[0].selectize.clear();
+        this.#tagSelect[0].selectize.removeOption(tagName);
+        this.#renderTags();
     }
 
-    function _removeTag(tagName, label, fromAiSuggestion = false) {
+    #removeTag(tagName, label, fromAiSuggestion = false) {
         svv.tracker.push(`Click=TagRemove_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
         label.setProperty('newTags', label.getProperty('newTags').filter(t => t !== tagName));
-        _renderTags();
+        this.#renderTags();
     }
 
-    function _removeTagListener(e, label) {
+    #removeTagListener(e, label) {
         const allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
         const tagElem = $(e.target).parents('.current-tag');
         tagElem.tooltip('destroy');
         const tagIdToRemove = tagElem.data('tag-id');
         const tagToRemove = allTagOptions.find(t => t.tag_id === tagIdToRemove).tag_name;
-        _removeTag(tagToRemove, label, false);
+        this.#removeTag(tagToRemove, label, false);
     }
 
-    function _renderTags() {
+    #renderTags() {
+        const menuUI = this.#menuUI;
         const label = svv.labelContainer.getCurrentLabel();
         let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
         const allTagOptionsPermanent = structuredClone(allTagOptions);
@@ -332,13 +347,13 @@ function DesktopValidationMenu(menuUI) {
         menuUI.currentTags.empty();
         const currTags = label.getProperty('newTags');
         // Clone the template tag element, remove the 'template' class, update the text, and add the removal onclick.
-        for (let tag of currTags) {
+        for (const tag of currTags) {
             if (!allTagOptions.some(t => t.tag_name === tag)) {
                 continue; // Skip tags that are now being excluded on this server. Don't want to show them.
             }
 
             // Clone the template tag element, remove the 'template' class, and add a tag-id data attribute.
-            let $tagDiv = $('.current-tag.template').clone().removeClass('template');
+            const $tagDiv = $('.current-tag.template').clone().removeClass('template');
             $tagDiv.data('tag-id', allTagOptions.find(t => t.tag_name === tag).tag_id);
 
             // Update the tag name.
@@ -346,12 +361,12 @@ function DesktopValidationMenu(menuUI) {
             $tagDiv.children('.tag-name').text(translatedTagName);
 
             // Add the removal onclick function.
-            $tagDiv.children('.remove-tag-x').click(e => _removeTagListener(e, label));
+            $tagDiv.children('.remove-tag-x').click(e => this.#removeTagListener(e, label));
 
             // Add an example image tooltip to the tag.
             const tagId = allTagOptions.find(t => t.tag_name === tag).tag_id;
-            const tooltipText = `"${translatedTagName}" example`
-            _addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${tagId}.png`);
+            const tooltipText = `"${translatedTagName}" example`;
+            this.#addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${tagId}.png`);
 
             // Add to current list of tags, and remove from options for new tags to add.
             menuUI.currentTags.append($tagDiv);
@@ -366,8 +381,8 @@ function DesktopValidationMenu(menuUI) {
         }
 
         // Clear the possible tags to add and add all appropriate options.
-        $tagSelect[0].selectize.clearOptions();
-        $tagSelect[0].selectize.addOption(allTagOptions);
+        this.#tagSelect[0].selectize.clearOptions();
+        this.#tagSelect[0].selectize.addOption(allTagOptions);
 
         // AI SUGGESTION TAGS SECTION.
         // Remove all AI suggested tags from the previous label.
@@ -385,7 +400,7 @@ function DesktopValidationMenu(menuUI) {
             // Only suggest removing tags that are currently on the label and were not added by the user this session.
             aiRemoveTagOptions = currTags
                 .filter(t => aiTagsNotPresent.includes(t))
-                .filter(t => !tagsAddedByUser.includes(t))
+                .filter(t => !this.#tagsAddedByUser.includes(t))
                 .map(t => allTagOptionsPermanent.find(t2 => t2.tag_name === t))
                 .filter(t => t !== undefined);
         }
@@ -417,15 +432,15 @@ function DesktopValidationMenu(menuUI) {
 
                 // Show tooltip with example image for the tag.
                 const tooltipText = `"${translatedTagName}" example`;
-                _addTooltip(template, tooltipText, `/assets/images/examples/tags/${tag.tag_id}.png`);
+                this.#addTooltip(template, tooltipText, `/assets/images/examples/tags/${tag.tag_id}.png`);
 
                 // Add onclick to the tag to add or remove it if the user clicks to accept the AI suggestion.
-                template.on('click', e => {
+                template.on('click', () => {
                     template.tooltip('destroy'); // Fix for the tooltip showing up on later labels, #4071.
                     if (tag.action === 'add') {
-                        _addTag(tag.tag_name, true);
+                        this.#addTag(tag.tag_name, true);
                     } else {
-                        _removeTag(tag.tag_name, label, true);
+                        this.#removeTag(tag.tag_name, label, true);
                     }
                 });
             }
@@ -435,8 +450,9 @@ function DesktopValidationMenu(menuUI) {
     }
 
     // SEVERITY SECTION.
-    function _renderSeverity() {
-        let label = svv.labelContainer.getCurrentLabel();
+    #renderSeverity() {
+        const menuUI = this.#menuUI;
+        const label = svv.labelContainer.getCurrentLabel();
         const severity = label.getProperty('newSeverity');
         const labelType = svv.labelContainer.getCurrentLabel().getAuditProperty('labelType');
         const positive = util.misc.isPositiveLabelType(labelType);
@@ -455,7 +471,7 @@ function DesktopValidationMenu(menuUI) {
             const tooltipText = i18next.t(`common:${tooltipKey}-${sev}`);
             const tooltipImage = `/assets/images/examples/severity/${labelType}_Severity${sev}.png`;
             $button.tooltip('destroy');
-            _addTooltip($button, tooltipText, tooltipImage);
+            this.#addTooltip($button, tooltipText, tooltipImage);
 
             const labelSpan = severityButton.querySelector('.severity-button__label');
             if (labelSpan) labelSpan.textContent = i18next.t(`common:${levelKeys[Number(sev)]}`);
@@ -473,8 +489,9 @@ function DesktopValidationMenu(menuUI) {
     }
 
     // VALIDATING 'NO' SECTION
-    function _setDisagreeReason(id) {
-        $disagreeReasonButtons.removeClass('chosen');
+    #setDisagreeReason(id) {
+        const menuUI = this.#menuUI;
+        this.#disagreeReasonButtons.removeClass('chosen');
         if (id === 'other') {
             menuUI.disagreeReasonTextBox.addClass('chosen');
             svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', 'other');
@@ -487,8 +504,9 @@ function DesktopValidationMenu(menuUI) {
     }
 
     // VALIDATING 'UNSURE' SECTION
-    function _setUnsureReason(id) {
-        $unsureReasonButtons.removeClass('chosen');
+    #setUnsureReason(id) {
+        const menuUI = this.#menuUI;
+        this.#unsureReasonButtons.removeClass('chosen');
         if (id === 'other') {
             menuUI.unsureReasonTextBox.addClass('chosen');
             svv.labelContainer.getCurrentLabel().setProperty('unsureOption', 'other');
@@ -500,8 +518,9 @@ function DesktopValidationMenu(menuUI) {
         }
     }
 
-    function saveValidationState() {
-        let currLabel = svv.labelContainer.getCurrentLabel();
+    saveValidationState() {
+        const menuUI = this.#menuUI;
+        const currLabel = svv.labelContainer.getCurrentLabel();
         currLabel.setProperty('agreeComment', menuUI.optionalCommentTextBox.val());
         currLabel.setProperty('disagreeReasonTextBox', menuUI.disagreeReasonTextBox.val());
         currLabel.setProperty('unsureReasonTextBox', menuUI.unsureReasonTextBox.val());
@@ -512,11 +531,12 @@ function DesktopValidationMenu(menuUI) {
      * @param {string} action Validation action - must be one of Agree, Disagree, or Unsure.
      * @param {boolean} keyboardShortcut Whether or not the validation was triggered by a keyboard shortcut.
      */
-    function _validateLabel(action, keyboardShortcut) {
+    #validateLabel(action, keyboardShortcut) {
+        const menuUI = this.#menuUI;
         const actionStr = keyboardShortcut ? 'ValidationKeyboardShortcut_Submit_Validation=' : 'Click=Submit_Validation=';
-        let timestamp = new Date();
+        const timestamp = new Date();
         svv.tracker.push(actionStr + action);
-        let currLabel = svv.labelContainer.getCurrentLabel();
+        const currLabel = svv.labelContainer.getCurrentLabel();
 
         // Resets CSS elements for all buttons to their default states.
         menuUI.yesButton.removeClass('validate');
@@ -524,14 +544,14 @@ function DesktopValidationMenu(menuUI) {
         menuUI.unsureButton.removeClass('validate');
 
         // Save anything they typed in either text box so that it's there again if they undo their validation.
-        saveValidationState();
+        this.saveValidationState();
 
         // Fill in the comment based on the disagree options they picked or one of the free form text boxes.
         let comment = '';
         if (action === 'Agree') {
             comment = currLabel.getProperty('agreeComment');
         } else if (action === 'Disagree') {
-            let disagreeReason = currLabel.getProperty('disagreeOption');
+            const disagreeReason = currLabel.getProperty('disagreeOption');
             if (disagreeReason === 'other') {
                 comment = currLabel.getProperty('disagreeReasonTextBox');
             } else if (disagreeReason) {
@@ -540,7 +560,7 @@ function DesktopValidationMenu(menuUI) {
                 comment = '';
             }
         } else if (action === 'Unsure') {
-            let unsureReason = currLabel.getProperty('unsureOption');
+            const unsureReason = currLabel.getProperty('unsureOption');
             if (unsureReason === 'other') {
                 comment = currLabel.getProperty('unsureReasonTextBox');
             } else if (unsureReason) {
@@ -556,10 +576,4 @@ function DesktopValidationMenu(menuUI) {
             svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
         }
     }
-
-    self.resetMenu = resetMenu;
-    self.saveValidationState = saveValidationState;
-
-    _init();
-    return self;
 }
