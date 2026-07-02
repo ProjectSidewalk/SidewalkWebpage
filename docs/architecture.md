@@ -126,6 +126,9 @@ Supported languages: en, es, de, nl, zh-TW, pt-BR, plus regional English variant
 - Secrets/keys (Mapbox, Google Maps, Gemini, Mapillary, Infra3d, Silhouette signer/crypter, DB credentials) come
   from environment variables; local values live in a `docker-compose.override.yml`.
 
+For how these configs map to hosted **stages** (test / staging / prod), how a branch or tag deploys to each, and the
+production runtime shape, see [`docs/deployment-and-stages.md`](deployment-and-stages.md).
+
 ## Python utilities
 
 Two standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
@@ -147,6 +150,7 @@ canonical color table and icon locations.
 ## Where to go next
 
 - [`docs/dev-environment.md`](dev-environment.md) — get it running locally.
+- [`docs/deployment-and-stages.md`](deployment-and-stages.md) — hosted stages, branch/tag → stage deploys, prod runtime shape.
 - [`CONTRIBUTING.md`](../CONTRIBUTING.md) — workflow, coding standards, i18n, testing.
 - [`docs/testing-and-ci.md`](testing-and-ci.md) — testing strategy and CI.
 - [`CLAUDE.md`](../CLAUDE.md) — the same architecture plus conventions and operational notes, used as AI-assistant
