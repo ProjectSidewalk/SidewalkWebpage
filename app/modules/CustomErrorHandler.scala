@@ -66,7 +66,7 @@ class CustomErrorHandler @Inject() (
   }
 
   override def onServerError(request: RequestHeader, exception: Throwable): Future[Result] = {
-    logger.info("Server error occurred: " + exception.getMessage, exception)
+    logger.error("Server error occurred: " + exception.getMessage, exception)
     logUserInfo(request)
     // API requests get a problem+json 500 (without leaking exception internals); other routes keep Play's default
     // (dev error page / generic HTML) error handling.
