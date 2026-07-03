@@ -248,6 +248,32 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
+  "looksLikeBlankImagery" should {
+    val controller = app.injector.instanceOf[ShareController]
+
+    "detect a flat placeholder even with a small text overlay" in {
+      // Shaped like GSV's "Sorry, we have no imagery here" card: uniform background, a few dark text pixels.
+      val img = new BufferedImage(640, 480, BufferedImage.TYPE_INT_RGB)
+      val g   = img.createGraphics()
+      g.setColor(new java.awt.Color(0xe0ded8))
+      g.fillRect(0, 0, 640, 480)
+      g.setColor(java.awt.Color.DARK_GRAY)
+      g.fillRect(230, 235, 180, 12)
+      g.dispose()
+      controller.looksLikeBlankImagery(img) mustBe true
+    }
+
+    "pass a structured photo-like image" in {
+      val img = new BufferedImage(640, 480, BufferedImage.TYPE_INT_RGB)
+      for {
+        y <- 0 until 480
+        x <- 0 until 640
+      }
+        img.setRGB(x, y, ((x * 31 + y * 17) % 200 << 16) | ((x * 13 + y * 7) % 200 << 8) | ((x + y) % 200))
+      controller.looksLikeBlankImagery(img) mustBe false
+    }
+  }
+
   "buildFallbackImage" should {
     "write a branded fallback at exactly the advertised share dimensions" in {
       val controller = app.injector.instanceOf[ShareController]

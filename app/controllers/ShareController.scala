@@ -16,7 +16,6 @@ import service.{AuthenticationService, ConfigService, LabelService, PanoDataServ
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
-import java.nio.file.Files
 import javax.imageio.stream.FileImageOutputStream
 import javax.imageio.{IIOImage, ImageIO, ImageWriteParam}
 import javax.inject._
@@ -167,38 +166,70 @@ class ShareController @Inject() (
       imagerySource: PanoSource,
       cacheFile: File
   ): Future[Option[File]] = {
-    baseImageBytes(meta, imagerySource).map {
-      case Some(bytes) =>
-        Option(ImageIO.read(new ByteArrayInputStream(bytes))) match {
-          case Some(base) =>
-            val composited: BufferedImage = compositeMarker(base, meta.labelType, meta.canvasXY)
-            cacheFile.getParentFile.mkdirs()
-            writeJpeg(composited, cacheFile)
-            if (cacheFile.exists()) Some(cacheFile)
-            else {
-              logger.error(s"Failed to write share image: ${cacheFile.getPath}")
-              None
-            }
-          case None => None
+    baseImage(meta, imagerySource).map {
+      case Some(base) =>
+        val composited: BufferedImage = compositeMarker(base, meta.labelType, meta.canvasXY)
+        cacheFile.getParentFile.mkdirs()
+        writeJpeg(composited, cacheFile)
+        if (cacheFile.exists()) Some(cacheFile)
+        else {
+          logger.error(s"Failed to write share image: ${cacheFile.getPath}")
+          None
         }
       case None => None
     }
   }
 
   /** Reads the stored crop if present, else fetches the Google Street View still (GSV imagery only), else `None`. */
-  private def baseImageBytes(meta: LabelMetadata, imagerySource: PanoSource): Future[Option[Array[Byte]]] = {
+  private def baseImage(meta: LabelMetadata, imagerySource: PanoSource): Future[Option[BufferedImage]] = {
     val crop: File = panoDataService.cropFile(meta.labelId, meta.labelType.name)
     if (crop.exists()) {
-      Future.successful(Some(Files.readAllBytes(crop.toPath)))
+      Future.successful(Option(ImageIO.read(crop)))
     } else {
       panoDataService.getImageUrl(meta.panoId, imagerySource, meta.pov.heading, meta.pov.pitch, meta.pov.zoom) match {
         case Some(url) =>
-          ws.url(url).get().map(r => if (r.status == 200) Some(r.bodyAsBytes.toArray) else None).recover { case e =>
-            logger.warn(s"Failed to fetch GSV still for label ${meta.labelId}: ${e.getMessage}"); None
-          }
+          ws.url(url)
+            .get()
+            .map { r =>
+              if (r.status != 200) None
+              else {
+                // GSV answers an expired/removed pano with HTTP 200 and a flat "Sorry, we have no imagery here"
+                // placeholder; reject near-uniform images so we serve the branded fallback instead of sharing it.
+                Option(ImageIO.read(new ByteArrayInputStream(r.bodyAsBytes.toArray)))
+                  .filterNot(looksLikeBlankImagery)
+              }
+            }
+            .recover { case e =>
+              logger.warn(s"Failed to fetch GSV still for label ${meta.labelId}: ${e.getMessage}"); None
+            }
         case None => Future.successful(None)
       }
     }
+  }
+
+  /**
+   * Detects provider "no imagery" placeholders: a dense sample grid where nearly every pixel sits within a small
+   * distance of the mean color. Real street photos are nowhere near this uniform, while the placeholder's text
+   * occupies only a tiny fraction of pixels, so a 95% threshold separates them cleanly.
+   */
+  private[controllers] def looksLikeBlankImagery(img: BufferedImage): Boolean = {
+    val grid = 64
+    val xs   = (0 until grid).map(i => i * (img.getWidth - 1) / (grid - 1))
+    val ys   = (0 until grid).map(i => i * (img.getHeight - 1) / (grid - 1))
+
+    val samples = for {
+      y <- ys
+      x <- xs
+    } yield {
+      val rgb = img.getRGB(x, y)
+      ((rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff)
+    }
+    val n             = samples.size
+    val (mr, mg, mb)  = (samples.map(_._1).sum / n, samples.map(_._2).sum / n, samples.map(_._3).sum / n)
+    val nearMeanCount = samples.count { case (r, g, b) =>
+      math.abs(r - mr) <= 12 && math.abs(g - mg) <= 12 && math.abs(b - mb) <= 12
+    }
+    nearMeanCount.toDouble / n >= 0.95
   }
 
   /**
