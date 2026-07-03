@@ -9,7 +9,7 @@
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap")) {
+@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap"), url = "/labelMap") {
     @common.navbar(commonData, Some(user))
     <div id="page-loading">
         <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'/>
@@ -17,7 +17,16 @@
     <div id="labelmap-choropleth-container" class="container choropleth-container">
         <div id="labelmap-choropleth-holder" class="choropleth-holder">
             <div id="labelmap-choropleth" class="choropleth"></div>
-            @common.mapSidebar(tags = tags)
+            @common.mapSidebar(tags = tags, showSearch = true)
+            @* Feedback while the (large) label layer streams in — the map itself loads in ~1s but labels
+               can be tens of MB, during which the sidebar sits greyed with no cue that work is happening. *@
+            <div id="labelmap-loading" class="labelmap-loading" hidden role="status" aria-live="polite" aria-busy="true">
+                <div class="labelmap-loading__card">
+                    <div class="labelmap-loading__spinner" aria-hidden="true"></div>
+                    <p class="labelmap-loading__message" data-i18n="labelmap:loading-labels">Loading sidewalk labels…</p>
+                    <p id="labelmap-loading-elapsed" class="labelmap-loading__elapsed"></p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -50,9 +59,11 @@
 
     <script src='@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-search-1.5.0.js")'></script>
     <link href='@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
     <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
     <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+    <script src='@assets.path("javascripts/labelMapLocationSearch.js")'></script>
     <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
     <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
 
@@ -60,6 +71,33 @@
         const imagerySrc = "@commonData.imagerySource.toString";
         const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
         const accessToken = "@commonData.imageryAccessToken";
+
+        // Loading overlay for the label layer. Indeterminate spinner + a live elapsed-time counter: the
+        // response is gzipped (Content-Length is the compressed size), so a byte-percentage bar isn't
+        // meaningful, and the exact count isn't known until the payload has fully parsed.
+        let labelMapLoadingTimer = null;
+        function showLabelMapLoading() {
+            const overlay = document.getElementById('labelmap-loading');
+            if (!overlay) return;
+            const elapsedEl = document.getElementById('labelmap-loading-elapsed');
+            const start = performance.now();
+            const renderElapsed = () => {
+                if (!elapsedEl) return;
+                const seconds = ((performance.now() - start) / 1000).toFixed(1);
+                elapsedEl.textContent = i18next.t('labelmap:loading-elapsed', { seconds: seconds });
+            };
+            renderElapsed();
+            overlay.hidden = false;
+            labelMapLoadingTimer = setInterval(renderElapsed, 100);
+        }
+        function hideLabelMapLoading() {
+            const overlay = document.getElementById('labelmap-loading');
+            if (overlay) overlay.hidden = true;
+            if (labelMapLoadingTimer) {
+                clearInterval(labelMapLoadingTimer);
+                labelMapLoadingTimer = null;
+            }
+        }
 
         // Gets all translations before loading the choropleth.
         window.appManager.ready(async function () {
@@ -103,11 +141,23 @@
                 params.labelsURL.searchParams.append('aiValidationOptions', aiValidationOptionsParam);
             }
 
+            // Mount the address search and reveal the loading indicator as soon as the map is ready, not
+            // after the (large) label layer finishes loading, so they appear with the sidebar rather than
+            // popping in late (#4370/#4447).
+            params.onMapReady = (map) => {
+                initLabelMapLocationSearch(map, params.mapboxApiKey);
+                showLabelMapLoading();
+            };
+
             const self = {};
             CreatePSMap($, params).then(m => {
                 self.map = m[0];
                 self.mapData = m[4];
                 new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });
+                hideLabelMapLoading();
+            }).catch(e => {
+                console.error('LabelMap failed to load', e);
+                hideLabelMapLoading();
             });
             window.map = self;
         });

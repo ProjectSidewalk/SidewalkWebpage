@@ -409,6 +409,20 @@ a {
     height: auto;
 }
 
+/*
+ * Full-window app pages (e.g. /labelMap) opt in via this class: #wrap becomes a fixed-height flex
+ * column so a flex-growing content area (the map) fills the viewport below the navbar, while the
+ * in-flow test-server banner (dev only) keeps its natural height rather than being covered. Robust to
+ * the banner wrapping or being dismissed; no effect on other pages, which don't get the class.
+ */
+#wrap.wrap--full-window {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - var(--navbar-height));
+    min-height: 0;
+    overflow: hidden;
+}
+
 #mini-footer {
     position: relative;
     width: 100%;

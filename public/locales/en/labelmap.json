@@ -1,4 +1,7 @@
 {
+    "search-placeholder": "Search for an address or place",
+    "loading-labels": "Loading sidewalk labels…",
+    "loading-elapsed": "{{seconds}}s elapsed",
     "is-correct": "Is this label correct?",
     "label-type": "Label Type",
     "validations": "Validations",
