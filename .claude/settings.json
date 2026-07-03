@@ -10,7 +10,13 @@
       "Bash(find:*)",
       "Bash(ls:*)",
       "Bash(grep:*)",
-      "Bash(docker exec projectsidewalk-db psql -U readonly_user *)"
+      "Bash(docker exec projectsidewalk-db psql -U readonly_user *)",
+      "Bash(make scalafmt:*)",
+      "Bash(make scalafmt-fix:*)",
+      "Bash(make eslint:*)",
+      "Bash(make eslint-fix:*)",
+      "Bash(make lint-evolutions:*)",
+      "Bash(make test-python:*)"
     ],
     "deny": [
       "Read(docker-compose.override.yml)"
