@@ -149,12 +149,14 @@ body {
     overflow-x: hidden;
 }
 
-/* The content pane's own padding already offsets the page from the navbar; without this, the first heading's
-   margin-top stacks on that padding (collapsing up through its .api-section) and doubles the blank space at the
-   top of every page. */
+/* The content pane's own padding already offsets the page from the navbar; the page's first heading only adds a
+   small margin (not the full --space-xl, which doubled the blank space at the top of every page) sized so the
+   heading starts at padding + margin = 48px — exactly level with the sidebar's first .api-nav-header (keep in sync
+   with .api-nav's padding-top). The first-of-type arm matters: several pages open @content with <script>/<link>
+   tags, so the first .api-section is the first *div*, not the first child. */
 .api-content > :is(h1, h2, h3, .api-heading):first-child,
-.api-content > :first-child > :is(h1, h2, h3, .api-heading):first-child {
-    margin-top: 0;
+.api-content > div.api-section:first-of-type > :is(h1, h2, h3, .api-heading):first-child {
+    margin-top: var(--space-md);
 }
 
 /* ---- Typography ---- */
@@ -660,7 +662,9 @@ h6:hover .permalink {
 }
 
 .api-nav {
-    padding: var(--space-xxxl) 0;
+    /* Top padding + .api-nav-header's margin-top = 48px, matching the content pane's first heading (padding +
+       margin) so the sidebar's first section header and the page title sit level. */
+    padding: var(--space-xl) 0 var(--space-xxxl);
 }
 
 .api-nav-header {
