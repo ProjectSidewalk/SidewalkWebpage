@@ -15,7 +15,7 @@ class MissionController {
         this.#missionContainer = missionContainer;
         this.#tracker = tracker;
 
-        missionModel.on("MissionProgress:update", (parameters) => {
+        missionModel.on('MissionProgress:update', (parameters) => {
             this.update(parameters.mission, parameters.neighborhood);
         });
     }
@@ -42,13 +42,13 @@ class MissionController {
      */
     #completeTheCurrentMission(mission, neighborhood) {
         this.#tracker.push(
-            "MissionComplete",
+            'MissionComplete',
             {
-                missionId: mission.getProperty("missionId"),
-                missionType: mission.getProperty("missionType"),
-                distanceMeters: Math.round(mission.getDistance("meters")),
-                regionId: neighborhood.getRegionId()
-            }
+                missionId: mission.getProperty('missionId'),
+                missionType: mission.getProperty('missionType'),
+                distanceMeters: Math.round(mission.getDistance('meters')),
+                regionId: neighborhood.getRegionId(),
+            },
         );
         mission.complete();
         this.#missionModel.completeMission(mission);
@@ -106,20 +106,20 @@ class MissionController {
                 async: true,
                 url: '/survey/display',
                 method: 'GET',
-                success: function (data) {
+                success(data) {
                     if (data.displayModal) {
                         $('#survey-modal-container').modal({
                             backdrop: 'static',
-                            keyboard: false
+                            keyboard: false,
                         });
 
                         // Log in the webpage activity table if the survey has been shown.
-                        window.logWebpageActivity("SurveyShown", true);
+                        window.logWebpageActivity('SurveyShown', true);
                     }
                 },
-                error: function (xhr, ajaxOptions, thrownError) {
+                error(xhr, ajaxOptions, thrownError) {
                     console.log(thrownError);
-                }
+                },
             });
         }
     }

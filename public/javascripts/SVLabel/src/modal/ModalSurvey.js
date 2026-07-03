@@ -8,9 +8,9 @@ class ModalSurvey {
 
     constructor() {
         this.#uiModalSurvey = {
-            container: $("#survey-modal-container"),
-            form: $("#survey-form"),
-            skipButton: $("#survey-skip-button")
+            container: $('#survey-modal-container'),
+            form: $('#survey-form'),
+            skipButton: $('#survey-skip-button'),
         };
 
         this.#uiModalSurvey.container.on('show.bs.modal', this.#handleShowSurvey);
@@ -42,7 +42,7 @@ class ModalSurvey {
         fetch('/survey', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(this.#uiModalSurvey.form.serializeArray())
+            body: JSON.stringify(this.#uiModalSurvey.form.serializeArray()),
         }).then(() => this.#uiModalSurvey.container.modal('hide'));
     };
 

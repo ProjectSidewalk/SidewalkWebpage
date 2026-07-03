@@ -14,7 +14,7 @@ function createMapillaryChunkedDataProvider(options) {
             for (let i = 0; i < imageIds.length; i += CHUNK_SIZE) {
                 chunks.push(imageIds.slice(i, i + CHUNK_SIZE));
             }
-            const results = await Promise.all(chunks.map(chunk => super.getSpatialImages(chunk)));
+            const results = await Promise.all(chunks.map((chunk) => super.getSpatialImages(chunk)));
             return results.flat();
         }
     }

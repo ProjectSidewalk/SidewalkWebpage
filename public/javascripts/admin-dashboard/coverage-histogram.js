@@ -41,16 +41,16 @@ class CoverageHistogram {
             encoding: {
                 x: {
                     field: 'label', type: 'ordinal', sort: { field: 'index' },
-                    axis: { title: 'Audit coverage', labelAngle: 0 }
+                    axis: { title: 'Audit coverage', labelAngle: 0 },
                 },
                 y: { field: 'count', type: 'quantitative', axis: { title: 'Regions', tickMinStep: 1 } },
                 color: { field: 'color', type: 'nominal', scale: null, legend: null },
                 tooltip: [
                     { field: 'label', type: 'nominal', title: 'Coverage' },
-                    { field: 'count', type: 'quantitative', title: 'Regions' }
-                ]
+                    { field: 'count', type: 'quantitative', title: 'Regions' },
+                ],
             },
-            config: { view: { stroke: null }, axis: { labelFont: 'Inter, sans-serif' } }
+            config: { view: { stroke: null }, axis: { labelFont: 'Inter, sans-serif' } },
         };
 
         const result = await vegaEmbed(`#${this.#containerId}`, spec, { actions: false, renderer: 'svg' });

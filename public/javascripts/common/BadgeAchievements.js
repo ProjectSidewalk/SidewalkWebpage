@@ -12,7 +12,7 @@ class BadgeAchievements {
         missions: [5, 25, 75, 150, 250],
         distance: [0.5, 2, 5, 10, 20],
         labels: [50, 200, 500, 1000, 2000],
-        validations: [100, 250, 500, 1000, 5000]
+        validations: [100, 250, 500, 1000, 5000],
     });
 
     static ROMAN = Object.freeze(['I', 'II', 'III', 'IV', 'V']);
@@ -22,7 +22,7 @@ class BadgeAchievements {
         missions: 'common:badges.adventurer-name',
         distance: 'common:badges.explorer-name',
         labels: 'common:badges.labeler-name',
-        validations: 'common:badges.validator-name'
+        validations: 'common:badges.validator-name',
     });
 
     // Filename stem for each badge type's icon. Note the validation icons are singular ("validation").
@@ -30,7 +30,7 @@ class BadgeAchievements {
         missions: 'missions',
         distance: 'distance',
         labels: 'labels',
-        validations: 'validation'
+        validations: 'validation',
     });
 
     /**
@@ -73,11 +73,11 @@ class BadgeAchievements {
         if (level < 1 || level > BadgeAchievements.ROMAN.length) return null;
         const stem = BadgeAchievements.#ICON_STEMS[type] + (type === 'distance' && opts.isMetric ? '_km' : '');
         return {
-            type: type,
-            level: level,
+            type,
+            level,
             roman: BadgeAchievements.ROMAN[level - 1],
             name: i18next.t(BadgeAchievements.#NAME_KEYS[type]),
-            iconSrc: `/assets/images/badges/badge_${stem}_badge${level}.png`
+            iconSrc: `/assets/images/badges/badge_${stem}_badge${level}.png`,
         };
     }
 
@@ -109,7 +109,7 @@ class BadgeAchievements {
             title: i18next.t('common:badges.congratulations'),
             message: i18next.t('common:badges.you-earned', { badge: badgeLabel }),
             button: { label: i18next.t('common:badges.my-dashboard'), href: '/dashboard#achievements', newTab: true },
-            reference: referenceEl
+            reference: referenceEl,
         });
     }
 
@@ -126,12 +126,12 @@ class BadgeAchievements {
         if (BadgeAchievements.#seeded) return;
         BadgeAchievements.#seeded = true;
         fetch('/userapi/basicStats', { headers: { Accept: 'application/json' } })
-            .then(response => response.json())
-            .then(result => {
+            .then((response) => response.json())
+            .then((result) => {
                 BadgeAchievements.#validationCount = result.validation_count;
                 BadgeAchievements.#missionCount = result.mission_count;
             })
-            .catch(e => console.error('Failed to seed counts for badge tracking.', e));
+            .catch((e) => console.error('Failed to seed counts for badge tracking.', e));
     }
 
     /**

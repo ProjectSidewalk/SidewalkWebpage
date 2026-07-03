@@ -47,13 +47,13 @@ function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
         [
             'all', mapData.unsure,
             ['==', ['get', 'correct'], null],
-            ['==', ['get', 'has_validations'], true]
+            ['==', ['get', 'has_validations'], true],
         ],
         [
             'all', mapData.unvalidated,
             ['==', ['get', 'correct'], null],
-            ['==', ['get', 'has_validations'], false]
-        ]
+            ['==', ['get', 'has_validations'], false],
+        ],
     ];
 
     // Build the base filter combining severity, validation, and optionally high-quality user filters.
@@ -72,7 +72,7 @@ function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
 
         const selectedTags = mapData.selectedTags[labelType];
         if (selectedTags && selectedTags.size > 0) {
-            const tagFilter = ['any', ...Array.from(selectedTags).map(t => ['in', t, ['get', 'tags']])];
+            const tagFilter = ['any', ...Array.from(selectedTags).map((t) => ['in', t, ['get', 'tags']])];
             map.setFilter(layerName, [...baseFilter, tagFilter]);
         } else {
             map.setFilter(layerName, baseFilter);
@@ -128,7 +128,7 @@ function CreateMapLayerTracker() {
     mapData.sortedLabels = {};
     mapData.layerNames = {};
     const labelTypes = [
-        'CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal', 'Other'
+        'CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal', 'Other',
     ];
     for (const labelType of labelTypes) {
         mapData.sortedLabels[labelType] = [];
@@ -145,10 +145,10 @@ function CreateMapLayerTracker() {
 function setRegionFocus(map) {
     const regionId = util.getURLParameter('regionId');
     // Small timeout to allow map to load before focusing on region.
-    setTimeout(function() {
+    setTimeout(() => {
         if (regionId && map.getLayer('neighborhood-polygons')) {
             const region = map.queryRenderedFeatures({ layers: ['neighborhood-polygons'] })
-                .filter(f => f.id == regionId)[0];
+                .filter((f) => f.id == regionId)[0];
             if (region) {
                 map.setCenter(turf.center(region).geometry.coordinates);
                 map.zoomTo(13);

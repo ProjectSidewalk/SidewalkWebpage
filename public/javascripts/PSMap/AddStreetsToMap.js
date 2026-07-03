@@ -20,7 +20,7 @@ function AddStreetsToMap(map, streetData, params) {
     map.addSource(STREET_LAYER_NAME, {
         type: 'geojson',
         data: streetData,
-        promoteId: 'street_edge_id'
+        promoteId: 'street_edge_id',
     });
     map.addLayer({
         id: STREET_LAYER_NAME,
@@ -29,35 +29,35 @@ function AddStreetsToMap(map, streetData, params) {
         layout: {
             'line-join': 'round',
             'line-cap': 'round',
-            visibility: 'none' // Hidden by default; shown when the user checks a street filter in the sidebar.
+            'visibility': 'none', // Hidden by default; shown when the user checks a street filter in the sidebar.
         },
         paint: {
             'line-opacity': 0.6,
             'line-color': [ // Grey if unaudited, black if audited. All black if the map doesn't differentiate.
                 'case', ['all', params.differentiateUnauditedStreets, ['==', ['get', 'audited'], false]],
                 UNAUDITED_STREET_COLOR,
-                AUDITED_STREET_COLOR
+                AUDITED_STREET_COLOR,
             ],
             'line-width': [ // Twice the thickness if hovered. Increase thickness as we zoom in.
                 'interpolate', ['linear'], ['zoom'],
-                12, ['case', ['boolean', ['feature-state', 'hover'], false], 3, 1 ],
-                15, ['case', ['boolean', ['feature-state', 'hover'], false], 7, 3 ]
-            ]
-        }
+                12, ['case', ['boolean', ['feature-state', 'hover'], false], 3, 1],
+                15, ['case', ['boolean', ['feature-state', 'hover'], false], 7, 3],
+            ],
+        },
     });
 
     if (params.interactiveStreets) {
         // Add click functionality to the streets.
         const streetPopup = new mapboxgl.Popup({ focusAfterOpen: false });
         map.on('click', STREET_LAYER_NAME, (event) => {
-            let popupContent = i18next.t('common:explore-street-link', { streetId: event.features[0].properties.street_edge_id });
+            const popupContent = i18next.t('common:explore-street-link', { streetId: event.features[0].properties.street_edge_id });
             streetPopup.setLngLat(event.lngLat).setHTML(popupContent).addTo(map);
         });
 
         // Add hover functionality to the streets.
         let hoveredStreet = null;
         map.on('mousemove', STREET_LAYER_NAME, (event) => {
-            let currStreet = event.features[0];
+            const currStreet = event.features[0];
             if (hoveredStreet && hoveredStreet.properties.street_edge_id !== currStreet.properties.street_edge_id) {
                 map.setFeatureState({ source: hoveredStreet.layer.id, id: hoveredStreet.properties.street_edge_id }, { hover: false });
                 map.setFeatureState({ source: currStreet.layer.id, id: currStreet.properties.street_edge_id }, { hover: true });
@@ -80,7 +80,7 @@ function AddStreetsToMap(map, streetData, params) {
             // Logs are of the form 'Click_module=<mapName>_streetId=<streetId>_audited=<boolean>_target=explore'.
             $(`#${params.mapName}`).on('click', '.street-selection-trigger', function () {
                 const streetId = parseInt($(this).attr('streetId'));
-                const street = streetData.features.find(s => streetId === s.properties.street_edge_id);
+                const street = streetData.features.find((s) => streetId === s.properties.street_edge_id);
                 const activity = `Click_module=${params.mapName}_streetId=${streetId}_audited=${street.properties.audited}_target=explore`;
                 window.logWebpageActivity(activity);
             });
@@ -92,7 +92,7 @@ function AddStreetsToMap(map, streetData, params) {
         if (map.getLayer(STREET_LAYER_NAME)) {
             resolve();
         } else {
-            map.on('sourcedataloading', function(e) {
+            map.on('sourcedataloading', (e) => {
                 if (map.getLayer(STREET_LAYER_NAME)) {
                     resolve();
                 }

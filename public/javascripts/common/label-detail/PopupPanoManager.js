@@ -33,15 +33,15 @@ class PopupPanoManager {
     #cropUrl;
 
     #icons = {
-        CurbRamp : '/assets/images/icons/AdminTool_CurbRamp.png',
-        NoCurbRamp : '/assets/images/icons/AdminTool_NoCurbRamp.png',
-        Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
-        SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem.png',
-        Other : '/assets/images/icons/AdminTool_Other.png',
-        Occlusion : '/assets/images/icons/AdminTool_Occlusion.png',
-        NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png',
-        Crosswalk : '/assets/images/icons/AdminTool_Crosswalk.png',
-        Signal : '/assets/images/icons/AdminTool_Signal.png'
+        CurbRamp: '/assets/images/icons/AdminTool_CurbRamp.png',
+        NoCurbRamp: '/assets/images/icons/AdminTool_NoCurbRamp.png',
+        Obstacle: '/assets/images/icons/AdminTool_Obstacle.png',
+        SurfaceProblem: '/assets/images/icons/AdminTool_SurfaceProblem.png',
+        Other: '/assets/images/icons/AdminTool_Other.png',
+        Occlusion: '/assets/images/icons/AdminTool_Occlusion.png',
+        NoSidewalk: '/assets/images/icons/AdminTool_NoSidewalk.png',
+        Crosswalk: '/assets/images/icons/AdminTool_Crosswalk.png',
+        Signal: '/assets/images/icons/AdminTool_Signal.png',
     };
 
     /**
@@ -90,64 +90,64 @@ class PopupPanoManager {
 
         // Panorama will be added to panoCanvas. Use 100%/100% so the viewer fills the CSS-driven container
         // rather than locking in whatever pixel dimensions the element happened to measure at init time.
-        this.#panoCanvas = $("<div id='pano'>").css({
+        this.#panoCanvas = $('<div id=\'pano\'>').css({
             width: '100%',
-            height: '100%'
+            height: '100%',
         })[0];
 
         // Separate container for the Pannellum fallback viewer. Created up-front but only mounted with a Pannellum
         // instance when we hit an expired pano that has a self-hosted copy.
-        this.#pannellumCanvas = $("<div id='pano-pannellum'>").css({
+        this.#pannellumCanvas = $('<div id=\'pano-pannellum\'>').css({
             width: '100%',
             height: '100%',
-            display: 'none'
+            display: 'none',
         })[0];
 
         this.#panoNotAvailable = $(`<div id='pano-not-avail'>${i18next.t('common:errors.title')}</div>`).css({
             'font-size': '200%',
-            'padding-bottom': '15px'
+            'padding-bottom': '15px',
         })[0];
 
-        this.#panoNotAvailableDetails =
-            $(`<div id='pano-not-avail-2'>${i18next.t('common:errors.explanation')}</div>`).css({
-            'font-size': '85%',
-            'padding-bottom': '15px'
-        })[0];
+        this.#panoNotAvailableDetails
+            = $(`<div id='pano-not-avail-2'>${i18next.t('common:errors.explanation')}</div>`).css({
+                'font-size': '85%',
+                'padding-bottom': '15px',
+            })[0];
 
-        this.#panoNotAvailableAuditSuggestion =
-            $(`<div id="pano-not-avail-audit"><a id="explore-street">${i18next.t('common:errors.explore-street')}</div>`).css({
-            'font-size': '85%',
-            'padding-bottom': '15px'
-        })[0];
+        this.#panoNotAvailableAuditSuggestion
+            = $(`<div id="pano-not-avail-audit"><a id="explore-street">${i18next.t('common:errors.explore-street')}</div>`).css({
+                'font-size': '85%',
+                'padding-bottom': '15px',
+            })[0];
 
         this.#fallbackContainer = $('<div id="pano-fallback-container">').css({
             position: 'relative',
             width: '100%',
             height: '100%',
             display: 'none',
-            overflow: 'hidden'
+            overflow: 'hidden',
         })[0];
         // The panzoom target — wraps the image. The marker stays OUTSIDE this wrapper so it doesn't scale
         // with the image; instead we reposition it manually whenever panzoom emits a transform event.
         this.#fallbackPanzoomWrap = $('<div id="pano-fallback-pz">').css({
             width: '100%',
             height: '100%',
-            cursor: 'grab'
+            cursor: 'grab',
         })[0];
         this.#fallbackImage = $('<img id="pano-fallback-image">').css({
-            width: '100%',
-            height: '100%',
+            'width': '100%',
+            'height': '100%',
             'object-fit': 'cover',
             'user-select': 'none',
-            'pointer-events': 'none'
+            'pointer-events': 'none',
         })[0];
         this.#fallbackMarker = $('<img id="pano-fallback-marker">').addClass('icon-outline').css({
-            position: 'absolute',
-            width: '20px',
-            height: '20px',
-            transform: 'translate(-50%, -50%)',
-            display: 'none',
-            'pointer-events': 'none'
+            'position': 'absolute',
+            'width': '20px',
+            'height': '20px',
+            'transform': 'translate(-50%, -50%)',
+            'display': 'none',
+            'pointer-events': 'none',
         })[0];
         $(this.#fallbackPanzoomWrap).append(this.#fallbackImage);
         $(this.#fallbackContainer).append(this.#fallbackPanzoomWrap, this.#fallbackMarker);
@@ -166,7 +166,7 @@ class PopupPanoManager {
             bounds: true,
             boundsPadding: 1,
             zoomDoubleClickSpeed: 1, // Disables double-click zoom (it would conflict with the dialog UI).
-            disableKeyboardInteraction: true
+            disableKeyboardInteraction: true,
         });
         this.#fallbackPanzoom.on('transform', () => this.#updateFallbackMarkerPosition());
 
@@ -174,7 +174,7 @@ class PopupPanoManager {
         const panoOptions = {
             accessToken: this.#viewerAccessToken,
             scrollwheel: true,
-            defaultNavigation: !!this.#admin // Only allow navigation on admin version, not on normal LabelMap.
+            defaultNavigation: !!this.#admin, // Only allow navigation on admin version, not on normal LabelMap.
         };
         this.#primaryViewer = await this.#viewerType.create(this.#panoCanvas, panoOptions);
         this.panoViewer = this.#primaryViewer;
@@ -312,7 +312,7 @@ class PopupPanoManager {
                 startPanoId: backupImage.panoId,
                 startHeading: pov.heading,
                 startPitch: pov.pitch,
-                startZoom: pov.zoom
+                startZoom: pov.zoom,
             });
         }
         this.panoViewer = this.#pannellumViewer;
@@ -375,7 +375,7 @@ class PopupPanoManager {
             $(this.#panoNotAvailable).text(i18next.t('common:errors.title'));
             $(this.#panoNotAvailable).css('display', 'block');
             $(this.#panoNotAvailableDetails).css('display', 'block');
-            if (this.label) $('#explore-street').attr('href', '/explore?streetEdgeId=' + this.label['streetEdgeId']);
+            if (this.label) $('#explore-street').attr('href', `/explore?streetEdgeId=${this.label.streetEdgeId}`);
             $(this.#panoNotAvailableAuditSuggestion).css('display', 'block');
             this.#buttonHolder.css('display', 'none');
         }
@@ -412,8 +412,8 @@ class PopupPanoManager {
         const t = this.#fallbackPanzoom.getTransform();
         const fracX = this.label.canvasX / this.label.originalCanvasWidth;
         const fracY = this.label.canvasY / this.label.originalCanvasHeight;
-        this.#fallbackMarker.style.left = (t.x + fracX * W * t.scale) + 'px';
-        this.#fallbackMarker.style.top  = (t.y + fracY * H * t.scale) + 'px';
+        this.#fallbackMarker.style.left = `${t.x + fracX * W * t.scale}px`;
+        this.#fallbackMarker.style.top = `${t.y + fracY * H * t.scale}px`;
     }
 
     /**
@@ -424,7 +424,7 @@ class PopupPanoManager {
      */
     renderLabel(label) {
         const pos = util.pano.canvasCoordToCenteredPov(
-            label.pov, label.canvasX, label.canvasY, label.originalCanvasWidth, label.originalCanvasHeight
+            label.pov, label.canvasX, label.canvasY, label.originalCanvasWidth, label.originalCanvasHeight,
         );
         // Mount the marker inside whichever canvas is currently visible so it sits over the right viewer.
         const activeCanvas = this.panoViewer === this.#pannellumViewer ? this.#pannellumCanvas : this.#panoCanvas;
@@ -432,12 +432,12 @@ class PopupPanoManager {
             markerContainer: activeCanvas,
             panoViewer: this.panoViewer,
             position: { heading: pos.heading, pitch: pos.pitch },
-            icon: this.#icons[label['label_type']],
-            size: { width: 20, height: 20 }
+            icon: this.#icons[label.label_type],
+            size: { width: 20, height: 20 },
         });
         this.#labelMarkers.push({
             panoId: this.panoViewer.getPanoId(),
-            marker: panoMarker
+            marker: panoMarker,
         });
         if (label.aiGenerated) this.#attachAiIndicatorToMarker(panoMarker);
     }

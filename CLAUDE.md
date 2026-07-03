@@ -156,11 +156,13 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 - If there is an associated Github issue, beging the branch name with the issue number (e.g. `1234-fix-label-popup`).
 - When changing JS behavior, edit `src/` and let `grunt watch` rebuild; if a new `src/` file isn't picked up, check that its path matches a glob in `Gruntfile.js`.
 - When updating code in JavaScript, migrate it to modern ECMAScript — we target **ES2022** (the `ecmaVersion` in [`eslint.config.js`](eslint.config.js)): `let`/`const` instead of `var`, arrow functions, `#private` class fields, `async`/`await`, optional chaining (`?.`), etc.
+- Build HTML strings with **template literals, never `+` concatenation**, indenting the markup inside the backticks to mirror its HTML nesting (ESLint doesn't reformat template-literal interiors). The newlines/indent become part of the string, so when converting an old concatenation, check the target container's CSS first — safe in block/flex/grid containers and collapsible inline text, but a plain inline container gains a visible space, and a line break inside an attribute value (e.g. `title="..."`) renders literally. `eslint --fix` can't do this conversion (`prefer-template` ignores literal-plus-literal chains), so convert by hand as you touch code. Full write-up: [`docs/style-guide.md`](docs/style-guide.md).
 - When refactoring a JS constructor function (the `function Foo(...) { const self = this; ... return self; }` pattern), convert it to a `class`. Use `#` private fields/methods. Use arrow functions in event listeners to keep `this` bound correctly.
 - Update said code to use the native `fetch` API rather than jQuery, and to make use of Promises. But if said refactor would impact many other functions that use it, then wait for a dedicated refactor.
 - Replace uses of Bootstrap with native JS alternatives as you come across them
 - When writing SQL, avoid table aliases
 - After editing any Scala file, run `make scalafmt-fix` (reformats the whole tree in place via the sbt thin client) before treating the change as done — scalafmt is a blocking CI gate, so unformatted Scala fails the build. One run after a batch of edits is enough; no need to format after every single edit.
+- After editing any JavaScript file, run `make eslint-fix dir=<files or dirs you touched>` — the JS counterpart to the scalafmt rule above. **The auto-fix pass is all that's expected right now**: the rule set is still being tuned on #2487, and findings `--fix` can't resolve (`eqeqeq`, `max-statements-per-line`, ...) are deferred to a coordinated tree-wide cleanup once it settles — leave them rather than hand-fixing piecemeal. Always scope with `dir=`; the bare `make eslint` lints all of `public/javascripts/` and surfaces pre-existing findings that aren't yours.
 - User interactions are logged (clicks, key presses, mode switches, pano changes, mission/task events, etc.) to the activity/interaction tables. When you **add or change an interaction**, add or adjust the corresponding logging so analytics stay complete; keep event names consistent with the existing ones, and update [`docs/logged-events.md`](docs/logged-events.md) (how logging works + the event reference).
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
 - When adding or refactoring code, use the fonts, colors, button styling, etc. defined in main.css :root. These are pulled from our "Design System Tokens" Figma, and we are pushing to use these going forward.
@@ -298,7 +300,7 @@ Good targets for inline comments:
 - Do not add a header just because a function was touched; only add one if it is missing
   and the function is non-trivial.
 
-## Linting Rules (frontend lint deferred to #2487; Scala `scalafmt` is checked in CI — see Continuous integration)
+## Linting Rules (frontend lint runs manually on the code you touch — see Linting below; Scala `scalafmt` is checked in CI — see Continuous integration)
 - ESLint: ES2022, `const`/`let` only (no `var`), arrow functions, template literals, semicolons required, 120-char line limit
 - Stylelint: 4-space indentation, stylelint-config-standard
 - HTMLHint: lowercase tags/attrs, double quotes, no inline scripts/styles, alt text required
@@ -384,15 +386,25 @@ Each city has its own schema (`sidewalk_<city>`), and they are essentially ident
 
 **The dev DB is not representative of production size, and some tables may be absent.** The two largest production tables by a wide margin are **`audit_task_interaction`** and **`validation_task_interaction`** (raw per-action interaction logs — pans, zooms, clicks). The dev DB dumps that seed local development **omit** these tables to stay manageable, so locally they are typically empty or missing. Never infer a table's production size or existence from the local DB. When reasoning about query cost or indexes, treat these two interaction tables — not `webpage_activity` — as the heavyweight logs.
 
-### Linting (do not run these now, future refactor will set this up)
+### Linting
 
 ```bash
-make lint           # eslint + htmlhint + stylelint
-make lint-fix       # eslint --fix + stylelint --fix
-make eslint dir=public/javascripts/SVValidate   # scope to a dir; also htmlhint / stylelint targets
+make lint           # eslint + htmlhint + stylelint -- not ready for user yet, only eslint is ready (#2487)
+make lint-fix       # eslint --fix + stylelint --fix -- not ready for user yet, only eslint is ready (#2487)
+make eslint         # defaults to public/javascripts/ (build/ + lib/ carved out by eslint.config.js ignores)
+make eslint dir=public/javascripts/SVValidate   # scope to a dir or file; also htmlhint / stylelint targets
 ```
 
-Config: `.eslintrc.json`, `.stylelintrc.json`, `.htmlhintrc`. Scala formatting is `.scalafmt.conf`.
+**Run `make eslint-fix` on any JS you change** (see Development Guidelines) — like scalafmt for Scala, but scoped with
+`dir=` (the tree isn't fully lint-clean, so a bare run surfaces findings that aren't yours). For now the auto-fix pass
+is the whole ask: lint isn't a CI gate yet, and findings `--fix` can't resolve are deferred to the #2487 tree-wide
+cleanup — don't hand-fix them piecemeal.
+
+These are run **from the host** (like `make scalafmt`): the targets `docker exec` into the running web container,
+where the linters' `node_modules` live (there is no host-side `npm install`), so the web container must be up. Scope a
+run with `dir=` and pass extra flags with `args=`.
+
+Config: `eslint.config.js`, `.stylelintrc.json`, `.htmlhintrc`. Scala formatting is `.scalafmt.conf`.
 
 ### What not to automate
 

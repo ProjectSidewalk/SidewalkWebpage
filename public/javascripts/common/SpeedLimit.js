@@ -19,7 +19,7 @@ class SpeedLimit {
         'secondary_link',
         'tertiary_link',
         'living_street',
-        'road'
+        'road',
     ];
 
     // Labels in which speed limit is necessary context for validation. Speed limit will not display for other labels.
@@ -54,7 +54,7 @@ class SpeedLimit {
 
         // If labelType is null/undefined (not provided), the speed limit will be displayed by default.
         const speedLimitRelevant = !labelType || SpeedLimit.#SPEED_LIMIT_RELEVANT_LABELS.includes(labelType);
-        if (typeof(labelContainer) !== "undefined" && labelContainer !== null && speedLimitRelevant) {
+        if (typeof (labelContainer) !== 'undefined' && labelContainer !== null && speedLimitRelevant) {
             this.#prefetchLabels(); // Note that this happens async.
             labelContainer.resetLabelListUpdateCallback(this.#prefetchLabels);
         }
@@ -62,7 +62,7 @@ class SpeedLimit {
         this.container = document.getElementById('speed-limit-sign');
         this.speedLimit = {
             number: '',
-            sub: ''
+            sub: '',
         };
         this.speedLimitVisible = false;
         this.updateSpeedLimit();
@@ -89,8 +89,8 @@ class SpeedLimit {
      */
     #findClosestRoad(data, lat, lon) {
         // Filter to only be roads, and not footpaths/walkways.
-        const roads = data.elements.filter(el =>
-            el.type === 'way' && el.tags && el.tags.highway && SpeedLimit.#ROAD_HIGHWAY_TYPES.includes(el.tags.highway)
+        const roads = data.elements.filter((el) =>
+            el.type === 'way' && el.tags && el.tags.highway && SpeedLimit.#ROAD_HIGHWAY_TYPES.includes(el.tags.highway),
         );
 
         const point = turf.point([lat, lon]);
@@ -99,7 +99,7 @@ class SpeedLimit {
 
         // Go through all the roads and find the closest one.
         for (const road of roads) {
-            const lineString = turf.lineString(road.geometry.map(p => [p.lon, p.lat]));
+            const lineString = turf.lineString(road.geometry.map((p) => [p.lon, p.lat]));
             const distance = turf.pointToLineDistance(point, lineString);
 
             if (distance < minDistance) {
@@ -121,8 +121,8 @@ class SpeedLimit {
         // Get the labels from the pano container and prefetch them.
         const labelsToPrefetch = this.#labelContainer.getLabels();
         for (const label of labelsToPrefetch) {
-            const cameraLat = label.getAuditProperty("cameraLat");
-            const cameraLng = label.getAuditProperty("cameraLng");
+            const cameraLat = label.getAuditProperty('cameraLat');
+            const cameraLng = label.getAuditProperty('cameraLng');
             if (cameraLat && cameraLng) {
                 await this.#queryClosestRoadForCoords(cameraLat, cameraLng, true, label);
             }
@@ -139,7 +139,7 @@ class SpeedLimit {
      * @returns {Promise<{closestRoad: object|null}>} Object with the calculated closest road, or null on failure.
      */
     async #queryClosestRoadForCoords(lat, lng, shouldCache, label) {
-        const cacheKey = label === null ? (this.#labelContainer === null ? "" : this.#labelContainer.getCurrentLabel().getAuditProperty("panoId")) : label.getAuditProperty("panoId");
+        const cacheKey = label === null ? (this.#labelContainer === null ? '' : this.#labelContainer.getCurrentLabel().getAuditProperty('panoId')) : label.getAuditProperty('panoId');
         if (cacheKey in this.#cache) {
             return await this.#cache[cacheKey];
         }
@@ -155,7 +155,7 @@ class SpeedLimit {
         const promise = (async () => {
             try {
                 const overpassResp = await fetch(
-                    `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
+                    `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`,
                 );
                 // A 429 (or other non-2xx) returns XML rather than JSON, so guard before parsing.
                 if (!overpassResp.ok) {
@@ -200,14 +200,14 @@ class SpeedLimit {
         this.#countryCodePromise = (async () => {
             try {
                 const resp = await fetch(
-                    `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
+                    `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`,
                 );
                 if (!resp.ok) {
                     this.#countryCodePromise = null;
                     return null;
                 }
                 const json = await resp.json();
-                const countryElements = json.elements.filter(el => el.type === 'country');
+                const countryElements = json.elements.filter((el) => el.type === 'country');
                 return countryElements.length > 0 ? countryElements[0].tags.code : null;
             } catch (e) {
                 this.#countryCodePromise = null;
@@ -248,7 +248,7 @@ class SpeedLimit {
         // Fetch roads (per-pano) and country code (session-cached) in parallel.
         const [queryResp, countryCode] = await Promise.all([
             this.#queryClosestRoadForCoords(lat, lng, false, null),
-            this.#queryCountryCode(lat, lng)
+            this.#queryCountryCode(lat, lng),
         ]);
         const closestRoad = queryResp.closestRoad;
 
@@ -271,8 +271,8 @@ class SpeedLimit {
         }
 
         // Extract speed limit info from closest road.
-        if (closestRoad !== null && closestRoad.tags['maxspeed']) {
-            const splitMaxspeed = closestRoad.tags['maxspeed'].split(' ');
+        if (closestRoad !== null && closestRoad.tags.maxspeed) {
+            const splitMaxspeed = closestRoad.tags.maxspeed.split(' ');
             const number = splitMaxspeed.shift();
             let sub = splitMaxspeed.join(' ');
             if (sub.trim().length === 0) {
@@ -280,7 +280,7 @@ class SpeedLimit {
             }
             this.speedLimit = {
                 number,
-                sub
+                sub,
             };
             this.speedLimitVisible = true;
         } else {

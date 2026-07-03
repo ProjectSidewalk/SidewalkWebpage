@@ -26,18 +26,18 @@ function AddCitiesToMap(map, citiesData, params) {
         privateFillOpacity: 0.4,
         privateStrokeColor: '#C85B3A',  // Darker orange for stroke
         privateStrokeOpacity: 0.5,
-        privateRadius: 5
+        privateRadius: 5,
     };
 
     // Hide a few deployments for now that are covering up legitimate deployments.
     citiesData.features = citiesData.features
-        .filter(city => !['crowdstudy', 'validation-study', 'la-piedad-old'].includes(city.properties.city_id));
+        .filter((city) => !['crowdstudy', 'validation-study', 'la-piedad-old'].includes(city.properties.city_id));
 
     // Render cities as circles.
     map.addSource(CITIES_LAYER_NAME, {
         type: 'geojson',
         data: citiesData,
-        promoteId: 'city_id'  // Use cityId as the feature identifier for state management
+        promoteId: 'city_id',  // Use cityId as the feature identifier for state management
     });
     map.addLayer({
         id: CITIES_LAYER_NAME,
@@ -48,7 +48,7 @@ function AddCitiesToMap(map, citiesData, params) {
                 'case',
                 ['==', ['get', 'visibility'], 'private'],
                 CIRCLE_CONFIG.privateRadius,
-                CIRCLE_CONFIG.radius
+                CIRCLE_CONFIG.radius,
             ],
             'circle-color': [
                 'case',
@@ -56,20 +56,20 @@ function AddCitiesToMap(map, citiesData, params) {
                 CIRCLE_CONFIG.hoverFillColor,
                 ['==', ['get', 'visibility'], 'private'],
                 CIRCLE_CONFIG.privateFillColor,
-                CIRCLE_CONFIG.fillColor
+                CIRCLE_CONFIG.fillColor,
             ],
             'circle-opacity': [
                 'case',
                 ['==', ['get', 'visibility'], 'private'],
                 CIRCLE_CONFIG.privateFillOpacity,
-                CIRCLE_CONFIG.fillOpacity
+                CIRCLE_CONFIG.fillOpacity,
             ],
             'circle-stroke-width': CIRCLE_CONFIG.strokeWidth,
             'circle-stroke-opacity': [
                 'case',
                 ['==', ['get', 'visibility'], 'private'],
                 CIRCLE_CONFIG.privateStrokeOpacity,
-                CIRCLE_CONFIG.strokeOpacity
+                CIRCLE_CONFIG.strokeOpacity,
             ],
             'circle-stroke-color': [
                 'case',
@@ -77,9 +77,9 @@ function AddCitiesToMap(map, citiesData, params) {
                 CIRCLE_CONFIG.hoverStrokeColor,
                 ['==', ['get', 'visibility'], 'private'],
                 CIRCLE_CONFIG.privateStrokeColor,
-                CIRCLE_CONFIG.strokeColor
-            ]
-        }
+                CIRCLE_CONFIG.strokeColor,
+            ],
+        },
     });
 
     // Add filter/hover effects and fit the map to our cities.
@@ -94,9 +94,9 @@ function AddCitiesToMap(map, citiesData, params) {
         let hoveredCityId = null;
 
         // Change cursor on hover and update feature state.
-        map.on('mousemove', CITIES_LAYER_NAME, function (e) {
+        map.on('mousemove', CITIES_LAYER_NAME, (e) => {
             map.getCanvas().style.cursor = 'pointer';
-            let currCity = e.features[0];
+            const currCity = e.features[0];
 
             // If a different city was being hovered before, update the state for each.
             if (hoveredCityId !== null && hoveredCityId !== currCity.id) {
@@ -138,7 +138,7 @@ function AddCitiesToMap(map, citiesData, params) {
             focusAfterOpen: false,
             closeButton: true,
             closeOnClick: true,
-            className: 'deployment-popup'
+            className: 'deployment-popup',
         });
 
         map.on('click', CITIES_LAYER_NAME, async (e) => {
@@ -218,7 +218,7 @@ function AddCitiesToMap(map, citiesData, params) {
         const distUnit = i18next.t('common:unit-distance-abbreviation');
         const dist = i18next.t('common:measurement-system') === 'metric' ? km : util.math.kmsToMiles(km);
         const roundedDist = Math.round(dist) < 10 ? Math.round(dist * 10) / 10 : Math.round(dist);
-        return i18next.t('common:format-number', { val: roundedDist }) + ' ' + distUnit;
+        return `${i18next.t('common:format-number', { val: roundedDist })} ${distUnit}`;
     }
 
     /**
@@ -234,7 +234,7 @@ function AddCitiesToMap(map, citiesData, params) {
         // Extend bounds to include all cities.
         if (citiesData.features.length === 0) return;
         const bounds = new mapboxgl.LngLatBounds();
-        citiesData.features.forEach(city => {
+        citiesData.features.forEach((city) => {
             bounds.extend(city.geometry.coordinates);
         });
         map.fitBounds(bounds, { padding: 50 });
@@ -248,6 +248,7 @@ function AddCitiesToMap(map, citiesData, params) {
             fitMapToCities();
         }
     }
+
     window.addEventListener('resize', handleResize);
 
     // Return promise that is resolved once all the layers have been added to the map.
@@ -255,7 +256,7 @@ function AddCitiesToMap(map, citiesData, params) {
         if (map.getLayer(CITIES_LAYER_NAME)) {
             resolve();
         } else {
-            map.on('sourcedataloading', function(e) {
+            map.on('sourcedataloading', (e) => {
                 if (map.getLayer(CITIES_LAYER_NAME)) {
                     resolve();
                 }

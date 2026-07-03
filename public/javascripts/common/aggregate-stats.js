@@ -12,7 +12,7 @@ const CONFIG = {
     AGGREGATE_STATS_ENDPOINT: '/v3/api/aggregateStats',
     REQUEST_TIMEOUT: 10000, // 10 seconds
     RETRY_ATTEMPTS: 2,
-    RETRY_DELAY: 1000 // 1 second
+    RETRY_DELAY: 1000, // 1 second
 };
 
 /**
@@ -50,8 +50,8 @@ async function fetchWithRetry(url, timeout = CONFIG.REQUEST_TIMEOUT, retries = C
             signal: controller.signal,
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
+                'Content-Type': 'application/json',
+            },
         });
 
         clearTimeout(timeoutId);
@@ -66,7 +66,7 @@ async function fetchWithRetry(url, timeout = CONFIG.REQUEST_TIMEOUT, retries = C
 
         if (retries > 0 && error.name !== 'AbortError') {
             console.warn(`Request failed, retrying... (${retries} attempts left)`, error.message);
-            await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY));
+            await new Promise((resolve) => setTimeout(resolve, CONFIG.RETRY_DELAY));
             return fetchWithRetry(url, timeout, retries - 1);
         }
 
@@ -94,7 +94,7 @@ async function fetchAggregateStats() {
 
         // Validate that we have the expected fields
         const requiredFields = ['km_explored', 'total_labels', 'total_validations', 'num_cities', 'num_countries', 'num_languages'];
-        const missingFields = requiredFields.filter(field => typeof response[field] !== 'number');
+        const missingFields = requiredFields.filter((field) => typeof response[field] !== 'number');
 
         if (missingFields.length > 0) {
             throw new Error(`Missing or invalid fields in API response: ${missingFields.join(', ')}`);
@@ -236,6 +236,6 @@ async function loadProjectSidewalkStats() {
 }
 
 // Auto-initialize when translations are ready.
-window.appManager.ready(function () {
+window.appManager.ready(() => {
     loadProjectSidewalkStats();
 });

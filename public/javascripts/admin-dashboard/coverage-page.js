@@ -56,9 +56,9 @@ class CoveragePage {
 
             this.#map = new CoverageMap('coverage-choropleth', {
                 mapboxToken: this.#mapboxToken,
-                onRegionClick: id => this.#pin([id]),
-                onRegionHover: id => this.#hover([id]),
-                onRegionHoverEnd: () => this.#hoverEnd()
+                onRegionClick: (id) => this.#pin([id]),
+                onRegionHover: (id) => this.#hover([id]),
+                onRegionHoverEnd: () => this.#hoverEnd(),
             });
             await this.#map.init(geojson);
 
@@ -81,7 +81,7 @@ class CoveragePage {
 
     /** Precomputes the data each secondary view needs: per-region bar rows, coverage buckets, and table rows. */
     #prepareData(features) {
-        this.#barData = features.map(f => ({
+        this.#barData = features.map((f) => ({
             region_id: Number(f.properties.region_id),
             name: f.properties.name,
             completion_rate: f.properties.completion_rate,
@@ -91,7 +91,7 @@ class CoveragePage {
             audit_count: f.properties.audit_count,
             label_count: f.properties.label_count,
             user_count: f.properties.user_count,
-            color: CoverageColors.forRate(f.properties.completion_rate)
+            color: CoverageColors.forRate(f.properties.completion_rate),
         }));
         this.#tableRows = this.#barData; // Same per-region rows; the table formats them itself.
 
@@ -106,7 +106,7 @@ class CoveragePage {
             index: idx,
             label: `${idx * (100 / nb)}–${(idx + 1) * (100 / nb)}%`,
             count: ids.length,
-            color: CoverageColors.forRate((idx + 0.5) / nb)
+            color: CoverageColors.forRate((idx + 0.5) / nb),
         }));
     }
 
@@ -118,7 +118,7 @@ class CoveragePage {
         barsView.hidden = mode !== 'bars';
         distView.hidden = mode !== 'distribution';
 
-        document.querySelectorAll('.coverage-toggle-btn').forEach(b => {
+        document.querySelectorAll('.coverage-toggle-btn').forEach((b) => {
             const active = b.dataset.view === mode;
             b.classList.toggle('active', active);
             b.setAttribute('aria-pressed', String(active));
@@ -126,26 +126,26 @@ class CoveragePage {
 
         if (mode === 'bars' && !this.#bars) {
             this.#bars = new CoverageBars('coverage-bars', {
-                onBarClick: id => this.#pin([id]),
-                onBarHover: id => this.#hover([id]),
-                onBarHoverEnd: () => this.#hoverEnd()
+                onBarClick: (id) => this.#pin([id]),
+                onBarHover: (id) => this.#hover([id]),
+                onBarHoverEnd: () => this.#hoverEnd(),
             });
             await this.#bars.render(this.#barData);
             this.#wireSortButtons();
         } else if (mode === 'distribution') {
             if (!this.#histogram) {
                 this.#histogram = new CoverageHistogram('coverage-histogram', {
-                    onBinClick: idx => this.#pin(this.#bucketRegionIds[idx]),
-                    onBinHover: idx => this.#hover(this.#bucketRegionIds[idx]),
-                    onBinHoverEnd: () => this.#hoverEnd()
+                    onBinClick: (idx) => this.#pin(this.#bucketRegionIds[idx]),
+                    onBinHover: (idx) => this.#hover(this.#bucketRegionIds[idx]),
+                    onBinHoverEnd: () => this.#hoverEnd(),
                 });
                 await this.#histogram.render(this.#buckets);
             }
             if (!this.#table) {
                 this.#table = new CoverageTable('coverage-table', 'coverage-table-search', {
-                    onRowClick: id => this.#pin([id]),
-                    onRowHover: id => this.#hover([id]),
-                    onRowHoverEnd: () => this.#hoverEnd()
+                    onRowClick: (id) => this.#pin([id]),
+                    onRowHover: (id) => this.#hover([id]),
+                    onRowHoverEnd: () => this.#hoverEnd(),
                 });
                 this.#table.render(this.#tableRows);
             }
@@ -191,7 +191,7 @@ class CoveragePage {
 
     /** Wires the Per-region / Distribution view toggle. */
     #wireViewToggle() {
-        document.querySelectorAll('.coverage-toggle-btn').forEach(btn => {
+        document.querySelectorAll('.coverage-toggle-btn').forEach((btn) => {
             btn.addEventListener('click', () => {
                 if (btn.dataset.view !== this.#mode) this.#activateMode(btn.dataset.view);
             });
@@ -201,10 +201,10 @@ class CoveragePage {
     /** Wires the Coverage/Name sort toggle for the per-region bars; re-renders and restores the highlight. */
     #wireSortButtons() {
         const buttons = document.querySelectorAll('.coverage-sort-btn');
-        buttons.forEach(btn => {
+        buttons.forEach((btn) => {
             btn.addEventListener('click', async () => {
                 if (btn.classList.contains('active')) return;
-                buttons.forEach(b => {
+                buttons.forEach((b) => {
                     const isTarget = b === btn;
                     b.classList.toggle('active', isTarget);
                     b.setAttribute('aria-pressed', String(isTarget));
@@ -218,7 +218,7 @@ class CoveragePage {
     #renderKpis(features) {
         const totalM = features.reduce((s, f) => s + (f.properties.total_distance_m || 0), 0);
         const auditedM = features.reduce((s, f) => s + (f.properties.audited_distance_m || 0), 0);
-        const fullyAudited = features.filter(f => (f.properties.completion_rate || 0) >= 0.999).length;
+        const fullyAudited = features.filter((f) => (f.properties.completion_rate || 0) >= 0.999).length;
 
         document.getElementById('kpi-city-coverage').textContent = CoverageFormat.pct(totalM ? auditedM / totalM : 0);
         document.getElementById('kpi-regions').textContent = features.length.toLocaleString();
@@ -226,9 +226,9 @@ class CoveragePage {
     }
 
     #renderLegend() {
-        document.getElementById('coverage-legend').innerHTML =
-            '<span>0%</span><span class="coverage-legend-gradient" aria-hidden="true"></span><span>100%</span>' +
-            '<span>audit coverage</span>';
+        document.getElementById('coverage-legend').innerHTML = `
+            <span>0%</span><span class="coverage-legend-gradient" aria-hidden="true"></span><span>100%</span>
+            <span>audit coverage</span>`;
     }
 
     /** Updates the status line; pass hide=true to remove it once data has loaded. */
@@ -244,6 +244,6 @@ class CoveragePage {
     static #sameSet(a, b) {
         if (a.length !== b.length) return false;
         const set = new Set(a);
-        return b.every(id => set.has(id));
+        return b.every((id) => set.has(id));
     }
 }

@@ -29,7 +29,7 @@ class Label {
         aiTagsNotPresent: undefined,
         isMobile: undefined,
         aiGenerated: false,
-        backupImage: null
+        backupImage: null,
     };
 
     // These properties are set through validating labels. In this object, canvas properties and
@@ -53,40 +53,40 @@ class Label {
         unsureReasonTextBox: '',
         comment: undefined,
         zoom: undefined,
-        isMobile: undefined
+        isMobile: undefined,
     };
 
     #adminProperties = {
         username: null,
-        previousValidations: null
+        previousValidations: null,
     };
 
     #icons;
 
     constructor(params) {
         this.#icons = {
-            CurbRamp : '/assets/images/icons/AdminTool_CurbRamp.png',
-            NoCurbRamp : '/assets/images/icons/AdminTool_NoCurbRamp.png',
-            Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
-            SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem.png',
-            Other : '/assets/images/icons/AdminTool_Other.png',
-            Occlusion : '/assets/images/icons/AdminTool_Occlusion.png',
-            NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png',
-            Crosswalk : '/assets/images/icons/AdminTool_Crosswalk.png',
-            Signal : '/assets/images/icons/AdminTool_Signal.png'
+            CurbRamp: '/assets/images/icons/AdminTool_CurbRamp.png',
+            NoCurbRamp: '/assets/images/icons/AdminTool_NoCurbRamp.png',
+            Obstacle: '/assets/images/icons/AdminTool_Obstacle.png',
+            SurfaceProblem: '/assets/images/icons/AdminTool_SurfaceProblem.png',
+            Other: '/assets/images/icons/AdminTool_Other.png',
+            Occlusion: '/assets/images/icons/AdminTool_Occlusion.png',
+            NoSidewalk: '/assets/images/icons/AdminTool_NoSidewalk.png',
+            Crosswalk: '/assets/images/icons/AdminTool_Crosswalk.png',
+            Signal: '/assets/images/icons/AdminTool_Signal.png',
         };
 
-        if (isMobile()) {
+        if (util.isMobile()) {
             this.#icons = {
-                CurbRamp : '/assets/images/icons/AdminTool_CurbRamp_Mobile.png',
-                NoCurbRamp : '/assets/images/icons/AdminTool_NoCurbRamp_Mobile.png',
-                Obstacle : '/assets/images/icons/AdminTool_Obstacle_Mobile.png',
-                SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem_Mobile.png',
-                Other : '/assets/images/icons/AdminTool_Other_Mobile.png',
-                Occlusion : '/assets/images/icons/AdminTool_Other_Mobile.png',
-                NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk_Mobile.png',
-                Crosswalk : '/assets/images/icons/AdminTool_Crosswalk_Mobile.png',
-                Signal : '/assets/images/icons/AdminTool_Signal_Mobile.png'
+                CurbRamp: '/assets/images/icons/AdminTool_CurbRamp_Mobile.png',
+                NoCurbRamp: '/assets/images/icons/AdminTool_NoCurbRamp_Mobile.png',
+                Obstacle: '/assets/images/icons/AdminTool_Obstacle_Mobile.png',
+                SurfaceProblem: '/assets/images/icons/AdminTool_SurfaceProblem_Mobile.png',
+                Other: '/assets/images/icons/AdminTool_Other_Mobile.png',
+                Occlusion: '/assets/images/icons/AdminTool_Other_Mobile.png',
+                NoSidewalk: '/assets/images/icons/AdminTool_NoSidewalk_Mobile.png',
+                Crosswalk: '/assets/images/icons/AdminTool_Crosswalk_Mobile.png',
+                Signal: '/assets/images/icons/AdminTool_Signal_Mobile.png',
             };
         }
 
@@ -140,7 +140,7 @@ class Label {
                     }
                 }
             }
-            this.setAuditProperty('isMobile', isMobile());
+            this.setAuditProperty('isMobile', util.isMobile());
         }
     }
 
@@ -178,7 +178,7 @@ class Label {
         const origPov = {
             heading: this.getAuditProperty('heading'),
             pitch: this.getAuditProperty('pitch'),
-            zoom: this.getAuditProperty('zoom')
+            zoom: this.getAuditProperty('zoom'),
         };
         return util.pano.canvasCoordToCenteredPov(origPov, this.getAuditProperty('canvasX'),
             this.getAuditProperty('canvasY'), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT);
@@ -220,7 +220,7 @@ class Label {
         const comment = this.getProperty('comment');
         if (comment) {
             return {
-                comment: comment,
+                comment,
                 label_id: this.getAuditProperty('labelId'),
                 pano_id: this.getAuditProperty('panoId'),
                 heading: this.getProperty('heading'),
@@ -258,7 +258,7 @@ class Label {
         this.setProperty('heading', userPov.heading);
         this.setProperty('pitch', userPov.pitch);
         this.setProperty('zoom', userPov.zoom);
-        this.setProperty('isMobile', isMobile());
+        this.setProperty('isMobile', util.isMobile());
         this.setProperty('comment', comment);
 
         if (this.getProperty('comment')) {

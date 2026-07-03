@@ -28,7 +28,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername) {
         admin,
         viewerType,
         viewerAccessToken,
-        currUsername
+        currUsername,
     });
     dialog.close();
     // Hold the initializing class through the close transition duration so the fade-out doesn't flash the dialog.

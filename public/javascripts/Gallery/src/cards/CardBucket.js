@@ -28,7 +28,7 @@ class CardBucket {
     filterOnTags(tags) {
         if (tags !== undefined && tags.length > 0) {
             const tagSet = new Set(tags);
-            this.#bucket = this.#bucket.filter(card => card.getProperty("tags").some(tag => tagSet.has(tag)));
+            this.#bucket = this.#bucket.filter((card) => card.getProperty('tags').some((tag) => tagSet.has(tag)));
         }
     }
 
@@ -40,8 +40,8 @@ class CardBucket {
     filterOnSeverities(severities) {
         if (severities !== undefined && severities.length > 0) {
             const severitySet = new Set(severities);
-            this.#bucket = this.#bucket.filter(card => {
-                const sev = card.getProperty("severity");
+            this.#bucket = this.#bucket.filter((card) => {
+                const sev = card.getProperty('severity');
                 return severitySet.has(sev == null ? 'null' : String(sev));
             });
         }
@@ -54,7 +54,7 @@ class CardBucket {
      */
     filterOnValidationOptions(validationOptions) {
         const validationOptionsSet = new Set(validationOptions);
-        this.#bucket = this.#bucket.filter(card => validationOptionsSet.has(card.getProperty("correctness")));
+        this.#bucket = this.#bucket.filter((card) => validationOptionsSet.has(card.getProperty('correctness')));
     }
 
     /**

@@ -47,9 +47,9 @@ class MobileValidationMenu {
         for (const reasonButton of this.#disagreeReasonButtons) {
             reasonButton.onclick = (e) => {
                 if (e.isTrigger) {
-                    svv.tracker.push('KeyboardShortcut_DisagreeReason_Option=' + $(reasonButton).attr('id'));
+                    svv.tracker.push(`KeyboardShortcut_DisagreeReason_Option=${$(reasonButton).attr('id')}`);
                 } else {
-                    svv.tracker.push('Click=DisagreeReason_Option=' + $(reasonButton).attr('id'));
+                    svv.tracker.push(`Click=DisagreeReason_Option=${$(reasonButton).attr('id')}`);
                 }
                 this.#setDisagreeReason($(reasonButton).attr('id'));
             };
@@ -57,9 +57,9 @@ class MobileValidationMenu {
         for (const reasonButton of this.#unsureReasonButtons) {
             reasonButton.onclick = (e) => {
                 if (e.isTrigger) {
-                    svv.tracker.push('KeyboardShortcut_UnsureReason_Option=' + $(reasonButton).attr('id'));
+                    svv.tracker.push(`KeyboardShortcut_UnsureReason_Option=${$(reasonButton).attr('id')}`);
                 } else {
-                    svv.tracker.push('Click=UnsureReason_Option=' + $(reasonButton).attr('id'));
+                    svv.tracker.push(`Click=UnsureReason_Option=${$(reasonButton).attr('id')}`);
                 }
                 this.#setUnsureReason($(reasonButton).attr('id'));
             };
@@ -68,12 +68,12 @@ class MobileValidationMenu {
         // Log clicks to the two text boxes.
         menuUI.disagreeReasonTextBox.click((e) => {
             menuUI.disagreeReasonTextBox.focus();
-            const action = e.isTrigger ? 'KeyboardShortcut=DisagreeReasonTextbox': 'Click=DisagreeReasonTextbox';
+            const action = e.isTrigger ? 'KeyboardShortcut=DisagreeReasonTextbox' : 'Click=DisagreeReasonTextbox';
             svv.tracker.push(action);
         });
         menuUI.unsureReasonTextBox.click((e) => {
             menuUI.unsureReasonTextBox.focus();
-            const action = e.isTrigger ? 'KeyboardShortcut=UnsureReasonTextbox': 'Click=UnsureReasonTextbox';
+            const action = e.isTrigger ? 'KeyboardShortcut=UnsureReasonTextbox' : 'Click=UnsureReasonTextbox';
             svv.tracker.push(action);
         });
 
@@ -145,7 +145,7 @@ class MobileValidationMenu {
                     // Remove any old tooltip (from a previous label type) and add a new tooltip.
                     $reasonButton.tooltip('destroy');
                     if (buttonInfo.tooltipImage) {
-                        util.getImage(buttonInfo.tooltipImage).then(img => {
+                        util.getImage(buttonInfo.tooltipImage).then((img) => {
                             this.#addTooltip($reasonButton, buttonInfo.tooltipText, img);
                         });
                     } else {
@@ -187,9 +187,9 @@ class MobileValidationMenu {
                 menuUI.unsureReasonOptions.find(`#${unsureOption}`).addClass('chosen');
             }
 
-            if (prevValResult === 'Agree')         this.#setYesView();
+            if (prevValResult === 'Agree') this.#setYesView();
             else if (prevValResult === 'Disagree') this.#setNoView();
-            else if (prevValResult === 'Unsure')   this.#setUnsureView();
+            else if (prevValResult === 'Unsure') this.#setUnsureView();
         }
     }
 
@@ -241,8 +241,8 @@ class MobileValidationMenu {
                 placement: 'top',
                 html: true,
                 container: 'body',
-                delay: {show: 500, hide: 10},
-                title: tooltipHtml
+                delay: { show: 500, hide: 10 },
+                title: tooltipHtml,
             })).tooltip('show').tooltip('hide');
         }
     }

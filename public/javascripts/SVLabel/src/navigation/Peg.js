@@ -116,7 +116,7 @@ class Peg {
      * @returns {Promise<Peg>} The peg instance.
      */
     static async create(map, initialLocation) {
-        const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+        const { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
         const { LatLng } = await google.maps.importLibrary('core');
         return new Peg(map, initialLocation, AdvancedMarkerElement, LatLng);
     }

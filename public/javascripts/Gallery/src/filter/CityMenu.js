@@ -4,7 +4,7 @@
  */
 class CityMenu {
     #status = {
-        currentCity: null
+        currentCity: null,
     };
 
     /**
@@ -13,7 +13,7 @@ class CityMenu {
     constructor(uiCityMenu) {
         if (uiCityMenu) {
             uiCityMenu.select.bind({
-                change: this.#citySelectCallback
+                change: this.#citySelectCallback,
             });
         }
     }
@@ -23,8 +23,8 @@ class CityMenu {
      */
     #citySelectCallback = (e) => {
         const city = $(e.currentTarget).val();
-        this.setStatus("currentCity", city);
-        sg.tracker.push("Filter_City=" + city);
+        this.setStatus('currentCity', city);
+        sg.tracker.push(`Filter_City=${city}`);
         sg.cardFilter.update();
     };
 

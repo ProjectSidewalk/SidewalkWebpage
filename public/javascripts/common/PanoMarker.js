@@ -89,8 +89,8 @@ class PanoMarker {
          * @type {function({heading: number, pitch: number}, {heading: number, pitch: number, zoom: number}, number, number, number): {x: number, y: number}}
          */
         this.povToPixel_ = util.pano.centeredPovToCanvasCoord2d;
-        let pixelCanvas = document.createElement("canvas");
-        if (pixelCanvas && (pixelCanvas.getContext("experimental-webgl") || pixelCanvas.getContext("webgl"))) {
+        const pixelCanvas = document.createElement('canvas');
+        if (pixelCanvas && (pixelCanvas.getContext('experimental-webgl') || pixelCanvas.getContext('webgl'))) {
             this.povToPixel_ = util.pano.centeredPovToCanvasCoord;
         }
 
@@ -101,23 +101,31 @@ class PanoMarker {
     /**
      * Sets up a marker and then calls draw().
      */
-    createMarker = function() {
-        let marker = document.createElement('div');
+    createMarker = function () {
+        const marker = document.createElement('div');
         marker.classList.add('icon-outline');
 
         // Basic style attributes for every marker.
         marker.style.position = 'absolute';
         marker.style.cursor = 'inherit';    // To keep the mouseover icon open hand. See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1393
-        marker.style.width = this.size_.width + 'px';
-        marker.style.height = this.size_.height + 'px';
+        marker.style.width = `${this.size_.width}px`;
+        marker.style.height = `${this.size_.height}px`;
         marker.style.display = this.visible_ ? 'block' : 'none';
         marker.style.zIndex = this.zIndex_;
 
         // Set other CSS attributes based on the given parameters.
-        if (this.id_) { marker.id = this.id_; }
-        if (this.className_) { marker.className = this.className_; }
-        if (this.title_) { marker.title = this.title_; }
-        if (this.icon_) { marker.style.backgroundImage = 'url(' + this.icon_ + ')'; }
+        if (this.id_) {
+            marker.id = this.id_;
+        }
+        if (this.className_) {
+            marker.className = this.className_;
+        }
+        if (this.title_) {
+            marker.title = this.title_;
+        }
+        if (this.icon_) {
+            marker.style.backgroundImage = `url(${this.icon_})`;
+        }
 
         // If neither icon, class nor id is specified, assign the basic Google Maps marker image to the marker.
         if (!(this.id_ || this.className_ || this.icon_)) {
@@ -136,14 +144,14 @@ class PanoMarker {
         this.listenerViewer_.addListener('pov_changed', this.boundDraw_);
 
         // If this is a validation label, we want to add mouse-hovering event for popped up hide/show label.
-        if (this.id_ === "validate-pano-marker") {
-            if (isMobile()) {
-                marker.addEventListener('touchstart', function () {
-                    let labelDescriptionBox = $("#label-description-box");
-                    let desBox = labelDescriptionBox[0];
+        if (this.id_ === 'validate-pano-marker') {
+            if (util.isMobile()) {
+                marker.addEventListener('touchstart', () => {
+                    const labelDescriptionBox = $('#label-description-box');
+                    const desBox = labelDescriptionBox[0];
                     if (!this.toggleDescription_) {
-                        desBox.style.right = (svv.canvasWidth() - parseFloat(marker.style.left) - (parseFloat(marker.style.width) / 2)) + 'px';
-                        desBox.style.top = (parseFloat(marker.style.top) + (parseFloat(marker.style.height) / 2)) + 'px';
+                        desBox.style.right = `${svv.canvasWidth() - parseFloat(marker.style.left) - (parseFloat(marker.style.width) / 2)}px`;
+                        desBox.style.top = `${parseFloat(marker.style.top) + (parseFloat(marker.style.height) / 2)}px`;
                         desBox.style.zIndex = 2;
                         desBox.style.visibility = 'visible';
                         this.toggleDescription_ = true;
@@ -151,15 +159,15 @@ class PanoMarker {
                         desBox.style.visibility = 'hidden';
                         this.toggleDescription_ = false;
                     }
-                }.bind(this), false);
+                }, false);
             } else {
-                marker.addEventListener("mouseover", function (e) {
+                marker.addEventListener('mouseover', (e) => {
                     // Don't re-show the hover info if the cursor passes over the marker mid-pan (a mouse button is held).
                     if (e.buttons) return;
                     svv.labelVisibilityControl.showTagsAndDeleteButton();
                 });
 
-                marker.addEventListener("mouseout", function () {
+                marker.addEventListener('mouseout', () => {
                     svv.labelVisibilityControl.hideTagsAndDeleteButton();
                 });
             }
@@ -171,7 +179,7 @@ class PanoMarker {
     /**
      * Removes the marker.
      */
-    removeMarker = function() {
+    removeMarker = function () {
         // Detach the listeners registered in createMarker, by reference, so they don't accumulate (#4231).
         window.removeEventListener('resize', this.boundDraw_);
         this.listenerViewer_.removeListener('pov_changed', this.boundDraw_);
@@ -182,14 +190,14 @@ class PanoMarker {
     /**
      * Draws the marker on the canvas.
      */
-    draw = function() {
+    draw = function () {
         if (!this.panoViewer_) {
             return;
         }
 
         if (this.toggleDescription_) {
-            let labelDescriptionBox = $("#label-description-box");
-            let desBox = labelDescriptionBox[0];
+            const labelDescriptionBox = $('#label-description-box');
+            const desBox = labelDescriptionBox[0];
             desBox.style.visibility = 'hidden';
             this.toggleDescription_ = false;
         }
@@ -199,125 +207,143 @@ class PanoMarker {
         if (this.marker_) {
             const coords = this.povToPixel_(
                 this.position_, this.panoViewer_.getPov(), this.markerContainer_.offsetWidth,
-                this.markerContainer_.offsetHeight, this.size_.width
+                this.markerContainer_.offsetHeight, this.size_.width,
             );
             if (coords !== null) {
-                this.marker_.style.left = (coords.x - this.size_.width / 2) + 'px';
-                this.marker_.style.top = (coords.y - this.size_.height / 2) + 'px';
+                this.marker_.style.left = `${coords.x - this.size_.width / 2}px`;
+                this.marker_.style.top = `${coords.y - this.size_.height / 2}px`;
             } else {
                 // If coords is null, marker is "behind" the camera, so we position the marker outside the viewport.
-                this.marker_.style.left = -(9999 + this.size_.width) + 'px';
+                this.marker_.style.left = `${-(9999 + this.size_.width)}px`;
                 this.marker_.style.top = '0';
             }
         }
     };
 
-
     // Getter to be roughly equivalent to the regular google.maps.Marker. //
 
     /** @return {string} The className or null if not set upon marker creation. */
-    getClassName = function() { return this.className_; };
+    getClassName = function () {
+        return this.className_;
+    };
 
     /** @return {string} The current icon, if any. */
-    getIcon = function() { return this.icon_; };
+    getIcon = function () {
+        return this.icon_;
+    };
 
     /** @return {string} The identifier or null if not set upon marker creation. */
-    getId = function() { return this.id_; };
+    getId = function () {
+        return this.id_;
+    };
 
     /** @return {PanoViewer} The current PanoViewer. */
-    getPanoViewer = function() { return this.panoViewer_; };
+    getPanoViewer = function () {
+        return this.panoViewer_;
+    };
 
     /** @return {PanoViewer} The current PanoViewer. */
-    getMarkerContainer = function() { return this.markerContainer_; };
+    getMarkerContainer = function () {
+        return this.markerContainer_;
+    };
 
     /** @return {{heading: number, pitch: number}} The marker's location on the panorama. */
-    getPosition = function() { return this.position_; };
+    getPosition = function () {
+        return this.position_;
+    };
 
     /** {{width: number, height: number}} size The new size of the marker in pixels. */
-    getSize = function() { return this.size_; };
+    getSize = function () {
+        return this.size_;
+    };
 
     /** @return {string} The marker's rollover text. */
-    getTitle = function() { return this.title_; };
+    getTitle = function () {
+        return this.title_;
+    };
 
     /** @return {boolean} Whether the marker is currently visible. */
-    getVisible = function() { return this.visible_; };
+    getVisible = function () {
+        return this.visible_;
+    };
 
     /** @return {number} The marker's z-index. */
-    getZIndex = function() { return this.zIndex_; };
-
+    getZIndex = function () {
+        return this.zIndex_;
+    };
 
     // Setter for the properties mentioned above. //
 
     /** @param {string} className The new className. */
-    setClassName = function(className) {
+    setClassName = function (className) {
         this.className_ = className;
-        if (!!this.marker_) {
+        if (this.marker_) {
             this.marker_.className = className;
         }
     };
 
     /** @param {?string} icon URL to a new icon, or null in order to remove it. */
-    setIcon = function(icon) {
+    setIcon = function (icon) {
         this.icon_ = icon;
-        if (!!this.marker_) {
-            this.marker_.style.backgroundImage = !!icon ? 'url(' + icon + ')' : '';
+        if (this.marker_) {
+            this.marker_.style.backgroundImage = icon ? `url(${icon})` : '';
         }
     };
 
     /** @param {string} id The new id. */
-    setId = function(id) {
+    setId = function (id) {
         this.id_ = id;
-        if (!!this.marker_) {
+        if (this.marker_) {
             this.marker_.id = id;
         }
     };
 
     /** @param {PanoViewer} panoViewer The panorama in which to show the marker. */
-    setPanoViewer = function(panoViewer) {
+    setPanoViewer = function (panoViewer) {
         this.panoViewer_ = panoViewer;
     };
 
     /** @param {HTMLDivElement} markerContainer The container holding the markers. */
-    setMarkerContainer = function(markerContainer) {
+    setMarkerContainer = function (markerContainer) {
         this.markerContainer_ = markerContainer;
     };
 
     /** @param {{heading: number, pitch: number}} position The desired location for the marker on the pano. */
-    setPosition = function(position) {
+    setPosition = function (position) {
         this.position_ = position;
         this.draw();
     };
 
     /** @param {{width: number, height: number}} size The new size of the marker in pixels. */
-    setSize = function(size) {
+    setSize = function (size) {
         this.size_ = size;
-        if (!!this.marker_) {
-            this.marker_.style.width = size.width + 'px';
-            this.marker_.style.height = size.height + 'px';
+        if (this.marker_) {
+            this.marker_.style.width = `${size.width}px`;
+            this.marker_.style.height = `${size.height}px`;
             this.draw();
         }
     };
 
     /** @param {string} title The new rollover text. */
-    setTitle = function(title) {
+    setTitle = function (title) {
         this.title_ = title;
-        if (!!this.marker_) {
+        if (this.marker_) {
             this.marker_.title = title;
         }
     };
 
     /** @param {boolean} show Whether the marker shall be visible. */
-    setVisible = function(show) {
+    setVisible = function (show) {
         this.visible_ = show;
-        if (!!this.marker_) {
+        if (this.marker_) {
             this.marker_.style.display = show ? 'block' : 'none';
         }
     };
 
     /** @param {number} zIndex The new z-index. */
-    setZIndex = function(zIndex) {
+    setZIndex = function (zIndex) {
         this.zIndex_ = zIndex;
-        if (!!this.marker_) {
+        if (this.marker_) {
             this.marker_.style.zIndex = zIndex;
         }
     };

@@ -106,8 +106,8 @@ class AppManager {
         // Set up CSRF token for all AJAX requests.
         $.ajaxSetup({
             headers: {
-                'Csrf-Token': csrfToken
-            }
+                'Csrf-Token': csrfToken,
+            },
         });
 
         // Set up CSRF token for fetch requests by overwriting the fetch function. The token is only attached to
@@ -116,7 +116,7 @@ class AppManager {
         // Overpass, sibling city servers, ...) does nothing useful and forces an unnecessary CORS preflight that some
         // hosts reject, so we skip them rather than maintaining an allowlist of hosts to exclude (#4232).
         const originalFetch = window.fetch;
-        window.fetch = function(url, options = {}) {
+        window.fetch = function (url, options = {}) {
             const requestUrl = (typeof url === 'string') ? url : url.url;
 
             // Resolve against the page origin so relative URLs (our routes) are correctly treated as same-origin.
@@ -136,8 +136,8 @@ class AppManager {
                 ...options,
                 headers: {
                     ...options.headers,
-                    'Csrf-Token': csrfToken
-                }
+                    'Csrf-Token': csrfToken,
+                },
             };
             return originalFetch(url, newOptions);
         };
@@ -158,35 +158,35 @@ class AppManager {
         // Set up country-specific namespace overrides.
         let namespaces = params.namespaces;
         if (params.countryId === 'india') {
-            namespaces = [...namespaces, ...namespaces.map(str => `${str}-india`)];
+            namespaces = [...namespaces, ...namespaces.map((str) => `${str}-india`)];
         } else if (params.countryId === 'switzerland') {
-            namespaces = [...namespaces, ...namespaces.map(str => `${str}-zurich`)]
+            namespaces = [...namespaces, ...namespaces.map((str) => `${str}-zurich`)];
         }
 
         return i18next.use(i18nextHttpBackend).init({
             backend: {
                 loadPath: '/assets/locales/{{lng}}/{{ns}}.json',
-                allowMultiLoading: true
+                allowMultiLoading: true,
             },
             fallbackLng: 'en',
             ns: namespaces,
             defaultNS: params.defaultNS,
             lng: params.language,
             partialBundledLanguages: true,
-            debug: false
-        }, function(err, t) {
+            debug: false,
+        }, (err, t) => {
             // Ignore errors loading translations, but log any other errors.
-            if (err && err.filter(e => !e.includes('status code: 404')).length > 0) {
-                return console.error(err.filter(e => !e.includes('status code: 404')));
+            if (err && err.filter((e) => !e.includes('status code: 404')).length > 0) {
+                return console.error(err.filter((e) => !e.includes('status code: 404')));
             }
 
             // After loading, merge the country-specific override namespaces into the base ones.
             // Going through list of languages so that we still get the en translations when using en-US.
             for (const l of i18next.languages) {
                 for (const ns of namespaces) {
-                    if (params.countryId === "india") {
+                    if (params.countryId === 'india') {
                         i18next.addResourceBundle(l, ns, i18next.getResourceBundle(l, `${ns}-india`) || {}, true, true);
-                    } else if (params.countryId === "switzerland") {
+                    } else if (params.countryId === 'switzerland') {
                         i18next.addResourceBundle(l, ns, i18next.getResourceBundle(l, `${ns}-zurich`) || {}, true, true);
                     }
                 }
@@ -205,20 +205,20 @@ class AppManager {
      */
     _setupLogging() {
         // NOTE We are setting async as false by default since this is primarily used before a redirect.
-        window.logWebpageActivity = function(activity, async = false) {
+        window.logWebpageActivity = function (activity, async = false) {
             $.ajax({
-                async: async,
+                async,
                 contentType: 'application/json; charset=utf-8',
                 url: '/userapi/logWebpageActivity',
                 method: 'POST',
                 data: JSON.stringify(activity),
                 dataType: 'json',
-                success: function(result) { },
-                error: function (result) {
+                success(result) { },
+                error(result) {
                     console.error(result);
-                }
+                },
             });
-        }
+        };
     }
 
     /**

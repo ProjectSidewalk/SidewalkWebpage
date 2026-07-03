@@ -43,7 +43,7 @@ class PanoOverlayControls {
         this.#controlButtonsToggle.setAttribute('aria-expanded', expanded);
         const chevron = expanded ? 'chevron-left-white-feather.svg' : 'chevron-right-white-feather.svg';
         this.#controlButtonsToggleIcon.setAttribute('src', `/assets/images/icons/${chevron}`);
-    }
+    };
 
     /**
      * Callback for clicking the stuck button.
@@ -65,35 +65,35 @@ class PanoOverlayControls {
                 this.stuckAlert.stuckClicked();
             })
             .catch(() => this.tracker.push('ModalStuck_PanoNotAvailable'));
-    }
+    };
 
     /* Enable the stuck button. */
     enableStuckButton = () => {
         this.#stuckEnabled = true;
-    }
+    };
 
     /* Disable the stuck button. */
     disableStuckButton = () => {
         this.#stuckEnabled = false;
-    }
+    };
 
     /* Visually disable the stuck and control-toggle buttons (used while onboarding takes over the UI). */
     disableButtons = () => {
         this.#stuck.classList.add('disabled');
         this.#controlButtonsToggle.classList.add('disabled');
-    }
+    };
 
     /* Blink the stuck button. */
     blinkStuckButton = () => {
         this.stopBlinkingStuckButton();
         this.#blinkInterval = window.setInterval(() => {
-            this.#stuck.classList.toggle("highlight-100");
+            this.#stuck.classList.toggle('highlight-100');
         }, 500);
     };
 
     /* Stop blinking the stuck button. */
     stopBlinkingStuckButton = () => {
         window.clearInterval(this.#blinkInterval);
-        this.#stuck.classList.remove("highlight-100");
+        this.#stuck.classList.remove('highlight-100');
     };
 }

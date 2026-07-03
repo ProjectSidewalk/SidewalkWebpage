@@ -58,7 +58,7 @@ class ExpandedView {
             currUsername: null,
             onVote: this.#handleVote,
             panoOverlaySource: 'GalleryExpandedImage',
-            voteColumnSource: 'GalleryExpandedThumbs'
+            voteColumnSource: 'GalleryExpandedThumbs',
         });
 
         // Expose panoManager for Keyboard.js zoom shortcuts.
@@ -115,7 +115,7 @@ class ExpandedView {
             backup_image: card.getBackupImageData(),
             from_current_user: p.from_current_user,
             expired: p.expired,
-            comments: p.comments
+            comments: p.comments,
         };
     }
 
@@ -141,7 +141,7 @@ class ExpandedView {
         this.labelDetail.showLabel(meta, 'Gallery');
 
         // Highlight selected card thumbnail.
-        this.#highlightThumbnail(document.getElementById('gallery_card_' + this.refCard.getLabelId()));
+        this.#highlightThumbnail(document.getElementById(`gallery_card_${this.refCard.getLabelId()}`));
         this.open = true;
     }
 
@@ -169,7 +169,7 @@ class ExpandedView {
     #removeCardTransparency() {
         const currentPageCards = sg.cardContainer.getCurrentPageCards();
         for (const card of currentPageCards) {
-            const cardDomEl = document.getElementById('gallery_card_' + card.getLabelId());
+            const cardDomEl = document.getElementById(`gallery_card_${card.getLabelId()}`);
             if (cardDomEl && cardDomEl.classList.contains(ExpandedView.#unselectedCardClassName)) {
                 cardDomEl.classList.remove(ExpandedView.#unselectedCardClassName);
             }
@@ -185,7 +185,7 @@ class ExpandedView {
         this.#removeCardTransparency();
         if (cardToScrollTo) {
             requestAnimationFrame(() => {
-                const cardEl = document.getElementById('gallery_card_' + cardToScrollTo.getLabelId());
+                const cardEl = document.getElementById(`gallery_card_${cardToScrollTo.getLabelId()}`);
                 if (cardEl) {
                     const navbar = document.getElementById('header');
                     const navbarHeight = navbar ? navbar.offsetHeight : 0;
@@ -202,8 +202,12 @@ class ExpandedView {
      * @param {number} index The index of the card to update to.
      */
     #updateExpandedViewCardByIndex(index) {
-        if (this.leftArrow) { this.leftArrow.disabled = false; this.leftArrowDisabled = false; }
-        if (this.rightArrow) { this.rightArrow.disabled = false; this.rightArrowDisabled = false; }
+        if (this.leftArrow) {
+            this.leftArrow.disabled = false; this.leftArrowDisabled = false;
+        }
+        if (this.rightArrow) {
+            this.rightArrow.disabled = false; this.rightArrowDisabled = false;
+        }
         this.cardIndex = index;
         this.refCard = sg.cardContainer.getCardByIndex(this.cardIndex);
 
@@ -281,7 +285,7 @@ class ExpandedView {
         const totalCards = sg.cardContainer.getCurrentCards().getSize();
         galleryCard.scrollIntoView({
             block: (index < page * ExpandedView.#cardsPerPage - 1 && index < totalCards - 1) ? 'center' : 'end',
-            behavior: 'smooth'
+            behavior: 'smooth',
         });
 
         // Remove transparent effect from selected card.
@@ -292,7 +296,7 @@ class ExpandedView {
         for (const card of currentPageCards) {
             const cardLabelId = card.getLabelId();
             if (cardLabelId !== this.refCard.getLabelId()) {
-                const cardDomEl = document.getElementById('gallery_card_' + cardLabelId);
+                const cardDomEl = document.getElementById(`gallery_card_${cardLabelId}`);
                 if (cardDomEl && !cardDomEl.classList.contains(ExpandedView.#unselectedCardClassName)) {
                     cardDomEl.classList.add(ExpandedView.#unselectedCardClassName);
                 }
@@ -335,10 +339,10 @@ class ExpandedView {
             mutations.forEach((mutation) => {
                 if (mutation.type === 'childList') {
                     mutation.addedNodes.forEach((node) => {
-                        if (node.nodeType === Node.ELEMENT_NODE &&
-                            node.className &&
-                            typeof node.className === 'string' &&
-                            node.className.indexOf('widget-scene-canvas') > -1) {
+                        if (node.nodeType === Node.ELEMENT_NODE
+                            && node.className
+                            && typeof node.className === 'string'
+                            && node.className.indexOf('widget-scene-canvas') > -1) {
                             node.addEventListener('mousedown', () => {
                                 $(node).css('cursor', 'url(/assets/images/icons/closedhand.cur) 4 4, move');
                             });

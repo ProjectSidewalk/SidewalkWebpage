@@ -28,60 +28,60 @@ class Tracker {
     }
 
     trackWindowEvents() {
-        const prefix = "LowLevelEvent_";
+        const prefix = 'LowLevelEvent_';
 
         // track all mouse related events
         $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', (e, extra) => {
             if (extra) {
-                if (typeof extra.lowLevelLogging !== "undefined" && !extra.lowLevelLogging) { // {lowLevelLogging: false}
+                if (typeof extra.lowLevelLogging !== 'undefined' && !extra.lowLevelLogging) { // {lowLevelLogging: false}
                     return;
                 }
             }
 
             this.push(prefix + e.type, {
                 cursorX: 'pageX' in e ? e.pageX : null,
-                cursorY: 'pageY' in e ? e.pageY : null
+                cursorY: 'pageY' in e ? e.pageY : null,
             });
         });
 
         // keyboard related events
         $(document).on('keydown keyup', (e) => {
             this.push(prefix + e.type, {
-                keyCode: 'keyCode' in e ? e.keyCode : null
+                keyCode: 'keyCode' in e ? e.keyCode : null,
             });
         });
     }
 
     #isCanvasInteraction(action) {
-        return action.indexOf("LabelingCanvas") >= 0;
+        return action.indexOf('LabelingCanvas') >= 0;
     }
 
     #isContextMenuAction(action) {
-        return action.indexOf("ContextMenu") >= 0;
+        return action.indexOf('ContextMenu') >= 0;
     }
 
     #isContextMenuClose(action) {
-        return action === "ContextMenu_Close";
+        return action === 'ContextMenu_Close';
     }
 
     #isDeleteLabelAction(action) {
-        return action.indexOf("RemoveLabel") >= 0;
+        return action.indexOf('RemoveLabel') >= 0;
     }
 
     #isClickLabelDeleteAction(action) {
-        return action.indexOf("Click_LabelDelete") >= 0;
+        return action.indexOf('Click_LabelDelete') >= 0;
     }
 
     #isTaskStartAction(action) {
-        return action.indexOf("TaskStart") >= 0;
+        return action.indexOf('TaskStart') >= 0;
     }
 
     #isSeverityShortcutAction(action) {
-        return action.indexOf("KeyboardShortcut_Severity") >= 0;
+        return action.indexOf('KeyboardShortcut_Severity') >= 0;
     }
 
     #isFinishLabelingAction(action) {
-        return action.indexOf("LabelingCanvas_FinishLabeling") >= 0;
+        return action.indexOf('LabelingCanvas_FinishLabeling') >= 0;
     }
 
     /** Returns actions */
@@ -90,13 +90,14 @@ class Tracker {
     }
 
     #notesToString(param) {
-        if (!param) return "";
+        if (!param) return '';
 
-        let note = "";
+        let note = '';
         for (const key in param) {
-            if (note.length > 0)
-                note += ",";
-            note += key + ':' + param[key];
+            if (note.length > 0) {
+                note += ',';
+            }
+            note += `${key}:${param[key]}`;
         }
         return note;
     }
@@ -119,7 +120,7 @@ class Tracker {
                 this.#updatedLabels.push(this.#currentLabel);
                 svl.labelContainer.addToLabelsToLog(this.#currentLabel);
             }
-            this.#currentLabel = extraData['temporaryLabelId'];
+            this.#currentLabel = extraData.temporaryLabelId;
         }
 
         // Initialize variables. Note you cannot get pov, pano_id, or latLng before the map and pano load.
@@ -128,7 +129,7 @@ class Tracker {
         const pov = panoViewer ? panoViewer.getPov() : { heading: null, pitch: null, zoom: null };
 
         return {
-            action : action,
+            action,
             pano_id: panoViewer ? panoViewer.getPanoId() : null,
             lat: latlng.lat,
             lng: latlng.lng,
@@ -138,7 +139,7 @@ class Tracker {
             note: this.#notesToString(notes || {}),
             temporary_label_id: this.#currentLabel,
             audit_task_id: auditTaskId,
-            timestamp: new Date()
+            timestamp: new Date(),
         };
     }
 
@@ -154,9 +155,9 @@ class Tracker {
             this.#currentLabel = labelProperties.temporaryLabelId;
 
             if (notes === null || typeof (notes) === 'undefined') {
-                notes = {'auditTaskId': labelProperties.auditTaskId};
+                notes = { auditTaskId: labelProperties.auditTaskId };
             } else {
-                notes['auditTaskId'] = labelProperties.auditTaskId;
+                notes.auditTaskId = labelProperties.auditTaskId;
             }
 
             // Reset currentLabel to null if this is a context menu event that fired after the menu already closed.
@@ -166,17 +167,16 @@ class Tracker {
             } else {
                 this.#currentLabel = null;
             }
-
         } else if (this.#isClickLabelDeleteAction(action)) {
             labelProperties = svl.canvas.getCurrentLabel().getProperties();
             this.#currentLabel = labelProperties.temporaryLabelId;
             this.#updatedLabels.push(this.#currentLabel);
             svl.labelContainer.addToLabelsToLog(this.#currentLabel);
 
-            if (notes === null || typeof(notes) === 'undefined') {
-                notes = {'auditTaskId' : labelProperties.auditTaskId};
+            if (notes === null || typeof (notes) === 'undefined') {
+                notes = { auditTaskId: labelProperties.auditTaskId };
             } else {
-                notes['auditTaskId'] = labelProperties.auditTaskId;
+                notes.auditTaskId = labelProperties.auditTaskId;
             }
         }
 
@@ -185,7 +185,7 @@ class Tracker {
         this.#actions.push(item);
         let contextMenuLabel = true;
 
-        if (this.#isFinishLabelingAction(action) && (notes['labelType'] === 'Occlusion')) {
+        if (this.#isFinishLabelingAction(action) && (notes.labelType === 'Occlusion')) {
             contextMenuLabel = false;
         }
 
@@ -222,6 +222,6 @@ class Tracker {
             svl.labelContainer.addToLabelsToLog(this.#currentLabel);
         }
 
-        this.push("RefreshTracker");
+        this.push('RefreshTracker');
     }
 }

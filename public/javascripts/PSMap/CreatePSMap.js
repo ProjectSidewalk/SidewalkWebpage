@@ -39,10 +39,10 @@ function CreatePSMap($, params) {
 
     // Create the map.
     let map;
-    let loadMapParams = $.getJSON('/cityMapParams');
-    let mapLoaded = Promise.all([loadMapParams]).then(function(data) {
+    const loadMapParams = $.getJSON('/cityMapParams');
+    const mapLoaded = Promise.all([loadMapParams]).then((data) => {
         return createMap(data[0]);
-    }).then(newMap => {
+    }).then((newMap) => {
         map = newMap; // Assign the returned map to the map variable.
 
         // Show the sidebar early (in its disabled/loading state) so it's visible while data loads.
@@ -72,10 +72,10 @@ function CreatePSMap($, params) {
 
     // Render the neighborhoods on the map if applicable.
     let renderNeighborhoods;
-    let loadNeighborhoods = $.getJSON(params.neighborhoodsURL);
-    let loadCompletionRates = $.getJSON(params.completionRatesURL);
+    const loadNeighborhoods = $.getJSON(params.neighborhoodsURL);
+    const loadCompletionRates = $.getJSON(params.completionRatesURL);
     if (params.neighborhoodsURL && params.completionRatesURL) {
-        renderNeighborhoods = Promise.all([mapLoaded, loadNeighborhoods, loadCompletionRates]).then(function(data) {
+        renderNeighborhoods = Promise.all([mapLoaded, loadNeighborhoods, loadCompletionRates]).then((data) => {
             AddNeighborhoodsToMap(map, data[1], data[2], params);
         });
     }
@@ -83,8 +83,8 @@ function CreatePSMap($, params) {
     // Render deployment cities on the map if applicable.
     let renderCities;
     if (params.loadCities) {
-        let loadCities = $.getJSON('/v3/api/cities?filetype=geojson');
-        renderCities = Promise.all([mapLoaded, loadCities]).then(function (data) {
+        const loadCities = $.getJSON('/v3/api/cities?filetype=geojson');
+        renderCities = Promise.all([mapLoaded, loadCities]).then((data) => {
             AddCitiesToMap(map, data[1], params);
         });
     }
@@ -92,8 +92,8 @@ function CreatePSMap($, params) {
     // Render the streets on the map if applicable.
     let renderStreets;
     if (params.streetsURL) {
-        let loadStreets = $.getJSON(params.streetsURL);
-        renderStreets = Promise.all([mapLoaded, renderNeighborhoods, loadStreets]).then(function(data) {
+        const loadStreets = $.getJSON(params.streetsURL);
+        renderStreets = Promise.all([mapLoaded, renderNeighborhoods, loadStreets]).then((data) => {
             AddStreetsToMap(map, data[2], params);
         });
     }
@@ -101,17 +101,17 @@ function CreatePSMap($, params) {
     // Render the labels on the map if applicable.
     let renderLabels;
     if (params.labelsURL) {
-        let loadLabels = $.getJSON(params.labelsURL);
-        renderLabels = Promise.all([mapLoaded, renderStreets, loadLabels]).then(function(data) {
+        const loadLabels = $.getJSON(params.labelsURL);
+        renderLabels = Promise.all([mapLoaded, renderStreets, loadLabels]).then((data) => {
             return AddLabelsToMap(map, data[2], params);
         });
     }
 
     // Return a promise that resolves once everything on the map has loaded.
-    let allLoaded = Promise.all([mapLoaded, renderNeighborhoods, renderCities, renderStreets, renderLabels]);
-    allLoaded.then(function(data) {
+    const allLoaded = Promise.all([mapLoaded, renderNeighborhoods, renderCities, renderStreets, renderLabels]);
+    allLoaded.then((data) => {
         // Resize the map when the window is resized.
-        $(window).resize(function() {
+        $(window).resize(() => {
             if (window.citiesMap) {
                 window.citiesMap.resize();
             }
@@ -138,7 +138,7 @@ function CreatePSMap($, params) {
             maxZoom: 19,
             maxBounds: [
                 [mapParamData.southwest_boundary.lng, mapParamData.southwest_boundary.lat],
-                [mapParamData.northeast_boundary.lng, mapParamData.northeast_boundary.lat]
+                [mapParamData.northeast_boundary.lng, mapParamData.northeast_boundary.lat],
             ],
             scrollZoom: params.scrollWheelZoom,
         });
@@ -167,7 +167,7 @@ function CreatePSMap($, params) {
             if (map.loaded()) {
                 resolve(map);
             } else {
-                map.on('load', function (e) {
+                map.on('load', (e) => {
                     resolve(map);
                 });
             }

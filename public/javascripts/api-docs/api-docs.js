@@ -19,10 +19,10 @@
  * - Follows web standards and best practices
  */
 
-document.addEventListener('DOMContentLoaded', function() {
-    let enableLeftSidebarAccordions = false; // Flag to disable left sidebar accordions.
+document.addEventListener('DOMContentLoaded', () => {
+    const enableLeftSidebarAccordions = false; // Flag to disable left sidebar accordions.
 
-    if(enableLeftSidebarAccordions){
+    if (enableLeftSidebarAccordions) {
         // 1. Set up the static structure enhancements (grouping related links).
         setupStaticNavAccordions();
 
@@ -47,7 +47,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initPermalinkClipboard();
 });
 
-
 /**
  * Finds related static nav items (e.g., 'page' and 'page#section') and groups them into an accordion structure in HTML.
  * Does NOT add event listeners here.
@@ -60,7 +59,7 @@ function setupStaticNavAccordions() {
     const navHeaders = navContainer.querySelectorAll('.api-nav-header');
     let submenuIdCounter = 0; // Counter for unique IDs.
 
-    navHeaders.forEach(header => {
+    navHeaders.forEach((header) => {
         let nextElement = header.nextElementSibling;
         const potentialGroup = [];
         while (nextElement && !nextElement.classList.contains('api-nav-header')) {
@@ -83,8 +82,8 @@ function setupStaticNavAccordions() {
         for (const baseUrl in itemsByBaseUrl) {
             const groupItems = itemsByBaseUrl[baseUrl];
             // Need at least one base item and one hash item (e.g., /intro and /intro#auth).
-            const baseItem = groupItems.find(item => item.getAttribute('href') === baseUrl);
-            const hashItems = groupItems.filter(item => item !== baseItem);
+            const baseItem = groupItems.find((item) => item.getAttribute('href') === baseUrl);
+            const hashItems = groupItems.filter((item) => item !== baseItem);
 
             if (baseItem && hashItems.length > 0) {
                 // Check if already processed (e.g., by dynamic generation).
@@ -116,7 +115,7 @@ function setupStaticNavAccordions() {
                 submenu.style.overflow = 'hidden';
 
                 // 3. Move hashItems into the submenu.
-                hashItems.forEach(item => {
+                hashItems.forEach((item) => {
                     // Optional: Add subitem class for styling.
                     item.classList.add('api-nav-subitem');
                     // Remove item from original position and append to submenu.
@@ -131,7 +130,6 @@ function setupStaticNavAccordions() {
     });
     console.log('Static navigation accordions structure setup complete.');
 }
-
 
 /**
  * Finds the primary active nav item, scans content for H1/H2, and generates an expanded submenu structure in the HTML.
@@ -171,7 +169,7 @@ function generateDynamicSidebarSubmenu() {
     submenu.style.overflow = 'hidden'; // Keep hidden during setup
 
     // 2. Populate submenu with links to headings.
-    headings.forEach(heading => {
+    headings.forEach((heading) => {
         const id = heading.getAttribute('id');
         const title = heading.textContent.replace(/#$/, '').trim();
         const level = heading.tagName.toLowerCase(); // h1, h2
@@ -202,11 +200,10 @@ function generateDynamicSidebarSubmenu() {
     // 5. Set initial expanded height (after insertion).
     // Use setTimeout to allow rendering engine to calculate scrollHeight.
     setTimeout(() => {
-        submenu.style.maxHeight = submenu.scrollHeight + 'px';
+        submenu.style.maxHeight = `${submenu.scrollHeight}px`;
         console.log(`Dynamic submenu for ${activeNavItem.textContent.trim()} generated and expanded.`);
     }, 0);
 }
-
 
 /**
  * Sets up a single event listener on the navigation container to handle clicks on all accordion triggers using event
@@ -219,7 +216,7 @@ function setupAccordionListener() {
         return;
     }
 
-    navContainer.addEventListener('click', function(event) {
+    navContainer.addEventListener('click', (event) => {
         // Find the closest ancestor that is an accordion trigger.
         const accordionTrigger = event.target.closest('.api-nav-accordion');
 
@@ -258,7 +255,7 @@ function setupAccordionListener() {
                 console.log(`Accordion collapsed: ${submenuId}`);
             } else {
                 // Expand.
-                submenu.style.maxHeight = submenu.scrollHeight + 'px';
+                submenu.style.maxHeight = `${submenu.scrollHeight}px`;
                 console.log(`Accordion expanded: ${submenuId}`);
                 // Optional: Handle nested accordions - if one opens, maybe close siblings?
             }
@@ -290,7 +287,7 @@ function generateTableOfContents() {
     }
 
     let headingsAdded = 0;
-    headings.forEach(heading => {
+    headings.forEach((heading) => {
         const id = heading.getAttribute('id');
         const title = heading.textContent.replace(/#$/, '').trim();
         const level = parseInt(heading.tagName.substring(1), 10);
@@ -306,7 +303,6 @@ function generateTableOfContents() {
         headingsAdded++;
     });
 }
-
 
 /**
  * Sets up scroll spy to highlight active TOC items based on scroll position. Left sidebar H1/H2 links are NOT
@@ -328,9 +324,9 @@ function setupScrollSpy() {
     }
 
     // Create an array of section objects with their elements and top offsets.
-    const sections = Array.from(contentSections).map(section => ({
+    const sections = Array.from(contentSections).map((section) => ({
         id: section.id,
-        offsetTop: section.offsetTop
+        offsetTop: section.offsetTop,
     })).sort((a, b) => a.offsetTop - b.offsetTop); // Sort by position
 
     // Calculate offset based on fixed header height + breathing room.
@@ -349,7 +345,7 @@ function setupScrollSpy() {
         }
 
         // --- Highlight TOC Links (Exact Match) ---
-        tocLinks.forEach(link => {
+        tocLinks.forEach((link) => {
             const linkHref = link.getAttribute('href');
             // Check if href exists and matches currentSectionId after removing '#'.
             if (linkHref && linkHref.substring(1) === currentSectionId) {
@@ -371,7 +367,6 @@ function setupScrollSpy() {
     setTimeout(highlightActiveTocItem, 100);
 }
 
-
 /**
  * Sets up smooth scrolling for TOC and sidebar hash links. Does NOT update left sidebar highlighting on click.
  * @returns {void}
@@ -384,8 +379,8 @@ function setupSmoothScrolling() {
     const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--navbar-height') || '50', 10);
     const scrollPadding = 10; // Extra space above the target.
 
-    scrollContainers.forEach(container => {
-        container.addEventListener('click', function(event) {
+    scrollContainers.forEach((container) => {
+        container.addEventListener('click', (event) => {
             const link = event.target.closest('a');
 
             // Check if it's an internal hash link.
@@ -417,7 +412,6 @@ function setupSmoothScrolling() {
     });
 }
 
-
 /**
  * Sets up mobile-specific navigation behavior (toggle button).
  * @returns {void}
@@ -441,7 +435,7 @@ function setupMobileNavigation() {
             nav.id = 'api-sidebar-nav';
         }
 
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             const isVisible = sidebar.classList.toggle('mobile-visible');
             this.setAttribute('aria-expanded', isVisible);
             this.innerHTML = isVisible ? '✕ Close' : '☰ Menu';
@@ -454,7 +448,6 @@ function setupMobileNavigation() {
     }
 }
 
-
 /**
  * Sets up click functionality for permalink icons to copy the URL.
  * @returns {void}
@@ -464,7 +457,7 @@ function setupPermalinkCopying() {
     const contentArea = document.querySelector('.api-content');
     if (!contentArea) return;
 
-    contentArea.addEventListener('click', function(event) {
+    contentArea.addEventListener('click', (event) => {
         const permalink = event.target.closest('a.permalink');
         if (permalink) {
             event.preventDefault();
@@ -472,7 +465,7 @@ function setupPermalinkCopying() {
 
             navigator.clipboard.writeText(urlToCopy).then(() => {
                 showPermalinkTooltip(permalink, 'URL copied!');
-            }).catch(err => {
+            }).catch((err) => {
                 console.error('Failed to copy URL:', err);
                 showPermalinkTooltip(permalink, 'Copy failed!');
             });
@@ -482,7 +475,7 @@ function setupPermalinkCopying() {
     // Function to show tooltip.
     function showPermalinkTooltip(anchorElement, message) {
         // Remove existing tooltips first.
-        document.querySelectorAll('.permalink-tooltip').forEach(tip => tip.remove());
+        document.querySelectorAll('.permalink-tooltip').forEach((tip) => tip.remove());
 
         const tooltip = document.createElement('div');
         tooltip.className = 'permalink-tooltip';
@@ -522,7 +515,7 @@ function setupDownloadButtons() {
     downloadButtons.forEach((button) => {
         const format = button.getAttribute('data-format');
 
-        button.addEventListener('click', function(event) {
+        button.addEventListener('click', (event) => {
             console.log(`${format.toUpperCase()} download button clicked`);
             event.preventDefault();
 
@@ -537,7 +530,7 @@ function setupDownloadButtons() {
                 started: false,
                 completed: false,
                 failed: false,
-                timeouts: []
+                timeouts: [],
             };
 
             // Show loading status.
@@ -546,7 +539,7 @@ function setupDownloadButtons() {
             if (statusProgress) statusProgress.textContent = `This process can take a few seconds to a minute, depending on the data size.`;
 
             // Disable all download buttons during processing.
-            downloadButtons.forEach(btn => {
+            downloadButtons.forEach((btn) => {
                 btn.disabled = true;
                 btn.classList.add('disabled');
             });
@@ -556,11 +549,11 @@ function setupDownloadButtons() {
                 console.log('Cleaning up download resources');
 
                 // Clear all timeouts.
-                downloadState.timeouts.forEach(timeout => clearTimeout(timeout));
+                downloadState.timeouts.forEach((timeout) => clearTimeout(timeout));
                 downloadState.timeouts = [];
 
                 // Re-enable buttons.
-                downloadButtons.forEach(btn => {
+                downloadButtons.forEach((btn) => {
                     btn.disabled = false;
                     btn.classList.remove('disabled');
                 });
@@ -605,7 +598,7 @@ function setupDownloadButtons() {
                     if (statusProgress) statusProgress.textContent = 'You can try again or try a different format.';
 
                     // Re-enable buttons after 60 seconds regardless.
-                    downloadButtons.forEach(btn => {
+                    downloadButtons.forEach((btn) => {
                         btn.disabled = false;
                         btn.classList.remove('disabled');
                     });
@@ -637,7 +630,7 @@ function setupDownloadButtons() {
             downloadState.initiated = true;
 
             // Handle successful response - this fires when headers are received.
-            xhr.onreadystatechange = function() {
+            xhr.onreadystatechange = function () {
                 if (xhr.readyState === 2) { // HEADERS_RECEIVED
                     const responseTime = Date.now() - startTime;
                     console.log(`Headers received after ${responseTime}ms`);
@@ -655,7 +648,7 @@ function setupDownloadButtons() {
                         // for slower ones.
                         const displayDuration = Math.min(
                             Math.max(responseTime * 2, 5000), // At least 5 seconds, or 2x response time
-                            15000 // Maximum 15 seconds
+                            15000, // Maximum 15 seconds
                         );
 
                         console.log(`Status will hide after ${displayDuration}ms`);
@@ -670,7 +663,7 @@ function setupDownloadButtons() {
             };
 
             // Handle error.
-            xhr.onerror = function() {
+            xhr.onerror = function () {
                 console.error('XHR error');
                 downloadState.failed = true;
 
@@ -681,11 +674,11 @@ function setupDownloadButtons() {
                 if (statusProgress) statusProgress.textContent = 'Please try again or try a different format.';
 
                 // Clean up but leave error message visible.
-                downloadState.timeouts.forEach(timeout => clearTimeout(timeout));
+                downloadState.timeouts.forEach((timeout) => clearTimeout(timeout));
                 downloadState.timeouts = [];
 
                 // Re-enable buttons.
-                downloadButtons.forEach(btn => {
+                downloadButtons.forEach((btn) => {
                     btn.disabled = false;
                     btn.classList.remove('disabled');
                 });
@@ -720,7 +713,7 @@ function initPermalinkClipboard() {
     // Find all permalink anchors (# links).
     const permalinks = document.querySelectorAll('.permalink');
 
-    permalinks.forEach(function(permalink) {
+    permalinks.forEach((permalink) => {
         // Make permalinks focusable and accessible.
         permalink.setAttribute('tabindex', '0');
         permalink.setAttribute('role', 'button');
@@ -728,13 +721,13 @@ function initPermalinkClipboard() {
         permalink.setAttribute('title', 'Click to copy link');
 
         // Add click event listener.
-        permalink.addEventListener('click', function(e) {
+        permalink.addEventListener('click', function (e) {
             e.preventDefault(); // Prevent default anchor behavior
             copyPermalinkToClipboard(this);
         });
 
         // Add keyboard support (Enter and Space)
-        permalink.addEventListener('keydown', function(e) {
+        permalink.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 copyPermalinkToClipboard(this);
@@ -742,7 +735,7 @@ function initPermalinkClipboard() {
         });
 
         // Add hover effect.
-        permalink.addEventListener('mouseenter', function() {
+        permalink.addEventListener('mouseenter', function () {
             this.style.cursor = 'pointer';
         });
     });
@@ -761,10 +754,10 @@ function copyPermalinkToClipboard(permalinkElement) {
     // Try modern Clipboard API first.
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(fullUrl)
-            .then(function() {
+            .then(() => {
                 showCopyFeedback(permalinkElement, 'success');
             })
-            .catch(function(err) {
+            .catch((err) => {
                 console.warn('Clipboard API failed, trying fallback:', err);
                 fallbackCopyToClipboard(fullUrl, permalinkElement);
             });
@@ -814,7 +807,7 @@ function fallbackCopyToClipboard(text, permalinkElement) {
 function showCopyFeedback(permalinkElement, status) {
     // Create toast notification.
     const toast = document.createElement('div');
-    toast.className = 'copy-toast copy-toast-' + status;
+    toast.className = `copy-toast copy-toast-${status}`;
 
     if (status === 'success') {
         toast.textContent = 'Link copied to clipboard!';
@@ -827,21 +820,21 @@ function showCopyFeedback(permalinkElement, status) {
     // Position toast near the permalink.
     const rect = permalinkElement.getBoundingClientRect();
     toast.style.position = 'fixed';
-    toast.style.left = (rect.right + 10) + 'px';
-    toast.style.top = (rect.top - 5) + 'px';
+    toast.style.left = `${rect.right + 10}px`;
+    toast.style.top = `${rect.top - 5}px`;
     toast.style.zIndex = '10000';
 
     document.body.appendChild(toast);
 
     // Animate in.
-    requestAnimationFrame(function() {
+    requestAnimationFrame(() => {
         toast.classList.add('copy-toast-visible');
     });
 
     // Remove after 2 seconds.
-    setTimeout(function() {
+    setTimeout(() => {
         toast.classList.remove('copy-toast-visible');
-        setTimeout(function() {
+        setTimeout(() => {
             if (toast.parentNode) {
                 document.body.removeChild(toast);
             }
@@ -853,7 +846,7 @@ function showCopyFeedback(permalinkElement, status) {
     permalinkElement.style.color = status === 'success' ? '#4caf50' : '#f44336';
     permalinkElement.style.transition = 'color 0.2s ease';
 
-    setTimeout(function() {
+    setTimeout(() => {
         permalinkElement.style.color = originalColor;
     }, 500);
 }

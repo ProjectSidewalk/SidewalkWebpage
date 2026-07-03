@@ -19,7 +19,7 @@ class AlertController {
             holder: document.getElementById('alert-holder'),
             message: document.getElementById('alert-message'),
             close: document.getElementById('alert-close'),
-            dontShow: document.getElementById('alert-dont-show')
+            dontShow: document.getElementById('alert-dont-show'),
         };
 
         this.#ui.close.addEventListener('click', () => this.hideAlert());

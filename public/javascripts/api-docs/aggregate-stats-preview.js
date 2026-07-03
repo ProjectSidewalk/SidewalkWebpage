@@ -7,13 +7,13 @@
  * @requires DOM element with id 'aggregate-stats-preview'
  */
 
-(function() {
+(function () {
     // Configuration options - can be overridden by calling setup().
     let config = {
-        apiBaseUrl: "/v3/api",
-        containerId: "aggregate-stats-preview",
+        apiBaseUrl: '/v3/api',
+        containerId: 'aggregate-stats-preview',
         maxWidth: 1000,
-        endpoint: "/aggregateStats"
+        endpoint: '/aggregateStats',
     };
 
     /** Formats a number with thousands separators (null-safe). */
@@ -27,7 +27,7 @@
          * @param {object} options - Configuration options
          * @returns {object} The preview object for chaining
          */
-        setup: function(options) {
+        setup(options) {
             config = Object.assign(config, options);
             return this;
         },
@@ -36,30 +36,30 @@
          * Initialize the preview.
          * @returns {Promise} A promise that resolves when the preview is rendered
          */
-        init: function() {
+        init() {
             const container = document.getElementById(config.containerId);
             if (!container) {
                 console.error(`Container element with id '${config.containerId}' not found.`);
-                return Promise.reject(new Error("Container element not found"));
+                return Promise.reject(new Error('Container element not found'));
             }
 
             if (config.maxWidth) {
                 container.style.maxWidth = `${config.maxWidth}px`;
-                container.style.width = "100%";
-                container.style.margin = "20px 0";
+                container.style.width = '100%';
+                container.style.margin = '20px 0';
             }
 
-            container.innerHTML = "Loading aggregate statistics...";
+            container.innerHTML = 'Loading aggregate statistics...';
 
             return fetch(`${config.apiBaseUrl}${config.endpoint}?source=apiDocs`)
-                .then(response => {
+                .then((response) => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
                     return response.json();
                 })
-                .then(data => this.render(data, container))
-                .catch(error => {
+                .then((data) => this.render(data, container))
+                .catch((error) => {
                     container.innerHTML = `<div class="message message-error">Failed to load aggregate statistics: ${error.message}</div>`;
                     return Promise.reject(error);
                 });
@@ -70,7 +70,7 @@
          * @param {object} data - Aggregate stats data from the API
          * @param {HTMLElement} container - Container element
          */
-        render: function(data, container) {
+        render(data, container) {
             container.innerHTML = '';
 
             // Headline stat cards.
@@ -81,16 +81,16 @@
                 ['Distance Explored', `${Number(data.km_explored || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} km`],
                 ['Total Labels', fmt(data.total_labels)],
                 ['Total Validations', fmt(data.total_validations)],
-                ['Total Users', fmt(data.total_users)]
+                ['Total Users', fmt(data.total_users)],
             ];
 
             const grid = document.createElement('div');
-            grid.style.cssText =
-                'display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 24px';
+            grid.style.cssText
+                = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 24px';
             cards.forEach(([label, value]) => {
                 const card = document.createElement('div');
-                card.style.cssText =
-                    'text-align:center;padding:12px;background:#f9f9f9;border:1px solid #e0e0e0;border-radius:4px';
+                card.style.cssText
+                    = 'text-align:center;padding:12px;background:#f9f9f9;border:1px solid #e0e0e0;border-radius:4px';
                 const v = document.createElement('div');
                 v.textContent = value;
                 v.style.cssText = 'font-size:1.4em;font-weight:bold';
@@ -106,11 +106,11 @@
             // Per-label-type breakdown.
             const byType = data.by_label_type || {};
             const rows = Object.keys(byType)
-                .map(k => Object.assign({ type: k }, byType[k]))
+                .map((k) => ({ type: k, ...byType[k] }))
                 .sort((a, b) => (b.labels || 0) - (a.labels || 0));
 
             if (rows.length === 0) return;
-            const maxLabels = Math.max.apply(null, rows.map(r => r.labels || 0));
+            const maxLabels = Math.max.apply(null, rows.map((r) => r.labels || 0));
 
             const table = document.createElement('table');
             table.style.cssText = 'width:100%;border-collapse:collapse';
@@ -127,7 +127,7 @@
             table.appendChild(thead);
 
             const tbody = document.createElement('tbody');
-            rows.forEach(r => {
+            rows.forEach((r) => {
                 const row = document.createElement('tr');
 
                 const nameCell = document.createElement('td');
@@ -144,13 +144,13 @@
                 const barOuter = document.createElement('div');
                 barOuter.style.cssText = 'background:#eee;border-radius:3px;height:8px;margin-top:4px';
                 const barInner = document.createElement('div');
-                barInner.style.cssText =
-                    `height:8px;border-radius:3px;background:#78B9AB;width:${maxLabels > 0 ? ((r.labels || 0) / maxLabels) * 100 : 0}%`;
+                barInner.style.cssText
+                    = `height:8px;border-radius:3px;background:#78B9AB;width:${maxLabels > 0 ? ((r.labels || 0) / maxLabels) * 100 : 0}%`;
                 barOuter.appendChild(barInner);
                 labelsCell.appendChild(barOuter);
                 row.appendChild(labelsCell);
 
-                [r.labels_validated, r.labels_validated_agree, r.labels_validated_disagree].forEach(v => {
+                [r.labels_validated, r.labels_validated_agree, r.labels_validated_disagree].forEach((v) => {
                     const cell = document.createElement('td');
                     cell.style.cssText = 'padding:8px;text-align:right';
                     cell.textContent = fmt(v);
@@ -161,6 +161,6 @@
             });
             table.appendChild(tbody);
             container.appendChild(table);
-        }
+        },
     };
 })();

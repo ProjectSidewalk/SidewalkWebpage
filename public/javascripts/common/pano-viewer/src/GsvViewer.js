@@ -17,7 +17,7 @@ class GsvViewer extends PanoViewer {
         this.streetViewService = await new StreetViewService();
 
         // Set GSV panorama options.
-        let defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
+        const defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
         const defaults = {
             addressControl: false,
             clickToGo: defaultNavigation,
@@ -29,7 +29,7 @@ class GsvViewer extends PanoViewer {
             showRoadLabels: false,
             zoomControl: false,
 
-            defaultNavigation: defaultNavigation // If true, we show Google's clickToGo navigation.
+            defaultNavigation, // If true, we show Google's clickToGo navigation.
         };
         const panoOpts = { ...defaults, ...panoOptions };
         this.gsvPano = await new StreetViewPanorama(canvasElem, panoOpts);
@@ -46,7 +46,7 @@ class GsvViewer extends PanoViewer {
         if (panoOptions.startPanoId) {
             await this.setPano(panoOptions.startPanoId);
         } else if (panoOptions.startLatLng) {
-            await this.setLocation(panoOptions.startLatLng).catch(err => {
+            await this.setLocation(panoOptions.startLatLng).catch((err) => {
                 if (panoOptions.backupLatLng) return this.setLocation(panoOptions.backupLatLng);
                 else throw err;
             });
@@ -57,17 +57,17 @@ class GsvViewer extends PanoViewer {
             if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(e.code) > -1) {
                 e.stopPropagation();
             }
-        }
+        };
         window.addEventListener('keydown', preventShortcuts, { capture: true });
 
         // Set up event listeners. We hold a list and go through each listener ourselves to control their ordering.
         const panoChangeListener = async () => {
             for (const listener of this.panoChangedListeners) await listener();
-        }
+        };
         this.gsvPano.addListener('pano_changed', panoChangeListener);
         const povChangeListener = async () => {
             for (const listener of this.povChangedListeners) await listener();
-        }
+        };
         this.gsvPano.addListener('pov_changed', povChangeListener);
 
         // If defaultNavigation is enabled, we need a pano_changed listener to record the pano metadata after moving.
@@ -92,7 +92,7 @@ class GsvViewer extends PanoViewer {
      */
     #updateCurrPanoData = (newPanoData) => {
         // Putting the data returned from Google into the format for our generic PanoData object.
-        let panoDataParams = {
+        const panoDataParams = {
             panoId: newPanoData.data.location.pano,
             source: this.getViewerType(),
             captureDate: moment(newPanoData.data.imageDate),
@@ -107,27 +107,27 @@ class GsvViewer extends PanoViewer {
             // TODO can we find a camera roll?
             address: newPanoData.data.location.shortDescription,
             copyright: newPanoData.data.copyright,
-            history: []
-        }
+            history: [],
+        };
 
         // Add the nearby (linked) panos.
-        panoDataParams.linkedPanos = newPanoData.data.links.map(function(link) {
+        panoDataParams.linkedPanos = newPanoData.data.links.map((link) => {
             return {
                 panoId: link.pano,
                 heading: link.heading,
-                description: link.description
+                description: link.description,
             };
         });
 
         // Add the list of prior images at this location (history).
-        let history = [];
-        for (let prevPano of newPanoData.data.time) {
+        const history = [];
+        for (const prevPano of newPanoData.data.time) {
             // Try to find the date since this is an internal API and the property name can change.
-            const prevPanoDate = Object.values(prevPano).find(value => value instanceof Date);
+            const prevPanoDate = Object.values(prevPano).find((value) => value instanceof Date);
             if (prevPanoDate) {
                 history.push({
                     panoId: prevPano.pano,
-                    captureDate: moment(prevPanoDate)
+                    captureDate: moment(prevPanoDate),
                 });
             } else {
                 console.error('Could not find date in pano history object:', prevPano);
@@ -137,7 +137,7 @@ class GsvViewer extends PanoViewer {
 
         // Create the new PanoData object.
         this.currPanoData = new PanoData(panoDataParams);
-    }
+    };
 
     /**
      * A callback to getPanorama() that packages the data into a PanoData object. Resolves when pano has done loading.
@@ -148,13 +148,13 @@ class GsvViewer extends PanoViewer {
      */
     #getPanoramaCallback = async (newPanoData, excludedPanos = new Set()) => {
         // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing.
-        const excludedPanoIds = new Set([...excludedPanos].map(p => p.getPanoId()));
+        const excludedPanoIds = new Set([...excludedPanos].map((p) => p.getPanoId()));
         if (excludedPanoIds.has(newPanoData.data.location.pano)) {
             throw new Error(`Excluded pano: ${newPanoData.data.location.pano}`);
         }
 
         // Package the data into a PanoData object and save it in this.currPanoData.
-        this.#updateCurrPanoData(newPanoData)
+        this.#updateCurrPanoData(newPanoData);
 
         // Now we actually set the pano and wait to resolve until it's finished loading.
         const newPano = this.currPanoData.getPanoId();
@@ -179,7 +179,7 @@ class GsvViewer extends PanoViewer {
         const gLatLng = new LatLng(latLng.lat, latLng.lng);
         this.prevPanoData = this.currPanoData;
         return this.streetViewService.getPanorama(
-            { location: gLatLng, radius: svl.STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR }
+            { location: gLatLng, radius: svl.STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR },
         ).then((panoData) => this.#getPanoramaCallback(panoData, excludedPanos));
     };
 
@@ -204,12 +204,12 @@ class GsvViewer extends PanoViewer {
             return {
                 location: {
                     pano: 'tutorial',
-                    latLng: new google.maps.LatLng(38.94042608, -77.06766133)
+                    latLng: new google.maps.LatLng(38.94042608, -77.06766133),
                 },
                 links: [{
                     description: 'afterWalkTutorial',
                     heading: 340,
-                    pano: 'afterWalkTutorial'
+                    pano: 'afterWalkTutorial',
                 }],
                 imageDate: '2014-05',
                 copyright: 'Imagery (c) 2010 Google',
@@ -219,17 +219,17 @@ class GsvViewer extends PanoViewer {
                     centerHeading: 50.3866,
                     originHeading: 50.3866,
                     originPitch: -1.13769,
-                    getTileUrl: function(pano, zoom, tileX, tileY) {
+                    getTileUrl(pano, zoom, tileX, tileY) {
                         return `${svl.rootDirectory}img/onboarding/tiles/tutorial/${zoom}-${tileX}-${tileY}.jpg`;
-                    }
+                    },
                 },
-                time: []
+                time: [],
             };
         } else if (pano === 'afterWalkTutorial') {
             return {
                 location: {
                     pano: 'afterWalkTutorial',
-                    latLng: new google.maps.LatLng(38.94061618, -77.06768201)
+                    latLng: new google.maps.LatLng(38.94061618, -77.06768201),
                 },
                 links: [],
                 imageDate: '2014-05',
@@ -240,11 +240,11 @@ class GsvViewer extends PanoViewer {
                     centerHeading: 344,
                     originHeading: 344,
                     originPitch: 0,
-                    getTileUrl: function(pano, zoom, tileX, tileY) {
+                    getTileUrl(pano, zoom, tileX, tileY) {
                         return `${svl.rootDirectory}img/onboarding/tiles/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`;
-                    }
+                    },
                 },
-                time: []
+                time: [],
             };
         }
     };
@@ -255,7 +255,7 @@ class GsvViewer extends PanoViewer {
 
     getPov = () => {
         // Get POV and adjust heading to be between 0 and 360.
-        let pov = this.gsvPano.getPov();
+        const pov = this.gsvPano.getPov();
         while (pov.heading < 0) pov.heading += 360;
         while (pov.heading > 360) pov.heading -= 360;
         return pov;

@@ -36,7 +36,7 @@ class TaskContainer {
      */
     endTask(task) {
         const svl = this.#svl;
-        if (this.#tracker) this.#tracker.push("TaskEnd");
+        if (this.#tracker) this.#tracker.push('TaskEnd');
         task.complete();
 
         // Submit the data so that the task is marked as complete in the db. Note that this happens async.
@@ -45,7 +45,7 @@ class TaskContainer {
         // Update the audited distance in the right sidebar.
         this.updateAuditedDistance();
 
-        if (svl.user.getProperty('role') === "Anonymous"
+        if (svl.user.getProperty('role') === 'Anonymous'
             && this.getCompletedTaskDistance({ units: 'kilometers' }) > 0.15
             && !svl.popUpMessage.haveAskedToSignIn()) {
             svl.popUpMessage.promptSignIn();
@@ -75,7 +75,7 @@ class TaskContainer {
 
         return fetch(url, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' }
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
         })
             .then((response) => response.json())
             .then(async (result) => {
@@ -96,7 +96,7 @@ class TaskContainer {
                 }
                 this.#tasksFinishedLoading = true;
             })
-            .catch(error => {
+            .catch((error) => {
                 console.error(error);
             });
     }
@@ -108,7 +108,7 @@ class TaskContainer {
     updateTaskPriorities(updatedPriorities) {
         // Loop through all updatedPriorities and update _tasks with the new priorities.
         updatedPriorities.forEach((newPriority) => {
-            const index = this._tasks.findIndex(s => s.getStreetEdgeId() === newPriority.street_edge_id);
+            const index = this._tasks.findIndex((s) => s.getStreetEdgeId() === newPriority.street_edge_id);
             this._tasks[index].setProperty('priority', newPriority.priority);
         });
     }
@@ -127,7 +127,7 @@ class TaskContainer {
 
         const connectedTasks = [];
         if (taskIn && tasks) {
-            tasks = tasks.filter(t => !t.isComplete() && t.getStreetEdgeId() !== taskIn.getStreetEdgeId());
+            tasks = tasks.filter((t) => !t.isComplete() && t.getStreetEdgeId() !== taskIn.getStreetEdgeId());
 
             for (let i = 0, len = tasks.length; i < len; i++) {
                 if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
@@ -168,7 +168,7 @@ class TaskContainer {
      */
     getCompletedTaskDistanceAcrossAllUsersUsingPriority() {
         const unit = { units: i18next.t('common:unit-distance') };
-        const tasks = this.getTasks().filter(t => t.getStreetPriority() < 1);
+        const tasks = this.getTasks().filter((t) => t.getStreetPriority() < 1);
         let feature;
         let distance = 0;
 
@@ -187,7 +187,7 @@ class TaskContainer {
      * @returns {number}
      */
     getCurrentTaskDistance(unit) {
-        if (!unit) unit = {units: 'kilometers'};
+        if (!unit) unit = { units: 'kilometers' };
 
         if (this.#currentTask) {
             const currentLatLng = this.#svl.panoViewer.getPosition();
@@ -202,7 +202,7 @@ class TaskContainer {
      * @returns {Task[]}
      */
     getCompletedTasks() {
-        return this._tasks.filter(task => task.isComplete());
+        return this._tasks.filter((task) => task.isComplete());
     }
 
     /**
@@ -210,7 +210,7 @@ class TaskContainer {
      * @returns {Task[]}
      */
     getCompletedTasksAllUsersUsingPriority() {
-        return this._tasks.filter(task => task.getStreetPriority() < 1);
+        return this._tasks.filter((task) => task.getStreetPriority() < 1);
     }
 
     /**
@@ -242,18 +242,18 @@ class TaskContainer {
      * Find incomplete tasks by the user.
      */
     getIncompleteTasks() {
-        return this._tasks.filter(task => !task.isComplete());
+        return this._tasks.filter((task) => !task.isComplete());
     }
 
     /**
      * Find incomplete tasks across all users.
      */
     getIncompleteTasksAcrossAllUsersUsingPriority() {
-        const incompleteTasksByUser = this._tasks.filter(task => !task.isComplete());
+        const incompleteTasksByUser = this._tasks.filter((task) => !task.isComplete());
 
         let incompleteTasksAcrossAllUsers = [];
         if (incompleteTasksByUser.length > 0) {
-            incompleteTasksAcrossAllUsers = incompleteTasksByUser.filter(t => t.getStreetPriority() === 1);
+            incompleteTasksAcrossAllUsers = incompleteTasksByUser.filter((t) => t.getStreetPriority() === 1);
         }
 
         return incompleteTasksAcrossAllUsers;
@@ -273,10 +273,10 @@ class TaskContainer {
             // Indicates neighborhood is complete.
             if (this.getIncompleteTasksAcrossAllUsersUsingPriority().length === 0) {
                 neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
-                $("#area-completion-overlay-wrapper").show();
+                $('#area-completion-overlay-wrapper').show();
                 const currentNeighborhood = this.#svl.neighborhoodModel.currentNeighborhood();
                 const currentNeighborhoodId = currentNeighborhood.getRegionId();
-                this.#tracker.push("NeighborhoodComplete_AcrossAllUsers", { 'RegionId': currentNeighborhoodId });
+                this.#tracker.push('NeighborhoodComplete_AcrossAllUsers', { RegionId: currentNeighborhoodId });
             }
         }
     }
@@ -299,7 +299,7 @@ class TaskContainer {
         let newTask;
 
         // Check if user has audited entire region or route.
-        const tasksNotCompletedByUser = this.getTasks().filter(t => {
+        const tasksNotCompletedByUser = this.getTasks().filter((t) => {
             return !t.isComplete() && t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null);
         });
         if (tasksNotCompletedByUser.length === 0) {
@@ -317,8 +317,8 @@ class TaskContainer {
 
             // Find the highest priority task not audited by the user.
             const highestPriorityTask = tasksNotCompletedByUser.sort((t1, t2) => {
-                    return t2.getStreetPriority() - t1.getStreetPriority();
-                })[0];
+                return t2.getStreetPriority() - t1.getStreetPriority();
+            })[0];
             const highestPriorityDiscretized = highestPriorityTask.getStreetPriorityDiscretized();
 
             // Get list of connected streets. If empty, try with a progressively wider radius 5m, 10m, 25m.
@@ -332,7 +332,7 @@ class TaskContainer {
 
             // If any of the connected tasks has max discretized priority, pick the highest priority connected street,
             // o/w take the highest priority task in the neighborhood.
-            connectedTasks = connectedTasks.filter(t => {
+            connectedTasks = connectedTasks.filter((t) => {
                 return t.getStreetPriorityDiscretized() === highestPriorityDiscretized;
             }).sort((t1, t2) => {
                 return t2.getStreetPriority() - t1.getStreetPriority();
@@ -407,7 +407,7 @@ class TaskContainer {
         const tasks = this.getTasks();
 
         if (tasks) {
-            const distanceArray = tasks.map(t => t.lineDistance(unit));
+            const distanceArray = tasks.map((t) => t.lineDistance(unit));
             return util.array.sum(distanceArray);
         } else {
             return null;
@@ -445,7 +445,7 @@ class TaskContainer {
      * @returns {null|boolean}
      */
     hasMaxPriorityTask() {
-        return this._tasks.filter(task => task.getStreetPriority() === 1).length > 0;
+        return this._tasks.filter((task) => task.getStreetPriority() === 1).length > 0;
     }
 
     /**

@@ -9,10 +9,10 @@ class ValidationOptionBucket {
      * @param {Array} initialValidationOptions Array containing validation options to set on page load.
      */
     constructor(initialValidationOptions) {
-        this.push(new ValidationOption({ validationOption: 'correct'}, initialValidationOptions.includes('correct')));
-        this.push(new ValidationOption({ validationOption: 'incorrect'}, initialValidationOptions.includes('incorrect')));
-        this.push(new ValidationOption({ validationOption: 'unsure'}, initialValidationOptions.includes('unsure')));
-        this.push(new ValidationOption({ validationOption: 'unvalidated'}, initialValidationOptions.includes('unvalidated')));
+        this.push(new ValidationOption({ validationOption: 'correct' }, initialValidationOptions.includes('correct')));
+        this.push(new ValidationOption({ validationOption: 'incorrect' }, initialValidationOptions.includes('incorrect')));
+        this.push(new ValidationOption({ validationOption: 'unsure' }, initialValidationOptions.includes('unsure')));
+        this.push(new ValidationOption({ validationOption: 'unvalidated' }, initialValidationOptions.includes('unvalidated')));
     }
 
     /**
@@ -29,14 +29,14 @@ class ValidationOptionBucket {
      * @param {*} uiValidationOptionHolder UI element to render ValidationOptions in.
      */
     render(uiValidationOptionHolder) {
-        this.#bucket.forEach(validationOption => validationOption.render(uiValidationOptionHolder));
+        this.#bucket.forEach((validationOption) => validationOption.render(uiValidationOptionHolder));
     }
 
     /**
      * Unapply all ValidationOptions.
      */
     unapplyValidationOptions() {
-        this.#bucket.forEach(validationOption => validationOption.unapply());
+        this.#bucket.forEach((validationOption) => validationOption.unapply());
     }
 
     /**
@@ -57,7 +57,7 @@ class ValidationOptionBucket {
      * Return list of applied ValidationOptions.
      */
     getAppliedValidationOptions() {
-        return this.#bucket.filter(valOption => valOption.getActive()).map(valOption => valOption.getValidationOption());
+        return this.#bucket.filter((valOption) => valOption.getActive()).map((valOption) => valOption.getValidationOption());
     }
 
     /**

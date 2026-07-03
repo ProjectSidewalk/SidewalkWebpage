@@ -27,7 +27,7 @@ class CardFilter {
 
         this.#status = {
             currentCity: cityMenu.getCurrentCity(),
-            currentLabelType: initialFilters.labelType
+            currentLabelType: initialFilters.labelType,
         };
 
         // Map label type to their collection of tags.
@@ -41,7 +41,7 @@ class CardFilter {
             Occlusion: new TagBucket(),
             NoSidewalk: new TagBucket(),
             Crosswalk: new TagBucket(),
-            Signal: new TagBucket()
+            Signal: new TagBucket(),
         };
 
         // Tags of the current label type.
@@ -70,15 +70,16 @@ class CardFilter {
      * @param {*} callback Function to be called when tags arrive.
      */
     #getTags(callback) {
-        $.getJSON("/label/tags", (data) => {
+        $.getJSON('/label/tags', (data) => {
             let tag;
             let i = 0;
             const len = data.length;
             for (; i < len; i++) {
-                if (data[i].label_type === this.#status.currentLabelType && this.#initialFilters.tags.includes(data[i].tag))
+                if (data[i].label_type === this.#status.currentLabelType && this.#initialFilters.tags.includes(data[i].tag)) {
                     tag = new Tag(data[i], true);
-                else
+                } else {
                     tag = new Tag(data[i], false);
+                }
                 this.#tagsByType[tag.getLabelType()].push(tag);
             }
 
@@ -126,7 +127,7 @@ class CardFilter {
         let newUrl = '/gallery';
         let firstQueryParam = true;
         const currSeverities = this.#severities.getAppliedSeverities();
-        const currAppliedTags = this.#currentTags.getAppliedTags().map(t => t.getTag()).join();
+        const currAppliedTags = this.#currentTags.getAppliedTags().map((t) => t.getTag()).join();
         const currValOptions = this.#validationOptions.getAppliedValidationOptions().sort().join();
 
         // TODO use new URL() and .searchParams.append() instead of tracking firstQueryParam ourselves.
@@ -165,7 +166,6 @@ class CardFilter {
         return newUrl;
     }
 
-
     /**
      * Render tags and severities in sidebar.
      */
@@ -180,10 +180,10 @@ class CardFilter {
             $('#severity-select').hide();
         }
         if (this.#currentTags.getTags().length > 0) {
-            $("#tags-header").show();
+            $('#tags-header').show();
             this.#currentTags.render(this.#uiCardFilter.tags);
         } else {
-            $("#tags-header").hide();
+            $('#tags-header').hide();
         }
 
         this.#severities.render(this.#uiCardFilter.severity);
@@ -194,14 +194,14 @@ class CardFilter {
      * Return list of tags that have been selected by user.
      */
     getAppliedTagNames() {
-        return this.#currentTags.getAppliedTags().map(tag => tag.getTag());
+        return this.#currentTags.getAppliedTags().map((tag) => tag.getTag());
     }
 
     /**
      * Return list of all tags for current label type.
      */
     getTagNames() {
-        return this.#currentTags.getTags().map(tag => tag.getTag());
+        return this.#currentTags.getTags().map((tag) => tag.getTag());
     }
 
     /**
@@ -285,7 +285,7 @@ class CardFilter {
      */
     disable() {
         this.#severities.disable();
-        $('.gallery-filter').prop("disabled", true);
+        $('.gallery-filter').prop('disabled', true);
     }
 
     /**
@@ -293,7 +293,7 @@ class CardFilter {
      */
     enable() {
         this.#severities.enable();
-        $('.gallery-filter').prop("disabled", false);
+        $('.gallery-filter').prop('disabled', false);
     }
 
     /**

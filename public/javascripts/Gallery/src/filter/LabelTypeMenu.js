@@ -4,7 +4,7 @@
  */
 class LabelTypeMenu {
     #uiLabelTypeMenu;
-    #defaultType = "Assorted";
+    #defaultType = 'Assorted';
     #status;
 
     /**
@@ -17,7 +17,7 @@ class LabelTypeMenu {
 
         if (uiLabelTypeMenu) {
             uiLabelTypeMenu.select.bind({
-                change: this.#labelTypeSelectCallback
+                change: this.#labelTypeSelectCallback,
             });
         }
     }
@@ -31,8 +31,8 @@ class LabelTypeMenu {
 
         // Check if the label type changed. Prevents this code from running on initial page load.
         if (newLabelType !== oldLabelType) {
-            this.setStatus("currentLabelType", newLabelType);
-            sg.tracker.push("Filter_LabelType=" + newLabelType);
+            this.setStatus('currentLabelType', newLabelType);
+            sg.tracker.push(`Filter_LabelType=${newLabelType}`);
             sg.cardFilter.update();
         }
     };
@@ -49,8 +49,8 @@ class LabelTypeMenu {
      */
     setToDefault() {
         this.#uiLabelTypeMenu.select.val(this.#defaultType);
-        this.setStatus("currentLabelType", this.#defaultType);
-        sg.tracker.push("Filter_LabelType=" + this.#defaultType);
+        this.setStatus('currentLabelType', this.#defaultType);
+        sg.tracker.push(`Filter_LabelType=${this.#defaultType}`);
         sg.cardFilter.update();
     }
 

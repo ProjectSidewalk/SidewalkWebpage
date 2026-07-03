@@ -76,13 +76,13 @@ class DesktopValidationMenu {
                 render: {
                     option: (item, escape) => {
                         // Add an example image tooltip to the tag.
-                        const translatedTagName = i18next.t('common:tag.' + item.tag_name.replace(/:/g, '-'));
+                        const translatedTagName = i18next.t(`common:tag.${item.tag_name.replace(/:/g, '-')}`);
                         const $tagDiv = $(`<div class="option tag-pill tag-pill--interactive">${escape(translatedTagName)}</div>`);
                         const tooltipText = `"${translatedTagName}" example`;
                         this.#addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${item.tag_id}.png`);
                         return $tagDiv[0];
-                    }
-                }
+                    },
+                },
             });
         }
 
@@ -90,9 +90,9 @@ class DesktopValidationMenu {
         for (const reasonButton of this.#disagreeReasonButtons) {
             reasonButton.onclick = (e) => {
                 if (e.isTrigger) {
-                    svv.tracker.push('KeyboardShortcut_DisagreeReason_Option=' + $(reasonButton).attr('id'));
+                    svv.tracker.push(`KeyboardShortcut_DisagreeReason_Option=${$(reasonButton).attr('id')}`);
                 } else {
-                    svv.tracker.push('Click=DisagreeReason_Option=' + $(reasonButton).attr('id'));
+                    svv.tracker.push(`Click=DisagreeReason_Option=${$(reasonButton).attr('id')}`);
                 }
                 this.#setDisagreeReason($(reasonButton).attr('id'));
             };
@@ -100,9 +100,9 @@ class DesktopValidationMenu {
         for (const reasonButton of this.#unsureReasonButtons) {
             reasonButton.onclick = (e) => {
                 if (e.isTrigger) {
-                    svv.tracker.push('KeyboardShortcut_UnsureReason_Option=' + $(reasonButton).attr('id'));
+                    svv.tracker.push(`KeyboardShortcut_UnsureReason_Option=${$(reasonButton).attr('id')}`);
                 } else {
-                    svv.tracker.push('Click=UnsureReason_Option=' + $(reasonButton).attr('id'));
+                    svv.tracker.push(`Click=UnsureReason_Option=${$(reasonButton).attr('id')}`);
                 }
                 this.#setUnsureReason($(reasonButton).attr('id'));
             };
@@ -111,17 +111,17 @@ class DesktopValidationMenu {
         // Log clicks to the three text boxes.
         menuUI.optionalCommentTextBox.click((e) => {
             menuUI.optionalCommentTextBox.focus();
-            const action = e.isTrigger ? 'KeyboardShortcut=AgreeCommentTextbox': 'Click=AgreeCommentTextbox';
+            const action = e.isTrigger ? 'KeyboardShortcut=AgreeCommentTextbox' : 'Click=AgreeCommentTextbox';
             svv.tracker.push(action);
         });
         menuUI.disagreeReasonTextBox.click((e) => {
             menuUI.disagreeReasonTextBox.focus();
-            const action = e.isTrigger ? 'KeyboardShortcut=DisagreeReasonTextbox': 'Click=DisagreeReasonTextbox';
+            const action = e.isTrigger ? 'KeyboardShortcut=DisagreeReasonTextbox' : 'Click=DisagreeReasonTextbox';
             svv.tracker.push(action);
         });
         menuUI.unsureReasonTextBox.click((e) => {
             menuUI.unsureReasonTextBox.focus();
-            const action = e.isTrigger ? 'KeyboardShortcut=UnsureReasonTextbox': 'Click=UnsureReasonTextbox';
+            const action = e.isTrigger ? 'KeyboardShortcut=UnsureReasonTextbox' : 'Click=UnsureReasonTextbox';
             svv.tracker.push(action);
         });
 
@@ -184,7 +184,7 @@ class DesktopValidationMenu {
                     // Remove any old tooltip (from a previous label type) and add a new tooltip.
                     $reasonButton.tooltip('destroy');
                     if (buttonInfo.tooltipImage) {
-                        util.getImage(buttonInfo.tooltipImage).then(img => {
+                        util.getImage(buttonInfo.tooltipImage).then((img) => {
                             this.#addTooltip($reasonButton, buttonInfo.tooltipText, img);
                         });
                     } else {
@@ -228,9 +228,9 @@ class DesktopValidationMenu {
                 menuUI.unsureReasonOptions.find(`#${unsureOption}`).addClass('chosen');
             }
 
-            if (prevValResult === 'Agree')         this.#setYesView();
+            if (prevValResult === 'Agree') this.#setYesView();
             else if (prevValResult === 'Disagree') this.#setNoView();
-            else if (prevValResult === 'Unsure')   this.#setUnsureView();
+            else if (prevValResult === 'Unsure') this.#setUnsureView();
         }
     }
 
@@ -298,10 +298,9 @@ class DesktopValidationMenu {
             html: true,
             container: 'body',
             delay: { show: 500, hide: 10 },
-            title: tooltipHtml
+            title: tooltipHtml,
         })).tooltip('show').tooltip('hide');
     }
-
 
     // TAG SECTION.
     #addTag(tagName, fromAiSuggestion = false) {
@@ -309,11 +308,11 @@ class DesktopValidationMenu {
 
         // If the tag is mutually exclusive with another tag that's been added, remove the other tag.
         const allTags = svv.tagsByLabelType[currLabel.getAuditProperty('labelType')];
-        const mutuallyExclusiveWith = allTags.find(t => t.tag_name === tagName).mutually_exclusive_with;
+        const mutuallyExclusiveWith = allTags.find((t) => t.tag_name === tagName).mutually_exclusive_with;
         const currTags = currLabel.getProperty('newTags');
-        if (currTags.some(t => t === mutuallyExclusiveWith)) {
+        if (currTags.some((t) => t === mutuallyExclusiveWith)) {
             svv.tracker.push(`TagAutoRemove_Tag="${mutuallyExclusiveWith}"`);
-            currLabel.setProperty('newTags', currTags.filter(t => t !== mutuallyExclusiveWith));
+            currLabel.setProperty('newTags', currTags.filter((t) => t !== mutuallyExclusiveWith));
         }
         // New tag added, add to list and rerender.
         svv.tracker.push(`Click=TagAdd_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
@@ -325,7 +324,7 @@ class DesktopValidationMenu {
 
     #removeTag(tagName, label, fromAiSuggestion = false) {
         svv.tracker.push(`Click=TagRemove_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
-        label.setProperty('newTags', label.getProperty('newTags').filter(t => t !== tagName));
+        label.setProperty('newTags', label.getProperty('newTags').filter((t) => t !== tagName));
         this.#renderTags();
     }
 
@@ -334,7 +333,7 @@ class DesktopValidationMenu {
         const tagElem = $(e.target).parents('.current-tag');
         tagElem.tooltip('destroy');
         const tagIdToRemove = tagElem.data('tag-id');
-        const tagToRemove = allTagOptions.find(t => t.tag_id === tagIdToRemove).tag_name;
+        const tagToRemove = allTagOptions.find((t) => t.tag_id === tagIdToRemove).tag_name;
         this.#removeTag(tagToRemove, label, false);
     }
 
@@ -348,29 +347,29 @@ class DesktopValidationMenu {
         const currTags = label.getProperty('newTags');
         // Clone the template tag element, remove the 'template' class, update the text, and add the removal onclick.
         for (const tag of currTags) {
-            if (!allTagOptions.some(t => t.tag_name === tag)) {
+            if (!allTagOptions.some((t) => t.tag_name === tag)) {
                 continue; // Skip tags that are now being excluded on this server. Don't want to show them.
             }
 
             // Clone the template tag element, remove the 'template' class, and add a tag-id data attribute.
             const $tagDiv = $('.current-tag.template').clone().removeClass('template');
-            $tagDiv.data('tag-id', allTagOptions.find(t => t.tag_name === tag).tag_id);
+            $tagDiv.data('tag-id', allTagOptions.find((t) => t.tag_name === tag).tag_id);
 
             // Update the tag name.
-            const translatedTagName = i18next.t('common:tag.' + tag.replace(/:/g, '-'));
+            const translatedTagName = i18next.t(`common:tag.${tag.replace(/:/g, '-')}`);
             $tagDiv.children('.tag-name').text(translatedTagName);
 
             // Add the removal onclick function.
-            $tagDiv.children('.remove-tag-x').click(e => this.#removeTagListener(e, label));
+            $tagDiv.children('.remove-tag-x').click((e) => this.#removeTagListener(e, label));
 
             // Add an example image tooltip to the tag.
-            const tagId = allTagOptions.find(t => t.tag_name === tag).tag_id;
+            const tagId = allTagOptions.find((t) => t.tag_name === tag).tag_id;
             const tooltipText = `"${translatedTagName}" example`;
             this.#addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${tagId}.png`);
 
             // Add to current list of tags, and remove from options for new tags to add.
             menuUI.currentTags.append($tagDiv);
-            allTagOptions = allTagOptions.filter(t => t.tag_name !== tag);
+            allTagOptions = allTagOptions.filter((t) => t.tag_name !== tag);
         }
 
         // Show/hide elem for list of tags to hide extra spacing b/w elements when there are no tags to show.
@@ -393,16 +392,16 @@ class DesktopValidationMenu {
         let aiRemoveTagOptions = [];
         if (label.getAuditProperty('aiTags') !== null) {
             const aiTags = label.getAuditProperty('aiTags');
-            aiAddTagOptions = allTagOptions.filter(t => aiTags.includes(t.tag_name));
+            aiAddTagOptions = allTagOptions.filter((t) => aiTags.includes(t.tag_name));
         }
         if (label.getAuditProperty('aiTagsNotPresent') !== null) {
             const aiTagsNotPresent = label.getAuditProperty('aiTagsNotPresent');
             // Only suggest removing tags that are currently on the label and were not added by the user this session.
             aiRemoveTagOptions = currTags
-                .filter(t => aiTagsNotPresent.includes(t))
-                .filter(t => !this.#tagsAddedByUser.includes(t))
-                .map(t => allTagOptionsPermanent.find(t2 => t2.tag_name === t))
-                .filter(t => t !== undefined);
+                .filter((t) => aiTagsNotPresent.includes(t))
+                .filter((t) => !this.#tagsAddedByUser.includes(t))
+                .map((t) => allTagOptionsPermanent.find((t2) => t2.tag_name === t))
+                .filter((t) => t !== undefined);
         }
 
         // If there are AI suggestions, show the section and add the tag suggestions.
@@ -411,22 +410,22 @@ class DesktopValidationMenu {
 
             // Log the AI suggestions.
             svv.tracker.push(`ShowingAiSuggestions`, {
-                add:    `"${aiAddTagOptions.map(t => t.tag_name).join()}"`,
-                remove: `"${aiRemoveTagOptions.map(t => t.tag_name).join()}"`
+                add:    `"${aiAddTagOptions.map((t) => t.tag_name).join()}"`,
+                remove: `"${aiRemoveTagOptions.map((t) => t.tag_name).join()}"`,
             });
 
             // Loops through the AI-suggested tags and display them.
-            for (const tag of [...aiAddTagOptions.map(tag => ({ ...tag, action: 'add' })), ...aiRemoveTagOptions.map(tag => ({ ...tag, action: 'remove' }))]) {
+            for (const tag of [...aiAddTagOptions.map((tag) => ({ ...tag, action: 'add' })), ...aiRemoveTagOptions.map((tag) => ({ ...tag, action: 'remove' }))]) {
                 // Clone the template tag element, and set all appropriate classes.
                 const template = menuUI.aiSuggestedTagTemplate.clone(true);
                 template.removeClass('template').addClass(tag.action === 'add' ? 'to-add' : 'to-remove');
 
                 // Add the text to the tag.
                 const translatedTagName = i18next.t(`common:tag.${tag.tag_name.replace(/:/g, '-')}`);
-                const addRemoveTranslationKey = 'expert-validate.' + (tag.action === 'add' ? 'add-tag' : 'remove-tag');
+                const addRemoveTranslationKey = `expert-validate.${tag.action === 'add' ? 'add-tag' : 'remove-tag'}`;
                 template.text(i18next.t(addRemoveTranslationKey, {
                     tag: translatedTagName,
-                    interpolation: { escapeValue: false }
+                    interpolation: { escapeValue: false },
                 }));
                 menuUI.aiSuggestedTagTemplate.parent().append(template);
 

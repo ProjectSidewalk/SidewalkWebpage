@@ -25,7 +25,7 @@ class ActivityPage {
     static #BADGES = {
         label: { label: 'Label', cls: 'is-label' },
         validation: { label: 'Validate', cls: 'is-validate' },
-        comment: { label: 'Comment', cls: 'is-comment' }
+        comment: { label: 'Comment', cls: 'is-comment' },
     };
 
     /** Volume small-multiples: each is one additive metric drawn as a single-series sparkline. */
@@ -35,7 +35,7 @@ class ActivityPage {
         { title: 'Streets explored', fields: ['audits'], unit: 'streets' },
         { title: 'Missions', fields: ['missions'], unit: 'missions' },
         { title: 'Sign-ins', fields: ['signins_registered', 'signins_anon'], unit: 'sign-ins' },
-        { title: 'New users', fields: ['new_users'], unit: 'users' }
+        { title: 'New users', fields: ['new_users'], unit: 'users' },
     ];
 
     /** @param {{seriesUrl: string, recentUrl: string, contributionTimeUrl: string}} opts */
@@ -67,10 +67,10 @@ class ActivityPage {
             const [seriesResp, recentResp, timeResp] = await Promise.all([
                 this.#fetchJson(this.#seriesUrl),
                 this.#fetchJson(this.#recentUrl),
-                this.#fetchJson(this.#contributionTimeUrl).catch(err => {
+                this.#fetchJson(this.#contributionTimeUrl).catch((err) => {
                     console.error('Activity page: contribution-time stats failed to load.', err);
                     return null;
-                })
+                }),
             ]);
             this.#series = (seriesResp && seriesResp.series) || [];
             this.#recent = (recentResp && recentResp.activity) || [];
@@ -115,9 +115,9 @@ class ActivityPage {
         let html;
         if (top) {
             // The stream is newest-first, so item 0 is the single most recent contribution — name what it was + who.
-            html = `Most recent activity: <strong>${ActivityPage.#esc(ActivityPage.#describeItem(top))}</strong> by ` +
-                `<strong>${ActivityPage.#esc(top.username || 'Unknown')}</strong> ` +
-                `${ActivityPage.#esc(ActivityPage.#relativeTime(top.timestamp))}.`;
+            html = `Most recent activity: <strong>${ActivityPage.#esc(ActivityPage.#describeItem(top))}</strong> by `
+                + `<strong>${ActivityPage.#esc(top.username || 'Unknown')}</strong> `
+                + `${ActivityPage.#esc(ActivityPage.#relativeTime(top.timestamp))}.`;
         } else {
             // No labels/validations/comments, but the series (audits/sign-ins/missions) has dates: fall back to the date.
             const latest = this.#series[this.#series.length - 1].date;
@@ -127,8 +127,8 @@ class ActivityPage {
         }
         // Empty window: the backend emits only days that had activity, so no in-window records ⇒ nothing happened then.
         if (this.#range > 0 && this.#windowRecords().length === 0) {
-            html += ` <span class="activity-latest-warn">Nothing in the last ${this.#range} days.</span> ` +
-                '<button type="button" class="activity-link-btn act-show-all">View all time</button>';
+            html += ` <span class="activity-latest-warn">Nothing in the last ${this.#range} days.</span>
+                <button type="button" class="activity-link-btn act-show-all">View all time</button>`;
         }
         el.innerHTML = html;
 
@@ -145,7 +145,7 @@ class ActivityPage {
 
     #renderKpis() {
         const recs = this.#windowRecords();
-        const sum = field => recs.reduce((a, r) => a + (r[field] || 0), 0);
+        const sum = (field) => recs.reduce((a, r) => a + (r[field] || 0), 0);
         const note = `in ${this.#rangeNoun()}`;
         const set = (id, field) => {
             this.#setText(`kpi-${id}`, sum(field).toLocaleString());
@@ -165,18 +165,18 @@ class ActivityPage {
      * @param {Array<{time: ?number, stat: string, time_interval: string}>} stats - Rows from getContributionTimeStats.
      */
     #renderContributionTime(stats) {
-        const allTime = (Array.isArray(stats) ? stats : []).filter(s => s.time_interval === 'all_time');
-        const valueOf = stat => {
-            const row = allTime.find(s => s.stat === stat);
+        const allTime = (Array.isArray(stats) ? stats : []).filter((s) => s.time_interval === 'all_time');
+        const valueOf = (stat) => {
+            const row = allTime.find((s) => s.stat === stat);
             return row && row.time != null ? row.time : null;
         };
         // explore/validate totals are in hours; show a decimal only for small deployments where rounding would hide it.
-        const fmtHours = h => {
+        const fmtHours = (h) => {
             if (h == null) return 'N/A';
             const digits = h < 100 ? 1 : 0;
             return `${h.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits })} hr`;
         };
-        const fmtMinutes = m => m == null ? 'N/A' : `${m.toFixed(1)} min`; // explore_per_100m is median minutes/100 m.
+        const fmtMinutes = (m) => (m == null ? 'N/A' : `${m.toFixed(1)} min`); // explore_per_100m is median minutes/100 m.
         this.#setText('kpi-explore-time', fmtHours(valueOf('explore_total')));
         this.#setText('kpi-validate-time', fmtHours(valueOf('validate_total')));
         this.#setText('kpi-explore-pace', fmtMinutes(valueOf('explore_per_100m')));
@@ -191,25 +191,27 @@ class ActivityPage {
             el.innerHTML = `<p class="dq-empty">${this.#tooSparseMsg()}</p>`;
             return;
         }
-        const labels = buckets.map(b => b.label);
+        const labels = buckets.map((b) => b.label);
         const cards = ActivityPage.#VOLUME.map((metric, i) => {
-            const values = buckets.map(b => metric.fields.reduce((a, f) => a + b.vol[f], 0));
+            const values = buckets.map((b) => metric.fields.reduce((a, f) => a + b.vol[f], 0));
             return { metric, values, total: values.reduce((a, v) => a + v, 0), idx: i };
         });
         // Build the card shells first, then render each chart into its host at the host's measured width (responsive).
-        el.innerHTML = cards.map(c =>
-            '<div class="activity-card">' +
-            '<div class="activity-card-head">' +
-            `<span class="activity-card-title">${ActivityPage.#esc(c.metric.title)}</span>` +
-            `<span class="activity-card-total"><strong>${c.total.toLocaleString()}</strong> in ${ActivityPage.#esc(this.#rangeNoun())}</span>` +
-            '</div>' +
-            `<div class="mini-host" data-idx="${c.idx}"></div>` +
-            '</div>').join('');
-        cards.forEach(c => {
+        el.innerHTML = cards.map((c) => `
+            <div class="activity-card">
+                <div class="activity-card-head">
+                    <span class="activity-card-title">${ActivityPage.#esc(c.metric.title)}</span>
+                    <span class="activity-card-total">
+                        <strong>${c.total.toLocaleString()}</strong> in ${ActivityPage.#esc(this.#rangeNoun())}
+                    </span>
+                </div>
+                <div class="mini-host" data-idx="${c.idx}"></div>
+            </div>`).join('');
+        cards.forEach((c) => {
             MiniLineChart.renderInto(el.querySelector(`.mini-host[data-idx="${c.idx}"]`), labels,
                 [{ name: c.metric.title, key: 'activity', values: c.values }], {
-                    valueFormat: v => `${Math.round(v).toLocaleString()} ${c.metric.unit}`,
-                    ariaLabel: `${c.metric.title} over time`
+                    valueFormat: (v) => `${Math.round(v).toLocaleString()} ${c.metric.unit}`,
+                    ariaLabel: `${c.metric.title} over time`,
                 });
         });
     }
@@ -228,10 +230,10 @@ class ActivityPage {
             el.innerHTML = `<p class="dq-empty">${this.#tooSparseMsg()}</p>`;
             return;
         }
-        const labels = buckets.map(b => b.label);
+        const labels = buckets.map((b) => b.label);
         const series = [
-            { name: 'Registered', key: 'registered', values: buckets.map(b => b.activeRegistered) },
-            { name: 'Anonymous', key: 'anon', values: buckets.map(b => b.activeAnon) }
+            { name: 'Registered', key: 'registered', values: buckets.map((b) => b.activeRegistered) },
+            { name: 'Anonymous', key: 'anon', values: buckets.map((b) => b.activeAnon) },
         ];
         const weekly = this.#gran === 'week';
         const unit = weekly ? 'avg users/day' : 'users';
@@ -240,9 +242,9 @@ class ActivityPage {
             : '';
         el.innerHTML = `<div class="mini-host"></div>${caption}`;
         MiniLineChart.renderInto(el.querySelector('.mini-host'), labels, series, {
-            valueFormat: v => `${Math.round(v).toLocaleString()} ${unit}`,
+            valueFormat: (v) => `${Math.round(v).toLocaleString()} ${unit}`,
             ariaLabel: 'Active contributors over time',
-            dotRadius: 2
+            dotRadius: 2,
         });
     }
 
@@ -275,24 +277,28 @@ class ActivityPage {
             if (!acc) {
                 acc = { key, label: ActivityPage.#dayLabel(key), days: 0, vol: {},
                     activeRegSum: 0, activeAnonSum: 0 };
-                volFields.forEach(f => { acc.vol[f] = 0; });
+                volFields.forEach((f) => {
+                    acc.vol[f] = 0;
+                });
                 buckets.set(key, acc);
                 order.push(key);
             }
             const r = dayMap.get(iso);
             acc.days += 1;
             if (r) {
-                volFields.forEach(f => { acc.vol[f] += r[f] || 0; });
+                volFields.forEach((f) => {
+                    acc.vol[f] += r[f] || 0;
+                });
                 acc.activeRegSum += r.active_registered || 0;
                 acc.activeAnonSum += r.active_anon || 0;
             }
         }
-        return order.map(k => {
+        return order.map((k) => {
             const a = buckets.get(k);
             return {
                 key: a.key, label: a.label, days: a.days, vol: a.vol,
                 activeRegistered: a.days ? a.activeRegSum / a.days : 0,
-                activeAnon: a.days ? a.activeAnonSum / a.days : 0
+                activeAnon: a.days ? a.activeAnonSum / a.days : 0,
             };
         });
     }
@@ -302,7 +308,7 @@ class ActivityPage {
         if (this.#range <= 0) return this.#series;
         const today = ActivityPage.#startOfToday();
         const startIso = ActivityPage.#isoDay(ActivityPage.#addDays(today, -(this.#range - 1)));
-        return this.#series.filter(r => r.date >= startIso);
+        return this.#series.filter((r) => r.date >= startIso);
     }
 
     /** Earliest date present in the series as a local Date (series is sorted ascending), or null if empty. */
@@ -322,18 +328,19 @@ class ActivityPage {
         }
         // The endpoint already returns the freshest items, newest-first; cap to keep the feed scannable.
         const items = all.slice(0, ActivityPage.#FEED_LIMIT);
-        const rows = items.map(it => {
+        const rows = items.map((it) => {
             const badge = ActivityPage.#BADGES[it.activity_type] || { label: 'Activity', cls: '' };
             const who = ActivityPage.#esc(it.username || 'Unknown');
             // Username deep-links to the contributor's admin profile (the "what have they been doing" detail view).
             const userLink = `<a class="activity-feed-user" href="/admin/user/${encodeURIComponent(it.username || '')}">${who}</a>`;
             const roleChip = it.user_role
-                ? `<span class="activity-feed-role">${ActivityPage.#esc(it.user_role)}</span>` : '';
+                ? `<span class="activity-feed-role">${ActivityPage.#esc(it.user_role)}</span>`
+                : '';
             const link = (it.label_id != null)
                 // The href is a real fallback (works without JS / before the popup loads); the click handler intercepts
                 // it to open the label inline once the popup is ready.
-                ? `<a class="activity-label-link" href="/admin/label/${encodeURIComponent(it.label_id)}" ` +
-                  `data-label-id="${ActivityPage.#esc(it.label_id)}">label #${ActivityPage.#esc(it.label_id)}</a>`
+                ? `<a class="activity-label-link" href="/admin/label/${encodeURIComponent(it.label_id)}" `
+                + `data-label-id="${ActivityPage.#esc(it.label_id)}">label #${ActivityPage.#esc(it.label_id)}</a>`
                 : '';
             const text = ActivityPage.#feedText(it);
             const meta = `${userLink}${roleChip}${link ? ` · ${link}` : ''}`;
@@ -344,19 +351,21 @@ class ActivityPage {
             // locally-cropped labels). Decorative (alt="") since the text already names the type; clickable as a
             // convenience that reuses the same delegated handler as the text link, so it opens the label popup inline.
             const thumb = it.thumbnail_url
-                ? `<img class="activity-feed-thumb activity-label-link" loading="lazy" alt="" ` +
-                  `src="${ActivityPage.#esc(it.thumbnail_url)}" data-label-id="${ActivityPage.#esc(it.label_id)}">`
+                ? `<img class="activity-feed-thumb activity-label-link" loading="lazy" alt="" `
+                + `src="${ActivityPage.#esc(it.thumbnail_url)}" data-label-id="${ActivityPage.#esc(it.label_id)}">`
                 : '<span class="activity-feed-thumb activity-feed-thumb--none" aria-hidden="true"></span>';
-            return '<div class="activity-feed-item">' +
-                thumb +
-                `<span class="activity-feed-badge ${badge.cls}">${ActivityPage.#esc(badge.label)}</span>` +
-                '<div class="activity-feed-body">' +
-                `<div class="activity-feed-text">${text}</div>` +
-                `<div class="activity-feed-meta">${meta}</div>` +
-                (summary ? `<div class="activity-feed-sub">${summary}</div>` : '') +
-                '</div>' +
-                `<span class="activity-feed-time" title="${ActivityPage.#esc(fullDate)}">${ActivityPage.#esc(when)}</span>` +
-                '</div>';
+            return [
+                '<div class="activity-feed-item">',
+                thumb,
+                `<span class="activity-feed-badge ${badge.cls}">${ActivityPage.#esc(badge.label)}</span>`,
+                '<div class="activity-feed-body">',
+                `<div class="activity-feed-text">${text}</div>`,
+                `<div class="activity-feed-meta">${meta}</div>`,
+                summary ? `<div class="activity-feed-sub">${summary}</div>` : '',
+                '</div>',
+                `<span class="activity-feed-time" title="${ActivityPage.#esc(fullDate)}">${ActivityPage.#esc(when)}</span>`,
+                '</div>',
+            ].join('');
         }).join('');
         const caption = all.length > items.length
             ? `<p class="dq-empty">Showing the ${items.length} most recent items.</p>`
@@ -364,7 +373,7 @@ class ActivityPage {
         el.innerHTML = rows + caption;
         // A signed crop/GSV URL can still 404 (file pruned, pano expired); hide a broken thumbnail so the row keeps its
         // layout (the column collapses to its placeholder) rather than showing a broken-image icon.
-        el.querySelectorAll('img.activity-feed-thumb').forEach(img => {
+        el.querySelectorAll('img.activity-feed-thumb').forEach((img) => {
             img.addEventListener('error', () => img.classList.add('is-broken'), { once: true });
         });
     }
@@ -426,7 +435,7 @@ class ActivityPage {
     #wireFeedClicks() {
         const feed = document.getElementById('activity-feed');
         if (!feed) return;
-        feed.addEventListener('click', e => {
+        feed.addEventListener('click', (e) => {
             const link = e.target.closest('.activity-label-link');
             if (!link || !this.#labelPopup) return; // no popup yet → let the href navigate
             e.preventDefault();
@@ -438,10 +447,10 @@ class ActivityPage {
     // --- Controls -----------------------------------------------------------------------------------------------
 
     #wireControls() {
-        this.#wireToggle('.act-range-btn', btn => {
+        this.#wireToggle('.act-range-btn', (btn) => {
             this.#range = btn.dataset.range === 'all' ? 0 : parseInt(btn.dataset.range, 10);
         });
-        this.#wireToggle('.act-gran-btn', btn => {
+        this.#wireToggle('.act-gran-btn', (btn) => {
             this.#gran = btn.dataset.gran;
         });
     }
@@ -456,10 +465,10 @@ class ActivityPage {
      */
     #wireToggle(selector, updateState) {
         const buttons = document.querySelectorAll(selector);
-        buttons.forEach(btn => {
+        buttons.forEach((btn) => {
             btn.addEventListener('click', () => {
                 if (btn.classList.contains('active')) return;
-                buttons.forEach(b => {
+                buttons.forEach((b) => {
                     const isTarget = b === btn;
                     b.classList.toggle('active', isTarget);
                     b.setAttribute('aria-pressed', String(isTarget));
@@ -531,8 +540,10 @@ class ActivityPage {
     /** Localized full date-time for a timestamp string (hover title on feed items). */
     static #fmtDateTime(ts) {
         const d = new Date(ts);
-        return isNaN(d) ? String(ts) : d.toLocaleString(undefined,
-            { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        return isNaN(d)
+            ? String(ts)
+            : d.toLocaleString(undefined,
+                    { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
     }
 
     /** Compact relative time ("just now", "5m ago", "3h ago", "2d ago", or a date for older items). */
@@ -551,7 +562,7 @@ class ActivityPage {
     }
 
     static #esc(s) {
-        return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     }
 
     #setText(id, text) {

@@ -6,20 +6,20 @@ class Tracker {
 
     // TODO: update/include for v1.1 by calling #trackWindowEvents() from the constructor.
     #trackWindowEvents() {
-        const prefix = "LowLevelEvent_";
+        const prefix = 'LowLevelEvent_';
 
         // Track all mouse related events.
         $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', (e) => {
             this.push(prefix + e.type, {
                 cursorX: 'pageX' in e ? e.pageX : null,
-                cursorY: 'pageY' in e ? e.pageY : null
+                cursorY: 'pageY' in e ? e.pageY : null,
             });
         });
 
         // Keyboard related events.
         $(document).on('keydown keyup', (e) => {
             this.push(prefix + e.type, {
-                keyCode: 'keyCode' in e ? e.keyCode : null
+                keyCode: 'keyCode' in e ? e.keyCode : null,
             });
         });
     }
@@ -40,10 +40,10 @@ class Tracker {
         const timestamp = new Date();
 
         const data = {
-            action: action,
+            action,
             pano_id: suppData && suppData.panoId ? suppData.panoId : null,
-            note: note,
-            timestamp: timestamp
+            note,
+            timestamp,
         };
 
         return data;
@@ -62,14 +62,16 @@ class Tracker {
      * @param {*} notes Notes object.
      */
     #notesToString(notes) {
-        if (!notes)
-            return "";
+        if (!notes) {
+            return '';
+        }
 
-        let noteString = "";
+        let noteString = '';
         for (const key in notes) {
-            if (noteString.length > 0)
-                noteString += ",";
-            noteString += key + ':' + notes[key];
+            if (noteString.length > 0) {
+                noteString += ',';
+            }
+            noteString += `${key}:${notes[key]}`;
         }
 
         return noteString;
@@ -99,6 +101,6 @@ class Tracker {
      */
     refresh() {
         this.#actions = [];
-        this.push("RefreshTracker");
+        this.push('RefreshTracker');
     }
 }

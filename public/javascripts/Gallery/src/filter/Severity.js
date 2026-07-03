@@ -10,7 +10,7 @@ class Severity {
     #currentLabelType;
 
     #properties = {
-        severity: undefined
+        severity: undefined,
     };
 
     // A boolean to see if the current severity filter is active.
@@ -39,7 +39,7 @@ class Severity {
         this.#severityElement.className = 'severity-button gallery-filter';
 
         this.#severityImage = $('<img class="severity-button__icon" alt="">')
-            .attr('id', 'severity-' + this.#properties.severity);
+            .attr('id', `severity-${this.#properties.severity}`);
         this.#updateIconSrc();
 
         this.#severityLabel = $('<span class="severity-button__label"></span>').text(this.#getLabelText());
@@ -55,10 +55,10 @@ class Severity {
      */
     handleOnClickCallback = () => {
         if (this.#filterActive) {
-            sg.tracker.push("SeverityUnapply", null, { Severity: this.#properties.severity });
+            sg.tracker.push('SeverityUnapply', null, { Severity: this.#properties.severity });
             this.unapply();
         } else {
-            sg.tracker.push("SeverityApply", null, { Severity: this.#properties.severity });
+            sg.tracker.push('SeverityApply', null, { Severity: this.#properties.severity });
             this.apply();
         }
 
@@ -78,7 +78,7 @@ class Severity {
     #getLabelText() {
         if (this.#properties.severity === 'null') return i18next.t('labelmap:not-applicable-abbr');
         const key = util.misc.getRatingLevelKeys(this.#currentLabelType)[Number(this.#properties.severity)];
-        return i18next.t('common:' + key);
+        return i18next.t(`common:${key}`);
     }
 
     #updateIconSrc() {

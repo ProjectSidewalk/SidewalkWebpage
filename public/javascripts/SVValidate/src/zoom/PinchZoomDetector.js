@@ -11,7 +11,7 @@ class PinchZoomDetector {
     #pinchZooming = false;
 
     constructor() {
-        const screen = document.getElementById("svv-panorama");
+        const screen = document.getElementById('svv-panorama');
         if (svv.panoViewer.getViewerType() === 'gsv') {
             svv.panoViewer.gsvPano.addListener('zoom_changed', this.#processZoomChange);
         }

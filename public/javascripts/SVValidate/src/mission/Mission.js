@@ -12,7 +12,7 @@ class Mission {
         labelTypeId: undefined,
         labelsValidated: undefined,
         unsureCount: 0,
-        skipped: undefined
+        skipped: undefined,
     };
 
     /**
@@ -27,17 +27,17 @@ class Mission {
      * @param {object} params Mission metadata.
      */
     #init(params) {
-        if ("agreeCount" in params) this.setProperty("agreeCount", params.agreeCount);
-        if ("disagreeCount" in params) this.setProperty("disagreeCount", params.disagreeCount);
-        if ("missionId" in params) this.setProperty("missionId", params.missionId);
-        if ("missionType" in params) this.setProperty("missionType", params.missionType);
-        if ("regionId" in params) this.setProperty("regionId", params.regionId);
-        if ("completed" in params) this.setProperty("completed", params.completed);
-        if ("labelsProgress" in params) this.setProperty("labelsProgress", params.labelsProgress);
-        if ("labelsValidated" in params) this.setProperty("labelsValidated", params.labelsValidated);
-        if ("labelTypeId" in params) this.setProperty("labelTypeId", params.labelTypeId);
-        if ("unsureCount" in params) this.setProperty("unsureCount", params.unsureCount);
-        if ("skipped" in params) this.setProperty("skipped", params.skipped);
+        if ('agreeCount' in params) this.setProperty('agreeCount', params.agreeCount);
+        if ('disagreeCount' in params) this.setProperty('disagreeCount', params.disagreeCount);
+        if ('missionId' in params) this.setProperty('missionId', params.missionId);
+        if ('missionType' in params) this.setProperty('missionType', params.missionType);
+        if ('regionId' in params) this.setProperty('regionId', params.regionId);
+        if ('completed' in params) this.setProperty('completed', params.completed);
+        if ('labelsProgress' in params) this.setProperty('labelsProgress', params.labelsProgress);
+        if ('labelsValidated' in params) this.setProperty('labelsValidated', params.labelsValidated);
+        if ('labelTypeId' in params) this.setProperty('labelTypeId', params.labelTypeId);
+        if ('unsureCount' in params) this.setProperty('unsureCount', params.unsureCount);
+        if ('skipped' in params) this.setProperty('skipped', params.skipped);
     }
 
     /**
@@ -62,7 +62,7 @@ class Mission {
      * @returns True if this mission is complete, false if in progress.
      */
     isComplete() {
-        return this.getProperty("completed");
+        return this.getProperty('completed');
     }
 
     /**
@@ -81,8 +81,8 @@ class Mission {
      * @param {boolean} undo If true, the user clicked the undo button, so we are progressing backwards.
      */
     updateMissionProgress(undo) {
-        let labelsProgress = this.getProperty("labelsProgress");
-        if (labelsProgress < this.getProperty("labelsValidated")) {
+        let labelsProgress = this.getProperty('labelsProgress');
+        if (labelsProgress < this.getProperty('labelsValidated')) {
             if (undo) {
                 labelsProgress -= 1;
                 const priorLabelFormData = svv.labelContainer.getPriorLabelFormData();
@@ -99,17 +99,17 @@ class Mission {
                 svv.statusField.incrementLabelCounts();
             }
 
-            this.setProperty("labelsProgress", labelsProgress);
+            this.setProperty('labelsProgress', labelsProgress);
             // Submit mission if mission is complete.
-            if (labelsProgress >= this.getProperty("labelsValidated")) {
-                this.setProperty("completed", true);
+            if (labelsProgress >= this.getProperty('labelsValidated')) {
+                this.setProperty('completed', true);
                 svv.missionContainer.completeAMission();
                 svv.undoValidation.disableUndo();
             }
         }
 
         // Update progress bar.
-        const labelsInMission = this.getProperty("labelsValidated");
+        const labelsInMission = this.getProperty('labelsValidated');
         svv.statusField.setProgressBar(labelsProgress, labelsInMission);
         svv.statusField.setProgressText(labelsProgress, labelsInMission);
     }
@@ -124,13 +124,13 @@ class Mission {
         const change = removeValidation ? -1 : 1;
         switch (result) {
             case 'Agree':
-                this.setProperty("agreeCount", this.getProperty("agreeCount") + change);
+                this.setProperty('agreeCount', this.getProperty('agreeCount') + change);
                 break;
             case 'Disagree':
-                this.setProperty("disagreeCount", this.getProperty("disagreeCount") + change);
+                this.setProperty('disagreeCount', this.getProperty('disagreeCount') + change);
                 break;
             case 'Unsure':
-                this.setProperty("unsureCount", this.getProperty("unsureCount") + change);
+                this.setProperty('unsureCount', this.getProperty('unsureCount') + change);
                 break;
         }
     }

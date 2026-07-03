@@ -41,14 +41,14 @@ class ModalMissionComplete {
             labelsAll: document.getElementById('modal-mission-complete-labels-all'),
             labelsYou: document.getElementById('modal-mission-complete-labels-you'),
             primaryButton: document.getElementById('modal-mission-complete-close-button-primary'),
-            secondaryButton: document.getElementById('modal-mission-complete-close-button-secondary')
+            secondaryButton: document.getElementById('modal-mission-complete-close-button-secondary'),
         };
 
         this.#progressBar = new NeighborhoodProgressBar({
             fill: 'modal-neighborhood-progress-fill',
             you: 'modal-neighborhood-progress-you',
             community: 'modal-neighborhood-progress-community',
-            rate: 'modal-neighborhood-progress-rate'
+            rate: 'modal-neighborhood-progress-rate',
         });
 
         // The primary button starts the next explore mission (or loads a new area); secondary opens validation.
@@ -56,7 +56,9 @@ class ModalMissionComplete {
         this.#els.secondaryButton.addEventListener('click', () => this.#closeModal('secondary'));
 
         // The next explore mission can't start until it has loaded, so gate the primary button on that.
-        missionModel.on('MissionProgress:complete', () => { this.#canContinue = false; });
+        missionModel.on('MissionProgress:complete', () => {
+            this.#canContinue = false;
+        });
         missionContainer.on('MissionContainer:missionLoaded', () => {
             this.#canContinue = true;
             if (this.#showingScreen) this.#updateButtonsEnabled();
@@ -87,7 +89,7 @@ class ModalMissionComplete {
         const missionId = mission.getProperty('missionId');
         mission.pushATaskToTheRoute(this.#taskContainer.getCurrentTask());
         this.#map.update(this.#buildStreetTiers(mission, missionId), this.#buildLabelData(missionId))
-            .catch(e => console.error('Failed to render the mission-complete map.', e));
+            .catch((e) => console.error('Failed to render the mission-complete map.', e));
 
         // The neighborhood progress bar reads live task data, the same as the sidebar's copy.
         this.#progressBar.update();
@@ -100,13 +102,13 @@ class ModalMissionComplete {
         // Distance and the user's own label count come from data already on the client (the user's labels for this
         // neighborhood are loaded at page load; see /label/resumeMission), so they're filled in synchronously.
         this.#els.distanceAll.textContent = i18next.t('mission-complete.stat-distance-all', {
-            distance: this.#formatDistance(neighborhood.completedLineDistanceAcrossAllUsersUsingPriority())
+            distance: this.#formatDistance(neighborhood.completedLineDistanceAcrossAllUsersUsingPriority()),
         });
         this.#els.distanceYou.textContent = i18next.t('mission-complete.stat-distance-you', {
-            distance: this.#formatDistance(neighborhood.completedLineDistance(unit))
+            distance: this.#formatDistance(neighborhood.completedLineDistance(unit)),
         });
         this.#els.labelsYou.textContent = i18next.t('mission-complete.stat-labels-you', {
-            count: this.#formatNumber(svl.labelContainer.countLabels())
+            count: this.#formatNumber(svl.labelContainer.countLabels()),
         });
 
         // The neighborhood-wide label total is the only stat that needs the server, so fetch it (skipped on routes).
@@ -125,7 +127,7 @@ class ModalMissionComplete {
         }
         this.#els.subtitle.textContent = i18next.t('mission-complete.subtitle', {
             distance: this.#formatMissionDistance(mission.getDistance('miles')),
-            neighborhoodName
+            neighborhoodName,
         });
     }
 
@@ -147,13 +149,13 @@ class ModalMissionComplete {
      */
     #fetchNeighborhoodLabelCount(regionId) {
         fetch(`/label/countInRegion?regionId=${regionId}`, { headers: { Accept: 'application/json' } })
-            .then(response => response.json())
-            .then(result => {
+            .then((response) => response.json())
+            .then((result) => {
                 this.#els.labelsAll.textContent = i18next.t('mission-complete.stat-labels-all', {
-                    count: this.#formatNumber(result.label_count)
+                    count: this.#formatNumber(result.label_count),
                 });
             })
-            .catch(e => console.error('Failed to load the neighborhood label count.', e));
+            .catch((e) => console.error('Failed to load the neighborhood label count.', e));
     }
 
     /** Builds the static label-type legend once, matching the label map's colors and names. */
@@ -170,7 +172,7 @@ class ModalMissionComplete {
             dot.style.borderColor = colors[labelType].strokeStyle;
 
             const name = document.createElement('span');
-            name.textContent = i18next.t('common:' + util.camelToKebab(labelType));
+            name.textContent = i18next.t(`common:${util.camelToKebab(labelType)}`);
 
             item.appendChild(dot);
             item.appendChild(name);
@@ -188,10 +190,10 @@ class ModalMissionComplete {
      */
     #buildStreetTiers(mission, missionId) {
         const missionTasks = mission.getRoute();
-        const missionStreetIds = missionTasks.map(task => task.getStreetEdgeId());
+        const missionStreetIds = missionTasks.map((task) => task.getStreetEdgeId());
 
         // This-mission tier: the portion of each mission street that was covered during this mission.
-        const thisMissionFeatures = missionTasks.map(task => {
+        const thisMissionFeatures = missionTasks.map((task) => {
             const missionStart = task.getMissionStart(missionId);
             let coordinates;
             if (missionStart || !task.isComplete()) {
@@ -216,7 +218,7 @@ class ModalMissionComplete {
         // Previous-missions tier: streets the user finished outside this mission, plus the earlier-completed portion of
         // any mission street the user had partly covered before.
         const userCompletedTasks = [...this.#taskContainer.getCompletedTasks()];
-        const partialCurrentTask = missionTasks.find(task => !task.isComplete() && task.getMissionStart(missionId));
+        const partialCurrentTask = missionTasks.find((task) => !task.isComplete() && task.getMissionStart(missionId));
         if (partialCurrentTask) userCompletedTasks.push(partialCurrentTask);
 
         const previousFeatures = [];
@@ -231,7 +233,7 @@ class ModalMissionComplete {
             const streetStart = missionStreet.getStartCoordinate();
             if (missionStart && streetStart) {
                 const distFromStart = turf.distance(turf.point([streetStart.lng, streetStart.lat]),
-                                                    turf.point([missionStart.lng, missionStart.lat]));
+                    turf.point([missionStart.lng, missionStart.lat]));
                 // Only draw the earlier portion if it's more than a few meters (otherwise it's just the mission start).
                 if (distFromStart > 0.003) {
                     const coordinates = missionStreet.getSubsetOfCoordinates(streetStart, missionStart);
@@ -250,8 +252,8 @@ class ModalMissionComplete {
             previous: { type: 'FeatureCollection', features: previousFeatures.filter(this.#isDrawableLine) },
             community: {
                 type: 'FeatureCollection',
-                features: communityTasks.map(task => task.getFeature()).filter(this.#isDrawableLine)
-            }
+                features: communityTasks.map((task) => task.getFeature()).filter(this.#isDrawableLine),
+            },
         };
     }
 
@@ -267,7 +269,7 @@ class ModalMissionComplete {
     #isDrawableLine(feature) {
         const coords = feature?.geometry?.coordinates;
         if (!Array.isArray(coords) || coords.length < 2) return false;
-        return coords.every(c => Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1]));
+        return coords.every((c) => Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1]));
     }
 
     /**
@@ -277,8 +279,8 @@ class ModalMissionComplete {
      */
     #buildLabelData(missionId) {
         const features = svl.labelContainer.getAllLabels()
-            .filter(label => !label.isDeleted() && label.getProperty('missionId') === missionId)
-            .map(label => {
+            .filter((label) => !label.isDeleted() && label.getProperty('missionId') === missionId)
+            .map((label) => {
                 const latLng = label.toLatLng();
                 return {
                     type: 'Feature',
@@ -288,8 +290,8 @@ class ModalMissionComplete {
                         label_id: label.getProperty('temporaryLabelId'),
                         label_type: label.getLabelType(),
                         correct: null,
-                        has_validations: false
-                    }
+                        has_validations: false,
+                    },
                 };
             });
         return { type: 'FeatureCollection', features };

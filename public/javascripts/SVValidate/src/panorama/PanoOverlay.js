@@ -11,7 +11,7 @@ class PanoOverlay {
         currY: 0,
         prevX: 0,
         prevY: 0,
-        isLeftDown: false
+        isLeftDown: false,
     };
 
     constructor() {
@@ -43,7 +43,7 @@ class PanoOverlay {
      */
     #handlerViewControlLayerMouseDown = (e) => {
         this.#mouseStatus.isLeftDown = true;
-        this.#viewControlLayer.css("cursor", "url(/assets/images/icons/closedhand.cur) 4 4, move");
+        this.#viewControlLayer.css('cursor', 'url(/assets/images/icons/closedhand.cur) 4 4, move');
 
         // Hide the label's hover info as soon as panning starts so it doesn't linger over the moving pano.
         if (svv.labelVisibilityControl) svv.labelVisibilityControl.hideTagsAndDeleteButton();
@@ -58,7 +58,7 @@ class PanoOverlay {
      * @param {Event} e
      */
     #handlerViewControlLayerMouseUp = (e) => {
-        this.#viewControlLayer.css("cursor", "url(/assets/images/icons/openhand.cur) 4 4, move");
+        this.#viewControlLayer.css('cursor', 'url(/assets/images/icons/openhand.cur) 4 4, move');
         this.#mouseStatus.isLeftDown = false;
     };
 
@@ -67,7 +67,7 @@ class PanoOverlay {
      * @param {Event} e
      */
     #handlerViewControlLayerMouseLeave = (e) => {
-        this.#viewControlLayer.css("cursor", "url(/assets/images/icons/openhand.cur) 4 4, move");
+        this.#viewControlLayer.css('cursor', 'url(/assets/images/icons/openhand.cur) 4 4, move');
         this.#mouseStatus.isLeftDown = false;
     };
 

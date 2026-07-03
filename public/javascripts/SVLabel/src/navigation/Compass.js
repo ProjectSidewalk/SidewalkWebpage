@@ -11,7 +11,7 @@ class Compass {
     #uiCompass;
     #imageDirectories;
     #status = {
-        lockDisableCompassClick: false
+        lockDisableCompassClick: false,
     };
 
     /**
@@ -25,16 +25,16 @@ class Compass {
 
         this.#uiCompass = {
             messageHolder: $('#compass-message-holder'),
-            message: $('#compass-message')
+            message: $('#compass-message'),
         };
 
         this.#imageDirectories = {
-            leftTurn: svl.rootDirectory + 'img/icons/ArrowLeftTurn.png',
-            rightTurn: svl.rootDirectory + 'img/icons/ArrowRightTurn.png',
-            slightLeft: svl.rootDirectory + 'img/icons/ArrowSlightLeft.png',
-            slightRight: svl.rootDirectory + 'img/icons/ArrowSlightRight.png',
-            straight: svl.rootDirectory + 'img/icons/ArrowStraight.png',
-            uTurn: svl.rootDirectory + 'img/icons/ArrowUTurn.png'
+            leftTurn: `${svl.rootDirectory}img/icons/ArrowLeftTurn.png`,
+            rightTurn: `${svl.rootDirectory}img/icons/ArrowRightTurn.png`,
+            slightLeft: `${svl.rootDirectory}img/icons/ArrowSlightLeft.png`,
+            slightRight: `${svl.rootDirectory}img/icons/ArrowSlightRight.png`,
+            straight: `${svl.rootDirectory}img/icons/ArrowStraight.png`,
+            uTurn: `${svl.rootDirectory}img/icons/ArrowUTurn.png`,
         };
 
         this.enableCompassClick();
@@ -134,7 +134,9 @@ class Compass {
     #makeTheLabelBeforeJumpMessageBoxClickable() {
         let jumpMessageOnclick;
         if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
-            jumpMessageOnclick = () => { svl.missionController.wrapUpRouteOrNeighborhood(); };
+            jumpMessageOnclick = () => {
+                svl.missionController.wrapUpRouteOrNeighborhood();
+            };
         } else {
             jumpMessageOnclick = this.#jumpToTheNewTask;
         }
@@ -214,9 +216,9 @@ class Compass {
         const direction = this.#angleToDirection(angle);
 
         const image = `<img src="${this.directionToImagePath(direction)}" class="compass-turn-images" alt="Turn icon"/>`;
-        const message =
-            `<div class="compass-message-small">${i18next.t('center-ui.compass.unlabeled-problems')}</div>` +
-            `${image}<span class="compass-message-large">${this.#directionToDirectionMessage(direction)}</span>`;
+        const message
+            = `<div class="compass-message-small">${i18next.t('center-ui.compass.unlabeled-problems')}</div>`
+                + `${image}<span class="compass-message-large">${this.#directionToDirectionMessage(direction)}</span>`;
         this.#uiCompass.message.html(message);
     }
 
@@ -273,20 +275,19 @@ class Compass {
      * @returns {string|undefined}
      */
     #angleToDirection(angle) {
-        if (angle < 20 || angle > 340)
+        if (angle < 20 || angle > 340) {
             return 'straight';
-        else if (angle >= 20 && angle < 45)
+        } else if (angle >= 20 && angle < 45) {
             return 'slight-left';
-        else if (angle <= 340 && angle > 315)
+        } else if (angle <= 340 && angle > 315) {
             return 'slight-right';
-        else if (angle >= 45 && angle < 150)
+        } else if (angle >= 45 && angle < 150) {
             return 'left';
-        else if (angle <= 315 && angle > 210)
+        } else if (angle <= 315 && angle > 210) {
             return 'right';
-        else if (angle <= 210 && angle >= 150) {
+        } else if (angle <= 210 && angle >= 150) {
             return 'u-turn';
-        }
-        else {
+        } else {
             console.debug('It shouldn\'t reach here.');
         }
     }

@@ -70,7 +70,7 @@ class Main {
         // Set up the PanoManager and PanoViewer.
         const isTutorialTask = params.task.properties.street_edge_id === params.tutorialStreetId;
         const newTask = new Task(params.task, isTutorialTask);
-        const initParams = isTutorialTask ? { startPanoId: 'tutorial' } : { startLat: startLat, startLng: startLng };
+        const initParams = isTutorialTask ? { startPanoId: 'tutorial' } : { startLat, startLng };
         const errorParams = { task: newTask, missionId: params.mission.mission_id };
         svl.panoManager = await PanoManager.create(svl.viewerType, params.viewerAccessToken, initParams, errorParams);
         const currLatLng = svl.panoViewer.getPosition();
@@ -102,7 +102,7 @@ class Main {
         svl.badgeProgress = new BadgeProgress();
         svl.overallStats = new OverallStats();
         svl.missionProgressBar = new ProgressBar(
-            'status-current-mission-completion-bar-filler', 'status-current-mission-completion-rate'
+            'status-current-mission-completion-bar-filler', 'status-current-mission-completion-rate',
         );
         svl.missionProgressBar.update(0);
         svl.neighborhoodProgressBar = new NeighborhoodProgressBar();
@@ -165,9 +165,15 @@ class Main {
             () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('captureDate'),
             () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('address'),
             svl.panoViewer.getPov, true,
-            () => { svl.tracker.push('PanoInfoButton_Click'); },
-            () => { svl.tracker.push('PanoInfoCopyToClipboard_Click'); },
-            () => { svl.tracker.push('PanoInfoViewInPano_Click'); }
+            () => {
+                svl.tracker.push('PanoInfoButton_Click');
+            },
+            () => {
+                svl.tracker.push('PanoInfoCopyToClipboard_Click');
+            },
+            () => {
+                svl.tracker.push('PanoInfoViewInPano_Click');
+            },
         );
 
         // Speed limit
@@ -200,9 +206,9 @@ class Main {
 
         // Ribbon-button tooltip attributes are set in RibbonMenu (which owns those buttons); this just initializes them.
         $('[data-toggle="tooltip"]').tooltip({
-            delay: { 'show': 500, 'hide': 100 },
+            delay: { show: 500, hide: 100 },
             html: true,
-            container: 'body'
+            container: 'body',
         });
 
         // Clean up the URL in the address bar.
@@ -271,7 +277,9 @@ class Main {
         svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), (result) => {
             svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
             // Wait for the icon cache before this first paint (resolves immediately if already warm).
-            svl.iconsPreloaded.then(() => { svl.canvas.render(); });
+            svl.iconsPreloaded.then(() => {
+                svl.canvas.render();
+            });
         });
 
         svl.taskContainer.renderAllTasks();
@@ -285,7 +293,6 @@ class Main {
     // This is a callback function that is executed after every loading process is done.
     #handleDataLoadComplete() {
         if (this.#loadingTasksCompleted && this.#loadingMissionsCompleted && this.#loadLabelTags) {
-
             // Mark neighborhood as complete if there are no streets left with max priority (= 1).
             if (!svl.taskContainer.hasMaxPriorityTask()) {
                 svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
@@ -300,9 +307,9 @@ class Main {
             svl.compass.enableCompassClick();
 
             // Remove the loading cover page and make the tool visible.
-            $('#page-loading').css({ 'visibility': 'hidden' });
-            $('.tool-ui').css({ 'visibility': 'visible' });
-            $('.visible').css({ 'visibility': 'visible' });
+            $('#page-loading').css({ visibility: 'hidden' });
+            $('.tool-ui').css({ visibility: 'visible' });
+            $('.visible').css({ visibility: 'visible' });
 
             // Check if the user has completed the onboarding tutorial.
             const mission = svl.missionContainer.getCurrentMission();
@@ -317,7 +324,7 @@ class Main {
                 const labelType = potentialLabelTypes[Math.floor(Math.random() * potentialLabelTypes.length)];
                 new MissionStartTutorial('audit', labelType, {
                     nLength: svl.missionContainer.getCurrentMission().getDistance('miles'),
-                    neighborhood: currentNeighborhood.getProperty('name')
+                    neighborhood: currentNeighborhood.getProperty('name'),
                 }, svl, this.#params.language);
 
                 this.#startTheMission(mission, currentNeighborhood);
@@ -330,7 +337,7 @@ class Main {
             // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale).
             const applyExploreScale = () => util.applyToolScale(
                 ['--pano-base-width', '--sidebar-base-gap', '--sidebar-base-width'],
-                ['--ribbon-base-top', '--ribbon-base-height', '--pano-base-height']
+                ['--ribbon-base-top', '--ribbon-base-height', '--pano-base-height'],
             );
             applyExploreScale();
             // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
@@ -423,9 +430,9 @@ class Main {
         svl.ui.contextMenu.holder = $('#context-menu-holder');
         svl.ui.contextMenu.severityMenu = $('#severity-menu');
         svl.ui.contextMenu.severityRadioHolder = $('#severity-radio-holder');
-        svl.ui.contextMenu.radioButtons = $("input[name='label-severity']");
+        svl.ui.contextMenu.radioButtons = $('input[name=\'label-severity\']');
         svl.ui.contextMenu.tagHolder = $('#context-menu-tag-holder');
-        svl.ui.contextMenu.tags = $("button[name='tag']");
+        svl.ui.contextMenu.tags = $('button[name=\'tag\']');
         svl.ui.contextMenu.textBox = $('#context-menu-description-text-box');
         svl.ui.contextMenu.closeButton = $('#context-menu-close-button');
 

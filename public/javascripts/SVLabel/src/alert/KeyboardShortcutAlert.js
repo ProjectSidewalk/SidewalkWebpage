@@ -24,8 +24,8 @@ class KeyboardShortcutAlert extends Alert {
         if (this.#clickCount[labelType] >= KeyboardShortcutAlert.#MINIMUM_CLICKS_BEFORE_ALERT && !svl.isOnboarding()) {
             const labelDescription = util.misc.getLabelDescriptions(labelType);
             if ('keyChar' in labelDescription) {
-                const translationKey = `popup.label-shortcuts-${ util.camelToKebab(labelType) }`;
-                this._showAlert(translationKey, labelType, { key: labelDescription['keyChar'] });
+                const translationKey = `popup.label-shortcuts-${util.camelToKebab(labelType)}`;
+                this._showAlert(translationKey, labelType, { key: labelDescription.keyChar });
                 this.#clickCount[labelType] = 0;
             }
         }
@@ -38,15 +38,15 @@ class KeyboardShortcutAlert extends Alert {
      */
     stuckButtonClicked() {
         if ('Stuck' in this.#clickCount) {
-            this.#clickCount['Stuck']++;
+            this.#clickCount.Stuck++;
         } else {
-            this.#clickCount['Stuck'] = 1;
+            this.#clickCount.Stuck = 1;
         }
 
-        if (this.#clickCount['Stuck'] >= KeyboardShortcutAlert.#MINIMUM_STUCK_CLICKS_BEFORE_ALERT
+        if (this.#clickCount.Stuck >= KeyboardShortcutAlert.#MINIMUM_STUCK_CLICKS_BEFORE_ALERT
             && !svl.isOnboarding()) {
             this._showAlert('popup.move-forward-shortcut', 'MoveForwardShortcut');
-            this.#clickCount['Stuck'] = 0;
+            this.#clickCount.Stuck = 0;
         }
     }
 }

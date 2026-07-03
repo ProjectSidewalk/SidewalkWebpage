@@ -10,13 +10,15 @@ class Canvas {
         disableLabeling: false,
         lockDisableLabelDelete: false,
     };
+
     // Mouse status and mouse event callback functions.
     #mouseStatus = {
         prevX: 0,
         prevY: 0,
-        isLeftDown: false
+        isLeftDown: false,
     };
-    #canvasProperties = { 'height': 0, 'width': 0 };
+
+    #canvasProperties = { height: 0, width: 0 };
 
     /**
      * @param {Object} ribbon - The RibbonMenu, queried for the selected label type / mode.
@@ -85,21 +87,21 @@ class Canvas {
         const labelType = this.#ribbon.getStatus('selectedLabelType');
         const pov = svl.panoViewer.getPov();
         const povOfLabel = util.pano.canvasCoordToCenteredPov(
-            pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT
+            pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
         );
         const rerenderCanvasCoord = util.pano.centeredPovToCanvasCoord(
-            povOfLabel, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+            povOfLabel, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
         );
         const param = {
             tutorial: svl.missionContainer.getCurrentMission().getProperty('missionType') === 'auditOnboarding',
             missionId: svl.missionContainer.getCurrentMission().getProperty('missionId'),
             auditTaskId: svl.taskContainer.getCurrentTask().getAuditTaskId(),
-            labelType: labelType,
+            labelType,
             originalCanvasXY: { x: canvasX, y: canvasY },
             currCanvasXY: rerenderCanvasCoord,
             povOfLabelIfCentered: povOfLabel,
             panoId: svl.panoViewer.getPanoId(),
-            originalPov: pov
+            originalPov: pov,
         };
 
         // Create the label and render the context menu.
@@ -108,11 +110,11 @@ class Canvas {
 
         // Log the labeling event.
         svl.tracker.push('LabelingCanvas_FinishLabeling', {
-            labelType: labelType,
-            canvasX: canvasX,
-            canvasY: canvasY
+            labelType,
+            canvasX,
+            canvasY,
         }, {
-            temporaryLabelId: this.#status.currentLabel.getProperty('temporaryLabelId')
+            temporaryLabelId: this.#status.currentLabel.getProperty('temporaryLabelId'),
         });
 
         // Play labeling sound effect.
@@ -123,7 +125,7 @@ class Canvas {
         // If in the tutorial, send an event to the onboarding module.
         if (svl.onboarding) {
             const customEvent = new CustomEvent('addTutorialLabel', {
-                detail: { label: this.#status.currentLabel }
+                detail: { label: this.#status.currentLabel },
             });
             document.dispatchEvent(customEvent);
         }
@@ -143,7 +145,7 @@ class Canvas {
      * @param {string} type - One of 'OpenHand', 'ClosedHand', or 'Pointer'; uses 'default' for any other input.
      */
     #setViewControlLayerCursor(type) {
-        switch(type) {
+        switch (type) {
             case 'OpenHand':
                 svl.ui.streetview.viewControlLayer.css('cursor', `url(/assets/images/icons/openhand.cur) 4 4, move`);
                 break;

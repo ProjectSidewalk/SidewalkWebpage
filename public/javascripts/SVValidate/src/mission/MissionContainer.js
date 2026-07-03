@@ -24,7 +24,7 @@ class MissionContainer {
      * @param {Mission} mission Mission object of the current mission.
      */
     #addToCompletedMissions(mission) {
-        const existingMissionIds = this.#completedMissions.map(m => m.getProperty('missionId'));
+        const existingMissionIds = this.#completedMissions.map((m) => m.getProperty('missionId'));
         const currentMissionId = mission.getProperty('missionId');
         if (existingMissionIds.indexOf(currentMissionId) < 0) {
             this.#completedMissions.push(mission);
@@ -52,15 +52,15 @@ class MissionContainer {
         svv.undoValidation.disableUndo();
         const metadata = {
             agreeCount: progressMetadata.agree_count,
-            completed : missionMetadata.completed,
+            completed: missionMetadata.completed,
             disagreeCount: progressMetadata.disagree_count,
-            labelsProgress : missionMetadata.labels_progress,
-            labelsValidated : missionMetadata.labels_validated,
-            labelTypeId : missionMetadata.label_type_id,
-            missionId : missionMetadata.mission_id,
-            missionType : missionMetadata.mission_type,
+            labelsProgress: missionMetadata.labels_progress,
+            labelsValidated: missionMetadata.labels_validated,
+            labelTypeId: missionMetadata.label_type_id,
+            missionId: missionMetadata.mission_id,
+            missionType: missionMetadata.mission_type,
             unsureCount: progressMetadata.unsure_count,
-            skipped : missionMetadata.skipped
+            skipped: missionMetadata.skipped,
         };
         const mission = new Mission(metadata);
         this.addAMission(mission);

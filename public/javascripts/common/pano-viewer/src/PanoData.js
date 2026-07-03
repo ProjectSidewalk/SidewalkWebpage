@@ -27,7 +27,7 @@ class PanoData {
     constructor(params) {
         // Validate required parameters.
         const requiredParams = ['panoId', 'source', 'lat', 'lng', 'cameraHeading', 'cameraPitch', 'width', 'height', 'captureDate', 'linkedPanos', 'history'];
-        requiredParams.forEach(param => {
+        requiredParams.forEach((param) => {
             if (params[param] === undefined || params[param] === null) {
                 throw new Error(`Missing required parameter: ${param}`);
             }
@@ -41,7 +41,7 @@ class PanoData {
 
         // Validate numeric parameters.
         const numericParams = ['lat', 'lng', 'cameraHeading', 'cameraPitch', 'cameraRoll', 'width', 'height'];
-        numericParams.forEach(param => {
+        numericParams.forEach((param) => {
             if (params[param] !== undefined && (typeof params[param] !== 'number' || isNaN(params[param]))) {
                 throw new Error(`${param} must be a valid number`);
             }
@@ -71,8 +71,8 @@ class PanoData {
             captureDate: params.captureDate,
             linkedPanos: params.linkedPanos || [],
             history: params.history || [],
-            submitted: params.submitted || false
-        }
+            submitted: params.submitted || false,
+        };
     }
 
     getProperties() {

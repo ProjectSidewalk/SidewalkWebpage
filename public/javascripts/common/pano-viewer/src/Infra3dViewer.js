@@ -21,7 +21,7 @@ class Infra3dViewer extends PanoViewer {
 
         // Docs on Infra3D viewer options:
         // https://developers.infra3d.com/custom-content/reference/classes/Manager.Manager.html#initViewer
-        let disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
+        const disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
         let panoOpts = {
             project_uid: projectId,
             show_topbar: !disableDefaultUi,
@@ -39,7 +39,7 @@ class Infra3dViewer extends PanoViewer {
         // Sometimes initViewer fails and idk how to catch the error. Refresh page if not done after 10 seconds.
         this.viewer = await Promise.race([
             manager.initViewer(panoOpts),
-            new Promise((_, reject) => setTimeout(() => reject('timeout'), 10000))
+            new Promise((_, reject) => setTimeout(() => reject('timeout'), 10000)),
         ]).catch(() => {
             window.location.reload();
         });
@@ -56,7 +56,7 @@ class Infra3dViewer extends PanoViewer {
         if (panoOpts.startPanoId) {
             await this.setPano(panoOpts.startPanoId);
         } else if (panoOpts.startLatLng) {
-            await this.setLocation(panoOpts.startLatLng).catch(err => {
+            await this.setLocation(panoOpts.startLatLng).catch((err) => {
                 if (panoOpts.backupLatLng) return this.setLocation(panoOptions.backupLatLng);
                 else throw err;
             });
@@ -67,16 +67,16 @@ class Infra3dViewer extends PanoViewer {
             if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space'].indexOf(e.code) > -1) {
                 e.stopPropagation();
             }
-        }
+        };
         window.addEventListener('keydown', preventShortcuts, { capture: true });
 
         // Set up event listeners. We hold a list and go through each listener ourselves to control their ordering.
         const panoChangeListener = async (e) => {
             for (const listener of this.panoChangedListeners) await listener(e);
-        }
+        };
         const povChangeListener = async (e) => {
             for (const listener of this.povChangedListeners) await listener(e);
-        }
+        };
         this.viewer._sdk_viewer.on('nodechanged', panoChangeListener);
         this.viewer.on('panorotationchanged', povChangeListener);
 
@@ -104,7 +104,7 @@ class Infra3dViewer extends PanoViewer {
         const wgs84 = 'EPSG:4326';
         const webMercator = 'EPSG:3857';
         const [easting, northing] = proj4(wgs84, webMercator, [latLng.lng, latLng.lat]);
-        const newPosition = { easting: easting, northing: northing };
+        const newPosition = { easting, northing };
 
         // Using the internal function that returns a node, since the usual one in the API does not.
         // TODO We should be checking if the new location is within STREETVIEW_MAX_DISTANCE. But we always have imagery
@@ -147,7 +147,7 @@ class Infra3dViewer extends PanoViewer {
      */
     #filterExcludedPanos = (newPanoData, excludedPanos) => {
         // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing.
-        const excludedPanoIds = new Set([...excludedPanos].map(p => p.getPanoId()));
+        const excludedPanoIds = new Set([...excludedPanos].map((p) => p.getPanoId()));
         if (excludedPanoIds.has(newPanoData.getPanoId())) {
             return this.setPano(this.prevNode.frame.id).then(() => {
                 throw new Error(`Excluded pano: ${newPanoData.getPanoId()}`);
@@ -183,7 +183,7 @@ class Infra3dViewer extends PanoViewer {
             }
         }).then((node) => {
             // Now that all the data is available, we can fill the currPanoData object and say that the pano has loaded.
-            let panoDataParams = {
+            const panoDataParams = {
                 panoId: node.frame.id,
                 source: this.getViewerType(),
                 captureDate: moment(node.frame.timestamp),
@@ -197,17 +197,17 @@ class Infra3dViewer extends PanoViewer {
                 cameraPitch: this._getPitch(node.frame.omega, node.frame.phi),
                 // TODO can we find a camera roll?
                 copyright: 'City of Zurich and iNovitas AG',
-                history: [] // No history to pull from for Infra3D right now.
-            }
+                history: [], // No history to pull from for Infra3D right now.
+            };
 
             panoDataParams.linkedPanos = node.spatialEdges.edges
-                .filter(link => link.data.direction === 9) // Filters out link to camera on back of car for now.
-                .map(function(link) {
+                .filter((link) => link.data.direction === 9) // Filters out link to camera on back of car for now.
+                .map((link) => {
                     // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
                     // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
                     return {
                         panoId: link.to,
-                        heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI))
+                        heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI)),
                     };
                 });
 
@@ -234,11 +234,11 @@ class Infra3dViewer extends PanoViewer {
 
         // Convert from vertical fov to horizontal fov, then convert to a zoom level that you'd see in GSV.
         const horizontalFov = util.math.toDegrees(
-            2 * Math.atan(Math.tan(util.math.toRadians(currentView.fov) / 2) * util.EXPLORE_CANVAS_ASPECT_RATIO)
+            2 * Math.atan(Math.tan(util.math.toRadians(currentView.fov) / 2) * util.EXPLORE_CANVAS_ASPECT_RATIO),
         );
         const zoom = util.pano.fovToZoom(horizontalFov);
 
-        return { heading: horizontalAzimuth, pitch: verticalAzimuth, zoom: zoom };
+        return { heading: horizontalAzimuth, pitch: verticalAzimuth, zoom };
     };
 
     setPov = (pov) => {
@@ -254,15 +254,15 @@ class Infra3dViewer extends PanoViewer {
         const requiredLat = (pov.pitch - basePitch + 360) % 360;
 
         // Convert to the range expected by setCameraView (typically -180 to 180).
-        let viewLng = requiredLng > 180 ? requiredLng - 360 : requiredLng;
-        let viewLat = requiredLat > 180 ? requiredLat - 360 : requiredLat;
+        const viewLng = requiredLng > 180 ? requiredLng - 360 : requiredLng;
+        const viewLat = requiredLat > 180 ? requiredLat - 360 : requiredLat;
 
         // If zoom was provided, convert to a horizontal fov, and then convert to the vertical fov used by Infra3D.
         let verticalFov;
         if (pov.zoom) {
             const horizontalFov = util.pano.zoomToFov(pov.zoom);
             verticalFov = util.math.toDegrees(
-                2 * Math.atan(Math.tan(util.math.toRadians(horizontalFov / 2)) / util.EXPLORE_CANVAS_ASPECT_RATIO)
+                2 * Math.atan(Math.tan(util.math.toRadians(horizontalFov / 2)) / util.EXPLORE_CANVAS_ASPECT_RATIO),
             );
         } else {
             verticalFov = this.viewer.getCameraView().fov;
@@ -273,7 +273,7 @@ class Infra3dViewer extends PanoViewer {
             type: 'pano',
             lat: viewLat,
             lon: viewLng,
-            fov: verticalFov
+            fov: verticalFov,
         }, false);
     };
 

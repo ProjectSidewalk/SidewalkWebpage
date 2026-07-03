@@ -24,7 +24,7 @@ class Keyboard {
     #status = {
         focusOnTextField: false,
         isOnboarding: false,
-        disableKeyboard: false
+        disableKeyboard: false,
     };
 
     constructor(svl, canvas, contextMenu, navigationService, ribbon, zoomControl) {
@@ -54,7 +54,7 @@ class Keyboard {
      */
     #rotatePovByDegree(degree) {
         const svl = this.#svl;
-        if (!svl.panoManager.getStatus("disablePanning")) {
+        if (!svl.panoManager.getStatus('disablePanning')) {
             svl.contextMenu.hide();
             // Panning hide label tag and delete icon.
             const labels = svl.labelContainer.getCanvasLabels();
@@ -66,7 +66,7 @@ class Keyboard {
             const pitch = svl.panoViewer.getPov().pitch;
             const zoom = svl.panoViewer.getPov().zoom;
             const heading = (svl.panoViewer.getPov().heading + degree + 360) % 360;
-            svl.panoManager.setPov({ heading: heading, pitch: pitch, zoom: zoom });
+            svl.panoManager.setPov({ heading, pitch, zoom });
         }
     }
 
@@ -109,19 +109,19 @@ class Keyboard {
             // Shortcuts that only apply when the context menu is closed (moving/panning).
             if (!this.#contextMenu.isOpen()) {
                 switch (e.key) {
-                    case "ArrowLeft":
+                    case 'ArrowLeft':
                         this.#rotatePovByDegree(-2);
                         break;
-                    case "ArrowRight":
+                    case 'ArrowRight':
                         this.#rotatePovByDegree(2);
                         break;
-                    case "ArrowUp":
+                    case 'ArrowUp':
                         this.#navigationService.moveToLinkedPano(0);
                         break;
-                    case "ArrowDown":
+                    case 'ArrowDown':
                         this.#navigationService.moveToLinkedPano(180);
                         break;
-                    case " ":
+                    case ' ':
                         // preventDefault stops the page from scrolling and stops space from re-activating a
                         // focused button (e.g. the Stuck/ribbon button right after a mouse click).
                         e.preventDefault();
@@ -141,13 +141,13 @@ class Keyboard {
         // Ways to close context menu. Separated from later code because we want these to work in description textbox.
         if (!this.#status.disableKeyboard && this.#contextMenu.isOpen()) {
             switch (e.key) {
-                case "Enter":
-                    svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                case 'Enter':
+                    svl.tracker.push('KeyboardShortcut_CloseContextMenu');
                     this.#contextMenu.handleSeverityPopup();
-                    svl.tracker.push("ContextMenu_ClosePressEnter");
+                    svl.tracker.push('ContextMenu_ClosePressEnter');
                     this.#contextMenu.hide();
                     break;
-                case "Escape":
+                case 'Escape':
                     this.#closeContextMenu(e.keyCode);
                     this.#ribbon.backToWalk();
                     break;
@@ -158,10 +158,10 @@ class Keyboard {
             // Switch labeling mode. e: Walk, c: CurbRamp, m: NoCurbRamp, o: Obstacle, s: SurfaceProblem: n: NoSidewalk,
             // w: Crosswalk, p: Signal, b: Occlusion.
             for (const mode of ['Walk'].concat(util.misc.VALID_LABEL_TYPES_WITHOUT_OTHER)) {
-                if (e.key.toUpperCase() === util.misc.getLabelDescriptions(mode)['keyChar']) {
+                if (e.key.toUpperCase() === util.misc.getLabelDescriptions(mode).keyChar) {
                     if (mode !== 'Walk') this.#closeContextMenu(e.keyCode);
                     this.#ribbon.modeSwitch(mode);
-                    svl.tracker.push('KeyboardShortcut_ModeSwitch_' + mode, { keyCode: e.keyCode });
+                    svl.tracker.push(`KeyboardShortcut_ModeSwitch_${mode}`, { keyCode: e.keyCode });
                 }
             }
 
@@ -198,17 +198,17 @@ class Keyboard {
                     const severity = Number(e.key); // '1' - '3'
                     this.#contextMenu.checkRadioButton(severity);
                     targetLabel.setProperty('severity', severity);
-                    svl.tracker.push('KeyboardShortcut_Severity_' + severity, { keyCode: e.keyCode });
+                    svl.tracker.push(`KeyboardShortcut_Severity_${severity}`, { keyCode: e.keyCode });
                     svl.canvas.clear().render();
                 }
 
                 // Adding/removing tags.
                 if (targetLabel && !this.#contextMenu.isTaggingDisabled()) {
                     const labelType = targetLabel.getProperty('labelType');
-                    const tags = this.#contextMenu.labelTags.filter(tag => tag.label_type === labelType);
+                    const tags = this.#contextMenu.labelTags.filter((tag) => tag.label_type === labelType);
                     for (const tag of tags) {
-                        if (e.key.toUpperCase() === util.misc.getLabelDescriptions(labelType)['tagInfo'][tag.tag]['keyChar']) {
-                            $('.tag-id-' + tag.tag_id).first().trigger('click', { lowLevelLogging: false });
+                        if (e.key.toUpperCase() === util.misc.getLabelDescriptions(labelType).tagInfo[tag.tag].keyChar) {
+                            $(`.tag-id-${tag.tag_id}`).first().trigger('click', { lowLevelLogging: false });
                         }
                     }
                 }
@@ -218,9 +218,9 @@ class Keyboard {
 
     #closeContextMenu(key) {
         if (this.#contextMenu.isOpen()) {
-            this.#svl.tracker.push("KeyboardShortcut_CloseContextMenu");
-            this.#svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
-                keyCode: key
+            this.#svl.tracker.push('KeyboardShortcut_CloseContextMenu');
+            this.#svl.tracker.push('ContextMenu_CloseKeyboardShortcut', {
+                keyCode: key,
             });
             this.#contextMenu.hide();
         }
@@ -233,7 +233,7 @@ class Keyboard {
      */
     getStatus(key) {
         if (!(key in this.#status)) {
-            console.warn("You have passed an invalid key for status.");
+            console.warn('You have passed an invalid key for status.');
         }
         return this.#status[key];
     }

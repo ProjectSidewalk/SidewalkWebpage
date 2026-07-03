@@ -17,14 +17,14 @@ class ModalMissionComplete {
 
     #handleButtonClick = (event) => {
         // If they've done three missions and clicked the audit button, load the explore page.
-        if (event.data.button === 'primary' && svv.missionsCompleted % 3 === 0 && !isMobile()) {
+        if (event.data.button === 'primary' && svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
             window.location.replace('/explore');
         } else {
             // If there is a new validate mission available, we should show the mission screens.
             const newMission = svv.missionContainer.getCurrentMission();
             if (newMission && newMission.getProperty('missionType') === 'validation') {
                 const labelTypeID = newMission.getProperty('labelTypeId');
-                new MissionStartTutorial('validate', svv.labelTypes[labelTypeID], {nLabels: newMission.getProperty('labelsValidated')}, svv, this.#language);
+                new MissionStartTutorial('validate', svv.labelTypes[labelTypeID], { nLabels: newMission.getProperty('labelsValidated') }, svv, this.#language);
             }
 
             this.hide();
@@ -56,7 +56,7 @@ class ModalMissionComplete {
         }
         const totalLabels = mission.getProperty('agreeCount') + mission.getProperty('disagreeCount')
             + mission.getProperty('unsureCount');
-        const message = i18next.t('mission-complete.body-' + mission.getProperty('labelTypeId'), { n: totalLabels });
+        const message = i18next.t(`mission-complete.body-${mission.getProperty('labelTypeId')}`, { n: totalLabels });
 
         // Disable user from clicking the 'Validate next mission' button and set background to gray. When we have a new
         // mission from the back end, nextMissionLoaded() will be called from Form.js to re-enable the button.
@@ -77,7 +77,7 @@ class ModalMissionComplete {
         this.#uiModalMissionComplete.foreground.css('visibility', 'visible');
 
         // Set primary button text to Explore if they've completed 3 validation missions (and are on a laptop/desktop).
-        if (svv.missionsCompleted % 3 === 0 && !isMobile()) {
+        if (svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
             this.#uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.explore'));
             this.#uiModalMissionComplete.closeButtonPrimary.css('visibility', 'visible');
             this.#uiModalMissionComplete.closeButtonPrimary.css('width', '60%');
@@ -91,7 +91,7 @@ class ModalMissionComplete {
 
             this.#uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
         }
-        if (isMobile()) this.#uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
+        if (util.isMobile()) this.#uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
 
         svv.tracker.push(
             'MissionComplete',
@@ -99,8 +99,8 @@ class ModalMissionComplete {
                 missionId: mission.getProperty('missionId'),
                 missionType: mission.getProperty('missionType'),
                 labelTypeId: mission.getProperty('labelTypeId'),
-                labelsValidated: mission.getProperty('labelsValidated')
-            }
+                labelsValidated: mission.getProperty('labelsValidated'),
+            },
         );
 
         // Celebrate a newly unlocked mission badge if this completion crossed a threshold.
@@ -118,6 +118,6 @@ class ModalMissionComplete {
         this.#uiModalMissionComplete.closeButtonSecondary.removeClass('btn-loading');
         this.#uiModalMissionComplete.closeButtonSecondary.addClass('btn-secondary');
         this.#uiModalMissionComplete.closeButtonSecondary.on('click', { button: 'secondary' }, this.#handleButtonClick);
-        if (isMobile()) this.#uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
+        if (util.isMobile()) this.#uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
     }
 }

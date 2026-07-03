@@ -14,12 +14,12 @@ var util = util || {};
  * @param {number}   wait - Minimum milliseconds between invocations of `fn`.
  * @returns {Function} The throttled wrapper.
  */
-util.throttle = function(fn, wait) {
+util.throttle = function (fn, wait) {
     let lastRunTime = 0;
     let trailingTimer = null;
     let lastArgs = null;
 
-    return function(...args) {
+    return function (...args) {
         lastArgs = args;
         const now = Date.now();
         const elapsed = now - lastRunTime;

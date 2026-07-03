@@ -36,11 +36,11 @@ class NeighborhoodModel {
 
     setComplete() {
         if (this.isRoute) {
-            svl.tracker.push("RouteComplete", { 'UserRouteId': svl.userRouteId });
+            svl.tracker.push('RouteComplete', { UserRouteId: svl.userRouteId });
             this.isRouteComplete = true;
         } else {
             if (!this._currentNeighborhood) return;
-            svl.tracker.push("NeighborhoodComplete_ByUser", { 'RegionId': this.currentNeighborhood().getRegionId() });
+            svl.tracker.push('NeighborhoodComplete_ByUser', { RegionId: this.currentNeighborhood().getRegionId() });
             this.isNeighborhoodComplete = true;
         }
     }

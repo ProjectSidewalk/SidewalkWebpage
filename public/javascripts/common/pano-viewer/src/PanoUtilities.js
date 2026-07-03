@@ -8,7 +8,7 @@ util.pano = {};
  * @param {number} x The number whose sign we're checking
  * @returns {number} 1 if positive or 0, -1 if negative
  */
-util.pano.sgn = (x) => x >= 0 ? 1 : -1;
+util.pano.sgn = (x) => (x >= 0 ? 1 : -1);
 
 /**
  * Converts a GSV zoom level (we use the same in our system) to a horizontal field of view.
@@ -36,9 +36,9 @@ util.pano.sgn = (x) => x >= 0 ? 1 : -1;
  * @return {number} The (horizontal) field of view angle for the given zoom
  */
 util.pano.zoomToFov = (zoom) => {
-    return zoom <= 2 ?
-        126.5 - zoom * 36.75 :  // Linear descent.
-        195.93 / Math.pow(1.92, zoom); // Parameters determined experimentally.
+    return zoom <= 2
+        ? 126.5 - zoom * 36.75  // Linear descent.
+        : 195.93 / Math.pow(1.92, zoom); // Parameters determined experimentally.
 };
 
 /**
@@ -77,7 +77,7 @@ util.pano.fovToZoom = (fov) => {
 util.pano.panoCoordToPov = (panoX, panoY, panoWidth, panoHeight) => {
     return {
         heading: (panoX / panoWidth) * 360 % 360,
-        pitch: (panoY / (panoHeight / 2) * 90)
+        pitch: (panoY / (panoHeight / 2) * 90),
     };
 };
 
@@ -152,7 +152,7 @@ util.pano.canvasCoordToCenteredPov = (pov, canvasX, canvasY, canvasWidth, canvas
     return {
         heading: h * 180.0 / Math.PI,
         pitch: p * 180.0 / Math.PI,
-        zoom: pov.zoom
+        zoom: pov.zoom,
     };
 };
 
@@ -287,7 +287,7 @@ util.pano.wrapHeading = (heading) => {
  * @param {number} margin The extra pixels around canvas width/height where we don't return null, usually label radius
  * @returns {{x: number, y: number}|null} Canvas coordinates for the point at `newPov`; null if not on the canvas
  */
-util.pano.centeredPovToCanvasCoord2d = function(centeredPov, newPov, canvasWidth, canvasHeight, margin) {
+util.pano.centeredPovToCanvasCoord2d = function (centeredPov, newPov, canvasWidth, canvasHeight, margin) {
     // In the 2D environment, the FOV follows the documented curve.
     const hfov = 180 / Math.pow(2, newPov.zoom);
     const vfov = hfov * (canvasHeight / canvasWidth);

@@ -5,13 +5,13 @@ class CardSortMenu {
     // The code values associated with each sort.
     #orderCodes = {
         sort_LeastSevere: 0,
-        sort_MostSevere: 1
+        sort_MostSevere: 1,
     };
 
     // The status of the sorting at any point.
     #status = {
         severity: 1,
-        sortType: "none"
+        sortType: 'none',
     };
 
     /**
@@ -20,7 +20,7 @@ class CardSortMenu {
     constructor(uiCardSortMenu) {
         if (uiCardSortMenu) {
             uiCardSortMenu.sort.bind({
-                change: this.#sortSelectCallback
+                change: this.#sortSelectCallback,
             });
         }
     }
@@ -30,11 +30,11 @@ class CardSortMenu {
      */
     #sortSelectCallback = (e) => {
         const sortType = $(e.currentTarget).val();
-        this.setStatus("sortType", sortType);
+        this.setStatus('sortType', sortType);
 
-        console.log("sort clicked");
+        console.log('sort clicked');
 
-        //TODO: Can we do this without referencing sg namespace?
+        // TODO: Can we do this without referencing sg namespace?
         sg.cardContainer.sortCards(this.#orderCodes[sortType]);
     };
 

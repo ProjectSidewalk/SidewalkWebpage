@@ -18,22 +18,22 @@ class MissionModel {
     }
 
     addAMission(mission) {
-        this.trigger("MissionContainer:addAMission", mission);
+        this.trigger('MissionContainer:addAMission', mission);
     }
 
     completeMission(mission) {
-        this.trigger("MissionProgress:complete", { mission: mission });
+        this.trigger('MissionProgress:complete', { mission });
     }
 
     createAMission(parameters) {
-        this.trigger("MissionFactory:create", parameters);
+        this.trigger('MissionFactory:create', parameters);
     }
 
     /**
      * Notify the mission modules with MissionProgress:update
      */
     updateMissionProgress(mission, neighborhood) {
-        this.trigger("MissionProgress:update", { mission: mission, neighborhood: neighborhood });
+        this.trigger('MissionProgress:update', { mission, neighborhood });
     }
 }
 Object.assign(MissionModel.prototype, EventMixin);

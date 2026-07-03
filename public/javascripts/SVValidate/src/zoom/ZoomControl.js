@@ -13,8 +13,8 @@ class ZoomControl {
     #wheelTrackTimeout;
 
     constructor() {
-        this.#zoomInButton = $("#zoom-in-button");
-        this.#zoomOutButton = $("#zoom-out-button");
+        this.#zoomInButton = $('#zoom-in-button');
+        this.#zoomOutButton = $('#zoom-out-button');
 
         this.#zoomInButton.on('click', this.#clickZoomIn);
         this.#zoomOutButton.on('click', this.#clickZoomOut);
@@ -25,7 +25,7 @@ class ZoomControl {
      * Logs interaction when the zoom in button is clicked.
      */
     #clickZoomIn = () => {
-        svv.tracker.push("Click_ZoomIn");
+        svv.tracker.push('Click_ZoomIn');
         this.zoomIn();
     };
 
@@ -33,7 +33,7 @@ class ZoomControl {
      * Logs interaction when the zoom out button is clicked.
      */
     #clickZoomOut = () => {
-        svv.tracker.push("Click_ZoomOut");
+        svv.tracker.push('Click_ZoomOut');
         this.zoomOut();
     };
 

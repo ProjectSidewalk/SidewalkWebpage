@@ -24,7 +24,7 @@ class FunnelsSection {
         labeled:                { full: 'Placed a label' },
         mission_completed:      { full: 'Completed a mapping mission' },
         contributed:            { full: 'Labeled or validated' },
-        contribution_completed: { full: 'Completed a labeling/validation mission' }
+        contribution_completed: { full: 'Completed a labeling/validation mission' },
     };
 
     /** Title + one-line description for each funnel, shown above its bars. Keyed by funnel type. */
@@ -32,7 +32,7 @@ class FunnelsSection {
         mapping:      { title: 'Mapping funnel',
             desc: 'The Explore onboarding flow: tutorial, then walking, labeling, and completing an audit mission.' },
         contribution: { title: 'Contribution funnel',
-            desc: 'The broad view: any contribution (labeling or validation) and finishing a mission.' }
+            desc: 'The broad view: any contribution (labeling or validation) and finishing a mission.' },
     };
 
     /** Funnel display order on the page. The endpoint may include any subset of these. */
@@ -43,7 +43,7 @@ class FunnelsSection {
         all:    [{ key: 'all',        label: 'All users' }],
         role:   [{ key: 'registered', label: 'Registered' }, { key: 'anonymous', label: 'Anonymous' }],
         device: [{ key: 'desktop',    label: 'Desktop' }, { key: 'mobile', label: 'Mobile' },
-            { key: 'device_unknown', label: 'Unknown' }]
+            { key: 'device_unknown', label: 'Unknown' }],
     };
 
     /** Bar colors by segment position within the active dimension. */
@@ -79,19 +79,23 @@ class FunnelsSection {
     /** Wires the window selector (refetches) and the breakdown toggle (re-renders from cached data). */
     #wireControls() {
         const win = document.getElementById(this.#windowToggleId);
-        if (win) win.querySelectorAll('.ac-toggle-btn').forEach(btn => btn.addEventListener('click', () => {
-            if (this.#window === btn.dataset.window) return;
-            this.#window = btn.dataset.window;
-            win.querySelectorAll('.ac-toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
-            this.#load();
-        }));
+        if (win) {
+            win.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
+                if (this.#window === btn.dataset.window) return;
+                this.#window = btn.dataset.window;
+                win.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('active', b === btn));
+                this.#load();
+            }));
+        }
         const dim = document.getElementById(this.#dimToggleId);
-        if (dim) dim.querySelectorAll('.ac-toggle-btn').forEach(btn => btn.addEventListener('click', () => {
-            if (this.#dim === btn.dataset.dim) return;
-            this.#dim = btn.dataset.dim;
-            dim.querySelectorAll('.ac-toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
-            this.#render();
-        }));
+        if (dim) {
+            dim.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
+                if (this.#dim === btn.dataset.dim) return;
+                this.#dim = btn.dataset.dim;
+                dim.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('active', b === btn));
+                this.#render();
+            }));
+        }
     }
 
     /** Fetches the funnels for the current window and renders them; a failure shows a message but leaves the page intact. */
@@ -113,7 +117,7 @@ class FunnelsSection {
         const host = document.getElementById(this.#hostId);
         if (!host) return;
         const segs = FunnelsSection.#DIMS[this.#dim] || FunnelsSection.#DIMS.all;
-        const types = FunnelsSection.#FUNNEL_ORDER.filter(t => this.#funnels[t]);
+        const types = FunnelsSection.#FUNNEL_ORDER.filter((t) => this.#funnels[t]);
         if (!types.length) {
             host.innerHTML = '';
             // No funnel_stat rows yet: the nightly job hasn't run for this deployment, or it was never triggered.
@@ -121,7 +125,7 @@ class FunnelsSection {
                 'No funnel data yet — an admin can recompute it via /adminapi/updateFunnelStats.');
             return;
         }
-        host.innerHTML = types.map(t => this.#funnelBlock(t, this.#funnels[t], segs)).join('');
+        host.innerHTML = types.map((t) => this.#funnelBlock(t, this.#funnels[t], segs)).join('');
         this.#setText(this.#statusId, this.#computedAt
             ? `Data as of ${this.#formatDate(this.#computedAt)}.`
             : '');
@@ -140,12 +144,10 @@ class FunnelsSection {
         const segments = funnel.segments || {};
         const palette = FunnelsSection.#SEG_COLORS;
 
-        const legend = segs.length > 1
-            ? '<div class="ac-funnel-legend">' + segs.map((s, i) =>
-                `<span class="ac-funnel-legend-item"><span class="ac-funnel-swatch" ` +
-                `style="background:${palette[i] || palette[0]}"></span>${FunnelsSection.#esc(s.label)}</span>`).join('') +
-                '</div>'
-            : '';
+        const legendItems = segs.map((s, i) =>
+            `<span class="ac-funnel-legend-item"><span class="ac-funnel-swatch" `
+            + `style="background:${palette[i] || palette[0]}"></span>${FunnelsSection.#esc(s.label)}</span>`).join('');
+        const legend = segs.length > 1 ? `<div class="ac-funnel-legend">${legendItems}</div>` : '';
 
         const stepRows = steps.map((k, i) => {
             const full = (FunnelsSection.#STEP_LABELS[k] || { full: k }).full;
@@ -159,20 +161,26 @@ class FunnelsSection {
                 const title = i === 0
                     ? `${FunnelsSection.#esc(full)}: ${this.#num(v)} visitors`
                     : `${FunnelsSection.#esc(full)}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
-                return `<div class="ac-funnel-bar" title="${title}">` +
-                    `<span class="ac-funnel-bar-fill" style="width:${width.toFixed(1)}%;` +
-                    `background:${palette[si] || palette[0]}"></span>` +
-                    `<span class="ac-funnel-bar-val">${valText}</span></div>`;
+                return `
+                    <div class="ac-funnel-bar" title="${title}">
+                        <span class="ac-funnel-bar-fill"
+                              style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>
+                        <span class="ac-funnel-bar-val">${valText}</span>
+                    </div>`;
             }).join('');
-            return `<div class="ac-funnel-step"><div class="ac-funnel-step-label">${FunnelsSection.#esc(full)}</div>` +
-                `<div class="ac-funnel-bars">${bars}</div></div>`;
+            return `
+                <div class="ac-funnel-step">
+                    <div class="ac-funnel-step-label">${FunnelsSection.#esc(full)}</div>
+                    <div class="ac-funnel-bars">${bars}</div>
+                </div>`;
         }).join('');
 
-        return '<div class="ac-funnel-block">' +
-            `<h3 class="ac-funnel-block-title">${FunnelsSection.#esc(meta.title)}</h3>` +
-            `<p class="ac-note">${FunnelsSection.#esc(meta.desc)}</p>` +
-            `<div class="ac-funnel-panel">${legend}${stepRows}</div>` +
-            '</div>';
+        return `
+            <div class="ac-funnel-block">
+                <h3 class="ac-funnel-block-title">${FunnelsSection.#esc(meta.title)}</h3>
+                <p class="ac-note">${FunnelsSection.#esc(meta.desc)}</p>
+                <div class="ac-funnel-panel">${legend}${stepRows}</div>
+            </div>`;
     }
 
     async #fetchJson(url) {
@@ -187,7 +195,9 @@ class FunnelsSection {
     }
 
     /** Full count with thousands separators, for tooltips. */
-    #num(v) { return (v || 0).toLocaleString(); }
+    #num(v) {
+        return (v || 0).toLocaleString();
+    }
 
     /** Compact count for the on-bar label (e.g. 1.2k), to keep narrow bars legible. */
     #compact(v) {
@@ -197,7 +207,9 @@ class FunnelsSection {
     }
 
     /** A 0–1 fraction as a rounded percent. */
-    #pct(frac) { return `${Math.round((frac || 0) * 100)}%`; }
+    #pct(frac) {
+        return `${Math.round((frac || 0) * 100)}%`;
+    }
 
     /** ISO timestamp → a short local date string; falls back to the raw value if unparseable. */
     #formatDate(iso) {

@@ -5,7 +5,7 @@ class LabelDescriptionBox {
     #descriptionBox;
 
     constructor() {
-        this.#descriptionBox = $("#label-description-box");
+        this.#descriptionBox = $('#label-description-box');
     }
 
     /**
@@ -39,10 +39,10 @@ class LabelDescriptionBox {
 
         if (tags && tags.length > 0) {
             // Translate to correct language and separate tags with a comma.
-            const tag = tags.map(t => i18next.t('common:tag.' + t.replace(/:/g, '-'))).join(', ');
-            const htmlString = document.createTextNode(i18next.t('common:tags') + ": " + tag);
+            const tag = tags.map((t) => i18next.t(`common:tag.${t.replace(/:/g, '-')}`)).join(', ');
+            const htmlString = document.createTextNode(`${i18next.t('common:tags')}: ${tag}`);
             desBox.appendChild(htmlString);
-            desBox.appendChild(document.createElement("br"));
+            desBox.appendChild(document.createElement('br'));
         }
 
         if (description && description.trim().length > 0) {
@@ -50,8 +50,8 @@ class LabelDescriptionBox {
             desBox.appendChild(htmlString);
         }
 
-        if (!severity && (!description || description.trim().length === 0) &&
-           (!tags || tags.length === 0)) {
+        if (!severity && (!description || description.trim().length === 0)
+            && (!tags || tags.length === 0)) {
             const htmlString = document.createTextNode(i18next.t('center-ui.no-info'));
             desBox.appendChild(htmlString);
         }
@@ -59,9 +59,9 @@ class LabelDescriptionBox {
         // On mobile, freeze an explicit width that accounts for the device pixel ratio. On desktop the box is
         // anchored via `right` and shrink-wraps between the scaled min/max-widths in CSS, so width stays 'auto'
         // and keeps tracking the UI scale.
-        if (isMobile()) {
+        if (util.isMobile()) {
             const bound = desBox.getBoundingClientRect();
-            desBox.style.width = (bound.right - bound.left) * window.devicePixelRatio + 'px';
+            desBox.style.width = `${(bound.right - bound.left) * window.devicePixelRatio}px`;
             desBox.style.fontSize = '30px';
         }
     }

@@ -25,13 +25,13 @@ class MissionContainer {
         this.#missionPanel = missionPanel;
         this.#missionModel = missionModel;
 
-        missionModel.on("MissionProgress:complete", (parameters) => {
+        missionModel.on('MissionProgress:complete', (parameters) => {
             const mission = parameters.mission;
             this.addToCompletedMissions(mission);
         });
 
-        missionModel.on("MissionContainer:addAMission", (mission) => {
-            if (mission.getProperty("isComplete")) {
+        missionModel.on('MissionContainer:addAMission', (mission) => {
+            if (mission.getProperty('isComplete')) {
                 this.#completedMissions.push(mission);
             } else {
                 this.setCurrentMission(mission);
@@ -42,13 +42,13 @@ class MissionContainer {
 
     /** Push the completed mission */
     addToCompletedMissions(mission) {
-        const existingMissionIds = this.#completedMissions.map(m => m.getProperty("missionId"));
-        const currentMissionId = mission.getProperty("missionId");
+        const existingMissionIds = this.#completedMissions.map((m) => m.getProperty('missionId'));
+        const currentMissionId = mission.getProperty('missionId');
         if (existingMissionIds.indexOf(currentMissionId) < 0) {
-            mission.setProperty("distanceProgress", mission.getDistance());
+            mission.setProperty('distanceProgress', mission.getDistance());
             this.#completedMissions.push(mission);
         } else {
-            console.log("Oops, we are trying to add to completed missions array multiple times. Plz fix.");
+            console.log('Oops, we are trying to add to completed missions array multiple times. Plz fix.');
         }
     }
 
@@ -70,10 +70,11 @@ class MissionContainer {
      * @returns {number}
      */
     getCompletedMissionDistance(unit) {
-        if (!unit) unit = "meters";
+        if (!unit) unit = 'meters';
         let completedDistance = 0;
-        for (let missionIndex = 0; missionIndex < this.#completedMissions.length; missionIndex++)
+        for (let missionIndex = 0; missionIndex < this.#completedMissions.length; missionIndex++) {
             completedDistance += this.#completedMissions[missionIndex].getDistance(unit);
+        }
         return completedDistance;
     }
 
@@ -82,7 +83,7 @@ class MissionContainer {
      * @returns {boolean}
      */
     isTheFirstMission() {
-        return this.getCompletedMissions().length === 0 && !svl.storage.get("completedFirstMission");
+        return this.getCompletedMissions().length === 0 && !svl.storage.get('completedFirstMission');
     }
 
     /**
@@ -103,7 +104,7 @@ class MissionContainer {
             // Snap the current location to the nearest point on the street, and use that as the mission start.
             const currPos = turf.point([svl.panoViewer.getPosition().lng, svl.panoViewer.getPosition().lat]);
             const missionStart = turf.nearestPointOnLine(currTask.getFeature(), currPos).geometry.coordinates;
-            currTask.setMissionStart(missionId, { lat: missionStart[1], lng: missionStart[0]});
+            currTask.setMissionStart(missionId, { lat: missionStart[1], lng: missionStart[0] });
         }
         return this;
     }
@@ -120,6 +121,6 @@ class MissionContainer {
 }
 Object.assign(MissionContainer.prototype, EventMixin);
 
-MissionContainer.prototype.notifyMissionLoaded = function(mission) {
-    this.trigger("MissionContainer:missionLoaded", mission);
+MissionContainer.prototype.notifyMissionLoaded = function (mission) {
+    this.trigger('MissionContainer:missionLoaded', mission);
 };

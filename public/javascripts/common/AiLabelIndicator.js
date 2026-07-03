@@ -2,13 +2,13 @@ const aiTooltipTemplate = [
     '<div class="tooltip ai-tooltip" role="tooltip">',
     '<div class="tooltip-arrow"></div>',
     '<div class="tooltip-inner"></div>',
-    '</div>'
+    '</div>',
 ].join('');
 
 const aiTooltipOptions = {
     template: aiTooltipTemplate,
     container: 'body',
-    trigger: 'hover'
+    trigger: 'hover',
 };
 
 const aiHoverSelectors = [
@@ -18,7 +18,7 @@ const aiHoverSelectors = [
     '.ai-icon-marker-expanded',
     '.ai-icon-marker-validate',
     '.admin-ai-icon-marker',
-    '.label-view-ai-icon'
+    '.label-view-ai-icon',
 ].join(', ');
 
 /**
@@ -31,7 +31,7 @@ function AiLabelIndicator(extraClasses = []) {
     icon.src = '/assets/images/icons/ai-icon-black-filled-white-circle.png';
     icon.alt = 'AI indicator';
     icon.classList.add('ai-icon-marker');
-    extraClasses.forEach(cls => icon.classList.add(cls));
+    extraClasses.forEach((cls) => icon.classList.add(cls));
 
     const tooltipText = i18next.t('common:ai-generated-label-tooltip');
 
@@ -73,7 +73,7 @@ function ensureAiTooltip(icon) {
 }
 
 function initializeExistingAiTooltips() {
-    document.querySelectorAll(aiHoverSelectors).forEach(el => ensureAiTooltip(el));
+    document.querySelectorAll(aiHoverSelectors).forEach((el) => ensureAiTooltip(el));
 }
 
 // Delegate hover handling for dynamically inserted indicators.

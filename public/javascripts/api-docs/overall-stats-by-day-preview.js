@@ -7,12 +7,12 @@
  * @requires DOM element with id 'overall-stats-by-day-preview'
  * @requires Chart.js library (chart-4.5.1.min.js)
  */
-(function() {
+(function () {
     /** @type {{apiBaseUrl: string, containerId: string, cityName: string}} */
     let config = {
         apiBaseUrl: '/v3/api',
         containerId: 'overall-stats-by-day-preview',
-        cityName: 'this city'
+        cityName: 'this city',
     };
 
     /** @param {string} msg */
@@ -27,7 +27,7 @@
      */
     function buildDailyMap(data) {
         const map = new Map();
-        data.forEach(row => {
+        data.forEach((row) => {
             if (!map.has(row.date)) map.set(row.date, new Map());
             map.get(row.date).set(row.label_type, row);
         });
@@ -42,9 +42,11 @@
      * @returns {number[]}
      */
     function dailyTotals(dates, byDay, field) {
-        return dates.map(d => {
+        return dates.map((d) => {
             let total = 0;
-            (byDay.get(d) || new Map()).forEach(row => { total += (row[field] || 0); });
+            (byDay.get(d) || new Map()).forEach((row) => {
+                total += (row[field] || 0);
+            });
             return total;
         });
     }
@@ -56,9 +58,9 @@
      * @returns {Array<object>}
      */
     function trimToRecentDays(data, maxDays) {
-        const dates = Array.from(new Set(data.map(r => r.date))).sort();
+        const dates = Array.from(new Set(data.map((r) => r.date))).sort();
         const cutoff = dates.length > maxDays ? dates[dates.length - maxDays] : dates[0];
-        return data.filter(r => r.date >= cutoff);
+        return data.filter((r) => r.date >= cutoff);
     }
 
     /**
@@ -77,12 +79,12 @@
 
         // ── Summary stats ──────────────────────────────────────────────────────
         const totalHumanLabels = data.reduce((s, r) => s + r.human_labels, 0);
-        const totalAiLabels    = data.reduce((s, r) => s + r.ai_labels, 0);
-        const totalAgree       = data.reduce((s, r) => s + r.human_validations_agree, 0);
-        const totalDisagree    = data.reduce((s, r) => s + r.human_validations_disagree, 0);
-        const totalUnsure      = data.reduce((s, r) => s + r.human_validations_unsure, 0);
+        const totalAiLabels = data.reduce((s, r) => s + r.ai_labels, 0);
+        const totalAgree = data.reduce((s, r) => s + r.human_validations_agree, 0);
+        const totalDisagree = data.reduce((s, r) => s + r.human_validations_disagree, 0);
+        const totalUnsure = data.reduce((s, r) => s + r.human_validations_unsure, 0);
         const totalValidations = totalAgree + totalDisagree + totalUnsure;
-        const accuracy         = totalValidations > 0
+        const accuracy = totalValidations > 0
             ? ((totalAgree / totalValidations) * 100).toFixed(1)
             : 'N/A';
 
@@ -101,7 +103,7 @@
         container.appendChild(makeChart(
             'Human Labels per Day',
             `Daily new labels placed by human contributors in ${config.cityName}`,
-            chartContainer => {
+            (chartContainer) => {
                 const canvas = document.createElement('canvas');
                 chartContainer.appendChild(canvas);
                 new Chart(canvas.getContext('2d'), {
@@ -115,19 +117,19 @@
                             backgroundColor: 'rgba(44,119,177,0.12)',
                             fill: true,
                             tension: 0.3,
-                            pointRadius: dates.length > 60 ? 0 : 3
-                        }]
+                            pointRadius: dates.length > 60 ? 0 : 3,
+                        }],
                     },
-                    options: chartOptions('Labels placed')
+                    options: chartOptions('Labels placed'),
                 });
-            }
+            },
         ));
 
         // ── Chart 2: Validations per day (agree / disagree / unsure) ───────────
         container.appendChild(makeChart(
             'Validations per Day',
             `Daily validation activity breakdown in ${config.cityName}`,
-            chartContainer => {
+            (chartContainer) => {
                 const canvas = document.createElement('canvas');
                 chartContainer.appendChild(canvas);
                 new Chart(canvas.getContext('2d'), {
@@ -139,53 +141,53 @@
                                 label: 'Agree',
                                 data: dailyTotals(dates, byDay, 'human_validations_agree'),
                                 backgroundColor: 'rgba(92,184,92,0.8)',
-                                stack: 'val'
+                                stack: 'val',
                             },
                             {
                                 label: 'Disagree',
                                 data: dailyTotals(dates, byDay, 'human_validations_disagree'),
                                 backgroundColor: 'rgba(217,83,79,0.8)',
-                                stack: 'val'
+                                stack: 'val',
                             },
                             {
                                 label: 'Unsure',
                                 data: dailyTotals(dates, byDay, 'human_validations_unsure'),
                                 backgroundColor: 'rgba(240,173,78,0.8)',
-                                stack: 'val'
-                            }
-                        ]
+                                stack: 'val',
+                            },
+                        ],
                     },
-                    options: chartOptions('Validations', { stacked: true })
+                    options: chartOptions('Validations', { stacked: true }),
                 });
-            }
+            },
         ));
 
         // ── Chart 3: Labels per day by type ────────────────────────────────────
         const labelTypes = Array.from(
-            new Set(data.map(r => r.label_type))
+            new Set(data.map((r) => r.label_type)),
         ).sort();
         container.appendChild(makeChart(
             'Human Labels per Day by Label Type',
             'Each line represents one label type',
-            chartContainer => {
+            (chartContainer) => {
                 const canvas = document.createElement('canvas');
                 chartContainer.appendChild(canvas);
                 new Chart(canvas.getContext('2d'), {
                     type: 'line',
                     data: {
                         labels: dates,
-                        datasets: labelTypes.map(lt => ({
+                        datasets: labelTypes.map((lt) => ({
                             label: lt,
-                            data: dates.map(d => ((byDay.get(d) || new Map()).get(lt) || {}).human_labels || 0),
+                            data: dates.map((d) => ((byDay.get(d) || new Map()).get(lt) || {}).human_labels || 0),
                             borderColor: util.misc.getLabelColors(lt) || '#B3B3B3',
                             backgroundColor: 'transparent',
                             tension: 0.3,
-                            pointRadius: dates.length > 60 ? 0 : 2
-                        }))
+                            pointRadius: dates.length > 60 ? 0 : 2,
+                        })),
                     },
-                    options: chartOptions('Labels placed')
+                    options: chartOptions('Labels placed'),
                 });
-            }
+            },
         ));
     }
 
@@ -203,14 +205,14 @@
             scales: {
                 x: {
                     ticks: { maxTicksLimit: 10, maxRotation: 45 },
-                    stacked: !!opts.stacked
+                    stacked: !!opts.stacked,
                 },
                 y: {
                     beginAtZero: true,
                     stacked: !!opts.stacked,
-                    title: { display: true, text: yLabel }
-                }
-            }
+                    title: { display: true, text: yLabel },
+                },
+            },
         };
     }
 
@@ -240,7 +242,7 @@
          * @param {object} options
          * @returns {object} this
          */
-        setup: function(options) {
+        setup(options) {
             config = Object.assign(config, options);
             return this;
         },
@@ -249,7 +251,7 @@
          * Fetch data and render charts.
          * @returns {Promise}
          */
-        init: function() {
+        init() {
             const container = document.getElementById(config.containerId);
             if (!container) return Promise.reject(new Error('Container not found'));
 
@@ -258,19 +260,19 @@
             const url = `${config.apiBaseUrl}/overallStatsByDay?source=apiDocs`;
 
             return fetch(url)
-                .then(r => {
+                .then((r) => {
                     if (!r.ok) throw new Error(`HTTP ${r.status}`);
                     return r.json();
                 })
-                .then(json => {
+                .then((json) => {
                     container.innerHTML = '';
                     // Trim to the most recent 90 days that have data for readability.
                     render(container, trimToRecentDays(json.data || [], 90));
                 })
-                .catch(err => {
+                .catch((err) => {
                     showError(container, `Failed to load preview: ${err.message}`);
                     console.error('OverallStatsByDayPreview error:', err);
                 });
-        }
+        },
     };
 })();

@@ -27,8 +27,8 @@ class MapillaryViewer extends PanoViewer {
 
     async initialize(canvasElem, panoOptions = {}) {
         // TODO Need to define a set of options and then find a nice way to map them onto viewer-specific configs.
-        let disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
-        let defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
+        const disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
+        const defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
         let panoOpts = {
             dataProvider: createMapillaryChunkedDataProvider({ accessToken: panoOptions.accessToken }),
             container: canvasElem.id,
@@ -42,19 +42,19 @@ class MapillaryViewer extends PanoViewer {
                 pointer: true, // "Enable mouse, pen, and touch interaction for zoom and pan"
                 sequence: !disableDefaultUi, // Shows next/previous image UI at the top
                 zoom: 'zoomControl' in panoOptions ? panoOptions.zoomControl : false,
-            }
+            },
         };
         panoOpts = { ...panoOpts, ...panoOptions };
         this.viewer = new mapillary.Viewer(panoOpts);
 
         // Restrict to panoramas -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#setfilter
-        this.viewer.setFilter(["==", "cameraType", "spherical"]);
+        this.viewer.setFilter(['==', 'cameraType', 'spherical']);
 
         // Initialize pano at the desired location.
         if (panoOpts.startPanoId) {
             await this.setPano(panoOpts.startPanoId);
         } else if (panoOpts.startLatLng) {
-            await this.setLocation(panoOpts.startLatLng).catch(err => {
+            await this.setLocation(panoOpts.startLatLng).catch((err) => {
                 if (panoOpts.backupLatLng) return this.setLocation(panoOpts.backupLatLng);
                 else throw err;
             });
@@ -64,7 +64,7 @@ class MapillaryViewer extends PanoViewer {
         // Changing zoom fires 'fov' but not 'pov' event, but we consider that a pov change so we fire on either.
         const povChangeListener = async (e) => {
             for (const listener of this.povChangedListeners) await listener(e);
-        }
+        };
         this.viewer.on('pov', povChangeListener);
         this.viewer.on('fov', povChangeListener);
 
@@ -79,27 +79,27 @@ class MapillaryViewer extends PanoViewer {
                 // Skip the updateImageData() call if it's already happening through setPano/setLocation.
                 if (!this.changingPanoOurselves || listener !== this.updateImageData) await listener(e);
             }
-        }
+        };
         this.viewer.on('image', panoChangeListener);
 
         // TODO Maybe we could add the following two subscribers only if we aren't handling panning/zooming ourselves,
         //      which could be passed as a parameter. That logic could be applied to the other viewers as well.
         // Track heading and pitch (by way of tracking where the view is centered) on any pov change event.
         const povTracker = () => {
-            this.viewer._navigator.stateService.getCenter().subscribe((newCenter => {
+            this.viewer._navigator.stateService.getCenter().subscribe((newCenter) => {
                 this.currCenter = newCenter;
-            }));
-        }
+            });
+        };
         this.addListener('pov_changed', povTracker);
         povTracker(); // And run it once to start so that we have an initial heading/pitch recorded.
 
         // Track zoom level (by way of tracking the fov) by subscribing to changes to the renderCamera.
-        await this.viewer._container.renderService.renderCamera$.subscribe((rc => {
+        await this.viewer._container.renderService.renderCamera$.subscribe((rc) => {
             const currImageId = this.currPanoData ? this.currPanoData.getPanoId() : undefined;
             if (!currImageId || currImageId === rc._currentImageId) {
                 this.currVerticalFov = rc.perspective.fov;
             }
-        }));
+        });
 
         // If defaultNavigation is enabled, we need a pano_changed listener to record the pano metadata after moving.
         if (defaultNavigation) {
@@ -112,17 +112,17 @@ class MapillaryViewer extends PanoViewer {
 
     getPanoId = () => {
         return this.currImage.id;
-    }
+    };
 
     getPosition = () => {
         return this.currImage.lngLat;
-    }
+    };
 
     _getPanoramaCallback = async (newImage) => {
         const oldPov = this.currImage ? this.getPov() : null; // Save old pov so we can keep the same view.
 
         // Make sure that the node has the linked panos are initialized (in image._cache._spatialEdges.edges).
-        const edgesInitialized= new Promise((resolve) => {
+        const edgesInitialized = new Promise((resolve) => {
             // Use links if they're already cached.
             if (newImage._cache._spatialEdges.cached) {
                 resolve(newImage._cache._spatialEdges.edges);
@@ -133,7 +133,7 @@ class MapillaryViewer extends PanoViewer {
                         this.viewer.off('spatialedges', linksListener);
                         resolve(e.status.edges);
                     }
-                }
+                };
                 this.viewer.on('spatialedges', linksListener);
             }
         });
@@ -155,7 +155,7 @@ class MapillaryViewer extends PanoViewer {
             // To get various info about the pano -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Image/
             // TODO merged, might want to record whether it's been merged thru sfm
             // TODO qualityScore is interesting: A number between zero and one determining the quality of the image. Blurriness, .......
-            let panoDataParams = {
+            const panoDataParams = {
                 panoId: this.currImage.id,
                 source: this.getViewerType(),
                 captureDate: moment(this.currImage.capturedAt),
@@ -169,17 +169,17 @@ class MapillaryViewer extends PanoViewer {
                 cameraPitch: pitchAndRoll.pitch,
                 cameraRoll: pitchAndRoll.roll,
                 copyright: this.currImage.creatorUsername,
-                history: [] // TODO could use /images endpoint to fill this. But can also see history in the UI https://www.mapillary.com/app/user/uwrapid?lat=47.66374856411&lng=-122.28224790652&z=17&x=0.5871305676894112&y=0.5159912788583514&zoom=0&panos=true&focus=photo&pKey=134748085384999&my_coverage=false&user_coverage=false
-            }
+                history: [], // TODO could use /images endpoint to fill this. But can also see history in the UI https://www.mapillary.com/app/user/uwrapid?lat=47.66374856411&lng=-122.28224790652&z=17&x=0.5871305676894112&y=0.5159912788583514&zoom=0&panos=true&focus=photo&pKey=134748085384999&my_coverage=false&user_coverage=false
+            };
 
             panoDataParams.linkedPanos = edges
-                .filter(link => link.data.direction === 9) // Filter for only panoramas.
-                .map(function(link) {
+                .filter((link) => link.data.direction === 9) // Filter for only panoramas.
+                .map((link) => {
                     // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
                     // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
                     return {
                         panoId: link.target,
-                        heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI))
+                        heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI)),
                     };
                 });
 
@@ -191,7 +191,7 @@ class MapillaryViewer extends PanoViewer {
             this.currPanoData = new PanoData(panoDataParams);
             return this.currPanoData;
         });
-    }
+    };
 
     /**
      * Creates a bounding box around the given point with given radius, and creates a URL to fetch images in the box.
@@ -202,11 +202,11 @@ class MapillaryViewer extends PanoViewer {
      */
     #createPanoFetchUrl = (centerPoint, radius) => {
         // Create a bounding box using to search for imagery.
-        let boundingBox = [
+        const boundingBox = [
             turf.destination(centerPoint, radius, 270).geometry.coordinates[0], // West
             turf.destination(centerPoint, radius, 180).geometry.coordinates[1], // South
             turf.destination(centerPoint, radius, 90).geometry.coordinates[0],  // East
-            turf.destination(centerPoint, radius, 0).geometry.coordinates[1]    // North
+            turf.destination(centerPoint, radius, 0).geometry.coordinates[1],    // North
         ];
 
         // Parameters listed here: https://www.mapillary.com/developer/api-documentation#image
@@ -250,9 +250,9 @@ class MapillaryViewer extends PanoViewer {
         const sequenceScore = (currentSequenceId && pano.sequence === currentSequenceId) ? 1 : 0;
 
         return 0.45 * distanceScore
-             + 0.25 * resolutionScore
-             + 0.25 * recencyScore
-             + 0.05 * sequenceScore;
+            + 0.25 * resolutionScore
+            + 0.25 * recencyScore
+            + 0.05 * sequenceScore;
     };
 
     /**
@@ -292,7 +292,7 @@ class MapillaryViewer extends PanoViewer {
         const roll = Math.atan2(upDir.dot(right), upDir.dot(expectedUp)) * (180 / Math.PI);
 
         return { pitch, roll };
-    }
+    };
 
     setLocation = async (latLng, excludedPanos = new Set()) => {
         const center = turf.point([latLng.lng, latLng.lat]);
@@ -301,8 +301,8 @@ class MapillaryViewer extends PanoViewer {
 
         // Build sets of excluded pano IDs and captured_at timestamps. Mapillary has an issue where duplicate images
         // can exist with different IDs but the same captured_at, so we filter on both.
-        const excludedPanoIds = new Set([...excludedPanos].map(p => p.getPanoId()));
-        const excludedTimestamps = new Set([...excludedPanos].map(p => p.getProperty('captureDate').valueOf()));
+        const excludedPanoIds = new Set([...excludedPanos].map((p) => p.getPanoId()));
+        const excludedTimestamps = new Set([...excludedPanos].map((p) => p.getProperty('captureDate').valueOf()));
 
         try {
             // Use a prefetched result if one exists near this location, otherwise fetch from the API and cache it.
@@ -329,7 +329,7 @@ class MapillaryViewer extends PanoViewer {
             console.error('Error moving to location:', error);
             throw error;
         }
-    }
+    };
 
     /**
      * Prefetches images near a location so that a subsequent setLocation() call can skip the API round-trip.
@@ -344,7 +344,7 @@ class MapillaryViewer extends PanoViewer {
         if (!this.#findNearestPrefetch(centerPoint)) {
             this.#storePrefetch(centerPoint, radius);
         }
-    }
+    };
 
     /**
      * Creates a prefetch entry for the given location, stores it, and returns it.
@@ -364,7 +364,7 @@ class MapillaryViewer extends PanoViewer {
      */
     clearPrefetchCache = () => {
         this.prefetchedSearches = [];
-    }
+    };
 
     /**
      * Finds the nearest prefetched search result to the given point, if one is close enough to be useful.
@@ -430,7 +430,7 @@ class MapillaryViewer extends PanoViewer {
      */
     #selectBestPano = (panos, excludedPanoIds, excludedTimestamps, centerPoint, currentSequenceId) => {
         const candidates = panos.filter(
-            pano => !excludedPanoIds.has(pano.id) && !excludedTimestamps.has(pano.captured_at)
+            (pano) => !excludedPanoIds.has(pano.id) && !excludedTimestamps.has(pano.captured_at),
         );
 
         let bestPano = null;
@@ -449,16 +449,16 @@ class MapillaryViewer extends PanoViewer {
         this.changingPanoOurselves = true;
         return Promise.race([
             this.viewer.moveTo(panoId).then(this._getPanoramaCallback),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out')), 12000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out')), 12000)),
         ]).catch(() => {
             console.error('Failed to load pano: ', panoId);
             throw new Error('Failed to load pano: ', panoId);
         });
-    }
+    };
 
     getLinkedPanos = () => {
         return this.currPanoData.getProperty('linkedPanos');
-    }
+    };
 
     getPov = () => {
         // Where the viewport is centered on the image is stored in this.currCenter. Use this to compute heading/pitch.
@@ -469,15 +469,15 @@ class MapillaryViewer extends PanoViewer {
         // Use this.currVerticalFov and the canvas aspect ratio to calculate the horizontal fov. Can then convert this
         // into the zoom level that we use throughout our system.
         const horizontalFov = util.math.toDegrees(
-            2 * Math.atan(Math.tan(util.math.toRadians(this.currVerticalFov / 2)) * util.EXPLORE_CANVAS_ASPECT_RATIO)
+            2 * Math.atan(Math.tan(util.math.toRadians(this.currVerticalFov / 2)) * util.EXPLORE_CANVAS_ASPECT_RATIO),
         );
 
         return {
             heading: currHeading,
             pitch: currPitch,
-            zoom: util.pano.fovToZoom(horizontalFov)
+            zoom: util.pano.fovToZoom(horizontalFov),
         };
-    }
+    };
 
     setPov = (pov) => {
         // Find x-position of requested heading on the underlying image [0,1]. To do this, we find the difference b/w
@@ -497,22 +497,22 @@ class MapillaryViewer extends PanoViewer {
         pov.zoom = pov.zoom || this.getPov().zoom || 1;
         const horizontalFov = util.pano.zoomToFov(pov.zoom);
         const verticalFov = util.math.toDegrees(
-            2 * Math.atan(Math.tan(util.math.toRadians(horizontalFov / 2)) / util.EXPLORE_CANVAS_ASPECT_RATIO)
+            2 * Math.atan(Math.tan(util.math.toRadians(horizontalFov / 2)) / util.EXPLORE_CANVAS_ASPECT_RATIO),
         );
         // NOTE despite not returning a Promise, setFieldOfView() happens async, so we save it in this.currVerticalFov.
         this.viewer.setFieldOfView(verticalFov);
         this.currVerticalFov = verticalFov;
-    }
+    };
 
     hideNavigationArrows = () => {
         return this.viewer.deactivateComponent('direction');
-    }
+    };
 
     showNavigationArrows = () => {
         return this.viewer.activateComponent('direction');
-    }
+    };
 
     resize = () => {
         this.viewer.resize();
-    }
+    };
 }

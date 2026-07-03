@@ -54,8 +54,8 @@ class LabelVisibilityControl {
         panoMarker.draw();
         this.#visible = true;
         this.#labelVisibilityButtonOnPano.html(`<span>${this.#hideText}</span>`);
-        const htmlString =
-            `<img src="assets/images/icons/eye-invisible.svg" class="hide-label-button-icon" alt="${this.#hideText}">
+        const htmlString
+            = `<img src="assets/images/icons/eye-invisible.svg" class="hide-label-button-icon" alt="${this.#hideText}">
             <span>${this.#hideText}</span>`;
         this.#labelVisibilityControlButton.html(htmlString);
         panoMarker.marker_.classList.add('icon-outline');
@@ -70,8 +70,8 @@ class LabelVisibilityControl {
         panoMarker.draw();
         this.#visible = false;
         this.#labelVisibilityButtonOnPano.html(`<span>${this.#showText}</span>`);
-        const htmlString =
-            `<img src="assets/images/icons/eye-visible.svg" class="hide-label-button-icon" alt="${this.#showText}">
+        const htmlString
+            = `<img src="assets/images/icons/eye-visible.svg" class="hide-label-button-icon" alt="${this.#showText}">
             <span>${this.#showText}</span>`;
         this.#labelVisibilityControlButton.html(htmlString);
         panoMarker.marker_.classList.remove('icon-outline');
@@ -95,14 +95,14 @@ class LabelVisibilityControl {
         const scale = util.uiScale();
 
         // Position the button to the top right corner of the label, 15px right and 15px up from center of the label.
-        button.style.left = (parseFloat(marker.style.left) + 15 * scale) + 'px';
-        button.style.top = (parseFloat(marker.style.top) - 15 * scale) + 'px';
+        button.style.left = `${parseFloat(marker.style.left) + 15 * scale}px`;
+        button.style.top = `${parseFloat(marker.style.top) - 15 * scale}px`;
         button.style.visibility = 'visible';
 
         // Position the box to the lower left corner of the label, 10px left and 10px down from center of the label.
         const desBox = this.#labelDescriptionBox[0];
-        desBox.style.right = (svv.canvasWidth() - parseFloat(marker.style.left) - 10 * scale) + 'px';
-        desBox.style.top = (parseFloat(marker.style.top) + 10 * scale) + 'px';
+        desBox.style.right = `${svv.canvasWidth() - parseFloat(marker.style.left) - 10 * scale}px`;
+        desBox.style.top = `${parseFloat(marker.style.top) + 10 * scale}px`;
         desBox.style.visibility = 'visible';
     }
 

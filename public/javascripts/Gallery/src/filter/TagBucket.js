@@ -20,14 +20,14 @@ class TagBucket {
      * @param {*} uiTagHolder UI element to render Tags in.
      */
     render(uiTagHolder) {
-        this.#bucket.forEach(tag => tag.render(uiTagHolder));
+        this.#bucket.forEach((tag) => tag.render(uiTagHolder));
     }
 
     /**
      * Unapply all tags.
      */
     unapplyTags() {
-        this.#bucket.forEach(tag => tag.unapply());
+        this.#bucket.forEach((tag) => tag.unapply());
     }
 
     /**
@@ -48,6 +48,6 @@ class TagBucket {
      * Return list of applied Tags.
      */
     getAppliedTags() {
-        return this.#bucket.filter(tag => tag.getStatus().applied);
+        return this.#bucket.filter((tag) => tag.getStatus().applied);
     }
 }

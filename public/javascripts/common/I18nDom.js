@@ -21,7 +21,7 @@
  * Localize every element under `root` (inclusive) that has a `data-i18n*` attribute.
  * @param {ParentNode} root - The element (or document) to walk.
  */
-window.localizeSubtree = function(root) {
+window.localizeSubtree = function (root) {
     if (!root || typeof i18next === 'undefined' || !i18next.isInitialized) return;
 
     const selector = '[data-i18n], [data-i18n-placeholder], [data-i18n-aria-label], [data-i18n-title], [data-i18n-alt]';
@@ -42,7 +42,7 @@ window.localizeSubtree = function(root) {
  * Apply any data-i18n* attributes on a single element.
  * @param {Element} el
  */
-window.localizeElement = function(el) {
+window.localizeElement = function (el) {
     const textKey = el.getAttribute('data-i18n');
     if (textKey) el.textContent = i18next.t(textKey);
 

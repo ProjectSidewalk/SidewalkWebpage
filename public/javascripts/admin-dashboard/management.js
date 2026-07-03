@@ -48,7 +48,7 @@ class ManagementPage {
             const data = await this.#fetchJson(this.#urls.userStatsUrl);
             this.#users = (data && data.user_stats) || [];
             this.#teams = (data && data.teams) || [];
-            this.#teamsByName = new Map(this.#teams.map(t => [t.name, t]));
+            this.#teamsByName = new Map(this.#teams.map((t) => [t.name, t]));
             this.#accuracyFactor = ManagementPage.#pctFactor(this.#users, 'ownValidatedAgreedPct');
 
             this.#renderUsers();
@@ -74,31 +74,31 @@ class ManagementPage {
      */
     #columns() {
         return [
-            { key: 'username', label: 'Contributor', align: 'left', sort: u => (u.username || '').toLowerCase() },
-            { key: 'email', label: 'Email', align: 'left', sort: u => (u.email || '').toLowerCase() },
-            { key: 'role', label: 'Role', align: 'left', sort: u => u.role || '' },
-            { key: 'team', label: 'Team', align: 'left', sort: u => u.team || '' },
-            { key: 'highQuality', label: 'Quality', align: 'left', sort: u => (u.highQuality ? 1 : 0),
+            { key: 'username', label: 'Contributor', align: 'left', sort: (u) => (u.username || '').toLowerCase() },
+            { key: 'email', label: 'Email', align: 'left', sort: (u) => (u.email || '').toLowerCase() },
+            { key: 'role', label: 'Role', align: 'left', sort: (u) => u.role || '' },
+            { key: 'team', label: 'Team', align: 'left', sort: (u) => u.team || '' },
+            { key: 'highQuality', label: 'Quality', align: 'left', sort: (u) => (u.highQuality ? 1 : 0),
                 help: 'Whether this contributor is flagged high-quality. "manual" means an admin set it by hand.' },
             { key: 'ownValidatedAgreedPct', label: 'Labeling accuracy', align: 'right',
-                sort: u => u.ownValidatedAgreedPct || 0,
+                sort: (u) => u.ownValidatedAgreedPct || 0,
                 help: 'Share of this user’s own labels that other people agreed with when validating them (with how many were validated).' },
-            { key: 'signUpTime', label: 'Signed up', align: 'right', sort: u => ManagementPage.#ts(u.signUpTime) },
-            { key: 'lastSignInTime', label: 'Last sign-in', align: 'right', sort: u => ManagementPage.#ts(u.lastSignInTime) },
-            { key: 'signInCount', label: 'Sign-ins', align: 'right', sort: u => u.signInCount || 0 }
+            { key: 'signUpTime', label: 'Signed up', align: 'right', sort: (u) => ManagementPage.#ts(u.signUpTime) },
+            { key: 'lastSignInTime', label: 'Last sign-in', align: 'right', sort: (u) => ManagementPage.#ts(u.lastSignInTime) },
+            { key: 'signInCount', label: 'Sign-ins', align: 'right', sort: (u) => u.signInCount || 0 },
         ];
     }
 
     #filteredSortedUsers() {
         const cols = this.#columns();
-        const col = cols.find(c => c.key === this.#sort.key) || cols[0];
+        const col = cols.find((c) => c.key === this.#sort.key) || cols[0];
         const q = this.#filter.trim().toLowerCase();
         const rows = q
-            ? this.#users.filter(u => (u.username || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))
+            ? this.#users.filter((u) => (u.username || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))
             : this.#users.slice();
         const dir = this.#sort.dir === 'asc' ? 1 : -1;
         rows.sort((a, b) => {
-            const av = col.sort(a), bv = col.sort(b);
+            const av = col.sort(a); const bv = col.sort(b);
             if (av < bv) return -1 * dir;
             if (av > bv) return 1 * dir;
             return 0;
@@ -114,29 +114,32 @@ class ManagementPage {
         const start = (this.#page - 1) * this.#pageSize;
         const rows = all.slice(start, start + this.#pageSize);
 
-        const head = '<tr>' + cols.map(c => {
+        const headCells = cols.map((c) => {
             const isSorted = c.key === this.#sort.key;
             const ariaSort = isSorted ? (this.#sort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
             const arrow = isSorted ? (this.#sort.dir === 'asc' ? ' ▲' : ' ▼') : '';
             const title = c.help ? ` title="${ManagementPage.#esc(c.help)}"` : '';
-            return `<th scope="col" class="mgmt-th${c.align === 'right' ? ' num' : ''}" aria-sort="${ariaSort}"${title}>` +
-                `<button type="button" class="mgmt-sort" data-key="${c.key}">${ManagementPage.#esc(c.label)}` +
-                `<span class="mgmt-arrow">${arrow}</span></button></th>`;
-        }).join('') + '</tr>';
+            return `<th scope="col" class="mgmt-th${c.align === 'right' ? ' num' : ''}" aria-sort="${ariaSort}"${title}>`
+                + `<button type="button" class="mgmt-sort" data-key="${c.key}">${ManagementPage.#esc(c.label)}`
+                + `<span class="mgmt-arrow">${arrow}</span></button></th>`;
+        }).join('');
+        const head = `<tr>${headCells}</tr>`;
 
-        const body = rows.map(u => {
+        const body = rows.map((u) => {
             const cell = (html, align) => `<td${align === 'right' ? ' class="num"' : ''}>${html}</td>`;
-            return '<tr data-user-id="' + ManagementPage.#esc(u.userId) + '">' +
-                cell(ManagementPage.#userLink(u), 'left') +
-                cell(ManagementPage.#esc(u.email || ''), 'left') +
-                cell(this.#roleSelect(u), 'left') +
-                cell(this.#teamSelect(u), 'left') +
-                cell(ManagementPage.#qualityBadge(u), 'left') +
-                cell(ManagementPage.#pctCell(u.ownValidatedAgreedPct, u.ownValidated, this.#accuracyFactor), 'right') +
-                cell(ManagementPage.#date(u.signUpTime), 'right') +
-                cell(ManagementPage.#date(u.lastSignInTime), 'right') +
-                cell((u.signInCount || 0).toLocaleString(), 'right') +
-                '</tr>';
+            return [
+                `<tr data-user-id="${ManagementPage.#esc(u.userId)}">`,
+                cell(ManagementPage.#userLink(u), 'left'),
+                cell(ManagementPage.#esc(u.email || ''), 'left'),
+                cell(this.#roleSelect(u), 'left'),
+                cell(this.#teamSelect(u), 'left'),
+                cell(ManagementPage.#qualityBadge(u), 'left'),
+                cell(ManagementPage.#pctCell(u.ownValidatedAgreedPct, u.ownValidated, this.#accuracyFactor), 'right'),
+                cell(ManagementPage.#date(u.signUpTime), 'right'),
+                cell(ManagementPage.#date(u.lastSignInTime), 'right'),
+                cell((u.signInCount || 0).toLocaleString(), 'right'),
+                '</tr>',
+            ].join('');
         }).join('');
 
         document.getElementById('mgmt-users').innerHTML = rows.length
@@ -163,15 +166,20 @@ class ManagementPage {
             `<button type="button" class="mgmt-page-btn" data-page="${page}"${disabled ? ' disabled' : ''}>${label}</button>`;
         const atStart = this.#page <= 1;
         const atEnd = this.#page >= pageCount;
-        const sizeOpts = ManagementPage.#PAGE_SIZES.map(s =>
+        const sizeOpts = ManagementPage.#PAGE_SIZES.map((s) =>
             `<option value="${s}"${s === this.#pageSize ? ' selected' : ''}>${s}</option>`).join('');
-        const html = total === 0 ? '' :
-            '<div class="mgmt-page-controls">' +
-                btn('first', '« First', atStart) + btn('prev', '‹ Prev', atStart) +
-                `<span class="mgmt-page-info">${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()} · Page ${this.#page} of ${pageCount}</span>` +
-                btn('next', 'Next ›', atEnd) + btn('last', 'Last »', atEnd) +
-            '</div>' +
-            `<label class="mgmt-page-size-label">Rows per page <select class="mgmt-page-size">${sizeOpts}</select></label>`;
+        const html = total === 0
+            ? ''
+            : [
+                    '<div class="mgmt-page-controls">',
+                    btn('first', '« First', atStart),
+                    btn('prev', '‹ Prev', atStart),
+                    `<span class="mgmt-page-info">${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()} · Page ${this.#page} of ${pageCount}</span>`,
+                    btn('next', 'Next ›', atEnd),
+                    btn('last', 'Last »', atEnd),
+                    '</div>',
+                    `<label class="mgmt-page-size-label">Rows per page <select class="mgmt-page-size">${sizeOpts}</select></label>`,
+                ].join('');
         for (const id of ManagementPage.#PAGINATION_IDS) {
             const el = document.getElementById(id);
             if (el) el.innerHTML = html;
@@ -182,26 +190,26 @@ class ManagementPage {
     #roleSelect(u) {
         const current = u.role || '';
         const assignable = ManagementPage.#ASSIGNABLE_ROLES.includes(current);
-        const opts = ManagementPage.#ASSIGNABLE_ROLES.map(r =>
+        const opts = ManagementPage.#ASSIGNABLE_ROLES.map((r) =>
             `<option value="${r}"${r === current ? ' selected' : ''}>${r}</option>`).join('');
         if (assignable) {
-            return `<select class="mgmt-select" data-kind="role" data-user-id="${ManagementPage.#esc(u.userId)}" ` +
-                `aria-label="Role for ${ManagementPage.#esc(u.username)}">${opts}</select>`;
+            return `<select class="mgmt-select" data-kind="role" data-user-id="${ManagementPage.#esc(u.userId)}" `
+                + `aria-label="Role for ${ManagementPage.#esc(u.username)}">${opts}</select>`;
         }
         // Show the locked system role as a disabled, selected option so the column still reads clearly.
-        return `<select class="mgmt-select" disabled aria-label="Role for ${ManagementPage.#esc(u.username)} (locked)">` +
-            `<option selected>${ManagementPage.#esc(current)}</option></select>`;
+        return `<select class="mgmt-select" disabled aria-label="Role for ${ManagementPage.#esc(u.username)} (locked)">`
+            + `<option selected>${ManagementPage.#esc(current)}</option></select>`;
     }
 
     /** A team <select>. Preselects the user's current team (matched by name); first option assigns/clears nothing. */
     #teamSelect(u) {
         const hasTeam = u.team && this.#teamsByName.has(u.team);
         const placeholder = `<option value=""${hasTeam ? '' : ' selected'} disabled>— none —</option>`;
-        const opts = this.#teams.map(t =>
-            `<option value="${t.teamId}"${hasTeam && t.name === u.team ? ' selected' : ''}>${ManagementPage.#esc(t.name)}</option>`
+        const opts = this.#teams.map((t) =>
+            `<option value="${t.teamId}"${hasTeam && t.name === u.team ? ' selected' : ''}>${ManagementPage.#esc(t.name)}</option>`,
         ).join('');
-        return `<select class="mgmt-select" data-kind="team" data-user-id="${ManagementPage.#esc(u.userId)}" ` +
-            `aria-label="Team for ${ManagementPage.#esc(u.username)}">${placeholder}${opts}</select>`;
+        return `<select class="mgmt-select" data-kind="team" data-user-id="${ManagementPage.#esc(u.userId)}" `
+            + `aria-label="Team for ${ManagementPage.#esc(u.username)}">${placeholder}${opts}</select>`;
     }
 
     #wireUsers() {
@@ -256,7 +264,7 @@ class ManagementPage {
     }
 
     async #changeRole(userId, sel) {
-        const user = this.#users.find(u => u.userId === userId);
+        const user = this.#users.find((u) => u.userId === userId);
         const previous = user ? user.role : null;
         const newRole = sel.value;
         try {
@@ -270,14 +278,14 @@ class ManagementPage {
     }
 
     async #changeTeam(userId, sel) {
-        const user = this.#users.find(u => u.userId === userId);
+        const user = this.#users.find((u) => u.userId === userId);
         const previousName = user ? user.team : null;
         const teamId = parseInt(sel.value, 10);
-        const team = this.#teams.find(t => t.teamId === teamId);
+        const team = this.#teams.find((t) => t.teamId === teamId);
         try {
             await this.#mutate(`${this.#urls.setTeamUrl}?userId=${encodeURIComponent(userId)}&teamId=${teamId}`, 'PUT');
             if (user) user.team = team ? team.name : user.team;
-            this.#flash(`Assigned ${user ? user.username : userId} to ${team ? team.name : 'team ' + teamId}.`);
+            this.#flash(`Assigned ${user ? user.username : userId} to ${team ? team.name : `team ${teamId}`}.`);
         } catch (err) {
             // Revert to the previously selected team (or the placeholder).
             sel.value = previousName && this.#teamsByName.has(previousName) ? String(this.#teamsByName.get(previousName).teamId) : '';
@@ -293,15 +301,17 @@ class ManagementPage {
             el.innerHTML = '<p class="dq-empty">No teams on this deployment.</p>';
             return;
         }
-        const head = '<tr><th scope="col">Team</th><th scope="col">Description</th>' +
-            '<th scope="col">Status</th><th scope="col">Visibility</th></tr>';
-        const body = this.#teams.map(t =>
-            `<tr data-team-id="${t.teamId}">` +
-            `<td>${ManagementPage.#esc(t.name)}</td>` +
-            `<td>${ManagementPage.#esc(t.description || '')}</td>` +
-            `<td>${ManagementPage.#toggle('status', t.teamId, t.open, 'Open', 'Closed')}</td>` +
-            `<td>${ManagementPage.#toggle('visibility', t.teamId, t.visible, 'Visible', 'Hidden')}</td>` +
-            '</tr>').join('');
+        const head = `<tr>
+            <th scope="col">Team</th><th scope="col">Description</th>
+            <th scope="col">Status</th><th scope="col">Visibility</th>
+        </tr>`;
+        const body = this.#teams.map((t) => `
+            <tr data-team-id="${t.teamId}">
+                <td>${ManagementPage.#esc(t.name)}</td>
+                <td>${ManagementPage.#esc(t.description || '')}</td>
+                <td>${ManagementPage.#toggle('status', t.teamId, t.open, 'Open', 'Closed')}</td>
+                <td>${ManagementPage.#toggle('visibility', t.teamId, t.visible, 'Visible', 'Hidden')}</td>
+            </tr>`).join('');
         el.innerHTML = `<table class="contrib-table mgmt-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
     }
 
@@ -320,7 +330,7 @@ class ManagementPage {
     async #toggleTeam(btn, teamId, baseUrl, field, next, onLabel, offLabel) {
         try {
             await this.#mutate(`${baseUrl}/${teamId}`, 'PUT', { [field]: next });
-            const team = this.#teams.find(t => t.teamId === teamId);
+            const team = this.#teams.find((t) => t.teamId === teamId);
             if (team) team[field === 'open' ? 'open' : 'visible'] = next;
             ManagementPage.#setToggle(btn, next, onLabel, offLabel);
             this.#flash(`Team ${teamId}: ${field} → ${next ? onLabel : offLabel}.`);
@@ -387,7 +397,11 @@ class ManagementPage {
         const resp = await fetch(url, opts);
         const text = await resp.text();
         if (!resp.ok) throw new Error(text || `HTTP ${resp.status}`);
-        try { return text ? JSON.parse(text) : {}; } catch (e) { return {}; }
+        try {
+            return text ? JSON.parse(text) : {};
+        } catch (e) {
+            return {};
+        }
     }
 
     #flash(message, isError = false) {
@@ -416,8 +430,8 @@ class ManagementPage {
     }
 
     static #toggle(kind, teamId, on, onLabel, offLabel) {
-        return `<button type="button" class="mgmt-toggle ${on ? 'is-on' : 'is-off'}" data-kind="${kind}" ` +
-            `data-team-id="${teamId}" data-on="${on}" aria-pressed="${on}">${on ? onLabel : offLabel}</button>`;
+        return `<button type="button" class="mgmt-toggle ${on ? 'is-on' : 'is-off'}" data-kind="${kind}" `
+            + `data-team-id="${teamId}" data-on="${on}" aria-pressed="${on}">${on ? onLabel : offLabel}</button>`;
     }
 
     static #setToggle(btn, on, onLabel, offLabel) {
@@ -467,6 +481,6 @@ class ManagementPage {
     }
 
     static #esc(s) {
-        return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     }
 }

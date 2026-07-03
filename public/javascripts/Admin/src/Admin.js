@@ -42,14 +42,14 @@ class Admin {
         this.#analyticsTabMapParams = {
             mapName: 'admin-landing-choropleth',
             mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-            mapboxApiKey: mapboxApiKey,
+            mapboxApiKey,
             mapboxLogoLocation: 'bottom-right',
             scrollWheelZoom: false,
             neighborhoodsURL: '/neighborhoods',
             completionRatesURL: '/adminapi/neighborhoodCompletionRate',
             neighborhoodFillMode: 'completionRate',
             neighborhoodTooltip: 'completionRate',
-            logClicks: false
+            logClicks: false,
         };
     }
 
@@ -72,7 +72,7 @@ class Admin {
         admin.#mapTabMapParams = {
             mapName: 'admin-labelmap-choropleth',
             mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-            mapboxApiKey: mapboxApiKey,
+            mapboxApiKey,
             mapboxLogoLocation: 'bottom-right',
             neighborhoodsURL: '/neighborhoods',
             completionRatesURL: '/adminapi/neighborhoodCompletionRate',
@@ -88,7 +88,7 @@ class Admin {
             uiSource: 'AdminMapTab',
             popupLabelViewer: admin.#labelPopup,
             logClicks: false,
-            highQualityFilter: true
+            highQualityFilter: true,
         };
         admin.#init();
         return admin;
@@ -102,7 +102,7 @@ class Admin {
         Promise.all([
             Admin.loadStreetEdgeData(), Admin.loadUserCountData(), Admin.loadContributionTimeData(),
             Admin.loadLabelCountData(), Admin.loadValidationCountData(), Admin.loadComments(),
-            this.#initializeAdminCommentPopup()
+            this.#initializeAdminCommentPopup(),
         ]).then(() => {
             this.#loadingGif.css('visibility', 'hidden');
             $('#admin-page-container').css('visibility', 'visible');
@@ -128,7 +128,7 @@ class Admin {
             const pov = {
                 heading: parseFloat($(e.currentTarget).data('heading')),
                 pitch: parseFloat($(e.currentTarget).data('pitch')),
-                zoom: Number($(e.currentTarget).data('zoom'))
+                zoom: Number($(e.currentTarget).data('zoom')),
             };
             const labelId = parseInt($(e.currentTarget).data('labelId'));
             await this.#adminCommentPopup.showCommentGSV(e.currentTarget.innerHTML, pov, labelId);
@@ -160,7 +160,9 @@ class Admin {
         }
         const mean = sum / filteredData.length;
         const i = filteredData.length / 2;
-        filteredData.sort(function(a, b) {return (a[col] > b[col]) ? 1 : ((b[col] > a[col]) ? -1 : 0);} );
+        filteredData.sort((a, b) => {
+            return (a[col] > b[col]) ? 1 : ((b[col] > a[col]) ? -1 : 0);
+        });
 
         let median = 0;
         let max = 0;
@@ -179,7 +181,7 @@ class Admin {
         std /= filteredData.length;
         std = Math.sqrt(std);
 
-        return {mean: mean, median: median, std: std, min: min, max: max};
+        return { mean, median, std, min, max };
     }
 
     // takes in some data, summary stats, and optional arguments, and outputs the spec for a vega-lite chart
@@ -196,64 +198,64 @@ class Admin {
         const excludeResearchers = options.excludeResearchers || false;
 
         const nonResearcherRoles = ['Registered', 'Anonymous', 'Turker'];
-        const transformList = excludeResearchers ? [{'filter': {'field': 'role', 'oneOf': nonResearcherRoles}}] : [];
+        const transformList = excludeResearchers ? [{ filter: { field: 'role', oneOf: nonResearcherRoles } }] : [];
 
         return {
-            'height': height,
-            'width': width,
-            'data': {'values': data},
-            'transform': transformList,
-            'layer': [
+            height,
+            width,
+            data: { values: data },
+            transform: transformList,
+            layer: [
                 {
-                    'mark': 'bar',
-                    'encoding': {
-                        'x': {
-                            'field': col,
-                            'type': 'quantitative',
-                            'axis': {'title': xAxisTitle, 'labelAngle': 0, 'tickCount': 8},
-                            'bin': {'step': binStep}
+                    mark: 'bar',
+                    encoding: {
+                        x: {
+                            field: col,
+                            type: 'quantitative',
+                            axis: { title: xAxisTitle, labelAngle: 0, tickCount: 8 },
+                            bin: { step: binStep },
                         },
-                        'y': {
-                            'aggregate': 'count',
-                            'field': '*',
-                            'type': 'quantitative',
-                            'axis': {
-                                'title': yAxisTitle
-                            }
-                        }
-                    }
+                        y: {
+                            aggregate: 'count',
+                            field: '*',
+                            type: 'quantitative',
+                            axis: {
+                                title: yAxisTitle,
+                            },
+                        },
+                    },
                 },
                 { // creates lines marking summary statistics
-                    'data': {'values': [
-                        {'stat': 'mean', 'value': mean}, {'stat': 'median', 'value': median}]
+                    data: { values: [
+                        { stat: 'mean', value: mean }, { stat: 'median', value: median }],
                     },
-                    'mark': 'rule',
-                    'encoding': {
-                        'x': {
-                            'field': 'value', 'type': 'quantitative',
-                            'axis': {'labels': false, 'ticks': false, 'title': '', 'grid': false},
-                            'scale': {'domain': xDomain}
+                    mark: 'rule',
+                    encoding: {
+                        x: {
+                            field: 'value', type: 'quantitative',
+                            axis: { labels: false, ticks: false, title: '', grid: false },
+                            scale: { domain: xDomain },
                         },
-                        'color': {
-                            'field': 'stat', 'type': 'nominal', 'scale': {'range': ['pink', 'orange']},
-                            'legend': {
-                                'title': 'Summary Stats',
-                                'values': ['mean: ' + mean.toFixed(2), 'median: ' + median.toFixed(2)],
-                                'offset': legendOffset
-                            }
+                        color: {
+                            field: 'stat', type: 'nominal', scale: { range: ['pink', 'orange'] },
+                            legend: {
+                                title: 'Summary Stats',
+                                values: [`mean: ${mean.toFixed(2)}`, `median: ${median.toFixed(2)}`],
+                                offset: legendOffset,
+                            },
                         },
-                        'size': {
-                            'value': 2
-                        }
-                    }
-                }
+                        size: {
+                            value: 2,
+                        },
+                    },
+                },
             ],
-            'resolve': {'x': {'scale': 'independent'}},
-            'config': {
-                'axis': {
-                    'titleFontSize': 16
-                }
-            }
+            resolve: { x: { scale: 'independent' } },
+            config: {
+                axis: {
+                    titleFontSize: 16,
+                },
+            },
         };
     }
 
@@ -262,181 +264,201 @@ class Admin {
         const $ = this.#jquery;
         $('.nav-pills').on('click', (e) => {
             if (e.target.id === 'visualization' && this.#mapLoaded === false) {
-                CreatePSMap($, this.#mapTabMapParams).then(m => {
+                CreatePSMap($, this.#mapTabMapParams).then((m) => {
                     this.#map = m[0];
                     this.#mapData = m[4];
                     new MapSidebarFilter(this.#map, this.#mapData, { highQualityFilter: true });
                     this.#mapLoaded = true;
                 });
-            }
-            else if (e.target.id === 'analytics' && this.#graphsLoaded === false) {
-
+            } else if (e.target.id === 'analytics' && this.#graphsLoaded === false) {
                 // Create the choropleth.
-                CreatePSMap($, this.#analyticsTabMapParams).then(m => {
+                CreatePSMap($, this.#analyticsTabMapParams).then((m) => {
                     this.#analyticsMap = m[0];
                 });
 
                 const opt = {
-                    'mode': 'vega-lite',
-                    'actions': false
+                    mode: 'vega-lite',
+                    actions: false,
                 };
 
-                $.getJSON('/adminapi/completionRateByDate', function (data) {
+                $.getJSON('/adminapi/completionRateByDate', (data) => {
                     const chart = {
-                        'data': {'values': data, 'format': {'type': 'json'}},
-                        'config': {
-                            'axis': {
-                                'titleFontSize': 16
-                            }
+                        data: { values: data, format: { type: 'json' } },
+                        config: {
+                            axis: {
+                                titleFontSize: 16,
+                            },
                         },
-                        'vconcat': [
+                        vconcat: [
                             {
-                                'height': 300,
-                                'width': 875,
-                                'mark': 'area',
-                                'encoding': {
-                                    'x': {
-                                        'field': 'date',
-                                        'type': 'temporal',
-                                        'scale': {'domain': {'selection': 'brush', 'field': 'date'}},
-                                        'axis': {'title': 'Date', 'labelAngle': 0}
+                                height: 300,
+                                width: 875,
+                                mark: 'area',
+                                encoding: {
+                                    x: {
+                                        field: 'date',
+                                        type: 'temporal',
+                                        scale: { domain: { selection: 'brush', field: 'date' } },
+                                        axis: { title: 'Date', labelAngle: 0 },
                                     },
-                                    'y': {
-                                        'field': 'completion',
-                                        'type': 'quantitative', 'scale': {
-                                            'domain': [0, 100]
+                                    y: {
+                                        field: 'completion',
+                                        type: 'quantitative', scale: {
+                                            domain: [0, 100],
                                         },
-                                        'axis': {'title': 'City Coverage (%)'}
-                                    }
-                                }
+                                        axis: { title: 'City Coverage (%)' },
+                                    },
+                                },
                             },
                             {
-                            'height': 60,
-                            'width': 875,
-                            'mark': 'area',
-                            'selection': {'brush': {'type': 'interval', 'encodings': ['x']}},
-                            'encoding': {
-                                'x': {
-                                    'field': 'date',
-                                    'type': 'temporal',
-                                    'axis': {'title': 'Date', 'labelAngle': 0}
-                                },
-                                'y': {
-                                    'field': 'completion',
-                                    'type': 'quantitative', 'scale': {
-                                        'domain': [0, 100]
+                                height: 60,
+                                width: 875,
+                                mark: 'area',
+                                selection: { brush: { type: 'interval', encodings: ['x'] } },
+                                encoding: {
+                                    x: {
+                                        field: 'date',
+                                        type: 'temporal',
+                                        axis: { title: 'Date', labelAngle: 0 },
                                     },
-                                    'axis': {
-                                        'title': 'City Coverage (%)',
-                                        'tickCount': 3, 'grid': true}
-                                }
-                            }
-                            }
-                        ]
+                                    y: {
+                                        field: 'completion',
+                                        type: 'quantitative', scale: {
+                                            domain: [0, 100],
+                                        },
+                                        axis: {
+                                            title: 'City Coverage (%)',
+                                            tickCount: 3, grid: true },
+                                    },
+                                },
+                            },
+                        ],
                     };
                     vega.embed('#completion-progress-chart', chart, opt);
                 });
 
-                $.getJSON('/adminapi/labelTags', function(tagCountData) {
+                $.getJSON('/adminapi/labelTags', (tagCountData) => {
                     const subPlotHeight = 175;
                     const subPlotWidth = 250;
 
                     for (const item of tagCountData) {
                         if (item.tag.length > 15) {
-                            item.tag = item.tag.slice(0, 15) + '...';
+                            item.tag = `${item.tag.slice(0, 15)}...`;
                         }
                     }
 
                     const chart1 = {
-                        'hconcat': [
+                        hconcat: [
                             {
-                                'height': subPlotHeight,
-                                'width': subPlotWidth,
-                                'data': {'values': tagCountData.filter(function(label) {return label.label_type === 'CurbRamp';})},
-                                'mark': 'bar',
-                                'encoding': {
-                                    'x': {'field': 'tag', 'type': 'ordinal', 'sort': {'field': 'count', 'op': 'sum', 'order': 'descending'},
-                                        'axis': {'title': 'Curb Ramp Tags', 'labelAngle': -48, 'labelPadding': 20}},
-                                    'y': {'field': 'count', 'type': 'quantitative', 'axis': {'title': '# of tags'}}
-                                }
+                                height: subPlotHeight,
+                                width: subPlotWidth,
+                                data: { values: tagCountData.filter((label) => {
+                                    return label.label_type === 'CurbRamp';
+                                }) },
+                                mark: 'bar',
+                                encoding: {
+                                    x: { field: 'tag', type: 'ordinal', sort: { field: 'count', op: 'sum', order: 'descending' },
+                                        axis: { title: 'Curb Ramp Tags', labelAngle: -48, labelPadding: 20 } },
+                                    y: { field: 'count', type: 'quantitative', axis: { title: '# of tags' } },
+                                },
                             },
                             {
-                                'height': subPlotHeight,
-                                'width': subPlotWidth,
-                                'data': {'values': tagCountData.filter(function(label) {return label.label_type === 'NoCurbRamp';})},
-                                'mark': 'bar',
-                                'encoding': {
-                                    'x': {'field': 'tag', 'type': 'ordinal', 'sort': {'field': 'count', 'op': 'sum', 'order': 'descending'},
-                                        'axis': {'title': 'No Curb Ramps Tags', 'labelAngle': -48, 'labelPadding': 20}},
-                                    'y': {'field': 'count', 'type': 'quantitative', 'sort': 'descending', 'axis': {'title': ''}}
-                                }
+                                height: subPlotHeight,
+                                width: subPlotWidth,
+                                data: { values: tagCountData.filter((label) => {
+                                    return label.label_type === 'NoCurbRamp';
+                                }) },
+                                mark: 'bar',
+                                encoding: {
+                                    x: { field: 'tag', type: 'ordinal', sort: { field: 'count', op: 'sum', order: 'descending' },
+                                        axis: { title: 'No Curb Ramps Tags', labelAngle: -48, labelPadding: 20 } },
+                                    y: { field: 'count', type: 'quantitative', sort: 'descending', axis: { title: '' } },
+                                },
                             },
                             {
-                                'height': subPlotHeight,
-                                'width': subPlotWidth,
-                                'data': {'values': tagCountData.filter(function(label) {return label.label_type === 'Obstacle';})},
-                                'mark': 'bar',
-                                'encoding': {
-                                    'x': {'field': 'tag', 'type': 'ordinal', 'sort': {'field': 'count', 'op': 'sum', 'order': 'descending'},
-                                        'axis': {'title': 'Obstacles Tags', 'labelAngle': -48, 'labelPadding': 20}},
-                                    'y': {'field': 'count', 'type': 'quantitative', 'axis': {'title': ''}}
-                                }
+                                height: subPlotHeight,
+                                width: subPlotWidth,
+                                data: { values: tagCountData.filter((label) => {
+                                    return label.label_type === 'Obstacle';
+                                }) },
+                                mark: 'bar',
+                                encoding: {
+                                    x: { field: 'tag', type: 'ordinal', sort: { field: 'count', op: 'sum', order: 'descending' },
+                                        axis: { title: 'Obstacles Tags', labelAngle: -48, labelPadding: 20 } },
+                                    y: { field: 'count', type: 'quantitative', axis: { title: '' } },
+                                },
                             },
-                        ]
+                        ],
                     };
 
                     const chart2 = {
-                        'hconcat': [
+                        hconcat: [
                             {
-                                'height': subPlotHeight,
-                                'width': subPlotWidth,
-                                'data': {'values': tagCountData.filter(function(label) {return label.label_type === 'SurfaceProblem';})},
-                                'mark': 'bar',
-                                'encoding': {
-                                    'x': {'field': 'tag', 'type': 'ordinal', 'sort': {'field': 'count', 'op': 'sum', 'order': 'descending'},
-                                        'axis': {'title': 'Surface Problems Tags', 'labelAngle': -48, 'labelPadding': 20}},
-                                    'y': {'field': 'count', 'type': 'quantitative', 'sort': 'descending', 'axis': {'title': '# of tags'}}
-                                }
+                                height: subPlotHeight,
+                                width: subPlotWidth,
+                                data: { values: tagCountData.filter((label) => {
+                                    return label.label_type === 'SurfaceProblem';
+                                }) },
+                                mark: 'bar',
+                                encoding: {
+                                    x: { field: 'tag', type: 'ordinal', sort: { field: 'count', op: 'sum', order: 'descending' },
+                                        axis: { title: 'Surface Problems Tags', labelAngle: -48, labelPadding: 20 } },
+                                    y: { field: 'count', type: 'quantitative', sort: 'descending', axis: { title: '# of tags' } },
+                                },
                             },
                             {
-                                'height': subPlotHeight,
-                                'width': subPlotWidth,
-                                'data': {'values': tagCountData.filter(function(label) {return label.label_type === 'NoSidewalk';})},
-                                'mark': 'bar',
-                                'encoding': {
-                                    'x': {'field': 'tag', 'type': 'ordinal', 'sort': {'field': 'count', 'op': 'sum', 'order': 'descending'},
-                                        'axis': {'title': 'No Sidewalk Tags', 'labelAngle': -48, 'labelPadding': 20}},
-                                    'y': {'field': 'count', 'type': 'quantitative', 'axis': {'title': ''}}
-                                }
+                                height: subPlotHeight,
+                                width: subPlotWidth,
+                                data: { values: tagCountData.filter((label) => {
+                                    return label.label_type === 'NoSidewalk';
+                                }) },
+                                mark: 'bar',
+                                encoding: {
+                                    x: { field: 'tag', type: 'ordinal', sort: { field: 'count', op: 'sum', order: 'descending' },
+                                        axis: { title: 'No Sidewalk Tags', labelAngle: -48, labelPadding: 20 } },
+                                    y: { field: 'count', type: 'quantitative', axis: { title: '' } },
+                                },
                             },
                             {
-                                'height': subPlotHeight,
-                                'width': subPlotWidth,
-                                'data': {'values': tagCountData.filter(function(label) {return label.label_type === 'Crosswalk';})},
-                                'mark': 'bar',
-                                'encoding': {
-                                    'x': {'field': 'tag', 'type': 'ordinal', 'sort': {'field': 'count', 'op': 'sum', 'order': 'descending'},
-                                        'axis': {'title': 'Marked Crosswalks Tags', 'labelAngle': -48, 'labelPadding': 20}},
-                                    'y': {'field': 'count', 'type': 'quantitative', 'sort': 'descending', 'axis': {'title': ''}}
-                                }
+                                height: subPlotHeight,
+                                width: subPlotWidth,
+                                data: { values: tagCountData.filter((label) => {
+                                    return label.label_type === 'Crosswalk';
+                                }) },
+                                mark: 'bar',
+                                encoding: {
+                                    x: { field: 'tag', type: 'ordinal', sort: { field: 'count', op: 'sum', order: 'descending' },
+                                        axis: { title: 'Marked Crosswalks Tags', labelAngle: -48, labelPadding: 20 } },
+                                    y: { field: 'count', type: 'quantitative', sort: 'descending', axis: { title: '' } },
+                                },
                             },
-                        ]
+                        ],
                     };
 
                     vega.embed('#tag-usage-histograms', chart1, opt);
                     vega.embed('#tag-usage-histograms2', chart2, opt);
                 });
 
-                $.getJSON('/adminapi/labels/all', function (data) {
+                $.getJSON('/adminapi/labels/all', (data) => {
                     for (let i = 0; i < data.features.length; i++) {
                         data.features[i].label_type = data.features[i].properties.label_type;
                         data.features[i].severity = data.features[i].properties.severity;
                     }
-                    const curbRamps = data.features.filter(function(label) {return label.properties.label_type === 'CurbRamp';});
-                    const noCurbRamps = data.features.filter(function(label) {return label.properties.label_type === 'NoCurbRamp';});
-                    const obstacles = data.features.filter(function(label) {return label.properties.label_type === 'Obstacle';});
-                    const surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === 'SurfaceProblem';});
-                    const crosswalks = data.features.filter(function(label) {return label.properties.label_type === 'Crosswalk';});
+                    const curbRamps = data.features.filter((label) => {
+                        return label.properties.label_type === 'CurbRamp';
+                    });
+                    const noCurbRamps = data.features.filter((label) => {
+                        return label.properties.label_type === 'NoCurbRamp';
+                    });
+                    const obstacles = data.features.filter((label) => {
+                        return label.properties.label_type === 'Obstacle';
+                    });
+                    const surfaceProblems = data.features.filter((label) => {
+                        return label.properties.label_type === 'SurfaceProblem';
+                    });
+                    const crosswalks = data.features.filter((label) => {
+                        return label.properties.label_type === 'Crosswalk';
+                    });
 
                     const curbRampStats = Admin.getSummaryStats(curbRamps, 'severity');
                     $('#curb-ramp-mean').html((curbRampStats.mean).toFixed(2));
@@ -467,85 +489,85 @@ class Admin {
                     const subPlotWidth = 220; // Before, it was 130
 
                     const chart = {
-                        'hconcat': [
+                        hconcat: [
                             {
-                                'height': subPlotHeight,
-                                'width': subPlotWidth,
-                                'data': {'values': curbRamps},
-                                'mark': 'bar',
-                                'encoding': {
-                                    'x': {'field': 'severity', 'type': 'ordinal',
-                                        'axis': {'title': 'Curb Ramp Severity', 'labelAngle': 0}},
-                                    'y': {'aggregate': 'count', 'type': 'quantitative', 'axis': {'title': '# of labels'}}
-                                }
+                                height: subPlotHeight,
+                                width: subPlotWidth,
+                                data: { values: curbRamps },
+                                mark: 'bar',
+                                encoding: {
+                                    x: { field: 'severity', type: 'ordinal',
+                                        axis: { title: 'Curb Ramp Severity', labelAngle: 0 } },
+                                    y: { aggregate: 'count', type: 'quantitative', axis: { title: '# of labels' } },
+                                },
                             },
                             {
-                                'height': subPlotHeight,
-                                'width': subPlotWidth,
-                                'data': {'values': noCurbRamps},
-                                'mark': 'bar',
-                                'encoding': {
-                                    'x': {'field': 'severity', 'type': 'ordinal',
-                                        'axis': {'title': 'Missing Curb Ramp Severity', 'labelAngle': 0}},
-                                    'y': {'aggregate': 'count', 'type': 'quantitative', 'axis': {'title': ''}}
-                                }
+                                height: subPlotHeight,
+                                width: subPlotWidth,
+                                data: { values: noCurbRamps },
+                                mark: 'bar',
+                                encoding: {
+                                    x: { field: 'severity', type: 'ordinal',
+                                        axis: { title: 'Missing Curb Ramp Severity', labelAngle: 0 } },
+                                    y: { aggregate: 'count', type: 'quantitative', axis: { title: '' } },
+                                },
                             },
                             {
-                                'height': subPlotHeight,
-                                'width': subPlotWidth,
-                                'data': {'values': obstacles},
-                                'mark': 'bar',
-                                'encoding': {
-                                    'x': {'field': 'severity', 'type': 'ordinal',
-                                        'axis': {'title': 'Obstacle Severity', 'labelAngle': 0}},
-                                    'y': {'aggregate': 'count', 'type': 'quantitative', 'axis': {'title': ''}}
-                                }
+                                height: subPlotHeight,
+                                width: subPlotWidth,
+                                data: { values: obstacles },
+                                mark: 'bar',
+                                encoding: {
+                                    x: { field: 'severity', type: 'ordinal',
+                                        axis: { title: 'Obstacle Severity', labelAngle: 0 } },
+                                    y: { aggregate: 'count', type: 'quantitative', axis: { title: '' } },
+                                },
                             },
                         ],
-                        'config': {
-                            'axis': {
-                                'titleFontSize': 10
-                            }
-                        }
+                        config: {
+                            axis: {
+                                titleFontSize: 10,
+                            },
+                        },
                     };
 
                     const chart2 = {
-                        'hconcat': [
+                        hconcat: [
                             {
-                                'height': subPlotHeight,
-                                'width': subPlotWidth,
-                                'data': {'values': surfaceProblems},
-                                'mark': 'bar',
-                                'encoding': {
-                                    'x': {'field': 'severity', 'type': 'ordinal',
-                                        'axis': {'title': 'Surface Problem Severity', 'labelAngle': 0}},
-                                    'y': {'aggregate': 'count', 'type': 'quantitative', 'axis': {'title': '# of labels'}}
-                                }
+                                height: subPlotHeight,
+                                width: subPlotWidth,
+                                data: { values: surfaceProblems },
+                                mark: 'bar',
+                                encoding: {
+                                    x: { field: 'severity', type: 'ordinal',
+                                        axis: { title: 'Surface Problem Severity', labelAngle: 0 } },
+                                    y: { aggregate: 'count', type: 'quantitative', axis: { title: '# of labels' } },
+                                },
                             },
                             {
-                                'height': subPlotHeight,
-                                'width': subPlotWidth,
-                                'data': {'values': crosswalks},
-                                'mark': 'bar',
-                                'encoding': {
-                                    'x': {'field': 'severity', 'type': 'ordinal',
-                                        'axis': {'title': 'Marked Crosswalk Severity', 'labelAngle': 0}},
-                                    'y': {'aggregate': 'count', 'type': 'quantitative', 'axis': {'title': ''}}
-                                }
+                                height: subPlotHeight,
+                                width: subPlotWidth,
+                                data: { values: crosswalks },
+                                mark: 'bar',
+                                encoding: {
+                                    x: { field: 'severity', type: 'ordinal',
+                                        axis: { title: 'Marked Crosswalk Severity', labelAngle: 0 } },
+                                    y: { aggregate: 'count', type: 'quantitative', axis: { title: '' } },
+                                },
                             },
                         ],
-                        'config': {
-                            'axis': {
-                                'titleFontSize': 10
-                            }
-                        }
+                        config: {
+                            axis: {
+                                titleFontSize: 10,
+                            },
+                        },
                     };
 
                     vega.embed('#severity-histograms', chart, opt);
                     vega.embed('#severity-histograms2', chart2, opt);
                 });
 
-                $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
+                $.getJSON('/adminapi/neighborhoodCompletionRate', (data) => {
                     // Determine height of the chart based on the number of neighborhoods.
                     const chartHeight = 150 + (data.length * 30);
 
@@ -554,287 +576,289 @@ class Admin {
                         data[j].rate *= 100.0; // change from proportion to percent
                     }
                     const stats = Admin.getSummaryStats(data, 'rate');
-                    $('#neighborhood-std').html((stats.std).toFixed(2) + '%');
+                    $('#neighborhood-std').html(`${(stats.std).toFixed(2)}%`);
 
                     const coverageRateChartSortedByCompletion = {
-                        'width': 700,
-                        'height': chartHeight,
-                        'data': {
-                            'values': data, 'format': {
-                                'type': 'json'
-                            }
-                        },
-                        'mark': 'bar',
-                        'encoding': {
-                            'x': {
-                                'field': 'rate', 'type': 'quantitative',
-                                'axis': {'title': 'Neighborhood Completion (%)'}
+                        width: 700,
+                        height: chartHeight,
+                        data: {
+                            values: data, format: {
+                                type: 'json',
                             },
-                            'y': {
-                                'field': 'name', 'type': 'nominal',
-                                'axis': {'title': 'Neighborhood', 'labelAngle': -45},
-                                'sort': {'field': 'rate', 'op': 'max', 'order': 'ascending'}
-                            }
                         },
-                        'config': {
-                            'axis': {'titleFontSize': 16, 'labelFontSize': 13}
-                        }
+                        mark: 'bar',
+                        encoding: {
+                            x: {
+                                field: 'rate', type: 'quantitative',
+                                axis: { title: 'Neighborhood Completion (%)' },
+                            },
+                            y: {
+                                field: 'name', type: 'nominal',
+                                axis: { title: 'Neighborhood', labelAngle: -45 },
+                                sort: { field: 'rate', op: 'max', order: 'ascending' },
+                            },
+                        },
+                        config: {
+                            axis: { titleFontSize: 16, labelFontSize: 13 },
+                        },
                     };
 
                     const coverageRateChartSortedAlphabetically = {
-                        'width': 700,
-                        'height': chartHeight,
-                        'data': {
-                            'values': data, 'format': {
-                                'type': 'json'
-                            }
-                        },
-                        'mark': 'bar',
-                        'encoding': {
-                            'x': {
-                                'field': 'rate', 'type': 'quantitative',
-                                'axis': {'title': 'Neighborhood Completion (%)'},
+                        width: 700,
+                        height: chartHeight,
+                        data: {
+                            values: data, format: {
+                                type: 'json',
                             },
-                            'y': {
-                                'field': 'name', 'type': 'nominal',
-                                'axis': {'title': 'Neighborhood', 'labelAngle': -45},
-                                'sort': {'field': 'name', 'op': 'max', 'order': 'descending'}
-                            }
                         },
-                        'config': {
-                            'axis': {'titleFontSize': 16, 'labelFontSize': 13}
-                        }
+                        mark: 'bar',
+                        encoding: {
+                            x: {
+                                field: 'rate', type: 'quantitative',
+                                axis: { title: 'Neighborhood Completion (%)' },
+                            },
+                            y: {
+                                field: 'name', type: 'nominal',
+                                axis: { title: 'Neighborhood', labelAngle: -45 },
+                                sort: { field: 'name', op: 'max', order: 'descending' },
+                            },
+                        },
+                        config: {
+                            axis: { titleFontSize: 16, labelFontSize: 13 },
+                        },
                     };
                     vega.embed('#neighborhood-completion-rate', coverageRateChartSortedByCompletion, opt);
 
-                    document.getElementById('neighborhood-completion-sort-button').addEventListener('click', function() {
+                    document.getElementById('neighborhood-completion-sort-button').addEventListener('click', () => {
                         vega.embed('#neighborhood-completion-rate', coverageRateChartSortedByCompletion, opt);
                     });
-                    document.getElementById('neighborhood-alphabetical-sort-button').addEventListener('click', function() {
+                    document.getElementById('neighborhood-alphabetical-sort-button').addEventListener('click', () => {
                         vega.embed('#neighborhood-completion-rate', coverageRateChartSortedAlphabetically, opt);
                     });
 
                     const histOpts = {
-                        col: 'rate', xAxisTitle: 'Neighborhood Completion (%)', xDomain: [0, 100], width: 400, height: 250, binStep: 10
+                        col: 'rate', xAxisTitle: 'Neighborhood Completion (%)', xDomain: [0, 100], width: 400, height: 250, binStep: 10,
                     };
                     const coverageRateHist = Admin.getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
                     vega.embed('#neighborhood-completed-distance', coverageRateHist, opt);
-
                 });
-                $.getJSON('/adminapi/validationCounts', function (data) {
+                $.getJSON('/adminapi/validationCounts', (data) => {
                     // Must have 50+ labels validated. Also removing AI user.
-                    const filteredData = data.filter(function(x) { return x.count >= 50 && x.role !== 'AI'; });
+                    const filteredData = data.filter((x) => {
+                        return x.count >= 50 && x.role !== 'AI';
+                    });
 
                     // Convert to percentages.
-                    const pcts = filteredData.map(function (x) { return { count: (x.agreed / x.count) * 100 }; });
+                    const pcts = filteredData.map((x) => {
+                        return { count: (x.agreed / x.count) * 100 };
+                    });
 
                     const stats = Admin.getSummaryStats(pcts, 'count');
-                    $('#validation-agreed-std').html((stats.std).toFixed(2) + ' %');
+                    $('#validation-agreed-std').html(`${(stats.std).toFixed(2)} %`);
 
                     const histOpts = { xAxisTitle: 'User Accuracy (%)', xDomain: [0, 100], binStep: 5 };
                     const coverageRateHist = Admin.getVegaLiteHistogram(pcts, stats.mean, stats.median, histOpts);
                     vega.embed('#validation-agreed', coverageRateHist, opt);
-
                 });
-                $.getJSON('/contribution/auditCounts/all', function (data) {
+                $.getJSON('/contribution/auditCounts/all', (data) => {
                     const stats = Admin.getSummaryStats(data, 'count');
 
-                    $('#audit-std').html((stats.std).toFixed(2) + ' Street Audits');
+                    $('#audit-std').html(`${(stats.std).toFixed(2)} Street Audits`);
 
-                    const histOpts = {xAxisTitle: '# Street Audits per Day', xDomain: [0, stats.max], width: 250, binStep: 50, legendOffset: -80};
+                    const histOpts = { xAxisTitle: '# Street Audits per Day', xDomain: [0, stats.max], width: 250, binStep: 50, legendOffset: -80 };
                     const hist = Admin.getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
                     const chart = {
-                        'data': {'values': data},
-                        'hconcat': [
+                        data: { values: data },
+                        hconcat: [
                             {
-                                'height': 300,
-                                'width': 550,
-                                'layer': [
+                                height: 300,
+                                width: 550,
+                                layer: [
                                     {
-                                        'mark': 'bar',
-                                        'encoding': {
-                                            'x': {
-                                                'field': 'date',
-                                                'type': 'temporal',
-                                                'axis': {'title': 'Date', 'labelAngle': 0}
+                                        mark: 'bar',
+                                        encoding: {
+                                            x: {
+                                                field: 'date',
+                                                type: 'temporal',
+                                                axis: { title: 'Date', labelAngle: 0 },
                                             },
-                                            'y': {
-                                                'field': 'count',
-                                                'type': 'quantitative',
-                                                'axis': {
-                                                    'title': '# Street Audits per Day'
-                                                }
-                                            }
-                                        }
+                                            y: {
+                                                field: 'count',
+                                                type: 'quantitative',
+                                                axis: {
+                                                    title: '# Street Audits per Day',
+                                                },
+                                            },
+                                        },
                                     },
                                     { // creates lines marking summary statistics
-                                        'data': {'values': [
-                                            {'stat': 'mean', 'value': stats.mean}, {'stat': 'median', 'value': stats.median}]
+                                        data: { values: [
+                                            { stat: 'mean', value: stats.mean }, { stat: 'median', value: stats.median }],
                                         },
-                                        'mark': 'rule',
-                                        'encoding': {
-                                            'y': {
-                                                'field': 'value', 'type': 'quantitative',
-                                                'axis': {'labels': false, 'ticks': false, 'title': ''},
-                                                'scale': {'domain': [0, stats.max]}
+                                        mark: 'rule',
+                                        encoding: {
+                                            y: {
+                                                field: 'value', type: 'quantitative',
+                                                axis: { labels: false, ticks: false, title: '' },
+                                                scale: { domain: [0, stats.max] },
                                             },
-                                            'color': {
-                                                'field': 'stat', 'type': 'nominal', 'scale': {'range': ['pink', 'orange']},
-                                                'legend': false
+                                            color: {
+                                                field: 'stat', type: 'nominal', scale: { range: ['pink', 'orange'] },
+                                                legend: false,
                                             },
-                                            'size': {
-                                                'value': 1
-                                            }
-                                        }
-                                    }
+                                            size: {
+                                                value: 1,
+                                            },
+                                        },
+                                    },
                                 ],
-                                'resolve': {'y': {'scale': 'independent'}}
+                                resolve: { y: { scale: 'independent' } },
                             },
-                            hist
+                            hist,
                         ],
-                        'config': {
-                            'axis': {
-                                'titleFontSize': 16
-                            }
-                        }
+                        config: {
+                            axis: {
+                                titleFontSize: 16,
+                            },
+                        },
                     };
                     vega.embed('#audit-count-chart', chart, opt);
                 });
-                $.getJSON('/userapi/labelCounts/all', function (data) {
+                $.getJSON('/userapi/labelCounts/all', (data) => {
                     const stats = Admin.getSummaryStats(data, 'count');
-                    $('#label-std').html((stats.std).toFixed(2) + ' Labels');
+                    $('#label-std').html(`${(stats.std).toFixed(2)} Labels`);
 
-                    const histOpts = {xAxisTitle: '# Labels per Day', xDomain: [0, stats.max], width: 250, binStep: 200, legendOffset: -80};
+                    const histOpts = { xAxisTitle: '# Labels per Day', xDomain: [0, stats.max], width: 250, binStep: 200, legendOffset: -80 };
                     const hist = Admin.getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
                     const chart = {
-                        'data': {'values': data},
-                        'hconcat': [
+                        data: { values: data },
+                        hconcat: [
                             {
-                                'height': 300,
-                                'width': 550,
-                                'layer': [
+                                height: 300,
+                                width: 550,
+                                layer: [
                                     {
-                                        'mark': 'bar',
-                                        'encoding': {
-                                            'x': {
-                                                'field': 'date',
-                                                'type': 'temporal',
-                                                'axis': {'title': 'Date', 'labelAngle': 0}
+                                        mark: 'bar',
+                                        encoding: {
+                                            x: {
+                                                field: 'date',
+                                                type: 'temporal',
+                                                axis: { title: 'Date', labelAngle: 0 },
                                             },
-                                            'y': {
-                                                'field': 'count',
-                                                'type': 'quantitative',
-                                                'axis': {
-                                                    'title': '# Labels per Day'
-                                                }
-                                            }
-                                        }
+                                            y: {
+                                                field: 'count',
+                                                type: 'quantitative',
+                                                axis: {
+                                                    title: '# Labels per Day',
+                                                },
+                                            },
+                                        },
                                     },
                                     { // creates lines marking summary statistics
-                                        'data': {'values': [
-                                                {'stat': 'mean', 'value': stats.mean}, {'stat': 'median', 'value': stats.median}]
+                                        data: { values: [
+                                            { stat: 'mean', value: stats.mean }, { stat: 'median', value: stats.median }],
                                         },
-                                        'mark': 'rule',
-                                        'encoding': {
-                                            'y': {
-                                                'field': 'value', 'type': 'quantitative',
-                                                'axis': {'labels': false, 'ticks': false, 'title': ''},
-                                                'scale': {'domain': [0, stats.max]}
+                                        mark: 'rule',
+                                        encoding: {
+                                            y: {
+                                                field: 'value', type: 'quantitative',
+                                                axis: { labels: false, ticks: false, title: '' },
+                                                scale: { domain: [0, stats.max] },
                                             },
-                                            'color': {
-                                                'field': 'stat', 'type': 'nominal', 'scale': {'range': ['pink', 'orange']},
-                                                'legend': false
+                                            color: {
+                                                field: 'stat', type: 'nominal', scale: { range: ['pink', 'orange'] },
+                                                legend: false,
                                             },
-                                            'size': {
-                                                'value': 2
-                                            }
-                                        }
-                                    }
+                                            size: {
+                                                value: 2,
+                                            },
+                                        },
+                                    },
                                 ],
-                                'resolve': {'y': {'scale': 'independent'}}
+                                resolve: { y: { scale: 'independent' } },
                             },
-                            hist
+                            hist,
                         ],
-                        'config': {
-                            'axis': {
-                                'titleFontSize': 16
-                            }
-                        }
+                        config: {
+                            axis: {
+                                titleFontSize: 16,
+                            },
+                        },
                     };
                     vega.embed('#label-count-chart', chart, opt);
                 });
-                $.getJSON('/userapi/validationCounts/all', function (data) {
+                $.getJSON('/userapi/validationCounts/all', (data) => {
                     const stats = Admin.getSummaryStats(data, 'count');
-                    $('#validation-std').html((stats.std).toFixed(2) + ' Validations');
+                    $('#validation-std').html(`${(stats.std).toFixed(2)} Validations`);
 
-                    const histOpts = {xAxisTitle: '# Validations per Day', xDomain: [0, stats.max], width: 250, binStep: 200, legendOffset: -80};
+                    const histOpts = { xAxisTitle: '# Validations per Day', xDomain: [0, stats.max], width: 250, binStep: 200, legendOffset: -80 };
                     const hist = Admin.getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
                     const chart = {
-                        'data': {'values': data},
-                        'hconcat': [
+                        data: { values: data },
+                        hconcat: [
                             {
-                                'height': 300,
-                                'width': 550,
-                                'layer': [
+                                height: 300,
+                                width: 550,
+                                layer: [
                                     {
-                                        'mark': 'bar',
-                                        'encoding': {
-                                            'x': {
-                                                'field': 'date',
-                                                'type': 'temporal',
-                                                'axis': {'title': 'Date', 'labelAngle': 0}
+                                        mark: 'bar',
+                                        encoding: {
+                                            x: {
+                                                field: 'date',
+                                                type: 'temporal',
+                                                axis: { title: 'Date', labelAngle: 0 },
                                             },
-                                            'y': {
-                                                'field': 'count',
-                                                'type': 'quantitative',
-                                                'axis': {
-                                                    'title': '# Validations per Day'
-                                                }
-                                            }
-                                        }
+                                            y: {
+                                                field: 'count',
+                                                type: 'quantitative',
+                                                axis: {
+                                                    title: '# Validations per Day',
+                                                },
+                                            },
+                                        },
                                     },
                                     { // creates lines marking summary statistics
-                                        'data': {'values': [
-                                                {'stat': 'mean', 'value': stats.mean}, {'stat': 'median', 'value': stats.median}]
+                                        data: { values: [
+                                            { stat: 'mean', value: stats.mean }, { stat: 'median', value: stats.median }],
                                         },
-                                        'mark': 'rule',
-                                        'encoding': {
-                                            'y': {
-                                                'field': 'value', 'type': 'quantitative',
-                                                'axis': {'labels': false, 'ticks': false, 'title': ''},
-                                                'scale': {'domain': [0, stats.max]}
+                                        mark: 'rule',
+                                        encoding: {
+                                            y: {
+                                                field: 'value', type: 'quantitative',
+                                                axis: { labels: false, ticks: false, title: '' },
+                                                scale: { domain: [0, stats.max] },
                                             },
-                                            'color': {
-                                                'field': 'stat', 'type': 'nominal', 'scale': {'range': ['pink', 'orange']},
-                                                'legend': false
+                                            color: {
+                                                field: 'stat', type: 'nominal', scale: { range: ['pink', 'orange'] },
+                                                legend: false,
                                             },
-                                            'size': {
-                                                'value': 2
-                                            }
-                                        }
-                                    }
+                                            size: {
+                                                value: 2,
+                                            },
+                                        },
+                                    },
                                 ],
-                                'resolve': {'y': {'scale': 'independent'}}
+                                resolve: { y: { scale: 'independent' } },
                             },
-                            hist
+                            hist,
                         ],
-                        'config': {
-                            'axis': {
-                                'titleFontSize': 16
-                            }
-                        }
+                        config: {
+                            axis: {
+                                titleFontSize: 16,
+                            },
+                        },
                     };
                     vega.embed('#validation-count-chart', chart, opt);
                 });
-                $.getJSON('/adminapi/userMissionCounts', function (data) {
-                    const allData = data.filter(user => user.role !== 'AI');
-                    const regData = allData.filter(user => user.role === 'Registered' || Admin.isResearcherRole(user.role));
-                    const anonData = allData.filter(user => user.role === 'Anonymous');
-                    const turkerData = allData.filter(user => user.role === 'Turker');
+                $.getJSON('/adminapi/userMissionCounts', (data) => {
+                    const allData = data.filter((user) => user.role !== 'AI');
+                    const regData = allData.filter((user) => user.role === 'Registered' || Admin.isResearcherRole(user.role));
+                    const anonData = allData.filter((user) => user.role === 'Anonymous');
+                    const turkerData = allData.filter((user) => user.role === 'Turker');
 
                     const allStats = Admin.getSummaryStats(allData, 'count');
                     const allFilteredStats = Admin.getSummaryStats(allData, 'count', { excludeResearchers: true });
@@ -843,34 +867,34 @@ class Admin {
                     const turkerStats = Admin.getSummaryStats(turkerData, 'count');
                     const anonStats = Admin.getSummaryStats(anonData, 'count');
 
-                    $('#missions-std').html((allFilteredStats.std).toFixed(2) + ' Missions');
-                    $('#reg-missions-std').html((regFilteredStats.std).toFixed(2) + ' Missions');
-                    $('#turker-missions-std').html((turkerStats.std).toFixed(2) + ' Missions');
-                    $('#anon-missions-std').html((anonStats.std).toFixed(2) + ' Missions');
+                    $('#missions-std').html(`${(allFilteredStats.std).toFixed(2)} Missions`);
+                    $('#reg-missions-std').html(`${(regFilteredStats.std).toFixed(2)} Missions`);
+                    $('#turker-missions-std').html(`${(turkerStats.std).toFixed(2)} Missions`);
+                    $('#anon-missions-std').html(`${(anonStats.std).toFixed(2)} Missions`);
 
                     const allHistOpts = {
                         xAxisTitle: '# Missions per User (all)', xDomain: [0, allStats.max], width: 187,
-                        binStep: 15, legendOffset: -80
+                        binStep: 15, legendOffset: -80,
                     };
                     const allFilteredHistOpts = {
                         xAxisTitle: '# Missions per User (all)', xDomain: [0, allFilteredStats.max],
-                        width: 187, binStep: 15, legendOffset: -80, excludeResearchers: true
+                        width: 187, binStep: 15, legendOffset: -80, excludeResearchers: true,
                     };
                     const regHistOpts = {
                         xAxisTitle: '# Missions per Registered User', xDomain: [0, regStats.max], width: 187,
-                        binStep: 10, legendOffset: -80
+                        binStep: 10, legendOffset: -80,
                     };
                     const regFilteredHistOpts = {
                         xAxisTitle: '# Missions per Registered User', width: 187, legendOffset: -80,
-                        xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 10
+                        xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 10,
                     };
                     const turkerHistOpts = {
                         xAxisTitle: '# Missions per Turker User', xDomain: [0, turkerStats.max], width: 187,
-                        binStep: 15, legendOffset: -80
+                        binStep: 15, legendOffset: -80,
                     };
                     const anonHistOpts = {
                         xAxisTitle: '# Missions per Anon User', xDomain: [0, anonStats.max], width: 187,
-                        binStep: 1, legendOffset: -80
+                        binStep: 1, legendOffset: -80,
                     };
 
                     const allChart = Admin.getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
@@ -881,14 +905,14 @@ class Admin {
                     const anonChart = Admin.getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
                     // Only includes charts with data, because charts with no data prevent all charts from rendering.
-                    const combinedChart = { 'hconcat': [] };
-                    const combinedChartFiltered = { 'hconcat': [] };
+                    const combinedChart = { hconcat: [] };
+                    const combinedChartFiltered = { hconcat: [] };
 
-                    [allChart, regChart, turkerChart, anonChart].forEach(element => {
+                    [allChart, regChart, turkerChart, anonChart].forEach((element) => {
                         if (element.data.values.length > 0) combinedChart.hconcat.push(element);
                     });
 
-                    [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
+                    [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach((element) => {
                         if (element.data.values.length > 0) combinedChartFiltered.hconcat.push(element);
                     });
 
@@ -896,27 +920,27 @@ class Admin {
                         vega.embed('#mission-count-chart', combinedChartFiltered, opt);
                     }
 
-                    document.getElementById('mission-count-include-researchers-checkbox').addEventListener('click', function (cb) {
+                    document.getElementById('mission-count-include-researchers-checkbox').addEventListener('click', (cb) => {
                         if (cb.target.checked) {
-                            $('#missions-std').html((allStats.std).toFixed(2) + ' Missions');
-                            $('#reg-missions-std').html((regStats.std).toFixed(2) + ' Missions');
+                            $('#missions-std').html(`${(allStats.std).toFixed(2)} Missions`);
+                            $('#reg-missions-std').html(`${(regStats.std).toFixed(2)} Missions`);
                             if (combinedChart.hconcat.length > 0) {
                                 vega.embed('#mission-count-chart', combinedChart, opt);
                             }
                         } else {
-                            $('#missions-std').html((allFilteredStats.std).toFixed(2) + ' Missions');
-                            $('#reg-missions-std').html((regFilteredStats.std).toFixed(2) + ' Missions');
+                            $('#missions-std').html(`${(allFilteredStats.std).toFixed(2)} Missions`);
+                            $('#reg-missions-std').html(`${(regFilteredStats.std).toFixed(2)} Missions`);
                             if (combinedChartFiltered.hconcat.length > 0) {
                                 vega.embed('#mission-count-chart', combinedChartFiltered, opt);
                             }
                         }
                     });
                 });
-                $.getJSON('/adminapi/labelCounts', function (data) {
-                    const allData = data.filter(user => user.role !== 'AI');
-                    const regData = allData.filter(user => user.role === 'Registered' || Admin.isResearcherRole(user.role));
-                    const turkerData = allData.filter(user => user.role === 'Turker');
-                    const anonData = allData.filter(user => user.role === 'Anonymous');
+                $.getJSON('/adminapi/labelCounts', (data) => {
+                    const allData = data.filter((user) => user.role !== 'AI');
+                    const regData = allData.filter((user) => user.role === 'Registered' || Admin.isResearcherRole(user.role));
+                    const turkerData = allData.filter((user) => user.role === 'Turker');
+                    const anonData = allData.filter((user) => user.role === 'Anonymous');
 
                     const allStats = Admin.getSummaryStats(allData, 'count');
                     const allFilteredStats = Admin.getSummaryStats(allData, 'count', { excludeResearchers: true });
@@ -925,34 +949,34 @@ class Admin {
                     const turkerStats = Admin.getSummaryStats(turkerData, 'count');
                     const anonStats = Admin.getSummaryStats(anonData, 'count');
 
-                    $('#all-labels-std').html((allFilteredStats.std).toFixed(2) + ' Labels');
-                    $('#reg-labels-std').html((regFilteredStats.std).toFixed(2) + ' Labels');
-                    $('#turker-labels-std').html((turkerStats.std).toFixed(2) + ' Labels');
-                    $('#anon-labels-std').html((anonStats.std).toFixed(2) + ' Labels');
+                    $('#all-labels-std').html(`${(allFilteredStats.std).toFixed(2)} Labels`);
+                    $('#reg-labels-std').html(`${(regFilteredStats.std).toFixed(2)} Labels`);
+                    $('#turker-labels-std').html(`${(turkerStats.std).toFixed(2)} Labels`);
+                    $('#anon-labels-std').html(`${(anonStats.std).toFixed(2)} Labels`);
 
                     const allHistOpts = {
                         xAxisTitle: '# Labels per User (all)', xDomain: [0, allStats.max], width: 187,
-                        binStep: 500, legendOffset: -80
+                        binStep: 500, legendOffset: -80,
                     };
                     const allFilteredHistOpts = {
                         xAxisTitle: '# Labels per User (all)', xDomain: [0, allFilteredStats.max],
-                        width: 187, binStep: 500, legendOffset: -80, excludeResearchers: true
+                        width: 187, binStep: 500, legendOffset: -80, excludeResearchers: true,
                     };
                     const regHistOpts = {
                         xAxisTitle: '# Labels per Registered User', xDomain: [0, regStats.max], width: 187,
-                        binStep: 500, legendOffset: -80
+                        binStep: 500, legendOffset: -80,
                     };
                     const regFilteredHistOpts = {
                         xAxisTitle: '# Labels per Registered User', width: 187, legendOffset: -80,
-                        xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 500
+                        xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 500,
                     };
                     const turkerHistOpts = {
                         xAxisTitle: '# Labels per Turker User', xDomain: [0, turkerStats.max], width: 187,
-                        binStep: 500, legendOffset: -80
+                        binStep: 500, legendOffset: -80,
                     };
                     const anonHistOpts = {
                         xAxisTitle: '# Labels per Anon User', xDomain: [0, anonStats.max],
-                        width: 187, legendOffset: -80, binStep: 2
+                        width: 187, legendOffset: -80, binStep: 2,
                     };
 
                     const allChart = Admin.getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
@@ -963,14 +987,14 @@ class Admin {
                     const anonChart = Admin.getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
                     // Only includes charts with data, because charts with no data prevent all charts from rendering.
-                    const combinedChart = { 'hconcat': [] };
-                    const combinedChartFiltered = { 'hconcat': [] };
+                    const combinedChart = { hconcat: [] };
+                    const combinedChartFiltered = { hconcat: [] };
 
-                    [allChart, regChart, turkerChart, anonChart].forEach(element => {
+                    [allChart, regChart, turkerChart, anonChart].forEach((element) => {
                         if (element.data.values.length > 0) combinedChart.hconcat.push(element);
                     });
 
-                    [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
+                    [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach((element) => {
                         if (element.data.values.length > 0) combinedChartFiltered.hconcat.push(element);
                     });
 
@@ -978,27 +1002,27 @@ class Admin {
                         vega.embed('#label-count-hist', combinedChartFiltered, opt);
                     }
 
-                    document.getElementById('label-count-include-researchers-checkbox').addEventListener('click', function (cb) {
+                    document.getElementById('label-count-include-researchers-checkbox').addEventListener('click', (cb) => {
                         if (cb.target.checked) {
-                            $('#all-labels-std').html((allStats.std).toFixed(2) + ' Labels');
-                            $('#reg-labels-std').html((regStats.std).toFixed(2) + ' Labels');
+                            $('#all-labels-std').html(`${(allStats.std).toFixed(2)} Labels`);
+                            $('#reg-labels-std').html(`${(regStats.std).toFixed(2)} Labels`);
                             if (combinedChart.hconcat.length > 0) {
                                 vega.embed('#label-count-hist', combinedChart, opt);
                             }
                         } else {
-                            $('#all-labels-std').html((allFilteredStats.std).toFixed(2) + ' Labels');
-                            $('#reg-labels-std').html((regFilteredStats.std).toFixed(2) + ' Labels');
+                            $('#all-labels-std').html(`${(allFilteredStats.std).toFixed(2)} Labels`);
+                            $('#reg-labels-std').html(`${(regFilteredStats.std).toFixed(2)} Labels`);
                             if (combinedChartFiltered.hconcat.length > 0) {
                                 vega.embed('#label-count-hist', combinedChartFiltered, opt);
                             }
                         }
                     });
                 });
-                $.getJSON('/adminapi/validationCounts', function (data) {
-                    const allData = data.filter(user => user.role !== 'AI');
-                    const regData = allData.filter(user => user.role === 'Registered' || Admin.isResearcherRole(user.role));
-                    const turkerData = allData.filter(user => user.role === 'Turker');
-                    const anonData = allData.filter(user => user.role === 'Anonymous');
+                $.getJSON('/adminapi/validationCounts', (data) => {
+                    const allData = data.filter((user) => user.role !== 'AI');
+                    const regData = allData.filter((user) => user.role === 'Registered' || Admin.isResearcherRole(user.role));
+                    const turkerData = allData.filter((user) => user.role === 'Turker');
+                    const anonData = allData.filter((user) => user.role === 'Anonymous');
 
                     const allStats = Admin.getSummaryStats(allData, 'count');
                     const allFilteredStats = Admin.getSummaryStats(allData, 'count', { excludeResearchers: true });
@@ -1007,34 +1031,34 @@ class Admin {
                     const turkerStats = Admin.getSummaryStats(turkerData, 'count');
                     const anonStats = Admin.getSummaryStats(anonData, 'count');
 
-                    $('#all-validation-std').html((allFilteredStats.std).toFixed(2) + ' labels');
-                    $('#reg-validation-std').html((regFilteredStats.std).toFixed(2) + ' labels');
-                    $('#turker-validation-std').html((turkerStats.std).toFixed(2) + ' labels');
-                    $('#anon-validation-std').html((anonStats.std).toFixed(2) + ' labels');
+                    $('#all-validation-std').html(`${(allFilteredStats.std).toFixed(2)} labels`);
+                    $('#reg-validation-std').html(`${(regFilteredStats.std).toFixed(2)} labels`);
+                    $('#turker-validation-std').html(`${(turkerStats.std).toFixed(2)} labels`);
+                    $('#anon-validation-std').html(`${(anonStats.std).toFixed(2)} labels`);
 
                     const allHistOpts = {
                         xAxisTitle: '# Labels Validated per User (all)', xDomain: [0, allStats.max], width: 187,
-                        binStep: 50, legendOffset: -80
+                        binStep: 50, legendOffset: -80,
                     };
                     const allFilteredHistOpts = {
                         xAxisTitle: '# Labels Validated per User (all)', xDomain: [0, allFilteredStats.max],
-                        width: 187, binStep: 50, legendOffset: -80, excludeResearchers: true
+                        width: 187, binStep: 50, legendOffset: -80, excludeResearchers: true,
                     };
                     const regHistOpts = {
                         xAxisTitle: '# Labels Validated per Registered User', xDomain: [0, regStats.max], width: 187,
-                        binStep: 50, legendOffset: -80
+                        binStep: 50, legendOffset: -80,
                     };
                     const regFilteredHistOpts = {
                         xAxisTitle: '# Labels Validated per Registered User', width: 187, legendOffset: -80,
-                        xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 50
+                        xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 50,
                     };
                     const turkerHistOpts = {
                         xAxisTitle: '# Labels Validated per Turker User', xDomain: [0, turkerStats.max], width: 187,
-                        binStep: 50, legendOffset: -80
+                        binStep: 50, legendOffset: -80,
                     };
                     const anonHistOpts = {
                         xAxisTitle: '# Labels Validated per Anon User', xDomain: [0, anonStats.max],
-                        width: 187, legendOffset: -80, binStep: 2
+                        width: 187, legendOffset: -80, binStep: 2,
                     };
 
                     const allChart = Admin.getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
@@ -1045,14 +1069,14 @@ class Admin {
                     const anonChart = Admin.getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
                     // Only includes charts with data, because charts with no data prevent all charts from rendering.
-                    const combinedChart = { 'hconcat': [] };
-                    const combinedChartFiltered = { 'hconcat': [] };
+                    const combinedChart = { hconcat: [] };
+                    const combinedChartFiltered = { hconcat: [] };
 
-                    [allChart, regChart, turkerChart, anonChart].forEach(element => {
+                    [allChart, regChart, turkerChart, anonChart].forEach((element) => {
                         if (element.data.values.length > 0) combinedChart.hconcat.push(element);
                     });
 
-                    [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
+                    [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach((element) => {
                         if (element.data.values.length > 0) combinedChartFiltered.hconcat.push(element);
                     });
 
@@ -1060,41 +1084,41 @@ class Admin {
                         vega.embed('#validation-count-hist', combinedChartFiltered, opt);
                     }
 
-                    document.getElementById('validation-count-include-researchers-checkbox').addEventListener('click', function (cb) {
+                    document.getElementById('validation-count-include-researchers-checkbox').addEventListener('click', (cb) => {
                         if (cb.target.checked) {
-                            $('#all-validation-std').html((allStats.std).toFixed(2) + ' Validations');
-                            $('#reg-validation-std').html((regStats.std).toFixed(2) + ' Validations');
+                            $('#all-validation-std').html(`${(allStats.std).toFixed(2)} Validations`);
+                            $('#reg-validation-std').html(`${(regStats.std).toFixed(2)} Validations`);
                             if (combinedChart.hconcat.length > 0) {
                                 vega.embed('#validation-count-hist', combinedChart, opt);
                             }
                         } else {
-                            $('#all-validation-std').html((allFilteredStats.std).toFixed(2) + ' Validations');
-                            $('#reg-validation-std').html((regFilteredStats.std).toFixed(2) + ' Validations');
+                            $('#all-validation-std').html(`${(allFilteredStats.std).toFixed(2)} Validations`);
+                            $('#reg-validation-std').html(`${(regFilteredStats.std).toFixed(2)} Validations`);
                             if (combinedChartFiltered.hconcat.length > 0) {
                                 vega.embed('#validation-count-hist', combinedChartFiltered, opt);
                             }
                         }
                     });
                 });
-                $.getJSON('/adminapi/allSignInCounts', function (data) {
+                $.getJSON('/adminapi/allSignInCounts', (data) => {
                     const stats = Admin.getSummaryStats(data, 'count');
-                    const filteredStats = Admin.getSummaryStats(data, 'count', {excludeResearchers: true});
-                    const histOpts = {xAxisTitle: '# Logins per Registered User', binStep: 5, xDomain: [0, stats.max]};
-                    const histFilteredOpts = {xAxisTitle: '# Logins per Registered User', xDomain: [0, filteredStats.max],
-                                            excludeResearchers: true};
+                    const filteredStats = Admin.getSummaryStats(data, 'count', { excludeResearchers: true });
+                    const histOpts = { xAxisTitle: '# Logins per Registered User', binStep: 5, xDomain: [0, stats.max] };
+                    const histFilteredOpts = { xAxisTitle: '# Logins per Registered User', xDomain: [0, filteredStats.max],
+                        excludeResearchers: true };
 
                     const chart = Admin.getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
                     const filteredChart = Admin.getVegaLiteHistogram(data, filteredStats.mean, filteredStats.median, histFilteredOpts);
 
-                    $('#login-count-std').html((filteredStats.std).toFixed(2) + ' Logins');
+                    $('#login-count-std').html(`${(filteredStats.std).toFixed(2)} Logins`);
                     vega.embed('#login-count-chart', filteredChart, opt);
 
-                    document.getElementById('login-count-include-researchers-checkbox').addEventListener('click', function(cb) {
+                    document.getElementById('login-count-include-researchers-checkbox').addEventListener('click', (cb) => {
                         if (cb.target.checked) {
-                            $('#login-count-std').html((stats.std).toFixed(2) + ' Logins');
+                            $('#login-count-std').html(`${(stats.std).toFixed(2)} Logins`);
                             vega.embed('#login-count-chart', chart, opt);
                         } else {
-                            $('#login-count-std').html((filteredStats.std).toFixed(2) + ' Logins');
+                            $('#login-count-std').html(`${(filteredStats.std).toFixed(2)} Logins`);
                             vega.embed('#login-count-chart', filteredChart, opt);
                         }
                     });
@@ -1108,7 +1132,7 @@ class Admin {
                     this.#labelsLoaded = true;
                     this.#loadingGif.css('visibility', 'hidden');
                     $('#tabs-4').css('visibility', 'visible');
-                }).catch(function(error) {
+                }).catch((error) => {
                     console.error('Error loading labels:', error);
                 });
             } else if (e.target.id === 'users' && this.#usersLoaded === false) {
@@ -1118,7 +1142,7 @@ class Admin {
                     this.#usersLoaded = true;
                     this.#loadingGif.css('visibility', 'hidden');
                     $('#tabs-5').css('visibility', 'visible');
-                }).catch(function(error) {
+                }).catch((error) => {
                     console.error('Error loading users:', error);
                 });
             } else if (e.target.id === 'teams' && this.#teamsLoaded === false) {
@@ -1128,12 +1152,12 @@ class Admin {
                     this.#teamsLoaded = true;
                     this.#loadingGif.css('visibility', 'hidden');
                     $('#tabs-7').css('visibility', 'visible');
-                }).catch(function(error) {
+                }).catch((error) => {
                     console.error('Error loading teams:', error);
                 });
             } else if (e.target.id === 'api-analytics' && this.#apiAnalyticsLoaded === false) {
                 this.#apiAnalyticsLoaded = true;
-                this.#apiAnalytics.load().catch(function(error) {
+                this.#apiAnalytics.load().catch((error) => {
                     console.error('Error loading API analytics:', error);
                 });
             }
@@ -1148,8 +1172,8 @@ class Admin {
             .substring('userRoleDropdown'.length); // userId is stored in id of dropdown
         const newRole = e.target.innerText;
         const data = {
-            'user_id': userId,
-            'role_id': newRole
+            user_id: userId,
+            role_id: newRole,
         };
         $.ajax({
             async: true,
@@ -1158,16 +1182,16 @@ class Admin {
             method: 'PUT',
             data: JSON.stringify(data),
             dataType: 'json',
-            success: function (result) {
+            success(result) {
                 // Change dropdown button to reflect new role.
-                const button = $('#userRoleDropdown' + result.user_id);
+                const button = $(`#userRoleDropdown${result.user_id}`);
                 const buttonContents = button.html();
                 const newRole = result.role;
                 button.html(buttonContents.replace(/Registered|Turker|Researcher|Administrator|Anonymous/g, newRole));
             },
-            error: function (result) {
+            error(result) {
                 console.error(result);
-            }
+            },
         });
     }
 
@@ -1184,14 +1208,14 @@ class Admin {
             async: true,
             url: `/userapi/setUserTeam?userId=${userId}&teamId=${teamId}`,
             method: 'PUT',
-            success: function (result) {
+            success(result) {
                 // Change dropdown button to reflect new team.
                 const button = document.getElementById(`userTeamDropdown${result.user_id}`);
                 button.childNodes[0].nodeValue = ` ${teamName} `;
             },
-            error: function (result) {
+            error(result) {
                 console.error(result);
-            }
+            },
         });
     }
 
@@ -1204,7 +1228,7 @@ class Admin {
 
         const newStatus = e.target.innerText === 'Open';
         const data = {
-            'open': newStatus
+            open: newStatus,
         };
 
         $.ajax({
@@ -1214,14 +1238,14 @@ class Admin {
             method: 'PUT',
             data: JSON.stringify(data),
             dataType: 'json',
-            success: function(result) {
+            success(result) {
                 // Change dropdown button to reflect new status.
                 const button = document.getElementById(`statusDropdown${result.team_id}`);
                 button.childNodes[0].nodeValue = ` ${newStatus === true ? 'Open' : 'Closed'} `;
             },
-            error: function(xhr, status, error) {
+            error(xhr, status, error) {
                 console.error('Error updating team status:', error);
-            }
+            },
         });
     }
 
@@ -1234,7 +1258,7 @@ class Admin {
 
         const newVisibility = e.target.innerText === 'Visible';
         const data = {
-            'visible': newVisibility
+            visible: newVisibility,
         };
 
         $.ajax({
@@ -1244,14 +1268,14 @@ class Admin {
             method: 'PUT',
             data: JSON.stringify(data),
             dataType: 'json',
-            success: function(result) {
+            success(result) {
                 // Change dropdown button to reflect new visibility.
                 const button = document.getElementById(`visibilityDropdown${result.team_id}`);
                 button.childNodes[0].nodeValue = ` ${newVisibility === true ? 'Visible' : 'Hidden'} `;
             },
-            error: function(xhr, status, error) {
+            error(xhr, status, error) {
                 console.error('Error updating team visibility:', error);
-            }
+            },
         });
     }
 
@@ -1259,9 +1283,9 @@ class Admin {
         $.ajax({
             url: '/adminapi/clearPlayCache',
             method: 'PUT',
-            success: function () {
+            success() {
                 clearPlayCacheSuccess.innerHTML = i18next.t('admin-clear-play-cache');
-            }
+            },
         });
     }
 
@@ -1295,7 +1319,7 @@ class Admin {
 
     static loadStreetEdgeData() {
         return new Promise((resolve, reject) => {
-            $.getJSON('/adminapi/getCoverageData', function (data) {
+            $.getJSON('/adminapi/getCoverageData', (data) => {
                 const totalAuditedStreets = data.street_counts.total;
                 const totalAuditedDistance = data.street_distance.total;
 
@@ -1352,7 +1376,7 @@ class Admin {
 
     static loadUserCountData() {
         return new Promise((resolve, reject) => {
-            $.getJSON('/adminapi/getNumUsersContributed', function (data) {
+            $.getJSON('/adminapi/getNumUsersContributed', (data) => {
                 for (const userCount of data) {
                     const taskCompleted = userCount.task_completed_only ? 'task_completed' : 'no_task_constraint';
                     const highQuality = userCount.high_quality_only ? 'high_quality' : 'any_quality';
@@ -1366,7 +1390,7 @@ class Admin {
 
     static loadContributionTimeData() {
         return new Promise((resolve, reject) => {
-            $.getJSON('/adminapi/getContributionTimeStats', function (data) {
+            $.getJSON('/adminapi/getContributionTimeStats', (data) => {
                 for (const timeStat of data) {
                     const time = timeStat.time ? timeStat.time.toFixed(2) : 'NA';
                     const unit = timeStat.time ? (timeStat.stat === 'explore_per_100m' ? ' min' : ' hr') : '';
@@ -1379,7 +1403,7 @@ class Admin {
 
     static loadLabelCountData() {
         return new Promise((resolve, reject) => {
-            $.getJSON('/adminapi/getLabelCountStats', function (data) {
+            $.getJSON('/adminapi/getLabelCountStats', (data) => {
                 for (const labelCount of data) {
                     $(`#label-count-${labelCount.label_type}-${labelCount.time_interval}`).text(labelCount.count);
                 }
@@ -1390,16 +1414,16 @@ class Admin {
 
     static loadValidationCountData() {
         return new Promise((resolve, reject) => {
-            $.getJSON('/adminapi/getValidationCountStats', function (data) {
+            $.getJSON('/adminapi/getValidationCountStats', (data) => {
                 // Fill in the validation section on the Overview tab's Activities table.
                 for (const timeInterval of ['all_time', 'today', 'week']) {
                     const currData = data.filter(
-                        x => x.label_type === 'All' && x.validator === 'Both' && x.time_interval === timeInterval
+                        (x) => x.label_type === 'All' && x.validator === 'Both' && x.time_interval === timeInterval,
                     );
-                    const totalCount = currData.find(x => x.result === 'All').count;
+                    const totalCount = currData.find((x) => x.result === 'All').count;
                     $(`#val-count-All-${timeInterval}`).text(totalCount);
                     for (const valResult of ['Agree', 'Disagree', 'Unsure']) {
-                        const resultCount = currData.find(x => x.result === valResult).count;
+                        const resultCount = currData.find((x) => x.result === valResult).count;
                         $(`#val-count-${valResult}-${timeInterval}`).text(Admin.formatCountWithPercent(resultCount, totalCount));
                     }
                 }
@@ -1408,12 +1432,12 @@ class Admin {
                 for (const labelType of ['All'].concat(util.misc.PRIMARY_LABEL_TYPES)) {
                     for (const validator of ['Human', 'AI', 'Both']) {
                         const currData = data.filter(
-                            x => x.time_interval === 'all_time' && x.validator === validator && x.label_type === labelType
+                            (x) => x.time_interval === 'all_time' && x.validator === validator && x.label_type === labelType,
                         );
-                        const totalCount = currData.find(x => x.result === 'All').count;
+                        const totalCount = currData.find((x) => x.result === 'All').count;
                         $(`#val-count-${labelType}-All-${validator}`).text(totalCount);
                         for (const valResult of ['Agree', 'Disagree', 'Unsure']) {
-                            const resultCount = currData.find(x => x.result === valResult).count;
+                            const resultCount = currData.find((x) => x.result === valResult).count;
                             const percentage = Admin.calculatePercent(resultCount, totalCount);
                             $(`#val-count-${labelType}-${valResult}-${validator}`).text(Admin.formatPercent(percentage));
                         }
@@ -1427,23 +1451,25 @@ class Admin {
 
     static loadComments() {
         return new Promise((resolve, reject) => {
-            $.getJSON('/adminapi/getRecentComments', function (data) {
+            $.getJSON('/adminapi/getRecentComments', (data) => {
                 const commentsTable = $('#comments-table').DataTable();
 
                 // Add the rows using the DataTable API.
                 // TODO we do want to sort descending, but if I switch to ascending, it doesn't change...
-                commentsTable.rows.add(data.map(function(c) { return [
-                    `<a href='/admin/user/${c.username}'>${c.username}</a>`,
-                    // NOTE defining how we can sort based on timestamps is defined in admin/index.scala.html.
-                    `<span class="timestamp" data-timestamp="${c.timestamp}">${new Date(c.timestamp)}</span>`,
-                    `<a class="show-comment-location" href="#" data-heading="${c.heading}" data-pitch="${c.pitch}" data-zoom="${c.zoom}" data-label-id="${c.label_id}">${c.pano_id}</a>`,
-                    c.comment_type,
-                    c.comment,
-                    c.label_id
-                ];})).order([1, 'desc']).draw();
+                commentsTable.rows.add(data.map((c) => {
+                    return [
+                        `<a href='/admin/user/${c.username}'>${c.username}</a>`,
+                        // NOTE defining how we can sort based on timestamps is defined in admin/index.scala.html.
+                        `<span class="timestamp" data-timestamp="${c.timestamp}">${new Date(c.timestamp)}</span>`,
+                        `<a class="show-comment-location" href="#" data-heading="${c.heading}" data-pitch="${c.pitch}" data-zoom="${c.zoom}" data-label-id="${c.label_id}">${c.pano_id}</a>`,
+                        c.comment_type,
+                        c.comment,
+                        c.label_id,
+                    ];
+                })).order([1, 'desc']).draw();
 
                 resolve();
-            }).fail(error => {
+            }).fail((error) => {
                 console.error('Failed to load comments', error);
                 reject(error);
             });
@@ -1452,27 +1478,29 @@ class Admin {
 
     static loadLabels() {
         return new Promise((resolve, reject) => {
-            $.getJSON('/adminapi/getRecentLabelMetadata', function (data) {
+            $.getJSON('/adminapi/getRecentLabelMetadata', (data) => {
                 const labelTable = $('#label-table').DataTable();
 
                 // Add the rows using the DataTable API.
                 // TODO we do want to sort descending, but if I switch to ascending, it doesn't change...
-                labelTable.rows.add(data.map(function(l) { return [
-                    `<a href='/admin/user/${l.username}'>${l.username}</a>`,
-                    // NOTE defining how we can sort based on timestamps is defined in admin/index.scala.html.
-                    `<span class="timestamp" data-timestamp="${l.timestamp}">${new Date(l.timestamp)}</span>`,
-                    l.label_type,
-                    l.severity,
-                    l.tags.join(', '),
-                    l.description,
-                    l.validations.agree,
-                    l.validations.disagree,
-                    l.validations.unsure,
-                    `<a class="labelView" data-label-id="${l.label_id}" href="#">View</a>`
-                ];})).order([1, 'desc']).draw();
+                labelTable.rows.add(data.map((l) => {
+                    return [
+                        `<a href='/admin/user/${l.username}'>${l.username}</a>`,
+                        // NOTE defining how we can sort based on timestamps is defined in admin/index.scala.html.
+                        `<span class="timestamp" data-timestamp="${l.timestamp}">${new Date(l.timestamp)}</span>`,
+                        l.label_type,
+                        l.severity,
+                        l.tags.join(', '),
+                        l.description,
+                        l.validations.agree,
+                        l.validations.disagree,
+                        l.validations.unsure,
+                        `<a class="labelView" data-label-id="${l.label_id}" href="#">View</a>`,
+                    ];
+                })).order([1, 'desc']).draw();
 
                 resolve();
-            }).fail(error => {
+            }).fail((error) => {
                 console.error('Failed to load comments', error);
                 reject(error);
             });
@@ -1481,13 +1509,14 @@ class Admin {
 
     static loadUserStats() {
         return new Promise((resolve, reject) => {
-            $.getJSON('/adminapi/getUserStats', function (data) {
+            $.getJSON('/adminapi/getUserStats', (data) => {
                 const usersTable = $('#user-table').DataTable();
 
                 // Add the rows using the DataTable API.
                 // TODO we do want to sort descending, but if I switch to ascending, it doesn't change...
-                usersTable.rows.add(data.user_stats.map(function(u) {
-                    const roleDropdown = u.role !== 'Owner' ? `
+                usersTable.rows.add(data.user_stats.map((u) => {
+                    const roleDropdown = u.role !== 'Owner'
+                        ? `
                         <div class="dropdown role-dropdown">
                             <button class="btn btn-default dropdown-toggle" type="button" id="userRoleDropdown${u.userId}" data-toggle="dropdown">
                                 ${u.role}
@@ -1501,7 +1530,8 @@ class Admin {
                                 <li><a href="#!" class="change-role">Anonymous</a></li>
                             </ul>
                         </div>
-                    ` : u.role;
+                    `
+                        : u.role;
 
                     const teamDropdown = `
                         <div class="dropdown team-dropdown">
@@ -1510,7 +1540,7 @@ class Admin {
                                 <span class="caret"></span>
                             </button>
                             <ul class="dropdown-menu" role="menu" aria-labelledby="userTeamDropdown${u.userId}">
-                                ${data.teams.map(team => `
+                                ${data.teams.map((team) => `
                                     <li><a href="#!" class="change-team" data-team-id="${team.teamId}">${team.name}</a></li>
                                 `).join('')}
                                 <li><a href="#!" class="change-team" data-team-id="-1">None</a></li>
@@ -1529,12 +1559,12 @@ class Admin {
                         u.highQuality,
                         u.labels,
                         u.ownValidated,
-                        (u.ownValidatedAgreedPct * 100).toFixed(0) + '%',
+                        `${(u.ownValidatedAgreedPct * 100).toFixed(0)}%`,
                         u.othersValidated,
-                        (u.othersValidatedAgreedPct * 100).toFixed(0) + '%',
+                        `${(u.othersValidatedAgreedPct * 100).toFixed(0)}%`,
                         `<span class="timestamp"">${signUpTime}</span>`,
                         `<span class="timestamp"">${lastSignInTime}</span>`,
-                        u.signInCount
+                        u.signInCount,
                     ];
                 })).order([6, 'desc']).draw();
 
@@ -1543,7 +1573,7 @@ class Admin {
                 usersTable.on('click', '.team-dropdown a', Admin.changeTeam);
 
                 resolve();
-            }).fail(error => {
+            }).fail((error) => {
                 console.error('Failed to load user stats', error);
                 reject(error);
             });
@@ -1552,13 +1582,13 @@ class Admin {
 
     static loadTeams() {
         return new Promise((resolve, reject) => {
-            $.getJSON('/userapi/getTeams', function (data) {
+            $.getJSON('/userapi/getTeams', (data) => {
                 const teamsTable = $('#teams-table').DataTable();
 
                 // Add the rows using the DataTable API.
-                teamsTable.rows.add(data.map(function(t) {
-                    const statusDropdown =
-                        `<div class="dropdown status-dropdown">
+                teamsTable.rows.add(data.map((t) => {
+                    const statusDropdown
+                        = `<div class="dropdown status-dropdown">
                             <button class="btn btn-default dropdown-toggle" type="button" id="statusDropdown${t.teamId}" data-toggle="dropdown">
                                 ${t.open ? 'Open' : 'Closed'}
                                 <span class="caret"></span>
@@ -1568,8 +1598,8 @@ class Admin {
                                 <li><a href="#!" class="change-status" data-team-id="${t.teamId}" data-status="false">Closed</a></li>
                             </ul>
                         </div>`;
-                    const visibilityDropdown =
-                        `<div class="dropdown visibility-dropdown">
+                    const visibilityDropdown
+                        = `<div class="dropdown visibility-dropdown">
                             <button class="btn btn-default dropdown-toggle" type="button" id="visibilityDropdown${t.teamId}" data-toggle="dropdown">
                                 ${t.visible ? 'Visible' : 'Hidden'}
                                 <span class="caret"></span>
@@ -1584,7 +1614,7 @@ class Admin {
                         t.name,
                         t.description,
                         statusDropdown,
-                        visibilityDropdown
+                        visibilityDropdown,
                     ];
                 })).order([0, 'asc']).draw();
 
@@ -1593,7 +1623,7 @@ class Admin {
                 teamsTable.on('click', '.visibility-dropdown a', Admin.changeTeamVisibility);
 
                 resolve();
-            }).fail(error => {
+            }).fail((error) => {
                 console.error('Failed to load teams', error);
                 reject(error);
             });
