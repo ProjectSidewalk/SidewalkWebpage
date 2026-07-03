@@ -117,13 +117,13 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
   }
 
   "GET /label/:labelId/image" should {
-    "serve a PNG (200, no auth) at exactly the advertised share dimensions" in {
+    "serve a JPEG (200, no auth) at exactly the advertised share dimensions" in {
       validLabelId match {
         case None     => cancel("No labels in the connected test DB; cannot exercise the valid-label path.")
         case Some(id) =>
           val resp = route(app, FakeRequest(GET, s"/label/$id/image")).get
           status(resp) mustBe OK
-          contentType(resp) mustBe Some("image/png")
+          contentType(resp) mustBe Some("image/jpeg")
           header(CACHE_CONTROL, resp).getOrElse("") must include("max-age")
 
           // The meta advertises og:image:width/height 1440x960; the pipeline must make that true for every source
@@ -233,7 +233,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
   "buildFallbackImage" should {
     "write a branded fallback at exactly the advertised share dimensions" in {
       val controller = app.injector.instanceOf[ShareController]
-      val tmp        = new File(System.getProperty("java.io.tmpdir"), s"share-fallback-spec-${System.nanoTime()}.png")
+      val tmp        = new File(System.getProperty("java.io.tmpdir"), s"share-fallback-spec-${System.nanoTime()}.jpg")
       try {
         controller.buildFallbackImage(tmp)
         assert(tmp.exists(), "fallback image file was not written (is public/assets/sidewalk-logo.png present?)")

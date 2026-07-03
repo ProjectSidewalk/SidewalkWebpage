@@ -321,26 +321,6 @@ class AdminController @Inject() (
   }
 
   /**
-   * Get metadata for a given label ID (excludes personal identifiers like username).
-   */
-  def getLabelData(labelId: Int) = silhouette.UserAwareAction.async { implicit request =>
-    // Public read (#456): the share landing (/label/:id) opens a label popup anonymously. Per-user fields
-    // (userValidation, fromCurrentUser) fall back to "no user" when there's no signed-in identity.
-    val userId: String = request.identity.map(_.userId).getOrElse("")
-    labelService.getSingleLabelMetadata(labelId, userId).map {
-      case Some(metadata) =>
-        Ok(
-          labelMetadataWithValidationToJson(metadata) ++
-            Json.obj(
-              "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
-              "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId)
-            )
-        )
-      case None => NotFound(s"No label found with ID: $labelId")
-    }
-  }
-
-  /**
    * Get a count of the number of labels placed by each user.
    */
   def getAllUserLabelCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>

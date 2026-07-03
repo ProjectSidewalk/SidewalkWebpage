@@ -99,7 +99,7 @@ pasted link produces a rich preview. `GET /label/:id/image` serves the preview i
 label-type marker composited onto the crop (or a branded fallback) — cached under `share.image.directory`
 (`SIDEWALK_SHARE_IMAGES_DIR`), the same mounted volume as label crops so share links persist across container
 recreation. To support the anonymous landing, LabelMap's `RegionController.listNeighborhoods` and
-`AdminController.getLabelData` reads were opened to anonymous access.
+`LabelController.getLabelData` reads were opened to anonymous access.
 
 ## Frontend
 

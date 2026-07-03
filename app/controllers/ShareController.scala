@@ -17,9 +17,11 @@ import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
 import java.nio.file.Files
-import javax.imageio.ImageIO
+import javax.imageio.stream.FileImageOutputStream
+import javax.imageio.{IIOImage, ImageIO, ImageWriteParam}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Using
 
 /**
  * Public social-share surface for a single label (issue #456).
@@ -48,6 +50,11 @@ class ShareController @Inject() (
   // The preview image is the same 3:2 shape as a stored crop (2x for retina), which suits summary_large_image cards.
   private val SHARE_IMAGE_WIDTH  = 1440
   private val SHARE_IMAGE_HEIGHT = 960
+
+  // JPEG for the cached previews: the base imagery is already lossy (GSV/Mapillary JPEGs), every platform re-encodes
+  // the card image into its own CDN, and 0.85 is visually transparent at card sizes while ~10-20x smaller than PNG —
+  // which matters for crawler fetch timeouts and per-city cache volume.
+  private val SHARE_IMAGE_JPEG_QUALITY = 0.85f
 
   /**
    * Renders the public share landing page for a label: the LabelMap flown to the label with its popup auto-open, plus
@@ -88,10 +95,10 @@ class ShareController @Inject() (
    * repeat crawler fetches are cheap and the URL stays stable.
    *
    * @param labelId The label whose preview image to serve.
-   * @return `Ok` with an `image/png`, or `NotFound` if no such label exists.
+   * @return `Ok` with an `image/jpeg`, or `NotFound` if no such label exists.
    */
   def shareImage(labelId: Int) = Action.async { implicit request =>
-    val cachedFile = new File(shareImageDir, s"share_$labelId.png")
+    val cachedFile = new File(shareImageDir, s"share_$labelId.jpg")
     if (cachedFile.exists()) {
       Future.successful(serveImage(cachedFile))
     } else {
@@ -158,10 +165,12 @@ class ShareController @Inject() (
           case Some(base) =>
             val composited: BufferedImage = compositeMarker(base, meta.labelType, meta.canvasXY)
             cacheFile.getParentFile.mkdirs()
-            if (!ImageIO.write(composited, "png", cacheFile)) {
+            writeJpeg(composited, cacheFile)
+            if (cacheFile.exists()) Some(cacheFile)
+            else {
               logger.error(s"Failed to write share image: ${cacheFile.getPath}")
               None
-            } else Some(cacheFile)
+            }
           case None => None
         }
       case None => None
@@ -195,7 +204,8 @@ class ShareController @Inject() (
       labelType: LabelTypeEnum.Base,
       canvasXY: LocationXY
   ): BufferedImage = {
-    val out: BufferedImage = new BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_ARGB)
+    // RGB (not ARGB): the canvas is fully covered by the base photo, and ImageIO's JPEG writer rejects alpha.
+    val out: BufferedImage = new BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB)
     val g                  = out.createGraphics()
     g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
 
@@ -226,9 +236,23 @@ class ShareController @Inject() (
     out
   }
 
-  /** Serves a PNG file with a long cache lifetime (the image content for a label is immutable once generated). */
+  /** Serves a cached JPEG with a long cache lifetime (the image content for a label is immutable once generated). */
   private def serveImage(file: File): Result =
-    Ok.sendFile(file, inline = true).as("image/png").withHeaders("Cache-Control" -> "public, max-age=86400")
+    Ok.sendFile(file, inline = true).as("image/jpeg").withHeaders("Cache-Control" -> "public, max-age=86400")
+
+  /** Writes the image to the given file as a quality-controlled JPEG (ImageIO's default writer quality is lower). */
+  private def writeJpeg(img: BufferedImage, file: File): Unit = {
+    val writer = ImageIO.getImageWritersByFormatName("jpg").next()
+    try {
+      val params = writer.getDefaultWriteParam
+      params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT)
+      params.setCompressionQuality(SHARE_IMAGE_JPEG_QUALITY)
+      Using.resource(new FileImageOutputStream(file)) { out =>
+        writer.setOutput(out)
+        writer.write(null, new IIOImage(img, null, null), params)
+      }
+    } finally writer.dispose()
+  }
 
   /**
    * Branded fallback served when no pano image is available for a label: the logo centered on a white
@@ -236,7 +260,7 @@ class ShareController @Inject() (
    * city and cached alongside the per-label images.
    */
   private def serveFallbackImage(): Result = {
-    val cached: File = new File(shareImageDir, "share_fallback.png")
+    val cached: File = new File(shareImageDir, "share_fallback.jpg")
     if (!cached.exists()) buildFallbackImage(cached)
     if (cached.exists()) serveImage(cached) else NotFound("No preview image available.")
   }
@@ -255,7 +279,7 @@ class ShareController @Inject() (
       g.drawImage(mark, (SHARE_IMAGE_WIDTH - markW) / 2, (SHARE_IMAGE_HEIGHT - markH) / 2, markW, markH, null)
       g.dispose()
       cached.getParentFile.mkdirs()
-      ImageIO.write(out, "png", cached)
+      writeJpeg(out, cached)
     }
   }
 }
