@@ -23,8 +23,11 @@
  * @param {boolean} [params.interactiveStreets=false] - Whether to include hover/click interactions on the streets.
  * @param {boolean} [params.includeLabelCounts=false] - Whether to include label counts for each type in the legend.
  * @param {string} [params.navigationControlPosition='top-left'] - Position of the zoom/pitch controls on the map.
- * @param {string} [params.uiSource] - Used to record the UI used when submitting a validation through the popup.
+ * @param {string} [params.uiSource] - Records the UI used when submitting a validation through the popup.
  * @param {object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
+ * @param {function} [params.onMapReady] - Called with the map as soon as it has loaded, BEFORE the
+ *     (potentially large) neighborhoods/streets/labels layers render. Use this to mount map-bound UI
+ *     early (e.g. the LabelMap search box) instead of waiting on the returned all-loaded promise.
  * @return {Promise} - Promise that resolves all components of map have loaded.
  */
 function CreatePSMap($, params) {
@@ -50,6 +53,20 @@ function CreatePSMap($, params) {
             sidebar.classList.add('map-sidebar--loading');
             map.setPadding({ left: sidebar.offsetWidth, top: 0, right: 0, bottom: 0 });
         }
+
+        // Mount map-bound UI (e.g. the LabelMap search box) now, while the map is ready but the data
+        // layers are still loading. Labels alone can be tens of MB (Seattle ~87 MB), so deferring this
+        // to the all-loaded promise leaves the control missing for many seconds and then shoves the
+        // sidebar down when it finally appears — worse over the network than on localhost (#4370/#4447).
+        // Guarded so a failure in the page's callback can't reject this promise and break the data layers.
+        if (params.onMapReady) {
+            try {
+                params.onMapReady(map);
+            } catch (e) {
+                console.error('onMapReady callback failed', e);
+            }
+        }
+
         return map;
     });
 

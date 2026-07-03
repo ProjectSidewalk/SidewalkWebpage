@@ -52,6 +52,38 @@
     height: 24px;
 }
 
+/* Address/place search box mounted at the top of the LabelMap sidebar (#4370). */
+#labelmap-search-section {
+    /*
+     * Raise the section (and its overflowing autocomplete dropdown) above the sibling filter sections
+     * below it. Those sections' controls (e.g. .severity-button) are position: relative, so without this
+     * they'd paint over the earlier-in-DOM dropdown.
+     */
+    position: relative;
+    z-index: 100;
+    margin-top: 18px; /* Breathing room below the collapse-drawer (close) button. */
+    margin-bottom: 28px; /* A bit more space above the Severity section than the standard 25px. */
+}
+
+#labelmap-search-box {
+    width: 100%;
+    /*
+     * Reserve the control's height (the Mapbox search input is 36px) so mounting it never nudges the
+     * filter sections below — even in the sub-frame before the search web component finishes upgrading.
+     */
+    min-height: 36px;
+}
+
+/*
+ * The control wraps itself in a .mapboxgl-ctrl div with an inline width: 300px (sized for a floating
+ * map control). Override it so the box fills the sidebar column instead of overflowing its ~290px of
+ * content width. !important is required because 300px is set as an inline style.
+ */
+#labelmap-search-box > .mapboxgl-ctrl {
+    width: 100% !important;
+    margin: 0;
+}
+
 /* Drag handle for resizing the sidebar width. Sits on the right edge of the sidebar. */
 .map-sidebar__resize-handle {
     position: absolute;
