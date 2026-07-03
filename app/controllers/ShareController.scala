@@ -138,7 +138,8 @@ class ShareController @Inject() (
       commonData.allCityInfo.find(_.cityId == commonData.cityId).map(_.cityNameFormatted).getOrElse("")
     // The description is short, fully-localized sentences joined in a fixed order, with the data-dependent ones
     // (severity, tags) included only when present. Severity is stated only for access-issue types — on positive
-    // features the same column encodes quality, not badness. Tag names are stored untranslated (#456 follow-up).
+    // features the same column encodes quality, not badness. Tag names are stored untranslated; server-side tag
+    // localization is #4445.
     val description: String = Seq(
       Some(Messages("share.meta.description.spotted", cityName)),
       meta.severity.filter(_ => meta.labelType.isAccessIssue).map(s => Messages("share.meta.description.severity", s)),
