@@ -110,6 +110,15 @@ module.exports = [
 
             // Rules the preset doesn't set -- keep our own:
             '@stylistic/function-call-spacing': ['error', 'never'],
+            // Permit (not enforce) hand-aligned object tables: 'minimum' allows extra spaces after the colon, and the
+            // ObjectExpression exception allows padding between same-line properties (the rule attributes the gap after
+            // a comma to the containing object, not the next Property). ignoreEOLComments likewise permits
+            // column-aligned trailing comments on field declarations.
+            '@stylistic/key-spacing': ['error', { beforeColon: false, afterColon: true, mode: 'minimum' }],
+            '@stylistic/no-multi-spaces': [
+                'error',
+                { exceptions: { Property: true, ObjectExpression: true }, ignoreEOLComments: true },
+            ],
             // Override the preset's brace-style to forbid single-line blocks. Without this, curly's autofix on a
             // next-line braceless `if` collapses to `if (cond) { stmt; }`, which then trips the non-fixable
             // max-statements-per-line rule and leaves --fix stuck. Forbidding single-line blocks lets --fix expand
